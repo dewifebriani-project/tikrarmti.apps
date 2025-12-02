@@ -1,0 +1,407 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, LogOut, User, Settings, FileText, Star } from 'lucide-react'
+import Link from 'next/link'
+
+export default function Dashboard() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [todayProgress, setTodayProgress] = useState({
+    completed: 0,
+    total: 7,
+    percentage: 0
+  })
+
+  const [stats, setStats] = useState({
+    totalHariTarget: 30,
+    hariAktual: 22,
+    persentaseProgress: 73,
+    jurnalHariIni: false,
+    tashihHariIni: false
+  })
+
+  const [recentActivity, setRecentActivity] = useState([
+    { id: 1, type: 'jurnal', date: '2025-12-01', description: 'Jurnal harian selesai' },
+    { id: 2, type: 'tashih', date: '2025-11-30', description: 'Tashih blok H2a' },
+    { id: 3, type: 'jurnal', date: '2025-11-30', description: 'Jurnal harian selesai' },
+  ])
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    // Simulate loading today's progress from localStorage or API
+    const savedProgress = localStorage.getItem('mti-jurnal-today')
+    if (savedProgress) {
+      const jurnalData = JSON.parse(savedProgress)
+      const completedSteps = Object.values(jurnalData.completedSteps || {}).filter(Boolean).length
+      setTodayProgress({
+        completed: completedSteps,
+        total: 7,
+        percentage: Math.round((completedSteps / 7) * 100)
+      })
+    }
+  }, [user, router])
+
+  const handleLogout = async () => {
+    try {
+      setIsLoading(true)
+      await logout()
+      router.push('/login')
+    } catch (error) {
+      console.error('Error logging out:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-custom-green-50 via-white to-custom-gold-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const getWelcomeMessage = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return 'Selamat Pagi'
+    if (hour < 15) return 'Selamat Siang'
+    if (hour < 18) return 'Selamat Sore'
+    return 'Selamat Malam'
+  }
+
+  const getRoleDisplay = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Administrator'
+      case 'musyrifah':
+        return 'Musyrifah MTI'
+      case 'muallimah':
+        return 'Muallimah MTI'
+      case 'thalibah':
+        return 'Thalibah Tahfidz'
+      case 'calon_thalibah':
+        return 'Calon Thalibah'
+      default:
+        return 'Peserta MTI'
+    }
+  }
+
+  const quickActions = [
+    {
+      title: 'Jurnal Harian',
+      description: 'Isi kurikulum 7 tahap hari ini',
+      icon: BookOpen,
+      href: '/jurnal-harian',
+      color: 'bg-green-600 text-white hover:bg-green-700'
+    },
+    {
+      title: 'Tasmi\'',
+      description: 'Validasi bacaan Anda',
+      icon: CheckCircle,
+      href: '/tashih',
+      color: 'bg-yellow-500 text-white hover:bg-yellow-600'
+    },
+    {
+      title: 'Perjalanan Saya',
+      description: 'Lihat progress lengkap',
+      icon: TrendingUp,
+      href: '/perjalanan-saya',
+      color: 'bg-blue-500 text-white hover:bg-blue-600'
+    }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-custom-green-50 via-white to-custom-gold-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-green-900/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <img
+                src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
+                alt="Markaz Tikrar Indonesia"
+                className="w-10 h-10 object-contain mr-3"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-green-900">Dashboard MTI</h1>
+                <p className="text-sm text-gray-600">
+                  {getWelcomeMessage()}, {user.displayName?.split(' ')[0] || 'Ukhti'}!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
+                <p className="text-xs text-green-600 font-medium">{getRoleDisplay(user.role)}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                disabled={isLoading}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+              >
+                {isLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                ) : (
+                  <LogOut className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Card */}
+        <Card className="mb-8 bg-gradient-to-r from-green-600 to-green-700 text-white border-0">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-2">
+                  {getWelcomeMessage()}, {user.displayName || 'Ukhti'}! 👋
+                </h2>
+                <p className="text-green-100">
+                  Selamat datang kembali di Markaz Tikrar Indonesia. Semoga hari ini lebih baik dari hari kemarin.
+                </p>
+                <div className="mt-4 flex items-center space-x-4">
+                  <div className="flex items-center">
+                    <Award className="w-5 h-5 mr-2" />
+                    <span className="font-medium">{getRoleDisplay(user.role)}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    <span>Bergabung: {new Date(user.createdAt || '').toLocaleDateString('id-ID')}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block">
+                <Star className="w-16 h-16 text-yellow-300" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Progress Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-white shadow-sm border border-green-900/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Hari Target</CardTitle>
+              <Target className="h-4 w-4 text-green-900" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-900">{stats.totalHariTarget}</div>
+              <p className="text-xs text-muted-foreground">Total hari target</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-sm border border-blue-900/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Hari Aktual</CardTitle>
+              <Calendar className="h-4 w-4 text-yellow-900" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-900">{stats.hariAktual}</div>
+              <p className="text-xs text-muted-foreground">Hari selesai</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-sm border border-purple-900/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Progress</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-900" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-900">{stats.persentaseProgress}%</div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div
+                  className="bg-green-900 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${stats.persentaseProgress}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-sm border border-yellow-900/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Jurnal Hari Ini</CardTitle>
+              {stats.jurnalHariIni ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : (
+                <Clock className="h-4 w-4 text-orange-500" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {todayProgress.completed}/{todayProgress.total}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {todayProgress.percentage}% selesai
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {quickActions.map((action) => {
+            const Icon = action.icon
+            return (
+              <Card key={action.title} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <CardHeader>
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-lg ${action.color}`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{action.title}</CardTitle>
+                      <CardDescription>{action.description}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Link href={action.href}>
+                    <Button className={`w-full ${action.color}`}>
+                      Mulai {action.title}
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* Today's Progress & Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Today's Progress */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Target className="h-5 w-5 text-green-900" />
+                <span>Progress Jurnal Hari Ini</span>
+              </CardTitle>
+              <CardDescription>
+                {todayProgress.completed} dari {todayProgress.total} tahap selesai
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { name: 'Tadabur', completed: true },
+                  { name: 'Murajaah', completed: false },
+                  { name: 'Simak Murattal', completed: true },
+                  { name: 'Tikrar Bi An-Nadzar', completed: false },
+                  { name: 'Tasmi Record', completed: false },
+                  { name: 'Simak Record', completed: true },
+                  { name: 'Tikrar Bi Al-Ghaib', completed: false },
+                ].map((step, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                    <span className="font-medium text-sm">{step.name}</span>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                      step.completed ? 'bg-green-500' : 'bg-gray-300'
+                    }`}>
+                      {step.completed && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <Link href="/jurnal-harian">
+                  <Button className="w-full bg-green-900 hover:bg-green-700">
+                    Lanjutkan Jurnal
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Clock className="h-5 w-5 text-yellow-900" />
+                <span>Aktivitas Terkini</span>
+              </CardTitle>
+              <CardDescription>
+                Aktivitas pembelajaran Anda
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className={`w-2 h-2 rounded-full ${
+                      activity.type === 'jurnal' ? 'bg-green-500' : 'bg-yellow-500'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {activity.description}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(activity.date).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4">
+                <Link href="/perjalanan-saya">
+                  <Button variant="outline" className="w-full">
+                    Lihat Semua Aktivitas
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Achievement Banner */}
+        <Card className="mt-8 bg-gradient-to-r from-green-900 to-green-600 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-3">
+                  <Award className="h-8 w-8" />
+                  <div>
+                    <h3 className="text-xl font-bold">Tetap Konsisten!</h3>
+                    <p className="text-green-100">
+                      Anda telah menyelesaikan {stats.hariAktual} hari dari {stats.totalHariTarget} hari target.
+                      Pertahankan konsistensi Anda!
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden lg:block">
+                <div className="text-4xl font-bold">{stats.persentaseProgress}%</div>
+                <p className="text-green-100 text-sm">Progress</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  )
+}
