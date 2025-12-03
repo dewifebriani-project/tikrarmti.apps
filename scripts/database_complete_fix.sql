@@ -1,4 +1,4 @@
--- Complete Database Fix for Tikr Armati Application
+-- Complete Database Fix for Tikrar MTI Apps
 -- This script fixes all RLS policies and schema issues
 
 -- First, let's check if the users table exists and has the correct structure

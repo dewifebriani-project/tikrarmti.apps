@@ -1,4 +1,4 @@
-// Database Types untuk Tikr Armati App
+// Database Types untuk Tikrar MTI Apps
 // Generated from database schema
 
 export type UserRole = 'calon_thalibah' | 'thalibah' | 'musyrifah' | 'muallimah' | 'admin';
