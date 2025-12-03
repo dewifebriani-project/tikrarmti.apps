@@ -86,3 +86,5 @@ junit.xml
 # Production build artifacts
 dist/
 build/
+.vercel
+.env*.local
