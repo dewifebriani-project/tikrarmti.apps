@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
 
 interface FormData {
   // Section 1 - Komitmen & Pemahaman
@@ -1139,6 +1139,17 @@ function TikrarTahfidzPage() {
             Program Hafalan Al-Qur'an Gratis Khusus Akhawat<br/>
             <span className="text-base text-green-700 font-medium">Metode Tikrar 40 Kali - Juz 1, 28, 29, 30</span>
           </p>
+
+          {/* Link ke Perjalanan Program */}
+          <div className="mt-4">
+            <a
+              href="/pendaftaran/perjalanan-program"
+              className="inline-flex items-center px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Lihat Perjalanan Program
+            </a>
+          </div>
         </div>
 
         <Card className="shadow-lg border-green-100">
