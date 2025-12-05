@@ -30,7 +30,12 @@
       "Bash(npm install upstash/ratelimit)",
       "Bash(npm install:*)",
       "Bash(echo:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(git push)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { checkUserRegistrationStatus } from '@/lib/auth';
 import { Crown } from "lucide-react";
 
 function AuthCallbackContent() {
@@ -76,14 +75,23 @@ function AuthCallbackContent() {
         const userId = sessionData.session.user.id;
         console.log('User authenticated:', userEmail);
 
-        // Check if user is registered in our database
+        // Check if user is registered in our database using API endpoint
         setCheckingUser(true);
 
         if (!userEmail) {
           throw new Error('User email is required');
         }
 
-        const registrationStatus = await checkUserRegistrationStatus(userEmail);
+        // Call API to check registration status (server-side check)
+        const response = await fetch('/api/auth/check-registration', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: userEmail }),
+        });
+
+        const registrationStatus = await response.json();
 
         if (!registrationStatus.registered) {
           console.log('User registration incomplete:', userEmail, registrationStatus.reason);
