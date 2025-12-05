@@ -26,8 +26,34 @@ function AuthCallbackContent() {
           return;
         }
 
+        // Handle hash fragment (for implicit flow)
+        // OAuth may return tokens in hash fragment instead of query params
+        if (typeof window !== 'undefined' && window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+
+          if (accessToken) {
+            console.log('Found access token in hash fragment, setting session...');
+            // Set session from hash fragment tokens
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            if (sessionError) {
+              console.error('Error setting session from hash:', sessionError);
+              setError(`Failed to set session: ${sessionError.message}`);
+              return;
+            }
+
+            // Clear hash from URL
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }
+
         // Wait a moment for Supabase to process the session
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Get session after URL processing
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
