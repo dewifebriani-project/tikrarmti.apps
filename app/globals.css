@@ -329,3 +329,30 @@
 * {
   transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
 }
+
+/* Custom Classes for Metode Page */
+.bg-gradient-islamic {
+  background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
+}
+
+.text-main {
+  color: #15803d;
+}
+
+.text-secondary {
+  color: #64748b;
+}
+
+.text-primary {
+  color: #15803d;
+}
+
+.card-modern {
+  @apply bg-white border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300;
+}
+
+.pattern-islamic {
+  background-image:
+    radial-gradient(circle at 25% 25%, rgba(34, 197, 94, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(21, 128, 61, 0.1) 0%, transparent 50%);
+}

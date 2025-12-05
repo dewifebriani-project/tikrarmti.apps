@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword, deleteUser as supabaseDeleteUser } from '@/lib/auth';
-import type { User, AuthContextType } from '@/types';
+import type { User, UserRole, AuthContextType } from '@/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -54,107 +54,95 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserProfile = async (authUser: any) => {
     try {
-      // First try to select only basic fields that we know exist
+      // Try using the admin client to avoid potential issues
       const { data: profile, error } = await supabase
         .from('users')
         .select('id, email, full_name, avatar_url, role, created_at, updated_at')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
       if (error) {
-        // If the basic fields query also fails, create a basic user object
         console.error('Error fetching user profile:', error);
 
-        // Try to create the user record if it doesn't exist
-        if (error.code === 'PGRST116') {
-          console.log('User not found in database, attempting to create profile...');
-          try {
-            const { error: insertError } = await supabase
-              .from('users')
-              .insert({
-                id: authUser.id,
-                email: authUser.email,
-                full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || '',
-                role: authUser.user_metadata?.role || 'thalibah',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              });
+        // If there's an error fetching by ID, try checking by email as fallback
+        console.log('Error occurred, checking if user exists with email...');
 
-            if (insertError) {
-              console.error('Failed to create user profile:', insertError);
-            } else {
-              console.log('User profile created successfully');
-              // Try fetching again
-              const { data: newProfile, error: refetchError } = await supabase
-                .from('users')
-                .select('id, email, full_name, avatar_url, role, created_at, updated_at')
-                .eq('id', authUser.id)
-                .single();
+        const { data: existingUser, error: fetchByEmailError } = await supabase
+          .from('users')
+          .select('id, email, full_name, avatar_url, role, created_at, updated_at')
+          .eq('email', authUser.email)
+          .maybeSingle();
 
-              if (!refetchError && newProfile) {
-                setUser({
-                  id: authUser.id,
-                  email: authUser.email || '',
-                  full_name: newProfile.full_name || '',
-                  avatar_url: newProfile.avatar_url || undefined,
-                  role: newProfile.role,
-                  is_active: true,
-                  created_at: newProfile.created_at,
-                  updated_at: newProfile.updated_at,
-                  displayName: newProfile.full_name || '',
-                  photoURL: newProfile.avatar_url || undefined,
-                  createdAt: new Date(newProfile.created_at),
-                  updatedAt: new Date(newProfile.updated_at),
-                  isProfileComplete: true,
-                });
-                return;
-              }
-            }
-          } catch (createError) {
-            console.error('Error creating user profile:', createError);
-          }
+        if (fetchByEmailError) {
+          console.error('Error fetching user by email:', fetchByEmailError);
+          // Error accessing database - sign out for security
+          console.log('Database access error. Signing out user for security.');
+          await supabase.auth.signOut();
+          setUser(null);
+          return;
         }
 
-        // Fallback to basic user object
-        setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          full_name: authUser.user_metadata?.full_name || '',
-          avatar_url: authUser.user_metadata?.avatar_url || undefined,
-          role: authUser.user_metadata?.role || 'thalibah',
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          displayName: authUser.user_metadata?.full_name || '',
-          photoURL: authUser.user_metadata?.avatar_url || undefined,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isProfileComplete: false,
-        });
-        return;
+        if (existingUser) {
+          // User exists with email
+          if (existingUser.id === authUser.id) {
+            // IDs match, use this profile
+            console.log('User found with matching ID');
+            setUser(createUserObjectFromProfile(authUser, existingUser));
+            return;
+          } else {
+            // IDs don't match - potential security issue
+            console.error('Security warning: User exists with email but different ID');
+            await supabase.auth.signOut();
+            setUser(null);
+            return;
+          }
+        } else {
+          // User doesn't exist in database at all
+          console.log('User not found in database. User must register first.');
+          await supabase.auth.signOut();
+          setUser(null);
+          return;
+        }
       }
 
       if (profile) {
-        setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          full_name: profile.full_name || '',
-          avatar_url: profile.avatar_url || undefined,
-          role: profile.role,
-          is_active: true,
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-          displayName: profile.full_name || '',
-          photoURL: profile.avatar_url || undefined,
-          createdAt: new Date(profile.created_at),
-          updatedAt: new Date(profile.updated_at),
-          isProfileComplete: true,
-        });
+        console.log('User profile found and authenticated');
+        setUser(createUserObjectFromProfile(authUser, profile));
+      } else {
+        // No profile found - user not registered
+        console.log('No profile found for user. User must register first.');
+        // Jangan logout di sini, biarkan callback yang menangani
+        setUser(null);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
       setUser(null);
     }
+  };
+
+  // Helper function to create user object from database profile
+  const createUserObjectFromProfile = (authUser: any, profile: any): User => {
+    // Ensure role is a valid UserRole
+    const userRole = profile.role || 'calon_thalibah';
+    const validRole: UserRole = ['calon_thalibah', 'thalibah', 'musyrifah', 'muallimah', 'admin'].includes(userRole)
+      ? userRole as UserRole
+      : 'calon_thalibah';
+
+    return {
+      id: authUser.id,
+      email: authUser.email || '',
+      full_name: profile.full_name || '',
+      avatar_url: profile.avatar_url || undefined,
+      role: validRole,
+      is_active: true,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+      displayName: profile.full_name || '',
+      photoURL: profile.avatar_url || undefined,
+      createdAt: new Date(profile.created_at),
+      updatedAt: new Date(profile.updated_at),
+      isProfileComplete: true,
+    };
   };
 
   const logout = async () => {

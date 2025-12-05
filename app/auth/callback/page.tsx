@@ -1,107 +1,198 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { validateGoogleUserRegistration } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/client';
+import { checkUserRegistrationStatus } from '@/lib/auth';
+import { Crown } from "lucide-react";
 
-export default function AuthCallback() {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [checkingUser, setCheckingUser] = useState(false);
 
   useEffect(() => {
     const handleCallback = async () => {
+      const supabase = createClient();
+
       try {
         setLoading(true);
 
-        // Get the auth code from URL
-        const code = searchParams.get('code');
-
-        if (!code) {
-          throw new Error('Kode autentikasi tidak ditemukan');
+        // Check for errors in URL first
+        const error = searchParams.get('error');
+        if (error) {
+          setError(`Authentication error: ${error}`);
+          return;
         }
 
-        // Exchange code for session
-        const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+        // Wait a moment for Supabase to process the session
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        if (sessionError) throw sessionError;
+        // Get session after URL processing
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-        if (!data.user?.email) {
-          throw new Error('Email user tidak ditemukan');
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setError(`Failed to authenticate: ${sessionError.message}`);
+          return;
         }
 
-        // Check if user has completed registration
-        const isRegistrationComplete = await validateGoogleUserRegistration(data.user.email);
+        if (!sessionData.session?.user?.email) {
+          console.log('No session found, checking URL parameters...');
 
-        if (!isRegistrationComplete) {
-          // Sign out the user since they haven't completed registration
-          await supabase.auth.signOut();
-          throw new Error('Anda harus menyelesaikan pendaftaran terlebih dahulu. Silakan lengkapi data diri Anda di halaman pendaftaran.');
+          // Check if we have authentication parameters in URL
+          const hasAuthParams = searchParams.has('code') || searchParams.has('access_token');
+
+          if (hasAuthParams) {
+            console.log('Auth params found, waiting for session...');
+            // Wait a bit longer for session to be established
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Try to get session again
+            const { data: retryData, error: retryError } = await supabase.auth.getSession();
+
+            if (retryError) {
+              setError(`Failed to authenticate: ${retryError.message}`);
+              return;
+            }
+
+            if (!retryData.session?.user?.email) {
+              setError('Authentication failed. Please try again.');
+              return;
+            }
+
+            // Use retry data for further processing
+            sessionData.session = retryData.session;
+          } else {
+            setError('No authorization code found');
+            return;
+          }
         }
 
-        // Redirect to dashboard on successful validation
-        router.push('/dashboard');
+        // At this point we have a valid session
+        const userEmail = sessionData.session.user.email;
+        const userId = sessionData.session.user.id;
+        console.log('User authenticated:', userEmail);
+
+        // Check if user is registered in our database
+        setCheckingUser(true);
+
+        if (!userEmail) {
+          throw new Error('User email is required');
+        }
+
+        const registrationStatus = await checkUserRegistrationStatus(userEmail);
+
+        if (!registrationStatus.registered) {
+          console.log('User registration incomplete:', userEmail, registrationStatus.reason);
+
+          // Jika user belum terdaftar sama sekali
+          if (registrationStatus.reason?.includes('User tidak ditemukan')) {
+            // User not registered - sign them out and redirect to register
+            await supabase.auth.signOut();
+            router.push(`/register?email=${encodeURIComponent(userEmail || '')}`);
+            return;
+          } else {
+            // User sudah ada di database tapi profil belum lengkap
+            // Redirect ke halaman lengkapi profil
+            console.log('Redirecting to profile completion page...');
+            router.push('/lengkapi-profil');
+            return;
+          }
+        } else {
+          console.log('User registered, redirecting to dashboard');
+          // User is registered, proceed to dashboard
+          router.push('/dashboard');
+        }
 
       } catch (err: any) {
-        setError(err.message || 'Terjadi kesalahan saat autentikasi');
-
-        // Redirect to login page with error after a delay
-        setTimeout(() => {
-          router.push(`/login?error=${encodeURIComponent(err.message || 'Terjadi kesalahan saat autentikasi')}`);
-        }, 3000);
+        console.error('Auth callback error:', err);
+        setError(err.message || 'An unexpected error occurred during authentication');
       } finally {
         setLoading(false);
+        setCheckingUser(false);
       }
     };
 
     handleCallback();
   }, [router, searchParams]);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-custom-green-50 via-white to-custom-gold-50 flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-8 text-center">
-          {/* Logo */}
-          <div className="mb-6">
-            <img
-              src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
-              alt="Markaz Tikrar Indonesia"
-              className="w-20 h-20 object-contain mx-auto"
-            />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-900 to-yellow-600 rounded-2xl flex items-center justify-center">
+              <Crown className="w-8 h-8 text-white animate-pulse" />
+            </div>
           </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-custom-green-600 mx-auto"></div>
-              <h2 className="text-xl font-semibold text-gray-800">
-                Sedang memproses autentikasi...
-              </h2>
-              <p className="text-gray-600">
-                Mohon tunggu sebentar, Ukhti.
-              </p>
-            </div>
-          ) : error ? (
-            <div className="space-y-4">
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                <p className="text-sm font-medium">{error}</p>
-              </div>
-              <p className="text-gray-600 text-sm">
-                Anda akan dialihkan ke halaman login dalam beberapa saat...
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                <p className="text-sm font-medium">
-                  Autentikasi berhasil! Mengalihkan ke dashboard...
-                </p>
-              </div>
-            </div>
-          )}
+          <h1 className="text-2xl font-bold text-green-900 mb-4">
+            {checkingUser ? 'Memeriksa Data Anda...' : 'Mengautentikasi...'}
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Mohon tunggu sebentar
+          </p>
+          <div className="flex justify-center">
+            <div className="w-8 h-8 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
+          </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-red-900 mb-4">
+            Autentikasi Gagal
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {error}
+          </p>
+          <button
+            onClick={() => router.push('/login')}
+            className="px-6 py-3 bg-green-900 text-white rounded-lg hover:bg-green-800 transition-colors"
+          >
+            Kembali ke Halaman Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
+export default function AuthCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-900 to-yellow-600 rounded-2xl flex items-center justify-center">
+              <Crown className="w-8 h-8 text-white animate-pulse" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-green-900 mb-4">
+            Memuat...
+          </h1>
+          <div className="flex justify-center">
+            <div className="w-8 h-8 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }

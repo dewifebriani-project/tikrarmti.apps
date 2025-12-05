@@ -49,20 +49,18 @@ export default function Home() {
             Metode Tikrar 40x: Pembelajaran Intensif, Terstruktur, dan Menghasilkan Hafalan Kuat.
           </p>
 
-          {/* Action Buttons */}
+          {/* Action Button */}
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-12 sm:mb-16">
             <Button
               asChild
               size="lg"
-              className="bg-green-900 hover:bg-green-800 text-white px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl group"
+              className="bg-gradient-to-r from-green-900 to-yellow-600 hover:from-green-800 hover:to-yellow-500 text-white px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl group"
             >
               <Link href="/register" className="flex items-center gap-3">
-                <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
+                <Crown className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
                 Daftar Sekarang (Gratis)
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
               </Link>
             </Button>
-
             <Button
               asChild
               variant="outline"
@@ -232,20 +230,18 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="bg-white hover:bg-gray-50 text-green-900 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-2xl hover:shadow-3xl group"
+                className="bg-white hover:bg-gray-50 text-green-900 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl group"
               >
                 <Link href="/register" className="flex items-center gap-3">
-                  <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
+                  <Crown className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
                   Daftar Sekarang (Gratis)
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
               </Button>
-
               <Button
                 asChild
                 variant="outline"
                 size="lg"
-                className="border-2 border-white text-white hover:bg-white hover:text-green-900 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl group"
+                className="border-2 border-white text-white hover:bg-white hover:text-green-900 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
               >
                 <Link href="/login" className="flex items-center gap-3">
                   <Heart className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
@@ -264,15 +260,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Floating Login Button */}
+      {/* Floating Register Button */}
       <div className="fixed bottom-8 right-8 z-50">
         <Button
           asChild
           className="bg-gradient-to-r from-green-900 to-yellow-600 hover:from-green-800 hover:to-yellow-500 text-white shadow-xl hover:shadow-2xl hover:scale-110 transition-all duration-300 rounded-full px-6 py-4 flex items-center gap-3 group"
         >
-          <Link href="/login" className="flex items-center gap-3">
-            <Trophy className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-            <span className="font-semibold hidden sm:inline">Masuk</span>
+          <Link href="/register" className="flex items-center gap-3">
+            <Crown className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+            <span className="font-semibold hidden sm:inline">Daftar Gratis</span>
           </Link>
         </Button>
       </div>

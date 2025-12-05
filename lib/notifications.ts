@@ -172,7 +172,7 @@ export const sendUserNotification = async (
     case 'user_created':
       notificationTemplate = NotificationTemplates.userCreated(
         userName,
-        additionalData?.role || 'user'
+        additionalData?.role || 'calon_thalibah'
       );
       break;
     case 'user_updated':
@@ -220,7 +220,7 @@ export const sendAdminNotification = async (
       notificationTemplate = NotificationTemplates.adminUserCreated(
         additionalData?.adminName || 'Administrator',
         targetUserName,
-        additionalData?.role || 'user'
+        additionalData?.role || 'calon_thalibah'
       );
       type = 'user_created';
       break;

@@ -1,22 +1,10 @@
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePathname } from 'next/navigation';
 import { Heart, HandCoins, Target, TrendingUp, History, Settings, Home, ArrowLeft, FileText, Users, Receipt } from 'lucide-react';
 
 export default function DonasiSidebar() {
-  const { user, userData, logout } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
 
   const donasiMenuItems = [
     {
@@ -88,25 +76,23 @@ export default function DonasiSidebar() {
       </div>
 
       {/* User Info */}
-      {userData && (
         <div className="p-4 border-b border-gray-200 bg-green-50">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <span className="text-green-900 font-semibold">
-                {userData.name?.charAt(0).toUpperCase() || 'U'}
+                {'P'.charAt(0).toUpperCase()}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {userData.name || 'User'}
+                Pengguna
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {userData.email || 'user@example.com'}
+                demo@example.com
               </p>
             </div>
           </div>
         </div>
-      )}
 
       {/* Donasi Menu */}
       <div className="flex-1 overflow-y-auto">

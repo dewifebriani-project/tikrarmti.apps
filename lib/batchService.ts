@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Batch, BatchCreateRequest, BatchUpdateRequest, BatchEnrollment, BatchSession, BatchStatistics, BatchFilter, EnrollmentApprovalRequest } from '@/types/batch'
+import type { Batch, BatchCreateRequest, BatchUpdateRequest, BatchEnrollment, BatchSession, BatchStatistics, ExtendedBatchFilter, EnrollmentApprovalRequest } from '@/types/batch'
 
 export class BatchService {
   // Batch Management
@@ -80,7 +80,7 @@ export class BatchService {
     }
   }
 
-  static async getBatches(filter?: BatchFilter): Promise<Batch[]> {
+  static async getBatches(filter?: ExtendedBatchFilter): Promise<Batch[]> {
     try {
       let query = supabase.from('batches').select('*');
 
@@ -350,7 +350,7 @@ export class BatchService {
 
   // Utility Functions
   static async getActiveBatches(): Promise<Batch[]> {
-    return this.getBatches({ status: ['active'] });
+    return this.getBatches({ status: ['open'] });
   }
 
   static async getEnrollmentTrends(batchId: string, months: number = 6): Promise<BatchStatistics['enrollmentTrends']> {

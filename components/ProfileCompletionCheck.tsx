@@ -11,7 +11,7 @@ interface ProfileCompletionCheckProps {
 }
 
 export default function ProfileCompletionCheck({ children, fallback }: ProfileCompletionCheckProps) {
-  const { userData, isProfileComplete } = useAuth();
+  const { user, isProfileComplete } = useAuth();
 
   // Routes that don't require profile completion
   const excludedRoutes = [

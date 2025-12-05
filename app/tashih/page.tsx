@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import AuthenticatedLayout from '@/components/AuthenticatedLayout'
 
 interface TashihData {
   blok: string
@@ -126,7 +127,8 @@ export default function Tashih() {
 
   if (isCompleted) {
     return (
-      <div className="space-y-6 animate-fadeInUp">
+      <AuthenticatedLayout title="Tashih Bacaan">
+        <div className="space-y-6 animate-fadeInUp">
         <div className="text-center py-12">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <CheckCircle className="h-8 w-8 text-green-600" />
@@ -204,11 +206,13 @@ export default function Tashih() {
           </div>
         </div>
       </div>
+      </AuthenticatedLayout>
     )
   }
 
   return (
-    <div className="space-y-6 animate-fadeInUp">
+    <AuthenticatedLayout title="Tashih Bacaan">
+      <div className="space-y-6 animate-fadeInUp">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -466,5 +470,6 @@ export default function Tashih() {
         </div>
       </form>
     </div>
+    </AuthenticatedLayout>
   )
 }

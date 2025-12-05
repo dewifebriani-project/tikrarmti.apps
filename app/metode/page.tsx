@@ -257,16 +257,7 @@ export default function MetodePage() {
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
-              <Link
-                href="/register"
-                className="btn-secondary-islamic text-white font-bold px-8 py-4 text-lg inline-flex items-center group"
-              >
-                <span>Daftar Program</span>
-                <svg className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </Link>
-              <Link
+                            <Link
                 href="/#features"
                 className="bg-white/90 backdrop-blur-sm text-primary font-bold px-8 py-4 text-lg rounded-xl hover:bg-white transition-all duration-300 inline-flex items-center group border border-white/50"
               >

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { User, UserRole } from '@/types';
-import { createNewUser } from '@/lib/auth';
+import { registerWithEmail } from '@/lib/auth';
 import {
   Dialog,
   DialogContent,
@@ -41,13 +41,10 @@ interface UserCreateModalProps {
 
 const userRoles: UserRole[] = [
   'admin',
-  'tim_seleksi',
-  'tim_ujian_akhir',
   'muallimah',
   'musyrifah',
   'thalibah',
-  'calon_thalibah',
-  'donatur'
+  'calon_thalibah'
 ];
 
 const indonesianCities = [
@@ -181,15 +178,27 @@ export default function UserCreateModal({
     setSuccess('');
 
     try {
-      const newUser = await createNewUser(
+      const authUser = await registerWithEmail(
         formData.email,
         formData.password,
         formData.name,
-        formData.role,
-        formData.personalInfo
+        formData.role
       );
-      onSave(newUser);
-      setSuccess('Pengguna berhasil dibuat!');
+
+      if (authUser) {
+        // Fetch the user profile from our database
+        const { getUserById } = await import('@/lib/auth');
+        const userProfile = await getUserById(authUser.id);
+
+        if (userProfile) {
+          onSave(userProfile);
+          setSuccess('Pengguna berhasil dibuat!');
+        } else {
+          setError('Pengguna dibuat tapi gagal mengambil data profil');
+        }
+      } else {
+        setError('Gagal membuat pengguna');
+      }
 
       // Reset form
       setFormData({

@@ -59,7 +59,7 @@ BEGIN
         new.id,
         new.email,
         COALESCE(new.raw_user_meta_data->>'full_name', new.email),
-        COALESCE(new.raw_user_meta_data->>'role', 'thalibah'),
+        COALESCE(new.raw_user_meta_data->>'role', 'calon_thalibah'),
         'managed_by_auth_system'
     );
     RETURN new;

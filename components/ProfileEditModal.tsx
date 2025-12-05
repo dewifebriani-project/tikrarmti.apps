@@ -49,12 +49,11 @@ export default function ProfileEditModal({ user, userData, onProfileUpdate, chil
 
     try {
       // Update Supabase profile
-      if (user?.uid) {
+      if (user?.id) {
         await updateUserProfile({
           displayName: formData.displayName,
           phoneNumber: formData.phoneNumber,
-          address: formData.address,
-          bio: formData.bio,
+          alamat: formData.address,
         });
       }
 

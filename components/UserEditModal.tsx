@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { User, UserRole } from '@/types';
-import { updateUser } from '@/lib/auth';
+import { updateUserData } from '@/lib/auth';
 import {
   Dialog,
   DialogContent,
@@ -23,10 +23,6 @@ import {
   User as UserIcon,
   Mail,
   Phone,
-  Calendar,
-  MapPin,
-  Globe,
-  MessageSquare,
   Save,
   X,
   AlertCircle
@@ -41,62 +37,10 @@ interface UserEditModalProps {
 
 const userRoles: UserRole[] = [
   'admin',
-  'tim_seleksi',
-  'tim_ujian_akhir',
   'muallimah',
   'musyrifah',
   'thalibah',
-  'calon_thalibah',
-  'donatur'
-];
-
-const indonesianCities = [
-  'Jakarta',
-  'Surabaya',
-  'Bandung',
-  'Medan',
-  'Semarang',
-  'Makassar',
-  'Palembang',
-  'Tangerang',
-  'Depok',
-  'Batam',
-  'Pekanbaru',
-  'Bandar Lampung',
-  'Malang',
-  'Yogyakarta',
-  'Samarinda',
-  'Tasikmalaya',
-  'Bogor',
-  'Balikpapan',
-  'Pontianak',
-  'Banjarmasin',
-  'Denpasar',
-  'Padang',
-  'Manado',
-  'Mataram',
-  'Kupang',
-  'Jayapura',
-  'Ambon',
-  'Ternate',
-  'Kendari',
-  'Sorong',
-  'Palu',
-  'Lhokseumawe',
-  'Jambi',
-  'Banda Aceh',
-  'Pekalongan',
-  'Cirebon',
-  'Bengkulu',
-  'Purwokerto',
-  'Solo',
-  'Tegal',
-  'Probolinggo',
-  'Madiun',
-  'Kediri',
-  'Malang',
-  'Blitar',
-  'Kediri'
+  'calon_thalibah'
 ];
 
 export default function UserEditModal({
@@ -106,21 +50,10 @@ export default function UserEditModal({
   onSave
 }: UserEditModalProps) {
   const [formData, setFormData] = useState<Partial<User>>({
-    name: '',
+    full_name: '',
     email: '',
     role: 'calon_thalibah',
-    phone: '',
-    personalInfo: {
-      fullName: '',
-      nickname: '',
-      birthDate: '',
-      address: '',
-      city: '',
-      province: '',
-      whatsapp: '',
-      telegram: '',
-      timezone: 'Asia/Jakarta'
-    }
+    phone: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -130,41 +63,19 @@ export default function UserEditModal({
   useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || '',
+        full_name: user.full_name || '',
         email: user.email || '',
         role: user.role || 'calon_thalibah',
-        phone: user.phone || '',
-        personalInfo: {
-          fullName: user.personalInfo?.fullName || '',
-          nickname: user.personalInfo?.nickname || '',
-          birthDate: user.personalInfo?.birthDate || '',
-          address: user.personalInfo?.address || '',
-          city: user.personalInfo?.city || '',
-          province: user.personalInfo?.province || '',
-          whatsapp: user.personalInfo?.whatsapp || '',
-          telegram: user.personalInfo?.telegram || '',
-          timezone: user.personalInfo?.timezone || 'Asia/Jakarta'
-        }
+        phone: user.phone || ''
       });
     }
   }, [user]);
 
   const handleInputChange = (field: string, value: string) => {
-    if (field.startsWith('personalInfo.')) {
-      const personalField = field.replace('personalInfo.', '');
-      setFormData(prev => ({
-        ...prev,
-        personalInfo: {
-          ...prev.personalInfo,
-          [personalField]: value
-        } as any
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,14 +87,14 @@ export default function UserEditModal({
     setSuccess('');
 
     try {
-      const updatedUser = await updateUser(user.id, formData as any);
-      if (updatedUser) {
-        onSave(updatedUser);
-        setSuccess('Pengguna berhasil diperbarui!');
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      }
+      await updateUserData(user.id, formData as any);
+      // Merge the updated data with the existing user object
+      const updatedUser = { ...user, ...formData } as User;
+      onSave(updatedUser);
+      setSuccess('Pengguna berhasil diperbarui!');
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err: any) {
       setError(err.message || 'Gagal memperbarui pengguna');
     } finally {
@@ -205,7 +116,7 @@ export default function UserEditModal({
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <UserIcon className="w-5 h-5" />
-            <span>Edit Pengguna: {user.name}</span>
+            <span>Edit Pengguna: {user.full_name}</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -235,14 +146,14 @@ export default function UserEditModal({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="flex items-center space-x-1">
+                <Label htmlFor="full_name" className="flex items-center space-x-1">
                   <UserIcon className="w-4 h-4" />
                   <span>Nama Lengkap</span>
                 </Label>
                 <Input
-                  id="name"
-                  value={formData.name || ''}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  id="full_name"
+                  value={formData.full_name || ''}
+                  onChange={(e) => handleInputChange('full_name', e.target.value)}
                   placeholder="Masukkan nama lengkap"
                   required
                 />
@@ -287,137 +198,6 @@ export default function UserEditModal({
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   placeholder="Masukkan no telepon"
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Personal Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <UserIcon className="w-5 h-5 mr-2 text-blue-600" />
-              Informasi Pribadi
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Nama Lengkap (Sesuai KTP)</Label>
-                <Input
-                  id="fullName"
-                  value={formData.personalInfo?.fullName || ''}
-                  onChange={(e) => handleInputChange('personalInfo.fullName', e.target.value)}
-                  placeholder="Masukkan nama lengkap sesuai KTP"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nickname">Nama Panggilan</Label>
-                <Input
-                  id="nickname"
-                  value={formData.personalInfo?.nickname || ''}
-                  onChange={(e) => handleInputChange('personalInfo.nickname', e.target.value)}
-                  placeholder="Masukkan nama panggilan"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="birthDate" className="flex items-center space-x-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>Tanggal Lahir</span>
-                </Label>
-                <Input
-                  id="birthDate"
-                  type="date"
-                  value={formData.personalInfo?.birthDate || ''}
-                  onChange={(e) => handleInputChange('personalInfo.birthDate', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp" className="flex items-center space-x-1">
-                  <Phone className="w-4 h-4" />
-                  <span>No WhatsApp</span>
-                </Label>
-                <Input
-                  id="whatsapp"
-                  value={formData.personalInfo?.whatsapp || ''}
-                  onChange={(e) => handleInputChange('personalInfo.whatsapp', e.target.value)}
-                  placeholder="Masukkan no WhatsApp"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="telegram" className="flex items-center space-x-1">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Telegram</span>
-                </Label>
-                <Input
-                  id="telegram"
-                  value={formData.personalInfo?.telegram || ''}
-                  onChange={(e) => handleInputChange('personalInfo.telegram', e.target.value)}
-                  placeholder="Masukkan username Telegram"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="timezone" className="flex items-center space-x-1">
-                  <Globe className="w-4 h-4" />
-                  <span>Timezone</span>
-                </Label>
-                <Select
-                  value={formData.personalInfo?.timezone || 'Asia/Jakarta'}
-                  onValueChange={(value) => handleInputChange('personalInfo.timezone', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Asia/Jakarta">Asia/Jakarta (WIB)</SelectItem>
-                    <SelectItem value="Asia/Makassar">Asia/Makassar (WITA)</SelectItem>
-                    <SelectItem value="Asia/Jayapura">Asia/Jayapura (WIT)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Address Information */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-gray-900 flex items-center">
-                <MapPin className="w-4 h-4 mr-2 text-red-600" />
-                Alamat
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="address">Alamat Lengkap</Label>
-                  <textarea
-                    id="address"
-                    value={formData.personalInfo?.address || ''}
-                    onChange={(e) => handleInputChange('personalInfo.address', e.target.value)}
-                    placeholder="Masukkan alamat lengkap"
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">Kota</Label>
-                  <Select
-                    value={formData.personalInfo?.city || ''}
-                    onValueChange={(value) => handleInputChange('personalInfo.city', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih kota" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {indonesianCities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="province">Provinsi</Label>
-                  <Input
-                    id="province"
-                    value={formData.personalInfo?.province || ''}
-                    onChange={(e) => handleInputChange('personalInfo.province', e.target.value)}
-                    placeholder="Masukkan provinsi"
-                  />
-                </div>
               </div>
             </div>
           </div>

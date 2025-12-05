@@ -1,9 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create individual instances to avoid conflicts
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+})
+
+// Admin client for server-side operations
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 export type Database = {
   public: {
@@ -12,33 +27,76 @@ export type Database = {
         Row: {
           id: string
           email: string
+          password_hash: string | null
           full_name: string | null
           phone: string | null
+          role: string | null
           avatar_url: string | null
-          role: 'admin' | 'musyrifah' | 'muallimah' | 'calon_thalibah' | 'thalibah'
-          password_hash: string
-          created_at: string
-          updated_at: string
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+          provinsi: string | null
+          kota: string | null
+          alamat: string | null
+          whatsapp: string | null
+          telegram: string | null
+          zona_waktu: string | null
+          tanggal_lahir: string | null
+          tempat_lahir: string | null
+          pekerjaan: string | null
+          nama_wali: string | null
+          nomor_wali: string | null
+          hubungan_wali: string | null
+          alasan_daftar: string | null
         }
         Insert: {
-          id: string
+          id?: string
           email: string
-          full_name: string | null
+          password_hash?: string | null
+          full_name?: string | null
           phone?: string | null
-          avatar_url: string | null
-          role?: 'admin' | 'musyrifah' | 'muallimah' | 'thalibah'
-          password_hash: string
-          created_at?: string
-          updated_at?: string
+          role?: string | null
+          avatar_url?: string | null
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+          provinsi?: string | null
+          kota?: string | null
+          alamat?: string | null
+          whatsapp?: string | null
+          telegram?: string | null
+          zona_waktu?: string | null
+          tanggal_lahir?: string | null
+          tempat_lahir?: string | null
+          pekerjaan?: string | null
+          nama_wali?: string | null
+          nomor_wali?: string | null
+          hubungan_wali?: string | null
+          alasan_daftar?: string | null
         }
         Update: {
           id?: string
           email?: string
+          password_hash?: string | null
           full_name?: string | null
           phone?: string | null
+          role?: string | null
           avatar_url?: string | null
-          role?: 'admin' | 'musyrifah' | 'muallimah' | 'thalibah'
-          updated_at?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          provinsi?: string | null
+          kota?: string | null
+          alamat?: string | null
+          whatsapp?: string | null
+          telegram?: string | null
+          zona_waktu?: string | null
+          tanggal_lahir?: string | null
+          tempat_lahir?: string | null
+          pekerjaan?: string | null
+          nama_wali?: string | null
+          nomor_wali?: string | null
+          hubungan_wali?: string | null
+          alasan_daftar?: string | null
         }
       }
       jurnal_harian: {

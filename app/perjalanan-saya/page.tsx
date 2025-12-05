@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import React from 'react';
+import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
 interface TimelineItem {
   id: number;
@@ -161,7 +162,7 @@ export default function PerjalananSaya() {
   };
 
   return (
-    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+    <AuthenticatedLayout title="Perjalanan Saya">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -277,6 +278,6 @@ export default function PerjalananSaya() {
           </p>
         </div>
       </div>
-    </main>
+    </AuthenticatedLayout>
   );
 }

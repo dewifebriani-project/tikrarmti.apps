@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect, ReactNode } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePathname } from 'next/navigation';
 import DashboardSidebar from './DashboardSidebar';
 import GlobalAuthenticatedHeader from './GlobalAuthenticatedHeader';
-import ProfileCompletionCheck from './ProfileCompletionCheck';
 
 interface AuthenticatedLayoutProps {
   children: ReactNode;
@@ -13,10 +11,9 @@ interface AuthenticatedLayoutProps {
 }
 
 export default function AuthenticatedLayout({ children, title }: AuthenticatedLayoutProps) {
-  const { user, loading, logout, isSuperAdmin } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Dynamic title based on route
   const getPageTitle = () => {
@@ -90,62 +87,15 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
   };
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
+    setIsMounted(true);
+  }, []);
 
-    // Hanya redirect dari halaman admin jika user tidak memiliki akses yang sesuai
-    if (!loading && user && pathname.startsWith('/admin')) {
-      const userRole = user?.role?.toLowerCase();
-
-      // User memiliki akses admin jika: role admin/pengurus ATAU superadmin
-      const hasAdminAccess = userRole === 'admin' || userRole === 'pengurus' || isSuperAdmin();
-
-      if (!hasAdminAccess) {
-        console.log('Access denied:', {
-          userRole,
-          email: user?.email,
-          isSuperAdmin: isSuperAdmin(),
-          hasAdminAccess,
-          pathname,
-          role: user?.role
-        });
-        // Tidak langsung redirect, beri kesempatan untuk debugging
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 100);
-      } else {
-        console.log('Access granted:', {
-          userRole,
-          email: user?.email,
-          isSuperAdmin: isSuperAdmin(),
-          hasAdminAccess,
-          pathname
-        });
-      }
-    }
-
+  useEffect(() => {
     // Close sidebar on mobile/tablet when route changes
-    if (window.innerWidth < 768) { // md breakpoint
+    if (isMounted && window.innerWidth < 768) { // md breakpoint
       setIsSidebarOpen(false);
     }
-  }, [user, loading, router, pathname]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-light">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-secondary">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    console.log('AuthenticatedLayout Debug - No user found');
-    return null;
-  }
+  }, [pathname, isMounted]);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -165,9 +115,7 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
         {/* Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 sm:p-4 lg:p-6">
           <div className="max-w-full">
-            <ProfileCompletionCheck>
-              {children}
-            </ProfileCompletionCheck>
+            {children}
           </div>
         </main>
       </div>

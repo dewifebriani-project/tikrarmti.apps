@@ -1,39 +1,6 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-
 export default function MinimalDashboard() {
-  const { user, userData, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user || !userData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-red-600 mb-4"><em>Antunna</em> belum login. Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
+  // Demo data
+  const userData = { name: 'Demo User' };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,9 +12,9 @@ export default function MinimalDashboard() {
               <h1 className="text-xl font-bold text-gray-900">Dashboard MTI</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">Welcome, {userData.name}</span>
+              <span className="text-sm text-gray-700">Welcome, Demo User</span>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => console.log('Logout clicked')}
                 className="text-sm text-emerald-600 hover:text-emerald-700"
               >
                 Logout
@@ -65,7 +32,7 @@ export default function MinimalDashboard() {
           <div className="bg-white overflow-hidden shadow rounded-lg mb-6">
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900">
-                Assalamu'alaikum, {userData.name}! 👋
+                Assalamu&apos;alaikum, {userData.name}! 👋
               </h2>
               <p className="mt-2 text-gray-600">
                 Selamat datang di dashboard Markaz Tikrar Indonesia

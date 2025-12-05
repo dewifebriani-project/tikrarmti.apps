@@ -9,41 +9,25 @@ export const exportUsersToCSV = (users: User[], filename: string = 'users_export
   // Define CSV headers
   const headers = [
     'ID',
-    'Nama',
+    'Nama Lengkap',
     'Email',
     'Role',
     'No Telepon',
+    'Status Aktif',
     'Tanggal Gabung',
-    'Terakhir Update',
-    'Nama Lengkap',
-    'Nama Panggilan',
-    'Tanggal Lahir',
-    'Alamat',
-    'Kota',
-    'Provinsi',
-    'No WhatsApp',
-    'Telegram',
-    'Timezone'
+    'Terakhir Update'
   ];
 
   // Convert users to CSV rows
   const csvRows = users.map(user => [
     user.id,
-    `"${user.name}"`,
+    `"${user.full_name}"`,
     `"${user.email}"`,
     `"${user.role}"`,
     `"${user.phone || ''}"`,
-    formatDate(user.createdAt),
-    formatDate(user.updatedAt),
-    `"${user.personalInfo?.fullName || ''}"`,
-    `"${user.personalInfo?.nickname || ''}"`,
-    `"${user.personalInfo?.birthDate || ''}"`,
-    `"${user.personalInfo?.address || ''}"`,
-    `"${user.personalInfo?.city || ''}"`,
-    `"${user.personalInfo?.province || ''}"`,
-    `"${user.personalInfo?.whatsapp || ''}"`,
-    `"${user.personalInfo?.telegram || ''}"`,
-    `"${user.personalInfo?.timezone || ''}"`
+    user.is_active ? 'Aktif' : 'Tidak Aktif',
+    formatDate(new Date(user.created_at)),
+    formatDate(new Date(user.updated_at))
   ]);
 
   // Combine headers and rows
@@ -76,40 +60,24 @@ export const exportUsersToExcel = async (users: User[], filename: string = 'user
   // In a real implementation, you might use a library like xlsx or exceljs
   const headers = [
     'ID',
-    'Nama',
+    'Nama Lengkap',
     'Email',
     'Role',
     'No Telepon',
+    'Status Aktif',
     'Tanggal Gabung',
-    'Terakhir Update',
-    'Nama Lengkap',
-    'Nama Panggilan',
-    'Tanggal Lahir',
-    'Alamat',
-    'Kota',
-    'Provinsi',
-    'No WhatsApp',
-    'Telegram',
-    'Timezone'
+    'Terakhir Update'
   ];
 
   const tabRows = users.map(user => [
     user.id,
-    user.name,
+    user.full_name,
     user.email,
     user.role,
     user.phone || '',
-    formatDate(user.createdAt),
-    formatDate(user.updatedAt),
-    user.personalInfo?.fullName || '',
-    user.personalInfo?.nickname || '',
-    user.personalInfo?.birthDate || '',
-    user.personalInfo?.address || '',
-    user.personalInfo?.city || '',
-    user.personalInfo?.province || '',
-    user.personalInfo?.whatsapp || '',
-    user.personalInfo?.telegram || '',
-    user.personalInfo?.timezone || ''
+    user.is_active ? 'Aktif' : 'Tidak Aktif',
+    formatDate(new Date(user.created_at)),
+    formatDate(new Date(user.updated_at))
   ]);
 
   const tabContent = [
@@ -142,15 +110,9 @@ export const exportUserStatistics = (users: User[], filename: string = 'user_sta
     return acc;
   }, {} as Record<string, number>);
 
-  const cityStats = users.reduce((acc, user) => {
-    const city = user.personalInfo?.city || 'Unknown';
-    acc[city] = (acc[city] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
   const totalUsers = users.length;
   const usersWithPhone = users.filter(u => u.phone).length;
-  const usersWithAddress = users.filter(u => u.personalInfo?.address).length;
+  const activeUsers = users.filter(u => u.is_active).length;
 
   // Create statistics report
   const statsContent = `
@@ -159,17 +121,12 @@ Generated on: ${new Date().toLocaleString('id-ID')}
 
 OVERVIEW:
 Total Users: ${totalUsers}
+Active Users: ${activeUsers} (${((activeUsers/totalUsers)*100).toFixed(1)}%)
 Users with Phone Number: ${usersWithPhone} (${((usersWithPhone/totalUsers)*100).toFixed(1)}%)
-Users with Address: ${usersWithAddress} (${((usersWithAddress/totalUsers)*100).toFixed(1)}%)
 
 USER ROLES:
 ${Object.entries(roleStats).map(([role, count]) =>
   `${role.replace('_', ' ')}: ${count} (${((count/totalUsers)*100).toFixed(1)}%)`
-).join('\n')}
-
-CITIES:
-${Object.entries(cityStats).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([city, count]) =>
-  `${city}: ${count} users`
 ).join('\n')}
   `.trim();
 
@@ -187,7 +144,7 @@ ${Object.entries(cityStats).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([city,
 };
 
 // Format date helper function
-function formatDate(date: Date): string {
+function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString('id-ID', {
     year: 'numeric',
     month: '2-digit',

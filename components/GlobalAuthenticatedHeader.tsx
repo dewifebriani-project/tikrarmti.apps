@@ -1,21 +1,19 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   Settings,
-  LogOut,
   Bell,
   User,
   Home,
   Menu,
   X,
   ChevronDown,
-  Edit,
-  UserCheck
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface GlobalAuthenticatedHeaderProps {
   onMenuToggle?: () => void;
@@ -23,9 +21,8 @@ interface GlobalAuthenticatedHeaderProps {
 }
 
 export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen }: GlobalAuthenticatedHeaderProps) {
-  const { user, userData, logout } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -48,25 +45,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      // Close dropdown first
-      setShowProfileDropdown(false);
-      setShowNotifications(false);
-      setShowMobileMenu(false);
-
-      // Perform logout
-      await logout();
-
-      // Redirect to home page after logout is complete
-      router.push('/');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Still redirect on error to prevent being stuck
-      router.push('/');
-    }
-  };
-
+  
   const getPageTitle = () => {
     const routeTitles: { [key: string]: string } = {
       '/dashboard': 'Dasbor',
@@ -248,9 +227,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
               >
                 <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
                   <span className="text-white font-bold text-sm lg:text-base">
-                    {userData?.name || user?.displayName || 'User'
-                      ? (userData?.name || user?.displayName || 'U').charAt(0).toUpperCase()
-                      : 'U'}
+                    {(user?.displayName || user?.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${
@@ -265,21 +242,18 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
                         <span className="text-white font-bold text-lg">
-                          {userData?.name || user?.displayName || 'User'
-                            ? (userData?.name || user?.displayName || 'U').charAt(0).toUpperCase()
-                            : 'U'}
+                          {(user?.displayName || user?.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="font-semibold">{userData?.name || user?.displayName || 'Pengguna'}</p>
-                        <p className="text-sm opacity-90">{user?.email}</p>
-                        <p className="text-xs opacity-75 mt-1">{userData?.role || 'Calon Tahfidzah'}</p>
+                        <p className="font-semibold">{user?.displayName || user?.full_name || 'Pengguna'}</p>
+                        <p className="text-sm opacity-90">{user?.email || ''}</p>
+                        <p className="text-xs opacity-75 mt-1">{user?.role || 'User'}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-2">
-  
                     <Link
                       href="/pengaturan"
                       className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200 w-full"
@@ -288,8 +262,17 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                       <span>Pengaturan Akun</span>
                     </Link>
 
+                    <div className="border-t border-gray-100 my-2"></div>
+
                     <button
-                      onClick={handleLogout}
+                      onClick={async () => {
+                        try {
+                          await logout();
+                          window.location.href = '/login';
+                        } catch (error) {
+                          console.error('Error logging out:', error);
+                        }
+                      }}
                       className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full"
                     >
                       <LogOut className="w-4 h-4" />
@@ -342,6 +325,24 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                 ))}
               </div>
             </nav>
+
+            {/* Mobile Logout Button */}
+            <div className="mt-4 pt-4 border-t border-green-900/20">
+              <button
+                onClick={async () => {
+                  try {
+                    await logout();
+                    window.location.href = '/login';
+                  } catch (error) {
+                    console.error('Error logging out:', error);
+                  }
+                }}
+                className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Keluar</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

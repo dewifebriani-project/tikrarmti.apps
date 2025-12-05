@@ -1,43 +1,139 @@
-import { supabase } from './supabase';
-import { createClient } from '@supabase/supabase-js';
+import { supabase, supabaseAdmin } from './supabase';
 import type { User, UserRole } from '@/types/database';
-
-// Service role client for admin operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
 
 // Check if user has completed registration
 export const checkUserRegistrationComplete = async (email: string): Promise<boolean> => {
   try {
+    console.log('Checking registration for email:', email);
+
     // Check if user exists in users table
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, email, full_name, phone, role')
       .eq('email', email)
-      .single();
+      .maybeSingle(); // Use maybeSingle to avoid errors if not found
 
-    if (userError || !user) {
+    console.log('User query result:', { user, userError });
+    console.log('User details:', JSON.stringify(user, null, 2));
+
+    if (userError) {
+      console.error('Database error checking user:', userError);
       return false;
     }
 
-    // Check if all required fields are filled
+    if (!user) {
+      console.log('User not found in database');
+      return false;
+    }
+
+    // Check if user has admin role - admin can login without phone
+    if (user.role === 'admin') {
+      console.log('Admin user found, checking full_name:', !!user.full_name);
+      return !!user.full_name; // Admin hanya butuh full_name
+    }
+
+    // For other roles, check if all required fields are filled
     const hasRequiredFields = !!(
       user.full_name &&
       user.phone
     );
 
+    console.log('User validation:', {
+      email: user.email,
+      role: user.role,
+      has_full_name: !!user.full_name,
+      has_phone: !!user.phone,
+      is_valid: hasRequiredFields
+    });
+
+    // If validation fails, log specific reason
+    if (!hasRequiredFields) {
+      console.log('Validation failed:', {
+        missing_full_name: !user.full_name,
+        missing_phone: !user.phone
+      });
+    }
+
     return hasRequiredFields;
   } catch (error: any) {
     console.error('Error checking user registration:', error);
     return false;
+  }
+};
+
+// Check user registration status with details
+export const checkUserRegistrationStatus = async (email: string): Promise<{
+  registered: boolean;
+  reason?: string;
+  user?: any;
+}> => {
+  try {
+    console.log('Checking registration status for email:', email);
+
+    // Check if user exists in users table
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, full_name, phone, role')
+      .eq('email', email)
+      .maybeSingle();
+
+    console.log('User query result:', { user, userError });
+
+    if (userError) {
+      console.error('Database error checking user:', userError);
+      return {
+        registered: false,
+        reason: 'Terjadi kesalahan saat memeriksa data user'
+      };
+    }
+
+    if (!user) {
+      console.log('User not found in database');
+      return {
+        registered: false,
+        reason: 'User tidak ditemukan. Silakan registrasi terlebih dahulu.'
+      };
+    }
+
+    // Check if user has admin role - admin can login without phone
+    if (user.role === 'admin') {
+      if (!user.full_name) {
+        return {
+          registered: false,
+          reason: 'Nama lengkap admin belum diisi',
+          user
+        };
+      }
+      return {
+        registered: true,
+        user
+      };
+    }
+
+    // For other roles, check if all required fields are filled
+    const missingFields = [];
+    if (!user.full_name) missingFields.push('nama lengkap');
+    if (!user.phone) missingFields.push('nomor telepon');
+
+    if (missingFields.length > 0) {
+      return {
+        registered: false,
+        reason: `Data profil belum lengkap. Mohon lengkapi: ${missingFields.join(', ')}`,
+        user
+      };
+    }
+
+    return {
+      registered: true,
+      user
+    };
+
+  } catch (error: any) {
+    console.error('Error checking user registration:', error);
+    return {
+      registered: false,
+      reason: 'Terjadi kesalahan sistem. Silakan coba lagi.'
+    };
   }
 };
 
@@ -49,9 +145,14 @@ export const checkUserApprovedForThalibah = async (email: string): Promise<{ app
       .from('users')
       .select('id, email, full_name, role')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
-    if (userError || !user) {
+    if (userError) {
+      console.error('Database error checking user for approval:', userError);
+      return { approved: false, reason: 'Terjadi kesalahan saat memeriksa data user.' };
+    }
+
+    if (!user) {
       return { approved: false, reason: 'User tidak ditemukan. Silakan registrasi terlebih dahulu.' };
     }
 

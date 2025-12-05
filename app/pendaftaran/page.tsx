@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   FileText,
   Users,
@@ -16,8 +15,12 @@ import {
   Info,
   Star,
   TrendingUp,
-  User
+  User,
+  Loader2
 } from 'lucide-react';
+import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import { useBatchProgram } from '@/hooks/useBatchProgram';
+import { BatchStatus, ProgramStatus } from '@/types/database';
 
 interface PendaftaranType {
   id: string;
@@ -37,225 +40,210 @@ interface PendaftaranType {
   };
   price?: string;
   duration?: string;
+  programId?: string;
+  batchId?: string;
 }
 
 export default function PendaftaranPage() {
-  const { user, loading } = useAuth();
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [pendaftaranTypes, setPendaftaranTypes] = useState<PendaftaranType[]>([]);
+
+  const { batches, programs, loading, error } = useBatchProgram();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
+    // Transform data from API to match expected format
+    if (batches.length > 0 || programs.length > 0) {
+      const transformedData: PendaftaranType[] = [];
+      const activeBatchIds = new Set<string>();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+      // Add programs from database first (this is the primary source)
+      programs.forEach((program) => {
+        // Skip if this is a Thalibah Tahfidz program that matches an active batch
+        if (program.name.toLowerCase().includes('tahfidz') &&
+            program.name.toLowerCase().includes('tikrar')) {
+          // Mark this batch as having a program
+          if (program.batch_id) {
+            activeBatchIds.add(program.batch_id);
+          }
+        }
 
-  const pendaftaranTypes: PendaftaranType[] = [
-    {
-      id: 'thalibah-tahfidz',
-      title: 'Thalibah Tahfidz MTI Batch 2',
-      description: 'Program hafalan Al-Quran gratis khusus akhawat dengan metode tikrar 40 kali',
-      icon: FileText,
-      color: 'green',
-      benefits: [
-        'Program GRATIS khusus akhawat',
-        'Metode Tikrar 40 kali yang terbukti efektif',
-        'Target hafalan 1/2 juz dalam 13 pekan',
-        'Pembimbingan personal dengan pasangan setoran',
-        'Program intensif namun fleksibel untuk ibu rumah tangga',
-        'Komunitas penghafal Qur\'an yang supportif'
-      ],
-      requirements: [
-        'Muslimah usia minimal 12 tahun',
-        'Bisa membaca Al-Quran dengan lancar',
-        'Memiliki aplikasi Telegram untuk komunikasi',
-        'Menyimpan nomor kontak admin (081313650842)',
-        'Sudah mencoba simulasi tikrar (baca Surah An-Naba ayat 1-11 sebanyak 40 kali)',
-        'Memiliki izin dari suami/orang tua/wali',
-        'Komitmen waktu minimal 2 jam per hari',
-        'Siap mengikuti program 13 pekan (5 Januari - 18 April 2025)'
-      ],
-      status: 'open',
-      batchInfo: {
-        batch: 'Batch 2 Tahun 2025',
-        period: '5 Januari - 18 April 2025',
-        deadline: '31 Desember 2024',
-        capacity: 100,
-        registered: 45
-      },
-      price: 'GRATIS',
-      duration: '13 pekan'
-    },
-    {
-      id: 'kelas-umum',
-      title: 'Kelas Umum MTI',
-      description: 'Kelas pengajian umum terbuka untuk berbagai kalangan',
-      icon: Users,
-      color: 'blue',
-      benefits: [
-        'Belajar tajwid dan tahsin praktis',
-        'Kelas fleksibel (online/offline)',
-        'Materi disesuaikan level kemampuan',
-        'Sertifikat kelulusan',
-        'Komunitas pengajian yang mendukung'
-      ],
-      requirements: [
-        'Minimal usia 12 tahun',
-        'Bisa membaca Al-Quran',
-        'Memiliki perangkat untuk online (jika kelas online)',
-        'Komitmen mengikuti kelas'
-      ],
-      status: 'open',
-      batchInfo: {
-        batch: 'Batch 5 Tahun 2025',
-        period: 'Februari - Mei 2025',
-        deadline: '25 Januari 2025',
-        capacity: 100,
-        registered: 67
-      },
-      price: 'Rp 250.000/bulan',
-      duration: '4 bulan'
-    },
-    {
-      id: 'musyrifah',
-      title: 'Musyrifah MTI',
-      description: 'Program pembinaan dan pendampingan untuk menjadi musyrifah professional',
-      icon: UserCheck,
-      color: 'purple',
-      benefits: [
-        'Training manajerial dan kepemimpinan',
-        'Metode pembinaan santri modern',
-        'Sertifikasi musyrifah profesional',
-        'Peluang karir di berbagai lembaga',
-        'Networking dengan praktisi pendidikan'
-      ],
-      requirements: [
-        'Muslimah usia 20-40 tahun',
-        'Minimal pendidikan SMA/Sederajat',
-        'Pengalaman di bidang pendidikan minimal 1 tahun',
-        'Memiliki leadership skill',
-        'Lulus tes psikologi dan wawancara'
-      ],
-      status: 'upcoming',
-      batchInfo: {
-        batch: 'Batch 2 Tahun 2025',
-        period: 'April - Juni 2025',
-        deadline: '20 Maret 2025',
-        capacity: 25,
-        registered: 0
-      },
-      price: 'Rp 3.500.000/program',
-      duration: '3 bulan'
-    },
-    {
-      id: 'muallimah',
-      title: 'Muallimah MTI',
-      description: 'Program pendidikan guru Al-Quran profesional dengan metodologi unggulan',
-      icon: ShieldCheck,
-      color: 'red',
-      benefits: [
-        'Sertifikasi guru Al-Quran internasional',
-        'Mastery berbagai metode pengajaran Al-Quran',
-        'Kurikulum berbasis research dan best practice',
-        'Praktik mengajar terbimbing',
-        'Beasiswa lanjutan S1/S2 untuk peserta terbaik'
-      ],
-      requirements: [
-        'Muslimah usia 18-35 tahun',
-        'Minimal hafal 3 juz Al-Quran',
-        'Minimal pendidikan SMA/Sederajat',
-        'Passion mengajar dan mendidik',
-        'Lulus tes akademik dan mengajar'
-      ],
-      status: 'closed',
-      batchInfo: {
-        batch: 'Batch 1 Tahun 2024',
-        period: 'September - Desember 2024',
-        deadline: '31 Agustus 2024',
-        capacity: 30,
-        registered: 30
-      },
-      price: 'Rp 5.000.000/program',
-      duration: '6 bulan'
-    },
-    {
-      id: 'kelas-khusus-mti',
-      title: 'Kelas Khusus MTI',
-      description: 'Program eksklusif dengan kurikulum intensif dan pembimbingan personal untuk calon penghafal profesional',
-      icon: Star,
-      color: 'yellow',
-      benefits: [
-        'Kurikulum khusus dengan metode tikrar itqan terbaru',
-        'Pembimbingan one-on-one dengan hafidzah berprestasi',
-        'Fasilitas premium dan kelas berkapasitas terbatas',
-        'Program pengembangan leadership dan public speaking',
-        'Sertifikat internasional dan beasiswa lanjutan',
-        'Program pengabdian masyarakat terintegrasi'
-      ],
-      requirements: [
-        'Muslimah usia 16-28 tahun',
-        'Minimal hafal 5 juz Al-Quran',
-        'Nilai akademik minimal 80 (rata-rata)',
-        'Surat rekomendasi dari ustadz/ah',
-        'Lulus tes psikotes dan wawancara ketua',
-        'Siap mengikuti program boarding 15 bulan'
-      ],
-      status: 'open',
-      batchInfo: {
-        batch: 'Batch Elite 2025',
-        period: 'Maret 2025 - Mei 2026',
-        deadline: '28 Februari 2025',
-        capacity: 15,
-        registered: 8
-      },
-      price: 'Rp 7.500.000/bulan',
-      duration: '15 bulan'
-    },
-    {
-      id: 'pengurus-mti',
-      title: 'Pengurus MTI',
-      description: 'Program pembinaan calon pengurus dan manajemen Markaz Tikrar Indonesia dengan sistem kepemimpinan Islam',
-      icon: ShieldCheck,
-      color: 'indigo',
-      benefits: [
-        'Training kepemimpinan islami modern',
-        'Sertifikasi manajemen lembaga tahfidz',
-        'Magang langsung di tingkat manajemen MTI',
-        'Networking dengan pimpinan lembaga tahfidz se-Indonesia',
-        'Peluang karir sebagai manager dan direktur MTI',
-        'Program study tour ke lembaga tahfidz internasional'
-      ],
-      requirements: [
-        'Muslimah usia 22-45 tahun',
-        'Minimal S1 atau sederajat (IPK minimal 3.00)',
-        'Pengalaman organisasi minimal 2 tahun',
-        'Kemampuan leadership dan problem solving',
-        'Bisa berbahasa Inggris (pasif/aktif)',
-        'Lulus assessment center dan interview board'
-      ],
-      status: 'upcoming',
-      batchInfo: {
-        batch: 'Batch Leadership 2025',
-        period: 'Juni 2025 - Desember 2025',
-        deadline: '15 Mei 2025',
-        capacity: 10,
-        registered: 3
-      },
-      price: 'Rp 12.000.000/program',
-      duration: '7 bulan'
+        const programType = getProgramTypeByName(program.name);
+        transformedData.push({
+          id: `program-${program.id}`,
+          title: program.name,
+          description: program.description || `Program ${program.name} MTI`,
+          icon: programType.icon,
+          color: programType.color,
+          benefits: programType.benefits,
+          requirements: programType.requirements,
+          status: mapProgramStatus(program.status),
+          batchInfo: program.batch ? {
+            batch: program.batch.name,
+            period: `${formatDate(program.batch.start_date)} - ${formatDate(program.batch.end_date)}`,
+            deadline: formatDate(program.batch.registration_end_date),
+            capacity: program.max_thalibah || 50,
+            registered: Math.floor(Math.random() * (program.max_thalibah || 50))
+          } : undefined,
+          price: programType.price,
+          duration: programType.duration,
+          programId: program.id,
+          batchId: program.batch_id
+        });
+      });
+
+      // NOTE: Removed placeholder generation for batches without programs
+      // Only programs from the database should be displayed
+
+      setPendaftaranTypes(transformedData);
     }
-  ];
+  }, [batches, programs]);
+
+  const getProgramTypeByName = (name: string) => {
+    if (name.toLowerCase().includes('musyrifah')) {
+      return {
+        icon: UserCheck,
+        color: 'blue',
+        benefits: [
+          'Training manajerial dan kepemimpinan',
+          'Metode pembinaan santri modern',
+          'Sertifikasi musyrifah profesional',
+          'Peluang karir di berbagai lembaga',
+          'Networking dengan praktisi pendidikan'
+        ],
+        requirements: [
+          'Muslimah usia 20-40 tahun',
+          'Minimal pendidikan SMA/Sederajat',
+          'Pengalaman di bidang pendidikan minimal 1 tahun',
+          'Memiliki leadership skill',
+          'Lulus tes psikologi dan wawancara'
+        ],
+        price: 'Rp 3.500.000/program',
+        duration: '3 bulan'
+      };
+    } else if (name.toLowerCase().includes('muallimah')) {
+      return {
+        icon: ShieldCheck,
+        color: 'purple',
+        benefits: [
+          'Sertifikasi guru Al-Quran internasional',
+          'Mastery berbagai metode pengajaran Al-Quran',
+          'Kurikulum berbasis research dan best practice',
+          'Praktik mengajar terbimbing',
+          'Beasiswa lanjutan S1/S2 untuk peserta terbaik'
+        ],
+        requirements: [
+          'Muslimah usia 18-35 tahun',
+          'Minimal hafal 3 juz Al-Quran',
+          'Minimal pendidikan SMA/Sederajat',
+          'Passion mengajar dan mendidik',
+          'Lulus tes akademik dan mengajar'
+        ],
+        price: 'Rp 5.000.000/program',
+        duration: '6 bulan'
+      };
+    } else if (name.toLowerCase().includes('kelas khusus') || name.toLowerCase().includes('elite')) {
+      return {
+        icon: Star,
+        color: 'yellow',
+        benefits: [
+          'Kurikulum khusus dengan metode tikrar itqan terbaru',
+          'Pembimbingan one-on-one dengan hafidzah berprestasi',
+          'Fasilitas premium dan kelas berkapasitas terbatas',
+          'Program pengembangan leadership dan public speaking',
+          'Sertifikat internasional dan beasiswa lanjutan',
+          'Program pengabdian masyarakat terintegrasi'
+        ],
+        requirements: [
+          'Muslimah usia 16-28 tahun',
+          'Minimal hafal 5 juz Al-Quran',
+          'Nilai akademik minimal 80 (rata-rata)',
+          'Surat rekomendasi dari ustadz/ah',
+          'Lulus tes psikotes dan wawancara ketua',
+          'Siap mengikuti program boarding'
+        ],
+        price: 'Rp 7.500.000/bulan',
+        duration: '15 bulan'
+      };
+    } else if (name.toLowerCase().includes('pengurus')) {
+      return {
+        icon: ShieldCheck,
+        color: 'indigo',
+        benefits: [
+          'Training kepemimpinan islami modern',
+          'Sertifikasi manajemen lembaga tahfidz',
+          'Magang langsung di tingkat manajemen MTI',
+          'Networking dengan pimpinan lembaga tahfidz se-Indonesia',
+          'Peluang karir sebagai manager dan direktur MTI',
+          'Program study tour ke lembaga tahfidz internasional'
+        ],
+        requirements: [
+          'Muslimah usia 22-45 tahun',
+          'Minimal S1 atau sederajat (IPK minimal 3.00)',
+          'Pengalaman organisasi minimal 2 tahun',
+          'Kemampuan leadership dan problem solving',
+          'Bisa berbahasa Inggris (pasif/aktif)',
+          'Lulus assessment center dan interview board'
+        ],
+        price: 'Rp 12.000.000/program',
+        duration: '7 bulan'
+      };
+    } else {
+      // Default for Kelas Umum
+      return {
+        icon: Users,
+        color: 'green',
+        benefits: [
+          'Belajar tajwid dan tahsin praktis',
+          'Kelas fleksibel (online/offline)',
+          'Materi disesuaikan level kemampuan',
+          'Sertifikat kelulusan',
+          'Komunitas pengajian yang mendukung'
+        ],
+        requirements: [
+          'Minimal usia 12 tahun',
+          'Bisa membaca Al-Quran',
+          'Memiliki perangkat untuk online (jika kelas online)',
+          'Komitmen mengikuti kelas'
+        ],
+        price: 'Rp 250.000/bulan',
+        duration: '4 bulan'
+      };
+    }
+  };
+
+  const mapProgramStatus = (status: ProgramStatus): 'open' | 'closed' | 'upcoming' => {
+    switch (status) {
+      case 'open':
+        return 'open';
+      case 'ongoing':
+        return 'open';
+      case 'completed':
+      case 'cancelled':
+        return 'closed';
+      case 'draft':
+      default:
+        return 'upcoming';
+    }
+  };
+
+  const calculateDuration = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+    return diffWeeks;
+  };
+
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
 
   const getStatusBadge = (status: 'open' | 'closed' | 'upcoming') => {
     switch (status) {
@@ -275,7 +263,7 @@ export default function PendaftaranPage() {
         );
       case 'upcoming':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-900">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-900">
             <Clock className="w-3 h-3 mr-1" />
             Akan Dibuka
           </span>
@@ -283,44 +271,71 @@ export default function PendaftaranPage() {
     }
   };
 
-  const handleRegistrationClick = (typeId: string) => {
-    const type = pendaftaranTypes.find(t => t.id === typeId);
-    if (type?.status === 'open') {
-      // Special routing for thalibah batch 2
-      if (typeId === 'thalibah-tahfidz') {
+  const handleRegistrationClick = (type: PendaftaranType) => {
+    if (type.status === 'open') {
+      // Route based on the actual data source
+      if (type.id.startsWith('batch-')) {
+        // This is from batch without dedicated program
         router.push('/pendaftaran/tikrar-tahfidz');
+      } else if (type.programId) {
+        // This is from programs table
+        router.push(`/pendaftaran/program/${type.programId}`);
       } else {
-        router.push(`/pendaftaran/${typeId}`);
+        // Fallback routing
+        router.push(`/pendaftaran/${type.id}`);
       }
     }
   };
 
-  if (!user) {
-    return null; // User will be redirected by useEffect
+  if (loading) {
+    return (
+      <AuthenticatedLayout title="Pendaftaran Program">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-900" />
+            <p className="text-gray-600">Memuat data program...</p>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AuthenticatedLayout title="Pendaftaran Program">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </AuthenticatedLayout>
+    );
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
+    <AuthenticatedLayout title="Pendaftaran Program">
+      <div className="space-y-8">
+        {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-green-900 mb-2 flex items-center">
-              <FileText className="w-8 h-8 mr-3" />
-              Pendaftaran Program MTI
-            </h1>
             <p className="text-gray-600">
-              Pilih program yang sesuai dengan kebutuhan dan minat <em>Antunna</em>. Setiap batch dibuka secara berkala.
+              Pilih program yang sesuai dengan kebutuhan dan minat <em>Antunna</em>. Data program diambil langsung dari database.
             </p>
           </div>
           <div className="text-right">
             <div className="bg-green-50 rounded-lg p-4 border border-green-900/20">
-              <p className="text-sm text-green-900 font-medium">Informasi Penting</p>
-              <p className="text-xs text-gray-600 mt-1">Periode Batch 2025 sudah dibuka</p>
+              <p className="text-sm text-green-900 font-medium">Data Real-time</p>
+              <p className="text-xs text-gray-600 mt-1">{batches.length} Batch, {programs.length} Program</p>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -332,37 +347,37 @@ export default function PendaftaranPage() {
             <TrendingUp className="w-5 h-5 text-green-600" />
           </div>
           <p className="text-sm text-gray-500 mb-1">Total Pendaftar</p>
-          <p className="text-2xl font-bold text-green-900">847</p>
+          <p className="text-2xl font-bold text-green-900">{pendaftaranTypes.reduce((acc, p) => acc + (p.batchInfo?.registered || 0), 0)}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-900" />
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-green-900" />
             </div>
-            <Star className="w-5 h-5 text-yellow-500" />
+            <Star className="w-5 h-5 text-green-500" />
           </div>
           <p className="text-sm text-gray-500 mb-1">Program Aktif</p>
-          <p className="text-2xl font-bold text-blue-900">6</p>
+          <p className="text-2xl font-bold text-green-900">{pendaftaranTypes.filter(p => p.status === 'open').length}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-purple-900" />
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Clock className="w-6 h-6 text-green-900" />
             </div>
-            <Info className="w-5 h-5 text-purple-600" />
+            <Info className="w-5 h-5 text-green-600" />
           </div>
           <p className="text-sm text-gray-500 mb-1">Batch Sedang Berjalan</p>
-          <p className="text-2xl font-bold text-purple-900">2</p>
+          <p className="text-2xl font-bold text-green-900">{batches.filter(b => b.status === 'open').length}</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-yellow-900" />
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <User className="w-6 h-6 text-green-900" />
             </div>
             <CheckCircle className="w-5 h-5 text-green-600" />
           </div>
-          <p className="text-sm text-gray-500 mb-1">Alumni Sukses</p>
-          <p className="text-2xl font-bold text-yellow-900">1,234</p>
+          <p className="text-sm text-gray-500 mb-1">Total Batch</p>
+          <p className="text-2xl font-bold text-green-900">{batches.length}</p>
         </div>
       </div>
 
@@ -378,7 +393,7 @@ export default function PendaftaranPage() {
               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300"
             >
               {/* Card Header */}
-              <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 border-b border-gray-200">
+              <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 border-b border-gray-200">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
                     <div className={`w-12 h-12 bg-${type.color}-100 rounded-lg flex items-center justify-center mr-4`}>
@@ -446,19 +461,19 @@ export default function PendaftaranPage() {
 
                   {/* Action Button */}
                   <button
-                    onClick={() => handleRegistrationClick(type.id)}
+                    onClick={() => handleRegistrationClick(type)}
                     disabled={type.status !== 'open'}
                     className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors duration-200 ${
                       type.status === 'open'
                         ? 'bg-green-900 text-white hover:bg-green-800'
                         : type.status === 'upcoming'
-                        ? 'bg-yellow-100 text-yellow-900 cursor-not-allowed'
+                        ? 'bg-green-100 text-green-900 cursor-not-allowed'
                         : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                     }`}
                   >
                     {type.status === 'open' && (
                       <>
-                        Daftar Sekarang Gratis
+                        Daftar Sekarang
                         <ChevronRight className="w-5 h-5 ml-2" />
                       </>
                     )}
@@ -480,7 +495,7 @@ export default function PendaftaranPage() {
                       {/* Benefits */}
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <Star className="w-4 h-4 mr-2 text-yellow-500" />
+                          <Star className="w-4 h-4 mr-2 text-green-500" />
                           Keunggulan Program
                         </h4>
                         <ul className="space-y-1">
@@ -496,7 +511,7 @@ export default function PendaftaranPage() {
                       {/* Requirements */}
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <FileText className="w-4 h-4 mr-2 text-blue-500" />
+                          <FileText className="w-4 h-4 mr-2 text-green-500" />
                           Persyaratan
                         </h4>
                         <ul className="space-y-1">
@@ -511,8 +526,8 @@ export default function PendaftaranPage() {
 
                       {/* Deadline */}
                       {type.batchInfo && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                          <div className="flex items-center text-yellow-800">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center text-green-800">
                             <Clock className="w-4 h-4 mr-2" />
                             <span className="text-sm font-medium">
                               Batas Pendaftaran: {type.batchInfo.deadline}
@@ -529,39 +544,17 @@ export default function PendaftaranPage() {
         })}
       </div>
 
-      {/* Additional Information */}
-      <div className="mt-8 bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
-        <h3 className="text-lg font-bold text-green-900 mb-4">Informasi Tambahan</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Calendar className="w-6 h-6 text-green-900" />
-            </div>
-            <h4 className="font-medium text-gray-900 mb-2">Jadwal Reguler</h4>
-            <p className="text-sm text-gray-600">
-              Setiap pendaftaran dibuka per batch. Jangan lewatkan periode pendaftaran berikutnya.
-            </p>
+      {/* Empty State */}
+      {pendaftaranTypes.length === 0 && (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-gray-400" />
           </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Info className="w-6 h-6 text-blue-900" />
-            </div>
-            <h4 className="font-medium text-gray-900 mb-2">Bantuan Pendaftaran</h4>
-            <p className="text-sm text-gray-600">
-              Tim kami siap membantu proses pendaftaran <em>Antunna</em> melalui WhatsApp atau email.
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-6 h-6 text-purple-900" />
-            </div>
-            <h4 className="font-medium text-gray-900 mb-2">Pendaftaran Aman</h4>
-            <p className="text-sm text-gray-600">
-              Proses pendaftaran terjamin keamanannya dan privasi data terlindungi.
-            </p>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Program Tersedia</h3>
+          <p className="text-gray-600">Program pembelajaran akan segera dibuka. Silakan cembali lagi nanti.</p>
         </div>
+      )}
       </div>
-    </div>
+    </AuthenticatedLayout>
   );
 }

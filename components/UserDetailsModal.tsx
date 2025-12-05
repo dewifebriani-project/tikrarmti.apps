@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import type { User } from '@/types';
-import { getUserActivities } from '@/lib/auth';
-import type { UserActivity } from '@/lib/auth';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +18,6 @@ import {
   Calendar,
   MapPin,
   Clock,
-  Activity,
   Edit,
   Trash2,
   Eye,
@@ -48,27 +45,8 @@ export default function UserDetailsModal({
   onEdit,
   onDelete
 }: UserDetailsModalProps) {
-  const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'activities' | 'settings'>('profile');
-
-  useEffect(() => {
-    if (isOpen && user) {
-      fetchUserActivities();
-    }
-  }, [isOpen, user]);
-
-  const fetchUserActivities = async () => {
-    setLoading(true);
-    try {
-      const userActivities = await getUserActivities(user.id, 20);
-      setActivities(userActivities);
-    } catch (error) {
-      console.error('Error fetching user activities:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return '-';
@@ -96,37 +74,20 @@ export default function UserDetailsModal({
     return variants[role] || 'outline';
   };
 
-  const getActivityIcon = (action: string) => {
-    switch (action) {
-      case 'user_created':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'user_updated':
-        return <Edit className="w-4 h-4 text-blue-600" />;
-      case 'user_deleted':
-        return <Trash2 className="w-4 h-4 text-red-600" />;
-      case 'login':
-        return <Eye className="w-4 h-4 text-blue-600" />;
-      case 'logout':
-        return <XCircle className="w-4 h-4 text-gray-600" />;
-      default:
-        return <Activity className="w-4 h-4 text-gray-600" />;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="flex items-center space-x-4">
             <Avatar className="w-16 h-16">
-              <AvatarImage src={user.photoURL} alt={user.name} />
+              <AvatarImage src={user.avatar_url} alt={user.full_name} />
               <AvatarFallback className="text-lg">
-                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <DialogTitle className="text-2xl font-bold text-gray-900">
-                {user.name}
+                {user.full_name}
               </DialogTitle>
               <p className="text-gray-500">{user.email}</p>
               <Badge variant={getRoleBadgeVariant(user.role)} className="mt-1">
@@ -170,19 +131,6 @@ export default function UserDetailsModal({
               <div className="flex items-center space-x-2">
                 <UserIcon className="w-4 h-4" />
                 <span>Profil</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('activities')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'activities'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Activity className="w-4 h-4" />
-                <span>Aktivitas</span>
               </div>
             </button>
             <button
@@ -247,64 +195,38 @@ export default function UserDetailsModal({
                   Informasi Pribadi
                 </h3>
                 <div className="space-y-3">
-                  {user.personalInfo ? (
-                    <>
+                  <>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Nama Lengkap</span>
-                        <span>{user.personalInfo.fullName || '-'}</span>
+                        <span>{user.namaLengkap || user.full_name || '-'}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Nama Panggilan</span>
-                        <span>{user.personalInfo.nickname || '-'}</span>
+                        <span>{user.namaPanggilan || '-'}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Tanggal Lahir</span>
                         <span className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1 text-gray-400" />
-                          {user.personalInfo.birthDate || '-'}
+                          {user.tanggalLahir || '-'}
                         </span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Alamat</span>
                         <span className="flex items-center">
                           <MapPin className="w-4 h-4 mr-1 text-gray-400" />
-                          {user.personalInfo.address || '-'}
+                          {user.alamat || '-'}
                         </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Kota</span>
-                        <span>{user.personalInfo.city || '-'}</span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Provinsi</span>
-                        <span>{user.personalInfo.province || '-'}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">WhatsApp</span>
                         <span className="flex items-center">
                           <Phone className="w-4 h-4 mr-1 text-gray-400" />
-                          {user.personalInfo.whatsapp || '-'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Telegram</span>
-                        <span className="flex items-center">
-                          <MessageSquare className="w-4 h-4 mr-1 text-gray-400" />
-                          {user.personalInfo.telegram || '-'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Timezone</span>
-                        <span className="flex items-center">
-                          <Globe className="w-4 h-4 mr-1 text-gray-400" />
-                          {user.personalInfo.timezone || '-'}
+                          {user.phone || '-'}
                         </span>
                       </div>
                     </>
-                  ) : (
-                    <p className="text-gray-500 italic">Informasi pribadi belum lengkap</p>
-                  )}
-                </div>
+                  </div>
               </div>
 
               {/* Account Information */}
@@ -327,57 +249,7 @@ export default function UserDetailsModal({
             </div>
           )}
 
-          {activeTab === 'activities' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <Activity className="w-5 h-5 mr-2 text-orange-600" />
-                Riwayat Aktivitas
-              </h3>
-
-              {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-                  <p className="text-gray-500 mt-2">Memuat aktivitas...</p>
-                </div>
-              ) : activities.length > 0 ? (
-                <div className="space-y-3">
-                  {activities.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
-                      <div className="mt-1">
-                        {getActivityIcon(activity.action)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium text-gray-900">
-                            {activity.description}
-                          </p>
-                          <span className="text-sm text-gray-500">
-                            {formatDate(activity.timestamp)}
-                          </span>
-                        </div>
-                        {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                          <div className="mt-2 text-sm text-gray-600">
-                            <details className="cursor-pointer">
-                              <summary className="hover:text-gray-800">Detail metadata</summary>
-                              <pre className="mt-1 text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                                {JSON.stringify(activity.metadata, null, 2)}
-                              </pre>
-                            </details>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Activity className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Belum ada aktivitas tercatat</p>
-                </div>
-              )}
-            </div>
-          )}
-
+          
           {activeTab === 'settings' && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">

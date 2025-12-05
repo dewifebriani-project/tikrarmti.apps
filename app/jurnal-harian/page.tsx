@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Play, Pause, Square, CheckCircle, Circle, Clock, Volume2, Mic, MicOff, Edit, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import AuthenticatedLayout from '@/components/AuthenticatedLayout'
 
 interface JurnalStep {
   id: string
@@ -273,9 +274,10 @@ export default function JurnalHarian() {
   }, [jurnalData])
 
   return (
-    <div className="space-y-6 animate-fadeInUp">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <AuthenticatedLayout title="Jurnal Harian">
+      <div className="space-y-6 animate-fadeInUp">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-green-army">Jurnal Harian</h1>
           <p className="text-gray-600 mt-1">Lacak aktivitas hafalan Anda hari ini</p>
@@ -541,5 +543,6 @@ export default function JurnalHarian() {
         </Button>
       </div>
     </div>
+    </AuthenticatedLayout>
   )
 }
