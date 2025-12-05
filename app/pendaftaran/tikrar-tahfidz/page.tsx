@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, Calendar, Users, Award, Clock } from 'lucide-react'
 
 interface FormData {
   // Section 1 - Komitmen & Pemahaman
@@ -77,7 +77,19 @@ function TikrarTahfidzPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
-  const [batchInfo, setBatchInfo] = useState<{batch_id: string, program_id: string} | null>(null)
+  const [batchInfo, setBatchInfo] = useState<{
+    batch_id: string,
+    program_id: string,
+    batch_name: string,
+    start_date: string,
+    end_date: string,
+    duration_weeks: number,
+    price: number,
+    is_free: boolean,
+    scholarship_quota: number,
+    total_quota: number,
+    registered_count: number
+  } | null>(null)
 
   const totalSections = 4
   const progressPercentage = useMemo(() => (currentSection / totalSections) * 100, [currentSection])
@@ -91,11 +103,34 @@ function TikrarTahfidzPage() {
           const data = await response.json()
           setBatchInfo({
             batch_id: data.batch_id,
-            program_id: data.program_id
+            program_id: data.program_id,
+            batch_name: data.batch_name || 'Batch 2',
+            start_date: data.start_date || '2026-01-05',
+            end_date: data.end_date || '2026-04-09',
+            duration_weeks: data.duration_weeks || 16,
+            price: data.price || 250000,
+            is_free: data.is_free || false,
+            scholarship_quota: data.scholarship_quota || 17,
+            total_quota: data.total_quota || 100,
+            registered_count: data.registered_count || 83
           })
         }
       } catch (error) {
         console.error('Error fetching batch info:', error)
+        // Set default values if API fails
+        setBatchInfo({
+          batch_id: 'default-batch',
+          program_id: 'default-program',
+          batch_name: 'Batch 2',
+          start_date: '2026-01-05',
+          end_date: '2026-04-09',
+          duration_weeks: 16,
+          price: 250000,
+          is_free: false,
+          scholarship_quota: 17,
+          total_quota: 100,
+          registered_count: 83
+        })
       }
     }
     fetchBatchInfo()
@@ -321,19 +356,23 @@ function TikrarTahfidzPage() {
         <h3 className="font-bold text-xl mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
 
         <div className="space-y-4 text-base text-gray-700">
-          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
-          <p>📆 Durasi program: InsyaAllah selama 13 Pekan dimulai dari tanggal 5 Januari untuk target hafalan 1/2 juz.</p>
+          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an berbayar khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
+          <p>📆 Durasi program: InsyaAllah selama {Math.ceil((batchInfo?.duration_weeks || 16) / 4)} Bulan ({batchInfo?.duration_weeks || 16} Pekan) dimulai dari tanggal {batchInfo ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '5 Januari 2026'} untuk target hafalan 1/2 juz.</p>
+          <p>💰 Biaya program: Rp {(batchInfo?.price || 250000).toLocaleString('id-ID')}/bulan</p>
 
-          <div className="mt-4 p-4 bg-green-50 rounded-lg">
-            <p className="font-semibold text-green-800 mb-3 text-base">Struktur Program:</p>
-            <div className="text-sm text-green-700 space-y-2">
-              <p>📅 <strong>Pekan 1 (5-11 Januari):</strong> Tashih</p>
-              <p>📖 <strong>Pekan 2-11 (12 Januari - 5 April):</strong> Ziyadah</p>
-              <p>🕌 <strong>(Catatan: 15-29 Maret adalah Libur Lebaran)</strong></p>
-              <p>📚 <strong>Pekan 12 (6-12 April):</strong> Muroja'ah</p>
-              <p>✅ <strong>Pekan 13 (13-19 April):</strong> Ujian</p>
+          {batchInfo && (
+            <div className="mt-4 p-4 bg-green-50 rounded-lg">
+              <p className="font-semibold text-green-800 mb-3 text-base">Struktur Program {batchInfo.batch_name}:</p>
+              <div className="text-sm text-green-700 space-y-2">
+                <p>📅 <strong>Pekan 1:</strong> Tashih dan Orientasi</p>
+                <p>📖 <strong>Pekan 2-{batchInfo.duration_weeks - 2}:</strong> Ziyadah (Pertambahan Hafalan)</p>
+                <p>📚 <strong>Pekan {batchInfo.duration_weeks - 1}:</strong> Muroja'ah</p>
+                <p>✅ <strong>Pekan {batchInfo.duration_weeks}:</strong> Ujian Akhir</p>
+                <p>🕌 <strong>Tanggal Mulai:</strong> {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p>🎯 <strong>Tanggal Selesai:</strong> {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
             </div>
-          </div>
+          )}
 
           <p>🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)</p>
 
@@ -701,12 +740,21 @@ function TikrarTahfidzPage() {
           )}
         </div>
 
-        <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
-          <p className="text-sm text-blue-800 font-semibold mb-2">Informasi Program:</p>
-          <p className="text-sm text-blue-700">
-            Program ini akan insyaAllah biidznillah akan dilaksanakan selama 13 pekan dimulai dari tanggal 5 Januari - 18 April 2025. Libur lebaran 2 pekan 16-28 Februari. Apabila antunna sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan mudik/safar yang mendzholimi jadwal pasangan setoran antunna.
-          </p>
-        </div>
+        {batchInfo && (
+          <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
+            <p className="text-sm text-blue-800 font-semibold mb-2">Informasi Program {batchInfo.batch_name}:</p>
+            <p className="text-sm text-blue-700">
+              Program ini akan insyaAllah biidznillah akan dilaksanakan selama {batchInfo.duration_weeks} pekan dimulai dari tanggal {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
+              {batchInfo.is_free ? (
+                <><strong> Program ini GRATIS</strong> (Program Beasiswa).</>
+              ) : (
+                <> <strong>Biaya program: Rp {batchInfo.price.toLocaleString('id-ID')}/bulan</strong>.</>
+              )}
+              <br /><br />
+              Apabila antunna sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan safar yang mendzholimi jadwal pasangan setoran antunna.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
@@ -919,9 +967,17 @@ function TikrarTahfidzPage() {
         <h3 className="font-bold text-lg mb-4 text-green-900">📚 Program Hafalan Al-Qur'an MTI (Metode Tikrar 40 Kali)</h3>
 
         <div className="space-y-4 text-sm text-gray-700">
-          <div>
-            <p><strong>🗓 Durasi Program:</strong> Program ini insyaAllah biidznillah akan berlangsung selama 13 pekan, dimulai dari 5 Januari hingga 18 April.</p>
-          </div>
+          {batchInfo && (
+            <div>
+              <p><strong>🗓 Durasi Program:</strong> Program ini insyaAllah biidznillah akan berlangsung selama {batchInfo.duration_weeks} pekan, dimulai dari {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} hingga {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
+              {batchInfo.is_free ? (
+                <strong> Program ini {batchInfo.scholarship_quota > 0 ? 'GRATIS (Beasiswa)' : 'BERBAYAR'}</strong>
+              ) : (
+                <strong> Biaya: Rp {batchInfo.price.toLocaleString('id-ID')}/bulan</strong>
+              )}
+              </p>
+            </div>
+          )}
 
           <div>
             <p><strong>🎯 Target dan Struktur Program:</strong></p>
@@ -1151,6 +1207,95 @@ function TikrarTahfidzPage() {
             </a>
           </div>
         </div>
+
+        {/* Batch Information Card */}
+        {batchInfo && (
+          <Card className="mb-6 border-2 border-green-200 shadow-md">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold text-green-900 mb-4">Informasi {batchInfo.batch_name}</h2>
+              <div className="grid md:grid-cols-4 gap-4">
+                {/* Total Pendaftar */}
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <Users className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                  <p className="text-sm text-gray-600">Total Pendaftar</p>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {batchInfo.registered_count}/{batchInfo.total_quota} Peserta
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {((batchInfo.registered_count / batchInfo.total_quota) * 100).toFixed(0)}% Terisi
+                  </p>
+                </div>
+
+                {/* Biaya */}
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <Award className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                  <p className="text-sm text-gray-600">Biaya Program</p>
+                  <p className="text-2xl font-bold text-green-900">
+                    Rp {batchInfo.price.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-xs text-green-700 mt-1">Per Bulan</p>
+                </div>
+
+                {/* Durasi */}
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                  <p className="text-sm text-gray-600">Durasi</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {Math.ceil(batchInfo.duration_weeks / 4)} Bulan
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    {batchInfo.duration_weeks} Pekan
+                  </p>
+                </div>
+
+                {/* Kuota Tersedia */}
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 text-orange-600" />
+                  <p className="text-sm text-gray-600">Kuota Tersedia</p>
+                  <p className="text-2xl font-bold text-orange-900">
+                    {batchInfo.scholarship_quota} lagi
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Dari {batchInfo.total_quota} Kuota
+                  </p>
+                </div>
+              </div>
+
+              {/* Tanggal Program di bawah */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-gray-600">Tanggal Mulai</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Tanggal Selesai</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Pendaftar Terisi</span>
+                  <span>{(batchInfo.registered_count / batchInfo.total_quota * 100).toFixed(0)}%</span>
+                </div>
+                <Progress
+                  value={batchInfo.registered_count / batchInfo.total_quota * 100}
+                  className="h-2"
+                />
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  {batchInfo.registered_count} dari {batchInfo.total_quota} kuota terisi ({batchInfo.scholarship_quota} tersedia)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="shadow-lg border-green-100">
           <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">

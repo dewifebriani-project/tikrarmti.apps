@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 // Import singleton client to avoid multiple instances
 export { supabase } from './supabase-singleton'
