@@ -356,9 +356,11 @@ function TikrarTahfidzPage() {
         <h3 className="font-bold text-xl mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
 
         <div className="space-y-4 text-base text-gray-700">
-          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an berbayar khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
+          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an {batchInfo?.is_free ? 'gratis' : 'berbayar'} khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
           <p>📆 Durasi program: InsyaAllah selama {Math.ceil((batchInfo?.duration_weeks || 16) / 4)} Bulan ({batchInfo?.duration_weeks || 16} Pekan) dimulai dari tanggal {batchInfo ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '5 Januari 2026'} untuk target hafalan 1/2 juz.</p>
-          <p>💰 Biaya program: Rp {(batchInfo?.price || 250000).toLocaleString('id-ID')}/bulan</p>
+          {batchInfo && (
+            <p>💰 Biaya program: {batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price.toLocaleString('id-ID')}/bulan`}</p>
+          )}
 
           {batchInfo && (
             <div className="mt-4 p-4 bg-green-50 rounded-lg">
@@ -745,11 +747,7 @@ function TikrarTahfidzPage() {
             <p className="text-sm text-blue-800 font-semibold mb-2">Informasi Program {batchInfo.batch_name}:</p>
             <p className="text-sm text-blue-700">
               Program ini akan insyaAllah biidznillah akan dilaksanakan selama {batchInfo.duration_weeks} pekan dimulai dari tanggal {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
-              {batchInfo.is_free ? (
-                <><strong> Program ini GRATIS</strong> (Program Beasiswa).</>
-              ) : (
-                <> <strong>Biaya program: Rp {batchInfo.price.toLocaleString('id-ID')}/bulan</strong>.</>
-              )}
+              <strong> Program ini {batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price.toLocaleString('id-ID')}/bulan`}</strong>.
               <br /><br />
               Apabila antunna sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan safar yang mendzholimi jadwal pasangan setoran antunna.
             </p>
@@ -970,11 +968,7 @@ function TikrarTahfidzPage() {
           {batchInfo && (
             <div>
               <p><strong>🗓 Durasi Program:</strong> Program ini insyaAllah biidznillah akan berlangsung selama {batchInfo.duration_weeks} pekan, dimulai dari {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} hingga {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
-              {batchInfo.is_free ? (
-                <strong> Program ini {batchInfo.scholarship_quota > 0 ? 'GRATIS (Beasiswa)' : 'BERBAYAR'}</strong>
-              ) : (
-                <strong> Biaya: Rp {batchInfo.price.toLocaleString('id-ID')}/bulan</strong>
-              )}
+              <strong> Program ini {batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price.toLocaleString('id-ID')}/bulan`}</strong>
               </p>
             </div>
           )}
@@ -1230,10 +1224,19 @@ function TikrarTahfidzPage() {
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <Award className="w-8 h-8 mx-auto mb-2 text-green-600" />
                   <p className="text-sm text-gray-600">Biaya Program</p>
-                  <p className="text-2xl font-bold text-green-900">
-                    Rp {batchInfo.price.toLocaleString('id-ID')}
-                  </p>
-                  <p className="text-xs text-green-700 mt-1">Per Bulan</p>
+                  {batchInfo.is_free ? (
+                    <>
+                      <p className="text-2xl font-bold text-green-900">GRATIS</p>
+                      <p className="text-xs text-green-700 mt-1">Program Beasiswa</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-green-900">
+                        Rp {batchInfo.price.toLocaleString('id-ID')}
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">Per Bulan</p>
+                    </>
+                  )}
                 </div>
 
                 {/* Durasi */}
