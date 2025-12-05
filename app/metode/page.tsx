@@ -25,8 +25,8 @@ export default function MetodePage() {
       </div>
 
       {/* Hero Section */}
-      <section className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30">
-        <div className="container mx-auto px-6 text-center relative z-10">
+      <section className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30 mobile-container">
+        <div className="container mx-auto px-4 sm:px-6 text-center relative z-10 mobile-no-overflow">
           {/* Simple Badge */}
           <div className="mb-8">
             <Badge className="bg-green-900 text-white border-0 px-6 py-3 text-sm font-semibold shadow-lg">
@@ -36,12 +36,12 @@ export default function MetodePage() {
           </div>
 
           {/* Clean Heading */}
-          <h1 className="text-4xl md:text-7xl font-bold text-black mb-8 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-black mb-6 sm:mb-8 leading-tight mobile-text-wrap">
             Program Tikrar MTI
           </h1>
 
           {/* Concise Description */}
-          <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-12 leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed mobile-text-wrap">
             Sebuah program hafalan yang terstruktur dan disiplin, dirancang untuk menghasilkan hafalan yang kuat (mutqin) melalui kurikulum wajib dan tambahan.
           </p>
 
@@ -62,31 +62,31 @@ export default function MetodePage() {
       </section>
 
       {/* Tahapan Section */}
-      <section id="tahapan" className="py-24 bg-gray-50">
-        <div className="container mx-auto px-6 max-w-6xl">
+      <section id="tahapan" className="py-16 sm:py-24 bg-gray-50 mobile-container">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl mobile-no-overflow">
           {/* Section Header */}
           <div className="text-center mb-16">
             <div className="inline-flex items-center bg-green-100 rounded-full px-6 py-3 mb-6">
               <BookOpen className="w-5 h-5 text-green-900 mr-2" />
               <span className="text-green-900 font-semibold text-sm">Proses Pembelajaran Terstruktur</span>
             </div>
-            <h2 className="text-4xl md:text-6xl font-bold text-green-900 mb-6">Kurikulum Wajib (7 Tahapan)</h2>
-            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-green-900 mb-6 mobile-text-wrap">Kurikulum Wajib (7 Tahapan)</h2>
+            <p className="text-lg sm:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed mobile-text-wrap">
               Tujuh tahapan harian yang disiplin untuk menghasilkan hafalan yang kuat dan mutqin
             </p>
           </div>
 
           {/* Kurikulum Wajib */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mobile-no-overflow">
             {/* Tahap 1 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   1
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Rabth (Menyambung Hafalan)</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Rabth (Menyambung Hafalan)</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Sebelum memulai hafalan baru, lakukan pemanasan dengan menyambungkan 10 blok hafalan terakhir sebanyak 1 kali tanpa melihat mushaf. Ini bertujuan untuk mengikat hafalan lama agar tidak terputus.
                   </p>
                 </div>
@@ -95,13 +95,13 @@ export default function MetodePage() {
 
             {/* Tahap 2 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   2
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Muraja&apos;ah Blok Terakhir</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Muraja&apos;ah Blok Terakhir</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Ulangi hafalan blok kemarin sebanyak 5 kali tanpa melihat mushaf. Tujuannya adalah untuk memantapkan hafalan yang baru saja dipelajari sebelum menambah yang baru.
                   </p>
                 </div>
@@ -232,7 +232,7 @@ export default function MetodePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-hero relative overflow-hidden">
+      <section className="py-16 sm:py-24 bg-gradient-hero relative overflow-hidden mobile-container">
         {/* Background Pattern */}
         <div className="absolute inset-0 pattern-islamic opacity-20"></div>
 
@@ -240,19 +240,19 @@ export default function MetodePage() {
         <div className="absolute top-10 right-10 w-32 h-32 bg-secondary/10 rounded-full blur-2xl animate-float"></div>
         <div className="absolute bottom-20 left-20 w-24 h-24 bg-white/10 rounded-full blur-xl animate-float" style={{ animationDelay: '1s' }}></div>
 
-        <div className="relative container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center">
+        <div className="relative container mx-auto px-4 sm:px-6">
+          <div className="max-w-4xl mx-auto text-center mobile-no-overflow">
             {/* Section Header */}
-            <div className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-              <span className="w-2 h-2 bg-secondary rounded-full mr-2"></span>
-              <span className="text-white font-semibold text-sm">Bergabung Sekarang</span>
+            <div className="inline-flex items-center bg-green-600/90 backdrop-blur-sm rounded-full px-6 py-3 mb-6 shadow-lg">
+              <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+              <span className="text-white font-bold text-sm">Bergabung Sekarang</span>
             </div>
 
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-900 mb-6 mobile-text-wrap">
               Siap Memulai Perjalanan Antunna?
             </h2>
 
-            <p className="text-lg text-white/90 max-w-3xl mx-auto mb-12 leading-relaxed">
+            <p className="text-base sm:text-lg text-green-800 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed mobile-text-wrap">
               Jika Antunna serius dan berkomitmen, daftarkan diri Antunna sekarang dan jadilah bagian dari keluarga besar Markaz Tikrar Indonesia.
             </p>
 

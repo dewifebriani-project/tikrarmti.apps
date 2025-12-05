@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase-singleton';
 import { Crown } from "lucide-react";
+import { debugOAuth } from '@/lib/oauth-debug';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -14,7 +15,45 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const supabase = createClient();
+      // Check if we're on production domain but coming from localhost
+      const currentOrigin = window.location.origin;
+      const currentHost = window.location.hostname;
+      const hasTokens = window.location.hash.includes('access_token') ||
+                       window.location.search.includes('code') ||
+                       window.location.search.includes('access_token');
+
+      // If we're on markaztikrar.id but have tokens, and the referrer or navigation indicates we came from localhost
+      const isComingFromLocalhost = document.referrer.includes('localhost') ||
+                                   document.referrer.includes('127.0.0.1') ||
+                                   sessionStorage.getItem('oauth_from_localhost') === 'true';
+
+      // Force redirect to localhost if we detect this scenario
+      if (currentHost === 'www.markaztikrar.id' && hasTokens && isComingFromLocalhost) {
+        debugOAuth('Force redirect to localhost detected', {
+          currentOrigin,
+          currentHost,
+          hasTokens,
+          isComingFromLocalhost,
+          referrer: document.referrer
+        });
+
+        // Extract the full URL including hash
+        const fullUrl = window.location.href;
+        const localhostUrl = fullUrl.replace('https://www.markaztikrar.id', 'http://localhost:3003');
+
+        debugOAuth('Redirecting to', { localhostUrl });
+        window.location.replace(localhostUrl);
+        return;
+      }
+
+      // Log callback initiation with all URL details
+      debugOAuth('Callback Initiated', {
+        currentUrl: window.location.href,
+        searchParams: Object.fromEntries(searchParams.entries()),
+        hash: window.location.hash,
+        origin: window.location.origin,
+        isComingFromLocalhost
+      });
 
       try {
         setLoading(true);
@@ -22,6 +61,7 @@ function AuthCallbackContent() {
         // Check for errors in URL first
         const error = searchParams.get('error');
         if (error) {
+          debugOAuth('Callback Error', { error });
           setError(`Authentication error: ${error}`);
           return;
         }
@@ -145,6 +185,8 @@ function AuthCallbackContent() {
         console.error('Auth callback error:', err);
         setError(err.message || 'An unexpected error occurred during authentication');
       } finally {
+        // Clear the sessionStorage flag
+        sessionStorage.removeItem('oauth_from_localhost');
         setLoading(false);
         setCheckingUser(false);
       }

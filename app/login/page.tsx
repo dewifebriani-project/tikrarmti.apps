@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Crown } from "lucide-react";
 import { loginWithGoogle } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase-singleton';
 
 function LoginPageContent() {
   const router = useRouter();
@@ -56,7 +56,6 @@ function LoginPageContent() {
 
     // Check if user is already logged in
     const checkUserSession = async () => {
-      const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session) {

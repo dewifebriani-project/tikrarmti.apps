@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { supabase } from '@/lib/supabase-singleton';
+import { supabaseAdmin } from '@/lib/supabase';
 import { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword, deleteUser as supabaseDeleteUser } from '@/lib/auth';
 import type { User, UserRole, AuthContextType } from '@/types';
 
@@ -15,6 +16,10 @@ export const useAuth = () => {
   return context;
 };
 
+// Cache for user data to avoid repeated database hits
+const userCache = new Map<string, { user: User; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 interface AuthProviderProps {
   children: ReactNode;
 }
@@ -24,15 +29,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session with timeout
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
+      try {
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session timeout')), 5000)
+        );
+
+        const sessionPromise = supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Session fetch error:', error);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     getInitialSession();
@@ -52,73 +70,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (authUser: any) => {
+  const fetchUserProfile = useCallback(async (authUser: any) => {
     try {
-      // Try using the admin client to avoid potential issues
-      const { data: profile, error } = await supabase
+      // Clear expired cache entries (using forEach for compatibility)
+      const now = Date.now();
+      userCache.forEach((value, key) => {
+        if (now - value.timestamp > CACHE_DURATION) {
+          userCache.delete(key);
+        }
+      });
+
+      // Check cache first
+      const cached = userCache.get(authUser.id);
+      if (cached && now - cached.timestamp < CACHE_DURATION) {
+        setUser(cached.user);
+        return;
+      }
+
+      // Add timeout to database query
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database query timeout')), 3000)
+      );
+
+      const queryPromise = supabase
         .from('users')
         .select('id, email, full_name, avatar_url, role, created_at, updated_at')
         .eq('id', authUser.id)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
+        .maybeSingle();
+
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
-        console.error('Error fetching user profile:', error);
-
-        // If there's an error fetching by ID, try checking by email as fallback
-        console.log('Error occurred, checking if user exists with email...');
-
-        const { data: existingUser, error: fetchByEmailError } = await supabase
-          .from('users')
-          .select('id, email, full_name, avatar_url, role, created_at, updated_at')
-          .eq('email', authUser.email)
-          .maybeSingle();
-
-        if (fetchByEmailError) {
-          console.error('Error fetching user by email:', fetchByEmailError);
-          // Error accessing database - sign out for security
-          console.log('Database access error. Signing out user for security.');
-          await supabase.auth.signOut();
-          setUser(null);
-          return;
-        }
-
-        if (existingUser) {
-          // User exists with email
-          if (existingUser.id === authUser.id) {
-            // IDs match, use this profile
-            console.log('User found with matching ID');
-            setUser(createUserObjectFromProfile(authUser, existingUser));
-            return;
-          } else {
-            // IDs don't match - potential security issue
-            console.error('Security warning: User exists with email but different ID');
-            await supabase.auth.signOut();
-            setUser(null);
-            return;
-          }
-        } else {
-          // User doesn't exist in database at all
-          console.log('User not found in database. User must register first.');
-          await supabase.auth.signOut();
-          setUser(null);
-          return;
-        }
+        console.error('Profile fetch error:', error);
+        setUser(null);
+        return;
       }
 
       if (profile) {
-        console.log('User profile found and authenticated');
-        setUser(createUserObjectFromProfile(authUser, profile));
+        const userObj = createUserObjectFromProfile(authUser, profile);
+
+        // Cache the user data
+        userCache.set(authUser.id, {
+          user: userObj,
+          timestamp: now
+        });
+
+        setUser(userObj);
       } else {
         // No profile found - user not registered
-        console.log('No profile found for user. User must register first.');
-        // Jangan logout di sini, biarkan callback yang menangani
         setUser(null);
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error in fetchUserProfile:', error);
       setUser(null);
     }
-  };
+  }, []);
 
   // Helper function to create user object from database profile
   const createUserObjectFromProfile = (authUser: any, profile: any): User => {
@@ -149,6 +155,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+
+      // Clear cache
+      if (user) {
+        userCache.delete(user.id);
+      }
+
       setUser(null);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -162,11 +174,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('users')
         .update({
-          full_name: data.displayName || data.namaLengkap || data.full_name,
-          avatar_url: data.photoURL || data.avatar_url,
+          full_name: data.displayName || data.namaLengkap || data.full_name || null,
+          avatar_url: data.photoURL || data.avatar_url || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -174,7 +186,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (error) throw error;
 
       // Update local user state
-      setUser(prev => prev ? { ...prev, ...data } : null);
+      setUser(prev => {
+        if (prev) {
+          const updatedUser = { ...prev, ...data };
+
+          // Update cache
+          userCache.set(prev.id, {
+            user: updatedUser,
+            timestamp: Date.now()
+          });
+
+          return updatedUser;
+        }
+        return null;
+      });
     } catch (error) {
       console.error('Error updating user profile:', error);
       throw error;

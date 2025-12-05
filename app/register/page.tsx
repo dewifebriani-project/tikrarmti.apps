@@ -46,6 +46,13 @@ function RegisterPageContent() {
     whatsapp: '',
     telegram: '',
     zonaWaktu: '',
+    tanggalLahir: '',
+    tempatLahir: '',
+    pekerjaan: '',
+    namaWali: '',
+    nomorWali: '',
+    hubunganWali: '',
+    alasanDaftar: '',
     setujuSyarat: false
   });
 
@@ -105,6 +112,10 @@ function RegisterPageContent() {
       newErrors.whatsapp = 'Nomor WhatsApp harus diisi';
     }
 
+    if (!formData.telegram.trim()) {
+      newErrors.telegram = 'Nomor Telegram harus diisi';
+    }
+
     if (!formData.zonaWaktu) {
       newErrors.zonaWaktu = 'Zona waktu harus dipilih';
     }
@@ -139,8 +150,15 @@ function RegisterPageContent() {
           kota: formData.kota,
           alamat: formData.alamat,
           whatsapp: formData.whatsapp,
-          telegram: formData.telegram || null,
+          telegram: formData.telegram,
           zona_waktu: formData.zonaWaktu,
+          tanggal_lahir: formData.tanggalLahir || null,
+          tempat_lahir: formData.tempatLahir || null,
+          pekerjaan: formData.pekerjaan || null,
+          nama_wali: formData.namaWali || null,
+          nomor_wali: formData.nomorWali || null,
+          hubungan_wali: formData.hubunganWali || null,
+          alasan_daftar: formData.alasanDaftar || null,
           role: 'calon_thalibah'
         }),
       });
@@ -160,6 +178,7 @@ function RegisterPageContent() {
     }
   };
 
+  
   return (
     <div className="min-h-screen bg-white">
       {/* Minimal Background Elements */}
@@ -176,168 +195,114 @@ function RegisterPageContent() {
               <Crown className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-green-900 mb-2">Markaz Tikrar Indonesia</h1>
-          <p className="text-gray-600">Bergabung dengan MTI untuk belajar Al-Quran dengan metode Tikrar</p>
-          {fromGoogle && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800">
-                Selamat datang! Silakan lengkapi data berikut untuk menyelesaikan pendaftaran Anda.
-              </p>
-            </div>
-          )}
+          <h1 className="text-3xl font-bold text-green-900 mb-2">Pendaftaran Calon Thalibah</h1>
+          <p className="text-gray-600">Bergabung dengan program Tahfidz Al-Qur'an MTI</p>
         </div>
 
-        {/* Register Form */}
-        <Card className="shadow-xl border-0">
-          <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {errors.general && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                  {errors.general}
-                </div>
-              )}
-
-              {/* Nama Lengkap */}
-              <div className="space-y-2">
-                <Label htmlFor="namaLengkap" className="text-sm font-semibold text-gray-700">
-                  Nama Lengkap
-                </Label>
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Data Diri</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="namaLengkap">Nama Lengkap *</Label>
                 <Input
                   id="namaLengkap"
                   type="text"
                   value={formData.namaLengkap}
                   onChange={(e) => handleInputChange('namaLengkap', e.target.value)}
-                  placeholder="Masukkan nama lengkap Anda"
-                  disabled={fromGoogle && formData.namaLengkap !== ''}
-                  className={`${errors.namaLengkap ? 'border-red-500' : ''} ${fromGoogle && formData.namaLengkap !== '' ? 'bg-gray-50' : ''}`}
+                  className="mt-1"
+                  placeholder="Masukkan nama lengkap"
                 />
                 {errors.namaLengkap && (
-                  <p className="text-red-500 text-sm">{errors.namaLengkap}</p>
-                )}
-                {fromGoogle && formData.namaLengkap !== '' && (
-                  <p className="text-sm text-gray-500">Nama diambil dari akun Google Anda</p>
+                  <p className="text-red-500 text-sm mt-1">{errors.namaLengkap}</p>
                 )}
               </div>
 
-              {/* Email */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                  Email
-                </Label>
+              <div>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="mt-1"
                   placeholder="email@example.com"
-                  disabled={fromGoogle && formData.email !== ''}
-                  className={`${errors.email ? 'border-red-500' : ''} ${fromGoogle && formData.email !== '' ? 'bg-gray-50' : ''}`}
                 />
                 {errors.email && (
-                  <p className="text-red-500 text-sm">{errors.email}</p>
-                )}
-                {fromGoogle && formData.email !== '' && (
-                  <p className="text-sm text-gray-500">Email diambil dari akun Google Anda</p>
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
               </div>
 
-              {/* Provinsi */}
-              <div className="space-y-2">
-                <Label htmlFor="provinsi" className="text-sm font-semibold text-gray-700">
-                  Provinsi
-                </Label>
-                <Select value={formData.provinsi} onValueChange={(value) => handleInputChange('provinsi', value)}>
-                  <SelectTrigger className={errors.provinsi ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Pilih provinsi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provinsiList.map((provinsi) => (
-                      <SelectItem key={provinsi} value={provinsi}>
-                        {provinsi}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.provinsi && (
-                  <p className="text-red-500 text-sm">{errors.provinsi}</p>
-                )}
-              </div>
-
-              {/* Kota */}
-              <div className="space-y-2">
-                <Label htmlFor="kota" className="text-sm font-semibold text-gray-700">
-                  Kota
-                </Label>
+              <div>
+                <Label htmlFor="tempatLahir">Tempat Lahir</Label>
                 <Input
-                  id="kota"
+                  id="tempatLahir"
                   type="text"
-                  value={formData.kota}
-                  onChange={(e) => handleInputChange('kota', e.target.value)}
-                  placeholder="Masukkan kota Anda"
-                  className={errors.kota ? 'border-red-500' : ''}
+                  value={formData.tempatLahir}
+                  onChange={(e) => handleInputChange('tempatLahir', e.target.value)}
+                  className="mt-1"
+                  placeholder="Kota kelahiran"
                 />
-                {errors.kota && (
-                  <p className="text-red-500 text-sm">{errors.kota}</p>
-                )}
               </div>
 
-              {/* Alamat Lengkap */}
-              <div className="space-y-2">
-                <Label htmlFor="alamat" className="text-sm font-semibold text-gray-700">
-                  Alamat Lengkap
-                </Label>
-                <textarea
-                  id="alamat"
-                  value={formData.alamat}
-                  onChange={(e) => handleInputChange('alamat', e.target.value)}
-                  placeholder="Masukkan alamat lengkap Anda"
-                  rows={3}
-                  className={`w-full px-3 py-2 border rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.alamat ? 'border-red-500' : 'border-input bg-background'}`}
+              <div>
+                <Label htmlFor="tanggalLahir">Tanggal Lahir</Label>
+                <Input
+                  id="tanggalLahir"
+                  type="date"
+                  value={formData.tanggalLahir}
+                  onChange={(e) => handleInputChange('tanggalLahir', e.target.value)}
+                  className="mt-1"
                 />
-                {errors.alamat && (
-                  <p className="text-red-500 text-sm">{errors.alamat}</p>
-                )}
               </div>
 
-              {/* Nomor WhatsApp */}
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp" className="text-sm font-semibold text-gray-700">
-                  Nomor WhatsApp
-                </Label>
+              <div>
+                <Label htmlFor="pekerjaan">Pekerjaan</Label>
+                <Input
+                  id="pekerjaan"
+                  type="text"
+                  value={formData.pekerjaan}
+                  onChange={(e) => handleInputChange('pekerjaan', e.target.value)}
+                  className="mt-1"
+                  placeholder="Pekerjaan saat ini"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="whatsapp">WhatsApp *</Label>
                 <Input
                   id="whatsapp"
                   type="tel"
                   value={formData.whatsapp}
                   onChange={(e) => handleInputChange('whatsapp', e.target.value)}
+                  className="mt-1"
                   placeholder="08xx-xxxx-xxxx"
-                  className={errors.whatsapp ? 'border-red-500' : ''}
                 />
                 {errors.whatsapp && (
-                  <p className="text-red-500 text-sm">{errors.whatsapp}</p>
+                  <p className="text-red-500 text-sm mt-1">{errors.whatsapp}</p>
                 )}
               </div>
 
-              {/* Nomor Telegram */}
-              <div className="space-y-2">
-                <Label htmlFor="telegram" className="text-sm font-semibold text-gray-700">
-                  Nomor Telegram <span className="text-gray-400 font-normal">(opsional)</span>
-                </Label>
+              <div>
+                <Label htmlFor="telegram">Telegram *</Label>
                 <Input
                   id="telegram"
-                  type="text"
+                  type="tel"
                   value={formData.telegram}
                   onChange={(e) => handleInputChange('telegram', e.target.value)}
-                  placeholder="@username atau nomor telegram"
+                  className="mt-1"
+                  placeholder="08xx-xxxx-xxxx"
                 />
+                {errors.telegram && (
+                  <p className="text-red-500 text-sm mt-1">{errors.telegram}</p>
+                )}
               </div>
 
-              {/* Zona Waktu */}
-              <div className="space-y-2">
-                <Label htmlFor="zonaWaktu" className="text-sm font-semibold text-gray-700">
-                  Zona Waktu
-                </Label>
+              <div>
+                <Label htmlFor="zonaWaktu">Zona Waktu *</Label>
                 <Select value={formData.zonaWaktu} onValueChange={(value) => handleInputChange('zonaWaktu', value)}>
-                  <SelectTrigger className={errors.zonaWaktu ? 'border-red-500' : ''}>
+                  <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Pilih zona waktu" />
                   </SelectTrigger>
                   <SelectContent>
@@ -349,63 +314,171 @@ function RegisterPageContent() {
                   </SelectContent>
                 </Select>
                 {errors.zonaWaktu && (
-                  <p className="text-red-500 text-sm">{errors.zonaWaktu}</p>
+                  <p className="text-red-500 text-sm mt-1">{errors.zonaWaktu}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Label htmlFor="alamat">Alamat Lengkap *</Label>
+              <textarea
+                id="alamat"
+                value={formData.alamat}
+                onChange={(e) => handleInputChange('alamat', e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={3}
+                placeholder="Masukkan alamat lengkap"
+              />
+              {errors.alamat && (
+                <p className="text-red-500 text-sm mt-1">{errors.alamat}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <Label htmlFor="provinsi">Provinsi *</Label>
+                <Select value={formData.provinsi} onValueChange={(value) => handleInputChange('provinsi', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Pilih provinsi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {provinsiList.map((provinsi) => (
+                      <SelectItem key={provinsi} value={provinsi}>
+                        {provinsi}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.provinsi && (
+                  <p className="text-red-500 text-sm mt-1">{errors.provinsi}</p>
                 )}
               </div>
 
-              {/* Syarat dan Ketentuan */}
-              <div className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="setujuSyarat"
-                    checked={formData.setujuSyarat}
-                    onCheckedChange={(checked) => handleInputChange('setujuSyarat', checked as boolean)}
-                  />
-                  <Label htmlFor="setujuSyarat" className="text-sm text-gray-700 leading-relaxed">
-                    Saya menyetujui syarat dan ketentuan yang berlaku
-                  </Label>
-                </div>
+              <div>
+                <Label htmlFor="kota">Kota *</Label>
+                <Input
+                  id="kota"
+                  type="text"
+                  value={formData.kota}
+                  onChange={(e) => handleInputChange('kota', e.target.value)}
+                  className="mt-1"
+                  placeholder="Masukkan kota"
+                />
+                {errors.kota && (
+                  <p className="text-red-500 text-sm mt-1">{errors.kota}</p>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Data Wali</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="namaWali">Nama Wali</Label>
+                <Input
+                  id="namaWali"
+                  type="text"
+                  value={formData.namaWali}
+                  onChange={(e) => handleInputChange('namaWali', e.target.value)}
+                  className="mt-1"
+                  placeholder="Nama orang tua/wali"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nomorWali">Nomor Telepon Wali</Label>
+                <Input
+                  id="nomorWali"
+                  type="tel"
+                  value={formData.nomorWali}
+                  onChange={(e) => handleInputChange('nomorWali', e.target.value)}
+                  className="mt-1"
+                  placeholder="08xx-xxxx-xxxx"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Label htmlFor="hubunganWali">Hubungan dengan Wali</Label>
+              <Select value={formData.hubunganWali} onValueChange={(value) => handleInputChange('hubunganWali', value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Pilih hubungan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ayah">Ayah</SelectItem>
+                  <SelectItem value="Ibu">Ibu</SelectItem>
+                  <SelectItem value="Suami">Suami</SelectItem>
+                  <SelectItem value="Lainnya">Lainnya</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">Alasan Mendaftar</h2>
+            <div>
+              <Label htmlFor="alasanDaftar">Alasan ingin bergabung dengan program MTI</Label>
+              <textarea
+                id="alasanDaftar"
+                value={formData.alasanDaftar}
+                onChange={(e) => handleInputChange('alasanDaftar', e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={3}
+                placeholder="Jelaskan alasan Anda ingin mendaftar..."
+              />
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="setujuSyarat"
+                checked={formData.setujuSyarat}
+                onCheckedChange={(checked) => handleInputChange('setujuSyarat', checked as boolean)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <Label htmlFor="setujuSyarat" className="text-sm font-normal">
+                  Saya menyetujui syarat dan ketentuan yang berlaku
+                </Label>
                 {errors.setujuSyarat && (
                   <p className="text-red-500 text-sm">{errors.setujuSyarat}</p>
                 )}
               </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                size="lg"
-                className="w-full bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl py-6 text-lg"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Memproses...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-3">
-                    <CheckCircle className="w-5 h-5" />
-                    Daftar Sekarang
-                  </div>
-                )}
-              </Button>
-            </form>
-
-            {/* Login Link */}
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                Sudah menyelesaikan pendaftaran?{' '}
-                <Link
-                  href="/login"
-                  className="text-green-900 hover:text-green-800 font-semibold hover:underline transition-colors"
-                >
-                  Masuk disini
-                </Link>
-              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </Card>
+
+          {errors.general && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {errors.general}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-green-900 hover:bg-green-800 text-white py-3"
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Memproses...
+              </div>
+            ) : (
+              'Daftar Sekarang'
+            )}
+          </Button>
+
+          <div className="text-center">
+            <p className="text-gray-600">
+              Sudah punya akun?{' '}
+              <Link href="/login" className="text-green-900 hover:underline">
+                Login di sini
+              </Link>
+            </p>
+          </div>
+        </form>
+    </div>
     </div>
   );
 }

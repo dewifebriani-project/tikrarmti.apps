@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // Check if user exists in users table with all required fields
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, whatsapp, provinsi, kota, alamat, zona_waktu, role')
+      .select('id, email, full_name, whatsapp, telegram, provinsi, kota, alamat, zona_waktu, role')
       .eq('email', email)
       .maybeSingle();
 
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
     if (!user.kota) missingFields.push('kota');
     if (!user.alamat) missingFields.push('alamat');
     if (!user.whatsapp) missingFields.push('nomor WhatsApp');
+    if (!user.telegram) missingFields.push('nomor Telegram');
     if (!user.zona_waktu) missingFields.push('zona waktu');
 
     console.log('[API] Field validation:', {
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
       has_kota: !!user.kota,
       has_alamat: !!user.alamat,
       has_whatsapp: !!user.whatsapp,
+      has_telegram: !!user.telegram,
       has_zona_waktu: !!user.zona_waktu,
       missing: missingFields
     });

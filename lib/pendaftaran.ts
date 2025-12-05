@@ -1,56 +1,52 @@
-import { supabase } from './supabase'
+import { supabase, supabaseAdmin } from './supabase'
 
 export interface PendaftaranData {
-  userId: string
-  email: string
-  // Section 1
+  user_id: string
+  batch_id: string
+  program_id: string
+  // Section 1 fields
   understands_commitment: boolean
   tried_simulation: boolean
   no_negotiation: boolean
   has_telegram: boolean
   saved_contact: boolean
-
-  // Section 2
+  // Section 2 fields
   has_permission: boolean
+  permission_type?: 'regular' | 'janda' | null
   permission_name: string
   permission_phone: string
   chosen_juz: string
   no_travel_plans: boolean
   motivation: string
   ready_for_team: string
-
-  // Section 3
-  full_name: string
-  address: string
-  wa_phone: string
+  // Section 3 fields (additional data not in users table)
   telegram_phone?: string
-  age: string
-  domicile: string
-  timezone: string
+  birth_date?: string
+  age: number
   main_time_slot: string
   backup_time_slot: string
   time_commitment: boolean
-
-  // Section 4
+  // Section 4 fields
   understands_program: boolean
-  questions: string
-
-  // Metadata
-  batch_name: string
-  submission_date: string
-  status: 'pending' | 'approved' | 'rejected' | 'waiting_selection'
-  selection_status?: 'pending' | 'passed' | 'failed'
+  questions?: string
+  // System fields
+  status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'completed'
+  selection_status?: 'pending' | 'approved' | 'rejected'
+  approved_by?: string
+  approved_at?: string
+  submission_date?: string
+  created_at?: string
+  updated_at?: string
 }
 
 export const submitPendaftaran = async (data: PendaftaranData): Promise<string> => {
   try {
-    const { data: result, error } = await supabase
-      .from('pendaftaran_batch2')
+    const { data: result, error } = await supabaseAdmin
+      .from('tikrar_tahfidz')
       .insert({
         ...data,
-        submission_date: new Date().toISOString(),
-        status: 'pending',
-        selection_status: 'pending'
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -70,8 +66,8 @@ export const updateSelectionStatus = async (
   notes?: string
 ): Promise<void> => {
   try {
-    const { error } = await supabase
-      .from('pendaftaran_batch2')
+    const { error } = await supabaseAdmin
+      .from('tikrar_tahfidz')
       .update({
         selection_status: status,
         selection_notes: notes,
@@ -86,18 +82,18 @@ export const updateSelectionStatus = async (
   }
 }
 
-export const upgradeUserRoleToThalibah = async (userId: string): Promise<void> => {
+export const upgradeUserRoleToThalibah = async (user_id: string): Promise<void> => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('users')
       .update({
         role: 'thalibah',
         updated_at: new Date().toISOString()
       })
-      .eq('id', userId);
+      .eq('id', user_id);
 
     if (error) throw error;
-    console.log(`User ${userId} role upgraded from calon_thalibah to thalibah`);
+    console.log(`User ${user_id} role upgraded from calon_thalibah to thalibah`);
   } catch (error) {
     console.error('Error upgrading user role: ', error);
     throw new Error('Gagal mengupgrade role user');
@@ -107,12 +103,12 @@ export const upgradeUserRoleToThalibah = async (userId: string): Promise<void> =
 export const updateApprovalStatus = async (
   docId: string,
   status: 'approved' | 'rejected',
-  userId?: string,
+  user_id?: string,
   notes?: string
 ): Promise<void> => {
   try {
-    const { error } = await supabase
-      .from('pendaftaran_batch2')
+    const { error } = await supabaseAdmin
+      .from('tikrar_tahfidz')
       .update({
         status,
         approval_notes: notes,
@@ -122,9 +118,9 @@ export const updateApprovalStatus = async (
 
     if (error) throw error;
 
-    // If approved and userId is provided, upgrade user role to thalibah
-    if (status === 'approved' && userId) {
-      await upgradeUserRoleToThalibah(userId);
+    // If approved and user_id is provided, upgrade user role to thalibah
+    if (status === 'approved' && user_id) {
+      await upgradeUserRoleToThalibah(user_id);
     }
   } catch (error) {
     console.error('Error updating approval status: ', error);
@@ -135,9 +131,9 @@ export const updateApprovalStatus = async (
 export const getAllPendaftaran = async () => {
   try {
     const { data, error } = await supabase
-      .from('pendaftaran_batch2')
+      .from('tikrar_tahfidz')
       .select('*')
-      .order('submission_date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;
@@ -150,7 +146,7 @@ export const getAllPendaftaran = async () => {
 export const getPendaftaranById = async (id: string) => {
   try {
     const { data, error } = await supabase
-      .from('pendaftaran_batch2')
+      .from('tikrar_tahfidz')
       .select('*')
       .eq('id', id)
       .single();
@@ -163,13 +159,13 @@ export const getPendaftaranById = async (id: string) => {
   }
 }
 
-export const getPendaftaranByUserId = async (userId: string) => {
+export const getPendaftaranByUserId = async (user_id: string) => {
   try {
     const { data, error } = await supabase
-      .from('pendaftaran_batch2')
+      .from('tikrar_tahfidz')
       .select('*')
-      .eq('user_id', userId)
-      .order('submission_date', { ascending: false });
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;

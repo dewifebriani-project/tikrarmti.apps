@@ -1,11 +1,11 @@
-import { supabase } from './supabase'
+import { supabase, supabaseAdmin } from './supabase'
 import type { Batch, BatchCreateRequest, BatchUpdateRequest, BatchEnrollment, BatchSession, BatchStatistics, ExtendedBatchFilter, EnrollmentApprovalRequest } from '@/types/batch'
 
 export class BatchService {
   // Batch Management
   static async createBatch(batchData: BatchCreateRequest): Promise<string> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('batches')
         .insert({
           ...batchData,
@@ -27,7 +27,7 @@ export class BatchService {
 
   static async updateBatch(batchId: string, updateData: BatchUpdateRequest): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('batches')
         .update({
           ...updateData,
@@ -82,7 +82,7 @@ export class BatchService {
 
   static async getBatches(filter?: ExtendedBatchFilter): Promise<Batch[]> {
     try {
-      let query = supabase.from('batches').select('*');
+      let query = supabase.from('batches').select('*') as any;
 
       if (filter) {
         if (filter.status && filter.status.length > 0) {
@@ -121,19 +121,19 @@ export class BatchService {
       const { data: enrollments, error: enrollmentError } = await supabase
         .from('batch_enrollments')
         .select('*')
-        .eq('batch_id', batchId);
+        .eq('batch_id', batchId) as any;
 
       if (enrollmentError) throw enrollmentError;
 
       // Calculate statistics
       const totalEnrollments = enrollments?.length || 0;
-      const activeEnrollments = enrollments?.filter(e =>
+      const activeEnrollments = enrollments?.filter((e: any) =>
         ['pending', 'approved', 'selected', 'active'].includes(e.status)
       ).length || 0;
-      const completedEnrollments = enrollments?.filter(e =>
+      const completedEnrollments = enrollments?.filter((e: any) =>
         ['completed', 'graduated'].includes(e.status)
       ).length || 0;
-      const droppedEnrollments = enrollments?.filter(e =>
+      const droppedEnrollments = enrollments?.filter((e: any) =>
         ['dropped'].includes(e.status)
       ).length || 0;
 
@@ -143,9 +143,9 @@ export class BatchService {
         : 0;
 
       // Calculate average attendance
-      const attendanceRates = enrollments?.map(e => e.attendance?.attendance_rate || 0) || [];
+      const attendanceRates = enrollments?.map((e: any) => e.attendance?.attendance_rate || 0) || [];
       const averageAttendance = attendanceRates.length > 0
-        ? attendanceRates.reduce((sum, rate) => sum + rate, 0) / attendanceRates.length
+        ? attendanceRates.reduce((sum: any, rate: any) => sum + rate, 0) / attendanceRates.length
         : 0;
 
       return {
@@ -198,7 +198,7 @@ export class BatchService {
   // Enrollment Management
   static async createEnrollment(enrollmentData: Omit<BatchEnrollment, 'id' | 'created_at'>): Promise<string> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('batch_enrollments')
         .insert({
           ...enrollmentData,
@@ -220,7 +220,7 @@ export class BatchService {
 
   static async updateEnrollment(enrollmentId: string, updateData: Partial<BatchEnrollment>): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('batch_enrollments')
         .update({
           ...updateData,
@@ -238,7 +238,7 @@ export class BatchService {
 
   static async approveEnrollment(enrollmentId: string, approvalData: EnrollmentApprovalRequest): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('batch_enrollments')
         .update({
           ...approvalData,
@@ -258,7 +258,7 @@ export class BatchService {
 
   static async rejectEnrollment(enrollmentId: string, rejectionData: EnrollmentApprovalRequest): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('batch_enrollments')
         .update({
           ...rejectionData,
@@ -277,7 +277,7 @@ export class BatchService {
 
   static async getEnrollments(batchId?: string): Promise<BatchEnrollment[]> {
     try {
-      let query = supabase.from('batch_enrollments').select('*');
+      let query = supabase.from('batch_enrollments').select('*') as any;
 
       if (batchId) {
         query = query.eq('batch_id', batchId);
@@ -296,7 +296,7 @@ export class BatchService {
   // Session Management
   static async createSession(sessionData: Omit<BatchSession, 'id' | 'created_at'>): Promise<string> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('batch_sessions')
         .insert({
           ...sessionData,
@@ -316,7 +316,7 @@ export class BatchService {
 
   static async updateSession(sessionId: string, updateData: Partial<BatchSession>): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('batch_sessions')
         .update({
           ...updateData,
@@ -373,12 +373,12 @@ export class BatchService {
         const monthDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
         const nextMonthDate = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 1);
 
-        const monthEnrollments = enrollments?.filter(doc => {
+        const monthEnrollments = enrollments?.filter((doc: any) => {
           const enrollmentDate = new Date(doc.enrollment_date);
           return enrollmentDate >= monthDate && enrollmentDate < nextMonthDate;
         }).length || 0;
 
-        const monthCompletions = enrollments?.filter(doc => {
+        const monthCompletions = enrollments?.filter((doc: any) => {
           const enrollment = doc;
           return ['completed', 'graduated'].includes(enrollment.status);
         }).length || 0;

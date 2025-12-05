@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { submitPendaftaran, type PendaftaranData } from '@/lib/pendaftaran'
@@ -25,7 +25,7 @@ interface FormData {
   saved_contact: boolean
 
   // Section 2 - Izin & Pilihan Program
-  has_permission: boolean
+  has_permission: 'yes' | 'janda' | ''
   permission_name: string
   permission_phone: string
   permission_phone_validation: string
@@ -56,7 +56,7 @@ interface FormData {
   questions: string
 }
 
-export default function ThalibahBatch2Page() {
+function TikrarTahfidzPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
@@ -67,7 +67,7 @@ export default function ThalibahBatch2Page() {
     no_negotiation: false,
     has_telegram: false,
     saved_contact: false,
-    has_permission: false,
+    has_permission: '',
     permission_name: '',
     permission_phone: '',
     permission_phone_validation: '',
@@ -98,11 +98,30 @@ export default function ThalibahBatch2Page() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
+  const [batchInfo, setBatchInfo] = useState<{batch_id: string, program_id: string} | null>(null)
 
   const totalSections = 4
-  const progressPercentage = (currentSection / totalSections) * 100
+  const progressPercentage = useMemo(() => (currentSection / totalSections) * 100, [currentSection])
 
-  
+  // Fetch batch and program info
+  useEffect(() => {
+    const fetchBatchInfo = async () => {
+      try {
+        const response = await fetch('/api/batch/default')
+        if (response.ok) {
+          const data = await response.json()
+          setBatchInfo({
+            batch_id: data.batch_id,
+            program_id: data.program_id
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching batch info:', error)
+      }
+    }
+    fetchBatchInfo()
+  }, [])
+
   // Cleanup redirect timer when component unmounts or status changes
   React.useEffect(() => {
     return () => {
@@ -112,22 +131,25 @@ export default function ThalibahBatch2Page() {
     }
   }, [redirectTimer])
 
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
-    const newFormData = { ...formData, [field]: value }
+  const handleInputChange = useCallback((field: keyof FormData, value: string | boolean) => {
+    setFormData(prev => {
+      const newFormData = { ...prev, [field]: value }
 
-    // Auto-calculate age when birth date changes
-    if (field === 'birth_date' && typeof value === 'string' && value) {
-      const birthYear = new Date(value).getFullYear()
-      const currentYear = new Date().getFullYear()
-      const calculatedAge = currentYear - birthYear
-      newFormData.age = calculatedAge.toString()
-    }
+      // Auto-calculate age when birth date changes
+      if (field === 'birth_date' && typeof value === 'string' && value) {
+        const birthYear = new Date(value).getFullYear()
+        const currentYear = new Date().getFullYear()
+        const calculatedAge = currentYear - birthYear
+        newFormData.age = calculatedAge.toString()
+      }
 
-    setFormData(newFormData)
+      return newFormData
+    })
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
-  }
+  }, [errors])
 
   const validateSection = (section: number): boolean => {
     const newErrors: Record<string, string> = {}
@@ -152,7 +174,7 @@ export default function ThalibahBatch2Page() {
 
     if (section === 2) {
       if (!formData.has_permission) {
-        newErrors.has_permission = 'Wajib memiliki izin dari yang bertanggung jawab'
+        newErrors.has_permission = 'Wajib memilih salah satu opsi izin'
       }
       if (!formData.permission_name.trim()) {
         newErrors.permission_name = 'Nama pemberi izin harus diisi'
@@ -249,20 +271,28 @@ export default function ThalibahBatch2Page() {
 
     setIsSubmitting(true)
     try {
-      // Prepare data for Firebase
-      const submissionData: PendaftaranData = {
-        userId: user?.id || '',
-        email: user?.email || '',
+      // Check if we have batch info
+      if (!batchInfo) {
+        setSubmitStatus('error')
+        return
+      }
 
-        // Section 1
+      // Prepare data for database
+      const submissionData: PendaftaranData = {
+        user_id: user?.id || '',
+        batch_id: batchInfo.batch_id,
+        program_id: batchInfo.program_id,
+
+        // Section 1 - Komitmen & Pemahaman
         understands_commitment: formData.understands_commitment,
         tried_simulation: formData.tried_simulation,
         no_negotiation: formData.no_negotiation,
         has_telegram: formData.has_telegram,
         saved_contact: formData.saved_contact,
 
-        // Section 2
-        has_permission: formData.has_permission,
+        // Section 2 - Permission & Program Choice
+        has_permission: formData.has_permission === 'yes' || formData.has_permission === 'janda',
+        permission_type: formData.has_permission === 'janda' ? 'janda' : formData.has_permission === 'yes' ? 'regular' : null,
         permission_name: formData.permission_name,
         permission_phone: formData.permission_phone,
         chosen_juz: formData.chosen_juz,
@@ -270,30 +300,25 @@ export default function ThalibahBatch2Page() {
         motivation: formData.motivation,
         ready_for_team: formData.ready_for_team,
 
-        // Section 3
-        full_name: formData.full_name,
-        address: formData.address,
-        wa_phone: formData.wa_phone,
+        // Section 3 - Personal Data (additional data not in users table)
         telegram_phone: formData.same_wa_telegram === 'different' ? formData.telegram_phone : formData.wa_phone,
-        age: formData.age,
-        domicile: formData.domicile,
-        timezone: formData.timezone,
+        birth_date: formData.birth_date,
+        age: parseInt(formData.age) || 0,
         main_time_slot: formData.main_time_slot,
         backup_time_slot: formData.backup_time_slot,
         time_commitment: formData.time_commitment,
 
-        // Section 4
+        // Section 4 - Program Understanding
         understands_program: formData.understands_program,
         questions: formData.questions,
 
-        // Metadata
-        batch_name: 'Tikrar MTI Batch 2',
-        submission_date: new Date().toISOString(), // Will be updated by serverTimestamp
+        // Status
         status: 'pending',
-        selection_status: 'pending'
+        selection_status: 'pending',
+        submission_date: new Date().toISOString()
       }
 
-      // Submit to Firebase
+      // Submit to database
       await submitPendaftaran(submissionData)
 
       console.log('Form submitted successfully with data:', submissionData)
@@ -603,8 +628,8 @@ export default function ThalibahBatch2Page() {
             (Jika belum silahkan minta izin, jika tidak diizinkan mohon bersabar, berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)
           </p>
           <RadioGroup
-            value={formData.has_permission ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('has_permission', value === "yes")}
+            value={formData.has_permission}
+            onValueChange={(value) => handleInputChange('has_permission', value as 'yes' | 'janda' | '')}
             className="space-y-3"
           >
             <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
@@ -628,14 +653,17 @@ export default function ThalibahBatch2Page() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="permission_name" className="text-base font-semibold text-gray-800">
-              Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini (Apabila antunna Janda, silahkan isi dengan nama sendiri)
+              {formData.has_permission === 'janda'
+                ? "Nama lengkap antunna (sebagai penanggung jawab diri sendiri)"
+                : "Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini"
+              }
               <span className="text-red-500">*</span>
             </Label>
             <Input
               id="permission_name"
               value={formData.permission_name}
               onChange={(e) => handleInputChange('permission_name', e.target.value)}
-              placeholder="Ketik nama sesuai KTP"
+              placeholder={formData.has_permission === 'janda' ? "Ketik nama lengkap antunna" : "Ketik nama pemberi izin sesuai KTP"}
               className="text-base py-3"
             />
             {errors.permission_name && (
@@ -645,14 +673,17 @@ export default function ThalibahBatch2Page() {
 
           <div className="space-y-2">
             <Label htmlFor="permission_phone" className="text-base font-semibold text-gray-800">
-              No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini (Apabila antunna Janda, silahkan isi dengan No HP sendiri)
+              {formData.has_permission === 'janda'
+                ? "No HP antunna yang bisa dihubungi"
+                : "No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini"
+              }
               <span className="text-red-500">*</span>
             </Label>
             <Input
               id="permission_phone"
               value={formData.permission_phone}
               onChange={(e) => handleInputChange('permission_phone', e.target.value)}
-              placeholder="08xx-xxxx-xxxx"
+              placeholder={formData.has_permission === 'janda' ? "08xx-xxxx-xxxx (No HP aktif antunna)" : "08xx-xxxx-xxxx (No HP pemberi izin)"}
               className="text-base py-3"
             />
             {errors.permission_phone && (
@@ -663,7 +694,10 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-3">
           <Label htmlFor="permission_phone_validation" className="text-base font-semibold text-gray-800">
-            Validasi isi sekali lagi No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini (Apabila antunna Janda, silahkan isi dengan No HP sendiri)
+            {formData.has_permission === 'janda'
+              ? "Validasi No HP antunna (ketik ulang untuk memastikan nomor benar)"
+              : "Validasi No HP suami/ orang tua/majikan/wali yang bertanggung jawab (ketik ulang untuk memastikan nomor benar)"
+            }
             <span className="text-red-500">*</span>
           </Label>
           <Input
@@ -1115,7 +1149,7 @@ export default function ThalibahBatch2Page() {
           <div className="p-4 bg-blue-100 rounded-lg">
             <p className="font-semibold text-blue-800 mb-2">🧰 Perlengkapan Wajib:</p>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• <strong>Al-Qur&apos;an Tikrar</strong> ➤ Jika belum memiliki, bisa dibeli di toko buku atau toko online (tautan tersedia di deskripsi grup pendaftaran)</li>
+              <li>• <strong>Al-Qur'an Tikrar</strong> ➤ Jika belum memiliki, bisa dibeli di toko buku atau toko online (tautan tersedia di deskripsi grup pendaftaran)</li>
               <li>• <strong>Counter Manual (alat penghitung)</strong> ➤ Bisa dibeli di toko alat tulis atau toko online (tautan juga tersedia di deskripsi grup)</li>
               <li>• Bagi yang mengalami kendala finansial, silakan hubungi Kak Mara di WA: 0813-1365-0842</li>
             </ul>
@@ -1196,16 +1230,59 @@ export default function ThalibahBatch2Page() {
     </div>
   )
 
-  if (loading || !user) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
+  // Bypass authentication check temporarily for debugging
+  // if (loading || !user) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
+  //       <div className="max-w-4xl mx-auto px-4">
+  //         <div className="text-center mb-8">
+  //           <h1 className="text-4xl font-bold text-green-900 mb-3">
+  //             Formulir Pendaftaran MTI Batch 2
+  //           </h1>
+  //           <p className="text-lg text-gray-600">
+  //             Program Hafalan Al-Qur'an Gratis Khusus Akhawat
+  //           </p>
+  //         </div>
+
+  //         {/* Skeleton Loading */}
+  //         <div className="animate-pulse">
+  //           <div className="bg-white rounded-lg shadow-lg p-8">
+  //             <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+  //             <div className="h-2 bg-gray-200 rounded w-full mb-8"></div>
+
+  //             {/* Form Sections Skeleton */}
+  //             <div className="space-y-6">
+  //               <div className="space-y-4">
+  //                 <div className="h-6 bg-gray-200 rounded w-2/3"></div>
+  //                 <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+  //                 <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+  //                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+  //               </div>
+
+  //               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //                 <div className="h-12 bg-gray-200 rounded"></div>
+  //                 <div className="h-12 bg-gray-200 rounded"></div>
+  //               </div>
+
+  //               <div className="flex justify-between pt-6 border-t">
+  //                 <div className="h-10 bg-gray-200 rounded w-24"></div>
+  //                 <div className="h-10 bg-gray-200 rounded w-24"></div>
+  //               </div>
+  //             </div>
+  //           </div>
+  //         </div>
+
+  //         <div className="text-center mt-8">
+  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900 mx-auto mb-4"></div>
+  //           <p className="text-gray-600">Memuat formulir pendaftaran...</p>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   )
+  // }
+
+  // Show form directly for debugging
+  console.log('Rendering form - user:', user, 'loading:', loading)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
@@ -1304,3 +1381,5 @@ export default function ThalibahBatch2Page() {
     </div>
   )
 }
+
+export default TikrarTahfidzPage

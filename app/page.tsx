@@ -27,6 +27,19 @@ export default function Home() {
       {/* Hero Section */}
       <section className="min-h-[80vh] sm:min-h-screen flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30">
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10">
+          {/* Under Development Notice */}
+          <div className="mb-8">
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-center gap-2 text-yellow-800">
+                <Clock className="w-5 h-5" />
+                <span className="font-semibold">Sedang dalam Pengembangan</span>
+              </div>
+              <p className="text-sm text-yellow-700 mt-2 text-center">
+                Pendaftaran sementara ditutup untuk perbaikan sistem
+              </p>
+            </div>
+          </div>
+
           {/* Simple Badge */}
           <div className="mb-6 sm:mb-8">
             <Badge className="bg-green-900 text-white border-0 px-4 sm:px-6 py-2 sm:py-3 text-sm font-semibold shadow-lg">
@@ -52,14 +65,12 @@ export default function Home() {
           {/* Action Button */}
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-12 sm:mb-16">
             <Button
-              asChild
+              disabled
               size="lg"
-              className="bg-gradient-to-r from-green-900 to-yellow-600 hover:from-green-800 hover:to-yellow-500 text-white px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl group"
+              className="bg-gray-400 text-white px-12 py-6 text-lg font-bold rounded-2xl cursor-not-allowed opacity-60"
             >
-              <Link href="/register" className="flex items-center gap-3">
-                <Crown className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
-                Daftar Sekarang (Gratis)
-              </Link>
+              <Crown className="w-6 h-6 mr-3" />
+              Pendaftaran Ditutup Sementara
             </Button>
             <Button
               asChild
@@ -228,14 +239,12 @@ export default function Home() {
 
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center">
               <Button
-                asChild
+                disabled
                 size="lg"
-                className="bg-white hover:bg-gray-50 text-green-900 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl group"
+                className="bg-gray-400 text-white px-12 py-6 text-lg font-bold rounded-2xl cursor-not-allowed opacity-60"
               >
-                <Link href="/register" className="flex items-center gap-3">
-                  <Crown className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
-                  Daftar Sekarang (Gratis)
-                </Link>
+                <Crown className="w-6 h-6 mr-3" />
+                Pendaftaran Ditutup Sementara
               </Button>
               <Button
                 asChild
@@ -260,18 +269,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Floating Register Button */}
-      <div className="fixed bottom-8 right-8 z-50">
-        <Button
-          asChild
-          className="bg-gradient-to-r from-green-900 to-yellow-600 hover:from-green-800 hover:to-yellow-500 text-white shadow-xl hover:shadow-2xl hover:scale-110 transition-all duration-300 rounded-full px-6 py-4 flex items-center gap-3 group"
-        >
-          <Link href="/register" className="flex items-center gap-3">
-            <Crown className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-            <span className="font-semibold hidden sm:inline">Daftar Gratis</span>
-          </Link>
-        </Button>
-      </div>
+      {/* Floating Register Button - Removed */}
     </main>
   );
 }

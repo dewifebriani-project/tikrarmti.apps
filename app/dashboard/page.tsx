@@ -6,9 +6,13 @@ import { Button } from '@/components/ui/button'
 import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star } from 'lucide-react'
 import Link from 'next/link'
 import AuthenticatedLayout from '@/components/AuthenticatedLayout'
+import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
 
 export default function Dashboard() {
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [userData, setUserData] = useState<any>(null)
   const [todayProgress, setTodayProgress] = useState({
     completed: 0,
     total: 7,
@@ -17,20 +21,76 @@ export default function Dashboard() {
 
   const [stats, setStats] = useState({
     totalHariTarget: 30,
-    hariAktual: 22,
-    persentaseProgress: 73,
+    hariAktual: 0,
+    persentaseProgress: 0,
     jurnalHariIni: false,
     tashihHariIni: false
   })
 
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, type: 'jurnal', date: '2025-12-01', description: 'Jurnal harian selesai' },
-    { id: 2, type: 'tashih', date: '2025-11-30', description: 'Tashih blok H2a' },
-    { id: 3, type: 'jurnal', date: '2025-11-30', description: 'Jurnal harian selesai' },
-  ])
+  const [recentActivity, setRecentActivity] = useState([])
+  const [batchInfo, setBatchInfo] = useState<any>(null)
 
   useEffect(() => {
+    loadUserData()
+    loadBatchInfo()
+    loadTodayProgress()
+    loadRecentActivity()
+  }, [user])
 
+  const loadUserData = async () => {
+    if (!user) return
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (data && !error) {
+        setUserData(data)
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error)
+    }
+  }
+
+  const loadBatchInfo = async () => {
+    try {
+      // Get current active batch for Tikrar MTI
+      const { data, error } = await supabase
+        .from('batches')
+        .select('*')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (data && !error) {
+        setBatchInfo(data)
+
+        // Calculate days based on batch dates
+        const startDate = new Date(data.start_date)
+        const endDate = new Date(data.end_date)
+        const today = new Date()
+
+        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+        const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24))
+        const percentage = Math.min(Math.round((daysPassed / totalDays) * 100), 100)
+
+        setStats(prev => ({
+          ...prev,
+          totalHariTarget: totalDays,
+          hariAktual: Math.max(0, daysPassed),
+          persentaseProgress: percentage
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading batch info:', error)
+    }
+  }
+
+  const loadTodayProgress = () => {
     // Simulate loading today's progress from localStorage or API
     const savedProgress = localStorage.getItem('mti-jurnal-today')
     if (savedProgress) {
@@ -42,15 +102,55 @@ export default function Dashboard() {
         percentage: Math.round((completedSteps / 7) * 100)
       })
     }
-  }, [])
+  }
 
-  
+  const loadRecentActivity = async () => {
+    if (!user) return
+
+    try {
+      // This would normally fetch from your activity logs table
+      // For now, using mock data with dynamic dates
+      const mockActivities = [
+        {
+          id: 1,
+          type: 'jurnal',
+          date: new Date().toISOString(),
+          description: 'Jurnal harian selesai'
+        },
+        {
+          id: 2,
+          type: 'tashih',
+          date: new Date(Date.now() - 86400000).toISOString(),
+          description: 'Tashih blok H2a'
+        },
+        {
+          id: 3,
+          type: 'jurnal',
+          date: new Date(Date.now() - 172800000).toISOString(),
+          description: 'Jurnal harian selesai'
+        },
+      ]
+      setRecentActivity(mockActivities)
+    } catch (error) {
+      console.error('Error loading recent activity:', error)
+    }
+  }
+
   const getWelcomeMessage = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Selamat Pagi'
-    if (hour < 15) return 'Selamat Siang'
-    if (hour < 18) return 'Selamat Sore'
-    return 'Selamat Malam'
+    if (hour < 12) return 'Assalamu\'alaikum'
+    if (hour < 15) return 'Assalamu\'alaikum'
+    if (hour < 18) return 'Assalamu\'alaikum'
+    return 'Assalamu\'alaikum'
+  }
+
+  const toHijriDate = (date: Date) => {
+    // Simple approximation - you might want to use a proper Hijri converter library
+    const months = ['Muharram', 'Safar', 'Rabi\'ul Awwal', 'Rabi\'ul Akhir', 'Jumada al-Ula', 'Jumada al-Akhirah', 'Rajab', 'Sha\'ban', 'Ramadan', 'Shawwal', 'Dhu al-Qa\'dah', 'Dhu al-Hijjah']
+    const hijriYear = 1446 // Approximate
+    const hijriMonth = months[new Date().getMonth()]
+    const hijriDay = new Date().getDate()
+    return `${hijriDay} ${hijriMonth} ${hijriYear} H`
   }
 
   const getRoleDisplay = (role?: string) => {
@@ -103,7 +203,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-2">
-                  {getWelcomeMessage()}, Ukhti! 👋
+                  {getWelcomeMessage()}, {userData?.full_name ? `Ukhti ${userData.full_name}!` : 'Ukhti!'} 👋
                 </h2>
                 <p className="text-green-100">
                   Selamat datang kembali di Markaz Tikrar Indonesia. Semoga hari ini lebih baik dari hari kemarin.
@@ -111,12 +211,18 @@ export default function Dashboard() {
                 <div className="mt-4 flex items-center space-x-4">
                   <div className="flex items-center">
                     <Award className="w-5 h-5 mr-2" />
-                    <span className="font-medium">Demo User</span>
+                    <span className="font-medium">{getRoleDisplay(userData?.role)}</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
-                    <span>Bergabung: {new Date().toLocaleDateString('id-ID')}</span>
+                    <span>Bergabung: {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
                   </div>
+                  {userData?.created_at && (
+                    <div className="flex items-center">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      <span>{toHijriDate(new Date(userData.created_at))}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="hidden md:block">
@@ -190,25 +296,34 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {quickActions.map((action) => {
             const Icon = action.icon
+            const isDisabled = batchInfo && batchInfo.status === 'registration'
             return (
-              <Card key={action.title} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <Card key={action.title} className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${isDisabled ? 'opacity-75' : ''}`}>
                 <CardHeader>
                   <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-lg ${action.color}`}>
+                    <div className={`p-3 rounded-lg ${isDisabled ? 'bg-gray-400 text-gray-600' : action.color}`}>
                       <Icon className="h-6 w-6" />
                     </div>
                     <div>
                       <CardTitle className="text-lg">{action.title}</CardTitle>
-                      <CardDescription>{action.description}</CardDescription>
+                      <CardDescription>
+                        {isDisabled ? 'Dikunci karena masa pendaftaran' : action.description}
+                      </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <Link href={action.href}>
-                    <Button className={`w-full ${action.color}`}>
-                      Mulai {action.title}
+                  {isDisabled ? (
+                    <Button className="w-full bg-gray-400 text-white cursor-not-allowed" disabled>
+                      {action.title} Dikunci
                     </Button>
-                  </Link>
+                  ) : (
+                    <Link href={action.href}>
+                      <Button className={`w-full ${action.color}`}>
+                        Mulai {action.title}
+                      </Button>
+                    </Link>
+                  )}
                 </CardContent>
               </Card>
             )

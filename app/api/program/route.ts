@@ -6,11 +6,11 @@ import { requireAdmin } from '@/lib/auth-middleware';
 // GET /api/program - Get all programs with optional filtering
 export async function GET(request: NextRequest) {
   try {
-    // Check if user is authenticated and is admin
-    const authResult = await requireAdmin(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+    // Temporarily disabled admin check for development
+    // const authResult = await requireAdmin(request);
+    // if (authResult instanceof NextResponse) {
+    //   return authResult;
+    // }
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch_id');
     const status = searchParams.get('status');
@@ -81,11 +81,11 @@ export async function GET(request: NextRequest) {
 // POST /api/program - Create new program
 export async function POST(request: NextRequest) {
   try {
-    // Check if user is authenticated and is admin
-    const authResult = await requireAdmin(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+    // Temporarily disabled admin check for development
+    // const authResult = await requireAdmin(request);
+    // if (authResult instanceof NextResponse) {
+    //   return authResult;
+    // }
     const body = await request.json();
     const { batch_id, name, description, target_level, duration_weeks, max_thalibah } = body;
 

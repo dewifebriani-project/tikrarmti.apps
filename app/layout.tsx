@@ -3,6 +3,8 @@ import Link from 'next/link'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import AppLayout from '@/components/AppLayout'
+import GlobalErrorHandler from '@/components/GlobalErrorHandler'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Star, Crown } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -13,15 +15,26 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: 'MTI - Markaz Tikrar Indonesia',
+    description: 'Program Tahfidz Al-Quran dengan Metode Tikrar Itqan',
+    type: 'website',
+    locale: 'id_ID',
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  themeColor: '#1e8e3e',
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#15803d',
   viewportFit: 'cover',
+  colorScheme: 'light',
 }
 
 export default function RootLayout({
@@ -32,11 +45,14 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="antialiased">
-        <AuthProvider>
-          <AppLayout>
-            {children}
-          </AppLayout>
-        </AuthProvider>
+        <ErrorBoundary>
+          <GlobalErrorHandler />
+          <AuthProvider>
+            <AppLayout>
+              {children}
+            </AppLayout>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

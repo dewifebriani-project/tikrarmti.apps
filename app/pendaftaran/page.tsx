@@ -273,17 +273,8 @@ export default function PendaftaranPage() {
 
   const handleRegistrationClick = (type: PendaftaranType) => {
     if (type.status === 'open') {
-      // Route based on the actual data source
-      if (type.id.startsWith('batch-')) {
-        // This is from batch without dedicated program
-        router.push('/pendaftaran/tikrar-tahfidz');
-      } else if (type.programId) {
-        // This is from programs table
-        router.push(`/pendaftaran/program/${type.programId}`);
-      } else {
-        // Fallback routing
-        router.push(`/pendaftaran/${type.id}`);
-      }
+      // Always redirect to the tikrar-tahfidz form
+      router.push('/pendaftaran/tikrar-tahfidz');
     }
   };
 

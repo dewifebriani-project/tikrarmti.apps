@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from './supabase';
 import type { User, UserRole } from '@/types/database';
+import { debugOAuth, getEnvironmentInfo } from './oauth-debug';
 
 // Check if user has completed registration
 export const checkUserRegistrationComplete = async (email: string): Promise<boolean> => {
@@ -9,9 +10,9 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
     // Check if user exists in users table with all required fields
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, whatsapp, provinsi, kota, alamat, zona_waktu, role')
+      .select('id, email, full_name, whatsapp, telegram, provinsi, kota, alamat, zona_waktu, role')
       .eq('email', email)
-      .maybeSingle(); // Use maybeSingle to avoid errors if not found
+      .maybeSingle<{id: string, email: string, full_name: string | null, whatsapp: string | null, telegram: string | null, provinsi: string | null, kota: string | null, alamat: string | null, zona_waktu: string | null, role: string | null}>(); // Use maybeSingle to avoid errors if not found
 
     console.log('User query result:', { user, userError });
     console.log('User details:', JSON.stringify(user, null, 2));
@@ -39,6 +40,7 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
       user.kota &&
       user.alamat &&
       user.whatsapp &&
+      user.telegram &&
       user.zona_waktu
     );
 
@@ -50,6 +52,7 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
       has_kota: !!user.kota,
       has_alamat: !!user.alamat,
       has_whatsapp: !!user.whatsapp,
+      has_telegram: !!user.telegram,
       has_zona_waktu: !!user.zona_waktu,
       is_valid: hasRequiredFields
     });
@@ -62,6 +65,7 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
         missing_kota: !user.kota,
         missing_alamat: !user.alamat,
         missing_whatsapp: !user.whatsapp,
+        missing_telegram: !user.telegram,
         missing_zona_waktu: !user.zona_waktu
       });
     }
@@ -85,9 +89,9 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
     // Check if user exists in users table with all required fields
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, whatsapp, provinsi, kota, alamat, zona_waktu, role')
+      .select('id, email, full_name, whatsapp, telegram, provinsi, kota, alamat, zona_waktu, role')
       .eq('email', email)
-      .maybeSingle();
+      .maybeSingle<{id: string, email: string, full_name: string | null, whatsapp: string | null, telegram: string | null, provinsi: string | null, kota: string | null, alamat: string | null, zona_waktu: string | null, role: string | null}>();
 
     console.log('User query result:', { user, userError });
 
@@ -129,6 +133,7 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
     if (!user.kota) missingFields.push('kota');
     if (!user.alamat) missingFields.push('alamat');
     if (!user.whatsapp) missingFields.push('nomor WhatsApp');
+    if (!user.telegram) missingFields.push('nomor Telegram');
     if (!user.zona_waktu) missingFields.push('zona waktu');
 
     if (missingFields.length > 0) {
@@ -161,7 +166,7 @@ export const checkUserApprovedForThalibah = async (email: string): Promise<{ app
       .from('users')
       .select('id, email, full_name, role')
       .eq('email', email)
-      .maybeSingle();
+      .maybeSingle<{id: string, email: string, full_name: string | null, role: string | null}>();
 
     if (userError) {
       console.error('Database error checking user for approval:', userError);
@@ -197,7 +202,7 @@ export const checkUserApprovedForThalibah = async (email: string): Promise<{ app
     }
 
     // If user has other roles (admin, musyrifah, muallimah), allow login
-    if (['admin', 'musyrifah', 'muallimah'].includes(user.role)) {
+    if (user.role && ['admin', 'musyrifah', 'muallimah'].includes(user.role)) {
       return { approved: true, reason: 'User dengan role ' + user.role + ' diizinkan' };
     }
 
@@ -232,12 +237,40 @@ export const loginWithEmail = async (email: string, password: string) => {
 // Login dengan Google
 export const loginWithGoogle = async () => {
   try {
-    // Determine the correct redirect URL based on current domain
-    let redirectUrl = `${window.location.origin}/auth/callback`;
+    // Get environment information for debugging
+    const envInfo = getEnvironmentInfo();
+
+    // Determine the correct redirect URL based on environment
+    // Use NEXT_PUBLIC_APP_URL to determine if we're in development
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    const currentOrigin = window.location.origin;
+
+    // Check if we're accessing from localhost or if appUrl is set to localhost
+    const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1') || appUrl?.includes('localhost');
+
+    let redirectUrl: string;
+
+    if (isLocalhost) {
+      // In development or when accessing from localhost, always use localhost
+      redirectUrl = `${appUrl || 'http://localhost:3003'}/auth/callback`;
+    } else {
+      // In production, use current origin
+      redirectUrl = `${currentOrigin}/auth/callback`;
+    }
 
     // Log for debugging
-    console.log('[OAuth] Current origin:', window.location.origin);
-    console.log('[OAuth] Redirect URL:', redirectUrl);
+    debugOAuth('Login Initiated', {
+      appUrl,
+      currentOrigin,
+      isLocalhost,
+      redirectUrl,
+      envInfo
+    });
+
+    // Mark in sessionStorage that we're initiating OAuth from localhost
+    if (isLocalhost) {
+      sessionStorage.setItem('oauth_from_localhost', 'true');
+    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -411,7 +444,7 @@ export const updateUserData = async (
       updateData.role = (data as any).role;
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('users')
       .update(updateData)
       .eq('id', userId);
@@ -425,8 +458,14 @@ export const updateUserData = async (
 // Reset password
 export const resetPassword = async (email: string) => {
   try {
+    // Determine the correct redirect URL based on environment
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const baseUrl = isDevelopment
+      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003')
+      : window.location.origin;
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${baseUrl}/reset-password`,
     });
 
     if (error) throw error;
@@ -502,7 +541,7 @@ export const getUserById = async (userId: string) => {
 // Update user role (admin only)
 export const updateUserRole = async (userId: string, newRole: UserRole) => {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('users')
       .update({
         role: newRole,

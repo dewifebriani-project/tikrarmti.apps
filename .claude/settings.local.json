@@ -35,7 +35,12 @@
       "Bash(vercel --version:*)",
       "Bash(vercel:*)",
       "Bash(cat:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(jq:*)",
+      "Bash(nslookup:*)",
+      "Bash(dig:*)",
+      "Bash(whois:*)",
+      "Bash(set NODE_ENV=production:*)"
     ],
     "deny": [],
     "ask": []

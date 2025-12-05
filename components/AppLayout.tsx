@@ -12,8 +12,11 @@ interface AppLayoutProps {
 export default function AppLayout({ children, title }: AppLayoutProps) {
   const pathname = usePathname() || '';
 
-  // Auth routes that don't need any wrapper (login, register, pendaftaran)
-  const authRoutes = ['/login', '/register', '/pendaftaran', '/auth/callback'];
+  // Auth routes that don't need any wrapper (login, register)
+  const authRoutes = ['/login', '/register', '/auth/callback'];
+
+  // Pendaftaran routes that need authentication
+  const pendaftaranRoutes = ['/pendaftaran'];
 
   // Authenticated routes with sidebar (dashboard and other app pages)
   const authenticatedRoutes = [
@@ -35,8 +38,14 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
   // Check if current route is an auth route
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
+  // Check if current route is a pendaftaran route
+  const isPendaftaranRoute = pendaftaranRoutes.some(route => pathname.startsWith(route));
+
   // Check if current route is an authenticated route
   const isAuthenticatedRoute = authenticatedRoutes.some(route => pathname.startsWith(route));
+
+  // Combine pendaftaran routes with authenticated routes
+  const requiresAuth = isAuthenticatedRoute || isPendaftaranRoute;
 
   // Use donasi layout for donasi dashboard
   if (pathname === '/donasi-dashboard') {
@@ -48,8 +57,8 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     return <>{children}</>;
   }
 
-  // For authenticated routes, render children without wrapper (they have their own layout with sidebar)
-  if (isAuthenticatedRoute) {
+  // For authenticated routes and pendaftaran routes, render children without wrapper (they have their own layout with sidebar)
+  if (requiresAuth) {
     return <>{children}</>;
   }
 

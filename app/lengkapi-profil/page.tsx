@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,6 @@ export default function LengkapiProfilPage() {
 
   useEffect(() => {
     const getUserSession = async () => {
-      const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
@@ -30,11 +29,16 @@ export default function LengkapiProfilPage() {
       }
 
       // Fetch user data from database
+      if (!session.user.email) {
+        router.push('/login');
+        return;
+      }
+
       const { data: userData } = await supabase
         .from('users')
         .select('*')
         .eq('email', session.user.email)
-        .single();
+        .single() as any;
 
       if (userData) {
         setUser(userData);
@@ -60,9 +64,8 @@ export default function LengkapiProfilPage() {
     }
 
     try {
-      const supabase = createClient();
 
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({
           full_name: formData.full_name,
@@ -83,7 +86,6 @@ export default function LengkapiProfilPage() {
   };
 
   const handleLogout = async () => {
-    const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
   };

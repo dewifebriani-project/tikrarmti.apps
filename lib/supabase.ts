@@ -4,18 +4,8 @@ export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
-// Create individual instances to avoid conflicts
-// Use dummy values during build if env vars are not available
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-anon-key',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-    }
-  }
-)
+// Import singleton client to avoid multiple instances
+export { supabase } from './supabase-singleton'
 
 // Admin client for server-side operations
 export const supabaseAdmin = createClient(
