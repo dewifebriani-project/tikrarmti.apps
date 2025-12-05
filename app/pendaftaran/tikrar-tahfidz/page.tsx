@@ -104,15 +104,15 @@ function TikrarTahfidzPage() {
           setBatchInfo({
             batch_id: data.batch_id,
             program_id: data.program_id,
-            batch_name: data.batch_name || 'Batch 2',
-            start_date: data.start_date || '2026-01-05',
-            end_date: data.end_date || '2026-04-09',
-            duration_weeks: data.duration_weeks || 16,
-            price: data.price || 250000,
-            is_free: data.is_free || false,
-            scholarship_quota: data.scholarship_quota || 17,
-            total_quota: data.total_quota || 100,
-            registered_count: data.registered_count || 83
+            batch_name: data.batch_name,
+            start_date: data.start_date,
+            end_date: data.end_date,
+            duration_weeks: data.duration_weeks,
+            price: data.price,
+            is_free: data.is_free,
+            scholarship_quota: data.scholarship_quota,
+            total_quota: data.total_quota,
+            registered_count: data.registered_count
           })
         }
       } catch (error) {
