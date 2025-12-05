@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { submitPendaftaran, type PendaftaranData } from '@/lib/pendaftaran'
+import { type PendaftaranData } from '@/lib/pendaftaran'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -321,10 +321,23 @@ function TikrarTahfidzPage() {
         submission_date: new Date().toISOString()
       }
 
-      // Submit to database
-      await submitPendaftaran(submissionData)
+      // Submit to API
+      const response = await fetch('/api/pendaftaran/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to submit registration')
+      }
 
       console.log('Form submitted successfully with data:', submissionData)
+      console.log('Server response:', result)
       setSubmitStatus('success')
 
       // Redirect to dashboard after 3 seconds so user can see success message
