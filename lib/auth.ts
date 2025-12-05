@@ -232,10 +232,21 @@ export const loginWithEmail = async (email: string, password: string) => {
 // Login dengan Google
 export const loginWithGoogle = async () => {
   try {
+    // Determine the correct redirect URL based on current domain
+    let redirectUrl = `${window.location.origin}/auth/callback`;
+
+    // Log for debugging
+    console.log('[OAuth] Current origin:', window.location.origin);
+    console.log('[OAuth] Redirect URL:', redirectUrl);
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     });
 
