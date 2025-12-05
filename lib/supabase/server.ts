@@ -1,13 +1,21 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 export function createServerClient() {
-  return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn('Supabase credentials missing. Using placeholder values.')
+  }
+
+  return createSupabaseClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseServiceKey || 'placeholder-service-key',
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
     }
-  })
+  )
 }
