@@ -28,7 +28,7 @@ export default function Dashboard() {
   })
 
   const [recentActivity, setRecentActivity] = useState([])
-  const [batchInfo, setBatchInfo] = useState<any>(null)
+  const [batchInfo, setBatchInfo] = useState<any | null>(null)
 
   useEffect(() => {
     loadUserData()
@@ -70,8 +70,8 @@ export default function Dashboard() {
         setBatchInfo(data)
 
         // Calculate days based on batch dates
-        const startDate = new Date(data.start_date)
-        const endDate = new Date(data.end_date)
+        const startDate = new Date(data.start_date || '2025-01-01')
+        const endDate = new Date(data.end_date || '2025-04-01')
         const today = new Date()
 
         const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))

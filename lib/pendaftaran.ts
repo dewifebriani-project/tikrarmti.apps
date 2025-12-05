@@ -12,7 +12,6 @@ export interface PendaftaranData {
   saved_contact: boolean
   // Section 2 fields
   has_permission: boolean
-  permission_type?: 'regular' | 'janda' | null
   permission_name: string
   permission_phone: string
   chosen_juz: string
@@ -21,7 +20,6 @@ export interface PendaftaranData {
   ready_for_team: string
   // Section 3 fields (additional data not in users table)
   telegram_phone?: string
-  birth_date?: string
   age: number
   main_time_slot: string
   backup_time_slot: string

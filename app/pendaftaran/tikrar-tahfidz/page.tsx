@@ -292,7 +292,6 @@ function TikrarTahfidzPage() {
 
         // Section 2 - Permission & Program Choice
         has_permission: formData.has_permission === 'yes' || formData.has_permission === 'janda',
-        permission_type: formData.has_permission === 'janda' ? 'janda' : formData.has_permission === 'yes' ? 'regular' : null,
         permission_name: formData.permission_name,
         permission_phone: formData.permission_phone,
         chosen_juz: formData.chosen_juz,
@@ -302,7 +301,6 @@ function TikrarTahfidzPage() {
 
         // Section 3 - Personal Data (additional data not in users table)
         telegram_phone: formData.same_wa_telegram === 'different' ? formData.telegram_phone : formData.wa_phone,
-        birth_date: formData.birth_date,
         age: parseInt(formData.age) || 0,
         main_time_slot: formData.main_time_slot,
         backup_time_slot: formData.backup_time_slot,
