@@ -34,19 +34,8 @@ interface FormData {
   motivation: string
   ready_for_team: string
 
-  // Section 3 - Data Diri
-  full_name: string
-  email: string
-  address: string
-  wa_phone: string
-  wa_phone_validation: string
-  same_wa_telegram: string
-  telegram_phone: string
-  telegram_phone_validation: string
-  birth_date: string
-  age: string
+  // Section 3 - Data Tambahan (khusus tikrar)
   domicile: string
-  timezone: string
   main_time_slot: string
   backup_time_slot: string
   time_commitment: boolean
@@ -76,18 +65,7 @@ function TikrarTahfidzPage() {
     no_travel_plans: false,
     motivation: '',
     ready_for_team: '',
-    full_name: '',
-    email: '',
-    address: '',
-    wa_phone: '',
-    wa_phone_validation: '',
-    same_wa_telegram: 'same',
-    telegram_phone: '',
-    telegram_phone_validation: '',
-    birth_date: '',
-    age: '',
     domicile: '',
-    timezone: '',
     main_time_slot: '',
     backup_time_slot: '',
     time_commitment: false,
@@ -219,32 +197,9 @@ function TikrarTahfidzPage() {
     }
 
     if (section === 3) {
-      if (!formData.full_name.trim()) {
-        newErrors.full_name = 'Nama harus diisi sesuai KTP'
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = 'Email harus diisi'
-      }
-      if (!formData.address.trim()) {
-        newErrors.address = 'Alamat harus diisi'
-      }
-      if (!formData.wa_phone.trim()) {
-        newErrors.wa_phone = 'Nomor WA harus diisi'
-      }
-      if (formData.wa_phone !== formData.wa_phone_validation) {
-        newErrors.wa_phone_validation = 'Validasi nomor WA tidak cocok'
-      }
-      if (!formData.birth_date) {
-        newErrors.birth_date = 'Tanggal lahir harus diisi'
-      }
-      if (!formData.age.trim()) {
-        newErrors.age = 'Usia harus diisi'
-      }
+      // Validasi hanya field yang khusus untuk tikrar
       if (!formData.domicile.trim()) {
         newErrors.domicile = 'Domisili harus diisi'
-      }
-      if (!formData.timezone) {
-        newErrors.timezone = 'Pilih zona waktu'
       }
       if (!formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
@@ -318,14 +273,14 @@ function TikrarTahfidzPage() {
         motivation: formData.motivation,
         ready_for_team: formData.ready_for_team,
 
-        // Section 3 - Personal Data (ambil dari profile jika ada, fallback ke form)
-        full_name: userProfile?.full_name || formData.full_name,
-        address: userProfile?.address || formData.address,
-        wa_phone: userProfile?.wa_phone || formData.wa_phone,
-        telegram_phone: formData.same_wa_telegram === 'different' ? formData.telegram_phone : (userProfile?.telegram_phone || formData.wa_phone),
-        age: userProfile?.age ? parseInt(userProfile.age) || 0 : (parseInt(formData.age) || 0),
-        domicile: formData.domicile, // Tidak ada di users, tetap dari form
-        timezone: userProfile?.timezone || formData.timezone,
+        // Section 3 - Data Pribadi (diambil dari users table)
+        full_name: userProfile?.full_name || '',
+        address: userProfile?.address || '',
+        wa_phone: userProfile?.wa_phone || '',
+        telegram_phone: userProfile?.telegram_phone || '',
+        age: userProfile?.age ? parseInt(userProfile.age) || 0 : 0,
+        domicile: formData.domicile, // Hanya untuk tikrar
+        timezone: userProfile?.timezone || 'WIB',
         main_time_slot: formData.main_time_slot, // Hanya untuk tikrar
         backup_time_slot: formData.backup_time_slot, // Hanya untuk tikrar
         time_commitment: formData.time_commitment, // Hanya untuk tikrar
@@ -833,186 +788,62 @@ function TikrarTahfidzPage() {
       <Alert className="bg-purple-50 border-purple-200">
         <Info className="h-4 w-4 text-purple-600" />
         <AlertDescription className="text-purple-800">
-          <strong>Section 3 of 4</strong> - Data Diri
+          <strong>Section 3 of 4</strong> - Konfirmasi Data & Waktu
         </AlertDescription>
       </Alert>
 
+      {/* Data diri sudah diambil dari tabel users - tampilkan sebagai informasi saja */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h3 className="text-lg font-semibold mb-3 text-gray-800">Data Diri (Diambil dari profil Anda)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="font-medium text-gray-600">Nama:</span>
+            <p className="text-gray-900">{userProfile?.full_name || '-'}</p>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">Email:</span>
+            <p className="text-gray-900">{user?.email || '-'}</p>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">No. WhatsApp:</span>
+            <p className="text-gray-900">{userProfile?.wa_phone || '-'}</p>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">No. Telegram:</span>
+            <p className="text-gray-900">{userProfile?.telegram_phone || '-'}</p>
+          </div>
+          <div className="md:col-span-2">
+            <span className="font-medium text-gray-600">Alamat:</span>
+            <p className="text-gray-900">{userProfile?.address || '-'}</p>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">Usia:</span>
+            <p className="text-gray-900">{userProfile?.age ? `${userProfile.age} tahun` : '-'}</p>
+          </div>
+          <div>
+            <span className="font-medium text-gray-600">Zona Waktu:</span>
+            <p className="text-gray-900">{userProfile?.timezone || '-'}</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-3 italic">
+          Jika data di atas tidak lengkap atau salah, silakan perbarui di halaman lengkapi profil.
+        </p>
+      </div>
+
+      {/* Field yang khusus untuk tikrar */}
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="full_name" className="text-sm font-medium text-gray-700">Nama (Sesuai KTP)</Label>
-            <Input
-              id="full_name"
-              value={formData.full_name}
-              onChange={(e) => handleInputChange('full_name', e.target.value)}
-              placeholder="Nama lengkap sesuai KTP"
-              className="text-sm"
-            />
-            {errors.full_name && (
-              <p className="text-red-500 text-xs">{errors.full_name}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              placeholder="email@example.com"
-              className="text-sm"
-            />
-            {errors.email && (
-              <p className="text-red-500 text-xs">{errors.email}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="address" className="text-sm font-medium text-gray-700">Alamat</Label>
-          <Textarea
-            id="address"
-            value={formData.address}
-            onChange={(e) => handleInputChange('address', e.target.value)}
-            rows={2}
-            placeholder="Alamat lengkap"
-            className="text-sm"
-          />
-          {errors.address && (
-            <p className="text-red-500 text-xs">{errors.address}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="wa_phone" className="text-sm font-medium text-gray-700">Nomor WA pribadi aktif</Label>
-            <Input
-              id="wa_phone"
-              value={formData.wa_phone}
-              onChange={(e) => handleInputChange('wa_phone', e.target.value)}
-              placeholder="08xx-xxxx-xxxx"
-              className="text-sm"
-            />
-            {errors.wa_phone && (
-              <p className="text-red-500 text-xs">{errors.wa_phone}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="wa_phone_validation" className="text-sm font-medium text-gray-700">Validasi Nomor WA</Label>
-            <Input
-              id="wa_phone_validation"
-              value={formData.wa_phone_validation}
-              onChange={(e) => handleInputChange('wa_phone_validation', e.target.value)}
-              placeholder="Ketik ulang nomor WA"
-              className="text-sm"
-            />
-            {errors.wa_phone_validation && (
-              <p className="text-red-500 text-xs">{errors.wa_phone_validation}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">Apakah Nomor Whatsapp sama dengan Nomor Telegram?</Label>
-          <RadioGroup value={formData.same_wa_telegram} onValueChange={(value) => handleInputChange('same_wa_telegram', value)} className="space-y-3">
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <RadioGroupItem value="same" id="same" className="mt-1" />
-              <Label htmlFor="same" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">Sama</Label>
-            </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <RadioGroupItem value="different" id="different" className="mt-1" />
-              <Label htmlFor="different" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">Beda</Label>
-            </div>
-          </RadioGroup>
-
-          {formData.same_wa_telegram === 'different' && (
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="telegram_phone" className="text-sm font-medium text-gray-700">Nomor Telegram</Label>
-                <Input
-                  id="telegram_phone"
-                  value={formData.telegram_phone}
-                  onChange={(e) => handleInputChange('telegram_phone', e.target.value)}
-                  placeholder="08xx-xxxx-xxxx"
-                  className="text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="telegram_phone_validation" className="text-sm font-medium text-gray-700">Validasi Nomor Telegram</Label>
-                <Input
-                  id="telegram_phone_validation"
-                  value={formData.telegram_phone_validation}
-                  onChange={(e) => handleInputChange('telegram_phone_validation', e.target.value)}
-                  placeholder="Ketik ulang nomor Telegram"
-                  className="text-sm"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="birth_date" className="text-sm font-medium text-gray-700">Tanggal Lahir</Label>
-            <Input
-              id="birth_date"
-              type="date"
-              value={formData.birth_date || ''}
-              onChange={(e) => handleInputChange('birth_date', e.target.value)}
-              className="text-sm"
-              max={new Date().toISOString().split('T')[0]}
-            />
-            {errors.birth_date && (
-              <p className="text-red-500 text-xs">{errors.birth_date}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="age" className="text-sm font-medium text-gray-700">Usia (Terhitung otomatis)</Label>
-            <Input
-              id="age"
-              value={formData.age || (formData.birth_date ? new Date().getFullYear() - new Date(formData.birth_date).getFullYear() : '')}
-              onChange={(e) => handleInputChange('age', e.target.value)}
-              placeholder="Angka saja"
-              className="text-sm"
-              readOnly
-            />
-            {errors.age && (
-              <p className="text-red-500 text-xs">{errors.age}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="domicile" className="text-sm font-medium text-gray-700">Domisili</Label>
+            <Label htmlFor="domicile" className="text-sm font-medium text-gray-700">Domisili (Kota)</Label>
             <Input
               id="domicile"
               value={formData.domicile}
               onChange={(e) => handleInputChange('domicile', e.target.value)}
-              placeholder="Kota"
+              placeholder="Kota domisili"
               className="text-sm"
             />
             {errors.domicile && (
               <p className="text-red-500 text-xs">{errors.domicile}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium text-gray-700">Zona Waktu</Label>
-            <Select value={formData.timezone} onValueChange={(value) => handleInputChange('timezone', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih zona waktu" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="WIB">WIB</SelectItem>
-                <SelectItem value="WITA">WITA</SelectItem>
-                <SelectItem value="WIT">WIT</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.timezone && (
-              <p className="text-red-500 text-xs">{errors.timezone}</p>
             )}
           </div>
         </div>
