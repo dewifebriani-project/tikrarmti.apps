@@ -318,12 +318,17 @@ function TikrarTahfidzPage() {
         motivation: formData.motivation,
         ready_for_team: formData.ready_for_team,
 
-        // Section 3 - Personal Data (additional data not in users table)
-        telegram_phone: formData.same_wa_telegram === 'different' ? formData.telegram_phone : formData.wa_phone,
-        age: parseInt(formData.age) || 0,
-        main_time_slot: formData.main_time_slot,
-        backup_time_slot: formData.backup_time_slot,
-        time_commitment: formData.time_commitment,
+        // Section 3 - Personal Data (ambil dari profile jika ada, fallback ke form)
+        full_name: userProfile?.full_name || formData.full_name,
+        address: userProfile?.address || formData.address,
+        wa_phone: userProfile?.wa_phone || formData.wa_phone,
+        telegram_phone: formData.same_wa_telegram === 'different' ? formData.telegram_phone : (userProfile?.telegram_phone || formData.wa_phone),
+        age: userProfile?.age ? parseInt(userProfile.age) || 0 : (parseInt(formData.age) || 0),
+        domicile: formData.domicile, // Tidak ada di users, tetap dari form
+        timezone: userProfile?.timezone || formData.timezone,
+        main_time_slot: formData.main_time_slot, // Hanya untuk tikrar
+        backup_time_slot: formData.backup_time_slot, // Hanya untuk tikrar
+        time_commitment: formData.time_commitment, // Hanya untuk tikrar
 
         // Section 4 - Program Understanding
         understands_program: formData.understands_program,

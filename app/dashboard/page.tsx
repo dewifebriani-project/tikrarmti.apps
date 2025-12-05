@@ -75,8 +75,8 @@ export default function Dashboard() {
         const endDate = new Date(batchData.end_date || '2025-04-01')
         const today = new Date()
 
-        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
-        const daysPassed = Math.ceil((today - startDate) / (1000 * 60 * 60 * 24))
+        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        const daysPassed = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
         const percentage = Math.min(Math.round((daysPassed / totalDays) * 100), 100)
 
         setStats(prev => ({
