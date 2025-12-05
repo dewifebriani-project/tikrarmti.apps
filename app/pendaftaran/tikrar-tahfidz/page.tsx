@@ -114,23 +114,11 @@ function TikrarTahfidzPage() {
             total_quota: data.total_quota,
             registered_count: data.registered_count
           })
+        } else {
+          console.error('API error:', response.status, response.statusText)
         }
       } catch (error) {
         console.error('Error fetching batch info:', error)
-        // Set default values if API fails
-        setBatchInfo({
-          batch_id: 'default-batch',
-          program_id: 'default-program',
-          batch_name: 'Batch 2',
-          start_date: '2026-01-05',
-          end_date: '2026-04-09',
-          duration_weeks: 16,
-          price: 250000,
-          is_free: false,
-          scholarship_quota: 17,
-          total_quota: 100,
-          registered_count: 83
-        })
       }
     }
     fetchBatchInfo()

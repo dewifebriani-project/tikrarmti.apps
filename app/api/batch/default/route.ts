@@ -15,21 +15,10 @@ export async function GET() {
 
     if (batchError || !batch) {
       console.error('Error fetching batch:', batchError);
-      // Return default values if no batch found
-      return NextResponse.json({
-        batch_id: 'default-batch',
-        batch_name: 'Batch 2',
-        program_id: 'default-program',
-        program_name: 'Tikrar Tahfidz',
-        start_date: '2026-01-05',
-        end_date: '2026-04-09',
-        duration_weeks: 16,
-        price: 0,
-        is_free: true,
-        total_quota: 100,
-        registered_count: 0,
-        scholarship_quota: 100
-      });
+      return NextResponse.json(
+        { error: 'Batch not found' },
+        { status: 404 }
+      );
     }
 
     // Hitung total pendaftar dari tabel pendaftaran

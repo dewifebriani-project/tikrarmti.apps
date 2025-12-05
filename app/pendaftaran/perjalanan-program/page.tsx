@@ -321,7 +321,7 @@ const PerjalananProgram = () => {
                 </li>
                 <li className="flex items-start">
                   <CheckCircle2 className="w-5 h-5 mr-2 mt-0.5 text-purple-600 flex-shrink-0" />
-                  <span>Syahadah diterima 14 pekan setelah wisuda</span>
+                  <span>Syahadah diterima 14 hari setelah wisuda</span>
                 </li>
               </ul>
             </div>
