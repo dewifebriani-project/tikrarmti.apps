@@ -350,7 +350,7 @@ const PerjalananProgram = () => {
           <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
             <p className="text-gray-700 mb-2">Butuh bantuan atau informasi lebih lanjut?</p>
             <p className="text-lg font-semibold text-green-700">
-              Hubungi Kak Mara: <span className="text-blue-600">0813-1365-0842</span>
+              Hubungi MTI Official: <span className="text-blue-600">081330000784</span>
             </p>
           </div>
         </div>
