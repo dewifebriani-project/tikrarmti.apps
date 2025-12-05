@@ -131,15 +131,6 @@ function TikrarTahfidzPage() {
   const handleInputChange = useCallback((field: keyof FormData, value: string | boolean) => {
     setFormData(prev => {
       const newFormData = { ...prev, [field]: value }
-
-      // Auto-calculate age when birth date changes
-      if (field === 'birth_date' && typeof value === 'string' && value) {
-        const birthYear = new Date(value).getFullYear()
-        const currentYear = new Date().getFullYear()
-        const calculatedAge = currentYear - birthYear
-        newFormData.age = calculatedAge.toString()
-      }
-
       return newFormData
     })
 
