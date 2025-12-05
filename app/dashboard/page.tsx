@@ -27,7 +27,7 @@ export default function Dashboard() {
     tashihHariIni: false
   })
 
-  const [recentActivity, setRecentActivity] = useState([])
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [batchInfo, setBatchInfo] = useState<any | null>(null)
 
   useEffect(() => {
