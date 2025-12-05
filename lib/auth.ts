@@ -6,10 +6,10 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
   try {
     console.log('Checking registration for email:', email);
 
-    // Check if user exists in users table
+    // Check if user exists in users table with all required fields
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, phone, role')
+      .select('id, email, full_name, whatsapp, provinsi, kota, alamat, zona_waktu, role')
       .eq('email', email)
       .maybeSingle(); // Use maybeSingle to avoid errors if not found
 
@@ -26,23 +26,31 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
       return false;
     }
 
-    // Check if user has admin role - admin can login without phone
+    // Check if user has admin role - admin can login without full registration
     if (user.role === 'admin') {
       console.log('Admin user found, checking full_name:', !!user.full_name);
       return !!user.full_name; // Admin hanya butuh full_name
     }
 
-    // For other roles, check if all required fields are filled
+    // For other roles, check if all required fields from registration form are filled
     const hasRequiredFields = !!(
       user.full_name &&
-      user.phone
+      user.provinsi &&
+      user.kota &&
+      user.alamat &&
+      user.whatsapp &&
+      user.zona_waktu
     );
 
     console.log('User validation:', {
       email: user.email,
       role: user.role,
       has_full_name: !!user.full_name,
-      has_phone: !!user.phone,
+      has_provinsi: !!user.provinsi,
+      has_kota: !!user.kota,
+      has_alamat: !!user.alamat,
+      has_whatsapp: !!user.whatsapp,
+      has_zona_waktu: !!user.zona_waktu,
       is_valid: hasRequiredFields
     });
 
@@ -50,7 +58,11 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
     if (!hasRequiredFields) {
       console.log('Validation failed:', {
         missing_full_name: !user.full_name,
-        missing_phone: !user.phone
+        missing_provinsi: !user.provinsi,
+        missing_kota: !user.kota,
+        missing_alamat: !user.alamat,
+        missing_whatsapp: !user.whatsapp,
+        missing_zona_waktu: !user.zona_waktu
       });
     }
 
@@ -70,10 +82,10 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
   try {
     console.log('Checking registration status for email:', email);
 
-    // Check if user exists in users table
+    // Check if user exists in users table with all required fields
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, phone, role')
+      .select('id, email, full_name, whatsapp, provinsi, kota, alamat, zona_waktu, role')
       .eq('email', email)
       .maybeSingle();
 
@@ -95,7 +107,7 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
       };
     }
 
-    // Check if user has admin role - admin can login without phone
+    // Check if user has admin role - admin can login without full registration
     if (user.role === 'admin') {
       if (!user.full_name) {
         return {
@@ -110,10 +122,14 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
       };
     }
 
-    // For other roles, check if all required fields are filled
+    // For other roles, check if all required fields from registration form are filled
     const missingFields = [];
     if (!user.full_name) missingFields.push('nama lengkap');
-    if (!user.phone) missingFields.push('nomor telepon');
+    if (!user.provinsi) missingFields.push('provinsi');
+    if (!user.kota) missingFields.push('kota');
+    if (!user.alamat) missingFields.push('alamat');
+    if (!user.whatsapp) missingFields.push('nomor WhatsApp');
+    if (!user.zona_waktu) missingFields.push('zona waktu');
 
     if (missingFields.length > 0) {
       return {
