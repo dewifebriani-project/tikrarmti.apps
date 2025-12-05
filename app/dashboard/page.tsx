@@ -67,11 +67,12 @@ export default function Dashboard() {
         .single()
 
       if (data && !error) {
-        setBatchInfo(data)
+        setBatchInfo(data as any)
 
         // Calculate days based on batch dates
-        const startDate = new Date(data.start_date || '2025-01-01')
-        const endDate = new Date(data.end_date || '2025-04-01')
+        const batchData = data as any
+        const startDate = new Date(batchData.start_date || '2025-01-01')
+        const endDate = new Date(batchData.end_date || '2025-04-01')
         const today = new Date()
 
         const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))

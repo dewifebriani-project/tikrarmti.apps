@@ -61,6 +61,7 @@ function TikrarTahfidzPage() {
   const { user, loading } = useAuth()
 
   const [currentSection, setCurrentSection] = useState(1)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [formData, setFormData] = useState<FormData>({
     understands_commitment: false,
     tried_simulation: false,
@@ -121,6 +122,24 @@ function TikrarTahfidzPage() {
     }
     fetchBatchInfo()
   }, [])
+
+  // Fetch user profile data
+  useEffect(() => {
+    if (user) {
+      const fetchUserProfile = async () => {
+        try {
+          const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            setUserProfile(data)
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error)
+        }
+      }
+      fetchUserProfile()
+    }
+  }, [user])
 
   // Cleanup redirect timer when component unmounts or status changes
   React.useEffect(() => {
