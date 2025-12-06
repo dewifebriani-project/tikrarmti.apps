@@ -310,21 +310,6 @@ export default function PendaftaranPage() {
   return (
     <AuthenticatedLayout title="Pendaftaran Program">
       <div className="space-y-8">
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600">
-              Pilih program yang sesuai dengan kebutuhan dan minat <em>Antunna</em>. Data program diambil langsung dari database.
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="bg-green-50 rounded-lg p-4 border border-green-900/20">
-              <p className="text-sm text-green-900 font-medium">Data Real-time</p>
-              <p className="text-xs text-gray-600 mt-1">{batches.length} Batch, {programs.length} Program</p>
-            </div>
-          </div>
-        </div>
-
       {/* Registration Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {pendaftaranTypes.map((type) => {
