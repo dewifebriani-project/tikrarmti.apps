@@ -277,6 +277,8 @@ export const loginWithGoogle = async () => {
           access_type: 'offline',
           prompt: 'consent',
         },
+        // Set session to 1 month (30 days) for all devices
+        skipBrowserRedirect: false,
       },
     });
 

@@ -64,11 +64,20 @@ function AuthCallbackContent() {
 
           if (accessToken) {
             console.log('Found access token in hash fragment, setting session...');
-            // Set session from hash fragment tokens
+            // Set session from hash fragment tokens with extended duration
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
+
+            // Extend session to 1 month for all devices
+            if (!sessionError && sessionData.session) {
+              await supabase.auth.updateUser({
+                data: {
+                  session_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(), // 30 days
+                }
+              });
+            }
 
             if (sessionError) {
               console.error('Error setting session from hash:', sessionError);

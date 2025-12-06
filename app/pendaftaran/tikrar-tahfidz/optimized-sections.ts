@@ -25,10 +25,17 @@ interface UserProfile {
   alamat?: string;
 }
 
+// Mobile detection helper
+const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
 // Optimized batch info fetcher with better caching
 export const fetchBatchInfoOptimized = async (): Promise<BatchInfo | null> => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000); // Reduced timeout
+  // Optimized timeout for mobile
+  const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 8000 : 4000);
 
   try {
     const response = await fetch('/api/batch/default', {
@@ -74,7 +81,8 @@ export const getCachedBatchInfo = (): BatchInfo | null => {
 
     const data = JSON.parse(cached);
     const cacheAge = Date.now() - (data.cached_at || 0);
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    // Shorter cache for mobile to ensure fresh data
+    const CACHE_DURATION = isMobile() ? 2 * 60 * 1000 : 5 * 60 * 1000; // 2 minutes mobile, 5 minutes desktop
 
     if (cacheAge < CACHE_DURATION) {
       return data;
@@ -86,10 +94,11 @@ export const getCachedBatchInfo = (): BatchInfo | null => {
   return null;
 };
 
-// Optimized user profile fetcher
+// Optimized user profile fetcher with retry for mobile
 export const fetchUserProfileOptimized = async (userId: string): Promise<UserProfile | null> => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  // Optimized timeout for mobile
+  const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 10000 : 5000);
 
   try {
     const response = await fetch(`/api/user/profile?userId=${userId}`, {
@@ -115,8 +124,37 @@ export const fetchUserProfileOptimized = async (userId: string): Promise<UserPro
 
       return data;
     }
-  } catch (error) {
+  } catch (error: any) {
     clearTimeout(timeoutId);
+
+    // Retry once for mobile if it's a timeout
+    if (isMobile() && error.name === 'AbortError') {
+      try {
+        const retryController = new AbortController();
+        const retryTimeout = setTimeout(() => retryController.abort(), 15000);
+
+        const response = await fetch(`/api/user/profile?userId=${userId}`, {
+          signal: retryController.signal
+        });
+
+        clearTimeout(retryTimeout);
+
+        if (response.ok) {
+          const data = await response.json();
+
+          const cacheData = {
+            ...data,
+            cached_at: Date.now()
+          };
+
+          localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
+
+          return data;
+        }
+      } catch (retryError) {
+        console.warn('Retry failed for user profile fetch');
+      }
+    }
   }
 
   return null;
