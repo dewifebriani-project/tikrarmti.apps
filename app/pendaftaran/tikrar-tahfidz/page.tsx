@@ -350,9 +350,9 @@ function TikrarTahfidzPage() {
 
       // Redirect to dashboard after 3 seconds so user can see success message
       const redirectTimer = setTimeout(() => {
-        console.log('Redirecting to dashboard...')
-        router.push('/dashboard')
-      }, 3000)
+        console.log('Redirecting to perjalanan-saya...')
+        router.push('/perjalanan-saya')
+      }, 5000)
 
       // Store timer reference for cleanup (optional)
       setRedirectTimer(redirectTimer)
@@ -651,11 +651,11 @@ function TikrarTahfidzPage() {
       <div className="space-y-8">
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti?
+            Apakah antunna sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna?
             <span className="text-red-500">*</span>
           </Label>
           <p className="text-sm text-gray-500 italic">
-            (Jika belum silahkan minta izin, jika tidak diizinkan mohon bersabar, berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)
+            (Jika belum, silahkan minta izin terlebih dahulu. Jika tidak diizinkan, mohon bersabar dan berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)
           </p>
           <RadioGroup
             value={formData.has_permission}
@@ -1113,23 +1113,38 @@ function TikrarTahfidzPage() {
         </div>
 
         {submitStatus === 'success' && (
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600" />
+          <Alert className="bg-green-50 border-green-200 border-2">
+            <CheckCircle className="h-5 w-5 text-green-600" />
             <AlertDescription className="text-green-800">
-              <strong>Alhamdulillah!</strong> Formulir pendaftaran Ukhti telah berhasil dikirim. Tim kami akan menghubungi Ukhti melalui Telegram untuk proses seleksi selanjutnya.
+              <strong className="text-lg">Alhamdulillah! Pendaftaran Berhasil! 🎉</strong>
               <br /><br />
-              <strong>Jangan lupa:</strong> Persiapkan diri untuk tes bacaan Al-Qur'an dan simak informasi selanjutnya di Telegram.
-              <br /><br />
-              <div className="flex items-center space-x-2 mb-3">
+              <p className="text-base">
+                Formulir pendaftaran antunna telah berhasil dikirim. Jazakillahu khairan atas keseriusan antunna untuk bergabung dengan program Tikrar MTI.
+              </p>
+              <br />
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 my-3 rounded">
+                <p className="text-sm text-yellow-800">
+                  <strong>Informasi Penting:</strong><br />
+                  Silakan pantau aplikasi ini secara berkala untuk mendapatkan informasi selanjutnya mengenai tahap seleksi. Tim kami akan menghubungi antunna melalui Telegram yang telah didaftarkan.
+                </p>
+              </div>
+              <p className="text-sm text-gray-700">
+                <strong>Tahap Selanjutnya:</strong><br />
+                • Proses seleksi administrasi<br />
+                • Tes bacaan Al-Qur'an<br />
+                • Pengumuman hasil seleksi
+              </p>
+              <br />
+              <div className="flex items-center space-x-2 mb-3 mt-4">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                <span className="text-sm">Ukhti akan dialihkan ke dashboard otomatis...</span>
+                <span className="text-sm font-medium">Mengalihkan ke halaman Perjalanan Saya...</span>
               </div>
               <Button
-                onClick={() => router.push('/dashboard')}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => router.push('/perjalanan-saya')}
+                className="bg-green-600 hover:bg-green-700 text-white mt-2"
                 size="sm"
               >
-                Pergi ke Dashboard Sekarang
+                Lihat Perjalanan Saya Sekarang →
               </Button>
             </AlertDescription>
           </Alert>

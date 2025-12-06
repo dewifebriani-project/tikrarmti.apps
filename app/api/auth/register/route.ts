@@ -51,18 +51,16 @@ export async function POST(request: NextRequest) {
       zona_waktu,
       tanggal_lahir,
       tempat_lahir,
+      jenis_kelamin,
       pekerjaan,
-      nama_wali,
-      nomor_wali,
-      hubungan_wali,
       alasan_daftar,
       role = 'calon_thalibah'
     } = body;
 
-    // Validation
-    if (!email || !full_name || !provinsi || !kota || !alamat || !whatsapp || !zona_waktu) {
+    // Validation - semua field wajib
+    if (!email || !full_name || !provinsi || !kota || !alamat || !whatsapp || !telegram || !zona_waktu || !tanggal_lahir || !tempat_lahir || !jenis_kelamin || !pekerjaan || !alasan_daftar) {
       return NextResponse.json(
-        { message: 'Semua field kecuali telegram wajib diisi' },
+        { message: 'Semua field wajib diisi' },
         { status: 400 }
       );
     }
@@ -162,15 +160,13 @@ export async function POST(request: NextRequest) {
           kota: body.kota,
           alamat: body.alamat,
           whatsapp: body.whatsapp,
-          telegram: body.telegram || null,
+          telegram: body.telegram,
           zona_waktu: body.zona_waktu,
-          tanggal_lahir: body.tanggal_lahir || null,
-          tempat_lahir: body.tempat_lahir || null,
-          pekerjaan: body.pekerjaan || null,
-          nama_wali: body.nama_wali || null,
-          nomor_wali: body.nomor_wali || null,
-          hubungan_wali: body.hubungan_wali || null,
-          alasan_daftar: body.alasan_daftar || null,
+          tanggal_lahir: body.tanggal_lahir,
+          tempat_lahir: body.tempat_lahir,
+          jenis_kelamin: body.jenis_kelamin,
+          pekerjaan: body.pekerjaan,
+          alasan_daftar: body.alasan_daftar,
           role: body.role || existingUser.role,
           is_active: true,
         })
@@ -199,15 +195,13 @@ export async function POST(request: NextRequest) {
             kota: body.kota,
             alamat: body.alamat,
             whatsapp: body.whatsapp,
-            telegram: body.telegram || null,
+            telegram: body.telegram,
             zona_waktu: body.zona_waktu,
-            tanggal_lahir: body.tanggal_lahir || null,
-            tempat_lahir: body.tempat_lahir || null,
-            pekerjaan: body.pekerjaan || null,
-            nama_wali: body.nama_wali || null,
-            nomor_wali: body.nomor_wali || null,
-            hubungan_wali: body.hubungan_wali || null,
-            alasan_daftar: body.alasan_daftar || null,
+            tanggal_lahir: body.tanggal_lahir,
+            tempat_lahir: body.tempat_lahir,
+            jenis_kelamin: body.jenis_kelamin,
+            pekerjaan: body.pekerjaan,
+            alasan_daftar: body.alasan_daftar,
             role: body.role,
             is_active: true,
           }

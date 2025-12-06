@@ -48,10 +48,8 @@ function RegisterPageContent() {
     zonaWaktu: '',
     tanggalLahir: '',
     tempatLahir: '',
+    jenisKelamin: '',
     pekerjaan: '',
-    namaWali: '',
-    nomorWali: '',
-    hubunganWali: '',
     alasanDaftar: '',
     setujuSyarat: false
   });
@@ -120,6 +118,37 @@ function RegisterPageContent() {
       newErrors.zonaWaktu = 'Zona waktu harus dipilih';
     }
 
+    if (!formData.tanggalLahir) {
+      newErrors.tanggalLahir = 'Tanggal lahir harus diisi';
+    } else {
+      // Validasi minimal umur remaja (12 tahun)
+      const birthDate = new Date(formData.tanggalLahir);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+
+      if (actualAge < 12) {
+        newErrors.tanggalLahir = 'Minimal usia 12 tahun (kategori remaja)';
+      }
+    }
+
+    if (!formData.tempatLahir.trim()) {
+      newErrors.tempatLahir = 'Tempat lahir harus diisi';
+    }
+
+    if (!formData.jenisKelamin) {
+      newErrors.jenisKelamin = 'Jenis kelamin harus dipilih';
+    }
+
+    if (!formData.pekerjaan.trim()) {
+      newErrors.pekerjaan = 'Pekerjaan harus diisi';
+    }
+
+    if (!formData.alasanDaftar.trim()) {
+      newErrors.alasanDaftar = 'Alasan mendaftar harus diisi';
+    }
+
     if (!formData.setujuSyarat) {
       newErrors.setujuSyarat = 'Ukhti harus menyetujui syarat dan ketentuan';
     }
@@ -152,13 +181,11 @@ function RegisterPageContent() {
           whatsapp: formData.whatsapp,
           telegram: formData.telegram,
           zona_waktu: formData.zonaWaktu,
-          tanggal_lahir: formData.tanggalLahir || null,
-          tempat_lahir: formData.tempatLahir || null,
-          pekerjaan: formData.pekerjaan || null,
-          nama_wali: formData.namaWali || null,
-          nomor_wali: formData.nomorWali || null,
-          hubungan_wali: formData.hubunganWali || null,
-          alasan_daftar: formData.alasanDaftar || null,
+          tanggal_lahir: formData.tanggalLahir,
+          tempat_lahir: formData.tempatLahir,
+          jenis_kelamin: formData.jenisKelamin,
+          pekerjaan: formData.pekerjaan,
+          alasan_daftar: formData.alasanDaftar,
           role: 'calon_thalibah'
         }),
       });
@@ -237,7 +264,7 @@ function RegisterPageContent() {
               </div>
 
               <div>
-                <Label htmlFor="tempatLahir">Tempat Lahir</Label>
+                <Label htmlFor="tempatLahir">Tempat Lahir *</Label>
                 <Input
                   id="tempatLahir"
                   type="text"
@@ -246,21 +273,44 @@ function RegisterPageContent() {
                   className="mt-1"
                   placeholder="Kota kelahiran"
                 />
+                {errors.tempatLahir && (
+                  <p className="text-red-500 text-sm mt-1">{errors.tempatLahir}</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="tanggalLahir">Tanggal Lahir</Label>
+                <Label htmlFor="tanggalLahir">Tanggal Lahir * <span className="text-xs text-gray-500">(Min. 12 tahun)</span></Label>
                 <Input
                   id="tanggalLahir"
                   type="date"
                   value={formData.tanggalLahir}
                   onChange={(e) => handleInputChange('tanggalLahir', e.target.value)}
                   className="mt-1"
+                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 12)).toISOString().split('T')[0]}
                 />
+                {errors.tanggalLahir && (
+                  <p className="text-red-500 text-sm mt-1">{errors.tanggalLahir}</p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="pekerjaan">Pekerjaan</Label>
+                <Label htmlFor="jenisKelamin">Jenis Kelamin *</Label>
+                <Select value={formData.jenisKelamin} onValueChange={(value) => handleInputChange('jenisKelamin', value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Pilih jenis kelamin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Perempuan">Perempuan</SelectItem>
+                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.jenisKelamin && (
+                  <p className="text-red-500 text-sm mt-1">{errors.jenisKelamin}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="pekerjaan">Pekerjaan *</Label>
                 <Input
                   id="pekerjaan"
                   type="text"
@@ -269,6 +319,9 @@ function RegisterPageContent() {
                   className="mt-1"
                   placeholder="Pekerjaan saat ini"
                 />
+                {errors.pekerjaan && (
+                  <p className="text-red-500 text-sm mt-1">{errors.pekerjaan}</p>
+                )}
               </div>
 
               <div>
@@ -374,53 +427,9 @@ function RegisterPageContent() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">Data Wali</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="namaWali">Nama Wali</Label>
-                <Input
-                  id="namaWali"
-                  type="text"
-                  value={formData.namaWali}
-                  onChange={(e) => handleInputChange('namaWali', e.target.value)}
-                  className="mt-1"
-                  placeholder="Nama orang tua/wali"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="nomorWali">Nomor Telepon Wali</Label>
-                <Input
-                  id="nomorWali"
-                  type="tel"
-                  value={formData.nomorWali}
-                  onChange={(e) => handleInputChange('nomorWali', e.target.value)}
-                  className="mt-1"
-                  placeholder="08xx-xxxx-xxxx"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <Label htmlFor="hubunganWali">Hubungan dengan Wali</Label>
-              <Select value={formData.hubunganWali} onValueChange={(value) => handleInputChange('hubunganWali', value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Pilih hubungan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ayah">Ayah</SelectItem>
-                  <SelectItem value="Ibu">Ibu</SelectItem>
-                  <SelectItem value="Suami">Suami</SelectItem>
-                  <SelectItem value="Lainnya">Lainnya</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </Card>
-
-          <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Alasan Mendaftar</h2>
             <div>
-              <Label htmlFor="alasanDaftar">Alasan ingin bergabung dengan program MTI</Label>
+              <Label htmlFor="alasanDaftar">Alasan ingin bergabung dengan program MTI *</Label>
               <textarea
                 id="alasanDaftar"
                 value={formData.alasanDaftar}
@@ -429,6 +438,9 @@ function RegisterPageContent() {
                 rows={3}
                 placeholder="Jelaskan alasan Ukhti ingin mendaftar..."
               />
+              {errors.alasanDaftar && (
+                <p className="text-red-500 text-sm mt-1">{errors.alasanDaftar}</p>
+              )}
             </div>
           </Card>
 
