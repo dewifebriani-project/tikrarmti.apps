@@ -1,7 +1,7 @@
 {
-  "name": "MTI - Markaz Tikrar Indonesia",
-  "short_name": "MTI Apps",
-  "description": "Program Tahfidz Al-Quran dengan Metode Tikrar Itqan Standar Profesional",
+  "name": "Tikrar MTI Apps",
+  "short_name": "Tikrar MTI",
+  "description": "Aplikasi Tikrar MTI - Program Tahfidz Al-Quran dengan Metode Tikrar Itqan dari Markaz Tikrar Indonesia",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

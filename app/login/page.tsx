@@ -88,11 +88,13 @@ function LoginPageContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-900 to-yellow-600 rounded-2xl flex items-center justify-center">
-              <Crown className="w-8 h-8 text-white" />
-            </div>
+            <img
+              src="/mti-logo.jpg"
+              alt="Tikrar MTI Apps"
+              className="w-16 h-16 object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-green-900 mb-2">Markaz Tikrar Indonesia</h1>
+          <h1 className="text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
           <p className="text-gray-600">Masuk ke akun Anda</p>
         </div>
 
@@ -168,9 +170,11 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-yellow-600 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center">
-              <Crown className="w-8 h-8 text-green-900 animate-pulse" />
-            </div>
+            <img
+              src="/mti-logo.jpg"
+              alt="Tikrar MTI Apps"
+              className="w-16 h-16 object-contain animate-pulse"
+            />
           </div>
           <div className="flex justify-center">
             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

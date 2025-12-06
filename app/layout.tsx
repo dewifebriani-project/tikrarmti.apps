@@ -8,8 +8,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Star, Crown } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'MTI - Markaz Tikrar Indonesia | Program Tahfidz Premium',
-  description: 'Program Tahfidz Al-Quran dengan Metode Tikrar Itqan Standar Profesional - Bergabung dengan 1000+ Alumni Sukses',
+  title: 'Tikrar MTI Apps | Aplikasi Tahfidz dari Markaz Tikrar Indonesia',
+  description: 'Aplikasi Tikrar MTI - Program Tahfidz Al-Quran dengan Metode Tikrar Itqan Standar Profesional dari Markaz Tikrar Indonesia',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
@@ -20,8 +20,8 @@ export const metadata: Metadata = {
     follow: true,
   },
   openGraph: {
-    title: 'MTI - Markaz Tikrar Indonesia',
-    description: 'Program Tahfidz Al-Quran dengan Metode Tikrar Itqan',
+    title: 'Tikrar MTI Apps',
+    description: 'Aplikasi Tikrar MTI - Program Tahfidz Al-Quran dengan Metode Tikrar Itqan dari Markaz Tikrar Indonesia',
     type: 'website',
     locale: 'id_ID',
   },

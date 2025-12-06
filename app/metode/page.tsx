@@ -110,13 +110,13 @@ export default function MetodePage() {
 
             {/* Tahap 3 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   3
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Simak Murattal</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Simak Murattal</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Dengarkan bacaan murattal dari qari terpercaya untuk blok hafalan hari ini sebanyak 5 kali. Tahap ini membantu membiasakan lisan dengan irama, makhraj, dan tajwid yang benar.
                   </p>
                 </div>
@@ -125,13 +125,13 @@ export default function MetodePage() {
 
             {/* Tahap 4 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   4
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Tikrar Bi An-Nadzar (Melihat Mushaf)</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Tikrar Bi An-Nadzar (Melihat Mushaf)</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Ini adalah inti dari program. Baca blok hafalan hari ini sebanyak 40 kali sambil melihat mushaf dengan saksama. Fokus pada setiap huruf, harakat, dan tata letak ayat di halaman.
                   </p>
                 </div>
@@ -140,13 +140,13 @@ export default function MetodePage() {
 
             {/* Tahap 5 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   5
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Tasmi&apos; via Rekaman</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Tasmi&apos; via Rekaman</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Setelah merasa cukup hafal, rekam bacaan Ukhti tanpa melihat mushaf. Usahakan mendapatkan 3 rekaman yang lancar tanpa kesalahan sama sekali. Ini melatih kepercayaan diri dan menguji kejujuran hafalan.
                   </p>
                 </div>
@@ -155,13 +155,13 @@ export default function MetodePage() {
 
             {/* Tahap 6 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   6
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Simak Rekaman Pribadi</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Simak Rekaman Pribadi</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Dengarkan kembali rekaman terbaik Ukhti sambil menyimak dengan mushaf. Tahap ini adalah proses kualiti kontrol pribadi untuk menemukan dan memperbaiki kesalahan yang mungkin tidak disadari saat membaca.
                   </p>
                 </div>
@@ -170,13 +170,13 @@ export default function MetodePage() {
 
             {/* Tahap 7 */}
             <div className="card-modern group hover:shadow-2xl transition-all duration-300">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0 w-20 h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-6 space-y-4 sm:space-y-0">
+                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-islamic rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
                   7
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-main mb-3">Tikrar Bil Ghaib (Tanpa Mushaf)</h3>
-                  <p className="text-secondary leading-relaxed">
+                <div className="flex-1 w-full">
+                  <h3 className="text-xl sm:text-2xl font-bold text-main mb-3 mobile-text-wrap">Tikrar Bil Ghaib (Tanpa Mushaf)</h3>
+                  <p className="text-secondary leading-relaxed text-sm sm:text-base mobile-text-wrap">
                     Setorkan hafalan blok hari ini kepada pasangan setoran sebanyak 40 kali tanpa melihat mushaf. Ini adalah tahap final untuk mengunci hafalan di dalam ingatan jangka panjang.
                   </p>
                 </div>
