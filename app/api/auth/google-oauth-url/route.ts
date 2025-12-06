@@ -7,13 +7,27 @@ export async function GET(request: NextRequest) {
     const origin = request.headers.get('origin') || request.headers.get('referer');
     const host = request.headers.get('host');
 
+    // Debug logging
+    console.log('OAuth Debug - Headers:', {
+      host,
+      origin,
+      userAgent: request.headers.get('user-agent')
+    });
+
     // Determine if we're in development or production
     const isLocalhost = host?.includes('localhost') || host?.includes('127.0.0.1') || origin?.includes('localhost');
 
     // Set redirect URL based on environment
     const redirectUrl = isLocalhost
       ? `http://localhost:3003/auth/callback`
-      : `${origin}/auth/callback`;
+      : `${origin || `https://${host}`}/auth/callback`;
+
+    console.log('OAuth Debug - Redirect Decision:', {
+      isLocalhost,
+      redirectUrl,
+      host,
+      origin
+    });
 
     // Create Supabase client
     const supabase = createServerClient();
