@@ -35,33 +35,7 @@ function AuthCallbackContent() {
                        window.location.search.includes('code') ||
                        window.location.search.includes('access_token');
 
-      // If we're on markaztikrar.id but have tokens, and the referrer or navigation indicates we came from localhost
-      const isComingFromLocalhost = document.referrer.includes('localhost') ||
-                                   document.referrer.includes('127.0.0.1') ||
-                                   sessionStorage.getItem('oauth_from_localhost') === 'true' ||
-                                   window.location.search.includes('localhost') ||
-                                   window.location.hash.includes('localhost');
-
-      // ALWAYS force redirect to localhost if we're on production domain
-      // This is a safety measure for development
-      if (currentHost === 'www.markaztikrar.id' && hasTokens) {
-        debugOAuth('Force redirect to localhost detected', {
-          currentOrigin,
-          currentHost,
-          hasTokens,
-          isComingFromLocalhost,
-          referrer: document.referrer
-        });
-
-        // Extract the full URL including hash
-        const fullUrl = window.location.href;
-        const localhostUrl = fullUrl.replace('https://www.markaztikrar.id', 'http://localhost:3003');
-
-        debugOAuth('Redirecting to', { localhostUrl });
-        window.location.replace(localhostUrl);
-        return;
-      }
-
+      
       // Log callback initiation with all URL details
       debugOAuth('Callback Initiated', {
         currentUrl: window.location.href,
