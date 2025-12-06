@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Settings,
   Bell,
@@ -228,10 +229,13 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
               >
                 {/* Avatar from email using Gravatar-like service */}
                 {user?.email ? (
-                  <img
+                  <Image
                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=15803d&color=fff&size=64&bold=true`}
                     alt="Profile"
+                    width={40}
+                    height={40}
                     className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
@@ -252,10 +256,13 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                     <div className="flex items-center space-x-3">
                       {/* Avatar in dropdown */}
                       {user?.email ? (
-                        <img
+                        <Image
                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=ffffff&color=15803d&size=64&bold=true`}
                           alt="Profile"
+                          width={48}
+                          height={48}
                           className="w-12 h-12 rounded-full border-2 border-white/30"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">

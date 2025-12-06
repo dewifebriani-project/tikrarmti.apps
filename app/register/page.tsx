@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,10 +242,13 @@ function RegisterPageContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <img
+            <Image
               src="/mti-logo.jpg"
               alt="Tikrar MTI Apps"
-              className="w-16 h-16 object-contain"
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
             />
           </div>
           <h1 className="text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
@@ -377,55 +381,7 @@ function RegisterPageContent() {
                 )}
               </div>
 
-              <div>
-                <Label htmlFor="zonaWaktu">Zona Waktu *</Label>
-                <Select value={formData.zonaWaktu} onValueChange={(value) => handleInputChange('zonaWaktu', value)}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Pilih zona waktu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Filter zona waktu berdasarkan negara yang dipilih */}
-                    {formData.negara === 'Indonesia' && (
-                      <>
-                        <SelectItem value="WIB">WIB (UTC+7) - Indonesia Barat</SelectItem>
-                        <SelectItem value="WITA">WITA (UTC+8) - Indonesia Tengah</SelectItem>
-                        <SelectItem value="WIT">WIT (UTC+9) - Indonesia Timur</SelectItem>
-                      </>
-                    )}
-                    {formData.negara === 'Malaysia' && (
-                      <SelectItem value="MYT">MYT (UTC+8) - Malaysia</SelectItem>
-                    )}
-                    {formData.negara === 'Australia' && (
-                      <>
-                        <SelectItem value="AWST">AWST (UTC+8) - Australia Barat</SelectItem>
-                        <SelectItem value="ACST">ACST (UTC+9:30) - Australia Tengah</SelectItem>
-                        <SelectItem value="AEST">AEST (UTC+10) - Australia Timur</SelectItem>
-                      </>
-                    )}
-                    {(formData.negara === 'Negara Lainnya' || !formData.negara) && (
-                      <>
-                        {zonaWaktuList.map((zona) => (
-                          <SelectItem key={zona.value} value={zona.value}>
-                            {zona.label}
-                          </SelectItem>
-                        ))}
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.zonaWaktu && (
-                  <p className="text-red-500 text-sm mt-1">{errors.zonaWaktu}</p>
-                )}
-                {formData.negara && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formData.negara === 'Indonesia' && 'Pilih WIB, WITA, atau WIT sesuai lokasi Ukhti'}
-                    {formData.negara === 'Malaysia' && 'Malaysia menggunakan MYT (sama dengan WITA)'}
-                    {formData.negara === 'Australia' && 'Pilih zona waktu sesuai wilayah di Australia'}
-                    {formData.negara === 'Negara Lainnya' && 'Pilih zona waktu yang paling sesuai atau pilih "Zona Waktu Lainnya"'}
-                  </p>
-                )}
               </div>
-            </div>
 
             <div className="mt-4">
               <Label htmlFor="alamat">Alamat Lengkap *</Label>
@@ -506,6 +462,55 @@ function RegisterPageContent() {
                 )}
               </div>
             </div>
+
+            <div className="mt-4">
+              <Label htmlFor="zonaWaktu">Zona Waktu *</Label>
+              <Select value={formData.zonaWaktu} onValueChange={(value) => handleInputChange('zonaWaktu', value)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Pilih zona waktu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* Filter zona waktu berdasarkan negara yang dipilih */}
+                  {formData.negara === 'Indonesia' && (
+                    <>
+                      <SelectItem value="WIB">WIB (UTC+7) - Indonesia Barat</SelectItem>
+                      <SelectItem value="WITA">WITA (UTC+8) - Indonesia Tengah</SelectItem>
+                      <SelectItem value="WIT">WIT (UTC+9) - Indonesia Timur</SelectItem>
+                    </>
+                  )}
+                  {formData.negara === 'Malaysia' && (
+                    <SelectItem value="MYT">MYT (UTC+8) - Malaysia</SelectItem>
+                  )}
+                  {formData.negara === 'Australia' && (
+                    <>
+                      <SelectItem value="AWST">AWST (UTC+8) - Australia Barat</SelectItem>
+                      <SelectItem value="ACST">ACST (UTC+9:30) - Australia Tengah</SelectItem>
+                      <SelectItem value="AEST">AEST (UTC+10) - Australia Timur</SelectItem>
+                    </>
+                  )}
+                  {(formData.negara === 'Negara Lainnya' || !formData.negara) && (
+                    <>
+                      {zonaWaktuList.map((zona) => (
+                        <SelectItem key={zona.value} value={zona.value}>
+                          {zona.label}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.zonaWaktu && (
+                <p className="text-red-500 text-sm mt-1">{errors.zonaWaktu}</p>
+              )}
+              {formData.negara && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.negara === 'Indonesia' && 'Pilih WIB, WITA, atau WIT sesuai lokasi Ukhti'}
+                  {formData.negara === 'Malaysia' && 'Malaysia menggunakan MYT (sama dengan WITA)'}
+                  {formData.negara === 'Australia' && 'Pilih zona waktu sesuai wilayah di Australia'}
+                  {formData.negara === 'Negara Lainnya' && 'Pilih zona waktu yang paling sesuai atau pilih "Zona Waktu Lainnya"'}
+                </p>
+              )}
+            </div>
           </Card>
 
           <Card className="p-6">
@@ -535,7 +540,19 @@ function RegisterPageContent() {
               />
               <div className="grid gap-1.5 leading-none">
                 <Label htmlFor="setujuSyarat" className="text-sm font-normal">
-                  Saya menyetujui syarat dan ketentuan yang berlaku
+                  Saya menyetujui{' '}
+                  <a
+                    href="/syarat-ketentuan"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-600 hover:text-green-800 underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open('/syarat-ketentuan', '_blank');
+                    }}
+                  >
+                    syarat dan ketentuan yang berlaku
+                  </a>
                 </Label>
                 {errors.setujuSyarat && (
                   <p className="text-red-500 text-sm">{errors.setujuSyarat}</p>
@@ -585,10 +602,13 @@ export default function RegisterPage() {
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-yellow-600 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <img
+            <Image
               src="/mti-logo.jpg"
               alt="Tikrar MTI Apps"
-              className="w-16 h-16 object-contain animate-pulse"
+              width={64}
+              height={64}
+              className="object-contain animate-pulse"
+              priority
             />
           </div>
           <div className="flex justify-center">

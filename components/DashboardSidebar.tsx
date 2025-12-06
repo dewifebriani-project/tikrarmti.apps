@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { X, BookOpen, GraduationCap, Users, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -131,10 +132,13 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
         <div className="flex items-center justify-between h-20 border-b border-green-900/20 px-4 flex-shrink-0">
           <Link href="/" className="flex items-center space-x-3">
             <div className="w-10 h-10">
-              <img
+              <Image
                 src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
                 alt="Tikrar MTI Apps"
-                className="w-10 h-10 object-contain"
+                width={40}
+                height={40}
+                className="object-contain"
+                unoptimized // For external images
               />
             </div>
             <span className="text-xl font-bold text-green-900">Tikrar MTI Apps</span>

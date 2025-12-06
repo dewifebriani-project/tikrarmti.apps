@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 
 export default function Header() {
@@ -8,10 +9,13 @@ export default function Header() {
     <header className="bg-white/95 backdrop-blur-xl sticky top-0 z-50 shadow-md border-b border-green-900/20">
       <div className="container mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 group flex-shrink-0">
-          <img
+          <Image
             src="/mti-logo.jpg"
             alt="Markaz Tikrar Indonesia Logo"
+            width={128}
+            height={32}
             className="w-20 sm:w-24 md:w-32 h-5 sm:h-6 md:h-8 object-contain transition-transform duration-300 group-hover:scale-105"
+            priority
           />
           <span className="text-xs sm:text-sm md:text-xl font-bold text-black transition-colors duration-300 group-hover:text-green-900 hidden sm:block whitespace-nowrap">
             Markaz Tikrar Indonesia

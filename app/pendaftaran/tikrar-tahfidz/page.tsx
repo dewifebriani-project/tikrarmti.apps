@@ -127,10 +127,17 @@ function TikrarTahfidzPage() {
     if (user) {
       const fetchUserProfile = async () => {
         try {
+          console.log('Fetching user profile for userId:', user.id)
           const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          console.log('Response status:', response.status)
+
           if (response.ok) {
             const data = await response.json()
+            console.log('User profile data received:', data)
             setUserProfile(data)
+          } else {
+            const errorData = await response.json()
+            console.error('API Error:', errorData)
           }
         } catch (error) {
           console.error('Error fetching user profile:', error)

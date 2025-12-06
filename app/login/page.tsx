@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -88,10 +89,13 @@ function LoginPageContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <img
+            <Image
               src="/mti-logo.jpg"
               alt="Tikrar MTI Apps"
-              className="w-16 h-16 object-contain"
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
             />
           </div>
           <h1 className="text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
@@ -170,10 +174,13 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-yellow-600 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="flex justify-center mb-6">
-            <img
+            <Image
               src="/mti-logo.jpg"
               alt="Tikrar MTI Apps"
-              className="w-16 h-16 object-contain animate-pulse"
+              width={64}
+              height={64}
+              className="object-contain animate-pulse"
+              priority
             />
           </div>
           <div className="flex justify-center">
