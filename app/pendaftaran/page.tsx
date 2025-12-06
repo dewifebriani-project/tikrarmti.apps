@@ -13,7 +13,8 @@ import {
   CheckCircle,
   AlertCircle,
   Star,
-  Loader2
+  Loader2,
+  Crown
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { useBatchProgram } from '@/hooks/useBatchProgram';
@@ -45,6 +46,9 @@ export default function PendaftaranPage() {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [pendaftaranTypes, setPendaftaranTypes] = useState<PendaftaranType[]>([]);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState<PendaftaranType | null>(null);
 
   const { batches, programs, loading, error } = useBatchProgram();
 
@@ -258,8 +262,8 @@ export default function PendaftaranPage() {
     switch (status) {
       case 'open':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-900">
-            <CheckCircle className="w-3 h-3 mr-1" />
+          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-green-500/50 animate-pulse">
+            <CheckCircle className="w-4 h-4 mr-1.5" />
             Pendaftaran Dibuka
           </span>
         );
@@ -282,7 +286,16 @@ export default function PendaftaranPage() {
 
   const handleRegistrationClick = (type: PendaftaranType) => {
     if (type.status === 'open') {
-      // Always redirect to the tikrar-tahfidz form
+      // Show terms modal before allowing registration
+      setPendingRegistration(type);
+      setShowTermsModal(true);
+    }
+  };
+
+  const handleProceedToRegistration = () => {
+    if (agreedToTerms && pendingRegistration) {
+      setShowTermsModal(false);
+      // Redirect to the tikrar-tahfidz form
       router.push('/pendaftaran/tikrar-tahfidz');
     }
   };
@@ -322,6 +335,120 @@ export default function PendaftaranPage() {
   return (
     <AuthenticatedLayout title="Pendaftaran Program">
       <div className="space-y-8">
+      {/* Terms and Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">Syarat dan Ketentuan</h2>
+              <p className="text-sm sm:text-base text-green-100">Markaz Tikrar Indonesia (MTI)</p>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh] space-y-4">
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Penting:</strong> Silakan baca dengan seksama syarat dan ketentuan di bawah ini sebelum melanjutkan pendaftaran.
+                </p>
+              </div>
+
+              {/* Quick Summary */}
+              <div className="space-y-3 text-sm text-gray-700">
+                <h3 className="font-bold text-base text-green-900">Ringkasan Syarat dan Ketentuan:</h3>
+
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-green-800">✅ Komitmen Anda:</h4>
+                  <ul className="list-disc list-inside space-y-1 pl-2">
+                    <li>Mengikuti program hingga selesai (13-16 pekan)</li>
+                    <li>Menyediakan waktu minimal 2 jam/hari untuk menghafal</li>
+                    <li>Melaksanakan tikrar 40x tanpa pengurangan</li>
+                    <li>Konsisten dalam setoran harian kepada pasangan</li>
+                    <li>Mendapat izin dari suami/wali yang bertanggung jawab</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-red-800">⚠️ Larangan:</h4>
+                  <ul className="list-disc list-inside space-y-1 pl-2 text-red-700">
+                    <li>Keluar dari program tanpa udzur syar'i</li>
+                    <li>Mendzolimi waktu pasangan tikrar</li>
+                    <li>Nego-nego jumlah tikrar atau aturan program</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-orange-800">🚫 Sanksi Blacklist:</h4>
+                  <p className="text-orange-700 pl-2">
+                    Thalibah yang keluar tanpa udzur syar'i akan masuk <strong>blacklist permanen</strong> dan tidak dapat mendaftar kembali di MTI.
+                  </p>
+                </div>
+
+                <div className="bg-green-50 p-3 rounded-lg mt-4">
+                  <p className="text-xs text-green-800">
+                    <strong>Catatan:</strong> Pendaftaran ini merupakan akad (perjanjian) yang akan dipertanggungjawabkan di hadapan Allah Ta'ala.
+                  </p>
+                </div>
+              </div>
+
+              {/* Full Terms Link */}
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800 mb-2">
+                  Untuk membaca syarat dan ketentuan lengkap:
+                </p>
+                <a
+                  href="/syarat-ketentuan"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 font-semibold underline text-sm"
+                >
+                  Buka Syarat dan Ketentuan Lengkap (Tab Baru) →
+                </a>
+              </div>
+
+              {/* Agreement Checkbox */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <label className="flex items-start space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-700 flex-1">
+                    <strong>Bismillah,</strong> saya menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang berlaku di Markaz Tikrar Indonesia. Saya berkomitmen untuk menjalankan seluruh kewajiban dengan penuh tanggung jawab lillahi ta'ala.
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 p-4 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 border-t">
+              <button
+                onClick={() => {
+                  setShowTermsModal(false);
+                  setAgreedToTerms(false);
+                }}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleProceedToRegistration}
+                disabled={!agreedToTerms}
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
+                  agreedToTerms
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-md'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {agreedToTerms ? 'Lanjutkan Pendaftaran' : 'Centang Persetujuan Dulu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Registration Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {pendaftaranTypes.map((type) => {
@@ -331,52 +458,63 @@ export default function PendaftaranPage() {
           return (
             <div
               key={type.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300"
+              className="bg-white rounded-xl shadow-lg border-2 border-amber-200 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
             >
               {/* Card Header */}
-              <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 border-b border-gray-200">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className={`w-12 h-12 bg-${type.color}-100 rounded-lg flex items-center justify-center mr-4`}>
-                      <Icon className={`w-6 h-6 text-${type.color}-900`} />
+              <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 p-4 sm:p-6 border-b border-amber-200 relative overflow-hidden">
+                {/* Decorative crown sparkles */}
+                <div className="absolute top-2 right-2 opacity-20">
+                  <Crown className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400" />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 relative z-10">
+                  <div className="flex items-start flex-1">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/50">
+                        <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
+                      </div>
+                      {/* Sparkle effect */}
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900">{type.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{type.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{type.description}</p>
                     </div>
                   </div>
-                  {getStatusBadge(type.status)}
+                  <div className="flex-shrink-0">
+                    {getStatusBadge(type.status)}
+                  </div>
                 </div>
 
                 {/* Quick Info */}
                 {type.batchInfo && (
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                      {type.batchInfo.period}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mt-4 text-xs sm:text-sm">
+                    <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
+                      <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
+                      <span className="truncate">{type.batchInfo.period}</span>
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <Users className="w-4 h-4 mr-2 text-gray-400" />
-                      {type.batchInfo.registered}/{type.batchInfo.capacity} peserta
+                    <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
+                      <Users className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
+                      <span>{type.batchInfo.registered}/{type.batchInfo.capacity} peserta</span>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Card Content */}
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="space-y-4">
                   {/* Price and Duration */}
                   {type.price && (
-                    <div className="flex justify-between items-center bg-gray-50 rounded-lg p-3">
-                      <div>
-                        <p className="text-sm text-gray-500">Biaya Program</p>
-                        <p className="font-bold text-gray-900">{type.price}</p>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-3 sm:p-4 border border-amber-200">
+                      <div className="flex-1">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Biaya Program</p>
+                        <p className="font-bold text-base sm:text-lg text-gray-900">{type.price}</p>
                       </div>
                       {type.duration && (
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">Durasi</p>
-                          <p className="font-medium text-gray-900">{type.duration}</p>
+                        <div className="flex-1 sm:text-right">
+                          <p className="text-xs sm:text-sm text-gray-600 mb-1">Durasi</p>
+                          <p className="font-medium text-base sm:text-lg text-gray-900">{type.duration}</p>
                         </div>
                       )}
                     </div>
@@ -385,13 +523,13 @@ export default function PendaftaranPage() {
                   {/* Progress Bar */}
                   {type.batchInfo && type.batchInfo.capacity > 0 && (
                     <div>
-                      <div className="flex justify-between text-sm text-gray-600 mb-2">
+                      <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-2">
                         <span>Kuota Tersedia</span>
-                        <span>{type.batchInfo.capacity - type.batchInfo.registered} lagi</span>
+                        <span className="font-semibold text-amber-600">{type.batchInfo.capacity - type.batchInfo.registered} lagi</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3 overflow-hidden">
                         <div
-                          className={`bg-${type.color}-600 h-2 rounded-full`}
+                          className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full rounded-full transition-all duration-500 shadow-md"
                           style={{
                             width: `${(type.batchInfo.registered / type.batchInfo.capacity) * 100}%`
                           }}
@@ -404,11 +542,11 @@ export default function PendaftaranPage() {
                   <button
                     onClick={() => handleRegistrationClick(type)}
                     disabled={type.status !== 'open'}
-                    className={`w-full flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-colors duration-200 ${
+                    className={`w-full flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg ${
                       type.status === 'open'
-                        ? 'bg-green-900 text-white hover:bg-green-800'
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transform hover:-translate-y-0.5'
                         : type.status === 'upcoming'
-                        ? 'bg-green-100 text-green-900 cursor-not-allowed'
+                        ? 'bg-amber-100 text-amber-900 cursor-not-allowed'
                         : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                     }`}
                   >
@@ -421,63 +559,6 @@ export default function PendaftaranPage() {
                     {type.status === 'upcoming' && 'Pendaftaran Akan Dibuka'}
                     {type.status === 'closed' && 'Pendaftaran Ditutup'}
                   </button>
-
-                  {/* Details Toggle */}
-                  <button
-                    onClick={() => setSelectedType(isExpanded ? null : type.id)}
-                    className="w-full text-center text-sm text-green-900 hover:text-green-700 font-medium"
-                  >
-                    {isExpanded ? 'Sembunyikan Detail' : 'Lihat Detail Program'}
-                  </button>
-
-                  {/* Expanded Details */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-200 pt-4 space-y-4">
-                      {/* Benefits */}
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <Star className="w-4 h-4 mr-2 text-green-500" />
-                          Keunggulan Program
-                        </h4>
-                        <ul className="space-y-1">
-                          {type.benefits.map((benefit, index) => (
-                            <li key={index} className="text-sm text-gray-600 flex items-start">
-                              <CheckCircle className="w-4 h-4 mr-2 text-green-500 mt-0.5 flex-shrink-0" />
-                              {benefit}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Requirements */}
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                          <FileText className="w-4 h-4 mr-2 text-green-500" />
-                          Persyaratan
-                        </h4>
-                        <ul className="space-y-1">
-                          {type.requirements.map((req, index) => (
-                            <li key={index} className="text-sm text-gray-600 flex items-start">
-                              <div className="w-4 h-4 border border-gray-300 rounded-full mt-0.5 mr-2 flex-shrink-0"></div>
-                              {req}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Deadline */}
-                      {type.batchInfo && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <div className="flex items-center text-green-800">
-                            <Clock className="w-4 h-4 mr-2" />
-                            <span className="text-sm font-medium">
-                              Batas Pendaftaran: {type.batchInfo.deadline}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

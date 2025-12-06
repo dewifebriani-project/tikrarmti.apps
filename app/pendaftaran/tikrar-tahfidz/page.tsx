@@ -35,7 +35,6 @@ interface FormData {
   ready_for_team: string
 
   // Section 3 - Data Tambahan (khusus tikrar)
-  domicile: string
   main_time_slot: string
   backup_time_slot: string
   time_commitment: boolean
@@ -65,7 +64,6 @@ function TikrarTahfidzPage() {
     no_travel_plans: false,
     motivation: '',
     ready_for_team: '',
-    domicile: '',
     main_time_slot: '',
     backup_time_slot: '',
     time_commitment: false,
@@ -133,10 +131,6 @@ function TikrarTahfidzPage() {
           if (response.ok) {
             const data = await response.json()
             setUserProfile(data)
-            // Pre-fill domicile with kota from user profile
-            if (data.kota) {
-              setFormData(prev => ({ ...prev, domicile: data.kota }))
-            }
           }
         } catch (error) {
           console.error('Error fetching user profile:', error)
@@ -222,8 +216,8 @@ function TikrarTahfidzPage() {
     if (section === 3) {
       // Validasi hanya field yang khusus untuk tikrar
       // Domicile diambil otomatis dari data kota user saat registrasi
-      if (!formData.domicile.trim()) {
-        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Ukhti terlebih dahulu.'
+      if (!userProfile?.kota) {
+        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Ukhti terlebih dahulu di halaman lengkapi profil.'
       }
       if (!formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
@@ -310,13 +304,14 @@ function TikrarTahfidzPage() {
 
         // Section 3 - Data Pribadi (diambil dari users table)
         full_name: userProfile?.full_name || '',
-        address: userProfile?.address || '',
-        wa_phone: userProfile?.wa_phone || '',
-        telegram_phone: userProfile?.telegram_phone || '',
-        birth_date: userProfile?.birth_date || null,
-        age: userProfile?.age ? parseInt(userProfile.age) || 0 : 0,
-        domicile: formData.domicile, // Hanya untuk tikrar
-        timezone: userProfile?.timezone || 'WIB',
+        address: userProfile?.alamat || '',
+        wa_phone: userProfile?.whatsapp || '',
+        telegram_phone: userProfile?.telegram || '',
+        birth_date: userProfile?.tanggal_lahir || null,
+        birth_place: userProfile?.tempat_lahir || '',
+        age: userProfile?.tanggal_lahir ? Math.floor((new Date().getTime() - new Date(userProfile.tanggal_lahir).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 0,
+        domicile: userProfile?.kota || '', // Diambil dari field kota di tabel users
+        timezone: userProfile?.zona_waktu || 'WIB',
         main_time_slot: formData.main_time_slot, // Hanya untuk tikrar
         backup_time_slot: formData.backup_time_slot, // Hanya untuk tikrar
         time_commitment: formData.time_commitment, // Hanya untuk tikrar
@@ -861,62 +856,58 @@ function TikrarTahfidzPage() {
       </Alert>
 
       {/* Data diri sudah diambil dari tabel users - tampilkan sebagai informasi saja */}
-      <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
-        <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3 text-gray-800">Data Diri (Diambil dari profil Anda)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
-          <div>
-            <span className="font-medium text-gray-600">Nama:</span>
-            <p className="text-gray-900">{userProfile?.full_name || '-'}</p>
+      <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-5 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-800 flex items-center">
+          <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full mr-3"></div>
+          Data Diri (Diambil dari profil Anda)
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Nama Lengkap</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.full_name || '-'}</p>
           </div>
-          <div>
-            <span className="font-medium text-gray-600">Email:</span>
-            <p className="text-gray-900">{user?.email || '-'}</p>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Email</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-all">{user?.email || '-'}</p>
           </div>
-          <div>
-            <span className="font-medium text-gray-600">No. WhatsApp:</span>
-            <p className="text-gray-900">{userProfile?.wa_phone || '-'}</p>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. WhatsApp</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.whatsapp || '-'}</p>
           </div>
-          <div>
-            <span className="font-medium text-gray-600">No. Telegram:</span>
-            <p className="text-gray-900">{userProfile?.telegram_phone || '-'}</p>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. Telegram</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.telegram || '-'}</p>
           </div>
-          <div className="md:col-span-2">
-            <span className="font-medium text-gray-600">Alamat:</span>
-            <p className="text-gray-900">{userProfile?.address || '-'}</p>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Alamat</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.alamat || '-'}</p>
           </div>
-          <div>
-            <span className="font-medium text-gray-600">Usia:</span>
-            <p className="text-gray-900">{userProfile?.age ? `${userProfile.age} tahun` : '-'}</p>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Kota</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.kota || '-'}</p>
           </div>
-          <div>
-            <span className="font-medium text-gray-600">Zona Waktu:</span>
-            <p className="text-gray-900">{userProfile?.timezone || '-'}</p>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Tempat, Tanggal Lahir</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">
+              {userProfile?.tempat_lahir || '-'}
+              {userProfile?.tanggal_lahir && `, ${new Date(userProfile.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+            </p>
+          </div>
+          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Zona Waktu</span>
+            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.zona_waktu || '-'}</p>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-3 italic">
-          Jika data di atas tidak lengkap atau salah, silakan perbarui di halaman lengkapi profil.
-        </p>
+        <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
+          <p className="text-xs sm:text-sm text-yellow-800 flex items-start">
+            <span className="text-yellow-600 mr-2 flex-shrink-0">ℹ️</span>
+            <span>Jika data di atas tidak lengkap atau salah, silakan perbarui di <a href="/lengkapi-profil" className="font-semibold underline hover:text-yellow-900">halaman lengkapi profil</a>.</span>
+          </p>
+        </div>
       </div>
 
       {/* Field yang khusus untuk tikrar */}
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="domicile" className="text-sm font-medium text-gray-700">Domisili (Kota)</Label>
-            <Input
-              id="domicile"
-              value={formData.domicile}
-              readOnly
-              disabled
-              placeholder="Kota domisili"
-              className="text-sm bg-gray-50"
-            />
-            {errors.domicile && (
-              <p className="text-red-500 text-xs">{errors.domicile}</p>
-            )}
-          </div>
-        </div>
-
         <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Pilih waktu utama untuk jadwal setoran dengan pasangan</Label>

@@ -24,6 +24,7 @@ export interface PendaftaranData {
   wa_phone: string // Redundan dengan users.whatsapp, tetap disimpan untuk backup
   telegram_phone?: string // Redundan dengan users.telegram, tetap disimpan untuk backup
   birth_date?: string // Tanggal lahir dari users.birth_date
+  birth_place?: string // Tempat lahir dari users.tempat_lahir
   age: number // Redundan dengan users.tanggal_lahir, tetap disimpan untuk backup
   domicile: string // Hanya untuk tikrar, tidak ada di users
   timezone: string // Redundan dengan users.zona_waktu, tetap disimpan untuk backup

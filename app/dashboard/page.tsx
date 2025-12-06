@@ -125,10 +125,12 @@ export default function Dashboard() {
 
   const getWelcomeMessage = () => {
     const hour = new Date().getHours()
-    const timeOfDay = hour < 12 ? 'Pagi' : hour < 15 ? 'Siang' : hour < 18 ? 'Sore' : 'Malam'
+    // Shabahul Khayr (pagi), Masaa'ul Khayr (sore), Masaa'ul Khayr (malam)
+    const greeting = hour < 12 ? 'Shabahul Khayr' : hour < 18 ? 'Masaa\'ul Khayr' : 'Masaa\'ul Khayr'
+    const userName = userData?.full_name || 'Ukhti'
     return {
-      greeting: timeOfDay,
-      full: `<em>Shabahul Khayr</em>, Selamat ${timeOfDay}`
+      greeting,
+      full: `Assalamu'alaikum, <em>${greeting}</em>, Ukhti ${userName}`
     }
   }
 
@@ -187,38 +189,32 @@ export default function Dashboard() {
       <div className="space-y-8">
         {/* Welcome Card */}
         <Card className="mb-8 bg-gradient-to-r from-green-600 to-green-700 text-white border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold mb-2">
-                  <span dangerouslySetInnerHTML={{ __html: getWelcomeMessage().full }} />, {userData?.full_name || 'Ukhti'}! 👋
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+              <div className="flex-1">
+                <h2 className="text-xl sm:text-2xl font-bold mb-2 leading-relaxed">
+                  <span dangerouslySetInnerHTML={{ __html: getWelcomeMessage().full }} />! 👋
                 </h2>
-                <p className="text-green-100">
+                <p className="text-green-100 text-sm sm:text-base">
                   Selamat datang kembali di Tikrar MTI Apps. Semoga hari ini lebih baik dari hari kemarin.
                 </p>
-                <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4">
                   <div className="flex items-center">
-                    <Award className="w-5 h-5 mr-2" />
-                    <span className="font-medium">{getRoleDisplay(userData?.role)}</span>
+                    <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                    <span className="font-medium text-sm sm:text-base">{getRoleDisplay(userData?.role)}</span>
                   </div>
                   <div className="flex items-center">
-                    <Calendar className="w-5 h-5 mr-2" />
-                    <span>Bergabung: {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                    <span className="text-sm sm:text-base">Bergabung: {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
                   </div>
                   <div className="flex items-center">
-                    <Calendar className="w-5 h-5 mr-2" />
-                    <span>{toHijriDate(new Date())}</span>
+                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                    <span className="text-sm sm:text-base">{toHijriDate(new Date())}</span>
                   </div>
-                  {userData?.created_at && (
-                    <div className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
-                      <span>Hijri: {toHijriDate(new Date(userData.created_at))}</span>
-                    </div>
-                  )}
                 </div>
               </div>
-              <div className="hidden md:block">
-                <Star className="w-16 h-16 text-green-300" />
+              <div className="hidden md:flex items-center justify-center md:ml-4">
+                <Star className="w-12 h-12 lg:w-16 lg:h-16 text-green-300" />
               </div>
             </div>
           </CardContent>
