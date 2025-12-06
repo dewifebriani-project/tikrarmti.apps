@@ -163,24 +163,24 @@ export default function PerjalananSaya() {
 
   return (
     <AuthenticatedLayout title="Perjalanan Saya">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
             Linimasa Perjalanan Hafalan <em>Ukhti</em>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto px-2">
             Setiap langkah adalah bagian dari ikhtiar. Teruslah semangat hingga akhir!
           </p>
         </div>
 
         {/* Timeline Container */}
-        <div className="relative">
+        <div className="relative overflow-x-hidden">
           {/* Vertical Line */}
           <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-300 lg:block hidden"></div>
 
           {/* Timeline Items */}
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {timelineData.map((item, index) => {
               const styles = getStatusStyles(item.status);
               const isLeftSide = index % 2 === 0;
@@ -222,36 +222,40 @@ export default function PerjalananSaya() {
                     </div>
                   </div>
 
-                  {/* Mobile Layout - All Right Side */}
+                  {/* Mobile & Tablet Layout - Alternating like desktop */}
                   <div className="lg:hidden">
-                    <div className="flex items-start">
-                      {/* Mobile Line */}
-                      <div className="absolute left-6 w-0.5 h-full bg-gray-300"></div>
+                    {/* Mobile/Tablet Line - Centered */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-300"></div>
 
-                      {/* Mobile Icon */}
-                      <div className={`relative z-10 w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-sm mr-4`}>
-                        <div className={styles.iconColor}>
-                          {item.icon}
+                    <div className={`flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
+                      {/* Card for Mobile/Tablet */}
+                      <div className={`w-5/12 sm:w-6/12 ${isLeftSide ? 'pr-8 sm:pr-8 text-right' : 'pl-8 sm:pl-8 text-left'}`}>
+                        <div className={`${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md`}>
+                          {/* Date */}
+                          <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                            {item.day} • {item.date}
+                            <span className="block text-xs mt-1">{item.hijriDate}</span>
+                          </div>
+
+                          {/* Title */}
+                          <h3 className={`text-base sm:text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
+                            {item.title}
+                          </h3>
+
+                          {/* Description */}
+                          <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                            {item.description}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Mobile Card */}
-                      <div className={`flex-1 ${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-4 transition-all duration-300`}>
-                        {/* Date */}
-                        <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
-                          {item.day} • {item.date}
-                          <span className="block text-xs mt-1">{item.hijriDate}</span>
+                      {/* Center Icon for Mobile/Tablet */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-lg`}>
+                          <div className={`${styles.iconColor} scale-75 sm:scale-100`}>
+                            {item.icon}
+                          </div>
                         </div>
-
-                        {/* Title */}
-                        <h3 className={`text-base font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
-                          {item.title}
-                        </h3>
-
-                        {/* Description */}
-                        <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                          {item.description}
-                        </p>
                       </div>
                     </div>
                   </div>
