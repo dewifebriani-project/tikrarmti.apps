@@ -458,7 +458,7 @@ export const resetPassword = async (email: string) => {
     // Determine the correct redirect URL based on environment
     const isDevelopment = process.env.NODE_ENV === 'development';
     const baseUrl = isDevelopment
-      ? (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003')
+      ? 'http://localhost:3003'
       : window.location.origin;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
