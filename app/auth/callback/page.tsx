@@ -41,8 +41,7 @@ function AuthCallbackContent() {
         currentUrl: window.location.href,
         searchParams: Object.fromEntries(searchParams.entries()),
         hash: window.location.hash,
-        origin: window.location.origin,
-        isComingFromLocalhost
+        origin: window.location.origin
       });
 
       try {
