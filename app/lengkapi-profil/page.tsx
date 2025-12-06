@@ -32,7 +32,7 @@ const zonaWaktuList = [
 export default function LengkapiProfilPage() {
   const router = useRouter();
   const { user: authUser } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -54,27 +54,46 @@ export default function LengkapiProfilPage() {
     const getUserProfile = async () => {
       if (!authUser?.id) return;
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single() as any;
+      try {
+        console.log('Fetching user profile for:', authUser.id);
 
-      if (userData) {
-        setUserProfile(userData);
-        setFormData({
-          full_name: userData.full_name || '',
-          whatsapp: userData.whatsapp || '',
-          telegram: userData.telegram || '',
-          provinsi: userData.provinsi || '',
-          kota: userData.kota || '',
-          alamat: userData.alamat || '',
-          zona_waktu: userData.zona_waktu || '',
-          tanggal_lahir: userData.tanggal_lahir || '',
-          tempat_lahir: userData.tempat_lahir || '',
-          jenis_kelamin: userData.jenis_kelamin || '',
-          pekerjaan: userData.pekerjaan || '',
-        });
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+          setError('Gagal memuat data profil. Silakan coba lagi.');
+          return;
+        }
+
+        if (userData) {
+          console.log('User data fetched:', userData);
+          setUserProfile(userData);
+          setFormData({
+            full_name: (userData as any).full_name || '',
+            whatsapp: (userData as any).whatsapp || '',
+            telegram: (userData as any).telegram || '',
+            provinsi: (userData as any).provinsi || '',
+            kota: (userData as any).kota || '',
+            alamat: (userData as any).alamat || '',
+            zona_waktu: (userData as any).zona_waktu || '',
+            tanggal_lahir: (userData as any).tanggal_lahir || '',
+            tempat_lahir: (userData as any).tempat_lahir || '',
+            jenis_kelamin: (userData as any).jenis_kelamin || '',
+            pekerjaan: (userData as any).pekerjaan || '',
+          });
+        } else {
+          console.log('No user data found');
+          setError('Data profil tidak ditemukan.');
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setError('Terjadi kesalahan saat memuat data profil.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -146,19 +165,28 @@ export default function LengkapiProfilPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-                {error}
+            {isLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
+                <span className="ml-2 text-gray-600">Memuat data profil...</span>
               </div>
             )}
 
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
-                {success}
-              </div>
-            )}
+            {!isLoading && (
+              <>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                    {error}
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+                {success && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+                    {success}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-6">
               {/* Data Pribadi */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Data Pribadi</h3>
@@ -393,6 +421,8 @@ export default function LengkapiProfilPage() {
                 </Button>
               </div>
             </form>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

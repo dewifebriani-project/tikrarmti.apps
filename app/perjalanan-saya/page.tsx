@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import React from 'react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
@@ -19,11 +19,29 @@ interface TimelineItemWithStatus extends TimelineItem {
 }
 
 export default function PerjalananSaya() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Function to parse Indonesian date string
   const parseIndonesianDate = (dateStr: string): Date => {
-    // Handle special case for "Pekan 1 2026"
+    // Handle special case for "Pekan" - return a date in the future
     if (dateStr.includes('Pekan')) {
-      return new Date('2026-01-12'); // Default to a reasonable date
+      // For "Pekan 1 2026", return date around that time
+      if (dateStr.includes('1')) {
+        return new Date('2026-01-12');
+      } else if (dateStr.includes('2') || dateStr.includes('11')) {
+        return new Date('2026-03-23');
+      } else if (dateStr.includes('12')) {
+        return new Date('2026-03-30');
+      } else if (dateStr.includes('13')) {
+        return new Date('2026-04-06');
+      } else if (dateStr.includes('14')) {
+        return new Date('2026-04-13');
+      }
+      return new Date('2026-01-12');
     }
 
     const months: { [key: string]: number } = {
@@ -104,9 +122,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 5,
-      date: '5 Januari 2026',
-      day: 'Senin',
-      hijriDate: '6 Muharram 1447',
+      date: '17 Januari 2026',
+      day: 'Sabtu',
+      hijriDate: '17 Rajab 1446',
       title: 'Memulai Program',
       description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
       icon: (
@@ -185,6 +203,14 @@ export default function PerjalananSaya() {
 
   // Calculate timeline status dynamically based on current date
   const timelineData = useMemo((): TimelineItemWithStatus[] => {
+    // If not client-side yet, return all items as 'future' to prevent hydration mismatch
+    if (!isClient) {
+      return baseTimelineData.map(item => ({
+        ...item,
+        status: 'future' as const
+      }));
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
 
@@ -200,8 +226,8 @@ export default function PerjalananSaya() {
 
       if (diffDays < 0) {
         status = 'completed';
-      } else if (diffDays === 0 || (diffDays >= 0 && diffDays <= 7)) {
-        // Current status for today or within the next 7 days
+      } else if (diffDays === 0) {
+        // Current status only for today
         status = 'current';
       } else {
         status = 'future';
@@ -212,7 +238,7 @@ export default function PerjalananSaya() {
         status
       };
     });
-  }, []);
+  }, [isClient]);
 
   const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
@@ -412,7 +438,9 @@ export default function PerjalananSaya() {
             <div className="mt-4 flex items-center space-x-2">
               <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
               <p className="text-sm text-gray-600">
-                Saat ini: <span className="font-medium text-gray-900">Proses pembelajaran (tashih)</span>
+                Saat ini: <span className="font-medium text-gray-900">
+                  {timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}
+                </span>
               </p>
             </div>
           </div>

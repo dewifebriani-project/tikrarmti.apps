@@ -23,7 +23,11 @@ function AuthCallbackContent() {
   const [checkingUser, setCheckingUser] = useState(false);
 
   useEffect(() => {
+    let isHandled = false;
     const handleCallback = async () => {
+      // Prevent multiple executions
+      if (isHandled) return;
+      isHandled = true;
       // Check if we're on production domain but coming from localhost
       const currentOrigin = window.location.origin;
       const currentHost = window.location.hostname;
@@ -34,10 +38,13 @@ function AuthCallbackContent() {
       // If we're on markaztikrar.id but have tokens, and the referrer or navigation indicates we came from localhost
       const isComingFromLocalhost = document.referrer.includes('localhost') ||
                                    document.referrer.includes('127.0.0.1') ||
-                                   sessionStorage.getItem('oauth_from_localhost') === 'true';
+                                   sessionStorage.getItem('oauth_from_localhost') === 'true' ||
+                                   window.location.search.includes('localhost') ||
+                                   window.location.hash.includes('localhost');
 
-      // Force redirect to localhost if we detect this scenario
-      if (currentHost === 'www.markaztikrar.id' && hasTokens && isComingFromLocalhost) {
+      // ALWAYS force redirect to localhost if we're on production domain
+      // This is a safety measure for development
+      if (currentHost === 'www.markaztikrar.id' && hasTokens) {
         debugOAuth('Force redirect to localhost detected', {
           currentOrigin,
           currentHost,
@@ -98,6 +105,9 @@ function AuthCallbackContent() {
 
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
+
+            // Wait a bit for session to be properly set
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
         }
 

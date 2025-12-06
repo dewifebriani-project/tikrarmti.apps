@@ -4,7 +4,7 @@
   "description": "MTI - Markaz Tikrar Indonesia - Aplikasi Tahfidz Quran Digital",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3003",
+    "dev": "next dev -p 3008",
     "build": "next build",
     "start": "next start -p 3003",
     "lint": "next lint",

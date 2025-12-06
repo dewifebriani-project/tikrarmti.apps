@@ -59,6 +59,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
       '/statistik': 'Statistik',
       '/tagihan-pembayaran': 'Tagihan & Pembayaran',
       '/donasi-dashboard': 'Donasi',
+      '/lengkapi-profil': 'Edit Profil',
       '/pengaturan': 'Pengaturan',
       '/admin': 'Admin Dashboard',
     };
@@ -96,6 +97,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
       breadcrumbs.push({ label: 'Tagihan & Pembayaran', href: '/tagihan-pembayaran' });
     } else if (pathname.startsWith('/donasi-dashboard')) {
       breadcrumbs.push({ label: 'Donasi', href: '/donasi-dashboard' });
+    } else if (pathname.startsWith('/lengkapi-profil')) {
+      breadcrumbs.push({ label: 'Edit Profil', href: '/lengkapi-profil' });
     } else if (pathname.startsWith('/pengaturan')) {
       breadcrumbs.push({ label: 'Pengaturan', href: '/pengaturan' });
     } else if (pathname.startsWith('/admin')) {
@@ -144,7 +147,25 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
               </button>
             </div>
 
-            {/* Breadcrumbs - Desktop/Tablet */}
+            {/* Mobile Breadcrumbs - Always visible on mobile */}
+            <nav className="flex md:hidden items-center space-x-1 text-xs overflow-hidden">
+              {getBreadcrumbs().slice(-2).map((crumb, index, arr) => (
+                <div key={crumb.href} className="flex items-center space-x-1">
+                  {index > 0 && (
+                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                  <span className={`truncate max-w-[100px] ${
+                    index === arr.length - 1 ? 'text-green-900 font-medium' : 'text-gray-600'
+                  }`}>
+                    {crumb.label}
+                  </span>
+                </div>
+              ))}
+            </nav>
+
+            {/* Breadcrumbs - Desktop */}
             <nav className="hidden md:flex items-center space-x-2 text-sm">
               {getBreadcrumbs().map((crumb, index) => (
                 <div key={crumb.href} className="flex items-center space-x-2">
@@ -227,8 +248,21 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="flex items-center space-x-2 p-1 rounded-lg hover:bg-green-50 transition-colors duration-200 group"
               >
-                {/* Avatar from email using Gravatar-like service */}
-                {user?.email ? (
+                {/* Avatar from Google/Gmail or generated from name */}
+                {user?.photoURL || user?.avatar_url ? (
+                  <Image
+                    src={user.photoURL || user.avatar_url || ''}
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300 object-cover"
+                    unoptimized
+                    onError={(e) => {
+                      // Fallback to generated avatar if image fails to load
+                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email || 'User')}&background=15803d&color=fff&size=64&bold=true`;
+                    }}
+                  />
+                ) : user?.email ? (
                   <Image
                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=15803d&color=fff&size=64&bold=true`}
                     alt="Profile"
@@ -255,7 +289,20 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <div className="flex items-center space-x-3">
                       {/* Avatar in dropdown */}
-                      {user?.email ? (
+                      {user?.photoURL || user?.avatar_url ? (
+                        <Image
+                          src={user.photoURL || user.avatar_url || ''}
+                          alt="Profile"
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-full border-2 border-white/30 object-cover"
+                          unoptimized
+                          onError={(e) => {
+                            // Fallback to generated avatar if image fails to load
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email || 'User')}&background=ffffff&color=15803d&size=64&bold=true`;
+                          }}
+                        />
+                      ) : user?.email ? (
                         <Image
                           src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=ffffff&color=15803d&size=64&bold=true`}
                           alt="Profile"
@@ -344,29 +391,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
               ))}
             </nav>
 
-            {/* Mobile Breadcrumbs */}
-            <nav className="mt-4 pt-4 border-t border-green-900/20">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                {getBreadcrumbs().map((crumb, index) => (
-                  <div key={crumb.href} className="flex items-center space-x-2">
-                    {index > 0 && (
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                      </svg>
-                    )}
-                    <Link
-                      href={crumb.href}
-                      className={`hover:text-green-700 transition-colors duration-200 ${
-                        index === getBreadcrumbs().length - 1 ? 'text-green-900 font-medium' : ''
-                      }`}
-                    >
-                      {crumb.label}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </nav>
-
+  
             {/* Mobile Logout Button */}
             <div className="mt-4 pt-4 border-t border-green-900/20">
               <button

@@ -99,33 +99,33 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
   }, [pathname, isMounted]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Top section with sidebar and header */}
-      <div className="flex flex-1">
-        <DashboardSidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar - Sticky, full height */}
+      <DashboardSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Global Header - Sticky at top */}
+        <GlobalAuthenticatedHeader
+          onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          isSidebarOpen={isSidebarOpen}
         />
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          {/* Global Header */}
-          <GlobalAuthenticatedHeader
-            onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-            isSidebarOpen={isSidebarOpen}
-          />
-
-          {/* Content */}
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 sm:p-4 lg:p-6">
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          <main className="p-3 sm:p-4 lg:p-6">
             <div className="max-w-full">
               {children}
             </div>
           </main>
+
+          {/* Footer */}
+          <Footer />
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

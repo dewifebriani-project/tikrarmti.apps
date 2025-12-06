@@ -28,9 +28,12 @@ export async function POST(request: Request) {
 
     console.log('API: Using Supabase client...');
 
+    // Remove fields that don't exist in database schema
+    const { birth_place, ...cleanedBody } = body;
+
     // Prepare submission data
     const submissionData: PendaftaranData = {
-      ...body,
+      ...cleanedBody,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       status: 'pending',

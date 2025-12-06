@@ -50,7 +50,13 @@
       "Bash(if exist .nextdevlock del .nextdevlock)",
       "Bash(PORT=3004 npm run dev:*)",
       "Bash(set NODE_ENV=development)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(if exist .next rmdir //s //q .next)",
+      "Bash(PORT=3005 npm run dev:*)",
+      "Bash(PORT=3006 npm run dev:*)",
+      "Bash(set:*)",
+      "Bash(if exist .env.local echo Found .env.local else echo No .env.local file found)"
     ],
     "deny": [],
     "ask": []

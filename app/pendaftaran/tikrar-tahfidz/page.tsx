@@ -4,6 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { type PendaftaranData } from '@/lib/pendaftaran'
+import { fetchInitialData, getCachedBatchInfo, getCachedUserProfile } from './optimized-sections'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -48,104 +49,37 @@ function TikrarTahfidzPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
-  // Initialize state from localStorage or default values
-  const getInitialState = () => {
-    // Only access localStorage on client-side
-    if (typeof window === 'undefined') {
-      return {
-        currentSection: 1,
-        formData: {
-          understands_commitment: false,
-          tried_simulation: false,
-          no_negotiation: false,
-          has_telegram: false,
-          saved_contact: false,
-          has_permission: '',
-          permission_name: '',
-          permission_phone: '',
-          permission_phone_validation: '',
-          chosen_juz: '',
-          no_travel_plans: false,
-          motivation: '',
-          ready_for_team: '',
-          main_time_slot: '',
-          backup_time_slot: '',
-          time_commitment: false,
-          understands_program: false,
-          questions: ''
-        },
-        errors: {}
-      }
-    }
-
-    const savedState = localStorage.getItem('tikrar_form_state')
-    if (savedState) {
-      try {
-        const parsed = JSON.parse(savedState)
-        return {
-          currentSection: parsed.currentSection || 1,
-          formData: parsed.formData || {
-            understands_commitment: false,
-            tried_simulation: false,
-            no_negotiation: false,
-            has_telegram: false,
-            saved_contact: false,
-            has_permission: '',
-            permission_name: '',
-            permission_phone: '',
-            permission_phone_validation: '',
-            chosen_juz: '',
-            no_travel_plans: false,
-            motivation: '',
-            ready_for_team: '',
-            main_time_slot: '',
-            backup_time_slot: '',
-            time_commitment: false,
-            understands_program: false,
-            questions: ''
-          },
-          errors: {}
-        }
-      } catch (e) {
-        console.error('Error parsing saved state:', e)
-      }
-    }
-    return {
-      currentSection: 1,
-      formData: {
-        understands_commitment: false,
-        tried_simulation: false,
-        no_negotiation: false,
-        has_telegram: false,
-        saved_contact: false,
-        has_permission: '',
-        permission_name: '',
-        permission_phone: '',
-        permission_phone_validation: '',
-        chosen_juz: '',
-        no_travel_plans: false,
-        motivation: '',
-        ready_for_team: '',
-        main_time_slot: '',
-        backup_time_slot: '',
-        time_commitment: false,
-        understands_program: false,
-        questions: ''
-      },
-      errors: {}
-    }
+  // Default form data
+  const defaultFormData = {
+    understands_commitment: false,
+    tried_simulation: false,
+    no_negotiation: false,
+    has_telegram: false,
+    saved_contact: false,
+    has_permission: '' as 'yes' | 'janda' | '',
+    permission_name: '',
+    permission_phone: '',
+    permission_phone_validation: '',
+    chosen_juz: '',
+    no_travel_plans: false,
+    motivation: '',
+    ready_for_team: '',
+    main_time_slot: '',
+    backup_time_slot: '',
+    time_commitment: false,
+    understands_program: false,
+    questions: ''
   }
 
-  const initialState = getInitialState()
-  const [currentSection, setCurrentSection] = useState(initialState.currentSection)
+  const [isClient, setIsClient] = useState(false)
+  const [currentSection, setCurrentSection] = useState(1)
   const [userProfile, setUserProfile] = useState<any>(null)
-  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [isOnline, setIsOnline] = useState(true) // Default to true to prevent hydration mismatch
   const [networkError, setNetworkError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<FormData>(initialState.formData)
-  const [errors, setErrors] = useState<Record<string, string>>(initialState.errors)
+  const [formData, setFormData] = useState<FormData>(defaultFormData)
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
-  const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
   const [batchInfo, setBatchInfo] = useState<{
     batch_id: string,
     program_id: string,
@@ -163,8 +97,32 @@ function TikrarTahfidzPage() {
   const totalSections = 4
   const progressPercentage = useMemo(() => (currentSection / totalSections) * 100, [currentSection])
 
-  // Network status monitoring
+  // Initialize state after component mounts to prevent hydration mismatch
   useEffect(() => {
+    setIsClient(true)
+
+    // Load saved state from localStorage after mount
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('tikrar_form_state')
+      if (savedState) {
+        try {
+          const parsed = JSON.parse(savedState)
+          if (parsed.currentSection) setCurrentSection(parsed.currentSection)
+          if (parsed.formData) setFormData(parsed.formData)
+        } catch (e) {
+          console.error('Error parsing saved state:', e)
+        }
+      }
+    }
+  }, [])
+
+  // Network status monitoring - only on client side
+  useEffect(() => {
+    if (!isClient) return
+
+    // Set initial network status
+    setIsOnline(navigator.onLine)
+
     const handleOnline = () => {
       setIsOnline(true)
       setNetworkError(null)
@@ -184,162 +142,73 @@ function TikrarTahfidzPage() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [])
+  }, [isClient])
 
-  // Fetch batch and program info with retry mechanism for mobile
+  // Optimized data fetching with parallel loading
   useEffect(() => {
-    const fetchBatchInfo = async (retryCount = 0) => {
-      const maxRetries = 2 // Reduced retries for faster loading
-      const timeoutDuration = retryCount === 0 ? 6000 : 10000 // Faster timeout
+    if (!isClient) return
 
-      try {
-        // Add timeout for mobile connections
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
-
-        const response = await fetch('/api/batch/default', {
-          signal: controller.signal,
-          cache: 'default' // Allow caching for faster loads
-        })
-
-        clearTimeout(timeoutId)
-
-        if (response.ok) {
-          const data = await response.json()
-          setBatchInfo({
-            batch_id: data.batch_id,
-            program_id: data.program_id,
-            batch_name: data.batch_name,
-            start_date: data.start_date,
-            end_date: data.end_date,
-            duration_weeks: data.duration_weeks,
-            price: data.price,
-            is_free: data.is_free,
-            scholarship_quota: data.scholarship_quota,
-            total_quota: data.total_quota,
-            registered_count: data.registered_count
-          })
-          // Cache batch info
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('batch_info', JSON.stringify(data))
-          }
-        } else {
-          console.error('API error:', response.status, response.statusText)
-          // Retry on mobile network issues
-          if (retryCount < maxRetries && (response.status >= 500 || navigator.onLine === false)) {
-            setTimeout(() => fetchBatchInfo(retryCount + 1), 1000 * (retryCount + 1))
-          }
-        }
-      } catch (error: any) {
-        console.error('Error fetching batch info:', error)
-        // Retry on network errors or timeout
-        if (retryCount < maxRetries && (error.name === 'AbortError' || error.name === 'TypeError')) {
-          setTimeout(() => fetchBatchInfo(retryCount + 1), 1000 * (retryCount + 1))
-        }
-      }
+    // Load cached data immediately for instant UI
+    const cachedBatch = getCachedBatchInfo()
+    if (cachedBatch) {
+      setBatchInfo({
+        batch_id: cachedBatch.batch_id,
+        program_id: cachedBatch.program_id,
+        batch_name: cachedBatch.batch_name,
+        start_date: cachedBatch.start_date,
+        end_date: cachedBatch.end_date,
+        duration_weeks: cachedBatch.duration_weeks,
+        price: cachedBatch.price,
+        is_free: cachedBatch.is_free,
+        scholarship_quota: cachedBatch.scholarship_quota,
+        total_quota: cachedBatch.total_quota,
+        registered_count: cachedBatch.registered_count
+      })
     }
 
-    // Check localStorage cache first
-    const cachedBatchInfo = typeof window !== 'undefined' ? localStorage.getItem('batch_info') : null
-    if (cachedBatchInfo) {
-      try {
-        const data = JSON.parse(cachedBatchInfo)
-        setBatchInfo({
-          batch_id: data.batch_id,
-          program_id: data.program_id,
-          batch_name: data.batch_name,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          duration_weeks: data.duration_weeks,
-          price: data.price,
-          is_free: data.is_free,
-          scholarship_quota: data.scholarship_quota,
-          total_quota: data.total_quota,
-          registered_count: data.registered_count
-        })
-        console.log('Loaded batch info from cache')
-      } catch (e) {
-        console.error('Error parsing cached batch info:', e)
-      }
-    }
-
-    // Always fetch fresh data in background
-    if (navigator.onLine) {
-      fetchBatchInfo()
-    }
-  }, [])
-
-  // Fetch user profile data with retry mechanism for mobile
-  useEffect(() => {
+    // Load user profile if user exists
     if (user) {
-      const fetchUserProfile = async (retryCount = 0) => {
-        const maxRetries = 2 // Reduced retries for faster loading
-        const timeoutDuration = retryCount === 0 ? 8000 : 12000 // Faster timeout on first try
-
-        try {
-          console.log('Fetching user profile for userId:', user.id, 'retry:', retryCount)
-
-          // Add timeout for mobile connections
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
-
-          const response = await fetch(`/api/user/profile?userId=${user.id}`, {
-            signal: controller.signal,
-            cache: 'default' // Allow caching for faster subsequent loads
-          })
-
-          clearTimeout(timeoutId)
-          console.log('Response status:', response.status)
-
-          if (response.ok) {
-            const data = await response.json()
-            console.log('User profile data received:', data)
-            setUserProfile(data)
-            // Cache the data for faster subsequent loads
-            localStorage.setItem(`user_profile_${user.id}`, JSON.stringify(data))
-          } else {
-            const errorData = await response.json()
-            console.error('API Error:', errorData)
-            // Retry on mobile network issues
-            if (retryCount < maxRetries && (response.status >= 500 || navigator.onLine === false)) {
-              setTimeout(() => fetchUserProfile(retryCount + 1), 1000 * (retryCount + 1)) // Faster retry
-            }
-          }
-        } catch (error: any) {
-          console.error('Error fetching user profile:', error)
-          // Retry on network errors or timeout
-          if (retryCount < maxRetries && (error.name === 'AbortError' || error.name === 'TypeError')) {
-            setTimeout(() => fetchUserProfile(retryCount + 1), 1000 * (retryCount + 1)) // Faster retry
-          }
-        }
-      }
-
-      // Add localStorage cache for instant loading
-      const cachedProfile = localStorage.getItem(`user_profile_${user.id}`)
+      const cachedProfile = getCachedUserProfile(user.id)
       if (cachedProfile) {
-        try {
-          const data = JSON.parse(cachedProfile)
-          setUserProfile(data)
-          console.log('Loaded user profile from cache')
-        } catch (e) {
-          console.error('Error parsing cached profile:', e)
-        }
-      }
-
-      // Always fetch fresh data in background
-      if (navigator.onLine) {
-        fetchUserProfile()
-      } else {
-        // If offline and no cache, show error
-        if (!cachedProfile) {
-          setNetworkError('Tidak ada koneksi internet dan data tersimpan. Periksa koneksi Ukhti.')
-        }
+        setUserProfile(cachedProfile)
       }
     }
-  }, [user])
 
-  // Save form state to localStorage whenever it changes
+    // Fetch fresh data in parallel
+    if (navigator.onLine) {
+      fetchInitialData(user?.id).then(({ batchInfo, userProfile }) => {
+        if (batchInfo) {
+          setBatchInfo({
+            batch_id: batchInfo.batch_id,
+            program_id: batchInfo.program_id,
+            batch_name: batchInfo.batch_name,
+            start_date: batchInfo.start_date,
+            end_date: batchInfo.end_date,
+            duration_weeks: batchInfo.duration_weeks,
+            price: batchInfo.price,
+            is_free: batchInfo.is_free,
+            scholarship_quota: batchInfo.scholarship_quota,
+            total_quota: batchInfo.total_quota,
+            registered_count: batchInfo.registered_count
+          })
+        }
+
+        if (userProfile && user) {
+          setUserProfile(userProfile)
+        }
+
+        // Clear network error if successful
+        setNetworkError('')
+      })
+    } else if (!cachedBatch) {
+      setNetworkError('Tidak ada koneksi internet. Periksa koneksi Ukhti untuk memuat data program.')
+    }
+  }, [user, isClient])
+
+  // Save form state to localStorage whenever it changes - client side only
   useEffect(() => {
+    if (!isClient) return
+
     const stateToSave = {
       currentSection,
       formData,
@@ -347,44 +216,34 @@ function TikrarTahfidzPage() {
       timestamp: new Date().toISOString()
     }
     localStorage.setItem('tikrar_form_state', JSON.stringify(stateToSave))
-  }, [currentSection, formData, errors])
+  }, [currentSection, formData, errors, isClient])
 
-  // Restore scroll position and prevent auto-scroll to top on mount
+  // Restore scroll position and prevent auto-scroll to top on mount - client side only
   useEffect(() => {
-    // Prevent default scroll behavior
-    if (typeof window !== 'undefined') {
-      const savedScrollPosition = sessionStorage.getItem('tikrar_scroll_position')
-      if (savedScrollPosition) {
-        setTimeout(() => {
-          window.scrollTo(0, parseInt(savedScrollPosition))
-          sessionStorage.removeItem('tikrar_scroll_position')
-        }, 100)
-      }
+    if (!isClient || typeof window === 'undefined') return
+
+    const savedScrollPosition = sessionStorage.getItem('tikrar_scroll_position')
+    if (savedScrollPosition) {
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(savedScrollPosition))
+        sessionStorage.removeItem('tikrar_scroll_position')
+      }, 100)
     }
-  }, [])
+  }, [isClient])
 
-  // Save scroll position before unmount
+  // Save scroll position before unmount - client side only
   useEffect(() => {
+    if (!isClient || typeof window === 'undefined') return
+
     const handleBeforeUnload = () => {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('tikrar_scroll_position', window.pageYOffset.toString())
-      }
+      sessionStorage.setItem('tikrar_scroll_position', window.pageYOffset.toString())
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [])
-
-  // Cleanup redirect timer when component unmounts or status changes
-  React.useEffect(() => {
-    return () => {
-      if (redirectTimer) {
-        clearTimeout(redirectTimer)
-      }
-    }
-  }, [redirectTimer])
+  }, [isClient])
 
   const handleInputChange = useCallback((field: keyof FormData, value: string | boolean) => {
     setFormData(prev => {
@@ -454,7 +313,7 @@ function TikrarTahfidzPage() {
       // Validasi hanya field yang khusus untuk tikrar
       // Domicile diambil otomatis dari data kota user saat registrasi
       if (!userProfile?.kota) {
-        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Ukhti terlebih dahulu di halaman lengkapi profil.'
+        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Ukhti terlebih dahulu.';
       }
       if (!formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
@@ -569,7 +428,7 @@ function TikrarTahfidzPage() {
         wa_phone: userProfile?.whatsapp || '',
         telegram_phone: userProfile?.telegram || '',
         birth_date: userProfile?.tanggal_lahir || null,
-        birth_place: userProfile?.tempat_lahir || '',
+        // birth_place removed - not in database schema
         age: userProfile?.tanggal_lahir ? Math.floor((new Date().getTime() - new Date(userProfile.tanggal_lahir).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 0,
         domicile: userProfile?.kota || '', // Diambil dari field kota di tabel users
         timezone: userProfile?.zona_waktu || 'WIB',
@@ -626,14 +485,7 @@ function TikrarTahfidzPage() {
       localStorage.removeItem('tikrar_form_state')
       console.log('Form state cleared after successful submission')
 
-      // Redirect to dashboard after 5 seconds so user can see success message
-      const redirectTimer = setTimeout(() => {
-        console.log('Redirecting to perjalanan-saya...')
-        router.push('/perjalanan-saya')
-      }, 5000)
-
-      // Store timer reference for cleanup (optional)
-      setRedirectTimer(redirectTimer)
+      // Don't auto-redirect - let user read the success message and click button to navigate
     } catch (error: any) {
       console.error('Submit error:', error)
 
@@ -812,7 +664,7 @@ function TikrarTahfidzPage() {
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
-            value={formData.understands_commitment ? "yes" : ""}
+            value={formData.understands_commitment ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('understands_commitment', value === "yes")}
             className="space-y-3"
           >
@@ -820,6 +672,12 @@ function TikrarTahfidzPage() {
               <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-1 w-4 h-4 md:w-5 md:h-5" />
               <Label htmlFor="understands_commitment_yes" className="text-sm md:text-base font-medium text-gray-700 cursor-pointer flex-1 leading-tight">
                 Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.
+              </Label>
+            </div>
+            <div className="flex items-start space-x-2 md:space-x-4 p-3 md:p-4 border-2 rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer hover:border-red-300">
+              <RadioGroupItem value="no" id="understands_commitment_no" className="mt-1 w-4 h-4 md:w-5 md:h-5" />
+              <Label htmlFor="understands_commitment_no" className="text-sm md:text-base font-medium text-gray-700 cursor-pointer flex-1 leading-tight">
+                Belum, saya perlu waktu untuk mempertimbangkan kembali.
               </Label>
             </div>
           </RadioGroup>
@@ -841,7 +699,7 @@ function TikrarTahfidzPage() {
             </p>
           </div>
           <RadioGroup
-            value={formData.tried_simulation ? "yes" : ""}
+            value={formData.tried_simulation ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('tried_simulation', value === "yes")}
             className="space-y-3"
           >
@@ -849,6 +707,12 @@ function TikrarTahfidzPage() {
               <RadioGroupItem value="yes" id="tried_simulation_yes" className="mt-1 w-5 h-5" />
               <Label htmlFor="tried_simulation_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
+              </Label>
+            </div>
+            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer hover:border-red-300">
+              <RadioGroupItem value="no" id="tried_simulation_no" className="mt-1 w-5 h-5" />
+              <Label htmlFor="tried_simulation_no" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+                Belum, saya akan mencoba terlebih dahulu.
               </Label>
             </div>
           </RadioGroup>
@@ -865,7 +729,7 @@ function TikrarTahfidzPage() {
             </p>
           </div>
           <RadioGroup
-            value={formData.no_negotiation ? "yes" : ""}
+            value={formData.no_negotiation ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('no_negotiation', value === "yes")}
             className="space-y-3"
           >
@@ -873,6 +737,12 @@ function TikrarTahfidzPage() {
               <RadioGroupItem value="yes" id="no_negotiation_yes" className="mt-1 w-5 h-5" />
               <Label htmlFor="no_negotiation_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
+              </Label>
+            </div>
+            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer hover:border-red-300">
+              <RadioGroupItem value="no" id="no_negotiation_no" className="mt-1 w-5 h-5" />
+              <Label htmlFor="no_negotiation_no" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+                Saya masih perlu pertimbangan.
               </Label>
             </div>
           </RadioGroup>
@@ -926,6 +796,109 @@ function TikrarTahfidzPage() {
             <p className="text-red-500 text-sm font-medium">{errors.saved_contact}</p>
           )}
         </div>
+
+        {/* Batch Information Card - Only shown in Section 1 */}
+        {batchInfo && (
+          <Card className="mt-6 border-2 border-green-200 shadow-md overflow-hidden">
+            <CardContent className="p-3 md:p-6">
+              <h2 className="text-lg md:text-2xl font-bold text-green-900 mb-3 md:mb-4">Informasi {batchInfo.batch_name}</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+                {/* Total Pendaftar */}
+                <div className="text-center p-2 md:p-4 bg-blue-50 rounded-lg">
+                  <Users className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-blue-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Total Pendaftar</p>
+                  <p className="text-lg md:text-2xl font-bold text-blue-900">
+                    {batchInfo.registered_count}/{batchInfo.total_quota} Peserta
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {((batchInfo.registered_count / batchInfo.total_quota) * 100).toFixed(0)}% Terisi
+                  </p>
+                </div>
+
+                {/* Biaya */}
+                <div className="text-center p-2 md:p-4 bg-green-50 rounded-lg">
+                  <Award className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-green-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Biaya Program</p>
+                  {batchInfo.is_free ? (
+                    <>
+                      <p className="text-lg md:text-2xl font-bold text-green-900">GRATIS</p>
+                      <p className="text-xs text-green-700 mt-1">Program Beasiswa</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-lg md:text-2xl font-bold text-green-900">
+                        Rp {batchInfo.price.toLocaleString('id-ID')}
+                      </p>
+                      <p className="text-xs text-green-700 mt-1">Per Bulan</p>
+                    </>
+                  )}
+                </div>
+
+                {/* Durasi */}
+                <div className="text-center p-2 md:p-4 bg-purple-50 rounded-lg">
+                  <Clock className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-purple-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Durasi</p>
+                  <p className="text-lg md:text-2xl font-bold text-purple-900">
+                    {Math.ceil(batchInfo.duration_weeks / 4)} Bulan
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    {batchInfo.duration_weeks} Pekan
+                  </p>
+                </div>
+
+                {/* Kuota Tersedia */}
+                <div className="text-center p-2 md:p-4 bg-orange-50 rounded-lg">
+                  <Calendar className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-orange-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Kuota Tersedia</p>
+                  <p className="text-lg md:text-2xl font-bold text-orange-900">
+                    {batchInfo.scholarship_quota} lagi
+                  </p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Dari {batchInfo.total_quota} Kuota
+                  </p>
+                </div>
+              </div>
+
+              {/* Tanggal Program di bawah */}
+              <div className="mt-3 md:mt-4 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-2 md:gap-4 text-center">
+                  <div>
+                    <p className="text-xs md:text-sm text-gray-600">Tanggal Mulai</p>
+                    <p className="text-sm md:text-lg font-semibold text-gray-900">
+                      {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs md:text-sm text-gray-600">Tanggal Selesai</p>
+                    <p className="text-sm md:text-lg font-semibold text-gray-900">
+                      {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Badge Pendaftaran Dibuka */}
+                <div className="mt-3 flex justify-center">
+                  <div className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-full shadow-md">
+                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                    <span className="text-xs md:text-sm font-semibold">Pendaftaran Dibuka</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-3 md:mt-4">
+                <div className="flex justify-between text-xs md:text-sm text-gray-600 mb-1">
+                  <span>Pendaftar Terisi</span>
+                  <span>{(batchInfo.registered_count / batchInfo.total_quota * 100).toFixed(0)}%</span>
+                </div>
+                <Progress
+                  value={batchInfo.registered_count / batchInfo.total_quota * 100}
+                  className="h-2"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
@@ -1199,7 +1172,15 @@ function TikrarTahfidzPage() {
                 <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
                   <p className="text-xs sm:text-sm text-yellow-800 flex items-start">
                     <span className="text-yellow-600 mr-2 flex-shrink-0">ℹ️</span>
-                    <span>Jika data di atas tidak lengkap atau salah, silakan perbarui di <a href="/lengkapi-profil" className="font-semibold underline hover:text-yellow-900">halaman lengkapi profil</a>.</span>
+                    <span>
+                      Jika data di atas tidak lengkap atau salah, silakan perbarui di{' '}
+                      <a
+                        href="/lengkapi-profil"
+                        className="font-semibold underline hover:text-yellow-900"
+                      >
+                        halaman Edit Profil
+                      </a>.
+                    </span>
                   </p>
                 </div>
               </div>
@@ -1452,17 +1433,14 @@ function TikrarTahfidzPage() {
                 • Pengumuman hasil seleksi
               </p>
               <br />
-              <div className="flex items-center space-x-2 mb-3 mt-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                <span className="text-sm font-medium">Mengalihkan ke halaman Perjalanan Saya...</span>
+              <div className="mt-4">
+                <Button
+                  onClick={() => router.push('/perjalanan-saya')}
+                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                >
+                  Lihat Perjalanan Saya (My Journeys) →
+                </Button>
               </div>
-              <Button
-                onClick={() => router.push('/perjalanan-saya')}
-                className="bg-green-600 hover:bg-green-700 text-white mt-2"
-                size="sm"
-              >
-                Lihat Perjalanan Saya (My Journeys) Sekarang →
-              </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -1555,8 +1533,7 @@ function TikrarTahfidzPage() {
   //   )
   // }
 
-  // Show form directly for debugging
-  console.log('Rendering form - user:', user, 'loading:', loading)
+  // Show form directly
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
@@ -1592,7 +1569,7 @@ function TikrarTahfidzPage() {
           {/* Link ke Perjalanan Program */}
           <div className="mt-3 md:mt-4">
             <a
-              href="/pendaftaran/perjalanan-program"
+              href="/perjalanan-saya"
               className="inline-flex items-center px-3 md:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200 text-xs md:text-sm"
             >
               <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-2" />

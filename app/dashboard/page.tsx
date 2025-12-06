@@ -29,6 +29,16 @@ export default function Dashboard() {
     total: 7
   }
 
+  // Debug: Log user state changes
+  useEffect(() => {
+    console.log('=== Dashboard User State Update ===')
+    console.log('Auth loading:', loading)
+    console.log('Auth user:', user)
+    console.log('User ID:', user?.id)
+    console.log('User email:', user?.email)
+    console.log('==================================')
+  }, [user, loading])
+
   useEffect(() => {
     if (user) {
       // Run all data loading functions in parallel for better performance
@@ -88,34 +98,22 @@ export default function Dashboard() {
     }
   }
 
-  
+
   const loadRecentActivity = async () => {
     if (!user) return
 
     try {
-      // This would normally fetch from your activity logs table
-      // For now, using mock data with dynamic dates
-      const mockActivities = [
-        {
-          id: 1,
-          type: 'jurnal',
-          date: new Date().toISOString(),
-          description: 'Jurnal harian selesai'
-        },
-        {
-          id: 2,
-          type: 'tashih',
-          date: new Date(Date.now() - 86400000).toISOString(),
-          description: 'Tashih blok H2a'
-        },
-        {
-          id: 3,
-          type: 'jurnal',
-          date: new Date(Date.now() - 172800000).toISOString(),
-          description: 'Jurnal harian selesai'
-        },
-      ]
-      setRecentActivity(mockActivities)
+      // Fetch real activity data from database
+      // TODO: Implement actual API call to fetch user activities
+      // const { data, error } = await supabase
+      //   .from('user_activities')
+      //   .select('*')
+      //   .eq('user_id', user.id)
+      //   .order('created_at', { ascending: false })
+      //   .limit(5)
+
+      // For now, set empty array - will be populated when activity logging is implemented
+      setRecentActivity([])
     } catch (error) {
       console.error('Error loading recent activity:', error)
     }
@@ -125,15 +123,22 @@ export default function Dashboard() {
     const hour = new Date().getHours()
     // Shabahul Khayr (pagi), Masaa'ul Khayr (sore), Masaa'ul Khayr (malam)
     const greeting = hour < 12 ? 'Shabahul Khayr' : hour < 18 ? 'Masaa\'ul Khayr' : 'Masaa\'ul Khayr'
-    // Use user from AuthContext which already has full_name loaded
-    const userName = user?.full_name ? `Ukhti ${user.full_name}` : 'Ukhti'
+
+    // Get name from multiple sources with priority: full_name -> displayName -> email -> 'Ukhti'
+    const displayName = user?.full_name || user?.displayName || (user?.email ? user.email.split('@')[0] : null)
+    const userName = displayName ? `Ukhti ${displayName}` : 'Ukhti'
 
     // Debug logging
     if (typeof window !== 'undefined') {
-      console.log('Dashboard - User object:', user)
-      console.log('Dashboard - User full_name:', user?.full_name)
-      console.log('Dashboard - User role:', user?.role)
-      console.log('Dashboard - Generated userName:', userName)
+      console.log('=== Dashboard Greeting Debug ===')
+      console.log('User object:', user)
+      console.log('User full_name:', user?.full_name)
+      console.log('User displayName:', user?.displayName)
+      console.log('User email:', user?.email)
+      console.log('User role:', user?.role)
+      console.log('Generated displayName:', displayName)
+      console.log('Generated userName:', userName)
+      console.log('================================')
     }
 
     return {
@@ -152,30 +157,42 @@ export default function Dashboard() {
   }
 
   const getRoleDisplay = (role?: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrator'
-      case 'musyrifah':
-        return 'Musyrifah'
-      case 'muallimah':
-        return 'Muallimah'
-      case 'thalibah':
-        return 'Thalibah'
-      case 'calon_thalibah':
-        return 'Calon Thalibah'
-      default:
-        return 'User'
+    // Debug logging
+    if (typeof window !== 'undefined') {
+      console.log('=== Role Display Debug ===')
+      console.log('Input role:', role)
     }
+
+    let displayRole = 'User'
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        displayRole = 'Administrator'
+        break
+      case 'musyrifah':
+        displayRole = 'Musyrifah'
+        break
+      case 'muallimah':
+        displayRole = 'Muallimah'
+        break
+      case 'thalibah':
+        displayRole = 'Thalibah'
+        break
+      case 'calon_thalibah':
+        displayRole = 'Calon Thalibah'
+        break
+      default:
+        displayRole = 'Calon Thalibah' // Default untuk user baru
+    }
+
+    if (typeof window !== 'undefined') {
+      console.log('Output displayRole:', displayRole)
+      console.log('========================')
+    }
+
+    return displayRole
   }
 
   const quickActions = [
-    {
-      title: 'Jurnal Harian',
-      description: 'Isi kurikulum 7 tahap hari ini',
-      icon: BookOpen,
-      href: '/jurnal-harian',
-      color: 'bg-green-600 text-white hover:bg-green-700'
-    },
     {
       title: 'Pendaftaran',
       description: 'Daftar program Tikrar MTI',
@@ -184,8 +201,15 @@ export default function Dashboard() {
       color: 'bg-green-600 text-white hover:bg-green-700'
     },
     {
-      title: 'Perjalanan Saya (My Journeys)',
-      description: 'Lihat progress lengkap',
+      title: 'Jurnal Harian',
+      description: 'Isi kurikulum 7 tahap hari ini',
+      icon: BookOpen,
+      href: '/jurnal-harian',
+      color: 'bg-green-600 text-white hover:bg-green-700'
+    },
+    {
+      title: 'Perjalanan Saya',
+      description: 'Lihat perjalanan saya',
       icon: TrendingUp,
       href: '/perjalanan-saya',
       color: 'bg-green-600 text-white hover:bg-green-700'
@@ -390,34 +414,53 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className={`w-2 h-2 rounded-full ${
-                      activity.type === 'jurnal' ? 'bg-green-500' : 'bg-green-600'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {activity.description}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(activity.date).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
+              {recentActivity.length > 0 ? (
+                <>
+                  <div className="space-y-4">
+                    {recentActivity.map((activity) => (
+                      <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className={`w-2 h-2 rounded-full ${
+                          activity.type === 'jurnal' ? 'bg-green-500' : 'bg-green-600'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {activity.description}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(activity.date).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <Link href="/perjalanan-saya">
-                  <Button variant="outline" className="w-full">
-                    Lihat Semua Aktivitas
-                  </Button>
-                </Link>
-              </div>
+                  <div className="mt-4">
+                    <Link href="/perjalanan-saya">
+                      <Button variant="outline" className="w-full">
+                        Lihat Semua Aktivitas
+                      </Button>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="flex justify-center mb-3">
+                    <Clock className="h-12 w-12 text-gray-300" />
+                  </div>
+                  <p className="text-sm text-gray-500 mb-1">Belum ada aktivitas pembelajaran</p>
+                  <p className="text-xs text-gray-400">Mulai aktivitas pembelajaran Ukhti untuk melihat riwayat di sini</p>
+                  <div className="mt-4">
+                    <Link href="/jurnal-harian">
+                      <Button className="bg-green-600 hover:bg-green-700 text-white">
+                        Mulai Jurnal Harian
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

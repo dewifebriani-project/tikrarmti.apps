@@ -489,5 +489,22 @@
 
 /* Ensure dropdown appears above other elements */
 [data-radix-select-content] {
-  z-index: 9999 !important;
+  z-index: 50 !important;
+}
+
+/* Mobile scrollbar optimization */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+
+  ::-webkit-scrollbar-track {
+    border-radius: 3px;
+  }
 }

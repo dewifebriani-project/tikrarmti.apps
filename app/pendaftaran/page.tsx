@@ -450,7 +450,7 @@ export default function PendaftaranPage() {
       )}
 
       {/* Registration Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
         {pendaftaranTypes.map((type) => {
           const Icon = type.icon;
           const isExpanded = selectedType === type.id;

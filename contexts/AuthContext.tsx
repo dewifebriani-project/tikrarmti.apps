@@ -32,22 +32,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Get initial session with timeout
     const getInitialSession = async () => {
       try {
-        // Add timeout to prevent hanging
+  
+        // Add timeout to prevent hanging - increased to 15 seconds for slow connections
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout')), 3000)
+          setTimeout(() => reject(new Error('Session timeout')), 15000)
         );
 
         const sessionPromise = supabase.auth.getSession();
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
+        let session;
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          session = result.data.session;
+        } catch (timeoutError) {
+          console.warn('Session fetch timed out, trying again without timeout...');
+          // Try one more time without timeout
+          const fallbackResult = await supabase.auth.getSession();
+          session = fallbackResult.data.session;
+        }
+
+  
         if (session?.user) {
-          await fetchUserProfile(session.user);
+                    await fetchUserProfile(session.user);
         } else {
+          // Silent session check - no need to warn when no session on initial load
           setUser(null);
         }
       } catch (error) {
         console.error('Session fetch error:', error);
-        setUser(null);
+        // Don't set user to null immediately - wait for auth state change
+        console.log('Waiting for auth state change...');
       } finally {
         setLoading(false);
       }
@@ -87,10 +101,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // Add timeout to database query
+      // Add timeout to database query (increased for slower connections)
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 2000)
+        setTimeout(() => reject(new Error('Database query timeout')), 20000)
       );
+
+      // Get user metadata from auth (includes Google photo)
+      const googlePhotoUrl = authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture;
 
       const queryPromise = supabase
         .from('users')
@@ -98,16 +115,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq('id', authUser.id)
         .maybeSingle();
 
-      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      let profile, error;
+      try {
+        const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+        profile = result.data;
+        error = result.error;
+      } catch (timeoutError) {
+        console.warn('Database query timed out, attempting to create profile anyway...');
+        // If timeout, treat as no profile found and try to create
+        profile = null;
+        error = null;
+      }
 
       if (error) {
         console.error('Profile fetch error:', error);
-        setUser(null);
-        return;
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        // Don't return here - try to create profile instead
+        profile = null;
       }
 
       if (profile) {
-        const userObj = createUserObjectFromProfile(authUser, profile);
+        const userObj = createUserObjectFromProfile(authUser, profile, googlePhotoUrl);
+
+        // Silent profile loading - remove excessive logging for better performance
 
         // Cache the user data
         userCache.set(authUser.id, {
@@ -117,8 +147,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         setUser(userObj);
       } else {
-        // No profile found - user not registered
-        setUser(null);
+        console.warn('No profile found in database for user:', authUser.id);
+        console.log('Attempting to auto-create user profile...');
+
+        // Try to auto-create user profile
+        try {
+          const { data: newProfile, error: insertError } = await supabaseAdmin
+            .from('users')
+            .insert({
+              id: authUser.id,
+              email: authUser.email,
+              full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '',
+              role: 'calon_thalibah',
+              password_hash: 'managed_by_auth_system',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (!insertError && newProfile) {
+            console.log('✅ User profile created successfully:', newProfile);
+            const userObj = createUserObjectFromProfile(authUser, newProfile, googlePhotoUrl);
+
+            // Cache the user data
+            userCache.set(authUser.id, {
+              user: userObj,
+              timestamp: now
+            });
+
+            setUser(userObj);
+          } else {
+            console.error('Failed to create user profile:', insertError);
+            setUser(null);
+          }
+        } catch (createError) {
+          console.error('Error creating user profile:', createError);
+          setUser(null);
+        }
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -127,24 +194,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Helper function to create user object from database profile
-  const createUserObjectFromProfile = (authUser: any, profile: any): User => {
+  const createUserObjectFromProfile = (authUser: any, profile: any, googlePhotoUrl?: string): User => {
     // Ensure role is a valid UserRole
     const userRole = profile.role || 'calon_thalibah';
     const validRole: UserRole = ['calon_thalibah', 'thalibah', 'musyrifah', 'muallimah', 'admin'].includes(userRole)
       ? userRole as UserRole
       : 'calon_thalibah';
 
+    // Prioritize Google photo URL, then database avatar_url
+    const avatarUrl = googlePhotoUrl || profile.avatar_url || undefined;
+
     return {
       id: authUser.id,
       email: authUser.email || '',
-      full_name: profile.full_name || '',
-      avatar_url: profile.avatar_url || undefined,
+      full_name: profile.full_name || authUser.user_metadata?.full_name || '',
+      avatar_url: avatarUrl,
       role: validRole,
       is_active: true,
       created_at: profile.created_at,
       updated_at: profile.updated_at,
-      displayName: profile.full_name || '',
-      photoURL: profile.avatar_url || undefined,
+      displayName: profile.full_name || authUser.user_metadata?.full_name || '',
+      photoURL: avatarUrl,
       createdAt: new Date(profile.created_at),
       updatedAt: new Date(profile.updated_at),
       isProfileComplete: true,

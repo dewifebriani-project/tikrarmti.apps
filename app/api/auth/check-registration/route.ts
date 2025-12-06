@@ -32,25 +32,48 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerClient();
 
-    // Check if user exists with optimized query
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        whatsapp,
-        telegram,
-        provinsi,
-        kota,
-        alamat,
-        zona_waktu,
-        role
-      `)
-      .eq('email', email)
-      .maybeSingle();
+    // Check if user exists with optimized query and timeout
+    let user, userError;
+    try {
+      const query = supabase
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          whatsapp,
+          telegram,
+          provinsi,
+          kota,
+          alamat,
+          zona_waktu,
+          role
+        `)
+        .eq('email', email)
+        .maybeSingle();
 
-  
+      // Add timeout for mobile users
+      const result = isMobile ?
+        await Promise.race([
+          query,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Query timeout')), 8000)
+          )
+        ]) :
+        await query;
+
+      // Type assertion for the result
+      const typedResult = result as { data: any; error: any };
+      user = typedResult.data;
+      userError = typedResult.error;
+    } catch (err: any) {
+      console.error('[API] Database query timeout or error:', err.message);
+      return NextResponse.json({
+        registered: false,
+        reason: 'Database timeout. Silakan coba lagi.'
+      }, { status: 408 });
+    }
+
     if (userError) {
       console.error('[API] Database error checking user:', userError);
       return NextResponse.json({
