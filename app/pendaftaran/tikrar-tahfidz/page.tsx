@@ -174,8 +174,10 @@ function TikrarTahfidzPage() {
       }
     }
 
-    // Fetch fresh data in parallel
+    // Fetch fresh data in parallel with mobile optimization
     if (navigator.onLine) {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
       fetchInitialData(user?.id).then(({ batchInfo, userProfile }) => {
         if (batchInfo) {
           setBatchInfo({
@@ -199,6 +201,20 @@ function TikrarTahfidzPage() {
 
         // Clear network error if successful
         setNetworkError('')
+
+        // Additional retry for mobile if user profile still missing
+        if (isMobileDevice && user && !userProfile) {
+          setTimeout(() => {
+            console.log('Retrying user profile fetch for mobile after 1 second...');
+            import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
+              fetchUserProfileOptimized(user.id).then(retryProfile => {
+                if (retryProfile) {
+                  setUserProfile(retryProfile);
+                }
+              });
+            });
+          }, 1000);
+        }
       })
     } else if (!cachedBatch) {
       setNetworkError('Tidak ada koneksi internet. Periksa koneksi Ukhti untuk memuat data program.')

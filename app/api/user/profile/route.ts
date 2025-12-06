@@ -15,12 +15,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    // Optimized query with only necessary fields
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
-      .eq('id', userId)
-      .single()
+    // Check if mobile for optimization
+    const userAgent = request.headers.get('user-agent') || ''
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+
+    // Function to fetch user profile with optional retry
+    const fetchUserProfile = async (isRetry = false) => {
+      const timeoutMs = isMobile ? (isRetry ? 15000 : 10000) : 5000
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+      try {
+        const queryPromise = supabase
+          .from('users')
+          .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
+          .eq('id', userId)
+          .single()
+
+        const result = await Promise.race([queryPromise,
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
+          })
+        ]) as any
+
+        clearTimeout(timeoutId)
+        return result
+      } catch (error) {
+        clearTimeout(timeoutId)
+        throw error
+      }
+    }
+
+    let result = await fetchUserProfile()
+
+    // Retry once for mobile on timeout
+    if (isMobile && result.error && result.error.message?.includes('timeout')) {
+      console.log('Retrying user profile fetch for mobile...')
+      result = await fetchUserProfile(true)
+    }
+
+    const { data, error } = result
 
     if (error) {
       // Remove excessive logging for performance
