@@ -31,10 +31,17 @@ export default function Dashboard() {
   const [batchInfo, setBatchInfo] = useState<any | null>(null)
 
   useEffect(() => {
-    loadUserData()
-    loadBatchInfo()
-    loadTodayProgress()
-    loadRecentActivity()
+    if (user) {
+      // Run all data loading functions in parallel for better performance
+      Promise.allSettled([
+        loadUserData(),
+        loadBatchInfo(),
+        loadRecentActivity()
+      ]).then(() => {
+        // Load today's progress from localStorage (fast)
+        loadTodayProgress()
+      })
+    }
   }, [user])
 
   const loadUserData = async () => {
@@ -57,11 +64,12 @@ export default function Dashboard() {
 
   const loadBatchInfo = async () => {
     try {
-      // Get current active batch for Tikrar MTI
+      // Get current active batch for Tikrar MTI - prioritize Tikrar Tahfidz batches
       const { data, error } = await supabase
         .from('batches')
         .select('*')
         .eq('status', 'open')
+        .or('program_type.eq.tikrar_tahfidz,program_type.is.null,name.ilike.%Tikrar MTI%')
         .order('created_at', { ascending: false })
         .limit(1)
         .single()

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 
+// Simple in-memory cache for registration check results
+const registrationCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 30 * 1000; // 30 seconds cache
+
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
@@ -10,6 +14,13 @@ export async function POST(request: NextRequest) {
         { error: 'Email is required' },
         { status: 400 }
       );
+    }
+
+    // Check cache first
+    const cached = registrationCache.get(email);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      return NextResponse.json(cached.data);
     }
 
     const supabase = createServerClient();
@@ -76,18 +87,22 @@ export async function POST(request: NextRequest) {
       missing: missingFields
     });
 
-    if (missingFields.length > 0) {
-      return NextResponse.json({
-        registered: false,
-        reason: `Data profil belum lengkap. Mohon lengkapi: ${missingFields.join(', ')}`,
-        user
-      });
-    }
-
-    return NextResponse.json({
+    const responseData = missingFields.length > 0 ? {
+      registered: false,
+      reason: `Data profil belum lengkap. Mohon lengkapi: ${missingFields.join(', ')}`,
+      user
+    } : {
       registered: true,
       user
+    };
+
+    // Cache the result
+    registrationCache.set(email, {
+      data: responseData,
+      timestamp: now
     });
+
+    return NextResponse.json(responseData);
 
   } catch (error: any) {
     console.error('[API] Error checking user registration:', error);
