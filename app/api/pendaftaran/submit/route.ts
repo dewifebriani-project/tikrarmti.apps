@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { PendaftaranData } from '@/lib/pendaftaran';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
@@ -21,9 +26,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('API: Creating Supabase client...');
-    const supabase = createServerClient();
-    console.log('API: Supabase client created');
+    console.log('API: Using Supabase client...');
 
     // Prepare submission data
     const submissionData: PendaftaranData = {

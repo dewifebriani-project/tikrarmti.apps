@@ -3,11 +3,18 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['lucide-react'],
   trailingSlash: true,
+  poweredByHeader: false, // Remove powered by header for security
+
+  // Performance and cross-platform optimizations
+  compress: true,
+
   images: {
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840], // Responsive image sizes for all devices
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384], // Icon and thumbnail sizes
     remotePatterns: [
       {
         protocol: 'https',
@@ -23,6 +30,7 @@ const nextConfig = {
       },
     ],
   },
+
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production', // Remove console in production
   },
@@ -85,9 +93,53 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
+          },
+          // Performance and caching headers for cross-platform optimization
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
           }
         ],
       },
+      // Static assets optimization
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      // Images optimization for all platforms
+      {
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      {
+        source: '/(.*).(png|jpg|jpeg|gif|webp|avif|svg)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400'
+          }
+        ]
+      },
+      // API optimization
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate'
+          }
+        ]
+      }
     ];
   },
 }

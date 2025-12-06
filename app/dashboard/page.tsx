@@ -184,7 +184,7 @@ export default function Dashboard() {
       color: 'bg-green-600 text-white hover:bg-green-700'
     },
     {
-      title: 'Perjalanan Saya',
+      title: 'Perjalanan Saya (My Journeys)',
       description: 'Lihat progress lengkap',
       icon: TrendingUp,
       href: '/perjalanan-saya',

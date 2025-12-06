@@ -48,7 +48,9 @@
       "Bash(if exist .next rmdir /s /q .next)",
       "Bash(find:*)",
       "Bash(if exist .nextdevlock del .nextdevlock)",
-      "Bash(PORT=3004 npm run dev:*)"
+      "Bash(PORT=3004 npm run dev:*)",
+      "Bash(set NODE_ENV=development)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

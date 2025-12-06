@@ -7,7 +7,7 @@ Aplikasi Tahfidz Quran Digital untuk membantu para penghafal Al-Quran dalam mela
 - **Dashboard Utama** - Ringkasan progress harian dan quick access
 - **Jurnal Harian** - Kurikulum 7 tahap wajib + 2 tahap tambahan
 - **Tashih Bacaan** - Validasi bacaan dengan form dinamis
-- **Perjalanan Saya** - Timeline 8 milestone progress hafalan
+- **Perjalanan Saya (My Journeys)** - Timeline 8 milestone progress hafalan
 - **Responsive Design** - Desktop, tablet, dan mobile friendly
 
 ## 🛠 Teknologi Stack

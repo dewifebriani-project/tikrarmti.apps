@@ -50,6 +50,34 @@ function TikrarTahfidzPage() {
 
   // Initialize state from localStorage or default values
   const getInitialState = () => {
+    // Only access localStorage on client-side
+    if (typeof window === 'undefined') {
+      return {
+        currentSection: 1,
+        formData: {
+          understands_commitment: false,
+          tried_simulation: false,
+          no_negotiation: false,
+          has_telegram: false,
+          saved_contact: false,
+          has_permission: '',
+          permission_name: '',
+          permission_phone: '',
+          permission_phone_validation: '',
+          chosen_juz: '',
+          no_travel_plans: false,
+          motivation: '',
+          ready_for_team: '',
+          main_time_slot: '',
+          backup_time_slot: '',
+          time_commitment: false,
+          understands_program: false,
+          questions: ''
+        },
+        errors: {}
+      }
+    }
+
     const savedState = localStorage.getItem('tikrar_form_state')
     if (savedState) {
       try {
@@ -192,7 +220,9 @@ function TikrarTahfidzPage() {
             registered_count: data.registered_count
           })
           // Cache batch info
-          localStorage.setItem('batch_info', JSON.stringify(data))
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('batch_info', JSON.stringify(data))
+          }
         } else {
           console.error('API error:', response.status, response.statusText)
           // Retry on mobile network issues
@@ -210,7 +240,7 @@ function TikrarTahfidzPage() {
     }
 
     // Check localStorage cache first
-    const cachedBatchInfo = localStorage.getItem('batch_info')
+    const cachedBatchInfo = typeof window !== 'undefined' ? localStorage.getItem('batch_info') : null
     if (cachedBatchInfo) {
       try {
         const data = JSON.parse(cachedBatchInfo)
@@ -1431,7 +1461,7 @@ function TikrarTahfidzPage() {
                 className="bg-green-600 hover:bg-green-700 text-white mt-2"
                 size="sm"
               >
-                Lihat Perjalanan Saya Sekarang →
+                Lihat Perjalanan Saya (My Journeys) Sekarang →
               </Button>
             </AlertDescription>
           </Alert>
@@ -1766,5 +1796,8 @@ function TikrarTahfidzPage() {
     </div>
   )
 }
+
+// Force dynamic rendering to prevent localStorage SSR errors
+export const dynamic = 'force-dynamic'
 
 export default TikrarTahfidzPage
