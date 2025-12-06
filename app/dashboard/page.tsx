@@ -69,21 +69,16 @@ export default function Dashboard() {
       if (data && !error) {
         setBatchInfo(data as any)
 
-        // Calculate days based on batch dates
+        // Use duration_weeks from database, default to 0 for pending batch
         const batchData = data as any
-        const startDate = new Date(batchData.start_date || '2025-01-01')
-        const endDate = new Date(batchData.end_date || '2025-04-01')
-        const today = new Date()
+        const durationWeeks = batchData.duration_weeks || 13
 
-        const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-        const daysPassed = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-        const percentage = Math.min(Math.round((daysPassed / totalDays) * 100), 100)
-
+        // Set stats with weeks instead of days, and default to 0 for new batch
         setStats(prev => ({
           ...prev,
-          totalHariTarget: totalDays,
-          hariAktual: Math.max(0, daysPassed),
-          persentaseProgress: percentage
+          totalHariTarget: durationWeeks, // Changed to weeks
+          hariAktual: 0, // Default 0 for new batch
+          persentaseProgress: 0 // Default 0% for new batch
         }))
       }
     } catch (error) {
@@ -306,23 +301,23 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card className="bg-white shadow-sm border border-green-900/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hari Target</CardTitle>
+              <CardTitle className="text-sm font-medium">Pekan Target</CardTitle>
               <Target className="h-4 w-4 text-green-900" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-900">{stats.totalHariTarget}</div>
-              <p className="text-xs text-muted-foreground">Total hari target</p>
+              <p className="text-xs text-muted-foreground">Total pekan program</p>
             </CardContent>
           </Card>
 
           <Card className="bg-white shadow-sm border border-green-900/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hari Aktual</CardTitle>
+              <CardTitle className="text-sm font-medium">Pekan Aktual</CardTitle>
               <Calendar className="h-4 w-4 text-green-900" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-900">{stats.hariAktual}</div>
-              <p className="text-xs text-muted-foreground">Hari selesai</p>
+              <p className="text-xs text-muted-foreground">Pekan selesai</p>
             </CardContent>
           </Card>
 
@@ -502,7 +497,7 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-xl font-bold">Tetap Konsisten!</h3>
                     <p className="text-green-100">
-                      Anda telah menyelesaikan {stats.hariAktual} hari dari {stats.totalHariTarget} hari target.
+                      Anda telah menyelesaikan {stats.hariAktual} pekan dari {stats.totalHariTarget} pekan target.
                       Pertahankan konsistensi Anda!
                     </p>
                   </div>
