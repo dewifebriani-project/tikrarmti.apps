@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [userData, setUserData] = useState<any>(null)
 
@@ -127,6 +127,15 @@ export default function Dashboard() {
     const greeting = hour < 12 ? 'Shabahul Khayr' : hour < 18 ? 'Masaa\'ul Khayr' : 'Masaa\'ul Khayr'
     // Use user from AuthContext which already has full_name loaded
     const userName = user?.full_name ? `Ukhti ${user.full_name}` : 'Ukhti'
+
+    // Debug logging
+    if (typeof window !== 'undefined') {
+      console.log('Dashboard - User object:', user)
+      console.log('Dashboard - User full_name:', user?.full_name)
+      console.log('Dashboard - User role:', user?.role)
+      console.log('Dashboard - Generated userName:', userName)
+    }
+
     return {
       greeting,
       full: `Assalamu'alaikum, <em>${greeting}</em>, ${userName}`
