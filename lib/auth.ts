@@ -250,8 +250,7 @@ export const loginWithGoogle = async () => {
 
     if (isLocalhost) {
       // In development, use localhost
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003';
-      redirectUrl = `${appUrl}/auth/callback`;
+      redirectUrl = 'http://localhost:3003/auth/callback';
     } else {
       // In production, use current origin
       redirectUrl = `${currentOrigin}/auth/callback`;

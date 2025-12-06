@@ -14,7 +14,6 @@ export const debugOAuth = (action: string, data: any) => {
 
 export const getEnvironmentInfo = () => {
   const info = {
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NODE_ENV: process.env.NODE_ENV,
     currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'server-side',
     userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'server-side',
