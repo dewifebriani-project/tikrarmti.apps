@@ -808,7 +808,7 @@ function TikrarTahfidzPage() {
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
               <RadioGroupItem value="ready" id="ready" className="mt-1" />
               <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                InsyaAllah siapppp (jawaban ini kami catat sebagai akad)
+                InsyaAllah siapppp (saya bersedia dimasukkan ke grup donatur MTI apabila lulus test) → Jawaban ini kami catat sebagai akad
               </Label>
             </div>
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
