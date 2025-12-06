@@ -122,13 +122,13 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
 
       {/* Sidebar */}
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 sm:w-72 bg-white shadow-lg border-r border-green-900/20
-        transform transition-transform duration-300 ease-in-out overflow-y-auto
+        fixed md:sticky inset-y-0 md:top-0 left-0 z-50 md:z-30 w-64 sm:w-72 bg-white shadow-lg border-r border-green-900/20
+        transform transition-transform duration-300 ease-in-out md:h-screen
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center justify-between h-20 border-b border-green-900/20 px-4">
+        <div className="flex items-center justify-between h-20 border-b border-green-900/20 px-4 flex-shrink-0">
           <Link href="/" className="flex items-center space-x-3">
             <div className="w-10 h-10">
               <img
@@ -150,7 +150,7 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/20 scrollbar-track-transparent">
           {navItems.map((item) => {
             return (
               <div key={item.href} className="relative">
