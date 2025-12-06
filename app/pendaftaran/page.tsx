@@ -484,14 +484,12 @@ export default function PendaftaranPage() {
                 {/* Quick Info */}
                 {type.batchInfo && (
                   <div className="space-y-3 mt-4">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                        <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
-                        <span className="truncate">{type.batchInfo.period}</span>
-                      </div>
-                      <div className="flex-shrink-0">
-                        {getStatusBadge(type.status)}
-                      </div>
+                    <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
+                      <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
+                      <span className="truncate">{type.batchInfo.period}</span>
+                    </div>
+                    <div className="flex justify-center">
+                      {getStatusBadge(type.status)}
                     </div>
                     <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
                       <Users className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
