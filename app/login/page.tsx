@@ -99,7 +99,7 @@ function LoginPageContent() {
             />
           </div>
           <h1 className="text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
-          <p className="text-gray-600">Masuk ke akun Anda</p>
+          <p className="text-gray-600">Masuk ke akun Ukhti</p>
         </div>
 
         {/* Login Form */}

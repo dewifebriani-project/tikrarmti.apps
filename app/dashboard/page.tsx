@@ -386,7 +386,7 @@ export default function Dashboard() {
                 <span>Aktivitas Terkini</span>
               </CardTitle>
               <CardDescription>
-                Aktivitas pembelajaran Anda
+                Aktivitas pembelajaran Ukhti
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -433,7 +433,7 @@ export default function Dashboard() {
                     <h3 className="text-xl font-bold">Tetap Konsisten!</h3>
                     <p className="text-green-100">
                       Ukhti telah menyelesaikan {stats.hariAktual} pekan dari {stats.totalHariTarget} pekan target.
-                      Pertahankan konsistensi Anda!
+                      Pertahankan konsistensi Ukhti!
                     </p>
                   </div>
                 </div>

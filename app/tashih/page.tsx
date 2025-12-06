@@ -217,7 +217,7 @@ export default function Tashih() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-green-army">Tashih Bacaan</h1>
-          <p className="text-gray-600 mt-1">Validasi bacaan Al-Quran Anda</p>
+          <p className="text-gray-600 mt-1">Validasi bacaan Al-Quran Ukhti</p>
         </div>
         <div className="mt-4 sm:mt-0">
           <div className="flex items-center space-x-2 text-sm text-gray-500">

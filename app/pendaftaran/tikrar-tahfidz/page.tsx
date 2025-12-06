@@ -48,32 +48,73 @@ function TikrarTahfidzPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
-  const [currentSection, setCurrentSection] = useState(1)
+  // Initialize state from localStorage or default values
+  const getInitialState = () => {
+    const savedState = localStorage.getItem('tikrar_form_state')
+    if (savedState) {
+      try {
+        const parsed = JSON.parse(savedState)
+        return {
+          currentSection: parsed.currentSection || 1,
+          formData: parsed.formData || {
+            understands_commitment: false,
+            tried_simulation: false,
+            no_negotiation: false,
+            has_telegram: false,
+            saved_contact: false,
+            has_permission: '',
+            permission_name: '',
+            permission_phone: '',
+            permission_phone_validation: '',
+            chosen_juz: '',
+            no_travel_plans: false,
+            motivation: '',
+            ready_for_team: '',
+            main_time_slot: '',
+            backup_time_slot: '',
+            time_commitment: false,
+            understands_program: false,
+            questions: ''
+          },
+          errors: {}
+        }
+      } catch (e) {
+        console.error('Error parsing saved state:', e)
+      }
+    }
+    return {
+      currentSection: 1,
+      formData: {
+        understands_commitment: false,
+        tried_simulation: false,
+        no_negotiation: false,
+        has_telegram: false,
+        saved_contact: false,
+        has_permission: '',
+        permission_name: '',
+        permission_phone: '',
+        permission_phone_validation: '',
+        chosen_juz: '',
+        no_travel_plans: false,
+        motivation: '',
+        ready_for_team: '',
+        main_time_slot: '',
+        backup_time_slot: '',
+        time_commitment: false,
+        understands_program: false,
+        questions: ''
+      },
+      errors: {}
+    }
+  }
+
+  const initialState = getInitialState()
+  const [currentSection, setCurrentSection] = useState(initialState.currentSection)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [networkError, setNetworkError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<FormData>({
-    understands_commitment: false,
-    tried_simulation: false,
-    no_negotiation: false,
-    has_telegram: false,
-    saved_contact: false,
-    has_permission: '',
-    permission_name: '',
-    permission_phone: '',
-    permission_phone_validation: '',
-    chosen_juz: '',
-    no_travel_plans: false,
-    motivation: '',
-    ready_for_team: '',
-    main_time_slot: '',
-    backup_time_slot: '',
-    time_commitment: false,
-    understands_program: false,
-    questions: ''
-  })
-
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [formData, setFormData] = useState<FormData>(initialState.formData)
+  const [errors, setErrors] = useState<Record<string, string>>(initialState.errors)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
@@ -261,11 +302,50 @@ function TikrarTahfidzPage() {
       } else {
         // If offline and no cache, show error
         if (!cachedProfile) {
-          setNetworkError('Tidak ada koneksi internet dan data tersimpan. Periksa koneksi Anda.')
+          setNetworkError('Tidak ada koneksi internet dan data tersimpan. Periksa koneksi Ukhti.')
         }
       }
     }
   }, [user])
+
+  // Save form state to localStorage whenever it changes
+  useEffect(() => {
+    const stateToSave = {
+      currentSection,
+      formData,
+      errors,
+      timestamp: new Date().toISOString()
+    }
+    localStorage.setItem('tikrar_form_state', JSON.stringify(stateToSave))
+  }, [currentSection, formData, errors])
+
+  // Restore scroll position and prevent auto-scroll to top on mount
+  useEffect(() => {
+    // Prevent default scroll behavior
+    if (typeof window !== 'undefined') {
+      const savedScrollPosition = sessionStorage.getItem('tikrar_scroll_position')
+      if (savedScrollPosition) {
+        setTimeout(() => {
+          window.scrollTo(0, parseInt(savedScrollPosition))
+          sessionStorage.removeItem('tikrar_scroll_position')
+        }, 100)
+      }
+    }
+  }, [])
+
+  // Save scroll position before unmount
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('tikrar_scroll_position', window.pageYOffset.toString())
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
 
   // Cleanup redirect timer when component unmounts or status changes
   React.useEffect(() => {
@@ -382,6 +462,13 @@ function TikrarTahfidzPage() {
     if (validateSection(currentSection)) {
       if (currentSection < totalSections) {
         setCurrentSection(currentSection + 1)
+        // Smooth scroll to form container instead of top
+        setTimeout(() => {
+          const formElement = document.getElementById('registration-form')
+          if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 100)
       }
     }
   }
@@ -389,6 +476,13 @@ function TikrarTahfidzPage() {
   const handlePrevious = () => {
     if (currentSection > 1) {
       setCurrentSection(currentSection - 1)
+      // Smooth scroll to form container instead of top
+      setTimeout(() => {
+        const formElement = document.getElementById('registration-form')
+        if (formElement) {
+          formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 100)
     }
   }
 
@@ -404,7 +498,7 @@ function TikrarTahfidzPage() {
     // Check network connectivity
     if (!navigator.onLine) {
       setSubmitStatus('error')
-      alert('Tidak ada koneksi internet. Silakan periksa koneksi Anda dan coba lagi.')
+      alert('Tidak ada koneksi internet. Silakan periksa koneksi Ukhti dan coba lagi.')
       return
     }
 
@@ -497,6 +591,10 @@ function TikrarTahfidzPage() {
       }
 
       setSubmitStatus('success')
+
+      // Clear saved form state after successful submission
+      localStorage.removeItem('tikrar_form_state')
+      console.log('Form state cleared after successful submission')
 
       // Redirect to dashboard after 5 seconds so user can see success message
       const redirectTimer = setTimeout(() => {
@@ -973,7 +1071,7 @@ function TikrarTahfidzPage() {
             value={formData.motivation}
             onChange={(e) => handleInputChange('motivation', e.target.value)}
             rows={3}
-            placeholder="Jelaskan motivasi Anda..."
+            placeholder="Jelaskan motivasi Ukhti..."
             className="text-sm"
             required
           />
@@ -1022,7 +1120,7 @@ function TikrarTahfidzPage() {
       <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-5 md:p-6 rounded-xl border border-gray-200 shadow-sm">
         <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-800 flex items-center">
           <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full mr-3"></div>
-          Data Diri (Diambil dari profil Anda)
+          Data Diri (Diambil dari profil Ukhti)
           {!userProfile && (
             <div className="ml-auto">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -1347,7 +1445,7 @@ function TikrarTahfidzPage() {
               <br /><br />
               <p className="text-sm">
                 {networkError
-                  ? `${networkError} Silakan periksa koneksi internet Anda dan coba lagi.`
+                  ? `${networkError} Silakan periksa koneksi internet Ukhti dan coba lagi.`
                   : 'Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.'
                 }
               </p>
@@ -1355,7 +1453,7 @@ function TikrarTahfidzPage() {
               <div className="space-y-1 text-xs">
                 <p>💡 <strong>Tips:</strong></p>
                 <ul className="list-disc ml-5 space-y-1">
-                  <li>Periksa koneksi internet Anda</li>
+                  <li>Periksa koneksi internet Ukhti</li>
                   <li>Refresh halaman dan coba lagi</li>
                   <li>Gunakan koneksi Wi-Fi jika data seluler bermasalah</li>
                   <li>Hubungi admin jika masalah berlanjut</li>
@@ -1661,7 +1759,7 @@ function TikrarTahfidzPage() {
             <p>• Simpan nomor WhatsApp Kak Mara (081313650842) agar dapat di-add ke grup setelah lolos seleksi.</p>
             <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
             <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
-            <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Anda.</p>
+            <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
           </div>
         </div>
       </div>

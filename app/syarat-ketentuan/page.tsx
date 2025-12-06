@@ -332,7 +332,7 @@ export default function SyaratKetentuanPage() {
           <CardContent className="p-6 space-y-4">
             <h3 className="text-xl font-bold text-center mb-4">Penutup</h3>
             <p className="text-sm text-center leading-relaxed">
-              Dengan mendaftar di Markaz Tikrar Indonesia, Anda menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang berlaku. Semoga Allah Ta'ala senantiasa memberkahi perjalanan kita dalam menghafal dan mengamalkan Al-Qur'an.
+              Dengan mendaftar di Markaz Tikrar Indonesia, Ukhti menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang berlaku. Semoga Allah Ta'ala senantiasa memberkahi perjalanan kita dalam menghafal dan mengamalkan Al-Qur'an.
             </p>
             <p className="text-center text-lg font-arabic mt-4">
               جَزَاكُمُ اللّٰهُ خَيْرًا كَثِيْرًا

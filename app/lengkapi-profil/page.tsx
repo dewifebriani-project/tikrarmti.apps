@@ -142,7 +142,7 @@ export default function LengkapiProfilPage() {
           <CardHeader>
             <CardTitle className="text-2xl text-green-900">Edit Profil</CardTitle>
             <CardDescription>
-              Perbarui informasi profil Anda. Field yang ditandai (*) wajib diisi.
+              Perbarui informasi profil Ukhti. Field yang ditandai (*) wajib diisi.
             </CardDescription>
           </CardHeader>
           <CardContent>

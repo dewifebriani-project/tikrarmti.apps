@@ -16,7 +16,7 @@ export default function NotFound() {
           />
           <h1 className="text-4xl font-bold text-gray-900 mb-2">404 - Halaman Tidak Ditemukan</h1>
           <p className="text-lg text-gray-600 mb-8">
-            Maaf, halaman yang Anda cari tidak tersedia.
+            Maaf, halaman yang Ukhti cari tidak tersedia.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export default function NotFound() {
           <div className="text-sm text-gray-500">
             Atau{' '}
             <Link href="/login" className="text-green-600 hover:underline">
-              masuk ke akun Anda
+              masuk ke akun Ukhti
             </Link>
           </div>
         </div>

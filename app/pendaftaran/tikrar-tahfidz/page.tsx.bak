@@ -737,7 +737,7 @@ export default function ThalibahBatch2Page() {
             value={formData.motivation}
             onChange={(e) => handleInputChange('motivation', e.target.value)}
             rows={3}
-            placeholder="Jelaskan motivasi Anda..."
+            placeholder="Jelaskan motivasi Ukhti..."
             className="text-sm"
           />
           {errors.motivation && (
@@ -1298,7 +1298,7 @@ export default function ThalibahBatch2Page() {
             <p>• Simpan nomor WhatsApp Kak Mara (081313650842) agar dapat di-add ke grup setelah lolos seleksi.</p>
             <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
             <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
-            <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Anda.</p>
+            <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
           </div>
         </div>
       </div>
