@@ -19,70 +19,70 @@ export default function PerjalananSaya() {
   const timelineData: TimelineItem[] = [
     {
       id: 1,
-      date: '1 Januari 2025',
-      day: 'Rabu',
-      hijriDate: '1 Muharram 1446',
+      date: '6 Desember 2025',
+      day: 'Jumat',
+      hijriDate: '2 Jumadil Akhir 1446',
       title: 'Mendaftar Program',
-      description: 'Pendaftaran awal program tahfidz dan pengumpulan dokumen persyaratan.',
+      description: 'Pendaftaran awal program tahfidz',
       status: 'completed',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       )
     },
     {
       id: 2,
-      date: '15 Januari 2025',
-      day: 'Rabu',
-      hijriDate: '15 Muharram 1446',
-      title: 'Lulus Seleksi',
-      description: 'Melalui proses seleksi tes hafalan dan wawancara dengan sanad.',
+      date: '6 Desember 2025',
+      day: 'Jumat',
+      hijriDate: '2 Jumadil Akhir 1446',
+      title: 'Seleksi',
+      description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
       status: 'completed',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       )
     },
     {
       id: 3,
-      date: '20 Januari 2025',
-      day: 'Senin',
-      hijriDate: '20 Muharram 1446',
-      title: 'Mendaftar Ulang',
-      description: 'Konfirmasi keikutsertaan dan pembayaran biaya program.',
+      date: '14 Januari 2026',
+      day: 'Selasa',
+      hijriDate: '14 Rajab 1446',
+      title: 'Lulus Seleksi',
+      description: 'Pengumuman hasil seleksi.',
       status: 'completed',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )
     },
     {
       id: 4,
-      date: '1 Februari 2025',
-      day: 'Sabtu',
-      hijriDate: '2 Safar 1446',
-      title: 'Memulai Program',
-      description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
+      date: '15 Januari 2026',
+      day: 'Rabu',
+      hijriDate: '15 Rajab 1446',
+      title: 'Mendaftar Ulang',
+      description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
       status: 'completed',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )
     },
     {
       id: 5,
-      date: '5 Oktober 2025',
-      day: 'Minggu',
-      hijriDate: '15 Ramadhan 1446',
-      title: '<em>Ukhti</em> di Sini',
-      description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
+      date: '5 Januari 2026',
+      day: 'Senin',
+      hijriDate: '6 Muharram 1447',
+      title: 'Memulai Program',
+      description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
       status: 'current',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
@@ -90,43 +90,71 @@ export default function PerjalananSaya() {
     },
     {
       id: 6,
-      date: '15 Desember 2025',
-      day: 'Senin',
-      hijriDate: '25 Jumadil Akhir 1446',
-      title: 'Ujian Akhir',
-      description: 'Ujian komprehensif hafalan seluruh juz dengan murojaah sanad.',
-      status: 'future',
+      date: 'Pekan 1 2026',
+      day: '-',
+      hijriDate: '-',
+      title: 'Proses pembelajaran (tashih)',
+      description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
+      status: 'current',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
       )
     },
     {
       id: 7,
-      date: '1 Januari 2026',
-      day: 'Kamis',
-      hijriDate: '2 Rajab 1447',
-      title: 'Wisuda & Kelulusan',
-      description: 'Acara wisuda dan penyerahan sertifikat kelulusan program tahfidz.',
+      date: 'Pekan 2 - 11 2026',
+      day: '-',
+      hijriDate: '-',
+      title: 'Proses pembelajaran',
+      description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
       status: 'future',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )
     },
     {
       id: 8,
-      date: '7 Januari 2026',
-      day: 'Selasa',
-      hijriDate: '8 Rajab 1447',
-      title: 'Menerima Syahadah',
-      description: 'Penyerahan resmi syahadah dan sanad untuk membimbing tahfidz.',
+      date: 'Pekan 12 2026',
+      day: '-',
+      hijriDate: '-',
+      title: 'Pekan muraja\'ah',
+      description: 'Muraja\'ah hafalan juz target.',
       status: 'future',
       icon: (
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      )
+    },
+    {
+      id: 9,
+      date: 'Pekan 13 2026',
+      day: '-',
+      hijriDate: '-',
+      title: 'Ujian Akhir',
+      description: 'Ujian komprehensif hafalan juz target.',
+      status: 'future',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      )
+    },
+    {
+      id: 10,
+      date: 'Pekan ke 14 2026',
+      day: '-',
+      hijriDate: '-',
+      title: 'Wisuda & Kelulusan',
+      description: 'Penyerahan sertifikat kelulusan (syahadah) program tahfidz.',
+      status: 'future',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
         </svg>
       )
     }
@@ -161,9 +189,12 @@ export default function PerjalananSaya() {
     }
   };
 
+  const completedCount = timelineData.filter(item => item.status === 'completed').length;
+  const totalCount = timelineData.length;
+
   return (
     <AuthenticatedLayout title="Perjalanan Saya">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
@@ -175,111 +206,162 @@ export default function PerjalananSaya() {
         </div>
 
         {/* Timeline Container */}
-        <div className="relative overflow-x-hidden">
-          {/* Vertical Line */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-300 lg:block hidden"></div>
+        <div className="relative">
+          {/* Mobile View - Single Column Timeline */}
+          <div className="block lg:hidden">
+            {/* Mobile Vertical Line */}
+            <div className="absolute left-6 md:left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
 
-          {/* Timeline Items */}
-          <div className="space-y-6 sm:space-y-8">
-            {timelineData.map((item, index) => {
-              const styles = getStatusStyles(item.status);
-              const isLeftSide = index % 2 === 0;
+            <div className="space-y-6">
+              {timelineData.map((item) => {
+                const styles = getStatusStyles(item.status);
+                return (
+                  <div key={item.id} className="relative flex items-start space-x-4">
+                    {/* Icon */}
+                    <div className={`relative flex-shrink-0 w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
+                      <div className={styles.iconColor}>
+                        {item.icon}
+                      </div>
+                      {item.status === 'current' && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
 
-              return (
-                <div key={item.id} className="relative">
-                  {/* Desktop Layout - Alternating */}
-                  <div className="hidden lg:block">
-                    <div className={`flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
-                      {/* Card */}
-                      <div className={`w-5/12 ${isLeftSide ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
-                        <div className={`${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-6 transition-all duration-300 hover:shadow-md`}>
-                          {/* Date */}
+                    {/* Card */}
+                    <div className={`flex-grow min-w-0 ${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md`}>
+                      {/* Date */}
+                      {item.day !== '-' && (
+                        <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                          {item.day} • {item.date}
+                          {item.hijriDate !== '-' && <span className="block text-xs mt-1">{item.hijriDate}</span>}
+                        </div>
+                      )}
+                      {item.day === '-' && (
+                        <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                          {item.date}
+                        </div>
+                      )}
+
+                      {/* Title */}
+                      <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
+                        {item.title}
+                      </h3>
+
+                      {/* Description */}
+                      <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop View - Two Column Timeline */}
+          <div className="hidden lg:block">
+            {/* Desktop Vertical Line */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-200"></div>
+
+            <div className="space-y-8">
+              {timelineData.map((item, index) => {
+                const styles = getStatusStyles(item.status);
+                const isLeftSide = index % 2 === 0;
+
+                return (
+                  <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
+                    {/* Card */}
+                    <div className={`w-5/12 ${isLeftSide ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
+                      <div className={`${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-6 transition-all duration-300 hover:shadow-md`}>
+                        {/* Date */}
+                        {item.day !== '-' && (
                           <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
                             {item.day} • {item.date}
-                            <span className="block text-xs mt-1">{item.hijriDate}</span>
+                            {item.hijriDate !== '-' && <span className="block text-xs mt-1">{item.hijriDate}</span>}
                           </div>
+                        )}
+                        {item.day === '-' && (
+                          <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                            {item.date}
+                          </div>
+                        )}
 
-                          {/* Title */}
-                          <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
-                            {item.title}
-                          </h3>
+                        {/* Title */}
+                        <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
+                          {item.title}
+                        </h3>
 
-                          {/* Description */}
-                          <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                            {item.description}
-                          </p>
-                        </div>
+                        {/* Description */}
+                        <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                          {item.description}
+                        </p>
                       </div>
+                    </div>
 
-                      {/* Center Icon */}
-                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
-                        <div className={`w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-lg`}>
-                          <div className={styles.iconColor}>
-                            {item.icon}
-                          </div>
+                    {/* Center Icon */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+                      <div className={`w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${item.status === 'current' ? 'ring-4 ring-yellow-200' : ''}`}>
+                        <div className={styles.iconColor}>
+                          {item.icon}
                         </div>
+                        {item.status === 'current' && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                        )}
                       </div>
                     </div>
                   </div>
-
-                  {/* Mobile & Tablet Layout - Alternating like desktop */}
-                  <div className="lg:hidden">
-                    {/* Mobile/Tablet Line - Centered */}
-                    <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-300"></div>
-
-                    <div className={`flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
-                      {/* Card for Mobile/Tablet */}
-                      <div className={`w-5/12 sm:w-6/12 ${isLeftSide ? 'pr-8 sm:pr-8 text-right' : 'pl-8 sm:pl-8 text-left'}`}>
-                        <div className={`${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md`}>
-                          {/* Date */}
-                          <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
-                            {item.day} • {item.date}
-                            <span className="block text-xs mt-1">{item.hijriDate}</span>
-                          </div>
-
-                          {/* Title */}
-                          <h3 className={`text-base sm:text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
-                            {item.title}
-                          </h3>
-
-                          {/* Description */}
-                          <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                            {item.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Center Icon for Mobile/Tablet */}
-                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
-                        <div className={`w-10 h-10 sm:w-12 sm:h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-lg`}>
-                          <div className={`${styles.iconColor} scale-75 sm:scale-100`}>
-                            {item.icon}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Bottom Progress Indicator */}
-        <div className="mt-16 text-center">
-          <div className="inline-flex items-center space-x-2 bg-white rounded-full px-6 py-3 shadow-sm">
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
-            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+        {/* Progress Indicator */}
+        <div className="mt-12 sm:mt-16">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Progres Perjalanan</h3>
+                <p className="text-sm text-gray-600">
+                  {completedCount} dari {totalCount} tahapan selesai
+                </p>
+              </div>
+
+              {/* Progress Dots */}
+              <div className="flex items-center space-x-2">
+                {timelineData.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      item.status === 'completed'
+                        ? 'bg-teal-500'
+                        : item.status === 'current'
+                        ? 'w-3 h-3 bg-yellow-500 animate-pulse'
+                        : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mt-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-teal-500 to-teal-600 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Current Status */}
+            <div className="mt-4 flex items-center space-x-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+              <p className="text-sm text-gray-600">
+                Saat ini: <span className="font-medium text-gray-900">Proses pembelajaran (tashih)</span>
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-gray-600 mt-3">
-            4 dari 8 milestone selesai
-          </p>
         </div>
       </div>
     </AuthenticatedLayout>

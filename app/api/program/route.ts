@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
           is_free,
           price,
           total_quota,
-          registered_count,
           duration_weeks
         )
       `);

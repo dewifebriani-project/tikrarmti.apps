@@ -9,6 +9,13 @@ export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
 
+    // Check User-Agent header to optimize for mobile
+    const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+
+    // Reduce cache time for mobile to ensure fresh data
+    const mobileCacheDuration = isMobile ? 2 * 60 * 1000 : CACHE_DURATION; // 2 minutes for mobile
+
     if (!email) {
       return NextResponse.json(
         { error: 'Email is required' },
@@ -16,10 +23,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check cache first
+    // Check cache first with mobile-optimized duration
     const cached = registrationCache.get(email);
     const now = Date.now();
-    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+    if (cached && (now - cached.timestamp) < mobileCacheDuration) {
       return NextResponse.json(cached.data);
     }
 

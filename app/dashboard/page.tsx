@@ -23,6 +23,12 @@ export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [batchInfo, setBatchInfo] = useState<any | null>(null)
 
+  // Today's progress calculation
+  const todayProgress = {
+    completed: 3, // Static value for now - can be calculated from actual journal data
+    total: 7
+  }
+
   useEffect(() => {
     if (user) {
       // Run all data loading functions in parallel for better performance

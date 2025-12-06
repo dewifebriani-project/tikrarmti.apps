@@ -44,7 +44,8 @@
       "Bash(npx supabase status)",
       "Bash(start:*)",
       "Bash(git push:*)",
-      "Bash(npx supabase db push:*)"
+      "Bash(npx supabase db push:*)",
+      "Bash(if exist .next rmdir /s /q .next)"
     ],
     "deny": [],
     "ask": []

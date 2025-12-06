@@ -3,9 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['lucide-react'],
   trailingSlash: true,
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
+  output: 'standalone',
   images: {
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,

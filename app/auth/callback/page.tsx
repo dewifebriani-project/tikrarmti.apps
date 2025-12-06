@@ -6,6 +6,15 @@ import { supabase } from '@/lib/supabase-singleton';
 import { Crown } from "lucide-react";
 import { debugOAuth } from '@/lib/oauth-debug';
 
+// Mobile detection helper
+const isMobile = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Optimized timeout for mobile vs desktop
+const getOptimizedDelay = () => isMobile() ? 10 : 50;
+
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -110,9 +119,9 @@ function AuthCallbackContent() {
           const hasAuthParams = searchParams.has('code') || searchParams.has('access_token');
 
           if (hasAuthParams) {
-            console.log('Auth params found, retrying session immediately...');
-            // Minimal delay for session establishment
-            await new Promise(resolve => setTimeout(resolve, 50));
+            console.log('Auth params found, retrying session...', { isMobile: isMobile() });
+            // Optimized delay based on device type
+            await new Promise(resolve => setTimeout(resolve, getOptimizedDelay()));
 
             // Try to get session again
             const { data: retryData, error: retryError } = await supabase.auth.getSession();
@@ -137,7 +146,6 @@ function AuthCallbackContent() {
 
         // At this point we have a valid session
         const userEmail = sessionData.session.user.email;
-        const userId = sessionData.session.user.id;
         console.log('User authenticated:', userEmail);
 
         // Check if user is registered in our database using API endpoint
@@ -147,15 +155,20 @@ function AuthCallbackContent() {
           throw new Error('User email is required');
         }
 
-        // Call API to check registration status (server-side check)
+        // Call API to check registration status (server-side check) with timeout for mobile
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 10000 : 15000);
+
         const response = await fetch('/api/auth/check-registration', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email: userEmail }),
+          signal: controller.signal,
         });
 
+        clearTimeout(timeoutId);
         const registrationStatus = await response.json();
 
         if (!registrationStatus.registered) {
@@ -206,8 +219,8 @@ function AuthCallbackContent() {
           <h1 className="text-2xl font-bold text-green-900 mb-4">
             {checkingUser ? 'Memeriksa Data Anda...' : 'Mengautentikasi...'}
           </h1>
-          <p className="text-gray-600 mb-6">
-            Mohon tunggu sebentar
+          <p className="text-gray-600 mb-6 text-sm">
+            {isMobile() ? 'Proses ini akan segera selesai...' : 'Mohon tunggu sebentar'}
           </p>
           <div className="flex justify-center">
             <div className="w-8 h-8 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
