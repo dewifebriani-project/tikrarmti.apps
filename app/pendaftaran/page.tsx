@@ -12,10 +12,7 @@ import {
   ChevronRight,
   CheckCircle,
   AlertCircle,
-  Info,
   Star,
-  TrendingUp,
-  User,
   Loader2
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
@@ -327,50 +324,6 @@ export default function PendaftaranPage() {
             </div>
           </div>
         </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-green-900" />
-            </div>
-            <TrendingUp className="w-5 h-5 text-green-600" />
-          </div>
-          <p className="text-sm text-gray-500 mb-1">Total Pendaftar</p>
-          <p className="text-2xl font-bold text-green-900">{pendaftaranTypes.reduce((acc, p) => acc + (p.batchInfo?.registered || 0), 0)}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-green-900" />
-            </div>
-            <Star className="w-5 h-5 text-green-500" />
-          </div>
-          <p className="text-sm text-gray-500 mb-1">Program Aktif</p>
-          <p className="text-2xl font-bold text-green-900">{pendaftaranTypes.filter(p => p.status === 'open').length}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-green-900" />
-            </div>
-            <Info className="w-5 h-5 text-green-600" />
-          </div>
-          <p className="text-sm text-gray-500 mb-1">Batch Sedang Berjalan</p>
-          <p className="text-2xl font-bold text-green-900">{batches.filter(b => b.status === 'open').length}</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-green-900/20 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-green-900" />
-            </div>
-            <CheckCircle className="w-5 h-5 text-green-600" />
-          </div>
-          <p className="text-sm text-gray-500 mb-1">Total Batch</p>
-          <p className="text-2xl font-bold text-green-900">{batches.length}</p>
-        </div>
-      </div>
 
       {/* Registration Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
