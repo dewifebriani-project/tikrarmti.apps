@@ -51,7 +51,10 @@ export default function Dashboard() {
         .single()
 
       if (data && !error) {
+        console.log('User data loaded:', data)
         setUserData(data)
+      } else {
+        console.error('Error loading user data:', error)
       }
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -65,12 +68,13 @@ export default function Dashboard() {
         .from('batches')
         .select('*')
         .eq('status', 'open')
-        .or('program_type.eq.tikrar_tahfidz,program_type.is.null,name.ilike.%Tikrar MTI%')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+
+      console.log('Batch query result:', { data, error })
 
       if (data && !error) {
+        console.log('Batch data loaded:', data)
         setBatchInfo(data as any)
 
         // Use duration_weeks from database, default to 0 for pending batch
@@ -84,6 +88,8 @@ export default function Dashboard() {
           hariAktual: 0, // Set to 0 for now
           persentaseProgress: 0 // Set to 0% for now
         }))
+      } else {
+        console.log('No open batch found or error occurred')
       }
     } catch (error) {
       console.error('Error loading batch info:', error)
