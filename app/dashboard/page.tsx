@@ -13,18 +13,11 @@ export default function Dashboard() {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [userData, setUserData] = useState<any>(null)
-  const [todayProgress, setTodayProgress] = useState({
-    completed: 0,
-    total: 7,
-    percentage: 0
-  })
 
   const [stats, setStats] = useState({
     totalHariTarget: 13,
     hariAktual: 0,
-    persentaseProgress: 0,
-    jurnalHariIni: false,
-    tashihHariIni: false
+    persentaseProgress: 0
   })
 
   const [recentActivity, setRecentActivity] = useState<any[]>([])
@@ -37,10 +30,7 @@ export default function Dashboard() {
         loadUserData(),
         loadBatchInfo(),
         loadRecentActivity()
-      ]).then(() => {
-        // Load today's progress from localStorage (fast)
-        loadTodayProgress()
-      })
+      ])
     }
   }, [user])
 
@@ -94,20 +84,7 @@ export default function Dashboard() {
     }
   }
 
-  const loadTodayProgress = () => {
-    // Simulate loading today's progress from localStorage or API
-    const savedProgress = localStorage.getItem('mti-jurnal-today')
-    if (savedProgress) {
-      const jurnalData = JSON.parse(savedProgress)
-      const completedSteps = Object.values(jurnalData.completedSteps || {}).filter(Boolean).length
-      setTodayProgress({
-        completed: completedSteps,
-        total: 7,
-        percentage: Math.round((completedSteps / 7) * 100)
-      })
-    }
-  }
-
+  
   const loadRecentActivity = async () => {
     if (!user) return
 
@@ -311,7 +288,7 @@ export default function Dashboard() {
         )}
 
         {/* Progress Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Card className="bg-white shadow-sm border border-green-900/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pekan Target</CardTitle>
@@ -347,25 +324,6 @@ export default function Dashboard() {
                   style={{ width: `${stats.persentaseProgress}%` }}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-sm border border-green-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Jurnal Hari Ini</CardTitle>
-              {stats.jurnalHariIni ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <Clock className="h-4 w-4 text-green-500" />
-              )}
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {todayProgress.completed}/{todayProgress.total}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {todayProgress.percentage}% selesai
-              </p>
             </CardContent>
           </Card>
         </div>
