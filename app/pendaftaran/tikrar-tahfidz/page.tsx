@@ -133,6 +133,10 @@ function TikrarTahfidzPage() {
           if (response.ok) {
             const data = await response.json()
             setUserProfile(data)
+            // Pre-fill domicile with kota from user profile
+            if (data.kota) {
+              setFormData(prev => ({ ...prev, domicile: data.kota }))
+            }
           }
         } catch (error) {
           console.error('Error fetching user profile:', error)
@@ -212,8 +216,9 @@ function TikrarTahfidzPage() {
 
     if (section === 3) {
       // Validasi hanya field yang khusus untuk tikrar
+      // Domicile diambil otomatis dari data kota user saat registrasi
       if (!formData.domicile.trim()) {
-        newErrors.domicile = 'Domisili harus diisi'
+        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Anda terlebih dahulu.'
       }
       if (!formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
@@ -881,9 +886,10 @@ function TikrarTahfidzPage() {
             <Input
               id="domicile"
               value={formData.domicile}
-              onChange={(e) => handleInputChange('domicile', e.target.value)}
+              readOnly
+              disabled
               placeholder="Kota domisili"
-              className="text-sm"
+              className="text-sm bg-gray-50"
             />
             {errors.domicile && (
               <p className="text-red-500 text-xs">{errors.domicile}</p>

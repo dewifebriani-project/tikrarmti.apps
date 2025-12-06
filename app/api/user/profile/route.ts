@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir')
+      .select('full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota')
       .eq('id', userId)
       .single()
 
@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
       telegram_phone: data.telegram || '',
       address: data.alamat || '',
       timezone: data.zona_waktu || '',
+      birth_date: data.tanggal_lahir || null,
+      kota: data.kota || '',
       age: age.toString()
     }
 
