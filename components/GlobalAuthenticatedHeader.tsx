@@ -229,14 +229,14 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                 {/* Avatar from email using Gravatar-like service */}
                 {user?.email ? (
                   <img
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.full_name || user?.email)}&background=15803d&color=fff&size=64&bold=true`}
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=15803d&color=fff&size=64&bold=true`}
                     alt="Profile"
                     className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300"
                   />
                 ) : (
                   <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
                     <span className="text-white font-bold text-sm lg:text-base">
-                      {(user?.displayName || user?.full_name || 'U').charAt(0).toUpperCase()}
+                      {(user?.full_name || 'U').charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
@@ -253,21 +253,28 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                       {/* Avatar in dropdown */}
                       {user?.email ? (
                         <img
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.full_name || user?.email)}&background=ffffff&color=15803d&size=64&bold=true`}
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=ffffff&color=15803d&size=64&bold=true`}
                           alt="Profile"
                           className="w-12 h-12 rounded-full border-2 border-white/30"
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
                           <span className="text-white font-bold text-lg">
-                            {(user?.displayName || user?.full_name || 'U').charAt(0).toUpperCase()}
+                            {(user?.full_name || 'U').charAt(0).toUpperCase()}
                           </span>
                         </div>
                       )}
                       <div>
-                        <p className="font-semibold">{user?.displayName || user?.full_name || 'Pengguna'}</p>
+                        <p className="font-semibold">{user?.full_name || user?.displayName || 'Pengguna'}</p>
                         <p className="text-sm opacity-90">{user?.email || ''}</p>
-                        <p className="text-xs opacity-75 mt-1">{user?.role || 'User'}</p>
+                        <p className="text-xs opacity-75 mt-1">
+                          {user?.role === 'calon_thalibah' ? 'Calon Thalibah' :
+                           user?.role === 'thalibah' ? 'Thalibah' :
+                           user?.role === 'musyrifah' ? 'Musyrifah' :
+                           user?.role === 'muallimah' ? 'Muallimah' :
+                           user?.role === 'admin' ? 'Administrator' :
+                           'User'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -279,6 +286,14 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                     >
                       <Settings className="w-4 h-4" />
                       <span>Pengaturan Akun</span>
+                    </Link>
+
+                    <Link
+                      href="/lengkapi-profil"
+                      className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200 w-full"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Edit Profil</span>
                     </Link>
 
                     <div className="border-t border-gray-100 my-2"></div>

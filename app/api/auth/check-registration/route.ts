@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 
 // Simple in-memory cache for registration check results
 const registrationCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 30 * 1000; // 30 seconds cache
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache - increased for better performance
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,15 +25,25 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerClient();
 
-    // Check if user exists in users table with all required fields
+    // Check if user exists with optimized query
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, whatsapp, telegram, provinsi, kota, alamat, zona_waktu, role')
+      .select(`
+        id,
+        email,
+        full_name,
+        whatsapp,
+        telegram,
+        provinsi,
+        kota,
+        alamat,
+        zona_waktu,
+        role
+      `)
       .eq('email', email)
       .maybeSingle();
 
-    console.log('[API] User query result:', { email, found: !!user, error: userError });
-
+  
     if (userError) {
       console.error('[API] Database error checking user:', userError);
       return NextResponse.json({
@@ -43,7 +53,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
-      console.log('[API] User not found in database');
       return NextResponse.json({
         registered: false,
         reason: 'User tidak ditemukan. Silakan registrasi terlebih dahulu.'
@@ -75,18 +84,7 @@ export async function POST(request: NextRequest) {
     if (!user.telegram) missingFields.push('nomor Telegram');
     if (!user.zona_waktu) missingFields.push('zona waktu');
 
-    console.log('[API] Field validation:', {
-      email: user.email,
-      has_full_name: !!user.full_name,
-      has_provinsi: !!user.provinsi,
-      has_kota: !!user.kota,
-      has_alamat: !!user.alamat,
-      has_whatsapp: !!user.whatsapp,
-      has_telegram: !!user.telegram,
-      has_zona_waktu: !!user.zona_waktu,
-      missing: missingFields
-    });
-
+  
     const responseData = missingFields.length > 0 ? {
       registered: false,
       reason: `Data profil belum lengkap. Mohon lengkapi: ${missingFields.join(', ')}`,

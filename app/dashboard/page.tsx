@@ -208,10 +208,10 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-2">
-                  <span dangerouslySetInnerHTML={{ __html: getWelcomeMessage().full }} />, {userData?.full_name ? `Ukhti ${userData.full_name}!` : 'Ukhti!'} 👋
+                  <span dangerouslySetInnerHTML={{ __html: getWelcomeMessage().full }} />, {userData?.full_name || 'Ukhti'}! 👋
                 </h2>
                 <p className="text-green-100">
-                  Selamat datang kembali di Markaz Tikrar Indonesia. Semoga hari ini lebih baik dari hari kemarin.
+                  Selamat datang kembali di Tikrar MTI Apps. Semoga hari ini lebih baik dari hari kemarin.
                 </p>
                 <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                   <div className="flex items-center">

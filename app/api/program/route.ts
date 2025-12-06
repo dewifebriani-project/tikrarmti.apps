@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { Program } from '@/types/database';
-import { requireAdmin } from '@/lib/auth-middleware';
 
 // GET /api/program - Get all programs with optional filtering
 export async function GET(request: NextRequest) {
@@ -63,17 +61,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match frontend expectations
-    const transformedPrograms = data?.map(program => ({
-      ...program,
-      batchInfo: program.batch ? {
-        batch: program.batch.name,
-        period: `${formatDate(program.batch.start_date)} - ${formatDate(program.batch.end_date)}`,
-        deadline: formatDate(program.batch.registration_end_date),
-        status: program.batch.status
-      } : undefined
-    }));
-
-    return NextResponse.json(transformedPrograms || []);
+    // No transformation needed - return raw data so frontend can handle it
+    return NextResponse.json(data || []);
   } catch (error) {
     console.error('Error in programs GET:', error);
     return NextResponse.json(
@@ -135,15 +124,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-// Helper function to format date
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
 }

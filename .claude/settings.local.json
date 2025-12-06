@@ -42,7 +42,9 @@
       "Bash(whois:*)",
       "Bash(set NODE_ENV=production:*)",
       "Bash(npx supabase status)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(git push:*)",
+      "Bash(npx supabase db push:*)"
     ],
     "deny": [],
     "ask": []

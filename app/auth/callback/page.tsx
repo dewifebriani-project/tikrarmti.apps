@@ -92,8 +92,7 @@ function AuthCallbackContent() {
           }
         }
 
-        // Reduced wait time for Supabase to process the session
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Remove artificial delay - get session immediately
 
         // Get session after URL processing
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -111,9 +110,9 @@ function AuthCallbackContent() {
           const hasAuthParams = searchParams.has('code') || searchParams.has('access_token');
 
           if (hasAuthParams) {
-            console.log('Auth params found, waiting for session...');
-            // Reduced wait time for session to be established
-            await new Promise(resolve => setTimeout(resolve, 500));
+            console.log('Auth params found, retrying session immediately...');
+            // Minimal delay for session establishment
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             // Try to get session again
             const { data: retryData, error: retryError } = await supabase.auth.getSession();
