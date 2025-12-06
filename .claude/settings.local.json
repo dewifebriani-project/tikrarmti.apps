@@ -47,7 +47,8 @@
       "Bash(npx supabase db push:*)",
       "Bash(if exist .next rmdir /s /q .next)",
       "Bash(find:*)",
-      "Bash(if exist .nextdevlock del .nextdevlock)"
+      "Bash(if exist .nextdevlock del .nextdevlock)",
+      "Bash(PORT=3004 npm run dev:*)"
     ],
     "deny": [],
     "ask": []

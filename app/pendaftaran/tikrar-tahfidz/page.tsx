@@ -50,6 +50,8 @@ function TikrarTahfidzPage() {
 
   const [currentSection, setCurrentSection] = useState(1)
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [networkError, setNetworkError] = useState<string | null>(null)
   const [formData, setFormData] = useState<FormData>({
     understands_commitment: false,
     tried_simulation: false,
@@ -92,11 +94,47 @@ function TikrarTahfidzPage() {
   const totalSections = 4
   const progressPercentage = useMemo(() => (currentSection / totalSections) * 100, [currentSection])
 
-  // Fetch batch and program info
+  // Network status monitoring
   useEffect(() => {
-    const fetchBatchInfo = async () => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      setNetworkError(null)
+      console.log('Network connection restored')
+    }
+
+    const handleOffline = () => {
+      setIsOnline(false)
+      setNetworkError('Koneksi internet terputus. Beberapa fitur mungkin tidak berfungsi.')
+      console.log('Network connection lost')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  // Fetch batch and program info with retry mechanism for mobile
+  useEffect(() => {
+    const fetchBatchInfo = async (retryCount = 0) => {
+      const maxRetries = 2 // Reduced retries for faster loading
+      const timeoutDuration = retryCount === 0 ? 6000 : 10000 // Faster timeout
+
       try {
-        const response = await fetch('/api/batch/default')
+        // Add timeout for mobile connections
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
+
+        const response = await fetch('/api/batch/default', {
+          signal: controller.signal,
+          cache: 'default' // Allow caching for faster loads
+        })
+
+        clearTimeout(timeoutId)
+
         if (response.ok) {
           const data = await response.json()
           setBatchInfo({
@@ -112,38 +150,120 @@ function TikrarTahfidzPage() {
             total_quota: data.total_quota,
             registered_count: data.registered_count
           })
+          // Cache batch info
+          localStorage.setItem('batch_info', JSON.stringify(data))
         } else {
           console.error('API error:', response.status, response.statusText)
+          // Retry on mobile network issues
+          if (retryCount < maxRetries && (response.status >= 500 || navigator.onLine === false)) {
+            setTimeout(() => fetchBatchInfo(retryCount + 1), 1000 * (retryCount + 1))
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching batch info:', error)
+        // Retry on network errors or timeout
+        if (retryCount < maxRetries && (error.name === 'AbortError' || error.name === 'TypeError')) {
+          setTimeout(() => fetchBatchInfo(retryCount + 1), 1000 * (retryCount + 1))
+        }
       }
     }
-    fetchBatchInfo()
+
+    // Check localStorage cache first
+    const cachedBatchInfo = localStorage.getItem('batch_info')
+    if (cachedBatchInfo) {
+      try {
+        const data = JSON.parse(cachedBatchInfo)
+        setBatchInfo({
+          batch_id: data.batch_id,
+          program_id: data.program_id,
+          batch_name: data.batch_name,
+          start_date: data.start_date,
+          end_date: data.end_date,
+          duration_weeks: data.duration_weeks,
+          price: data.price,
+          is_free: data.is_free,
+          scholarship_quota: data.scholarship_quota,
+          total_quota: data.total_quota,
+          registered_count: data.registered_count
+        })
+        console.log('Loaded batch info from cache')
+      } catch (e) {
+        console.error('Error parsing cached batch info:', e)
+      }
+    }
+
+    // Always fetch fresh data in background
+    if (navigator.onLine) {
+      fetchBatchInfo()
+    }
   }, [])
 
-  // Fetch user profile data
+  // Fetch user profile data with retry mechanism for mobile
   useEffect(() => {
     if (user) {
-      const fetchUserProfile = async () => {
+      const fetchUserProfile = async (retryCount = 0) => {
+        const maxRetries = 2 // Reduced retries for faster loading
+        const timeoutDuration = retryCount === 0 ? 8000 : 12000 // Faster timeout on first try
+
         try {
-          console.log('Fetching user profile for userId:', user.id)
-          const response = await fetch(`/api/user/profile?userId=${user.id}`)
+          console.log('Fetching user profile for userId:', user.id, 'retry:', retryCount)
+
+          // Add timeout for mobile connections
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
+
+          const response = await fetch(`/api/user/profile?userId=${user.id}`, {
+            signal: controller.signal,
+            cache: 'default' // Allow caching for faster subsequent loads
+          })
+
+          clearTimeout(timeoutId)
           console.log('Response status:', response.status)
 
           if (response.ok) {
             const data = await response.json()
             console.log('User profile data received:', data)
             setUserProfile(data)
+            // Cache the data for faster subsequent loads
+            localStorage.setItem(`user_profile_${user.id}`, JSON.stringify(data))
           } else {
             const errorData = await response.json()
             console.error('API Error:', errorData)
+            // Retry on mobile network issues
+            if (retryCount < maxRetries && (response.status >= 500 || navigator.onLine === false)) {
+              setTimeout(() => fetchUserProfile(retryCount + 1), 1000 * (retryCount + 1)) // Faster retry
+            }
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error fetching user profile:', error)
+          // Retry on network errors or timeout
+          if (retryCount < maxRetries && (error.name === 'AbortError' || error.name === 'TypeError')) {
+            setTimeout(() => fetchUserProfile(retryCount + 1), 1000 * (retryCount + 1)) // Faster retry
+          }
         }
       }
-      fetchUserProfile()
+
+      // Add localStorage cache for instant loading
+      const cachedProfile = localStorage.getItem(`user_profile_${user.id}`)
+      if (cachedProfile) {
+        try {
+          const data = JSON.parse(cachedProfile)
+          setUserProfile(data)
+          console.log('Loaded user profile from cache')
+        } catch (e) {
+          console.error('Error parsing cached profile:', e)
+        }
+      }
+
+      // Always fetch fresh data in background
+      if (navigator.onLine) {
+        fetchUserProfile()
+      } else {
+        // If offline and no cache, show error
+        if (!cachedProfile) {
+          setNetworkError('Tidak ada koneksi internet dan data tersimpan. Periksa koneksi Anda.')
+        }
+      }
     }
   }, [user])
 
@@ -272,10 +392,19 @@ function TikrarTahfidzPage() {
     }
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (retryCount = 0) => {
+    const maxRetries = 3
+
     if (!validateSection(4)) return
     if (!user?.email) {
       setSubmitStatus('error')
+      return
+    }
+
+    // Check network connectivity
+    if (!navigator.onLine) {
+      setSubmitStatus('error')
+      alert('Tidak ada koneksi internet. Silakan periksa koneksi Anda dan coba lagi.')
       return
     }
 
@@ -284,6 +413,7 @@ function TikrarTahfidzPage() {
       // Check if we have batch info
       if (!batchInfo) {
         setSubmitStatus('error')
+        alert('Informasi batch tidak tersedia. Silakan refresh halaman dan coba lagi.')
         return
       }
 
@@ -336,26 +466,39 @@ function TikrarTahfidzPage() {
         submission_date: new Date().toISOString()
       }
 
-      // Submit to API
+      console.log('Submitting form with data:', submissionData)
+
+      // Submit to API with timeout and retry mechanism
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout for submit
+
       const response = await fetch('/api/pendaftaran/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(submissionData),
+        signal: controller.signal
       })
 
+      clearTimeout(timeoutId)
+
       const result = await response.json()
+      console.log('Server response:', result)
 
       if (!response.ok) {
+        // Check if it's a network error that can be retried
+        if (retryCount < maxRetries && (response.status >= 500 || !navigator.onLine)) {
+          console.log(`Retrying submit attempt ${retryCount + 1} of ${maxRetries}`)
+          await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1))) // Wait longer each retry
+          return handleSubmit(retryCount + 1)
+        }
         throw new Error(result.error || 'Failed to submit registration')
       }
 
-      console.log('Form submitted successfully with data:', submissionData)
-      console.log('Server response:', result)
       setSubmitStatus('success')
 
-      // Redirect to dashboard after 3 seconds so user can see success message
+      // Redirect to dashboard after 5 seconds so user can see success message
       const redirectTimer = setTimeout(() => {
         console.log('Redirecting to perjalanan-saya...')
         router.push('/perjalanan-saya')
@@ -363,9 +506,22 @@ function TikrarTahfidzPage() {
 
       // Store timer reference for cleanup (optional)
       setRedirectTimer(redirectTimer)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submit error:', error)
-      setSubmitStatus('error')
+
+      // Handle specific error types
+      if (error.name === 'AbortError') {
+        alert('Koneksi terlalu lambat. Silakan coba lagi dengan koneksi internet yang lebih stabil.')
+        setSubmitStatus('error')
+      } else if (error.name === 'TypeError' && retryCount < maxRetries) {
+        // Network error, retry
+        console.log(`Network error, retrying attempt ${retryCount + 1} of ${maxRetries}`)
+        await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1)))
+        return handleSubmit(retryCount + 1)
+      } else {
+        alert(`Gagal mengirim formulir: ${error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui'}. Silakan coba lagi atau hubungi admin.`)
+        setSubmitStatus('error')
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -867,51 +1023,76 @@ function TikrarTahfidzPage() {
         <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-800 flex items-center">
           <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full mr-3"></div>
           Data Diri (Diambil dari profil Anda)
+          {!userProfile && (
+            <div className="ml-auto">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            </div>
+          )}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Nama Lengkap</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.full_name || '-'}</p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Email</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-all">{user?.email || '-'}</p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. WhatsApp</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.whatsapp || '-'}</p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. Telegram</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.telegram || '-'}</p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Alamat</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.alamat || '-'}</p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Kota</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.kota || '-'}</p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Tempat, Tanggal Lahir</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">
-              {userProfile?.tempat_lahir || '-'}
-              {userProfile?.tanggal_lahir && `, ${new Date(userProfile.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`}
-            </p>
-          </div>
-          <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-            <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Zona Waktu</span>
-            <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.zona_waktu || '-'}</p>
-          </div>
-        </div>
-        <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
-          <p className="text-xs sm:text-sm text-yellow-800 flex items-start">
-            <span className="text-yellow-600 mr-2 flex-shrink-0">ℹ️</span>
-            <span>Jika data di atas tidak lengkap atau salah, silakan perbarui di <a href="/lengkapi-profil" className="font-semibold underline hover:text-yellow-900">halaman lengkapi profil</a>.</span>
-          </p>
-        </div>
-      </div>
+        {userProfile ? (
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Nama Lengkap</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.full_name || '-'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Email</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-all">{user?.email || '-'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. WhatsApp</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.whatsapp || '-'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. Telegram</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.telegram || '-'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Alamat</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.alamat || '-'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Kota</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.kota || '-'}</p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Tempat, Tanggal Lahir</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">
+                      {userProfile?.tempat_lahir || '-'}
+                      {userProfile?.tanggal_lahir && `, ${new Date(userProfile.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
+                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Zona Waktu</span>
+                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.zona_waktu || '-'}</p>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
+                  <p className="text-xs sm:text-sm text-yellow-800 flex items-start">
+                    <span className="text-yellow-600 mr-2 flex-shrink-0">ℹ️</span>
+                    <span>Jika data di atas tidak lengkap atau salah, silakan perbarui di <a href="/lengkapi-profil" className="font-semibold underline hover:text-yellow-900">halaman lengkapi profil</a>.</span>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-sm text-gray-600">
+                    {isOnline ? 'Memuat data profil...' : 'Tidak dapat memuat data. Periksa koneksi internet.'}
+                  </p>
+                  {!isOnline && (
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                    >
+                      🔄 Refresh Halaman
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
       {/* Field yang khusus untuk tikrar */}
       <div className="space-y-6">
@@ -978,6 +1159,7 @@ function TikrarTahfidzPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
@@ -1161,7 +1343,32 @@ function TikrarTahfidzPage() {
           <Alert className="bg-red-50 border-red-200">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.
+              <strong>Gagal Mengirim Formulir</strong>
+              <br /><br />
+              <p className="text-sm">
+                {networkError
+                  ? `${networkError} Silakan periksa koneksi internet Anda dan coba lagi.`
+                  : 'Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.'
+                }
+              </p>
+              <br />
+              <div className="space-y-1 text-xs">
+                <p>💡 <strong>Tips:</strong></p>
+                <ul className="list-disc ml-5 space-y-1">
+                  <li>Periksa koneksi internet Anda</li>
+                  <li>Refresh halaman dan coba lagi</li>
+                  <li>Gunakan koneksi Wi-Fi jika data seluler bermasalah</li>
+                  <li>Hubungi admin jika masalah berlanjut</li>
+                </ul>
+              </div>
+              {!isOnline && (
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                >
+                  🔄 Refresh Halaman
+                </button>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -1226,6 +1433,25 @@ function TikrarTahfidzPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
       <div className="max-w-4xl mx-auto px-3 md:px-4 overflow-x-hidden">
+        {/* Network Status Indicator */}
+        {networkError && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white px-4 py-2 text-center">
+            <p className="text-sm font-medium">
+              📵 {networkError}
+            </p>
+          </div>
+        )}
+
+        {/* Online Status Indicator */}
+        {!isOnline && (
+          <div className="fixed bottom-4 right-4 z-50 bg-red-500 text-white px-3 py-2 rounded-lg shadow-lg">
+            <p className="text-xs font-medium flex items-center">
+              <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+              Offline Mode
+            </p>
+          </div>
+        )}
+
         <div className="text-center mb-6 px-4">
           <h1 className="text-2xl md:text-4xl font-bold text-green-900 mb-3">
             Formulir Pendaftaran MTI Batch 2
@@ -1397,18 +1623,23 @@ function TikrarTahfidzPage() {
                 ) : (
                   <Button
                     type="button"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || submitStatus === 'success'}
-                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-2 px-4"
+                    onClick={() => handleSubmit()}
+                    disabled={isSubmitting || submitStatus === 'success' || !isOnline}
+                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-2 px-4 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        <span>Submitting...</span>
+                        <span>Mengirim Data...</span>
+                      </>
+                    ) : !isOnline ? (
+                      <>
+                        <span>📵 Tidak Ada Koneksi</span>
+                        <Send className="h-5 w-5" />
                       </>
                     ) : (
                       <>
-                        <span>Submit Application</span>
+                        <span>Kirim Pendaftaran</span>
                         <Send className="h-5 w-5" />
                       </>
                     )}
