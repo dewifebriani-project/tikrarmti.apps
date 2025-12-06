@@ -83,7 +83,6 @@ export default function PerjalananSaya() {
       hijriDate: '14 Rajab 1446',
       title: 'Lulus Seleksi',
       description: 'Pengumuman hasil seleksi.',
-      status: 'completed',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -97,7 +96,6 @@ export default function PerjalananSaya() {
       hijriDate: '15 Rajab 1446',
       title: 'Mendaftar Ulang',
       description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
-      status: 'completed',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -111,7 +109,6 @@ export default function PerjalananSaya() {
       hijriDate: '6 Muharram 1447',
       title: 'Memulai Program',
       description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
-      status: 'current',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -126,7 +123,6 @@ export default function PerjalananSaya() {
       hijriDate: '-',
       title: 'Proses pembelajaran (tashih)',
       description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
-      status: 'current',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -140,7 +136,6 @@ export default function PerjalananSaya() {
       hijriDate: '-',
       title: 'Proses pembelajaran',
       description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
-      status: 'future',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -154,7 +149,6 @@ export default function PerjalananSaya() {
       hijriDate: '-',
       title: 'Pekan muraja\'ah',
       description: 'Muraja\'ah hafalan juz target.',
-      status: 'future',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -168,7 +162,6 @@ export default function PerjalananSaya() {
       hijriDate: '-',
       title: 'Ujian Akhir',
       description: 'Ujian komprehensif hafalan juz target.',
-      status: 'future',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -182,7 +175,6 @@ export default function PerjalananSaya() {
       hijriDate: '-',
       title: 'Wisuda & Kelulusan',
       description: 'Penyerahan sertifikat kelulusan (syahadah) program tahfidz.',
-      status: 'future',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
