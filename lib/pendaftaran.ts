@@ -23,6 +23,7 @@ export interface PendaftaranData {
   address: string // Redundan dengan users.alamat, tetap disimpan untuk backup
   wa_phone: string // Redundan dengan users.whatsapp, tetap disimpan untuk backup
   telegram_phone?: string // Redundan dengan users.telegram, tetap disimpan untuk backup
+  birth_date?: string // Tanggal lahir dari users.birth_date
   age: number // Redundan dengan users.tanggal_lahir, tetap disimpan untuk backup
   domicile: string // Hanya untuk tikrar, tidak ada di users
   timezone: string // Redundan dengan users.zona_waktu, tetap disimpan untuk backup
@@ -32,6 +33,8 @@ export interface PendaftaranData {
   // Section 4 fields
   understands_program: boolean
   questions?: string
+  // Batch info
+  batch_name?: string // Nama batch untuk referensi
   // System fields
   status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'completed'
   selection_status?: 'pending' | 'approved' | 'rejected'

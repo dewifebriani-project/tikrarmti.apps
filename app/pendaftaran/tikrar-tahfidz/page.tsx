@@ -292,6 +292,7 @@ function TikrarTahfidzPage() {
         address: userProfile?.address || '',
         wa_phone: userProfile?.wa_phone || '',
         telegram_phone: userProfile?.telegram_phone || '',
+        birth_date: userProfile?.birth_date || null,
         age: userProfile?.age ? parseInt(userProfile.age) || 0 : 0,
         domicile: formData.domicile, // Hanya untuk tikrar
         timezone: userProfile?.timezone || 'WIB',
@@ -302,6 +303,9 @@ function TikrarTahfidzPage() {
         // Section 4 - Program Understanding
         understands_program: formData.understands_program,
         questions: formData.questions,
+
+        // Batch info
+        batch_name: batchInfo.batch_name,
 
         // Status
         status: 'pending',

@@ -40,7 +40,9 @@
       "Bash(nslookup:*)",
       "Bash(dig:*)",
       "Bash(whois:*)",
-      "Bash(set NODE_ENV=production:*)"
+      "Bash(set NODE_ENV=production:*)",
+      "Bash(npx supabase status)",
+      "Bash(start:*)"
     ],
     "deny": [],
     "ask": []
