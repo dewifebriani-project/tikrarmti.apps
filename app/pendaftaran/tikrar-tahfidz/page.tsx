@@ -733,13 +733,14 @@ function TikrarTahfidzPage() {
               <SelectValue placeholder="Pilih juz" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="30a">Juz 30A (An-Naba' - Al-A'la)</SelectItem>
-              <SelectItem value="30b">Juz 30B (Al-A'la - An-Nas)</SelectItem>
-              <SelectItem value="29a">Juz 29A (Al-Mulk - Nuh)</SelectItem>
-              <SelectItem value="29b">Juz 29B (Al-Jinn - Al-Mursalat)</SelectItem>
-              <SelectItem value="28a">Juz 28A (Al-Mujadilah - Ash-Shaf)</SelectItem>
-              <SelectItem value="28b">Juz 28B (Ash-Shaf - At-Tahrim)</SelectItem>
-              <SelectItem value="1">Juz 1 (Al-Fatihah - Al-Baqarah)</SelectItem>
+              <SelectItem value="1A">Juz 1A (Halaman 1-11)</SelectItem>
+              <SelectItem value="1B">Juz 1B (Halaman 12-21)</SelectItem>
+              <SelectItem value="28A">Juz 28A (Halaman 542-551)</SelectItem>
+              <SelectItem value="28B">Juz 28B (Halaman 552-561)</SelectItem>
+              <SelectItem value="29A">Juz 29A (Halaman 562-571)</SelectItem>
+              <SelectItem value="29B">Juz 29B (Halaman 572-581)</SelectItem>
+              <SelectItem value="30A">Juz 30A (Halaman 582-591)</SelectItem>
+              <SelectItem value="30B">Juz 30B (Halaman 592-604)</SelectItem>
             </SelectContent>
           </Select>
           {errors.chosen_juz && (

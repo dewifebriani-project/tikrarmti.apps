@@ -194,12 +194,14 @@ export const BATCH_SETTINGS = {
   target_hafalan: '1/2 juz',
   metode: 'Tikrar 40 kali',
   available_juz: [
-    { id: '30a', name: 'Juz 30A (An-Naba\'- Al-A\'la)' },
-    { id: '30b', name: 'Juz 30B (Al-A\'la - An-Naas)' },
-    { id: '29a', name: 'Juz 29A (Al-Mulk - Nuh)' },
-    { id: '29b', name: 'Juz 29B (Al-Jinn- Al-Mursalat)' },
-    { id: '28a', name: 'Juz 28A (Al-Mujadila - Ash-Shaf)' },
-    { id: '28b', name: 'Juz 28B (As-Shaf- At-Tahrim)' }
+    { id: '1A', name: 'Juz 1A (Halaman 1-11)', pages: '1-11' },
+    { id: '1B', name: 'Juz 1B (Halaman 12-21)', pages: '12-21' },
+    { id: '28A', name: 'Juz 28A (Halaman 542-551)', pages: '542-551' },
+    { id: '28B', name: 'Juz 28B (Halaman 552-561)', pages: '552-561' },
+    { id: '29A', name: 'Juz 29A (Halaman 562-571)', pages: '562-571' },
+    { id: '29B', name: 'Juz 29B (Halaman 572-581)', pages: '572-581' },
+    { id: '30A', name: 'Juz 30A (Halaman 582-591)', pages: '582-591' },
+    { id: '30B', name: 'Juz 30B (Halaman 592-604)', pages: '592-604' }
   ],
   contact_person: {
     name: 'Kak Mara',
