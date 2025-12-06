@@ -25,7 +25,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="min-h-[80vh] sm:min-h-screen flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30">
+      <section className="min-h-[80vh] sm:min-h-screen flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30 pt-16 sm:pt-20 lg:pt-20">
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10">
   
           {/* Simple Badge */}
