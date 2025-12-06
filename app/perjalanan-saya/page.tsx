@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import React from 'react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
@@ -11,12 +11,45 @@ interface TimelineItem {
   hijriDate: string;
   title: string;
   description: string;
-  status: 'completed' | 'current' | 'future';
   icon: React.ReactElement;
 }
 
+interface TimelineItemWithStatus extends TimelineItem {
+  status: 'completed' | 'current' | 'future';
+}
+
 export default function PerjalananSaya() {
-  const timelineData: TimelineItem[] = [
+  // Function to parse Indonesian date string
+  const parseIndonesianDate = (dateStr: string): Date => {
+    // Handle special case for "Pekan 1 2026"
+    if (dateStr.includes('Pekan')) {
+      return new Date('2026-01-12'); // Default to a reasonable date
+    }
+
+    const months: { [key: string]: number } = {
+      'Januari': 0,
+      'Februari': 1,
+      'Maret': 2,
+      'April': 3,
+      'Mei': 4,
+      'Juni': 5,
+      'Juli': 6,
+      'Agustus': 7,
+      'September': 8,
+      'Oktober': 9,
+      'November': 10,
+      'Desember': 11
+    };
+
+    const parts = dateStr.split(' ');
+    const day = parseInt(parts[0]);
+    const month = months[parts[1]];
+    const year = parseInt(parts[2]);
+
+    return new Date(year, month, day);
+  };
+
+  const baseTimelineData: TimelineItem[] = [
     {
       id: 1,
       date: '6 Desember 2025',
@@ -24,7 +57,6 @@ export default function PerjalananSaya() {
       hijriDate: '2 Jumadil Akhir 1446',
       title: 'Mendaftar Program',
       description: 'Pendaftaran awal program tahfidz',
-      status: 'completed',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -38,7 +70,6 @@ export default function PerjalananSaya() {
       hijriDate: '2 Jumadil Akhir 1446',
       title: 'Seleksi',
       description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
-      status: 'completed',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -160,7 +191,38 @@ export default function PerjalananSaya() {
     }
   ];
 
-  const getStatusStyles = (status: TimelineItem['status']) => {
+  // Calculate timeline status dynamically based on current date
+  const timelineData = useMemo((): TimelineItemWithStatus[] => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+
+    return baseTimelineData.map(item => {
+      const itemDate = parseIndonesianDate(item.date);
+      itemDate.setHours(0, 0, 0, 0);
+
+      let status: 'completed' | 'current' | 'future';
+
+      // Calculate difference in days
+      const diffTime = itemDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        status = 'completed';
+      } else if (diffDays === 0 || (diffDays >= 0 && diffDays <= 7)) {
+        // Current status for today or within the next 7 days
+        status = 'current';
+      } else {
+        status = 'future';
+      }
+
+      return {
+        ...item,
+        status
+      };
+    });
+  }, []);
+
+  const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
       case 'completed':
         return {

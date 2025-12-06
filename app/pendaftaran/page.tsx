@@ -450,7 +450,7 @@ export default function PendaftaranPage() {
       )}
 
       {/* Registration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {pendaftaranTypes.map((type) => {
           const Icon = type.icon;
           const isExpanded = selectedType === type.id;
@@ -467,31 +467,31 @@ export default function PendaftaranPage() {
                   <Crown className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400" />
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 relative z-10">
-                  <div className="flex items-start flex-1">
-                    <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/50">
-                        <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
-                      </div>
-                      {/* Sparkle effect */}
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
+                <div className="flex items-start gap-3 sm:gap-4 relative z-10">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/50">
+                      <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{type.description}</p>
-                    </div>
+                    {/* Sparkle effect */}
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
                   </div>
-                  <div className="flex-shrink-0">
-                    {getStatusBadge(type.status)}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{type.description}</p>
                   </div>
                 </div>
 
                 {/* Quick Info */}
                 {type.batchInfo && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mt-4 text-xs sm:text-sm">
-                    <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                      <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
-                      <span className="truncate">{type.batchInfo.period}</span>
+                  <div className="space-y-3 mt-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
+                        <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
+                        <span className="truncate">{type.batchInfo.period}</span>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {getStatusBadge(type.status)}
+                      </div>
                     </div>
                     <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
                       <Users className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
