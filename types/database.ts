@@ -33,6 +33,11 @@ export interface Batch {
   status: BatchStatus;
   created_at: string;
   updated_at: string;
+  is_free?: boolean;
+  price?: number;
+  total_quota?: number;
+  registered_count?: number;
+  duration_weeks?: number;
 }
 
 export interface Program {

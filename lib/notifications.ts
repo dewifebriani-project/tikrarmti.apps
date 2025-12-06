@@ -83,7 +83,7 @@ export class NotificationService {
 export const NotificationTemplates = {
   userCreated: (userName: string, role: string): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'Selamat Datang di Sistem MTI',
-    body: `Hai ${userName},\n\nSelamat datang di Sistem Manajemen Tahfidz MTI! Akun Antunna telah berhasil dibuat dengan role: ${role}.\n\nAntunna dapat segera login dan mulai menggunakan sistem.\n\nTerima kasih,\nTim Administrator MTI`,
+    body: `Hai ${userName},\n\nSelamat datang di Sistem Manajemen Tahfidz MTI! Akun Ukhti telah berhasil dibuat dengan role: ${role}.\n\nUkhti dapat segera login dan mulai menggunakan sistem.\n\nTerima kasih,\nTim Administrator MTI`,
     metadata: {
       action: 'welcome_email',
       category: 'onboarding'
@@ -92,7 +92,7 @@ export const NotificationTemplates = {
 
   userUpdated: (userName: string, updatedFields: string[]): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'Informasi Akun Diperbarui',
-    body: `Hai ${userName},\n\nInformasi akun Antunna telah diperbarui. Perubahan meliputi: ${updatedFields.join(', ')}.\n\nJika Antunna tidak melakukan perubahan ini, segera hubungi administrator.\n\nTerima kasih,\nTim Administrator MTI`,
+    body: `Hai ${userName},\n\nInformasi akun Ukhti telah diperbarui. Perubahan meliputi: ${updatedFields.join(', ')}.\n\nJika Ukhti tidak melakukan perubahan ini, segera hubungi administrator.\n\nTerima kasih,\nTim Administrator MTI`,
     metadata: {
       action: 'profile_update',
       category: 'security',
@@ -111,7 +111,7 @@ export const NotificationTemplates = {
 
   userActivated: (userName: string): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'Akun Diaktifkan Kembali',
-    body: `Hai ${userName},\n\nAkun Antunna telah diaktifkan kembali. Antunna sekarang dapat mengakses semua fitur sistem.\n\nTerima kasih,\nTim Administrator MTI`,
+    body: `Hai ${userName},\n\nAkun Ukhti telah diaktifkan kembali. Ukhti sekarang dapat mengakses semua fitur sistem.\n\nTerima kasih,\nTim Administrator MTI`,
     metadata: {
       action: 'account_activation',
       category: 'account_management'
@@ -120,7 +120,7 @@ export const NotificationTemplates = {
 
   userDeactivated: (userName: string): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'Akun Dinonaktifkan',
-    body: `Hai ${userName},\n\nAkun Antunna telah dinonaktifkan sementara oleh administrator.\n\nJika Antunna memiliki pertanyaan, segera hubungi administrator.\n\nTerima kasih,\nTim Administrator MTI`,
+    body: `Hai ${userName},\n\nAkun Ukhti telah dinonaktifkan sementara oleh administrator.\n\nJika Ukhti memiliki pertanyaan, segera hubungi administrator.\n\nTerima kasih,\nTim Administrator MTI`,
     metadata: {
       action: 'account_deactivation',
       category: 'account_management'
@@ -130,7 +130,7 @@ export const NotificationTemplates = {
   // Admin notifications
   adminUserCreated: (adminName: string, userName: string, role: string): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'User Baru Telah Dibuat',
-    body: `Hai ${adminName},\n\nAntunna telah berhasil membuat user baru:\n\nNama: ${userName}\nRole: ${role}\nDibuat pada: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih,\nSistem MTI`,
+    body: `Hai ${adminName},\n\nUkhti telah berhasil membuat user baru:\n\nNama: ${userName}\nRole: ${role}\nDibuat pada: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih,\nSistem MTI`,
     metadata: {
       action: 'admin_notification',
       category: 'admin_action'
@@ -139,7 +139,7 @@ export const NotificationTemplates = {
 
   adminUserUpdated: (adminName: string, userName: string, updatedFields: string[]): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'User Diperbarui',
-    body: `Hai ${adminName},\n\nAntunna telah memperbarui user:\n\nNama: ${userName}\nPerubahan: ${updatedFields.join(', ')}\nDiperbarui pada: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih,\nSistem MTI`,
+    body: `Hai ${adminName},\n\nUkhti telah memperbarui user:\n\nNama: ${userName}\nPerubahan: ${updatedFields.join(', ')}\nDiperbarui pada: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih,\nSistem MTI`,
     metadata: {
       action: 'admin_notification',
       category: 'admin_action',
@@ -149,7 +149,7 @@ export const NotificationTemplates = {
 
   adminUserDeleted: (adminName: string, userName: string): Omit<NotificationData, 'to' | 'type'> => ({
     subject: 'User Dihapus',
-    body: `Hai ${adminName},\n\nAntunna telah menghapus user:\n\nNama: ${userName}\nDihapus pada: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih,\nSistem MTI`,
+    body: `Hai ${adminName},\n\nUkhti telah menghapus user:\n\nNama: ${userName}\nDihapus pada: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih,\nSistem MTI`,
     metadata: {
       action: 'admin_notification',
       category: 'admin_action'

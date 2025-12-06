@@ -30,7 +30,12 @@ export async function GET(request: NextRequest) {
           end_date,
           status,
           registration_start_date,
-          registration_end_date
+          registration_end_date,
+          is_free,
+          price,
+          total_quota,
+          registered_count,
+          duration_weeks
         )
       `);
 

@@ -78,7 +78,7 @@ export default function PerjalananSaya() {
       date: '5 Oktober 2025',
       day: 'Minggu',
       hijriDate: '15 Ramadhan 1446',
-      title: '<em>Antunna</em> di Sini',
+      title: '<em>Ukhti</em> di Sini',
       description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
       status: 'current',
       icon: (
@@ -167,7 +167,7 @@ export default function PerjalananSaya() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Linimasa Perjalanan Hafalan <em>Antunna</em>
+            Linimasa Perjalanan Hafalan <em>Ukhti</em>
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Setiap langkah adalah bagian dari ikhtiar. Teruslah semangat hingga akhir!

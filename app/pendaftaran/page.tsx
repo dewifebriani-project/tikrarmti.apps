@@ -66,6 +66,18 @@ export default function PendaftaranPage() {
         }
 
         const programType = getProgramTypeByName(program.name);
+
+        // Get price and duration from batch if available
+        const batchPrice = program.batch?.is_free
+          ? 'GRATIS'
+          : program.batch?.price
+            ? `Rp ${program.batch.price.toLocaleString('id-ID')}/bulan`
+            : programType.price;
+
+        const batchDuration = program.batch?.duration_weeks
+          ? `${Math.ceil(program.batch.duration_weeks / 4)} bulan`
+          : programType.duration;
+
         transformedData.push({
           id: `program-${program.id}`,
           title: program.name,
@@ -79,11 +91,11 @@ export default function PendaftaranPage() {
             batch: program.batch.name,
             period: `${formatDate(program.batch.start_date)} - ${formatDate(program.batch.end_date)}`,
             deadline: formatDate(program.batch.registration_end_date),
-            capacity: program.max_thalibah || 50,
-            registered: Math.floor(Math.random() * (program.max_thalibah || 50))
+            capacity: program.batch.total_quota || program.max_thalibah || 50,
+            registered: program.batch.registered_count || 0
           } : undefined,
-          price: programType.price,
-          duration: programType.duration,
+          price: batchPrice,
+          duration: batchDuration,
           programId: program.id,
           batchId: program.batch_id
         });

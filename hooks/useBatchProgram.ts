@@ -11,6 +11,11 @@ interface ProgramWithBatch extends Program {
     status: string;
     registration_start_date?: string;
     registration_end_date?: string;
+    is_free?: boolean;
+    price?: number;
+    total_quota?: number;
+    registered_count?: number;
+    duration_weeks?: number;
   };
 }
 

@@ -105,7 +105,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
   };
 
   const notifications = [
-    { id: 1, title: 'Jurnal hari ini belum diisi', message: 'Jangan lupa mengisi jurnal harian Antunna', time: '5 menit yang lalu', read: false },
+    { id: 1, title: 'Jurnal hari ini belum diisi', message: 'Jangan lupa mengisi jurnal harian Ukhti', time: '5 menit yang lalu', read: false },
     { id: 2, title: 'Ujian Tahfidz terdekat', message: 'Ujian juz 30 akan dilaksanakan besok', time: '1 jam yang lalu', read: false },
     { id: 3, title: 'Pembayaran berhasil', message: 'Pembayaran bulan November telah diterima', time: '3 jam yang lalu', read: true },
   ];
@@ -121,8 +121,28 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
     <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 sticky top-0 z-40 transition-all duration-300">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
-          {/* Left Section - Breadcrumbs */}
-          <div className="flex items-center space-x-4 md:space-x-6 flex-1">
+          {/* Left Section - Hamburger Menu & Breadcrumbs */}
+          <div className="flex items-center space-x-3 md:space-x-4 md:space-x-6 flex-1">
+            {/* Hamburger Menu - Mobile/Tablet */}
+            <div className="md:hidden">
+              <button
+                onClick={() => {
+                  if (onMenuToggle) {
+                    onMenuToggle();
+                  } else {
+                    setShowMobileMenu(!showMobileMenu);
+                  }
+                }}
+                className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors duration-200"
+              >
+                {isSidebarOpen !== undefined ? (
+                  isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                ) : (
+                  showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+
             {/* Breadcrumbs - Desktop/Tablet */}
             <nav className="hidden md:flex items-center space-x-2 text-sm">
               {getBreadcrumbs().map((crumb, index) => (
@@ -150,25 +170,6 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
 
           {/* Right Section - Actions & Profile */}
           <div className="flex items-center space-x-2 md:space-x-4">
-            {/* Quick Actions - Mobile/Tablet */}
-            <div className="md:hidden">
-              <button
-                onClick={() => {
-                  if (onMenuToggle) {
-                    onMenuToggle();
-                  } else {
-                    setShowMobileMenu(!showMobileMenu);
-                  }
-                }}
-                className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors duration-200"
-              >
-                {isSidebarOpen !== undefined ? (
-                  isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
-                ) : (
-                  showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
-                )}
-              </button>
-            </div>
 
             {/* Notifications - Desktop/Tablet */}
             <div className="relative hidden md:block" ref={notificationRef}>
@@ -225,11 +226,20 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
                 className="flex items-center space-x-2 p-1 rounded-lg hover:bg-green-50 transition-colors duration-200 group"
               >
-                <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-                  <span className="text-white font-bold text-sm lg:text-base">
-                    {(user?.displayName || user?.full_name || user?.email || 'U').charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                {/* Avatar from email using Gravatar-like service */}
+                {user?.email ? (
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.full_name || user?.email)}&background=15803d&color=fff&size=64&bold=true`}
+                    alt="Profile"
+                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300"
+                  />
+                ) : (
+                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
+                    <span className="text-white font-bold text-sm lg:text-base">
+                      {(user?.displayName || user?.full_name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
                 <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${
                   showProfileDropdown ? 'rotate-180' : ''
                 }`} />
@@ -240,11 +250,20 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">
-                          {(user?.displayName || user?.full_name || user?.email || 'U').charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      {/* Avatar in dropdown */}
+                      {user?.email ? (
+                        <img
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.full_name || user?.email)}&background=ffffff&color=15803d&size=64&bold=true`}
+                          alt="Profile"
+                          className="w-12 h-12 rounded-full border-2 border-white/30"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">
+                            {(user?.displayName || user?.full_name || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                       <div>
                         <p className="font-semibold">{user?.displayName || user?.full_name || 'Pengguna'}</p>
                         <p className="text-sm opacity-90">{user?.email || ''}</p>

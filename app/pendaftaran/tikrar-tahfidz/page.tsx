@@ -166,6 +166,11 @@ function TikrarTahfidzPage() {
     }
   }, [errors])
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+  }, [])
+
   const validateSection = (section: number): boolean => {
     const newErrors: Record<string, string> = {}
 
@@ -218,7 +223,7 @@ function TikrarTahfidzPage() {
       // Validasi hanya field yang khusus untuk tikrar
       // Domicile diambil otomatis dari data kota user saat registrasi
       if (!formData.domicile.trim()) {
-        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Anda terlebih dahulu.'
+        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Ukhti terlebih dahulu.'
       }
       if (!formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
@@ -238,6 +243,17 @@ function TikrarTahfidzPage() {
     }
 
     setErrors(newErrors)
+
+    // Auto-scroll to first error field
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorField = Object.keys(newErrors)[0]
+      const element = document.getElementById(firstErrorField)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.focus()
+      }
+    }
+
     return Object.keys(newErrors).length === 0
   }
 
@@ -362,10 +378,10 @@ function TikrarTahfidzPage() {
         </AlertDescription>
       </Alert>
 
-      <div className="bg-blue-50 p-8 rounded-lg">
-        <h3 className="font-bold text-xl mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
+      <div className="bg-blue-50 p-4 md:p-8 rounded-lg">
+        <h3 className="font-bold text-lg md:text-xl mb-4 md:mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
 
-        <div className="space-y-4 text-base text-gray-700">
+        <div className="space-y-3 md:space-y-4 text-sm md:text-base text-gray-700">
           <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an {batchInfo?.is_free ? 'gratis' : 'berbayar'} khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
           <p>📆 Durasi program: InsyaAllah selama {Math.ceil((batchInfo?.duration_weeks || 16) / 4)} Bulan ({batchInfo?.duration_weeks || 16} Pekan) dimulai dari tanggal {batchInfo ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '5 Januari 2026'} untuk target hafalan 1/2 juz.</p>
           {batchInfo && (
@@ -373,9 +389,9 @@ function TikrarTahfidzPage() {
           )}
 
           {batchInfo && (
-            <div className="mt-4 p-4 bg-green-50 rounded-lg">
-              <p className="font-semibold text-green-800 mb-3 text-base">Struktur Program {batchInfo.batch_name}:</p>
-              <div className="text-sm text-green-700 space-y-2">
+            <div className="mt-3 md:mt-4 p-3 md:p-4 bg-green-50 rounded-lg">
+              <p className="font-semibold text-green-800 mb-2 md:mb-3 text-sm md:text-base">Struktur Program {batchInfo.batch_name}:</p>
+              <div className="text-xs md:text-sm text-green-700 space-y-1 md:space-y-2">
                 <p>📅 <strong>Pekan 1:</strong> Tashih dan Orientasi</p>
                 <p>📖 <strong>Pekan 2-{batchInfo.duration_weeks - 2}:</strong> Ziyadah (Pertambahan Hafalan)</p>
                 <p>📚 <strong>Pekan {batchInfo.duration_weeks - 1}:</strong> Muroja'ah</p>
@@ -388,9 +404,9 @@ function TikrarTahfidzPage() {
 
           <p>🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)</p>
 
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="font-semibold text-blue-800 mb-3 text-base">Kewajiban Program:</p>
-            <div className="text-sm text-blue-700 space-y-2">
+          <div className="mt-3 md:mt-4 p-3 md:p-4 bg-blue-50 rounded-lg">
+            <p className="font-semibold text-blue-800 mb-2 md:mb-3 text-sm md:text-base">Kewajiban Program:</p>
+            <div className="text-xs md:text-sm text-blue-700 space-y-1 md:space-y-2">
               <p>✅ Tashih wajib sekali sepekan untuk kurikulum ziyadah pekan depan, jadwal menyesuaikan</p>
               <p>✅ Ujian wajib sekali sepekan untuk kurikulum selesai ziyadah pekanan, jadwal menyesuaikan</p>
               <p>✅ Setoran 40X boleh memilih mau bersama pasangan atau tidak (yang memilih tidak berpasangan hanya untuk yang bacaan sudah benar-benar mutqin)</p>
@@ -398,14 +414,14 @@ function TikrarTahfidzPage() {
             </div>
           </div>
 
-          <div className="mt-4 p-5 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="font-semibold text-yellow-800 mb-3 flex items-center text-base">
-              <AlertCircle className="w-5 h-5 mr-2" />
+          <div className="mt-3 md:mt-4 p-3 md:p-5 bg-yellow-50 rounded-lg border border-yellow-200">
+            <p className="font-semibold text-yellow-800 mb-2 md:mb-3 flex items-center text-sm md:text-base">
+              <AlertCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
               ⚠️ Peringatan Penting
             </p>
-            <div className="text-yellow-700 text-sm space-y-3">
+            <div className="text-yellow-700 text-xs md:text-sm space-y-2 md:space-y-3">
               <p>Bagi kakak-kakak yang sibuk, banyak kelas, ga bisa atur waktu dengan pasangan silahkan pilih program tanpa pasangan.</p>
-              <p><strong>Jika antunna dinyatakan lolos seleksi administrasi dan tes bacaan, dan sudah daftar ulang, kami tidak meridhoi antunna keluar dari program tanpa udzur syar'i.</strong> Alasan seperti "sibuk", "ada kerjaan", atau "ikut kelas lain" tidak kami terima.</p>
+              <p><strong>Jika Ukhti dinyatakan lolos seleksi administrasi dan tes bacaan, dan sudah daftar ulang, kami tidak meridhoi Ukhti keluar dari program tanpa udzur syar'i.</strong> Alasan seperti "sibuk", "ada kerjaan", atau "ikut kelas lain" tidak kami terima.</p>
 
               <p className="mt-2 font-semibold">✅ Alasan yang DITERIMA untuk mundur dari program:</p>
               <ul className="ml-4 space-y-1">
@@ -420,7 +436,7 @@ function TikrarTahfidzPage() {
           <div className="mt-4 p-4 bg-purple-50 rounded-lg">
             <p className="font-semibold text-purple-800 mb-3 text-base">👨‍👩‍👧 Izin Keluarga/Wali</p>
             <p className="text-sm text-purple-700">
-              Untuk mengikuti program ini, wajib mendapatkan izin dari suami, orang tua, majikan, atau wali, karena waktu antunna akan lebih banyak digunakan untuk menghafal. Jika sewaktu-waktu mereka mencabut izinnya, merekalah yang harus menghubungi pihak MTI untuk menyampaikan permohonan pengunduran diri.
+              Untuk mengikuti program ini, wajib mendapatkan izin dari suami, orang tua, majikan, atau wali, karena waktu Ukhti akan lebih banyak digunakan untuk menghafal. Jika sewaktu-waktu mereka mencabut izinnya, merekalah yang harus menghubungi pihak MTI untuk menyampaikan permohonan pengunduran diri.
             </p>
           </div>
 
@@ -434,7 +450,7 @@ function TikrarTahfidzPage() {
           <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
             <p className="font-semibold text-indigo-800 mb-3 text-base">⏳ Komitmen Waktu</p>
             <p className="text-sm text-indigo-700">
-              Program ini membutuhkan komitmen waktu minimal 2 jam per hari membersamai Al Quran. Jika antunna memiliki jadwal yang padat, banyak tanggungan, atau merasa tidak bisa konsisten, kami sarankan untuk tidak mendaftar dulu. Tujuan kami adalah agar program ini berjalan dengan zero dropout dan zero blacklist.
+              Program ini membutuhkan komitmen waktu minimal 2 jam per hari membersamai Al Quran. Jika Ukhti memiliki jadwal yang padat, banyak tanggungan, atau merasa tidak bisa konsisten, kami sarankan untuk tidak mendaftar dulu. Tujuan kami adalah agar program ini berjalan dengan zero dropout dan zero blacklist.
             </p>
           </div>
 
@@ -468,7 +484,7 @@ function TikrarTahfidzPage() {
           <div className="mt-4 p-4 bg-rose-50 rounded-lg border border-rose-200">
             <p className="font-semibold text-rose-800 mb-3 text-base">🚩 Peringatan Serius</p>
             <div className="text-sm text-rose-700 space-y-3">
-              <p>Kami tidak ridho jika antunna submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan langsung japri, kami dengan senang hati share metode Tikrar kepada antunna.</p>
+              <p>Kami tidak ridho jika Ukhti submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan langsung japri, kami dengan senang hati share metode Tikrar kepada Ukhti.</p>
             </div>
           </div>
 
@@ -493,12 +509,12 @@ function TikrarTahfidzPage() {
           🤝 Komitmen & Etika
         </p>
         <div className="text-sm text-gray-700 space-y-2">
-          <p>• Program ini melibatkan banyak pihak dan pasangan setoran. Kami berusaha menyesuaikan jadwal dengan pilihan antunna sendiri.</p>
+          <p>• Program ini melibatkan banyak pihak dan pasangan setoran. Kami berusaha menyesuaikan jadwal dengan pilihan Ukhti sendiri.</p>
           <p>• Harap menjaga komitmen, tidak banyak mengeluh, dan tidak mementingkan diri sendiri</p>
           <p>• Jaga adab kepada seluruh tim Tikrar MTI dan pasangan setoran masing-masing</p>
           <p>• Keputusan kelulusan tes administrasi dan bacaan bersifat final dan tidak dapat diganggu gugat</p>
           <p>• Program ini baru dimulai dan gratis, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini.</p>
-          <p>• kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tinggi.</p>
+          <p>• Kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tinggi.</p>
           <p>• MTI adalah rumah bagi kita, yang anggotanya adalah keluarga bagaikan ibu dengan anak, kakak dengan adik, yang saling melengkapi kelemahan dan kekurangan masing-masing untuk kebaikan denqan target berkumpul di Jannah Firdaus Al-'Ala. (No Baper, No Drama).</p>
         </div>
       </div>
@@ -506,7 +522,7 @@ function TikrarTahfidzPage() {
       <div className="space-y-8">
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah antunna  sudah faham dengan semua poin di atas dan bersedia menerima segala komitmen?
+            Apakah Ukhti  sudah faham dengan semua poin di atas dan bersedia menerima segala komitmen?
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
@@ -514,9 +530,9 @@ function TikrarTahfidzPage() {
             onValueChange={(value) => handleInputChange('understands_commitment', value === "yes")}
             className="space-y-3"
           >
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-1 w-5 h-5" />
-              <Label htmlFor="understands_commitment_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-2 md:space-x-4 p-3 md:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-1 w-4 h-4 md:w-5 md:h-5" />
+              <Label htmlFor="understands_commitment_yes" className="text-sm md:text-base font-medium text-gray-700 cursor-pointer flex-1 leading-tight">
                 Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.
               </Label>
             </div>
@@ -528,14 +544,14 @@ function TikrarTahfidzPage() {
 
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah antunna sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X
+            Apakah Ukhti sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X
             (Jika belum silahkan coba dulu, sebelum melanjutkan)
             <span className="text-red-500">*</span>
           </Label>
           <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
             <p className="text-sm text-yellow-800 font-semibold mb-2">⚠️ Peringatan Penting:</p>
             <p className="text-sm text-yellow-700">
-              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun antunna hanya ingin murojaah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
+              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin murojaah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
             </p>
           </div>
           <RadioGroup
@@ -559,7 +575,7 @@ function TikrarTahfidzPage() {
           <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
             <p className="text-sm text-yellow-800 font-semibold mb-2">⚠️ Peringatan Penting:</p>
             <p className="text-sm text-yellow-700">
-              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun antunna hanya ingin muroja'ah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
+              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin muroja'ah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
             </p>
           </div>
           <RadioGroup
@@ -581,7 +597,7 @@ function TikrarTahfidzPage() {
 
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah antunna sudah faham jika program ini juga mewajibkan tholibah untuk mempunyai aplikasi telegram untuk proses seleksi?
+            Apakah Ukhti sudah faham jika program ini juga mewajibkan tholibah untuk mempunyai aplikasi telegram untuk proses seleksi?
           </Label>
           <p className="text-sm text-gray-500 italic">
             Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp karena keterbatasan memori hp admin.
@@ -605,7 +621,7 @@ function TikrarTahfidzPage() {
 
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah antunna sudah simpan nomor Whatsapp Kak Mara 081313650842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
+            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 081313650842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
@@ -640,7 +656,7 @@ function TikrarTahfidzPage() {
       <div className="space-y-8">
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah antunna sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna?
+            Apakah Ukhti sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti?
             <span className="text-red-500">*</span>
           </Label>
           <p className="text-sm text-gray-500 italic">
@@ -673,8 +689,8 @@ function TikrarTahfidzPage() {
           <div className="space-y-2">
             <Label htmlFor="permission_name" className="text-base font-semibold text-gray-800">
               {formData.has_permission === 'janda'
-                ? "Nama lengkap antunna (sebagai penanggung jawab diri sendiri)"
-                : "Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini"
+                ? "Nama lengkap Ukhti (sebagai penanggung jawab diri sendiri)"
+                : "Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini"
               }
               <span className="text-red-500">*</span>
             </Label>
@@ -682,8 +698,9 @@ function TikrarTahfidzPage() {
               id="permission_name"
               value={formData.permission_name}
               onChange={(e) => handleInputChange('permission_name', e.target.value)}
-              placeholder={formData.has_permission === 'janda' ? "Ketik nama lengkap antunna" : "Ketik nama pemberi izin sesuai KTP"}
+              placeholder={formData.has_permission === 'janda' ? "Ketik nama lengkap Ukhti" : "Ketik nama pemberi izin sesuai KTP"}
               className="text-base py-3"
+              required
             />
             {errors.permission_name && (
               <p className="text-red-500 text-sm font-medium">{errors.permission_name}</p>
@@ -693,8 +710,8 @@ function TikrarTahfidzPage() {
           <div className="space-y-2">
             <Label htmlFor="permission_phone" className="text-base font-semibold text-gray-800">
               {formData.has_permission === 'janda'
-                ? "No HP antunna yang bisa dihubungi"
-                : "No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna dan yang sudah memberikan izin antunna untuk ikut program ini"
+                ? "No HP Ukhti yang bisa dihubungi"
+                : "No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini"
               }
               <span className="text-red-500">*</span>
             </Label>
@@ -702,8 +719,9 @@ function TikrarTahfidzPage() {
               id="permission_phone"
               value={formData.permission_phone}
               onChange={(e) => handleInputChange('permission_phone', e.target.value)}
-              placeholder={formData.has_permission === 'janda' ? "08xx-xxxx-xxxx (No HP aktif antunna)" : "08xx-xxxx-xxxx (No HP pemberi izin)"}
+              placeholder={formData.has_permission === 'janda' ? "08xx-xxxx-xxxx (No HP aktif Ukhti)" : "08xx-xxxx-xxxx (No HP pemberi izin)"}
               className="text-base py-3"
+              required
             />
             {errors.permission_phone && (
               <p className="text-red-500 text-sm font-medium">{errors.permission_phone}</p>
@@ -714,7 +732,7 @@ function TikrarTahfidzPage() {
         <div className="space-y-3">
           <Label htmlFor="permission_phone_validation" className="text-base font-semibold text-gray-800">
             {formData.has_permission === 'janda'
-              ? "Validasi No HP antunna (ketik ulang untuk memastikan nomor benar)"
+              ? "Validasi No HP Ukhti (ketik ulang untuk memastikan nomor benar)"
               : "Validasi No HP suami/ orang tua/majikan/wali yang bertanggung jawab (ketik ulang untuk memastikan nomor benar)"
             }
             <span className="text-red-500">*</span>
@@ -725,6 +743,7 @@ function TikrarTahfidzPage() {
             onChange={(e) => handleInputChange('permission_phone_validation', e.target.value)}
             placeholder="Ketik ulang nomor HP"
             className="text-base py-3"
+            required
           />
           {errors.permission_phone_validation && (
             <p className="text-red-500 text-sm font-medium">{errors.permission_phone_validation}</p>
@@ -760,14 +779,14 @@ function TikrarTahfidzPage() {
               Program ini akan insyaAllah biidznillah akan dilaksanakan selama {batchInfo.duration_weeks} pekan dimulai dari tanggal {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
               <strong> Program ini {batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price.toLocaleString('id-ID')}/bulan`}</strong>.
               <br /><br />
-              Apabila antunna sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan safar yang mendzholimi jadwal pasangan setoran antunna.
+              Apabila Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan safar yang mendzholimi jadwal pasangan setoran Ukhti.
             </p>
           </div>
         )}
 
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            Apakah antunna sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI?
+            Apakah Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI?
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
@@ -789,7 +808,7 @@ function TikrarTahfidzPage() {
 
         <div className="space-y-2">
           <Label htmlFor="motivation" className="text-sm font-medium text-gray-700">
-            Ketikkan secara singkat apa motivasi terbesar antunna untuk menghafal Al-Quran sehingga antunna rela mengikuti program ini dan ikhlas menjalankan semua aturan-peraturan dari MTI?
+            Ketikkan secara singkat apa motivasi terbesar Ukhti untuk menghafal Al-Quran sehingga Ukhti rela mengikuti program ini dan ikhlas menjalankan semua aturan-peraturan dari MTI?
           </Label>
           <Textarea
             id="motivation"
@@ -798,6 +817,7 @@ function TikrarTahfidzPage() {
             rows={3}
             placeholder="Jelaskan motivasi Anda..."
             className="text-sm"
+            required
           />
           {errors.motivation && (
             <p className="text-red-500 text-xs">{errors.motivation}</p>
@@ -806,7 +826,7 @@ function TikrarTahfidzPage() {
 
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700">
-            Apakah antunna siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?
+            Apakah Ukhti siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-3">
@@ -841,9 +861,9 @@ function TikrarTahfidzPage() {
       </Alert>
 
       {/* Data diri sudah diambil dari tabel users - tampilkan sebagai informasi saja */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="text-lg font-semibold mb-3 text-gray-800">Data Diri (Diambil dari profil Anda)</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+        <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3 text-gray-800">Data Diri (Diambil dari profil Anda)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 text-xs md:text-sm">
           <div>
             <span className="font-medium text-gray-600">Nama:</span>
             <p className="text-gray-900">{userProfile?.full_name || '-'}</p>
@@ -1079,7 +1099,7 @@ function TikrarTahfidzPage() {
           />
           <div className="space-y-1">
             <Label htmlFor="understands_program" className="text-sm font-medium text-gray-700">
-              Apakah antunna faham dengan poin-poin di atas?
+              Apakah Ukhti faham dengan poin-poin di atas?
             </Label>
             {errors.understands_program && (
               <p className="text-red-500 text-xs">{errors.understands_program}</p>
@@ -1089,14 +1109,14 @@ function TikrarTahfidzPage() {
 
         <div className="space-y-2">
           <Label htmlFor="questions" className="text-sm font-medium text-gray-700">
-            Silahkan ketik pertanyaan antunna apabila ada yang masih kurang faham
+            Silahkan ketik pertanyaan Ukhti apabila ada yang masih kurang faham
           </Label>
           <Textarea
             id="questions"
             value={formData.questions}
             onChange={(e) => handleInputChange('questions', e.target.value)}
             rows={4}
-            placeholder="Ketik pertanyaan Anda di sini (kosongkan jika tidak ada)"
+            placeholder="Ketik pertanyaan Ukhti di sini (kosongkan jika tidak ada)"
             className="text-sm"
           />
         </div>
@@ -1105,13 +1125,13 @@ function TikrarTahfidzPage() {
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              <strong>Alhamdulillah!</strong> Formulir pendaftaran Anda telah berhasil dikirim. Tim kami akan menghubungi Anda melalui Telegram untuk proses seleksi selanjutnya.
+              <strong>Alhamdulillah!</strong> Formulir pendaftaran Ukhti telah berhasil dikirim. Tim kami akan menghubungi Ukhti melalui Telegram untuk proses seleksi selanjutnya.
               <br /><br />
               <strong>Jangan lupa:</strong> Persiapkan diri untuk tes bacaan Al-Qur'an dan simak informasi selanjutnya di Telegram.
               <br /><br />
               <div className="flex items-center space-x-2 mb-3">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                <span className="text-sm">Anda akan dialihkan ke dashboard otomatis...</span>
+                <span className="text-sm">Ukhti akan dialihkan ke dashboard otomatis...</span>
               </div>
               <Button
                 onClick={() => router.push('/dashboard')}
@@ -1192,23 +1212,23 @@ function TikrarTahfidzPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-green-900 mb-3">
+      <div className="max-w-4xl mx-auto px-3 md:px-4 overflow-x-hidden">
+        <div className="text-center mb-6 px-4">
+          <h1 className="text-2xl md:text-4xl font-bold text-green-900 mb-3">
             Formulir Pendaftaran MTI Batch 2
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-sm md:text-lg text-gray-600">
             Program Hafalan Al-Qur'an Gratis Khusus Akhawat<br/>
-            <span className="text-base text-green-700 font-medium">Metode Tikrar 40 Kali - Juz 1, 28, 29, 30</span>
+            <span className="text-xs md:text-base text-green-700 font-medium">Metode Tikrar 40 Kali - Juz 1, 28, 29, 30</span>
           </p>
 
           {/* Link ke Perjalanan Program */}
-          <div className="mt-4">
+          <div className="mt-3 md:mt-4">
             <a
               href="/pendaftaran/perjalanan-program"
-              className="inline-flex items-center px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200"
+              className="inline-flex items-center px-3 md:px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors duration-200 text-xs md:text-sm"
             >
-              <Calendar className="w-4 h-4 mr-2" />
+              <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-2" />
               Lihat Perjalanan Program
             </a>
           </div>
@@ -1216,15 +1236,15 @@ function TikrarTahfidzPage() {
 
         {/* Batch Information Card */}
         {batchInfo && (
-          <Card className="mb-6 border-2 border-green-200 shadow-md">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-bold text-green-900 mb-4">Informasi {batchInfo.batch_name}</h2>
-              <div className="grid md:grid-cols-4 gap-4">
+          <Card className="mb-6 border-2 border-green-200 shadow-md overflow-hidden">
+            <CardContent className="p-3 md:p-6">
+              <h2 className="text-lg md:text-2xl font-bold text-green-900 mb-3 md:mb-4">Informasi {batchInfo.batch_name}</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
                 {/* Total Pendaftar */}
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <Users className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                  <p className="text-sm text-gray-600">Total Pendaftar</p>
-                  <p className="text-2xl font-bold text-blue-900">
+                <div className="text-center p-2 md:p-4 bg-blue-50 rounded-lg">
+                  <Users className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-blue-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Total Pendaftar</p>
+                  <p className="text-lg md:text-2xl font-bold text-blue-900">
                     {batchInfo.registered_count}/{batchInfo.total_quota} Peserta
                   </p>
                   <p className="text-xs text-blue-700 mt-1">
@@ -1233,17 +1253,17 @@ function TikrarTahfidzPage() {
                 </div>
 
                 {/* Biaya */}
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <Award className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                  <p className="text-sm text-gray-600">Biaya Program</p>
+                <div className="text-center p-2 md:p-4 bg-green-50 rounded-lg">
+                  <Award className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-green-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Biaya Program</p>
                   {batchInfo.is_free ? (
                     <>
-                      <p className="text-2xl font-bold text-green-900">GRATIS</p>
+                      <p className="text-lg md:text-2xl font-bold text-green-900">GRATIS</p>
                       <p className="text-xs text-green-700 mt-1">Program Beasiswa</p>
                     </>
                   ) : (
                     <>
-                      <p className="text-2xl font-bold text-green-900">
+                      <p className="text-lg md:text-2xl font-bold text-green-900">
                         Rp {batchInfo.price.toLocaleString('id-ID')}
                       </p>
                       <p className="text-xs text-green-700 mt-1">Per Bulan</p>
@@ -1252,10 +1272,10 @@ function TikrarTahfidzPage() {
                 </div>
 
                 {/* Durasi */}
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                  <p className="text-sm text-gray-600">Durasi</p>
-                  <p className="text-2xl font-bold text-purple-900">
+                <div className="text-center p-2 md:p-4 bg-purple-50 rounded-lg">
+                  <Clock className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-purple-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Durasi</p>
+                  <p className="text-lg md:text-2xl font-bold text-purple-900">
                     {Math.ceil(batchInfo.duration_weeks / 4)} Bulan
                   </p>
                   <p className="text-xs text-purple-700 mt-1">
@@ -1264,10 +1284,10 @@ function TikrarTahfidzPage() {
                 </div>
 
                 {/* Kuota Tersedia */}
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 text-orange-600" />
-                  <p className="text-sm text-gray-600">Kuota Tersedia</p>
-                  <p className="text-2xl font-bold text-orange-900">
+                <div className="text-center p-2 md:p-4 bg-orange-50 rounded-lg">
+                  <Calendar className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-orange-600" />
+                  <p className="text-xs md:text-sm text-gray-600">Kuota Tersedia</p>
+                  <p className="text-lg md:text-2xl font-bold text-orange-900">
                     {batchInfo.scholarship_quota} lagi
                   </p>
                   <p className="text-xs text-orange-700 mt-1">
@@ -1277,17 +1297,17 @@ function TikrarTahfidzPage() {
               </div>
 
               {/* Tanggal Program di bawah */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="mt-3 md:mt-4 p-3 md:p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-2 md:gap-4 text-center">
                   <div>
-                    <p className="text-sm text-gray-600">Tanggal Mulai</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs md:text-sm text-gray-600">Tanggal Mulai</p>
+                    <p className="text-sm md:text-lg font-semibold text-gray-900">
                       {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Tanggal Selesai</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-xs md:text-sm text-gray-600">Tanggal Selesai</p>
+                    <p className="text-sm md:text-lg font-semibold text-gray-900">
                       {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
@@ -1295,8 +1315,8 @@ function TikrarTahfidzPage() {
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <div className="mt-3 md:mt-4">
+                <div className="flex justify-between text-xs md:text-sm text-gray-600 mb-1">
                   <span>Pendaftar Terisi</span>
                   <span>{(batchInfo.registered_count / batchInfo.total_quota * 100).toFixed(0)}%</span>
                 </div>
@@ -1312,7 +1332,7 @@ function TikrarTahfidzPage() {
           </Card>
         )}
 
-        <Card className="shadow-lg border-green-100">
+        <Card className="shadow-lg border-green-100 overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
             <div className="flex justify-between items-center">
               <CardTitle className="text-xl text-green-900">
@@ -1325,7 +1345,7 @@ function TikrarTahfidzPage() {
             <Progress value={progressPercentage} className="w-full h-3" />
           </CardHeader>
 
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 overflow-x-hidden">
             <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
               {currentSection === 1 && renderSection1()}
               {currentSection === 2 && renderSection2()}
@@ -1379,17 +1399,17 @@ function TikrarTahfidzPage() {
         </Card>
 
         {/* Important Notes */}
-        <div className="mt-8 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-8">
-          <h3 className="font-bold text-xl mb-4 text-yellow-900 flex items-center">
-            <AlertCircle className="w-6 h-6 mr-2" />
+        <div className="mt-6 md:mt-8 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 md:p-8">
+          <h3 className="font-bold text-lg md:text-xl mb-3 md:mb-4 text-yellow-900 flex items-center">
+            <AlertCircle className="w-4 h-4 md:w-6 md:h-6 mr-2" />
             Catatan Penting
           </h3>
-          <div className="space-y-3 text-base text-yellow-800">
-            <p>• Pastikan Antunna sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
+          <div className="space-y-2 md:space-y-3 text-sm md:text-base text-yellow-800">
+            <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
             <p>• Simpan nomor WhatsApp Kak Mara (081313650842) agar dapat di-add ke grup setelah lolos seleksi.</p>
             <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
             <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
-            <p>• Pastikan Antunna memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Anda.</p>
+            <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Anda.</p>
           </div>
         </div>
       </div>

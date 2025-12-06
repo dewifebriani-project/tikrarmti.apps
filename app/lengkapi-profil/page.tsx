@@ -116,7 +116,7 @@ export default function LengkapiProfilPage() {
           </div>
           <h1 className="text-3xl font-bold text-green-900 mb-2">Lengkapi Profil</h1>
           <p className="text-gray-600">
-            Anda telah berhasil login. Silakan lengkapi profil Anda terlebih dahulu.
+            Ukhti telah berhasil login. Silakan lengkapi profil Ukhti terlebih dahulu.
           </p>
         </div>
 

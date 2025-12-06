@@ -114,7 +114,7 @@ export default function JurnalHarian() {
     {
       id: 'tikrarBiAlGhaib',
       name: 'Tikrar Bi Al-Ghaib',
-      description: 'Tutup mata (minimal 40x)',
+      description: 'Tanpa Melihat Mushaf (minimal 40x)',
       icon: <Circle className="h-5 w-5" />,
       color: 'bg-teal-500',
       counter: true,
@@ -280,7 +280,7 @@ export default function JurnalHarian() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-green-army">Jurnal Harian</h1>
-          <p className="text-gray-600 mt-1">Lacak aktivitas hafalan Anda hari ini</p>
+          <p className="text-gray-600 mt-1">Lacak aktivitas hafalan Ukhti hari ini</p>
         </div>
         <div className="mt-4 sm:mt-0 flex items-center space-x-2">
           <div className="text-right">

@@ -87,7 +87,7 @@ export default function ProfileEditModal({ user, userData, onProfileUpdate, chil
             Edit Profil
           </DialogTitle>
           <DialogDescription>
-            Perbarui informasi profil Antunna di bawah ini.
+            Perbarui informasi profil Ukhti di bawah ini.
           </DialogDescription>
         </DialogHeader>
 
@@ -160,7 +160,7 @@ export default function ProfileEditModal({ user, userData, onProfileUpdate, chil
               name="bio"
               value={formData.bio}
               onChange={handleInputChange}
-              placeholder="Ceritakan sedikit tentang diri Antunna"
+              placeholder="Ceritakan sedikit tentang diri Ukhti"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-green-500 focus:border-transparent resize-none"
               rows={3}
             />

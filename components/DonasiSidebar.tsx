@@ -151,7 +151,7 @@ export default function DonasiSidebar() {
             Sedekah Jariyah
           </p>
           <p className="text-xs text-gray-500">
-            Amal jariyah Anda akan terus mengalir
+            Amal jariyah Ukhti akan terus mengalir
           </p>
           <div className="mt-2">
             <Heart className="w-4 h-4 text-green-600 mx-auto" />

@@ -194,7 +194,7 @@ export const checkUserApprovedForThalibah = async (email: string): Promise<{ app
       if (pendaftaranError || !pendaftaran) {
         return {
           approved: false,
-          reason: 'Pendaftaran Anda belum disetujui. Silakan tunggu persetujuan dari admin atau lengkapi pendaftaran di halaman pendaftaran.'
+          reason: 'Pendaftaran Ukhti belum disetujui. Silakan tunggu persetujuan dari admin atau lengkapi pendaftaran di halaman pendaftaran.'
         };
       }
 

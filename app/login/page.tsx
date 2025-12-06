@@ -37,7 +37,7 @@ function LoginPageContent() {
       });
     } else if (message === 'profile_incomplete') {
       setErrors({
-        general: 'Profil Anda belum lengkap. Silakan lengkapi data profil terlebih dahulu. Pastikan nama lengkap dan nomor telepon sudah diisi.'
+        general: 'Profil Ukhti belum lengkap. Silakan lengkapi data profil terlebih dahulu. Pastikan nama lengkap dan nomor telepon sudah diisi.'
       });
     } else if (message === 'profile_creation_failed') {
       const emailText = email ? ` (${email})` : '';

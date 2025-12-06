@@ -204,7 +204,7 @@ const PerjalananProgram = () => {
             Perjalanan Program Tikrar MTI
           </h1>
           <p className="text-xl text-gray-700 max-w-3xl mx-auto">
-            Ikuti perjalanan transformasi hafalan Al-Qur'an Anda dalam program Tikrar MTI Batch 2
+            Ikuti perjalanan transformasi hafalan Al-Qur'an Ukhti dalam program Tikrar MTI Batch 2
           </p>
         </div>
 
@@ -281,7 +281,7 @@ const PerjalananProgram = () => {
                         {step.status === 'active' && (
                           <div className="mt-4 p-4 bg-blue-100 rounded-lg border border-blue-300">
                             <p className="text-sm text-blue-800">
-                              <strong>Sedang Berlangsung:</strong> Saat ini Anda berada di tahap {step.title.toLowerCase()}.
+                              <strong>Sedang Berlangsung:</strong> Saat ini Ukhti berada di tahap {step.title.toLowerCase()}.
                               Pastikan untuk menyelesaikan semua persyaratan pada tahap ini.
                             </p>
                           </div>

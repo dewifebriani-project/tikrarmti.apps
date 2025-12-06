@@ -147,7 +147,7 @@ export default function MetodePage() {
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold text-main mb-3">Tasmi&apos; via Rekaman</h3>
                   <p className="text-secondary leading-relaxed">
-                    Setelah merasa cukup hafal, rekam bacaan Antunna tanpa melihat mushaf. Usahakan mendapatkan 3 rekaman yang lancar tanpa kesalahan sama sekali. Ini melatih kepercayaan diri dan menguji kejujuran hafalan.
+                    Setelah merasa cukup hafal, rekam bacaan Ukhti tanpa melihat mushaf. Usahakan mendapatkan 3 rekaman yang lancar tanpa kesalahan sama sekali. Ini melatih kepercayaan diri dan menguji kejujuran hafalan.
                   </p>
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function MetodePage() {
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold text-main mb-3">Simak Rekaman Pribadi</h3>
                   <p className="text-secondary leading-relaxed">
-                    Dengarkan kembali rekaman terbaik Antunna sambil menyimak dengan mushaf. Tahap ini adalah proses kualiti kontrol pribadi untuk menemukan dan memperbaiki kesalahan yang mungkin tidak disadari saat membaca.
+                    Dengarkan kembali rekaman terbaik Ukhti sambil menyimak dengan mushaf. Tahap ini adalah proses kualiti kontrol pribadi untuk menemukan dan memperbaiki kesalahan yang mungkin tidak disadari saat membaca.
                   </p>
                 </div>
               </div>
@@ -249,11 +249,11 @@ export default function MetodePage() {
             </div>
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-900 mb-6 mobile-text-wrap">
-              Siap Memulai Perjalanan Antunna?
+              Siap Memulai Perjalanan Ukhti?
             </h2>
 
             <p className="text-base sm:text-lg text-green-800 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed mobile-text-wrap">
-              Jika Antunna serius dan berkomitmen, daftarkan diri Antunna sekarang dan jadilah bagian dari keluarga besar Markaz Tikrar Indonesia.
+              Jika Ukhti serius dan berkomitmen, daftarkan diri Ukhti sekarang dan jadilah bagian dari keluarga besar Markaz Tikrar Indonesia.
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6">

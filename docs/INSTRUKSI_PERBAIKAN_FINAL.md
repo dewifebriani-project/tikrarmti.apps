@@ -100,7 +100,7 @@ Full Access ✅
 
 ## 🎉 **Kesimpulan:**
 
-**Implementasi role-based access sudah 100% selesai!** Sistem sekarang bekerja dengan alur yang Anda minta:
+**Implementasi role-based access sudah 100% selesai!** Sistem sekarang bekerja dengan alur yang Ukhti minta:
 
 - **User baru** → Otomatis dapat role 'calon_thalibah'
 - **Hanya bisa mendaftar program** sebelum menjadi 'thalibah' penuh

@@ -563,7 +563,7 @@ const Auth = {
 
     logout: () => {
         AppState.clearUser();
-        UI.toast.info('Antunna telah keluar dari sistem');
+        UI.toast.info('Ukhti telah keluar dari sistem');
         Utils.url.navigate('index.html', 1000);
     },
 
@@ -680,7 +680,7 @@ const Jurnal = {
             // Show completion modal
             const modal = UI.modal.create(
                 'Jurnal Selesai! 🎉',
-                '<p>Alhamdulillah, jurnal harian Antunna telah berhasil diselesaikan.</p><p class="mt-2">Terus istiqamah dalam belajar ya!</p>',
+                '<p>Alhamdulillah, jurnal harian Ukhti telah berhasil diselesaikan.</p><p class="mt-2">Terus istiqamah dalam belajar ya!</p>',
                 '<button onclick="this.closest(\'.modal-overlay\').remove(); window.location.href=\'dashboard.html\'" class="btn btn-primary">Kembali ke Dashboard</button>'
             );
             UI.modal.show(modal);
@@ -696,9 +696,9 @@ const Dashboard = {
     motivationalQuotes: [
         "Belajar hari ini, sukses esok hari. Tetap semangat! 💪",
         "Setiap hafalan adalah investasi akhirat. Terus berlatih! 📚",
-        "Al-Qur'an adalah teman terbaik. Dekatkan diri Antunna padanya! ❤️",
+        "Al-Qur'an adalah teman terbaik. Dekatkan diri Ukhti padanya! ❤️",
         "Konsistensi adalah kunci kesuksesan dalam menghafal. 🗝️",
-        "Waktu yang Antunna investasikan untuk Al-Qur'an tidak akan sia-sia. ⏰"
+        "Waktu yang Ukhti investasikan untuk Al-Qur'an tidak akan sia-sia. ⏰"
     ],
 
     init: () => {

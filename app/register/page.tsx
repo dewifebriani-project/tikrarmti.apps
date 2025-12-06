@@ -121,7 +121,7 @@ function RegisterPageContent() {
     }
 
     if (!formData.setujuSyarat) {
-      newErrors.setujuSyarat = 'Anda harus menyetujui syarat dan ketentuan';
+      newErrors.setujuSyarat = 'Ukhti harus menyetujui syarat dan ketentuan';
     }
 
     setErrors(newErrors);
@@ -425,7 +425,7 @@ function RegisterPageContent() {
                 onChange={(e) => handleInputChange('alasanDaftar', e.target.value)}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                 rows={3}
-                placeholder="Jelaskan alasan Anda ingin mendaftar..."
+                placeholder="Jelaskan alasan Ukhti ingin mendaftar..."
               />
             </div>
           </Card>

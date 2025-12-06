@@ -264,7 +264,7 @@ export default function UserDetailsModal({
                     <h4 className="font-medium text-yellow-800">Perhatian</h4>
                     <p className="text-yellow-700 text-sm mt-1">
                       Modifikasi pengaturan akun dapat mempengaruhi akses pengguna ke sistem.
-                      Pastikan Antunna memiliki izin yang cukup sebelum melakukan perubahan.
+                      Pastikan Ukhti memiliki izin yang cukup sebelum melakukan perubahan.
                     </p>
                   </div>
                 </div>
@@ -317,7 +317,7 @@ export default function UserDetailsModal({
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm('Apakah Antunna yakin ingin menghapus pengguna ini?')) {
+                          if (confirm('Apakah Ukhti yakin ingin menghapus pengguna ini?')) {
                             onDelete(user.id);
                             onClose();
                           }

@@ -135,7 +135,7 @@ export default function Tashih() {
           </div>
           <h1 className="text-3xl font-bold text-green-army mb-2">Tashih Selesai!</h1>
           <p className="text-gray-600 mb-6">
-            Tashih bacaan Anda telah berhasil dicatat untuk hari ini
+            Tashih bacaan Ukhti telah berhasil dicatat untuk hari ini
           </p>
           <div className="max-w-md mx-auto bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
             <h3 className="font-semibold text-green-800 mb-3">Detail Tashih:</h3>
@@ -250,7 +250,7 @@ export default function Tashih() {
               </h3>
               <p className="text-sm text-gray-600">
                 {isCompleted
-                  ? 'Anda dapat melanjutkan ke jurnal harian'
+                  ? 'Ukhti dapat melanjutkan ke jurnal harian'
                   : 'Lakukan tashih terlebih dahulu sebelum mengisi jurnal harian'
                 }
               </p>
@@ -269,7 +269,7 @@ export default function Tashih() {
               <span>Pilih Blok yang Ditashih</span>
             </CardTitle>
             <CardDescription>
-              Pilih blok hafalan yang telah Anda tashih hari ini
+              Pilih blok hafalan yang telah Ukhti tashih hari ini
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -309,7 +309,7 @@ export default function Tashih() {
               <span>Lokasi Tashih</span>
             </CardTitle>
             <CardDescription>
-              Pilih lokasi Anda melakukan tashih bacaan
+              Pilih lokasi Ukhti melakukan tashih bacaan
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -383,7 +383,7 @@ export default function Tashih() {
               <span>Waktu Tashih</span>
             </CardTitle>
             <CardDescription>
-              Kapan Anda melakukan tashih bacaan
+              Kapan Ukhti melakukan tashih bacaan
             </CardDescription>
           </CardHeader>
           <CardContent>

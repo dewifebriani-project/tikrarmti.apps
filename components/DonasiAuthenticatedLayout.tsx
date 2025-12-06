@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import DonasiSidebar from './DonasiSidebar';
 import GlobalAuthenticatedHeader from './GlobalAuthenticatedHeader';
+import Footer from './Footer';
 
 interface DonasiAuthenticatedLayoutProps {
   children: ReactNode;
@@ -29,20 +30,26 @@ export default function DonasiAuthenticatedLayout({ children, title }: DonasiAut
 
   
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Donasi Sidebar - lebih sempit dan khusus donasi */}
-      <DonasiSidebar />
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Top section with sidebar and header */}
+      <div className="flex flex-1">
+        {/* Donasi Sidebar - lebih sempit dan khusus donasi */}
+        <DonasiSidebar />
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Global Header */}
-        <GlobalAuthenticatedHeader />
+        {/* Main content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Global Header */}
+          <GlobalAuthenticatedHeader />
 
-        {/* Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-6">
-          {children}
-        </main>
+          {/* Content */}
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-6">
+            {children}
+          </main>
+        </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

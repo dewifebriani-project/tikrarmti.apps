@@ -20,7 +20,7 @@ export default function Dashboard() {
   })
 
   const [stats, setStats] = useState({
-    totalHariTarget: 30,
+    totalHariTarget: 13,
     hariAktual: 0,
     persentaseProgress: 0,
     jurnalHariIni: false,
@@ -76,9 +76,9 @@ export default function Dashboard() {
         // Set stats with weeks instead of days, and default to 0 for new batch
         setStats(prev => ({
           ...prev,
-          totalHariTarget: durationWeeks, // Changed to weeks
-          hariAktual: 0, // Default 0 for new batch
-          persentaseProgress: 0 // Default 0% for new batch
+          totalHariTarget: durationWeeks, // Total weeks
+          hariAktual: 0, // Set to 0 for now
+          persentaseProgress: 0 // Set to 0% for now
         }))
       }
     } catch (error) {
@@ -134,10 +134,11 @@ export default function Dashboard() {
 
   const getWelcomeMessage = () => {
     const hour = new Date().getHours()
-    if (hour < 12) return 'Assalamu\'alaikum'
-    if (hour < 15) return 'Assalamu\'alaikum'
-    if (hour < 18) return 'Assalamu\'alaikum'
-    return 'Assalamu\'alaikum'
+    const timeOfDay = hour < 12 ? 'Pagi' : hour < 15 ? 'Siang' : hour < 18 ? 'Sore' : 'Malam'
+    return {
+      greeting: timeOfDay,
+      full: `<em>Shabahul Khayr</em>, Selamat ${timeOfDay}`
+    }
   }
 
   const toHijriDate = (date: Date) => {
@@ -154,15 +155,15 @@ export default function Dashboard() {
       case 'admin':
         return 'Administrator'
       case 'musyrifah':
-        return 'Musyrifah MTI'
+        return 'Musyrifah'
       case 'muallimah':
-        return 'Muallimah MTI'
+        return 'Muallimah'
       case 'thalibah':
-        return 'Thalibah Tahfidz'
+        return 'Thalibah'
       case 'calon_thalibah':
         return 'Calon Thalibah'
       default:
-        return 'Peserta MTI'
+        return 'User'
     }
   }
 
@@ -199,12 +200,12 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-2">
-                  {getWelcomeMessage()}, {userData?.full_name ? `Ukhti ${userData.full_name}!` : 'Ukhti!'} 👋
+                  <span dangerouslySetInnerHTML={{ __html: getWelcomeMessage().full }} />, {userData?.full_name ? `Ukhti ${userData.full_name}!` : 'Ukhti!'} 👋
                 </h2>
                 <p className="text-green-100">
                   Selamat datang kembali di Markaz Tikrar Indonesia. Semoga hari ini lebih baik dari hari kemarin.
                 </p>
-                <div className="mt-4 flex items-center space-x-4">
+                <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                   <div className="flex items-center">
                     <Award className="w-5 h-5 mr-2" />
                     <span className="font-medium">{getRoleDisplay(userData?.role)}</span>
@@ -213,10 +214,14 @@ export default function Dashboard() {
                     <Calendar className="w-5 h-5 mr-2" />
                     <span>Bergabung: {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
                   </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    <span>{toHijriDate(new Date())}</span>
+                  </div>
                   {userData?.created_at && (
                     <div className="flex items-center">
                       <Calendar className="w-5 h-5 mr-2" />
-                      <span>{toHijriDate(new Date(userData.created_at))}</span>
+                      <span>Hijri: {toHijriDate(new Date(userData.created_at))}</span>
                     </div>
                   )}
                 </div>
@@ -231,28 +236,28 @@ export default function Dashboard() {
         {/* Announcement Card - Pembukaan Tikrar-Tahfidz Batch 2 */}
         {batchInfo && (
           <Card className="mb-8 border-2 border-green-600 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row md:items-start space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex-shrink-0">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                     <AlertCircle className="w-6 h-6 text-green-600" />
                   </div>
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-green-900">
-                      Pendaftaran {batchInfo.name} Dibuka! 🎉
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
+                    <h3 className="text-lg md:text-xl font-bold text-green-900">
+                      Pendaftaran {batchInfo.name || 'Tikrar MTI Batch 2'} Dibuka! 🎉
                     </h3>
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      Pendaftaran Dibuka
+                      {batchInfo.status === 'open' ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup'}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-4">
+                  <p className="text-gray-600 mb-4 text-sm md:text-base">
                     Bergabunglah dengan program Tikrar Tahfidz untuk menghafal dan mengulang Al-Quran dengan metode yang telah terbukti efektif.
                     Program dimulai pada {batchInfo.start_date ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'segera'}.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4">
                     <div className="flex items-center text-sm text-gray-700">
                       <Calendar className="w-4 h-4 mr-2 text-green-600" />
                       <div>
@@ -268,14 +273,14 @@ export default function Dashboard() {
                       <Users className="w-4 h-4 mr-2 text-green-600" />
                       <div>
                         <p className="font-medium">Kuota Tersedia</p>
-                        <p className="text-gray-600">{batchInfo.total_quota || 100} peserta</p>
+                        <p className="text-gray-600">{batchInfo.registered_count || 0} dari {batchInfo.total_quota || 100} peserta</p>
                       </div>
                     </div>
                     <div className="flex items-center text-sm text-gray-700">
                       <Star className="w-4 h-4 mr-2 text-green-600" />
                       <div>
                         <p className="font-medium">Biaya</p>
-                        <p className="text-gray-600">{batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price?.toLocaleString('id-ID')}`}</p>
+                        <p className="text-gray-600 font-semibold">{batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price?.toLocaleString('id-ID')}`}</p>
                       </div>
                     </div>
                   </div>
@@ -497,7 +502,7 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-xl font-bold">Tetap Konsisten!</h3>
                     <p className="text-green-100">
-                      Anda telah menyelesaikan {stats.hariAktual} pekan dari {stats.totalHariTarget} pekan target.
+                      Ukhti telah menyelesaikan {stats.hariAktual} pekan dari {stats.totalHariTarget} pekan target.
                       Pertahankan konsistensi Anda!
                     </p>
                   </div>
