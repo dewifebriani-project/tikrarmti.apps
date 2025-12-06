@@ -21,9 +21,9 @@ export async function GET() {
       );
     }
 
-    // Hitung total pendaftar dari tabel pendaftaran
+    // Hitung total pendaftar dari tabel tikrar_tahfidz
     const { data: registrations, error: regError } = await supabase
-      .from('pendaftaran')
+      .from('tikrar_tahfidz')
       .select('id')
       .eq('batch_id', batch.id);
 
