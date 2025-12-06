@@ -1536,8 +1536,8 @@ function TikrarTahfidzPage() {
   // Show form directly
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
-      <div className="max-w-4xl mx-auto px-3 md:px-4 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 pt-16 sm:pt-20 lg:pt-20">
+      <div className="max-w-4xl mx-auto px-3 md:px-4 py-8 overflow-x-hidden">
         {/* Network Status Indicator */}
         {networkError && (
           <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white px-4 py-2 text-center">
