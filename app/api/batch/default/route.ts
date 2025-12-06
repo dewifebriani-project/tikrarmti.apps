@@ -5,12 +5,12 @@ export async function GET() {
   try {
     const supabase = createServerClient();
 
-    // Get active batch for tikrar tahfidz
+    // Get open/active batch for tikrar tahfidz
     const { data: batch, error: batchError } = await supabase
       .from('batches')
       .select('*')
       .eq('name', 'Tikrar MTI Batch 2')
-      .eq('status', 'active')
+      .in('status', ['open', 'active']) // Accept both 'open' and 'active' status
       .single();
 
     if (batchError || !batch) {
@@ -28,13 +28,12 @@ export async function GET() {
       .eq('batch_id', batch.id);
 
     const registeredCount = regError ? 0 : (registrations?.length || 0);
-    const availableQuota = batch.total_quota - registeredCount;
 
     // Get program for tikrar tahfidz
     const { data: program, error: programError } = await supabase
       .from('programs')
       .select('id, name')
-      .eq('name', 'Tikrar Tahfidz')
+      .eq('name', 'Tahfidz') // Changed from 'Tikrar Tahfidz' to 'Tahfidz'
       .single();
 
     if (programError || !program) {
@@ -45,6 +44,12 @@ export async function GET() {
       );
     }
 
+    // Fallback values for fields that might not exist yet
+    const is_free = batch.is_free ?? true; // Default: program is FREE
+    const price = batch.price ?? 0; // Default: price is 0 (FREE)
+    const total_quota = batch.total_quota ?? 100; // Default: 100 participants
+    const availableQuota = total_quota - registeredCount;
+
     return NextResponse.json({
       batch_id: batch.id,
       batch_name: batch.name,
@@ -53,9 +58,9 @@ export async function GET() {
       start_date: batch.start_date,
       end_date: batch.end_date,
       duration_weeks: batch.duration_weeks,
-      price: batch.price,
-      is_free: batch.is_free,
-      total_quota: batch.total_quota,
+      price: price,
+      is_free: is_free,
+      total_quota: total_quota,
       registered_count: registeredCount,
       scholarship_quota: availableQuota // Kuota tersedia
     });
