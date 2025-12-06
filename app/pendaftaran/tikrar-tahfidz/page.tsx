@@ -1540,7 +1540,7 @@ function TikrarTahfidzPage() {
       <div className="max-w-4xl mx-auto px-3 md:px-4 py-8 overflow-x-hidden">
         {/* Network Status Indicator */}
         {networkError && (
-          <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white px-4 py-2 text-center">
+          <div className="lg:fixed lg:top-0 lg:left-0 lg:right-0 lg:z-50 bg-red-500 text-white px-4 py-2 text-center relative">
             <p className="text-sm font-medium">
               📵 {networkError}
             </p>

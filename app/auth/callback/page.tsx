@@ -13,7 +13,7 @@ const isMobile = () => {
 };
 
 // Optimized timeout for mobile vs desktop
-const getOptimizedDelay = () => isMobile() ? 10 : 50;
+const getOptimizedDelay = () => isMobile() ? 5 : 50;
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -79,8 +79,8 @@ function AuthCallbackContent() {
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
 
-            // Wait a bit for session to be properly set
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Wait a bit for session to be properly set (optimized for mobile)
+            await new Promise(resolve => setTimeout(resolve, isMobile() ? 50 : 100));
           }
         }
 
@@ -140,7 +140,7 @@ function AuthCallbackContent() {
 
         // Call API to check registration status (server-side check) with timeout for mobile
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 10000 : 15000);
+        const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 8000 : 15000);
 
         const response = await fetch('/api/auth/check-registration', {
           method: 'POST',
