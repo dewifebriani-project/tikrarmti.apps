@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star } from 'lucide-react'
+import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle, Users } from 'lucide-react'
 import Link from 'next/link'
 import AuthenticatedLayout from '@/components/AuthenticatedLayout'
 import { useAuth } from '@/contexts/AuthContext'
@@ -232,6 +232,75 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Announcement Card - Pembukaan Tikrar-Tahfidz Batch 2 */}
+        {batchInfo && (
+          <Card className="mb-8 border-2 border-green-600 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-bold text-green-900">
+                      Pendaftaran {batchInfo.name} Dibuka! 🎉
+                    </h3>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Pendaftaran Dibuka
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-4">
+                    Bergabunglah dengan program Tikrar Tahfidz untuk menghafal dan mengulang Al-Quran dengan metode yang telah terbukti efektif.
+                    Program dimulai pada {batchInfo.start_date ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'segera'}.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Calendar className="w-4 h-4 mr-2 text-green-600" />
+                      <div>
+                        <p className="font-medium">Periode Program</p>
+                        <p className="text-gray-600">
+                          {batchInfo.start_date && batchInfo.end_date
+                            ? `${new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - ${new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                            : 'Akan diumumkan'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Users className="w-4 h-4 mr-2 text-green-600" />
+                      <div>
+                        <p className="font-medium">Kuota Tersedia</p>
+                        <p className="text-gray-600">{batchInfo.total_quota || 100} peserta</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Star className="w-4 h-4 mr-2 text-green-600" />
+                      <div>
+                        <p className="font-medium">Biaya</p>
+                        <p className="text-gray-600">{batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price?.toLocaleString('id-ID')}`}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Link href="/pendaftaran">
+                      <Button className="bg-green-600 hover:bg-green-700 text-white">
+                        Daftar Sekarang
+                      </Button>
+                    </Link>
+                    <Link href="/pendaftaran/tikrar-tahfidz">
+                      <Button variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+                        Lihat Detail Program
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Progress Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
