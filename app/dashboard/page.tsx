@@ -51,10 +51,7 @@ export default function Dashboard() {
         .single()
 
       if (data && !error) {
-        console.log('User data loaded:', data)
         setUserData(data)
-      } else {
-        console.error('Error loading user data:', error)
       }
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -71,14 +68,11 @@ export default function Dashboard() {
         .order('created_at', { ascending: false })
         .limit(1)
 
-      console.log('Batch query result:', { data, error })
-
-      if (data && !error) {
-        console.log('Batch data loaded:', data)
-        setBatchInfo(data as any)
+      if (data && data.length > 0 && !error) {
+        setBatchInfo(data[0] as any)
 
         // Use duration_weeks from database, default to 0 for pending batch
-        const batchData = data as any
+        const batchData = data[0] as any
         const durationWeeks = batchData.duration_weeks || 13
 
         // Set stats with weeks instead of days, and default to 0 for new batch
@@ -88,8 +82,6 @@ export default function Dashboard() {
           hariAktual: 0, // Set to 0 for now
           persentaseProgress: 0 // Set to 0% for now
         }))
-      } else {
-        console.log('No open batch found or error occurred')
       }
     } catch (error) {
       console.error('Error loading batch info:', error)
@@ -133,7 +125,8 @@ export default function Dashboard() {
     const hour = new Date().getHours()
     // Shabahul Khayr (pagi), Masaa'ul Khayr (sore), Masaa'ul Khayr (malam)
     const greeting = hour < 12 ? 'Shabahul Khayr' : hour < 18 ? 'Masaa\'ul Khayr' : 'Masaa\'ul Khayr'
-    const userName = userData?.full_name ? `Ukhti ${userData.full_name}` : 'Ukhti'
+    // Use user from AuthContext which already has full_name loaded
+    const userName = user?.full_name ? `Ukhti ${user.full_name}` : 'Ukhti'
     return {
       greeting,
       full: `Assalamu'alaikum, <em>${greeting}</em>, ${userName}`
@@ -207,11 +200,11 @@ export default function Dashboard() {
                 <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4">
                   <div className="flex items-center">
                     <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-                    <span className="font-medium text-sm sm:text-base">{getRoleDisplay(userData?.role)}</span>
+                    <span className="font-medium text-sm sm:text-base">{getRoleDisplay(user?.role)}</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-                    <span className="text-sm sm:text-base">Bergabung: {userData?.created_at ? new Date(userData.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
+                    <span className="text-sm sm:text-base">Bergabung: {user?.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
