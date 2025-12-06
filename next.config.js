@@ -8,9 +8,23 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'github.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+      },
+    ],
   },
   compiler: {
-    removeConsole: false, // Enable console for debugging
+    removeConsole: process.env.NODE_ENV === 'production', // Remove console in production
   },
     // CORS configuration
   async headers() {
