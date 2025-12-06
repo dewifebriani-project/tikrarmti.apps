@@ -175,10 +175,10 @@ export default function Dashboard() {
       color: 'bg-green-600 text-white hover:bg-green-700'
     },
     {
-      title: 'Tasmi\'',
-      description: 'Validasi bacaan Anda',
+      title: 'Pendaftaran',
+      description: 'Daftar program Tikrar MTI',
       icon: CheckCircle,
-      href: '/tashih',
+      href: '/pendaftaran',
       color: 'bg-green-600 text-white hover:bg-green-700'
     },
     {
