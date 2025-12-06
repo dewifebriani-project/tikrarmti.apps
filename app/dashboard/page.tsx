@@ -127,10 +127,10 @@ export default function Dashboard() {
     const hour = new Date().getHours()
     // Shabahul Khayr (pagi), Masaa'ul Khayr (sore), Masaa'ul Khayr (malam)
     const greeting = hour < 12 ? 'Shabahul Khayr' : hour < 18 ? 'Masaa\'ul Khayr' : 'Masaa\'ul Khayr'
-    const userName = userData?.full_name || 'Ukhti'
+    const userName = userData?.full_name ? `Ukhti ${userData.full_name}` : 'Ukhti'
     return {
       greeting,
-      full: `Assalamu'alaikum, <em>${greeting}</em>, Ukhti ${userName}`
+      full: `Assalamu'alaikum, <em>${greeting}</em>, ${userName}`
     }
   }
 
@@ -368,54 +368,8 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Today's Progress & Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Today's Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5 text-green-900" />
-                <span>Progress Jurnal Hari Ini</span>
-              </CardTitle>
-              <CardDescription>
-                {todayProgress.completed} dari {todayProgress.total} tahap selesai
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {[
-                  { name: 'Tadabur', completed: true },
-                  { name: 'Murajaah', completed: false },
-                  { name: 'Simak Murattal', completed: true },
-                  { name: 'Tikrar Bi An-Nadzar', completed: false },
-                  { name: 'Tasmi Record', completed: false },
-                  { name: 'Simak Record', completed: true },
-                  { name: 'Tikrar Bi Al-Ghaib', completed: false },
-                ].map((step, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                    <span className="font-medium text-sm">{step.name}</span>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                      step.completed ? 'bg-green-500' : 'bg-gray-300'
-                    }`}>
-                      {step.completed && (
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4">
-                <Link href="/jurnal-harian">
-                  <Button className="w-full bg-green-900 hover:bg-green-700">
-                    Lanjutkan Jurnal
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
+        {/* Recent Activity */}
+        <div className="mb-8">
           {/* Recent Activity */}
           <Card>
             <CardHeader>

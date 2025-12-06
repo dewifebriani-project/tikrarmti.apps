@@ -651,7 +651,7 @@ function TikrarTahfidzPage() {
       <div className="space-y-8">
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">
-            Apakah antunna sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri antunna?
+            Apakah Ukhti sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti?
             <span className="text-red-500">*</span>
           </Label>
           <p className="text-sm text-gray-500 italic">
@@ -1119,13 +1119,13 @@ function TikrarTahfidzPage() {
               <strong className="text-lg">Alhamdulillah! Pendaftaran Berhasil! 🎉</strong>
               <br /><br />
               <p className="text-base">
-                Formulir pendaftaran antunna telah berhasil dikirim. Jazakillahu khairan atas keseriusan antunna untuk bergabung dengan program Tikrar MTI.
+                Formulir pendaftaran Ukhti telah berhasil dikirim. Jazakillahu khairan atas keseriusan Ukhti untuk bergabung dengan program Tikrar MTI.
               </p>
               <br />
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 my-3 rounded">
                 <p className="text-sm text-yellow-800">
                   <strong>Informasi Penting:</strong><br />
-                  Silakan pantau aplikasi ini secara berkala untuk mendapatkan informasi selanjutnya mengenai tahap seleksi. Tim kami akan menghubungi antunna melalui Telegram yang telah didaftarkan.
+                  Silakan pantau aplikasi ini secara berkala untuk mendapatkan informasi selanjutnya mengenai tahap seleksi. Tim kami akan menghubungi Ukhti melalui Telegram yang telah didaftarkan.
                 </p>
               </div>
               <p className="text-sm text-gray-700">
