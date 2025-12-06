@@ -150,7 +150,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.warn('No profile found in database for user:', authUser.id);
         console.log('Attempting to auto-create user profile...');
 
-        // Try to auto-create user profile
+        // Try to auto-create user profile with minimal data
         try {
           const { data: newProfile, error: insertError } = await supabaseAdmin
             .from('users')
@@ -162,7 +162,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               password_hash: 'managed_by_auth_system',
               is_active: true,
               created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
+              avatar_url: googlePhotoUrl || null
             })
             .select()
             .single();
@@ -180,11 +181,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(userObj);
           } else {
             console.error('Failed to create user profile:', insertError);
-            setUser(null);
+            // Jangan setUser(null) agar user tetap bisa login
+            // Buat user obj dari auth data saja
+            const minimalUserObj = {
+              id: authUser.id,
+              email: authUser.email || '',
+              full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '',
+              avatar_url: googlePhotoUrl,
+              role: 'calon_thalibah' as UserRole,
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              displayName: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+              photoURL: googlePhotoUrl,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              isProfileComplete: false,
+            };
+
+            setUser(minimalUserObj);
           }
         } catch (createError) {
           console.error('Error creating user profile:', createError);
-          setUser(null);
+          // Jangan setUser(null) agar user tetap bisa login
+          const minimalUserObj = {
+            id: authUser.id,
+            email: authUser.email || '',
+            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split('@')[0] || '',
+            avatar_url: googlePhotoUrl,
+            role: 'calon_thalibah' as UserRole,
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            displayName: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+            photoURL: googlePhotoUrl,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isProfileComplete: false,
+          };
+
+          setUser(minimalUserObj);
         }
       }
     } catch (error) {

@@ -159,15 +159,17 @@ function AuthCallbackContent() {
 
           // Jika user belum terdaftar sama sekali
           if (registrationStatus.reason?.includes('User tidak ditemukan')) {
-            // User not registered - sign them out and redirect to register
-            await supabase.auth.signOut();
-            router.push(`/register?email=${encodeURIComponent(userEmail || '')}`);
+            // User not registered - create minimal profile and redirect to dashboard
+            console.log('Creating minimal profile for Google OAuth user...');
+
+            // User bisa login dengan data minimal dari Google, tanpa harus sign out
+            router.push('/lengkapi-profil?from_oauth=true&message=complete_profile');
             return;
           } else {
             // User sudah ada di database tapi profil belum lengkap
             // Redirect ke halaman lengkapi profil
             console.log('Redirecting to profile completion page...');
-            router.push('/lengkapi-profil');
+            router.push('/lengkapi-profil?from_oauth=true');
             return;
           }
         } else {

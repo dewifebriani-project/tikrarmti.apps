@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
 
     // Reduce cache time for mobile to ensure fresh data
-    const mobileCacheDuration = isMobile ? 2 * 60 * 1000 : CACHE_DURATION; // 2 minutes for mobile
+    const mobileCacheDuration = isMobile ? 1 * 60 * 1000 : CACHE_DURATION; // 1 minute for mobile
 
     if (!email) {
       return NextResponse.json(
@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
         .eq('email', email)
         .maybeSingle();
 
-      // Add timeout for mobile users
+      // Add timeout for mobile users - increased timeout
       const result = isMobile ?
         await Promise.race([
           query,
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Query timeout')), 8000)
+            setTimeout(() => reject(new Error('Query timeout')), 20000)
           )
         ]) :
         await query;
