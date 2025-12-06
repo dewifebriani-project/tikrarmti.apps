@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     const {
       email,
       full_name,
+      negara,
       provinsi,
       kota,
       alamat,
@@ -57,10 +58,18 @@ export async function POST(request: NextRequest) {
       role = 'calon_thalibah'
     } = body;
 
-    // Validation - semua field wajib
-    if (!email || !full_name || !provinsi || !kota || !alamat || !whatsapp || !telegram || !zona_waktu || !tanggal_lahir || !tempat_lahir || !jenis_kelamin || !pekerjaan || !alasan_daftar) {
+    // Validation - semua field wajib (kecuali provinsi untuk non-Indonesia)
+    if (!email || !full_name || !negara || !kota || !alamat || !whatsapp || !telegram || !zona_waktu || !tanggal_lahir || !tempat_lahir || !jenis_kelamin || !pekerjaan || !alasan_daftar) {
       return NextResponse.json(
         { message: 'Semua field wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    // Validasi provinsi hanya untuk Indonesia
+    if (negara === 'Indonesia' && !provinsi) {
+      return NextResponse.json(
+        { message: 'Provinsi wajib diisi untuk pendaftar dari Indonesia' },
         { status: 400 }
       );
     }
@@ -69,15 +78,16 @@ export async function POST(request: NextRequest) {
       // Sanitize all inputs
       const sanitizedEmail = sanitizeEmail(email);
       const sanitizedFullName = sanitizeName(full_name);
-      const sanitizedProvinsi = sanitizeCity(provinsi);
+      const sanitizedNegara = sanitizeCity(negara);
+      const sanitizedProvinsi = provinsi ? sanitizeCity(provinsi) : null;
       const sanitizedKota = sanitizeCity(kota);
       const sanitizedAlamat = sanitizeAddress(alamat);
       const sanitizedWhatsApp = sanitizePhone(whatsapp);
       const sanitizedTelegram = telegram ? sanitizePhone(telegram) : null;
       const sanitizedZonaWaktu = sanitizeGeneric(zona_waktu, 10);
 
-      // Check timezone validity
-      const validTimezones = ['WIB', 'WITA', 'WIT'];
+      // Check timezone validity (extended for international)
+      const validTimezones = ['WIB', 'WITA', 'WIT', 'MYT', 'AWST', 'ACST', 'AEST', 'OTHER'];
       if (!validTimezones.includes(sanitizedZonaWaktu)) {
         return NextResponse.json(
           { message: 'Zona waktu tidak valid' },
@@ -97,6 +107,7 @@ export async function POST(request: NextRequest) {
       // Update body with sanitized values
       body.email = sanitizedEmail;
       body.full_name = sanitizedFullName;
+      body.negara = sanitizedNegara;
       body.provinsi = sanitizedProvinsi;
       body.kota = sanitizedKota;
       body.alamat = sanitizedAlamat;
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
     // Check if email already exists
     const { data: existingUser, error: checkError } = await supabase
       .from('users')
-      .select('email, full_name, provinsi, kota, alamat, whatsapp, zona_waktu, role')
+      .select('email, full_name, negara, provinsi, kota, alamat, whatsapp, zona_waktu, role')
       .eq('email', body.email)
       .single();
 
@@ -133,7 +144,7 @@ export async function POST(request: NextRequest) {
       // Check if user profile is incomplete
       const isProfileComplete = !!(
         existingUser.full_name &&
-        existingUser.provinsi &&
+        existingUser.negara &&
         existingUser.kota &&
         existingUser.alamat &&
         existingUser.whatsapp &&
@@ -156,6 +167,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .update({
           full_name: body.full_name,
+          negara: body.negara,
           provinsi: body.provinsi,
           kota: body.kota,
           alamat: body.alamat,
@@ -191,6 +203,7 @@ export async function POST(request: NextRequest) {
           {
             email: body.email,
             full_name: body.full_name,
+            negara: body.negara,
             provinsi: body.provinsi,
             kota: body.kota,
             alamat: body.alamat,

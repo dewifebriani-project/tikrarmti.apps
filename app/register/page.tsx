@@ -17,6 +17,13 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Crown, Heart, ArrowRight, CheckCircle } from "lucide-react";
 
+const negaraList = [
+  "Indonesia",
+  "Malaysia",
+  "Australia",
+  "Negara Lainnya"
+];
+
 const provinsiList = [
   "Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Jambi", "Sumatera Selatan",
   "Bengkulu", "Lampung", "Kepulauan Bangka Belitung", "Kepulauan Riau", "DKI Jakarta",
@@ -29,9 +36,18 @@ const provinsiList = [
 ];
 
 const zonaWaktuList = [
-  { value: "WIB", label: "WIB (UTC+7)" },
-  { value: "WITA", label: "WITA (UTC+8)" },
-  { value: "WIT", label: "WIT (UTC+9)" }
+  // Indonesia
+  { value: "WIB", label: "WIB (UTC+7) - Indonesia Barat", country: "Indonesia" },
+  { value: "WITA", label: "WITA (UTC+8) - Indonesia Tengah", country: "Indonesia" },
+  { value: "WIT", label: "WIT (UTC+9) - Indonesia Timur", country: "Indonesia" },
+  // Malaysia
+  { value: "MYT", label: "MYT (UTC+8) - Malaysia", country: "Malaysia" },
+  // Australia
+  { value: "AWST", label: "AWST (UTC+8) - Australia Barat", country: "Australia" },
+  { value: "ACST", label: "ACST (UTC+9:30) - Australia Tengah", country: "Australia" },
+  { value: "AEST", label: "AEST (UTC+10) - Australia Timur", country: "Australia" },
+  // Other
+  { value: "OTHER", label: "Zona Waktu Lainnya", country: "Other" }
 ];
 
 function RegisterPageContent() {
@@ -40,6 +56,7 @@ function RegisterPageContent() {
   const [formData, setFormData] = useState({
     namaLengkap: '',
     email: '',
+    negara: '',
     provinsi: '',
     kota: '',
     alamat: '',
@@ -94,7 +111,12 @@ function RegisterPageContent() {
       newErrors.email = 'Format email tidak valid';
     }
 
-    if (!formData.provinsi) {
+    if (!formData.negara) {
+      newErrors.negara = 'Negara harus dipilih';
+    }
+
+    // Validasi provinsi hanya untuk Indonesia
+    if (formData.negara === 'Indonesia' && !formData.provinsi) {
       newErrors.provinsi = 'Provinsi harus dipilih';
     }
 
@@ -175,7 +197,8 @@ function RegisterPageContent() {
         body: JSON.stringify({
           email: formData.email,
           full_name: formData.namaLengkap,
-          provinsi: formData.provinsi,
+          negara: formData.negara,
+          provinsi: formData.negara === 'Indonesia' ? formData.provinsi : null,
           kota: formData.kota,
           alamat: formData.alamat,
           whatsapp: formData.whatsapp,
@@ -361,15 +384,45 @@ function RegisterPageContent() {
                     <SelectValue placeholder="Pilih zona waktu" />
                   </SelectTrigger>
                   <SelectContent>
-                    {zonaWaktuList.map((zona) => (
-                      <SelectItem key={zona.value} value={zona.value}>
-                        {zona.label}
-                      </SelectItem>
-                    ))}
+                    {/* Filter zona waktu berdasarkan negara yang dipilih */}
+                    {formData.negara === 'Indonesia' && (
+                      <>
+                        <SelectItem value="WIB">WIB (UTC+7) - Indonesia Barat</SelectItem>
+                        <SelectItem value="WITA">WITA (UTC+8) - Indonesia Tengah</SelectItem>
+                        <SelectItem value="WIT">WIT (UTC+9) - Indonesia Timur</SelectItem>
+                      </>
+                    )}
+                    {formData.negara === 'Malaysia' && (
+                      <SelectItem value="MYT">MYT (UTC+8) - Malaysia</SelectItem>
+                    )}
+                    {formData.negara === 'Australia' && (
+                      <>
+                        <SelectItem value="AWST">AWST (UTC+8) - Australia Barat</SelectItem>
+                        <SelectItem value="ACST">ACST (UTC+9:30) - Australia Tengah</SelectItem>
+                        <SelectItem value="AEST">AEST (UTC+10) - Australia Timur</SelectItem>
+                      </>
+                    )}
+                    {(formData.negara === 'Negara Lainnya' || !formData.negara) && (
+                      <>
+                        {zonaWaktuList.map((zona) => (
+                          <SelectItem key={zona.value} value={zona.value}>
+                            {zona.label}
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
                 {errors.zonaWaktu && (
                   <p className="text-red-500 text-sm mt-1">{errors.zonaWaktu}</p>
+                )}
+                {formData.negara && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.negara === 'Indonesia' && 'Pilih WIB, WITA, atau WIT sesuai lokasi Ukhti'}
+                    {formData.negara === 'Malaysia' && 'Malaysia menggunakan MYT (sama dengan WITA)'}
+                    {formData.negara === 'Australia' && 'Pilih zona waktu sesuai wilayah di Australia'}
+                    {formData.negara === 'Negara Lainnya' && 'Pilih zona waktu yang paling sesuai atau pilih "Zona Waktu Lainnya"'}
+                  </p>
                 )}
               </div>
             </div>
@@ -391,25 +444,54 @@ function RegisterPageContent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <Label htmlFor="provinsi">Provinsi *</Label>
-                <Select value={formData.provinsi} onValueChange={(value) => handleInputChange('provinsi', value)}>
+                <Label htmlFor="negara">Negara *</Label>
+                <Select value={formData.negara} onValueChange={(value) => {
+                  handleInputChange('negara', value);
+                  // Reset provinsi jika bukan Indonesia
+                  if (value !== 'Indonesia') {
+                    handleInputChange('provinsi', '');
+                  }
+                  // Reset zona waktu agar user memilih ulang sesuai negara
+                  handleInputChange('zonaWaktu', '');
+                }}>
                   <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Pilih provinsi" />
+                    <SelectValue placeholder="Pilih negara" />
                   </SelectTrigger>
                   <SelectContent>
-                    {provinsiList.map((provinsi) => (
-                      <SelectItem key={provinsi} value={provinsi}>
-                        {provinsi}
+                    {negaraList.map((negara) => (
+                      <SelectItem key={negara} value={negara}>
+                        {negara}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.provinsi && (
-                  <p className="text-red-500 text-sm mt-1">{errors.provinsi}</p>
+                {errors.negara && (
+                  <p className="text-red-500 text-sm mt-1">{errors.negara}</p>
                 )}
               </div>
 
-              <div>
+              {formData.negara === 'Indonesia' && (
+                <div>
+                  <Label htmlFor="provinsi">Provinsi *</Label>
+                  <Select value={formData.provinsi} onValueChange={(value) => handleInputChange('provinsi', value)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Pilih provinsi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinsiList.map((provinsi) => (
+                        <SelectItem key={provinsi} value={provinsi}>
+                          {provinsi}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.provinsi && (
+                    <p className="text-red-500 text-sm mt-1">{errors.provinsi}</p>
+                  )}
+                </div>
+              )}
+
+              <div className={formData.negara === 'Indonesia' ? 'md:col-span-2' : ''}>
                 <Label htmlFor="kota">Kota *</Label>
                 <Input
                   id="kota"
