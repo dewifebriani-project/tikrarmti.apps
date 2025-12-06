@@ -241,18 +241,17 @@ export const loginWithGoogle = async () => {
     const envInfo = getEnvironmentInfo();
 
     // Determine the correct redirect URL based on environment
-    // Use NEXT_PUBLIC_APP_URL to determine if we're in development
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     const currentOrigin = window.location.origin;
 
-    // Check if we're accessing from localhost or if appUrl is set to localhost
-    const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1') || appUrl?.includes('localhost');
+    // Check if we're accessing from localhost
+    const isLocalhost = currentOrigin.includes('localhost') || currentOrigin.includes('127.0.0.1');
 
     let redirectUrl: string;
 
     if (isLocalhost) {
-      // In development or when accessing from localhost, always use localhost
-      redirectUrl = `${appUrl || 'http://localhost:3003'}/auth/callback`;
+      // In development, use localhost
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3003';
+      redirectUrl = `${appUrl}/auth/callback`;
     } else {
       // In production, use current origin
       redirectUrl = `${currentOrigin}/auth/callback`;
@@ -260,7 +259,6 @@ export const loginWithGoogle = async () => {
 
     // Log for debugging
     debugOAuth('Login Initiated', {
-      appUrl,
       currentOrigin,
       isLocalhost,
       redirectUrl,
