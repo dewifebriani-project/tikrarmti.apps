@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
+    console.log('[API /user/profile] Request received:', { userId });
+
     if (!userId) {
+      console.error('[API /user/profile] No userId provided');
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
@@ -19,48 +22,38 @@ export async function GET(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || ''
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
 
-    // Function to fetch user profile with optional retry
-    const fetchUserProfile = async (isRetry = false) => {
-      const timeoutMs = isMobile ? (isRetry ? 15000 : 10000) : 5000
+    console.log('[API /user/profile] Device type:', isMobile ? 'mobile' : 'desktop');
 
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    // Direct query without timeout complexity - simpler approach
+    console.log('[API /user/profile] Querying users table for userId:', userId);
 
-      try {
-        const queryPromise = supabase
-          .from('users')
-          .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
-          .eq('id', userId)
-          .single()
-
-        const result = await Promise.race([queryPromise,
-          new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Query timeout')), timeoutMs)
-          })
-        ]) as any
-
-        clearTimeout(timeoutId)
-        return result
-      } catch (error) {
-        clearTimeout(timeoutId)
-        throw error
-      }
-    }
-
-    let result = await fetchUserProfile()
-
-    // Retry once for mobile on timeout
-    if (isMobile && result.error && result.error.message?.includes('timeout')) {
-      console.log('Retrying user profile fetch for mobile...')
-      result = await fetchUserProfile(true)
-    }
-
-    const { data, error } = result
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
+      .eq('id', userId)
+      .single()
 
     if (error) {
-      // Remove excessive logging for performance
-      return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 })
+      console.error('[API /user/profile] Supabase error:', error);
+      return NextResponse.json({
+        error: 'Failed to fetch user profile',
+        details: error.message
+      }, { status: 500 })
     }
+
+    if (!data) {
+      console.error('[API /user/profile] No data returned from Supabase');
+      return NextResponse.json({
+        error: 'User not found'
+      }, { status: 404 })
+    }
+
+    console.log('[API /user/profile] User data fetched successfully:', {
+      userId: data.id,
+      full_name: data.full_name,
+      hasEmail: !!data.email,
+      hasWhatsapp: !!data.whatsapp
+    });
 
     // Optimized age calculation
     let age = 0
@@ -91,6 +84,8 @@ export async function GET(request: NextRequest) {
       age: age.toString()
     }
 
+    console.log('[API /user/profile] Returning user profile:', userProfile);
+
     // Add cache headers for better performance
     return NextResponse.json(userProfile, {
       headers: {
@@ -98,7 +93,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[API /user/profile] Unhandled error:', error);
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: error.message
+    }, { status: 500 })
   }
 }

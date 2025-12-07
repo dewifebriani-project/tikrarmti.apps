@@ -96,11 +96,16 @@ export const getCachedBatchInfo = (): BatchInfo | null => {
 
 // Optimized user profile fetcher with retry for mobile
 export const fetchUserProfileOptimized = async (userId: string): Promise<UserProfile | null> => {
+  console.log('[fetchUserProfileOptimized] Starting fetch for userId:', userId);
+
   const controller = new AbortController();
   // Optimized timeout for mobile
-  const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 10000 : 5000);
+  const timeoutMs = isMobile() ? 10000 : 5000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    console.log('[fetchUserProfileOptimized] Fetching from API with timeout:', timeoutMs);
+
     const response = await fetch(`/api/user/profile?userId=${userId}`, {
       signal: controller.signal,
       cache: 'default',
@@ -111,8 +116,11 @@ export const fetchUserProfileOptimized = async (userId: string): Promise<UserPro
 
     clearTimeout(timeoutId);
 
+    console.log('[fetchUserProfileOptimized] Response status:', response.status, response.ok);
+
     if (response.ok) {
       const data = await response.json();
+      console.log('[fetchUserProfileOptimized] Data received:', data);
 
       // Cache with timestamp
       const cacheData = {
@@ -121,14 +129,20 @@ export const fetchUserProfileOptimized = async (userId: string): Promise<UserPro
       };
 
       localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
+      console.log('[fetchUserProfileOptimized] Data cached successfully');
 
       return data;
+    } else {
+      const errorData = await response.json();
+      console.error('[fetchUserProfileOptimized] API returned error:', errorData);
     }
   } catch (error: any) {
     clearTimeout(timeoutId);
+    console.error('[fetchUserProfileOptimized] Fetch error:', error.name, error.message);
 
     // Retry once for mobile if it's a timeout
     if (isMobile() && error.name === 'AbortError') {
+      console.log('[fetchUserProfileOptimized] Mobile timeout, retrying with 15s timeout...');
       try {
         const retryController = new AbortController();
         const retryTimeout = setTimeout(() => retryController.abort(), 15000);
@@ -139,8 +153,11 @@ export const fetchUserProfileOptimized = async (userId: string): Promise<UserPro
 
         clearTimeout(retryTimeout);
 
+        console.log('[fetchUserProfileOptimized] Retry response status:', response.status, response.ok);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('[fetchUserProfileOptimized] Retry data received:', data);
 
           const cacheData = {
             ...data,
@@ -148,15 +165,20 @@ export const fetchUserProfileOptimized = async (userId: string): Promise<UserPro
           };
 
           localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
+          console.log('[fetchUserProfileOptimized] Retry data cached successfully');
 
           return data;
+        } else {
+          const errorData = await response.json();
+          console.error('[fetchUserProfileOptimized] Retry API returned error:', errorData);
         }
-      } catch (retryError) {
-        console.warn('Retry failed for user profile fetch');
+      } catch (retryError: any) {
+        console.error('[fetchUserProfileOptimized] Retry failed:', retryError.name, retryError.message);
       }
     }
   }
 
+  console.warn('[fetchUserProfileOptimized] Returning null - no data fetched');
   return null;
 };
 
