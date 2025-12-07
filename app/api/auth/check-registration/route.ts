@@ -18,60 +18,62 @@ export async function GET(request: Request) {
       );
     }
 
+    // Debug: Log the user ID
+    console.log('Checking registration for user ID:', session.user.id);
+    console.log('User email:', session.user.email);
+
     // Check if user has already registered in pendaftaran_tikrar_tahfidz table
+    console.log('Querying with user_id:', session.user.id);
     const { data: registration, error } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    // If not found by user_id, try searching by email as a fallback
+    console.log('Query result - registration:', registration);
+    console.log('Query result - error:', error);
+
+    // If there's an error, try searching by email as a fallback
     // This handles cases where user_id might not match due to auth provider changes
-    if (error && error.code === 'PGRST116') {
-      const { data: emailRegistration, error: emailError } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select('*')
-        .eq('email', session.user.email)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+    if (error) {
+      console.error('Error checking registration by user_id:', error);
 
-      if (emailRegistration) {
-        return NextResponse.json({
-          hasRegistered: true,
-          registration: {
-            id: emailRegistration.id,
-            status: emailRegistration.status,
-            selection_status: emailRegistration.selection_status,
-            submission_date: emailRegistration.submission_date,
-            chosen_juz: emailRegistration.chosen_juz,
-            batch_name: emailRegistration.batch_name,
-            full_name: emailRegistration.full_name
-          }
-        });
+      // Try to find by email if user_id search fails
+      if (session.user.email) {
+        const { data: emailRegistration, error: emailError } = await supabase
+          .from('pendaftaran_tikrar_tahfidz')
+          .select('*')
+          .eq('email', session.user.email)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (emailError) {
+          console.error('Error checking email registration:', emailError);
+        }
+
+        if (emailRegistration) {
+          return NextResponse.json({
+            hasRegistered: true,
+            registration: {
+              id: emailRegistration.id,
+              status: emailRegistration.status,
+              selection_status: emailRegistration.selection_status,
+              submission_date: emailRegistration.submission_date,
+              chosen_juz: emailRegistration.chosen_juz,
+              batch_name: emailRegistration.batch_name,
+              full_name: emailRegistration.full_name
+            }
+          });
+        }
       }
 
-      if (emailError && emailError.code !== 'PGRST116') {
-        console.error('Error checking email registration:', emailError);
-        return NextResponse.json(
-          { error: 'Internal server error' },
-          { status: 500 }
-        );
-      }
-
+      // If both searches fail, return not registered (don't return error to avoid breaking the UI)
       return NextResponse.json({
         hasRegistered: false
       });
-    }
-
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error checking registration:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
     }
 
     if (registration) {
