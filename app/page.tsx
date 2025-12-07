@@ -57,7 +57,7 @@ export default function Home() {
               size="lg"
               className="bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
             >
-              <Link href="/pendaftaran" className="flex items-center gap-3">
+              <Link href="/register" className="flex items-center gap-3">
                 <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
                 Daftar Sekarang
               </Link>
@@ -233,7 +233,7 @@ export default function Home() {
                 size="lg"
                 className="bg-white text-green-900 hover:bg-gray-100 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
               >
-                <Link href="/pendaftaran" className="flex items-center gap-3">
+                <Link href="/register" className="flex items-center gap-3">
                   <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
                   Daftar Sekarang
                 </Link>
