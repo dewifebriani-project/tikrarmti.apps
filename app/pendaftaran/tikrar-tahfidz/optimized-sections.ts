@@ -193,7 +193,10 @@ export const getCachedUserProfile = (userId: string): UserProfile | null => {
 };
 
 // Parallel data fetcher with retry mechanism
-export const fetchInitialData = async (userId?: string, retryCount = 0) => {
+export const fetchInitialData = async (userId?: string, retryCount = 0): Promise<{
+  batchInfo: BatchInfo | null;
+  userProfile: UserProfile | null;
+}> => {
   const maxRetries = 3;
   const promises: Promise<any>[] = [];
 
