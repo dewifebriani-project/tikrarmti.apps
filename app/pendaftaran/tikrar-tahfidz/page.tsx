@@ -1319,7 +1319,7 @@ function TikrarTahfidzPage() {
               <strong>Gagal Mengirim Formulir</strong>
               <br /><br />
               <p className="text-sm">
-                Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.
+                Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 08567712914.
               </p>
               <br />
               <div className="space-y-1 text-xs">
