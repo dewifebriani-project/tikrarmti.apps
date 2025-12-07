@@ -385,7 +385,6 @@ function TikrarTahfidzPage() {
       const submissionData: any = {
         user_id: user?.id || '',
         full_name: user?.full_name || user?.email?.split('@')[0] || '',
-        provider: user?.app_metadata?.provider || user?.user_metadata?.provider || 'email',
         batch_id: batchInfo.batch_id,
         program_id: batchInfo.program_id,
 
