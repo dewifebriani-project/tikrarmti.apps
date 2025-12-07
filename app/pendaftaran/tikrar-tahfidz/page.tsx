@@ -380,7 +380,7 @@ function TikrarTahfidzPage() {
         address: '', // Akan diisi otomatis dari backend
         wa_phone: '', // Akan diisi otomatis dari backend
         telegram_phone: '', // Akan diisi otomatis dari backend
-        birth_date: null, // Akan diisi otomatis dari backend
+        birth_date: '', // Akan diisi otomatis dari backend
         age: 0, // Akan dihitung otomatis dari backend
         domicile: '', // Akan diisi otomatis dari backend
         timezone: '', // Akan diisi otomatis dari backend
