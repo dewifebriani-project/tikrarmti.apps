@@ -6,15 +6,6 @@ import { supabase } from '@/lib/supabase-singleton';
 import { Crown } from "lucide-react";
 import { debugOAuth } from '@/lib/oauth-debug';
 
-// Mobile detection helper
-const isMobile = () => {
-  if (typeof window === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
-
-// Optimized timeout for mobile vs desktop
-const getOptimizedDelay = () => isMobile() ? 5 : 50;
-
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,14 +18,7 @@ function AuthCallbackContent() {
       // Prevent multiple executions
       if (isHandled) return;
       isHandled = true;
-      // Check if we're on production domain but coming from localhost
-      const currentOrigin = window.location.origin;
-      const currentHost = window.location.hostname;
-      const hasTokens = window.location.hash.includes('access_token') ||
-                       window.location.search.includes('code') ||
-                       window.location.search.includes('access_token');
 
-      
       // Log callback initiation with all URL details
       debugOAuth('Callback Initiated', {
         currentUrl: window.location.href,
@@ -51,6 +35,7 @@ function AuthCallbackContent() {
         if (error) {
           debugOAuth('Callback Error', { error });
           setError(`Authentication error: ${error}`);
+          setLoading(false);
           return;
         }
 
@@ -81,18 +66,14 @@ function AuthCallbackContent() {
             if (sessionError) {
               console.error('Error setting session from hash:', sessionError);
               setError(`Failed to set session: ${sessionError.message}`);
+              setLoading(false);
               return;
             }
 
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
-
-            // Minimal delay to ensure session is set
-            await new Promise(resolve => setTimeout(resolve, 10));
           }
         }
-
-        // Remove artificial delay - get session immediately
 
         // Get session after URL processing
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -100,6 +81,7 @@ function AuthCallbackContent() {
         if (sessionError) {
           console.error('Session error:', sessionError);
           setError(`Failed to authenticate: ${sessionError.message}`);
+          setLoading(false);
           return;
         }
 
@@ -110,20 +92,14 @@ function AuthCallbackContent() {
           const hasAuthParams = searchParams.has('code') || searchParams.has('access_token');
 
           if (hasAuthParams) {
-            console.log('Auth params found, retrying session immediately...');
-            // Minimal delay to avoid race condition
-            await new Promise(resolve => setTimeout(resolve, 5));
+            console.log('Auth params found, retrying session...');
 
-            // Try to get session again
+            // Try to get session again (without delay)
             const { data: retryData, error: retryError } = await supabase.auth.getSession();
 
-            if (retryError) {
-              setError(`Failed to authenticate: ${retryError.message}`);
-              return;
-            }
-
-            if (!retryData.session?.user?.email) {
+            if (retryError || !retryData.session?.user?.email) {
               setError('Authentication failed. Please try again.');
+              setLoading(false);
               return;
             }
 
@@ -131,6 +107,7 @@ function AuthCallbackContent() {
             sessionData.session = retryData.session;
           } else {
             setError('No authorization code found');
+            setLoading(false);
             return;
           }
         }
@@ -143,17 +120,14 @@ function AuthCallbackContent() {
           throw new Error('User email is required');
         }
 
-        // Langsung redirect ke dashboard - user profile akan di-create otomatis jika belum ada
-        console.log('Redirecting to dashboard...');
-
-        // Set loading false BEFORE redirect to remove loading screen immediately
-        setLoading(false);
-
         // Clear sessionStorage
         sessionStorage.removeItem('oauth_from_localhost');
 
-        // Use replace instead of push for faster navigation without history
-        router.replace('/dashboard');
+        // Langsung redirect ke dashboard tanpa delay
+        console.log('Redirecting to dashboard...');
+
+        // Use window.location for immediate redirect (faster than router.replace)
+        window.location.href = '/dashboard';
         return;
 
       } catch (err: any) {
