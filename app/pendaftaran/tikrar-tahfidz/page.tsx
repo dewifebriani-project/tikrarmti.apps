@@ -539,7 +539,38 @@ function TikrarTahfidzPage() {
     setIsSubmitting(true)
     try {
       // Re-get session to ensure we have the latest data
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      // For mobile, refresh session to prevent expiration issues
+      let currentSession = null;
+
+      // First, check if we have a valid session
+      const { data: { session: initialSession } } = await supabase.auth.getSession();
+
+      if (initialSession?.user) {
+        // Check if session is expired or close to expiry
+        const now = new Date();
+        const expiresAt = new Date(initialSession.expires_at! * 1000);
+        const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+        const fiveMinutes = 5 * 60 * 1000;
+
+        // If session expires within 5 minutes, refresh it
+        if (timeUntilExpiry < fiveMinutes) {
+          console.log('Session expires soon, refreshing...');
+          const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+          currentSession = refreshedSession || initialSession;
+        } else {
+          currentSession = initialSession;
+        }
+      } else {
+        // No session, try to get from user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          console.log('No session but user exists, checking session state...');
+          // For mobile users, the session might be in an inconsistent state
+          // Try to refresh
+          const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+          currentSession = refreshedSession;
+        }
+      }
 
       // Also fetch user profile data to get complete information
       const { data: userProfile } = await supabase
