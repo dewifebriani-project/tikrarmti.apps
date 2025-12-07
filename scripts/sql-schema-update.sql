@@ -192,7 +192,7 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@markaztikrar.id') THEN
         INSERT INTO users (
-            id, email, password_hash, full_name, role, is_active,
+            id, email, password_hash, full_name, avatar_url, role, is_active,
             created_at, updated_at, negara, provinsi, kota, alamat,
             whatsapp, telegram, zona_waktu, tanggal_lahir, tempat_lahir,
             jenis_kelamin, pekerjaan, alasan_daftar
@@ -201,6 +201,7 @@ BEGIN
             'admin@markaztikrar.id',
             'managed_by_auth_system',
             'Admin Tikrar MTI',
+            NULL,  -- avatar_url
             'admin',
             true,
             NOW(),
@@ -214,9 +215,9 @@ BEGIN
             'WIB',
             '1990-01-01',
             'Jakarta',
-            'laki-laki',
-            'Admin Sistem',
-            'Admin Tikrar MTI Apps'
+            'laki-laki',      -- jenis_kelamin
+            'Admin Sistem',   -- pekerjaan
+            'Admin Tikrar MTI Apps'  -- alasan_daftar
         );
         RAISE NOTICE 'Admin user admin@markaztikrar.id created successfully';
     ELSE
