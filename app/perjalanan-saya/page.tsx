@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import React from 'react';
 import Link from 'next/link';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TimelineItem {
   id: number;
@@ -20,30 +21,38 @@ interface TimelineItemWithStatus extends TimelineItem {
 }
 
 export default function PerjalananSaya() {
+  const { user, loading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
-
-    // Fetch registration status directly (middleware handles auth)
-    const fetchRegistrationStatus = async () => {
-      try {
-        const response = await fetch('/api/auth/check-registration');
-        if (response.ok) {
-          const data = await response.json();
-          setRegistrationStatus(data);
-        }
-      } catch (error) {
-        console.error('Error fetching registration status:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchRegistrationStatus();
   }, []);
+
+  useEffect(() => {
+    // Only fetch registration status after user is available
+    if (user) {
+      const fetchRegistrationStatus = async () => {
+        try {
+          const response = await fetch('/api/auth/check-registration');
+          if (response.ok) {
+            const data = await response.json();
+            setRegistrationStatus(data);
+          }
+        } catch (error) {
+          console.error('Error fetching registration status:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchRegistrationStatus();
+    } else if (!authLoading) {
+      // User is not logged in and auth is finished loading
+      setIsLoading(false);
+    }
+  }, [user, authLoading]);
 
   // Function to parse Indonesian date string
   const parseIndonesianDate = (dateStr: string): Date => {
@@ -315,8 +324,33 @@ export default function PerjalananSaya() {
           </p>
         </div>
 
+        {/* User not logged in state */}
+        {!authLoading && !user && (
+          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-red-800">
+                <span className="font-medium">Belum Login:</span> Silakan login terlebih dahulu untuk melihat perjalanan Anda.
+                <Link href="/login" className="text-red-700 underline hover:text-red-900 ml-1">
+                  Login di sini
+                </Link>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {(isLoading || authLoading) && (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <p className="mt-2 text-gray-600">Memuat data...</p>
+          </div>
+        )}
+
         {/* Registration Status Alert */}
-        {!isLoading && !registrationStatus?.hasRegistered && (
+        {!isLoading && user && !registrationStatus?.hasRegistered && (
           <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -332,81 +366,31 @@ export default function PerjalananSaya() {
           </div>
         )}
 
-        {isLoading && (
-          <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-            <p className="mt-2 text-gray-600">Memuat status pendaftaran...</p>
-          </div>
-        )}
-
         {/* Timeline Container */}
-        <div className="relative">
-          {/* Mobile View - Single Column Timeline */}
-          <div className="block lg:hidden">
-            {/* Mobile Vertical Line */}
-            <div className="absolute left-6 md:left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+        {user && (
+          <div className="relative">
+            {/* Mobile View - Single Column Timeline */}
+            <div className="block lg:hidden">
+              {/* Mobile Vertical Line */}
+              <div className="absolute left-6 md:left-8 top-0 bottom-0 w-0.5 bg-gray-200"></div>
 
-            <div className="space-y-6">
-              {timelineData.map((item) => {
-                const styles = getStatusStyles(item.status);
-                return (
-                  <div key={item.id} className="relative flex items-start space-x-4">
-                    {/* Icon */}
-                    <div className={`relative flex-shrink-0 w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
-                      <div className={styles.iconColor}>
-                        {item.icon}
+              <div className="space-y-6">
+                {timelineData.map((item) => {
+                  const styles = getStatusStyles(item.status);
+                  return (
+                    <div key={item.id} className="relative flex items-start space-x-4">
+                      {/* Icon */}
+                      <div className={`relative flex-shrink-0 w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
+                        <div className={styles.iconColor}>
+                          {item.icon}
+                        </div>
+                        {item.status === 'current' && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                        )}
                       </div>
-                      {item.status === 'current' && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                      )}
-                    </div>
 
-                    {/* Card */}
-                    <div className={`flex-grow min-w-0 ${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md`}>
-                      {/* Date */}
-                      {item.day !== '-' && (
-                        <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
-                          {item.day} • {item.date}
-                          {item.hijriDate !== '-' && <span className="block text-xs mt-1">{item.hijriDate}</span>}
-                        </div>
-                      )}
-                      {item.day === '-' && (
-                        <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
-                          {item.date}
-                        </div>
-                      )}
-
-                      {/* Title */}
-                      <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
-                        {item.title}
-                      </h3>
-
-                      {/* Description */}
-                      <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Desktop View - Two Column Timeline */}
-          <div className="hidden lg:block">
-            {/* Desktop Vertical Line */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-200"></div>
-
-            <div className="space-y-8">
-              {timelineData.map((item, index) => {
-                const styles = getStatusStyles(item.status);
-                const isLeftSide = index % 2 === 0;
-
-                return (
-                  <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
-                    {/* Card */}
-                    <div className={`w-5/12 ${isLeftSide ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
-                      <div className={`${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-6 transition-all duration-300 hover:shadow-md`}>
+                      {/* Card */}
+                      <div className={`flex-grow min-w-0 ${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-4 sm:p-6 transition-all duration-300 hover:shadow-md`}>
                         {/* Date */}
                         {item.day !== '-' && (
                           <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
@@ -431,74 +415,121 @@ export default function PerjalananSaya() {
                         </p>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                    {/* Center Icon */}
-                    <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
-                      <div className={`w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${item.status === 'current' ? 'ring-4 ring-yellow-200' : ''}`}>
-                        <div className={styles.iconColor}>
-                          {item.icon}
+            {/* Desktop View - Two Column Timeline */}
+            <div className="hidden lg:block">
+              {/* Desktop Vertical Line */}
+              <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-200"></div>
+
+              <div className="space-y-8">
+                {timelineData.map((item, index) => {
+                  const styles = getStatusStyles(item.status);
+                  const isLeftSide = index % 2 === 0;
+
+                  return (
+                    <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
+                      {/* Card */}
+                      <div className={`w-5/12 ${isLeftSide ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
+                        <div className={`${styles.cardBg} ${styles.cardBorder} rounded-lg shadow-sm p-6 transition-all duration-300 hover:shadow-md`}>
+                          {/* Date */}
+                          {item.day !== '-' && (
+                            <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                              {item.day} • {item.date}
+                              {item.hijriDate !== '-' && <span className="block text-xs mt-1">{item.hijriDate}</span>}
+                            </div>
+                          )}
+                          {item.day === '-' && (
+                            <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                              {item.date}
+                            </div>
+                          )}
+
+                          {/* Title */}
+                          <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
+                            {item.title}
+                          </h3>
+
+                          {/* Description */}
+                          <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                            {item.description}
+                          </p>
                         </div>
-                        {item.status === 'current' && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                        )}
+                      </div>
+
+                      {/* Center Icon */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
+                        <div className={`w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${item.status === 'current' ? 'ring-4 ring-yellow-200' : ''}`}>
+                          <div className={styles.iconColor}>
+                            {item.icon}
+                          </div>
+                          {item.status === 'current' && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Progress Indicator */}
-        <div className="mt-12 sm:mt-16">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Progres Perjalanan</h3>
+        {user && (
+          <div className="mt-12 sm:mt-16">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Progres Perjalanan</h3>
+                  <p className="text-sm text-gray-600">
+                    {completedCount} dari {totalCount} tahapan selesai
+                  </p>
+                </div>
+
+                {/* Progress Dots */}
+                <div className="flex items-center space-x-2">
+                  {timelineData.map((item, index) => (
+                    <div
+                      key={index}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        item.status === 'completed'
+                          ? 'bg-teal-500'
+                          : item.status === 'current'
+                          ? 'w-3 h-3 bg-yellow-500 animate-pulse'
+                          : 'bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Current Status */}
+              <div className="mt-4 flex items-center space-x-2">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
                 <p className="text-sm text-gray-600">
-                  {completedCount} dari {totalCount} tahapan selesai
+                  Saat ini: <span className="font-medium text-gray-900">
+                    {timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}
+                  </span>
                 </p>
               </div>
-
-              {/* Progress Dots */}
-              <div className="flex items-center space-x-2">
-                {timelineData.map((item, index) => (
-                  <div
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      item.status === 'completed'
-                        ? 'bg-teal-500'
-                        : item.status === 'current'
-                        ? 'w-3 h-3 bg-yellow-500 animate-pulse'
-                        : 'bg-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mt-4">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-teal-500 to-teal-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Current Status */}
-            <div className="mt-4 flex items-center space-x-2">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-              <p className="text-sm text-gray-600">
-                Saat ini: <span className="font-medium text-gray-900">
-                  {timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}
-                </span>
-              </p>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </AuthenticatedLayout>
   );
