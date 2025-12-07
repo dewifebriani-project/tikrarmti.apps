@@ -201,21 +201,51 @@ function TikrarTahfidzPage() {
 
         // Clear network error if successful
         setNetworkError('')
+      }).catch(error => {
+        console.error('Error fetching initial data:', error)
+        setNetworkError('Gagal memuat data. Silakan refresh halaman.')
+      })
 
-        // Additional retry for mobile if user profile still missing
-        if (isMobileDevice && user && !userProfile) {
-          setTimeout(() => {
-            console.log('Retrying user profile fetch for mobile after 1 second...');
+      // Additional retry for mobile if user profile still missing after initial fetch
+      if (isMobileDevice && user) {
+        // First retry after 2 seconds
+        setTimeout(() => {
+          if (!userProfile) {
+            console.log('Retrying user profile fetch for mobile after 2 seconds...');
             import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
               fetchUserProfileOptimized(user.id).then(retryProfile => {
                 if (retryProfile) {
                   setUserProfile(retryProfile);
+                  console.log('User profile loaded on retry for mobile');
                 }
+              }).catch(error => {
+                console.error('Error in first retry for mobile:', error);
               });
             });
-          }, 1000);
-        }
-      })
+          }
+        }, 2000);
+
+        // Second retry after 5 seconds
+        setTimeout(() => {
+          if (!userProfile) {
+            console.log('Second retry for user profile on mobile after 5 seconds...');
+            import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
+              fetchUserProfileOptimized(user.id).then(secondRetryProfile => {
+                if (secondRetryProfile) {
+                  setUserProfile(secondRetryProfile);
+                  console.log('User profile loaded on second retry for mobile');
+                } else {
+                  console.warn('Failed to load user profile after retries on mobile');
+                  setNetworkError('Data profil gagal dimuat. Silakan refresh halaman.');
+                }
+              }).catch(error => {
+                console.error('Error in second retry for mobile:', error);
+                setNetworkError('Data profil gagal dimuat. Silakan refresh halaman.');
+              });
+            });
+          }
+        }, 5000);
+      }
     } else if (!cachedBatch) {
       setNetworkError('Tidak ada koneksi internet. Periksa koneksi Ukhti untuk memuat data program.')
     }
@@ -1140,13 +1170,13 @@ function TikrarTahfidzPage() {
         <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-800 flex items-center">
           <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full mr-3"></div>
           Data Diri (Diambil dari profil Ukhti)
-          {!userProfile && (
+          {!userProfile && user && (
             <div className="ml-auto">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
             </div>
           )}
         </h3>
-        {userProfile ? (
+        {userProfile && user ? (
               <div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
                   <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
@@ -1200,7 +1230,7 @@ function TikrarTahfidzPage() {
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : user ? (
               <div className="space-y-4">
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -1217,7 +1247,16 @@ function TikrarTahfidzPage() {
                   )}
                 </div>
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-600">
+                    Silakan login terlebih dahulu untuk melihat data profil.
+                  </p>
+                </div>
+              </div>
             )}
+      </div>
 
       {/* Field yang khusus untuk tikrar */}
       <div className="space-y-6">
@@ -1284,7 +1323,6 @@ function TikrarTahfidzPage() {
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   )
