@@ -145,16 +145,22 @@ function AuthCallbackContent() {
 
         // Langsung redirect ke dashboard - user profile akan di-create otomatis jika belum ada
         console.log('Redirecting to dashboard...');
+
+        // Set loading false BEFORE redirect to remove loading screen immediately
+        setLoading(false);
+
+        // Clear sessionStorage
+        sessionStorage.removeItem('oauth_from_localhost');
+
         // Use replace instead of push for faster navigation without history
         router.replace('/dashboard');
+        return;
 
       } catch (err: any) {
         console.error('Auth callback error:', err);
         setError(err.message || 'An unexpected error occurred during authentication');
-      } finally {
-        // Clear the sessionStorage flag
-        sessionStorage.removeItem('oauth_from_localhost');
         setLoading(false);
+        sessionStorage.removeItem('oauth_from_localhost');
       }
     };
 
