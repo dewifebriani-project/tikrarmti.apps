@@ -14,6 +14,19 @@ export interface User {
   createdAt?: Date;
   updatedAt?: Date;
   isProfileComplete?: boolean;
+  // Supabase auth metadata fields (optional)
+  app_metadata?: {
+    provider?: string;
+    [key: string]: any;
+  };
+  user_metadata?: {
+    provider?: string;
+    full_name?: string;
+    name?: string;
+    avatar_url?: string;
+    picture?: string;
+    [key: string]: any;
+  };
   phoneNumber?: string;
   namaLengkap?: string;
   namaPanggilan?: string;
