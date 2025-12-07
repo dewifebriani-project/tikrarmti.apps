@@ -19,22 +19,47 @@ function getSupabaseClient() {
           detectSessionInUrl: true,
           // Custom storage key to avoid conflicts
           storageKey: 'mti-auth-token',
-          // Store session in localStorage for persistence
+          // Enhanced storage with better mobile support
           storage: {
             getItem: (key) => {
               if (typeof window !== 'undefined') {
-                return localStorage.getItem(key)
+                try {
+                  return localStorage.getItem(key)
+                } catch (error) {
+                  console.warn('localStorage getItem error:', error)
+                  return null
+                }
               }
               return null
             },
             setItem: (key, value) => {
               if (typeof window !== 'undefined') {
-                localStorage.setItem(key, value)
+                try {
+                  localStorage.setItem(key, value)
+                } catch (error) {
+                  console.warn('localStorage setItem error:', error)
+                  // Fallback to sessionStorage if localStorage fails
+                  try {
+                    sessionStorage.setItem(key, value)
+                  } catch (sessionError) {
+                    console.error('Storage failed completely:', sessionError)
+                  }
+                }
               }
             },
             removeItem: (key) => {
               if (typeof window !== 'undefined') {
-                localStorage.removeItem(key)
+                try {
+                  localStorage.removeItem(key)
+                } catch (error) {
+                  console.warn('localStorage removeItem error:', error)
+                  // Also remove from sessionStorage fallback
+                  try {
+                    sessionStorage.removeItem(key)
+                  } catch (sessionError) {
+                    console.error('Storage removal failed:', sessionError)
+                  }
+                }
               }
             }
           }

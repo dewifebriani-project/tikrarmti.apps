@@ -5,56 +5,165 @@ interface SessionManager {
   refreshSession(): Promise<boolean>;
   extendSession(): Promise<boolean>;
   getSessionInfo(): Promise<{ valid: boolean; expiresAt: Date | null; timeUntilExpiry: number }>;
+  forceRefreshSession(): Promise<boolean>;
 }
 
 export const sessionManager: SessionManager = {
   /**
-   * Check if current session is valid
+   * Check if current session is valid with multiple fallback methods
    */
   async checkSession(): Promise<boolean> {
     try {
+      // Method 1: Direct session check
       const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (error || !session) {
-        console.error('Session check failed:', error);
+      if (error) {
+        console.warn('Session check method 1 failed:', error);
+
+        // Method 2: Try to get user directly
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            console.log('Session valid via user check method');
+            return true;
+          }
+        } catch (userError) {
+          console.warn('User check also failed:', userError);
+        }
+
+        return false;
+      }
+
+      if (!session) {
+        console.warn('No session found');
         return false;
       }
 
       // Check if session is expired
       const now = new Date();
       const expiresAt = new Date(session.expires_at! * 1000);
+      const isExpired = now >= expiresAt;
 
-      return now < expiresAt;
-    } catch (error) {
-      console.error('Error checking session:', error);
-      return false;
-    }
-  },
-
-  /**
-   * Refresh the current session
-   */
-  async refreshSession(): Promise<boolean> {
-    try {
-      console.log('Attempting to refresh session...');
-
-      const { error } = await supabase.auth.refreshSession();
-
-      if (error) {
-        console.error('Session refresh failed:', error);
+      if (isExpired) {
+        console.warn('Session expired');
         return false;
       }
 
-      console.log('Session refreshed successfully');
+      // Check if session expires within 5 minutes (borderline case)
+      const fiveMinutes = 5 * 60 * 1000;
+      const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+
+      if (timeUntilExpiry < fiveMinutes) {
+        console.warn('Session expires soon, refresh needed');
+        return false;
+      }
+
+      console.log('Session is valid');
       return true;
+
     } catch (error) {
-      console.error('Error refreshing session:', error);
+      console.error('Critical error checking session:', error);
       return false;
     }
   },
 
   /**
-   * Extend session duration to 30 days
+   * Refresh the current session with retry mechanism
+   */
+  async refreshSession(): Promise<boolean> {
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Refreshing session (attempt ${attempt}/${maxRetries})...`);
+
+        // Clear any existing session data first
+        if (attempt > 1) {
+          console.log('Clearing session data before retry...');
+          await supabase.auth.signOut({ scope: 'local' });
+        }
+
+        const { data, error } = await supabase.auth.refreshSession();
+
+        if (error) {
+          console.warn(`Session refresh attempt ${attempt} failed:`, error);
+
+          if (attempt < maxRetries) {
+            console.log(`Waiting ${retryDelay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            continue;
+          }
+
+          return false;
+        }
+
+        if (data?.session) {
+          console.log('Session refreshed successfully');
+
+          // Verify the refreshed session
+          const isValid = await this.checkSession();
+          if (isValid) {
+            return true;
+          } else {
+            console.warn('Refreshed session failed validation');
+          }
+        }
+
+      } catch (error) {
+        console.error(`Critical error in refresh attempt ${attempt}:`, error);
+
+        if (attempt < maxRetries) {
+          console.log(`Waiting ${retryDelay}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+    }
+
+    console.error('All session refresh attempts failed');
+    return false;
+  },
+
+  /**
+   * Force refresh session with multiple strategies
+   */
+  async forceRefreshSession(): Promise<boolean> {
+    try {
+      console.log('Attempting force session refresh...');
+
+      // Strategy 1: Normal refresh
+      const normalRefresh = await this.refreshSession();
+      if (normalRefresh) {
+        return true;
+      }
+
+      console.log('Normal refresh failed, trying alternative strategies...');
+
+      // Strategy 2: Get current session and reset it
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token && session?.refresh_token) {
+        const { error: resetError } = await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        });
+
+        if (!resetError) {
+          console.log('Session reset successfully');
+          return true;
+        }
+      }
+
+      console.log('All force refresh strategies failed');
+      return false;
+
+    } catch (error) {
+      console.error('Force refresh failed:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Extend session duration (best effort)
    */
   async extendSession(): Promise<boolean> {
     try {
@@ -85,8 +194,9 @@ export const sessionManager: SessionManager = {
       }
 
       const result = await response.json();
-      console.log('Session extended successfully:', result);
+      console.log('Session extension completed:', result);
       return true;
+
     } catch (error) {
       console.error('Error extending session:', error);
       return false;
@@ -94,25 +204,34 @@ export const sessionManager: SessionManager = {
   },
 
   /**
-   * Get session information including expiration
+   * Get session information with comprehensive validation
    */
   async getSessionInfo(): Promise<{ valid: boolean; expiresAt: Date | null; timeUntilExpiry: number }> {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
 
       if (error || !session) {
+        console.warn('No session available for info');
         return { valid: false, expiresAt: null, timeUntilExpiry: 0 };
       }
 
       const now = new Date();
       const expiresAt = new Date(session.expires_at! * 1000);
       const timeUntilExpiry = expiresAt.getTime() - now.getTime();
+      const isValid = now < expiresAt;
+
+      console.log('Session info:', {
+        valid: isValid,
+        expiresAt: expiresAt.toISOString(),
+        timeUntilExpiry: Math.round(timeUntilExpiry / (1000 * 60)) + ' minutes'
+      });
 
       return {
-        valid: now < expiresAt,
+        valid: isValid,
         expiresAt,
         timeUntilExpiry
       };
+
     } catch (error) {
       console.error('Error getting session info:', error);
       return { valid: false, expiresAt: null, timeUntilExpiry: 0 };

@@ -331,8 +331,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Start periodic session maintenance (every 30 minutes)
       sessionMaintenance.start(30);
 
-      // Also setup user activity listener
-      const handleUserActivity = () => {
+      // Enhanced user activity listener with mobile optimization
+      const handleUserActivity = (event: Event) => {
         // Debounced activity handler
         if (window.activityTimeout) {
           clearTimeout(window.activityTimeout);
@@ -340,19 +340,105 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         window.activityTimeout = setTimeout(async () => {
           try {
-            await sessionManager.refreshSession();
-            console.log('Session refreshed due to user activity');
+            // Check if session needs refresh before attempting
+            const sessionInfo = await sessionManager.getSessionInfo();
+
+            // Only refresh if session is valid but expires within 30 minutes
+            const thirtyMinutes = 30 * 60 * 1000;
+            if (sessionInfo.valid && sessionInfo.timeUntilExpiry < thirtyMinutes) {
+              const refreshed = await sessionManager.refreshSession();
+              if (refreshed) {
+                console.log('Session refreshed due to user activity');
+              } else {
+                console.warn('Activity-based session refresh failed, trying force refresh');
+                await sessionManager.forceRefreshSession();
+              }
+            }
           } catch (error) {
             console.error('Activity-based session refresh failed:', error);
           }
-        }, 5000); // Wait 5 seconds after last activity
+        }, 3000); // Reduced to 3 seconds for better responsiveness
+
+        // Additional mobile-specific handling
+        if (event.type === 'touchstart' || event.type === 'scroll') {
+          // Mobile devices need more frequent checks due to different behavior
+          const immediateCheck = async () => {
+            try {
+              const isSessionValid = await sessionManager.checkSession();
+              if (!isSessionValid) {
+                console.warn('Mobile activity detected invalid session, attempting refresh...');
+                await sessionManager.forceRefreshSession();
+              }
+            } catch (error) {
+              console.error('Mobile immediate session check failed:', error);
+            }
+          };
+
+          // Run immediate check with a small delay
+          setTimeout(immediateCheck, 100);
+        }
       };
 
-      // Listen for various user activities
-      const events = ['mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
+      // Enhanced event listeners for better mobile/tablet support
+      const events = [
+        // Desktop events
+        'mousedown', 'keypress', 'click', 'keydown', 'keyup',
+        // Mobile/tablet events
+        'touchstart', 'touchend', 'touchmove', 'scroll',
+        // Common events
+        'focus', 'blur', 'resize', 'visibilitychange'
+      ];
+
       events.forEach(event => {
-        document.addEventListener(event, handleUserActivity, true);
+        // Use capture phase for better responsiveness
+        document.addEventListener(event, handleUserActivity, {
+          capture: true,
+          passive: true // Better performance for scroll/touch events
+        });
       });
+
+      // Additional mobile-specific listeners
+      if ('ontouchstart' in window) {
+        // Mobile device detected
+        console.log('Mobile device detected, enabling enhanced session handling');
+
+        // Handle orientation changes which can affect session
+        const handleOrientationChange = async () => {
+          try {
+            await new Promise(resolve => setTimeout(resolve, 500)); // Wait for orientation change to complete
+            const isSessionValid = await sessionManager.checkSession();
+            if (!isSessionValid) {
+              await sessionManager.forceRefreshSession();
+            }
+          } catch (error) {
+            console.error('Orientation change session check failed:', error);
+          }
+        };
+
+        window.addEventListener('orientationchange', handleOrientationChange);
+
+        // Store orientation change handler for cleanup
+        (window as any).orientationChangeHandler = handleOrientationChange;
+      }
+
+      // Handle page visibility changes (mobile app switching)
+      const handleVisibilityChange = async () => {
+        if (document.visibilityState === 'visible') {
+          // Page became visible, check session
+          try {
+            console.log('Page became visible, checking session...');
+            const isSessionValid = await sessionManager.checkSession();
+            if (!isSessionValid) {
+              console.warn('Session invalid when page became visible, attempting refresh...');
+              await sessionManager.forceRefreshSession();
+            }
+          } catch (error) {
+            console.error('Visibility change session check failed:', error);
+          }
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
 
       // Cleanup function
       return () => {
@@ -362,6 +448,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         events.forEach(event => {
           document.removeEventListener(event, handleUserActivity, true);
         });
+
+        // Cleanup mobile-specific listeners
+        if ((window as any).orientationChangeHandler) {
+          window.removeEventListener('orientationchange', (window as any).orientationChangeHandler);
+        }
+
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
 
         if (window.activityTimeout) {
           clearTimeout(window.activityTimeout);
