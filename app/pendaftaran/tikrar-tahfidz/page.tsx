@@ -474,13 +474,23 @@ function TikrarTahfidzPage() {
     try {
       // Re-get session to ensure we have the latest data
       const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+      // Also fetch user profile data to get complete information
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser?.id || currentSession?.user?.id)
+        .single();
+
       const currentUser = {
         id: authUser?.id || currentSession?.user?.id || '',
         email: authUser?.email || currentSession?.user?.email || '',
         full_name: authUser?.full_name ||
                    currentSession?.user?.user_metadata?.full_name ||
                    currentSession?.user?.user_metadata?.name ||
-                   currentSession?.user?.email?.split('@')[0] || ''
+                   currentSession?.user?.email?.split('@')[0] || '',
+        // Additional profile data
+        ...userProfile
       };
 
       console.log('Final user for submission:', currentUser);
