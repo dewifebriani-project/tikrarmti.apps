@@ -94,6 +94,37 @@ export const getCachedBatchInfo = (): BatchInfo | null => {
   return null;
 };
 
+// Helper function to build UserProfile from database row
+const buildUserProfile = (data: any): UserProfile => {
+  // Calculate age
+  let age = 0;
+  if (data?.tanggal_lahir) {
+    const birthDate = new Date(data.tanggal_lahir);
+    const today = new Date();
+    age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+  }
+
+  return {
+    id: data.id,
+    full_name: data.full_name || '',
+    email: data.email || '',
+    whatsapp: data.whatsapp || '',
+    telegram: data.telegram || '',
+    alamat: data.alamat || '',
+    zona_waktu: data.zona_waktu || '',
+    tanggal_lahir: data.tanggal_lahir || null,
+    kota: data.kota || '',
+    tempat_lahir: data.tempat_lahir || '',
+    negara: data.negara || '',
+    provinsi: data.provinsi || '',
+    age: age.toString()
+  };
+};
+
 // Direct Supabase fetcher - bypass API endpoint
 export const fetchUserProfileDirect = async (userId: string): Promise<UserProfile | null> => {
   console.log('[fetchUserProfileDirect] Starting direct Supabase fetch for userId:', userId);
@@ -115,8 +146,41 @@ export const fetchUserProfileDirect = async (userId: string): Promise<UserProfil
       return null;
     }
 
+    // If no user data, try to create from auth.users
     if (!data) {
-      console.warn('[fetchUserProfileDirect] No user data found for userId:', userId);
+      console.warn('[fetchUserProfileDirect] No user data found, attempting to create from auth data...');
+
+      // Get user from auth
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (authUser && authUser.id === userId) {
+        console.log('[fetchUserProfileDirect] Creating user profile from auth data');
+
+        // Insert minimal profile from auth data
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email || '',
+            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+            role: 'calon_thalibah'
+          })
+          .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
+          .single();
+
+        if (insertError) {
+          console.error('[fetchUserProfileDirect] Error creating user profile:', insertError);
+          return null;
+        }
+
+        if (newUser) {
+          console.log('[fetchUserProfileDirect] User profile created successfully');
+          // Use the newly created user data
+          return buildUserProfile(newUser);
+        }
+      }
+
+      console.warn('[fetchUserProfileDirect] Could not create user profile');
       return null;
     }
 
@@ -127,33 +191,8 @@ export const fetchUserProfileDirect = async (userId: string): Promise<UserProfil
       hasWhatsapp: !!data.whatsapp
     });
 
-    // Calculate age
-    let age = 0;
-    if (data?.tanggal_lahir) {
-      const birthDate = new Date(data.tanggal_lahir);
-      const today = new Date();
-      age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-    }
-
-    const userProfile: UserProfile = {
-      id: data.id,
-      full_name: data.full_name || '',
-      email: data.email || '',
-      whatsapp: data.whatsapp || '',
-      telegram: data.telegram || '',
-      alamat: data.alamat || '',
-      zona_waktu: data.zona_waktu || '',
-      tanggal_lahir: data.tanggal_lahir || null,
-      kota: data.kota || '',
-      tempat_lahir: data.tempat_lahir || '',
-      negara: data.negara || '',
-      provinsi: data.provinsi || '',
-      age: age.toString()
-    };
+    // Build user profile using helper
+    const userProfile = buildUserProfile(data);
 
     // Cache with timestamp
     const cacheData = {
