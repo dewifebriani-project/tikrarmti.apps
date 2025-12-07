@@ -128,7 +128,7 @@ SELECT
     u.tanggal_lahir as user_tanggal_lahir,
     -- Use batch_name from pendaftaran table instead
     -- Note: batch details would need to be joined from batches/programs tables if they exist
-    pr.program_name
+    pr.name as program_name
 FROM pendaftaran_tikrar_tahfidz p
 LEFT JOIN users u ON p.user_id = u.id
 LEFT JOIN programs pr ON p.program_id = pr.id;
