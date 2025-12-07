@@ -35,6 +35,7 @@ export default function LengkapiProfilPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [formData, setFormData] = useState({
+    email: '',
     full_name: '',
     whatsapp: '',
     telegram: '',
@@ -46,9 +47,12 @@ export default function LengkapiProfilPage() {
     tempat_lahir: '',
     jenis_kelamin: '',
     pekerjaan: '',
+    newPassword: '',
+    confirmNewPassword: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
 
   useEffect(() => {
     const getUserProfile = async () => {
@@ -73,6 +77,7 @@ export default function LengkapiProfilPage() {
           console.log('User data fetched:', userData);
           setUserProfile(userData);
           setFormData({
+            email: authUser.email || '',
             full_name: (userData as any).full_name || '',
             whatsapp: (userData as any).whatsapp || '',
             telegram: (userData as any).telegram || '',
@@ -84,6 +89,8 @@ export default function LengkapiProfilPage() {
             tempat_lahir: (userData as any).tempat_lahir || '',
             jenis_kelamin: (userData as any).jenis_kelamin || '',
             pekerjaan: (userData as any).pekerjaan || '',
+            newPassword: '',
+            confirmNewPassword: '',
           });
         } else {
           console.log('No user data found');
@@ -112,7 +119,22 @@ export default function LengkapiProfilPage() {
       return;
     }
 
+    // Validasi password jika ingin mengganti
+    if (showPasswordFields && formData.newPassword) {
+      if (formData.newPassword.length < 6) {
+        setError('Password baru minimal 6 karakter');
+        setIsLoading(false);
+        return;
+      }
+      if (formData.newPassword !== formData.confirmNewPassword) {
+        setError('Password baru dan konfirmasi password tidak cocok');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
+      // Update user profile
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({
@@ -132,6 +154,15 @@ export default function LengkapiProfilPage() {
         .eq('id', authUser?.id);
 
       if (updateError) throw updateError;
+
+      // Update password if provided
+      if (showPasswordFields && formData.newPassword) {
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: formData.newPassword
+        });
+
+        if (passwordError) throw passwordError;
+      }
 
       setSuccess('Profil berhasil diperbarui!');
 
@@ -156,15 +187,15 @@ export default function LengkapiProfilPage() {
 
   return (
     <AuthenticatedLayout title="Edit Profil">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 sm:px-0">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl text-green-900">Edit Profil</CardTitle>
-            <CardDescription>
+          <CardHeader className="px-4 sm:px-8 pt-6 sm:pt-8">
+            <CardTitle className="text-xl sm:text-2xl text-green-900">Edit Profil</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               Perbarui informasi profil Ukhti. Field yang ditandai (*) wajib diisi.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-8">
             {isLoading && (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
@@ -191,7 +222,26 @@ export default function LengkapiProfilPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Data Pribadi</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="email" className="text-sm sm:text-base">
+                      Email/Username <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative mt-1">
+                      <User className="absolute left-3 top-3 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="Email/Username"
+                        value={formData.email}
+                        disabled
+                        className="pl-10 bg-gray-50 text-base"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Email tidak dapat diubah</p>
+                  </div>
+
                   <div>
                     <Label htmlFor="full_name">
                       Nama Lengkap <span className="text-red-500">*</span>
@@ -394,6 +444,58 @@ export default function LengkapiProfilPage() {
                     </Select>
                   </div>
                 </div>
+              </div>
+
+              {/* Ubah Password */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Keamanan</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPasswordFields(!showPasswordFields)}
+                  >
+                    {showPasswordFields ? 'Batal' : 'Ubah Password'}
+                  </Button>
+                </div>
+
+                {showPasswordFields && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <Label htmlFor="newPassword">
+                        Password Baru <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          placeholder="Minimal 6 karakter"
+                          value={formData.newPassword}
+                          onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                          className="pr-10"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Minimal 6 karakter</p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="confirmNewPassword">
+                        Konfirmasi Password Baru <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="confirmNewPassword"
+                          type="password"
+                          placeholder="Ulangi password baru"
+                          value={formData.confirmNewPassword}
+                          onChange={(e) => setFormData({ ...formData, confirmNewPassword: e.target.value })}
+                          className="pr-10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4">

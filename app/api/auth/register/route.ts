@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
 
     const {
       email,
+      password,
       full_name,
       negara,
       provinsi,
@@ -59,9 +60,17 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validation - semua field wajib (kecuali provinsi untuk non-Indonesia)
-    if (!email || !full_name || !negara || !kota || !alamat || !whatsapp || !telegram || !zona_waktu || !tanggal_lahir || !tempat_lahir || !jenis_kelamin || !pekerjaan || !alasan_daftar) {
+    if (!email || !password || !full_name || !negara || !kota || !alamat || !whatsapp || !telegram || !zona_waktu || !tanggal_lahir || !tempat_lahir || !jenis_kelamin || !pekerjaan || !alasan_daftar) {
       return NextResponse.json(
         { message: 'Semua field wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      return NextResponse.json(
+        { message: 'Password minimal 6 karakter' },
         { status: 400 }
       );
     }
@@ -126,7 +135,22 @@ export async function POST(request: NextRequest) {
     // Initialize Supabase client
     const supabase = createServerClient();
 
-    // Check if email already exists
+    // Check if email already exists in auth system using signUp check
+    const { data: authCheckData, error: authCheckError } = await supabase.auth.signInWithPassword({
+      email: body.email,
+      password: 'dummy-password-check'
+    });
+
+    // If there's no error about invalid credentials, user might exist
+    if (authCheckError && !authCheckError.message.includes('Invalid login credentials')) {
+      // User exists in auth system
+      return NextResponse.json(
+        { message: 'Email sudah terdaftar. Silakan login.' },
+        { status: 409 }
+      );
+    }
+
+    // Check if email already exists in users table
     const { data: existingUser, error: checkError } = await supabase
       .from('users')
       .select('email, full_name, negara, provinsi, kota, alamat, whatsapp, zona_waktu, role')
@@ -160,6 +184,28 @@ export async function POST(request: NextRequest) {
     }
 
     let newUser;
+    let authUser;
+
+    // Create user in Supabase Auth
+    const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
+      email: body.email,
+      password: body.password,
+      email_confirm: true, // Auto-confirm email for simplicity
+      user_metadata: {
+        full_name: body.full_name,
+        role: body.role
+      }
+    });
+
+    if (signUpError) {
+      console.error('Sign up error:', signUpError);
+      return NextResponse.json(
+        { message: 'Gagal membuat akun: ' + signUpError.message },
+        { status: 400 }
+      );
+    }
+
+    authUser = signUpData.user;
 
     if (existingUser) {
       // Update existing incomplete user profile
@@ -188,6 +234,8 @@ export async function POST(request: NextRequest) {
 
       if (updateError) {
         console.error('Update error:', updateError);
+        // Clean up auth user if profile update fails
+        await supabase.auth.admin.deleteUser(authUser.id);
         return NextResponse.json(
           { message: 'Gagal memperbarui data pengguna' },
           { status: 500 }
@@ -201,6 +249,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .insert([
           {
+            id: authUser.id, // Use auth user ID
             email: body.email,
             full_name: body.full_name,
             negara: body.negara,
@@ -224,6 +273,8 @@ export async function POST(request: NextRequest) {
 
       if (insertError) {
         console.error('Insert error:', insertError);
+        // Clean up auth user if profile insert fails
+        await supabase.auth.admin.deleteUser(authUser.id);
         return NextResponse.json(
           { message: 'Gagal mendaftarkan pengguna baru' },
           { status: 500 }

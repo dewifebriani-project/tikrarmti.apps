@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Crown, Heart, ArrowRight, CheckCircle } from "lucide-react";
 
 const negaraList = [
@@ -53,10 +53,11 @@ const zonaWaktuList = [
 
 function RegisterPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     namaLengkap: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     negara: '',
     provinsi: '',
     kota: '',
@@ -74,23 +75,6 @@ function RegisterPageContent() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [fromGoogle, setFromGoogle] = useState(false);
-
-  useEffect(() => {
-    // Check if coming from Google OAuth
-    const email = searchParams.get('email');
-    const full_name = searchParams.get('full_name');
-    const avatar_url = searchParams.get('avatar_url');
-
-    if (email) {
-      setFromGoogle(true);
-      setFormData(prev => ({
-        ...prev,
-        email: email || prev.email,
-        namaLengkap: full_name || prev.namaLengkap
-      }));
-    }
-  }, [searchParams]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -110,6 +94,18 @@ function RegisterPageContent() {
       newErrors.email = 'Email harus diisi';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Format email tidak valid';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password harus diisi';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password minimal 6 karakter';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Konfirmasi password harus diisi';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Password tidak cocok';
     }
 
     if (!formData.negara) {
@@ -197,6 +193,7 @@ function RegisterPageContent() {
         },
         body: JSON.stringify({
           email: formData.email,
+          password: formData.password,
           full_name: formData.namaLengkap,
           negara: formData.negara,
           provinsi: formData.negara === 'Indonesia' ? formData.provinsi : null,
@@ -234,11 +231,11 @@ function RegisterPageContent() {
     <div className="min-h-screen bg-white">
       {/* Minimal Background Elements */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-green-900/5 rounded-full opacity-20 blur-3xl"></div>
-        <div className="absolute bottom-20 right-20 w-40 h-40 bg-yellow-500/5 rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute top-10 left-5 sm:top-20 sm:left-10 w-24 h-24 sm:w-32 sm:h-32 bg-green-900/5 rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute bottom-10 right-5 sm:bottom-20 sm:right-20 w-32 h-32 sm:w-40 sm:h-40 bg-yellow-500/5 rounded-full opacity-20 blur-3xl"></div>
       </div>
 
-      <div className="container mx-auto px-4 py-12 max-w-2xl">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-2xl lg:max-w-3xl xl:max-w-4xl">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -247,17 +244,17 @@ function RegisterPageContent() {
               alt="Tikrar MTI Apps"
               width={64}
               height={64}
-              className="object-contain"
+              className="object-contain w-12 h-12 sm:w-16 sm:h-16"
               priority
             />
           </div>
-          <h1 className="text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
-          <p className="text-gray-600">Bergabung dengan program Tahfidz Al-Qur'an MTI</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Bergabung dengan program Tahfidz Al-Qur'an MTI</p>
         </div>
 
         {/* Registration Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <Card className="p-6">
+          <Card className="p-4 sm:p-6">
             <h2 className="text-xl font-semibold mb-4 text-gray-800">Data Diri</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -276,7 +273,7 @@ function RegisterPageContent() {
               </div>
 
               <div>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Email/Username *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -287,6 +284,36 @@ function RegisterPageContent() {
                 />
                 {errors.email && (
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="password">Password *</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="mt-1 text-base"
+                  placeholder="Minimal 6 karakter"
+                />
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="confirmPassword">Konfirmasi Password *</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  className="mt-1 text-base"
+                  placeholder="Ulangi password"
+                />
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
                 )}
               </div>
 
@@ -389,7 +416,7 @@ function RegisterPageContent() {
                 id="alamat"
                 value={formData.alamat}
                 onChange={(e) => handleInputChange('alamat', e.target.value)}
-                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-base resize-none"
                 rows={3}
                 placeholder="Masukkan alamat lengkap"
               />

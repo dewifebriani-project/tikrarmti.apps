@@ -99,6 +99,39 @@
   input, textarea, select {
     font-size: 16px;
   }
+
+  /* Cross-platform touch optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    button, a, [role="button"] {
+      min-block-size: 44px;
+      min-inline-size: 44px;
+    }
+
+    .checkbox {
+      min-inline-size: 24px;
+      min-block-size: 24px;
+    }
+  }
+
+  /* Ensure consistent input sizing across platforms */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  textarea,
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0.375rem;
+  }
+
+  /* Mobile viewport height fix */
+  @supports (-webkit-touch-callout: none) {
+    .h-screen {
+      block-size: -webkit-fill-available;
+    }
+  }
 }
 
 
