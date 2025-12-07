@@ -330,9 +330,10 @@ function TikrarTahfidzPage() {
           setTimeout(fallbackScroll, 500)
 
           // Try to focus the element or its first input
-          const focusableElement = element.querySelector('input, button, select, textarea') || element
-          if (focusableElement && typeof focusableElement.focus === 'function') {
-            focusableElement.focus()
+          const focusableElement = element.querySelector('input, button, select, textarea') as HTMLElement | null
+          const elToFocus = focusableElement || element as HTMLElement
+          if (elToFocus && typeof elToFocus.focus === 'function') {
+            elToFocus.focus()
           }
         }, 100)
       }
