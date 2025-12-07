@@ -840,17 +840,17 @@ Silakan:
           <RadioGroup
             value={formData.understands_commitment ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('understands_commitment', value === "yes")}
-            className="space-y-3"
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-2 md:space-x-4 p-3 md:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-1 w-4 h-4 md:w-5 md:h-5" />
-              <Label htmlFor="understands_commitment_yes" className="text-sm md:text-base font-medium text-gray-700 cursor-pointer flex-1 leading-tight">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="understands_commitment_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.
               </Label>
             </div>
-            <div className="flex items-start space-x-2 md:space-x-4 p-3 md:p-4 border-2 rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer hover:border-red-300">
-              <RadioGroupItem value="no" id="understands_commitment_no" className="mt-1 w-4 h-4 md:w-5 md:h-5" />
-              <Label htmlFor="understands_commitment_no" className="text-sm md:text-base font-medium text-gray-700 cursor-pointer flex-1 leading-tight">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="no" id="understands_commitment_no" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="understands_commitment_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Belum, saya perlu waktu untuk mempertimbangkan kembali.
               </Label>
             </div>
@@ -875,17 +875,17 @@ Silakan:
           <RadioGroup
             value={formData.tried_simulation ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('tried_simulation', value === "yes")}
-            className="space-y-3"
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="tried_simulation_yes" className="mt-1 w-5 h-5" />
-              <Label htmlFor="tried_simulation_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="yes" id="tried_simulation_yes" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="tried_simulation_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
               </Label>
             </div>
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer hover:border-red-300">
-              <RadioGroupItem value="no" id="tried_simulation_no" className="mt-1 w-5 h-5" />
-              <Label htmlFor="tried_simulation_no" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="no" id="tried_simulation_no" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="tried_simulation_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Belum, saya akan mencoba terlebih dahulu.
               </Label>
             </div>
@@ -905,17 +905,17 @@ Silakan:
           <RadioGroup
             value={formData.no_negotiation ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('no_negotiation', value === "yes")}
-            className="space-y-3"
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="no_negotiation_yes" className="mt-1 w-5 h-5" />
-              <Label htmlFor="no_negotiation_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="yes" id="no_negotiation_yes" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="no_negotiation_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
               </Label>
             </div>
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer hover:border-red-300">
-              <RadioGroupItem value="no" id="no_negotiation_no" className="mt-1 w-5 h-5" />
-              <Label htmlFor="no_negotiation_no" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="no" id="no_negotiation_no" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="no_negotiation_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Saya masih perlu pertimbangan.
               </Label>
             </div>
@@ -935,11 +935,11 @@ Silakan:
           <RadioGroup
             value={formData.has_telegram ? "yes" : ""}
             onValueChange={(value) => handleInputChange('has_telegram', value === "yes")}
-            className="space-y-3"
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="has_telegram_yes" className="mt-1 w-5 h-5" />
-              <Label htmlFor="has_telegram_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="yes" id="has_telegram_yes" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="has_telegram_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah saya sudah download telegram di hp saya
               </Label>
             </div>
@@ -957,11 +957,11 @@ Silakan:
           <RadioGroup
             value={formData.saved_contact ? "yes" : ""}
             onValueChange={(value) => handleInputChange('saved_contact', value === "yes")}
-            className="space-y-3"
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="saved_contact_yes" className="mt-1 w-5 h-5" />
-              <Label htmlFor="saved_contact_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="yes" id="saved_contact_yes" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="saved_contact_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara
               </Label>
             </div>
@@ -971,109 +971,7 @@ Silakan:
           )}
         </div>
 
-        {/* Batch Information Card - Only shown in Section 1 */}
-        {batchInfo && (
-          <Card className="mt-6 border-2 border-green-200 shadow-md overflow-hidden">
-            <CardContent className="p-3 md:p-6">
-              <h2 className="text-lg md:text-2xl font-bold text-green-900 mb-3 md:mb-4">Informasi {batchInfo.batch_name}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-                {/* Total Pendaftar */}
-                <div className="text-center p-2 md:p-4 bg-blue-50 rounded-lg">
-                  <Users className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-blue-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Total Pendaftar</p>
-                  <p className="text-lg md:text-2xl font-bold text-blue-900">
-                    {batchInfo.registered_count}/{batchInfo.total_quota} Peserta
-                  </p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    {((batchInfo.registered_count / batchInfo.total_quota) * 100).toFixed(0)}% Terisi
-                  </p>
-                </div>
-
-                {/* Biaya */}
-                <div className="text-center p-2 md:p-4 bg-green-50 rounded-lg">
-                  <Award className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-green-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Biaya Program</p>
-                  {batchInfo.is_free ? (
-                    <>
-                      <p className="text-lg md:text-2xl font-bold text-green-900">GRATIS</p>
-                      <p className="text-xs text-green-700 mt-1">Program Beasiswa</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-lg md:text-2xl font-bold text-green-900">
-                        Rp {batchInfo.price.toLocaleString('id-ID')}
-                      </p>
-                      <p className="text-xs text-green-700 mt-1">Per Bulan</p>
-                    </>
-                  )}
-                </div>
-
-                {/* Durasi */}
-                <div className="text-center p-2 md:p-4 bg-purple-50 rounded-lg">
-                  <Clock className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-purple-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Durasi</p>
-                  <p className="text-lg md:text-2xl font-bold text-purple-900">
-                    {Math.ceil(batchInfo.duration_weeks / 4)} Bulan
-                  </p>
-                  <p className="text-xs text-purple-700 mt-1">
-                    {batchInfo.duration_weeks} Pekan
-                  </p>
-                </div>
-
-                {/* Kuota Tersedia */}
-                <div className="text-center p-2 md:p-4 bg-orange-50 rounded-lg">
-                  <Calendar className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-orange-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Kuota Tersedia</p>
-                  <p className="text-lg md:text-2xl font-bold text-orange-900">
-                    {batchInfo.scholarship_quota} lagi
-                  </p>
-                  <p className="text-xs text-orange-700 mt-1">
-                    Dari {batchInfo.total_quota} Kuota
-                  </p>
-                </div>
-              </div>
-
-              {/* Tanggal Program di bawah */}
-              <div className="mt-3 md:mt-4 p-3 md:p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-2 md:gap-4 text-center">
-                  <div>
-                    <p className="text-xs md:text-sm text-gray-600">Tanggal Mulai</p>
-                    <p className="text-sm md:text-lg font-semibold text-gray-900">
-                      {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs md:text-sm text-gray-600">Tanggal Selesai</p>
-                    <p className="text-sm md:text-lg font-semibold text-gray-900">
-                      {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Badge Pendaftaran Dibuka */}
-                <div className="mt-3 flex justify-center">
-                  <div className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-full shadow-md">
-                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                    <span className="text-xs md:text-sm font-semibold">Pendaftaran Dibuka</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-3 md:mt-4">
-                <div className="flex justify-between text-xs md:text-sm text-gray-600 mb-1">
-                  <span>Pendaftar Terisi</span>
-                  <span>{(batchInfo.registered_count / batchInfo.total_quota * 100).toFixed(0)}%</span>
-                </div>
-                <Progress
-                  value={batchInfo.registered_count / batchInfo.total_quota * 100}
-                  className="h-2"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+        </div>
     </div>
   )
 
@@ -1098,17 +996,17 @@ Silakan:
           <RadioGroup
             value={formData.has_permission}
             onValueChange={(value) => handleInputChange('has_permission', value as 'yes' | 'janda' | '')}
-            className="space-y-3"
+            className="space-y-2"
           >
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="has_permission_yes" className="mt-1 w-5 h-5" />
-              <Label htmlFor="has_permission_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="yes" id="has_permission_yes" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="has_permission_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah (ini jawaban saya sejujur-jujurnya yang akan saya pertanggungjawabkan di akhirat nanti)
               </Label>
             </div>
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="janda" id="has_permission_janda" className="mt-1 w-5 h-5" />
-              <Label htmlFor="has_permission_janda" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
+              <RadioGroupItem value="janda" id="has_permission_janda" className="mt-0.5 w-4 h-4" />
+              <Label htmlFor="has_permission_janda" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Saya seorang janda yang mandiri, tidak terikat, tidak perlu persetujuan siapapun dan mengikuti program ini tidak akan mempengaruhi siapapun.
               </Label>
             </div>
@@ -1225,10 +1123,10 @@ Silakan:
           <RadioGroup
             value={formData.no_travel_plans ? "yes" : ""}
             onValueChange={(value) => handleInputChange('no_travel_plans', value === "yes")}
-            className="space-y-3"
+            className="space-y-2"
           >
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <RadioGroupItem value="yes" id="no_travel_plans_yes" className="mt-1" />
+              <RadioGroupItem value="yes" id="no_travel_plans_yes" className="mt-0.5 w-4 h-4" />
               <Label htmlFor="no_travel_plans_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 InsyaAllah saya tidak ada rencana safar, kalaupun tiba-tiba safar saya akan bertanggungjawab memprioritaskan waktu untuk memenuhi kewajiban setoran kepada pasangan
               </Label>
@@ -1262,17 +1160,17 @@ Silakan:
             Apakah Ukhti siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?
             <span className="text-red-500">*</span>
           </Label>
-          <RadioGroup value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-3">
+          <RadioGroup value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-2">
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <RadioGroupItem value="ready" id="ready" className="mt-1" />
+              <RadioGroupItem value="ready" id="ready" className="mt-0.5 w-4 h-4" />
               <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 InsyaAllah siapppp → Jawaban ini kami catat sebagai akad
               </Label>
             </div>
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <RadioGroupItem value="infaq" id="infaq" className="mt-1" />
+              <RadioGroupItem value="infaq" id="infaq" className="mt-0.5 w-4 h-4" />
               <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan infaq sesuai dengan kemampuan saya dan bersedia dimasukkan ke group donatur MTI  
+                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan infaq sesuai dengan kemampuan saya dan bersedia dimasukkan ke group donatur MTI
               </Label>
             </div>
           </RadioGroup>
@@ -1525,9 +1423,10 @@ Silakan:
               <div className="mt-4">
                 <Button
                   onClick={() => router.push('/perjalanan-saya')}
-                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                  className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto min-w-0"
                 >
-                  Lihat Perjalanan Saya (My Journeys) →
+                  <span className="hidden sm:inline">Lihat Perjalanan Saya (My Journeys) →</span>
+                  <span className="sm:hidden">Perjalanan Saya →</span>
                 </Button>
               </div>
             </AlertDescription>
@@ -1638,112 +1537,7 @@ Silakan:
           </div>
         </div>
 
-        {/* Batch Information Card */}
-        {batchInfo && (
-          <Card className="mb-6 border-2 border-green-200 shadow-md overflow-hidden">
-            <CardContent className="p-3 md:p-6">
-              <h2 className="text-lg md:text-2xl font-bold text-green-900 mb-3 md:mb-4">Informasi {batchInfo.batch_name}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-                {/* Total Pendaftar */}
-                <div className="text-center p-2 md:p-4 bg-blue-50 rounded-lg">
-                  <Users className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-blue-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Total Pendaftar</p>
-                  <p className="text-lg md:text-2xl font-bold text-blue-900">
-                    {batchInfo.registered_count}/{batchInfo.total_quota} Peserta
-                  </p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    {((batchInfo.registered_count / batchInfo.total_quota) * 100).toFixed(0)}% Terisi
-                  </p>
-                </div>
-
-                {/* Biaya */}
-                <div className="text-center p-2 md:p-4 bg-green-50 rounded-lg">
-                  <Award className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-green-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Biaya Program</p>
-                  {batchInfo.is_free ? (
-                    <>
-                      <p className="text-lg md:text-2xl font-bold text-green-900">GRATIS</p>
-                      <p className="text-xs text-green-700 mt-1">Program Beasiswa</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-lg md:text-2xl font-bold text-green-900">
-                        Rp {batchInfo.price.toLocaleString('id-ID')}
-                      </p>
-                      <p className="text-xs text-green-700 mt-1">Per Bulan</p>
-                    </>
-                  )}
-                </div>
-
-                {/* Durasi */}
-                <div className="text-center p-2 md:p-4 bg-purple-50 rounded-lg">
-                  <Clock className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-purple-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Durasi</p>
-                  <p className="text-lg md:text-2xl font-bold text-purple-900">
-                    {Math.ceil(batchInfo.duration_weeks / 4)} Bulan
-                  </p>
-                  <p className="text-xs text-purple-700 mt-1">
-                    {batchInfo.duration_weeks} Pekan
-                  </p>
-                </div>
-
-                {/* Kuota Tersedia */}
-                <div className="text-center p-2 md:p-4 bg-orange-50 rounded-lg">
-                  <Calendar className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-1 md:mb-2 text-orange-600" />
-                  <p className="text-xs md:text-sm text-gray-600">Kuota Tersedia</p>
-                  <p className="text-lg md:text-2xl font-bold text-orange-900">
-                    {batchInfo.scholarship_quota} lagi
-                  </p>
-                  <p className="text-xs text-orange-700 mt-1">
-                    Dari {batchInfo.total_quota} Kuota
-                  </p>
-                </div>
-              </div>
-
-              {/* Tanggal Program di bawah */}
-              <div className="mt-3 md:mt-4 p-3 md:p-4 bg-gray-50 rounded-lg">
-                <div className="grid grid-cols-2 gap-2 md:gap-4 text-center">
-                  <div>
-                    <p className="text-xs md:text-sm text-gray-600">Tanggal Mulai</p>
-                    <p className="text-sm md:text-lg font-semibold text-gray-900">
-                      {new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs md:text-sm text-gray-600">Tanggal Selesai</p>
-                    <p className="text-sm md:text-lg font-semibold text-gray-900">
-                      {new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Badge Pendaftaran Dibuka */}
-                <div className="mt-3 flex justify-center">
-                  <div className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-full shadow-md">
-                    <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                    <span className="text-xs md:text-sm font-semibold">Pendaftaran Dibuka</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-3 md:mt-4">
-                <div className="flex justify-between text-xs md:text-sm text-gray-600 mb-1">
-                  <span>Pendaftar Terisi</span>
-                  <span>{(batchInfo.registered_count / batchInfo.total_quota * 100).toFixed(0)}%</span>
-                </div>
-                <Progress
-                  value={batchInfo.registered_count / batchInfo.total_quota * 100}
-                  className="h-2"
-                />
-                <p className="text-xs text-gray-500 mt-1 text-center">
-                  {batchInfo.registered_count} dari {batchInfo.total_quota} kuota terisi ({batchInfo.scholarship_quota} tersedia)
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
+  
         <Card className="shadow-lg border-green-100 overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
             <div className="flex justify-between items-center">
