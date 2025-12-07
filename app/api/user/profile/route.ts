@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,6 +13,19 @@ export async function GET(request: NextRequest) {
       console.error('[API /user/profile] No userId provided');
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
+
+    // Create Supabase client with user's session (RLS-compliant)
+    const supabase = createRouteHandlerClient({ cookies })
+
+    // Verify user is authenticated
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      console.error('[API /user/profile] No valid session');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    console.log('[API /user/profile] Authenticated user:', session.user.id);
 
     // Check if mobile for optimization
     const userAgent = request.headers.get('user-agent') || ''
@@ -37,7 +46,8 @@ export async function GET(request: NextRequest) {
       console.error('[API /user/profile] Supabase error:', error);
       return NextResponse.json({
         error: 'Failed to fetch user profile',
-        details: error.message
+        details: error.message,
+        code: error.code
       }, { status: 500 })
     }
 
