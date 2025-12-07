@@ -630,9 +630,15 @@ function TikrarTahfidzPage() {
         return
       }
 
+      // Get provider from session metadata
+      const provider = finalSession?.user?.app_metadata?.provider ||
+                     finalSession?.user?.user_metadata?.provider || 'email'
+
       // Prepare data for database
       const submissionData: any = {
         user_id: currentUser.id,
+        email: currentUser.email, // Add email field for ensure-user API
+        provider: provider, // Add provider field for ensure-user API
         full_name: currentUser.full_name,
         batch_id: batchInfo.batch_id,
         program_id: batchInfo.program_id,
