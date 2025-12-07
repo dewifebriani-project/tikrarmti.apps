@@ -249,8 +249,8 @@ export const loginWithGoogle = async () => {
     let redirectUrl: string;
 
     if (isLocalhost) {
-      // In development, use localhost
-      redirectUrl = 'http://localhost:3003/auth/callback';
+      // In development, use current localhost origin (dynamic port)
+      redirectUrl = `${currentOrigin}/auth/callback`;
     } else {
       // In production, use current origin
       redirectUrl = `${currentOrigin}/auth/callback`;
@@ -457,11 +457,8 @@ export const updateUserData = async (
 // Reset password
 export const resetPassword = async (email: string) => {
   try {
-    // Determine the correct redirect URL based on environment
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const baseUrl = isDevelopment
-      ? 'http://localhost:3003'
-      : window.location.origin;
+    // Use current origin for reset password redirect (works for both dev and production)
+    const baseUrl = window.location.origin;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${baseUrl}/reset-password`,
