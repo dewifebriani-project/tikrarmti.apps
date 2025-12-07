@@ -94,93 +94,85 @@ export const getCachedBatchInfo = (): BatchInfo | null => {
   return null;
 };
 
-// Optimized user profile fetcher with retry for mobile
-export const fetchUserProfileOptimized = async (userId: string): Promise<UserProfile | null> => {
-  console.log('[fetchUserProfileOptimized] Starting fetch for userId:', userId);
-
-  const controller = new AbortController();
-  // Optimized timeout for mobile
-  const timeoutMs = isMobile() ? 10000 : 5000;
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+// Direct Supabase fetcher - bypass API endpoint
+export const fetchUserProfileDirect = async (userId: string): Promise<UserProfile | null> => {
+  console.log('[fetchUserProfileDirect] Starting direct Supabase fetch for userId:', userId);
 
   try {
-    console.log('[fetchUserProfileOptimized] Fetching from API with timeout:', timeoutMs);
+    // Import supabase client
+    const { supabase } = await import('@/lib/supabase-singleton');
 
-    const response = await fetch(`/api/user/profile?userId=${userId}`, {
-      signal: controller.signal,
-      cache: 'default',
-      headers: {
-        'Cache-Control': 'max-age=60', // 1 minute cache for user data
-      }
+    console.log('[fetchUserProfileDirect] Querying users table directly');
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
+      .eq('id', userId)
+      .maybeSingle(); // Use maybeSingle to avoid throwing on no rows
+
+    if (error) {
+      console.error('[fetchUserProfileDirect] Supabase error:', error);
+      return null;
+    }
+
+    if (!data) {
+      console.warn('[fetchUserProfileDirect] No user data found for userId:', userId);
+      return null;
+    }
+
+    console.log('[fetchUserProfileDirect] User data fetched successfully:', {
+      userId: data.id,
+      full_name: data.full_name,
+      hasEmail: !!data.email,
+      hasWhatsapp: !!data.whatsapp
     });
 
-    clearTimeout(timeoutId);
-
-    console.log('[fetchUserProfileOptimized] Response status:', response.status, response.ok);
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[fetchUserProfileOptimized] Data received:', data);
-
-      // Cache with timestamp
-      const cacheData = {
-        ...data,
-        cached_at: Date.now()
-      };
-
-      localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
-      console.log('[fetchUserProfileOptimized] Data cached successfully');
-
-      return data;
-    } else {
-      const errorData = await response.json();
-      console.error('[fetchUserProfileOptimized] API returned error:', errorData);
-    }
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    console.error('[fetchUserProfileOptimized] Fetch error:', error.name, error.message);
-
-    // Retry once for mobile if it's a timeout
-    if (isMobile() && error.name === 'AbortError') {
-      console.log('[fetchUserProfileOptimized] Mobile timeout, retrying with 15s timeout...');
-      try {
-        const retryController = new AbortController();
-        const retryTimeout = setTimeout(() => retryController.abort(), 15000);
-
-        const response = await fetch(`/api/user/profile?userId=${userId}`, {
-          signal: retryController.signal
-        });
-
-        clearTimeout(retryTimeout);
-
-        console.log('[fetchUserProfileOptimized] Retry response status:', response.status, response.ok);
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[fetchUserProfileOptimized] Retry data received:', data);
-
-          const cacheData = {
-            ...data,
-            cached_at: Date.now()
-          };
-
-          localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
-          console.log('[fetchUserProfileOptimized] Retry data cached successfully');
-
-          return data;
-        } else {
-          const errorData = await response.json();
-          console.error('[fetchUserProfileOptimized] Retry API returned error:', errorData);
-        }
-      } catch (retryError: any) {
-        console.error('[fetchUserProfileOptimized] Retry failed:', retryError.name, retryError.message);
+    // Calculate age
+    let age = 0;
+    if (data?.tanggal_lahir) {
+      const birthDate = new Date(data.tanggal_lahir);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
       }
     }
-  }
 
-  console.warn('[fetchUserProfileOptimized] Returning null - no data fetched');
-  return null;
+    const userProfile: UserProfile = {
+      id: data.id,
+      full_name: data.full_name || '',
+      email: data.email || '',
+      whatsapp: data.whatsapp || '',
+      telegram: data.telegram || '',
+      alamat: data.alamat || '',
+      zona_waktu: data.zona_waktu || '',
+      tanggal_lahir: data.tanggal_lahir || null,
+      kota: data.kota || '',
+      tempat_lahir: data.tempat_lahir || '',
+      negara: data.negara || '',
+      provinsi: data.provinsi || '',
+      age: age.toString()
+    };
+
+    // Cache with timestamp
+    const cacheData = {
+      ...userProfile,
+      cached_at: Date.now()
+    };
+
+    localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
+    console.log('[fetchUserProfileDirect] Data cached successfully');
+
+    return userProfile;
+  } catch (error: any) {
+    console.error('[fetchUserProfileDirect] Unexpected error:', error);
+    return null;
+  }
 };
+
+// Keep old function for backward compatibility but use direct fetch
+export const fetchUserProfileOptimized = fetchUserProfileDirect;
 
 // Get cached user profile
 export const getCachedUserProfile = (userId: string): UserProfile | null => {

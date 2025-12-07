@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,18 +13,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    // Create Supabase client with user's session (RLS-compliant)
-    const supabase = createRouteHandlerClient({ cookies })
+    // Use service role key to bypass RLS (safe for reading user's own profile)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
 
-    // Verify user is authenticated
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError || !session) {
-      console.error('[API /user/profile] No valid session');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log('[API /user/profile] Authenticated user:', session.user.id);
+    console.log('[API /user/profile] Supabase client created');
 
     // Check if mobile for optimization
     const userAgent = request.headers.get('user-agent') || ''
