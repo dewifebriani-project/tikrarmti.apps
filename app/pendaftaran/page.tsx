@@ -16,7 +16,7 @@ import {
   Loader2,
   Crown
 } from 'lucide-react';
-import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import PublicLayout from '@/components/PublicLayout';
 import { useBatchProgram } from '@/hooks/useBatchProgram';
 import { BatchStatus, ProgramStatus } from '@/types/database';
 
@@ -295,27 +295,32 @@ export default function PendaftaranPage() {
   const handleProceedToRegistration = () => {
     if (agreedToTerms && pendingRegistration) {
       setShowTermsModal(false);
-      // Redirect to the tikrar-tahfidz form
-      router.push('/pendaftaran/tikrar-tahfidz');
+      // Check which program type and redirect accordingly
+      if (pendingRegistration.title.toLowerCase().includes('tikrar')) {
+        router.push('/pendaftaran/tikrar-tahfidz');
+      } else {
+        // For other programs, go to register page first to check auth
+        router.push('/register?program=' + encodeURIComponent(pendingRegistration.title));
+      }
     }
   };
 
   if (loading) {
     return (
-      <AuthenticatedLayout title="Pendaftaran Program">
+      <PublicLayout>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-900" />
             <p className="text-gray-600">Memuat data program...</p>
           </div>
         </div>
-      </AuthenticatedLayout>
+      </PublicLayout>
     );
   }
 
   if (error) {
     return (
-      <AuthenticatedLayout title="Pendaftaran Program">
+      <PublicLayout>
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -328,12 +333,12 @@ export default function PendaftaranPage() {
             </button>
           </div>
         </div>
-      </AuthenticatedLayout>
+      </PublicLayout>
     );
   }
 
   return (
-    <AuthenticatedLayout title="Pendaftaran Program">
+    <PublicLayout>
       <div className="space-y-8">
       {/* Terms and Conditions Modal */}
       {showTermsModal && (
@@ -575,6 +580,6 @@ export default function PendaftaranPage() {
         </div>
       )}
       </div>
-    </AuthenticatedLayout>
+    </PublicLayout>
   );
 }
