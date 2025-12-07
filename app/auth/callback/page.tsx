@@ -39,8 +39,39 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Handle hash fragment (for implicit flow)
-        // OAuth may return tokens in hash fragment instead of query params
+        // Check for authorization code (PKCE flow)
+        const code = searchParams.get('code');
+
+        if (code) {
+          console.log('Found authorization code, exchanging for session...');
+
+          // Exchange code for session using PKCE
+          const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (exchangeError) {
+            console.error('Error exchanging code for session:', exchangeError);
+            setError(`Failed to authenticate: ${exchangeError.message}`);
+            setLoading(false);
+            return;
+          }
+
+          if (!exchangeData.session?.user?.email) {
+            setError('Authentication failed. No user email found.');
+            setLoading(false);
+            return;
+          }
+
+          // Session is now set, redirect immediately
+          const userEmail = exchangeData.session.user.email;
+          console.log('User authenticated:', userEmail);
+
+          sessionStorage.removeItem('oauth_from_localhost');
+          console.log('Redirecting to dashboard...');
+          window.location.href = '/dashboard';
+          return;
+        }
+
+        // Handle hash fragment (for implicit flow - legacy)
         if (typeof window !== 'undefined' && window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
@@ -48,20 +79,10 @@ function AuthCallbackContent() {
 
           if (accessToken) {
             console.log('Found access token in hash fragment, setting session...');
-            // Set session from hash fragment tokens with extended duration
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
-
-            // Extend session to 1 month for all devices
-            if (!sessionError && sessionData.session) {
-              await supabase.auth.updateUser({
-                data: {
-                  session_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).getTime(), // 30 days
-                }
-              });
-            }
 
             if (sessionError) {
               console.error('Error setting session from hash:', sessionError);
@@ -70,46 +91,33 @@ function AuthCallbackContent() {
               return;
             }
 
-            // Clear hash from URL
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-        }
-
-        // Get session after URL processing
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setError(`Failed to authenticate: ${sessionError.message}`);
-          setLoading(false);
-          return;
-        }
-
-        if (!sessionData.session?.user?.email) {
-          console.log('No session found, checking URL parameters...');
-
-          // Check if we have authentication parameters in URL
-          const hasAuthParams = searchParams.has('code') || searchParams.has('access_token');
-
-          if (hasAuthParams) {
-            console.log('Auth params found, retrying session...');
-
-            // Try to get session again (without delay)
-            const { data: retryData, error: retryError } = await supabase.auth.getSession();
-
-            if (retryError || !retryData.session?.user?.email) {
-              setError('Authentication failed. Please try again.');
+            if (!sessionData.session?.user?.email) {
+              setError('Authentication failed. No user email found.');
               setLoading(false);
               return;
             }
 
-            // Use retry data for further processing
-            sessionData.session = retryData.session;
-          } else {
-            setError('No authorization code found');
-            setLoading(false);
+            // Clear hash from URL
+            window.history.replaceState(null, '', window.location.pathname);
+
+            // Session is set, redirect immediately
+            const userEmail = sessionData.session.user.email;
+            console.log('User authenticated:', userEmail);
+
+            sessionStorage.removeItem('oauth_from_localhost');
+            console.log('Redirecting to dashboard...');
+            window.location.href = '/dashboard';
             return;
           }
+        }
+
+        // If no code or hash, try to get existing session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !sessionData.session?.user?.email) {
+          setError('No authorization code or session found. Please try again.');
+          setLoading(false);
+          return;
         }
 
         // At this point we have a valid session - langsung redirect ke dashboard
