@@ -194,7 +194,18 @@ INSERT INTO users (
     full_name,
     role,
     is_active,
-    created_at
+    created_at,
+    negara,
+    kota,
+    alamat,
+    whatsapp,
+    telegram,
+    zona_waktu,
+    tanggal_lahir,
+    tempat_lahir,
+    jenis_kelamin,
+    pekerjaan,
+    alasan_daftar
 ) VALUES (
     gen_random_uuid(),
     'admin@tikrarmti.com',
@@ -202,7 +213,18 @@ INSERT INTO users (
     'Admin Tikrar MTI',
     'admin',
     true,
-    NOW()
+    NOW(),
+    'Indonesia',
+    'Jakarta',
+    'Alamat Admin',
+    '+6281234567890',
+    '+6281234567890',
+    'WIB',
+    '1990-01-01',
+    'Jakarta',
+    'L',
+    'Admin Sistem',
+    'Admin Tikrar MTI Apps'
 ) ON CONFLICT (email) DO NOTHING;
 
 -- =====================================================
