@@ -651,7 +651,7 @@ function TikrarTahfidzPage() {
         saved_contact: formData.saved_contact,
 
         // Section 2 - Permission & Program Choice
-        has_permission: formData.has_permission === 'yes' || formData.has_permission === 'janda',
+        has_permission: formData.has_permission,
         permission_name: formData.permission_name,
         permission_phone: formData.permission_phone,
         chosen_juz: formData.chosen_juz,

@@ -60,7 +60,8 @@
       "Bash(PORT=3009 npm run dev:*)",
       "Bash(PORT=3010 npm run dev:*)",
       "Bash(git grep:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(npx supabase db dump:*)"
     ],
     "deny": [],
     "ask": []
