@@ -140,10 +140,12 @@ function TikrarTahfidzPage() {
 
     // Fetch batch info only (don't fetch user profile to avoid 401 errors)
     if (navigator.onLine) {
+      console.log('[TikrarTahfidz] Fetching batch info...')
       fetchInitialData().then(({ batchInfo }) => {
-        console.log('Fetch batch info result:', { batchInfo });
+        console.log('[TikrarTahfidz] Fetch batch info result:', { batchInfo });
 
         if (batchInfo) {
+          console.log('[TikrarTahfidz] Setting batch info state')
           setBatchInfo({
             batch_id: batchInfo.batch_id,
             program_id: batchInfo.program_id,
@@ -157,9 +159,11 @@ function TikrarTahfidzPage() {
             total_quota: batchInfo.total_quota,
             registered_count: batchInfo.registered_count
           })
+        } else {
+          console.error('[TikrarTahfidz] Failed to get batch info after retries')
         }
       }).catch(error => {
-        console.error('Error fetching batch info:', error)
+        console.error('[TikrarTahfidz] Error fetching batch info:', error)
       })
     }
   }, [isClient])
@@ -586,7 +590,12 @@ function TikrarTahfidzPage() {
       // Check if we have batch info
       if (!batchInfo) {
         setSubmitStatus('error')
-        alert('Informasi batch tidak tersedia. Silakan refresh halaman dan coba lagi.')
+        console.error('Batch info not available:', {
+          batchInfo,
+          isClient,
+          navigatorOnline: navigator.onLine
+        })
+        alert('Informasi batch tidak tersedia. Mohon tunggu beberapa saat hingga data teruat dan refresh halaman.')
         return
       }
 

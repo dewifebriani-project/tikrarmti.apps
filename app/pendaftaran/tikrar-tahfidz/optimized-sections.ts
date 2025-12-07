@@ -40,10 +40,11 @@ const isMobile = () => {
 // Optimized batch info fetcher with better caching
 export const fetchBatchInfoOptimized = async (): Promise<BatchInfo | null> => {
   const controller = new AbortController();
-  // Optimized timeout for mobile
-  const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 8000 : 4000);
+  // Increased timeout for desktop/tablet and mobile
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds for all platforms
 
   try {
+    console.log('[fetchBatchInfoOptimized] Starting fetch...');
     const response = await fetch('/api/batch/default', {
       signal: controller.signal,
       cache: 'force-cache', // Aggressive caching
@@ -53,9 +54,11 @@ export const fetchBatchInfoOptimized = async (): Promise<BatchInfo | null> => {
     });
 
     clearTimeout(timeoutId);
+    console.log('[fetchBatchInfoOptimized] Response received:', response.status);
 
     if (response.ok) {
       const data = await response.json();
+      console.log('[fetchBatchInfoOptimized] Data fetched successfully:', data);
 
       // Cache with timestamp for cache invalidation
       const cacheData = {
@@ -68,10 +71,26 @@ export const fetchBatchInfoOptimized = async (): Promise<BatchInfo | null> => {
       }
 
       return data;
+    } else {
+      console.error('[fetchBatchInfoOptimized] Response not OK:', response.status);
     }
   } catch (error) {
     clearTimeout(timeoutId);
-    // Silent fail for better UX
+    console.error('[fetchBatchInfoOptimized] Error:', error);
+
+    // Try to use cached data if available
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('batch_info_optimized');
+      if (cached) {
+        try {
+          const cachedData = JSON.parse(cached);
+          console.log('[fetchBatchInfoOptimized] Using cached data as fallback');
+          return cachedData;
+        } catch (e) {
+          console.error('[fetchBatchInfoOptimized] Failed to parse cached data:', e);
+        }
+      }
+    }
   }
 
   return null;
@@ -87,13 +106,19 @@ export const getCachedBatchInfo = (): BatchInfo | null => {
 
     const data = JSON.parse(cached);
     const cacheAge = Date.now() - (data.cached_at || 0);
-    // Shorter cache for mobile to ensure fresh data
-    const CACHE_DURATION = isMobile() ? 2 * 60 * 1000 : 5 * 60 * 1000; // 2 minutes mobile, 5 minutes desktop
+    // Longer cache for all platforms to ensure data availability
+    const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes for all platforms
+
+    console.log('[getCachedBatchInfo] Cache age:', Math.round(cacheAge / 1000), 'seconds');
 
     if (cacheAge < CACHE_DURATION) {
+      console.log('[getCachedBatchInfo] Returning cached data');
       return data;
+    } else {
+      console.log('[getCachedBatchInfo] Cache expired, age:', Math.round(cacheAge / 1000), 'seconds');
     }
   } catch (e) {
+    console.error('[getCachedBatchInfo] Error parsing cache:', e);
     // Invalid cache
   }
 
@@ -167,8 +192,9 @@ export const getCachedUserProfile = (userId: string): UserProfile | null => {
   return null;
 };
 
-// Parallel data fetcher
-export const fetchInitialData = async (userId?: string) => {
+// Parallel data fetcher with retry mechanism
+export const fetchInitialData = async (userId?: string, retryCount = 0) => {
+  const maxRetries = 3;
   const promises: Promise<any>[] = [];
 
   // Always fetch batch info
@@ -182,11 +208,31 @@ export const fetchInitialData = async (userId?: string) => {
   try {
     const results = await Promise.allSettled(promises);
 
+    const batchInfo = results[0].status === 'fulfilled' ? results[0].value : null;
+    const userProfile = results[1]?.status === 'fulfilled' ? results[1].value : null;
+
+    // If batch info failed and we have retries left, retry
+    if (!batchInfo && retryCount < maxRetries) {
+      console.log(`[fetchInitialData] Batch fetch failed, retrying... (${retryCount + 1}/${maxRetries})`);
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+      return fetchInitialData(userId, retryCount + 1);
+    }
+
     return {
-      batchInfo: results[0].status === 'fulfilled' ? results[0].value : null,
-      userProfile: results[1]?.status === 'fulfilled' ? results[1].value : null
+      batchInfo,
+      userProfile
     };
   } catch (error) {
+    console.error('[fetchInitialData] Error:', error);
+
+    // Retry on error
+    if (retryCount < maxRetries) {
+      console.log(`[fetchInitialData] Error occurred, retrying... (${retryCount + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+      return fetchInitialData(userId, retryCount + 1);
+    }
+
     return {
       batchInfo: null,
       userProfile: null
