@@ -126,14 +126,11 @@ SELECT
     u.kota as user_kota,
     u.provinsi as user_provinsi,
     u.tanggal_lahir as user_tanggal_lahir,
-    b.batch_name,
-    b.start_date,
-    b.end_date,
-    b.duration_weeks,
+    -- Use batch_name from pendaftaran table instead
+    -- Note: batch details would need to be joined from batches/programs tables if they exist
     pr.program_name
 FROM pendaftaran_tikrar_tahfidz p
 LEFT JOIN users u ON p.user_id = u.id
-LEFT JOIN batches b ON p.batch_id = b.id
 LEFT JOIN programs pr ON p.program_id = pr.id;
 
 -- View for active users with complete profiles

@@ -482,15 +482,15 @@ function TikrarTahfidzPage() {
         .eq('id', authUser?.id || currentSession?.user?.id)
         .single();
 
-      const currentUser = {
+      const currentUser: any = {
         id: authUser?.id || currentSession?.user?.id || '',
         email: authUser?.email || currentSession?.user?.email || '',
         full_name: authUser?.full_name ||
                    currentSession?.user?.user_metadata?.full_name ||
                    currentSession?.user?.user_metadata?.name ||
                    currentSession?.user?.email?.split('@')[0] || '',
-        // Additional profile data
-        ...userProfile
+        // Additional profile data - safely spread if userProfile exists
+        ...(userProfile || {})
       };
 
       console.log('Final user for submission:', currentUser);
