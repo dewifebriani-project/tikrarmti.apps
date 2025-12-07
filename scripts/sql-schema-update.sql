@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS users (
     avatar_url TEXT,
     role VARCHAR(50) DEFAULT 'calon_thalibah' CHECK (role IN ('calon_thalibah', 'thalibah', 'musyrifah', 'muallimah', 'admin')),
     is_active BOOLEAN DEFAULT true,
-    email_verified BOOLEAN DEFAULT false,  -- For email verification if needed
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
@@ -153,7 +152,6 @@ SELECT
     u.jenis_kelamin,
     u.pekerjaan,
     u.is_active,
-    u.email_verified,
     u.created_at,
     u.updated_at,
     -- Count of registrations
@@ -193,7 +191,6 @@ INSERT INTO users (
     full_name,
     role,
     is_active,
-    email_verified,
     created_at
 ) VALUES (
     gen_random_uuid(),
@@ -201,7 +198,6 @@ INSERT INTO users (
     'managed_by_auth_system',
     'Admin Tikrar MTI',
     'admin',
-    true,
     true,
     NOW()
 ) ON CONFLICT (email) DO NOTHING;
