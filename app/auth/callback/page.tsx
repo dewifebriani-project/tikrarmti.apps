@@ -61,14 +61,29 @@ function AuthCallbackContent() {
             return;
           }
 
-          // Session is now set, redirect immediately without setting loading state
+          // Session is now set, ensure user exists in database before redirect
           const userEmail = exchangeData.session.user.email;
+          const userId = exchangeData.session.user.id;
+          const fullName = exchangeData.session.user.user_metadata?.full_name || exchangeData.session.user.user_metadata?.name;
+
           console.log('User authenticated:', userEmail);
+
+          // Ensure user exists in database BEFORE redirect
+          try {
+            await fetch('/api/auth/ensure-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, email: userEmail, full_name: fullName })
+            });
+          } catch (err) {
+            console.error('Failed to ensure user:', err);
+            // Continue anyway - user might already exist
+          }
 
           sessionStorage.removeItem('oauth_from_localhost');
           console.log('Redirecting to dashboard...');
 
-          // Immediate redirect - don't wait for React state updates
+          // Redirect after ensuring user exists
           window.location.replace('/dashboard');
           return;
         }
