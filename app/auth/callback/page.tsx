@@ -117,14 +117,29 @@ function AuthCallbackContent() {
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
 
-            // Session is set, redirect immediately without state updates
+            // Session is set, ensure user exists in database before redirect
             const userEmail = sessionData.session.user.email;
+            const userId = sessionData.session.user.id;
+            const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
+
             console.log('User authenticated:', userEmail);
+
+            // Ensure user exists in database BEFORE redirect
+            try {
+              await fetch('/api/auth/ensure-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, email: userEmail, full_name: fullName })
+              });
+            } catch (err) {
+              console.error('Failed to ensure user:', err);
+              // Continue anyway - user might already exist
+            }
 
             sessionStorage.removeItem('oauth_from_localhost');
             console.log('Redirecting to dashboard...');
 
-            // Immediate redirect - don't wait for React state updates
+            // Redirect after ensuring user exists
             window.location.replace('/dashboard');
             return;
           }
@@ -139,18 +154,33 @@ function AuthCallbackContent() {
           return;
         }
 
-        // At this point we have a valid session - langsung redirect ke dashboard
+        // At this point we have a valid session - ensure user exists before redirect
         const userEmail = sessionData.session.user.email;
+        const userId = sessionData.session.user.id;
+        const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
+
         console.log('User authenticated:', userEmail);
 
         if (!userEmail) {
           throw new Error('User email is required');
         }
 
+        // Ensure user exists in database BEFORE redirect
+        try {
+          await fetch('/api/auth/ensure-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, email: userEmail, full_name: fullName })
+          });
+        } catch (err) {
+          console.error('Failed to ensure user:', err);
+          // Continue anyway - user might already exist
+        }
+
         // Clear sessionStorage
         sessionStorage.removeItem('oauth_from_localhost');
 
-        // Langsung redirect ke dashboard tanpa delay
+        // Redirect after ensuring user exists
         console.log('Redirecting to dashboard...');
 
         // Use window.location.replace for immediate redirect (fastest, no history entry)
