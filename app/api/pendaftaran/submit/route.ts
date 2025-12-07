@@ -80,15 +80,23 @@ export async function POST(request: Request) {
       // Continue anyway - user might already exist
     }
 
-    // Insert into tikrar_tahfidz table
+    // Insert into pendaftaran_tikrar_tahfidz table
+    console.log('API: Attempting to insert into pendaftaran_tikrar_tahfidz table...');
+    console.log('API: Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('API: Using service role key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Yes' : 'No');
+
     const { data: result, error } = await supabase
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .insert(submissionData)
       .select()
       .single();
 
     if (error) {
       console.error('API: Error inserting registration:', JSON.stringify(error, null, 2));
+      console.error('API: Error code:', error.code);
+      console.error('API: Error details:', error.details);
+      console.error('API: Error hint:', error.hint);
+      console.error('API: Full error object:', JSON.stringify(error, null, 2));
 
       // If it's a foreign key constraint error, provide more helpful message
       if (error.code === '23503' || error.message.includes('foreign key constraint')) {
@@ -102,8 +110,24 @@ export async function POST(request: Request) {
         );
       }
 
+      // Check if table doesn't exist
+      if (error.code === '42P01' || error.message.includes('does not exist')) {
+        return NextResponse.json(
+          {
+            error: 'Database configuration error. The registration table does not exist.',
+            details: `Table 'pendaftaran_tikrar_tahfidz' not found. Expected table name: 'pendaftaran_tikrar_tahfidz'`,
+            code: 'TABLE_NOT_FOUND'
+          },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
-        { error: `Failed to submit registration: ${error.message}` },
+        {
+          error: `Failed to submit registration: ${error.message}`,
+          code: error.code,
+          details: error.details
+        },
         { status: 500 }
       );
     }

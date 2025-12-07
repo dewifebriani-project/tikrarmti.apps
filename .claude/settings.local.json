@@ -58,7 +58,8 @@
       "Bash(set:*)",
       "Bash(if exist .env.local echo Found .env.local else echo No .env.local file found)",
       "Bash(PORT=3009 npm run dev:*)",
-      "Bash(PORT=3010 npm run dev:*)"
+      "Bash(PORT=3010 npm run dev:*)",
+      "Bash(git grep:*)"
     ],
     "deny": [],
     "ask": []

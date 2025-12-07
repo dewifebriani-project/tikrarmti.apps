@@ -49,7 +49,7 @@ export interface PendaftaranData {
 export const submitPendaftaran = async (data: PendaftaranData): Promise<string> => {
   try {
     const { data: result, error } = await supabaseAdmin
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .insert({
         ...data,
         created_at: new Date().toISOString(),
@@ -74,7 +74,7 @@ export const updateSelectionStatus = async (
 ): Promise<void> => {
   try {
     const { error } = await supabaseAdmin
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .update({
         selection_status: status,
         selection_notes: notes,
@@ -115,7 +115,7 @@ export const updateApprovalStatus = async (
 ): Promise<void> => {
   try {
     const { error } = await supabaseAdmin
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .update({
         status,
         approval_notes: notes,
@@ -138,7 +138,7 @@ export const updateApprovalStatus = async (
 export const getAllPendaftaran = async () => {
   try {
     const { data, error } = await supabase
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -153,7 +153,7 @@ export const getAllPendaftaran = async () => {
 export const getPendaftaranById = async (id: string) => {
   try {
     const { data, error } = await supabase
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('id', id)
       .single();
@@ -169,7 +169,7 @@ export const getPendaftaranById = async (id: string) => {
 export const getPendaftaranByUserId = async (user_id: string) => {
   try {
     const { data, error } = await supabase
-      .from('tikrar_tahfidz')
+      .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', user_id)
       .order('created_at', { ascending: false });
