@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import React from 'react';
+import Link from 'next/link';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
 interface TimelineItem {
@@ -20,9 +21,28 @@ interface TimelineItemWithStatus extends TimelineItem {
 
 export default function PerjalananSaya() {
   const [isClient, setIsClient] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
+
+    // Fetch registration status
+    const fetchRegistrationStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/check-registration');
+        if (response.ok) {
+          const data = await response.json();
+          setRegistrationStatus(data);
+        }
+      } catch (error) {
+        console.error('Error fetching registration status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRegistrationStatus();
   }, []);
 
   // Function to parse Indonesian date string
@@ -74,7 +94,9 @@ export default function PerjalananSaya() {
       day: 'Jumat',
       hijriDate: '2 Jumadil Akhir 1446',
       title: 'Mendaftar Program',
-      description: 'Pendaftaran awal program tahfidz',
+      description: registrationStatus?.hasRegistered
+        ? `Pendaftaran selesai pada ${new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}. Status: ${registrationStatus.registration.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration.status === 'approved' ? 'Disetujui' : registrationStatus.registration.status === 'rejected' ? 'Ditolak' : 'Ditarik'}`
+        : 'Pendaftaran awal program tahfidz',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -201,7 +223,7 @@ export default function PerjalananSaya() {
     }
   ];
 
-  // Calculate timeline status dynamically based on current date
+  // Calculate timeline status dynamically based on current date and registration status
   const timelineData = useMemo((): TimelineItemWithStatus[] => {
     // If not client-side yet, return all items as 'future' to prevent hydration mismatch
     if (!isClient) {
@@ -214,7 +236,15 @@ export default function PerjalananSaya() {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
 
-    return baseTimelineData.map(item => {
+    return baseTimelineData.map((item, index) => {
+      // If first item and user has registered, mark as completed
+      if (index === 0 && registrationStatus?.hasRegistered) {
+        return {
+          ...item,
+          status: 'completed' as const
+        };
+      }
+
       const itemDate = parseIndonesianDate(item.date);
       itemDate.setHours(0, 0, 0, 0);
 
@@ -238,7 +268,7 @@ export default function PerjalananSaya() {
         status
       };
     });
-  }, [isClient]);
+  }, [isClient, registrationStatus]);
 
   const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
@@ -284,6 +314,30 @@ export default function PerjalananSaya() {
             Setiap langkah adalah bagian dari ikhtiar. Teruslah semangat hingga akhir!
           </p>
         </div>
+
+        {/* Registration Status Alert */}
+        {!isLoading && !registrationStatus?.hasRegistered && (
+          <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-yellow-800">
+                <span className="font-medium">Belum Mendaftar:</span> Ukhti belum terdaftar di program Tikrar Tahfidz.
+                <Link href="/pendaftaran/tikrar-tahfidz" className="text-yellow-700 underline hover:text-yellow-900 ml-1">
+                  Daftar sekarang
+                </Link>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="text-center py-8">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <p className="mt-2 text-gray-600">Memuat status pendaftaran...</p>
+          </div>
+        )}
 
         {/* Timeline Container */}
         <div className="relative">
