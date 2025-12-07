@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
 interface TimelineItem {
@@ -23,27 +24,40 @@ export default function PerjalananSaya() {
   const [isClient, setIsClient] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
 
-    // Fetch registration status
-    const fetchRegistrationStatus = async () => {
+    // Check authentication first
+    const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/check-registration');
-        if (response.ok) {
-          const data = await response.json();
+        const response = await fetch('/api/auth/me');
+        if (!response.ok) {
+          if (response.status === 401) {
+            // Not authenticated, redirect to login
+            router.push('/login?redirectedFrom=/perjalanan-saya');
+            return;
+          }
+          console.error('Auth check failed');
+          return;
+        }
+
+        // Authenticated, fetch registration status
+        const registrationResponse = await fetch('/api/auth/check-registration');
+        if (registrationResponse.ok) {
+          const data = await registrationResponse.json();
           setRegistrationStatus(data);
         }
       } catch (error) {
-        console.error('Error fetching registration status:', error);
+        console.error('Error checking auth or registration status:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchRegistrationStatus();
-  }, []);
+    checkAuth();
+  }, [router]);
 
   // Function to parse Indonesian date string
   const parseIndonesianDate = (dateStr: string): Date => {
