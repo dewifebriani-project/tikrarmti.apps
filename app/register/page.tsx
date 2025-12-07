@@ -21,8 +21,34 @@ import { Crown, Heart, ArrowRight, CheckCircle } from "lucide-react";
 const negaraList = [
   "Indonesia",
   "Malaysia",
+  "Singapura",
+  "Brunei Darussalam",
+  "Thailand",
+  "Filipina",
+  "Vietnam",
+  "Myanmar",
+  "Kamboja",
+  "Laos",
+  "Timor Leste",
+  "United Kingdom",
   "Australia",
-  "Negara Lainnya"
+  "New Zealand",
+  "United States",
+  "Canada",
+  "Germany",
+  "Netherlands",
+  "Saudi Arabia",
+  "UAE",
+  "Qatar",
+  "Egypt",
+  "Turkey",
+  "Japan",
+  "South Korea",
+  "China",
+  "India",
+  "Pakistan",
+  "Bangladesh",
+  "Sri Lanka"
 ];
 
 const provinsiList = [
@@ -41,14 +67,37 @@ const zonaWaktuList = [
   { value: "WIB", label: "WIB (UTC+7) - Indonesia Barat", country: "Indonesia" },
   { value: "WITA", label: "WITA (UTC+8) - Indonesia Tengah", country: "Indonesia" },
   { value: "WIT", label: "WIT (UTC+9) - Indonesia Timur", country: "Indonesia" },
-  // Malaysia
-  { value: "MYT", label: "MYT (UTC+8) - Malaysia", country: "Malaysia" },
-  // Australia
+  // Asia Tenggara
+  { value: "ICT", label: "ICT (UTC+7) - Thailand, Vietnam, Cambodia", country: "Thailand" },
+  { value: "MYT", label: "MYT (UTC+8) - Malaysia, Singapore", country: "Malaysia" },
+  { value: "PHT", label: "PHT (UTC+8) - Philippines", country: "Philippines" },
+  // Asia Selatan
+  { value: "PKT", label: "PKT (UTC+5) - Pakistan", country: "Pakistan" },
+  { value: "IST", label: "IST (UTC+5:30) - India, Sri Lanka", country: "India" },
+  { value: "BST", label: "BST (UTC+6) - Bangladesh", country: "Bangladesh" },
+  // Asia Timur
+  { value: "CST", label: "CST (UTC+8) - China", country: "China" },
+  { value: "JST", label: "JST (UTC+9) - Japan, Korea", country: "Japan" },
+  // Eropa & Timur Tengah
+  { value: "GMT", label: "GMT (UTC+0) - London, Lisbon", country: "United Kingdom" },
+  { value: "CET", label: "CET (UTC+1) - Paris, Berlin, Rome", country: "Germany" },
+  { value: "EET", label: "EET (UTC+2) - Cairo, Athens", country: "Egypt" },
+  { value: "MSK", label: "MSK (UTC+3) - Moscow, Riyadh", country: "Saudi Arabia" },
+  { value: "GST", label: "GST (UTC+4) - Dubai, Abu Dhabi", country: "UAE" },
+  { value: "TRT", label: "TRT (UTC+3) - Istanbul", country: "Turkey" },
+  // Oseania
   { value: "AWST", label: "AWST (UTC+8) - Australia Barat", country: "Australia" },
   { value: "ACST", label: "ACST (UTC+9:30) - Australia Tengah", country: "Australia" },
   { value: "AEST", label: "AEST (UTC+10) - Australia Timur", country: "Australia" },
-  // Other
-  { value: "OTHER", label: "Zona Waktu Lainnya", country: "Other" }
+  { value: "AEDT", label: "AEDT (UTC+11) - Canberra", country: "Australia" },
+  { value: "NZST", label: "NZST (UTC+12) - New Zealand", country: "New Zealand" },
+  // Amerika
+  { value: "EST", label: "EST (UTC-5) - New York, Toronto", country: "United States" },
+  { value: "CST", label: "CST (UTC-6) - Chicago, Houston", country: "United States" },
+  { value: "MST", label: "MST (UTC-7) - Denver, Phoenix", country: "United States" },
+  { value: "PST", label: "PST (UTC-8) - Los Angeles, San Francisco", country: "United States" },
+  { value: "HST", label: "HST (UTC-10) - Hawaii", country: "United States" },
+  { value: "AST", label: "AST (UTC-4) - Halifax", country: "Canada" }
 ];
 
 function RegisterPageContent() {
@@ -506,16 +555,74 @@ function RegisterPageContent() {
                     </>
                   )}
                   {formData.negara === 'Malaysia' && (
-                    <SelectItem value="MYT">MYT (UTC+8) - Malaysia</SelectItem>
+                    <SelectItem value="MYT">MYT (UTC+8) - Malaysia, Singapore</SelectItem>
+                  )}
+                  {formData.negara === 'Singapura' && (
+                    <SelectItem value="MYT">MYT (UTC+8) - Singapore, Malaysia</SelectItem>
+                  )}
+                  {formData.negara === 'United Kingdom' && (
+                    <SelectItem value="GMT">GMT (UTC+0) - London</SelectItem>
                   )}
                   {formData.negara === 'Australia' && (
                     <>
                       <SelectItem value="AWST">AWST (UTC+8) - Australia Barat</SelectItem>
                       <SelectItem value="ACST">ACST (UTC+9:30) - Australia Tengah</SelectItem>
                       <SelectItem value="AEST">AEST (UTC+10) - Australia Timur</SelectItem>
+                      <SelectItem value="AEDT">AEDT (UTC+11) - Canberra</SelectItem>
                     </>
                   )}
-                  {(formData.negara === 'Negara Lainnya' || !formData.negara) && (
+                  {formData.negara === 'New Zealand' && (
+                    <SelectItem value="NZST">NZST (UTC+12) - New Zealand</SelectItem>
+                  )}
+                  {formData.negara === 'United States' && (
+                    <>
+                      <SelectItem value="EST">EST (UTC-5) - New York, Toronto</SelectItem>
+                      <SelectItem value="CST">CST (UTC-6) - Chicago, Houston</SelectItem>
+                      <SelectItem value="MST">MST (UTC-7) - Denver, Phoenix</SelectItem>
+                      <SelectItem value="PST">PST (UTC-8) - Los Angeles, San Francisco</SelectItem>
+                      <SelectItem value="HST">HST (UTC-10) - Hawaii</SelectItem>
+                    </>
+                  )}
+                  {formData.negara === 'Canada' && (
+                    <SelectItem value="AST">AST (UTC-4) - Halifax</SelectItem>
+                  )}
+                  {formData.negara === 'Germany' || formData.negara === 'Netherlands' ? (
+                    <SelectItem value="CET">CET (UTC+1) - Paris, Berlin, Rome</SelectItem>
+                  ) : null}
+                  {formData.negara === 'Egypt' && (
+                    <SelectItem value="EET">EET (UTC+2) - Cairo, Athens</SelectItem>
+                  )}
+                  {formData.negara === 'Saudi Arabia' && (
+                    <SelectItem value="MSK">MSK (UTC+3) - Moscow, Riyadh</SelectItem>
+                  )}
+                  {formData.negara === 'UAE' && (
+                    <SelectItem value="GST">GST (UTC+4) - Dubai, Abu Dhabi</SelectItem>
+                  )}
+                  {formData.negara === 'Turkey' && (
+                    <SelectItem value="TRT">TRT (UTC+3) - Istanbul</SelectItem>
+                  )}
+                  {formData.negara === 'Japan' || formData.negara === 'South Korea' ? (
+                    <SelectItem value="JST">JST (UTC+9) - Japan, Korea</SelectItem>
+                  ) : null}
+                  {formData.negara === 'China' && (
+                    <SelectItem value="CST">CST (UTC+8) - China</SelectItem>
+                  )}
+                  {formData.negara === 'India' || formData.negara === 'Sri Lanka' ? (
+                    <SelectItem value="IST">IST (UTC+5:30) - India, Sri Lanka</SelectItem>
+                  ) : null}
+                  {formData.negara === 'Pakistan' && (
+                    <SelectItem value="PKT">PKT (UTC+5) - Pakistan</SelectItem>
+                  )}
+                  {formData.negara === 'Bangladesh' && (
+                    <SelectItem value="BST">BST (UTC+6) - Bangladesh</SelectItem>
+                  )}
+                  {['Thailand', 'Vietnam', 'Myanmar', 'Kamboja', 'Laos'].includes(formData.negara) && (
+                    <SelectItem value="ICT">ICT (UTC+7) - Thailand, Vietnam, Cambodia</SelectItem>
+                  )}
+                  {formData.negara === 'Filipina' && (
+                    <SelectItem value="PHT">PHT (UTC+8) - Philippines</SelectItem>
+                  )}
+                  {['Brunei Darussalam', 'Timor Leste', 'Qatar'].includes(formData.negara) && (
                     <>
                       {zonaWaktuList.map((zona) => (
                         <SelectItem key={zona.value} value={zona.value}>
@@ -532,9 +639,19 @@ function RegisterPageContent() {
               {formData.negara && (
                 <p className="text-xs text-gray-500 mt-1">
                   {formData.negara === 'Indonesia' && 'Pilih WIB, WITA, atau WIT sesuai lokasi Ukhti'}
-                  {formData.negara === 'Malaysia' && 'Malaysia menggunakan MYT (sama dengan WITA)'}
+                  {formData.negara === 'Malaysia' && 'Malaysia menggunakan MYT (UTC+8)'}
+                  {formData.negara === 'Singapura' && 'Singapore menggunakan MYT (UTC+8)'}
+                  {formData.negara === 'United Kingdom' && 'London menggunakan GMT (UTC+0)'}
                   {formData.negara === 'Australia' && 'Pilih zona waktu sesuai wilayah di Australia'}
-                  {formData.negara === 'Negara Lainnya' && 'Pilih zona waktu yang paling sesuai atau pilih "Zona Waktu Lainnya"'}
+                  {formData.negara === 'New Zealand' && 'New Zealand menggunakan NZST (UTC+12)'}
+                  {formData.negara === 'United States' && 'Pilih zona waktu sesuai wilayah di AS'}
+                  {formData.negara === 'Canada' && 'Kanada menggunakan berbagai zona waktu'}
+                  {(formData.negara === 'Germany' || formData.negara === 'Netherlands') && 'Eropa menggunakan CET (UTC+1)'}
+                  {formData.negara === 'Saudi Arabia' && 'Saudi Arabia menggunakan waktu Arabia (UTC+3)'}
+                  {formData.negara === 'UAE' && 'UAE menggunakan waktu Gulf (UTC+4)'}
+                  {(formData.negara === 'Japan' || formData.negara === 'South Korea') && 'Asia Timur menggunakan JST (UTC+9)'}
+                  {formData.negara === 'China' && 'China menggunakan CST (UTC+8)'}
+                  {(formData.negara === 'India' || formData.negara === 'Sri Lanka') && 'Asia Selatan menggunakan IST (UTC+5:30)'}
                 </p>
               )}
             </div>

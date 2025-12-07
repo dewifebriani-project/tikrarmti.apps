@@ -12,6 +12,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { User, Phone, MapPin, Calendar, Briefcase } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 
+const negaraList = [
+  "Indonesia",
+  "Malaysia",
+  "Singapura",
+  "Brunei Darussalam",
+  "Thailand",
+  "Filipina",
+  "Vietnam",
+  "Myanmar",
+  "Kamboja",
+  "Laos",
+  "Timor Leste",
+  "United Kingdom",
+  "Australia",
+  "New Zealand",
+  "United States",
+  "Canada",
+  "Germany",
+  "Netherlands",
+  "Saudi Arabia",
+  "UAE",
+  "Qatar",
+  "Egypt",
+  "Turkey",
+  "Japan",
+  "South Korea",
+  "China",
+  "India",
+  "Pakistan",
+  "Bangladesh",
+  "Sri Lanka"
+];
+
 const provinsiList = [
   "Aceh", "Sumatera Utara", "Sumatera Barat", "Riau", "Jambi", "Sumatera Selatan",
   "Bengkulu", "Lampung", "Kepulauan Bangka Belitung", "Kepulauan Riau", "DKI Jakarta",
@@ -24,9 +57,28 @@ const provinsiList = [
 ];
 
 const zonaWaktuList = [
-  { value: "WIB", label: "WIB (UTC+7)" },
-  { value: "WITA", label: "WITA (UTC+8)" },
-  { value: "WIT", label: "WIT (UTC+9)" }
+  { value: "WIB", label: "WIB (UTC+7) - Indonesia Barat" },
+  { value: "WITA", label: "WITA (UTC+8) - Indonesia Tengah" },
+  { value: "WIT", label: "WIT (UTC+9) - Indonesia Timur" },
+  { value: "UTC+0", label: "GMT (UTC+0) - London, Lisbon" },
+  { value: "UTC+1", label: "CET (UTC+1) - Paris, Berlin, Rome" },
+  { value: "UTC+2", label: "EET (UTC+2) - Cairo, Athens" },
+  { value: "UTC+3", label: "MSK (UTC+3) - Moscow, Riyadh" },
+  { value: "UTC+4", label: "GST (UTC+4) - Dubai, Abu Dhabi" },
+  { value: "UTC+5", label: "PKT (UTC+5) - Karachi" },
+  { value: "UTC+5:30", label: "IST (UTC+5:30) - India, Sri Lanka" },
+  { value: "UTC+6", label: "BST (UTC+6) - Bangladesh" },
+  { value: "UTC+7", label: "ICT (UTC+7) - Thailand, Vietnam" },
+  { value: "UTC+8", label: "CST (UTC+8) - China, Singapore, Malaysia" },
+  { value: "UTC+9", label: "JST (UTC+9) - Japan, South Korea" },
+  { value: "UTC+10", label: "AEST (UTC+10) - Sydney, Melbourne" },
+  { value: "UTC+11", label: "AEDT (UTC+11) - Canberra" },
+  { value: "UTC+12", label: "NZST (UTC+12) - New Zealand" },
+  { value: "UTC-5", label: "EST (UTC-5) - New York, Toronto" },
+  { value: "UTC-6", label: "CST (UTC-6) - Chicago, Houston" },
+  { value: "UTC-7", label: "MST (UTC-7) - Denver, Phoenix" },
+  { value: "UTC-8", label: "PST (UTC-8) - Los Angeles, San Francisco" },
+  { value: "UTC-10", label: "HST (UTC-10) - Hawaii" }
 ];
 
 export default function LengkapiProfilPage() {
@@ -39,6 +91,7 @@ export default function LengkapiProfilPage() {
     full_name: '',
     whatsapp: '',
     telegram: '',
+    negara: '',
     provinsi: '',
     kota: '',
     alamat: '',
@@ -81,10 +134,11 @@ export default function LengkapiProfilPage() {
             full_name: (userData as any).full_name || '',
             whatsapp: (userData as any).whatsapp || '',
             telegram: (userData as any).telegram || '',
+            negara: (userData as any).negara || 'Indonesia',
             provinsi: (userData as any).provinsi || '',
             kota: (userData as any).kota || '',
             alamat: (userData as any).alamat || '',
-            zona_waktu: (userData as any).zona_waktu || '',
+            zona_waktu: (userData as any).zona_waktu || 'WIB',
             tanggal_lahir: (userData as any).tanggal_lahir || '',
             tempat_lahir: (userData as any).tempat_lahir || '',
             jenis_kelamin: (userData as any).jenis_kelamin || '',
@@ -113,7 +167,7 @@ export default function LengkapiProfilPage() {
     setError('');
     setSuccess('');
 
-    if (!formData.full_name || !formData.whatsapp || !formData.telegram || !formData.kota || !formData.alamat || !formData.zona_waktu) {
+    if (!formData.full_name || !formData.whatsapp || !formData.telegram || !formData.kota || !formData.alamat || !formData.zona_waktu || !formData.negara) {
       setError('Mohon lengkapi semua field yang wajib diisi (*)');
       setIsLoading(false);
       return;
@@ -141,6 +195,7 @@ export default function LengkapiProfilPage() {
           full_name: formData.full_name,
           whatsapp: formData.whatsapp,
           telegram: formData.telegram,
+          negara: formData.negara,
           provinsi: formData.provinsi,
           kota: formData.kota,
           alamat: formData.alamat,
@@ -391,17 +446,17 @@ export default function LengkapiProfilPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="provinsi">
-                      Provinsi
+                    <Label htmlFor="negara">
+                      Negara <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={formData.provinsi} onValueChange={(value) => setFormData({ ...formData, provinsi: value })}>
+                    <Select value={formData.negara} onValueChange={(value) => setFormData({ ...formData, negara: value })}>
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Pilih provinsi" />
+                        <SelectValue placeholder="Pilih negara" />
                       </SelectTrigger>
                       <SelectContent>
-                        {provinsiList.map((provinsi) => (
-                          <SelectItem key={provinsi} value={provinsi}>
-                            {provinsi}
+                        {negaraList.map((negara) => (
+                          <SelectItem key={negara} value={negara}>
+                            {negara}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -409,15 +464,39 @@ export default function LengkapiProfilPage() {
                   </div>
 
                   <div>
+                    <Label htmlFor="provinsi">
+                      Provinsi/State
+                    </Label>
+                    <Select value={formData.provinsi} onValueChange={(value) => setFormData({ ...formData, provinsi: value })}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder={formData.negara === 'Indonesia' ? 'Pilih provinsi' : 'Pilih state/province'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData.negara === 'Indonesia' ? (
+                          provinsiList.map((provinsi) => (
+                            <SelectItem key={provinsi} value={provinsi}>
+                              {provinsi}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="International">
+                            International (Non-Indonesia)
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <Label htmlFor="kota">
-                      Kota <span className="text-red-500">*</span>
+                      Kota/City <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative mt-1">
                       <MapPin className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                       <Input
                         id="kota"
                         type="text"
-                        placeholder="Masukkan kota"
+                        placeholder={formData.negara === 'Indonesia' ? 'Masukkan kota' : 'Enter city'}
                         value={formData.kota}
                         onChange={(e) => setFormData({ ...formData, kota: e.target.value })}
                         className="pl-10"
@@ -428,7 +507,7 @@ export default function LengkapiProfilPage() {
 
                   <div>
                     <Label htmlFor="zona_waktu">
-                      Zona Waktu <span className="text-red-500">*</span>
+                      Zona Waktu/Timezone <span className="text-red-500">*</span>
                     </Label>
                     <Select value={formData.zona_waktu} onValueChange={(value) => setFormData({ ...formData, zona_waktu: value })}>
                       <SelectTrigger className="mt-1">

@@ -63,7 +63,12 @@
       "Bash(del:*)",
       "Bash(npx supabase db dump:*)",
       "Bash(npx supabase db reset:*)",
-      "Bash(npx supabase db remote commit:*)"
+      "Bash(npx supabase db remote commit:*)",
+      "Bash(ipconfig:*)",
+      "Bash(dir:*)",
+      "Bash(npx supabase db remote:*)",
+      "Bash(npx supabase db --help:*)",
+      "Bash(npx supabase migration new:*)"
     ],
     "deny": [],
     "ask": []
