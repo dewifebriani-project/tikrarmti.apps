@@ -91,7 +91,7 @@ export function sanitizePhone(input: string | null | undefined, countryCode?: st
         // Add country code if not present
         sanitized = country.dialCode + sanitized;
       }
-    } else if (sanitized.startsWith('+') && !sanitized.startsWith(country.dialCode)) {
+    } else if (sanitized.startsWith('+') && country && !sanitized.startsWith(country.dialCode)) {
       // Check if the country code matches the input
       const matchingCountry = countryCodes.find(c => sanitized.startsWith(c.dialCode));
       if (matchingCountry) {
