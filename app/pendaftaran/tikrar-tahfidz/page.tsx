@@ -215,9 +215,19 @@ function TikrarTahfidzPage() {
     }
   }, [errors])
 
-  // Scroll to top when component mounts
+  // Scroll to top when component mounts - ensure it works on first load
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+    // Use immediate scroll for first load, smooth scroll for subsequent loads
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0)
+      // Additional scroll after a short delay to ensure it works on all platforms
+      const scrollTimer = setTimeout(() => {
+        window.scrollTo(0, 0)
+        document.documentElement.scrollTop = 0
+        document.body.scrollTop = 0
+      }, 100)
+      return () => clearTimeout(scrollTimer)
+    }
   }, [])
 
   const validateSection = (section: number): boolean => {
@@ -289,13 +299,42 @@ function TikrarTahfidzPage() {
 
     setErrors(newErrors)
 
-    // Auto-scroll to first error field
+    // Auto-scroll to first error field with improved cross-platform behavior
     if (Object.keys(newErrors).length > 0) {
       const firstErrorField = Object.keys(newErrors)[0]
       const element = document.getElementById(firstErrorField)
+
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        element.focus()
+        // Add a small delay to ensure DOM is updated
+        setTimeout(() => {
+          // Try different scroll methods for better cross-platform compatibility
+          element.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          })
+
+          // Fallback for browsers that don't support smooth scroll
+          const fallbackScroll = () => {
+            const rect = element.getBoundingClientRect()
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+            const targetY = scrollTop + rect.top - (window.innerHeight / 2) + (rect.height / 2)
+
+            window.scrollTo({
+              top: targetY,
+              behavior: 'smooth'
+            })
+          }
+
+          // If smooth scroll didn't work after 500ms, use fallback
+          setTimeout(fallbackScroll, 500)
+
+          // Try to focus the element or its first input
+          const focusableElement = element.querySelector('input, button, select, textarea') || element
+          if (focusableElement && typeof focusableElement.focus === 'function') {
+            focusableElement.focus()
+          }
+        }, 100)
       }
     }
 
@@ -306,11 +345,22 @@ function TikrarTahfidzPage() {
     if (validateSection(currentSection)) {
       if (currentSection < totalSections) {
         setCurrentSection(currentSection + 1)
-        // Smooth scroll to form container instead of top
+        // Smooth scroll to form container with cross-platform compatibility
         setTimeout(() => {
           const formElement = document.getElementById('registration-form')
           if (formElement) {
-            formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            // Use multiple methods for better cross-platform compatibility
+            formElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+              inline: 'nearest'
+            })
+
+            // Fallback for older browsers
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            })
           }
         }, 100)
       }
@@ -320,11 +370,22 @@ function TikrarTahfidzPage() {
   const handlePrevious = () => {
     if (currentSection > 1) {
       setCurrentSection(currentSection - 1)
-      // Smooth scroll to form container instead of top
+      // Smooth scroll to form container with cross-platform compatibility
       setTimeout(() => {
         const formElement = document.getElementById('registration-form')
         if (formElement) {
-          formElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          // Use multiple methods for better cross-platform compatibility
+          formElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+          })
+
+          // Fallback for older browsers
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
         }
       }, 100)
     }
@@ -838,6 +899,7 @@ Silakan:
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
+            id="understands_commitment"
             value={formData.understands_commitment ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('understands_commitment', value === "yes")}
             className="space-y-2"
@@ -873,6 +935,7 @@ Silakan:
             </p>
           </div>
           <RadioGroup
+            id="tried_simulation"
             value={formData.tried_simulation ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('tried_simulation', value === "yes")}
             className="space-y-2"
@@ -903,6 +966,7 @@ Silakan:
             </p>
           </div>
           <RadioGroup
+            id="no_negotiation"
             value={formData.no_negotiation ? "yes" : "no"}
             onValueChange={(value) => handleInputChange('no_negotiation', value === "yes")}
             className="space-y-2"
@@ -933,6 +997,7 @@ Silakan:
             Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp karena keterbatasan memori hp admin.
           </p>
           <RadioGroup
+            id="has_telegram"
             value={formData.has_telegram ? "yes" : ""}
             onValueChange={(value) => handleInputChange('has_telegram', value === "yes")}
             className="space-y-2"
@@ -955,6 +1020,7 @@ Silakan:
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
+            id="saved_contact"
             value={formData.saved_contact ? "yes" : ""}
             onValueChange={(value) => handleInputChange('saved_contact', value === "yes")}
             className="space-y-2"
@@ -994,6 +1060,7 @@ Silakan:
             (Jika belum, silahkan minta izin terlebih dahulu. Jika tidak diizinkan, mohon bersabar dan berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)
           </p>
           <RadioGroup
+            id="has_permission"
             value={formData.has_permission}
             onValueChange={(value) => handleInputChange('has_permission', value as 'yes' | 'janda' | '')}
             className="space-y-2"
@@ -1084,7 +1151,7 @@ Silakan:
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">Pilihan juz yang akan dihafalkan<span className="text-red-500">*</span></Label>
           <Select value={formData.chosen_juz} onValueChange={(value) => handleInputChange('chosen_juz', value)}>
-            <SelectTrigger className="text-base py-3">
+            <SelectTrigger className="text-base py-3" id="chosen_juz">
               <SelectValue placeholder="Pilih juz" />
             </SelectTrigger>
             <SelectContent>
@@ -1121,6 +1188,7 @@ Silakan:
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup
+            id="no_travel_plans"
             value={formData.no_travel_plans ? "yes" : ""}
             onValueChange={(value) => handleInputChange('no_travel_plans', value === "yes")}
             className="space-y-2"
@@ -1160,7 +1228,7 @@ Silakan:
             Apakah Ukhti siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?
             <span className="text-red-500">*</span>
           </Label>
-          <RadioGroup value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-2">
+          <RadioGroup id="ready_for_team" value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-2">
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
               <RadioGroupItem value="ready" id="ready" className="mt-0.5 w-4 h-4" />
               <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
@@ -1197,7 +1265,7 @@ Silakan:
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Pilih waktu utama untuk jadwal setoran dengan pasangan</Label>
             <Select value={formData.main_time_slot} onValueChange={(value) => handleInputChange('main_time_slot', value)}>
-              <SelectTrigger>
+              <SelectTrigger id="main_time_slot">
                 <SelectValue placeholder="Pilih waktu utama" />
               </SelectTrigger>
               <SelectContent>
@@ -1218,7 +1286,7 @@ Silakan:
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Pilih waktu cadangan untuk jadwal setoran dengan pasangan</Label>
             <Select value={formData.backup_time_slot} onValueChange={(value) => handleInputChange('backup_time_slot', value)}>
-              <SelectTrigger>
+              <SelectTrigger id="backup_time_slot">
                 <SelectValue placeholder="Pilih waktu cadangan" />
               </SelectTrigger>
               <SelectContent>
@@ -1552,7 +1620,7 @@ Silakan:
           </CardHeader>
 
           <CardContent className="pt-6 overflow-x-hidden">
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+            <form id="registration-form" onSubmit={(e) => e.preventDefault()} className="space-y-6">
               {currentSection === 1 && renderSection1()}
               {currentSection === 2 && renderSection2()}
               {currentSection === 3 && renderSection3()}
