@@ -1,13 +1,29 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Create a Supabase client with cookie handling
+const createServerSupabaseClient = () => {
+  const cookieStore = cookies();
+
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+};
 
 export async function GET(request: Request) {
   try {
+    // Get Supabase client with cookie handling
+    const supabase = createServerSupabaseClient();
+
     // Get user from session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -22,9 +38,15 @@ export async function GET(request: Request) {
     console.log('Checking registration for user ID:', session.user.id);
     console.log('User email:', session.user.email);
 
+    // Create service client for database operations
+    const serviceSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Check if user has already registered in pendaftaran_tikrar_tahfidz table
     console.log('Querying with user_id:', session.user.id);
-    const { data: registration, error } = await supabase
+    const { data: registration, error } = await serviceSupabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', session.user.id)
@@ -42,7 +64,7 @@ export async function GET(request: Request) {
 
       // Try to find by email if user_id search fails
       if (session.user.email) {
-        const { data: emailRegistration, error: emailError } = await supabase
+        const { data: emailRegistration, error: emailError } = await serviceSupabase
           .from('pendaftaran_tikrar_tahfidz')
           .select('*')
           .eq('email', session.user.email)
