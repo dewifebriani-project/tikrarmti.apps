@@ -306,12 +306,12 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    <Link href="/pendaftaran" className="flex-1 sm:flex-none">
+                    <Link href="/register" className="flex-1 sm:flex-none">
                       <Button variant="outline" className="w-full sm:w-auto border-green-600 text-green-600 hover:bg-green-50">
                         Lihat Program
                       </Button>
                     </Link>
-                    <Link href="/pendaftaran/tikrar-tahfidz" className="flex-1 sm:flex-none">
+                    <Link href="/register" className="flex-1 sm:flex-none">
                       <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
                         Daftar Sekarang
                       </Button>
