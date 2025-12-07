@@ -18,20 +18,7 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log('Checking registration for user_id:', session.user.id);
-    console.log('User email:', session.user.email);
-
-    // First, let's check if there are any records at all in the table
-    const { data: allRecords, error: allError } = await supabase
-      .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, email, full_name, created_at')
-      .limit(5);
-
-    console.log('Sample records from table:', allRecords);
-    console.log('All records error:', allError);
-
     // Check if user has already registered in pendaftaran_tikrar_tahfidz table
-    // Try to find by email as well as user_id
     const { data: registration, error } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
@@ -40,11 +27,9 @@ export async function GET(request: Request) {
       .limit(1)
       .single();
 
-    console.log('Registration query error:', error);
-
     // If not found by user_id, try searching by email as a fallback
+    // This handles cases where user_id might not match due to auth provider changes
     if (error && error.code === 'PGRST116') {
-      console.log('Not found by user_id, trying email search...');
       const { data: emailRegistration, error: emailError } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select('*')
@@ -52,9 +37,6 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-
-      console.log('Email search result:', emailRegistration);
-      console.log('Email search error:', emailError);
 
       if (emailRegistration) {
         return NextResponse.json({
@@ -84,7 +66,7 @@ export async function GET(request: Request) {
       });
     }
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') {
       console.error('Error checking registration:', error);
       return NextResponse.json(
         { error: 'Internal server error' },
