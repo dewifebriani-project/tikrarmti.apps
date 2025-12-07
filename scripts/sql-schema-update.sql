@@ -186,7 +186,7 @@ CREATE TRIGGER update_pendaftaran_updated_at BEFORE UPDATE ON pendaftaran_tikrar
 -- 6. SAMPLE INSERTS (for testing)
 -- =====================================================
 
--- Sample admin user (password would be in Supabase Auth)
+-- Sample admin user (password: Admin123!)
 INSERT INTO users (
     id,
     email,
@@ -196,6 +196,7 @@ INSERT INTO users (
     is_active,
     created_at,
     negara,
+    provinsi,
     kota,
     alamat,
     whatsapp,
@@ -208,13 +209,14 @@ INSERT INTO users (
     alasan_daftar
 ) VALUES (
     gen_random_uuid(),
-    'admin@tikrarmti.com',
+    'admin@markaztikrar.id',
     'managed_by_auth_system',
     'Admin Tikrar MTI',
     'admin',
     true,
     NOW(),
     'Indonesia',
+    'DKI Jakarta',
     'Jakarta',
     'Alamat Admin',
     '+6281234567890',
@@ -222,10 +224,13 @@ INSERT INTO users (
     'WIB',
     '1990-01-01',
     'Jakarta',
-    'L',
+    'laki-laki',
     'Admin Sistem',
     'Admin Tikrar MTI Apps'
 ) ON CONFLICT (email) DO NOTHING;
+
+-- Note: Password for admin@markaztikrar.id is "Admin123!"
+-- This password should be set manually in Supabase Auth dashboard
 
 -- =====================================================
 -- 7. MIGRATION NOTES
