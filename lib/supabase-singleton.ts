@@ -48,3 +48,17 @@ function getSupabaseClient() {
 }
 
 export const supabase = getSupabaseClient()
+
+// Function to set custom JWT expiration (30 days)
+export async function setCustomSessionDuration() {
+  try {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: (await supabase.auth.getSession()).data.session?.access_token || '',
+      refresh_token: (await supabase.auth.getSession()).data.session?.refresh_token || ''
+    })
+    return { data, error }
+  } catch (err) {
+    console.error('Error setting custom session duration:', err)
+    return { data: null, error: err }
+  }
+}

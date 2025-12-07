@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { type PendaftaranData } from '@/lib/pendaftaran'
 import { fetchInitialData, getCachedBatchInfo } from './optimized-sections'
+import { supabase } from '@/lib/supabase-singleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -333,10 +334,62 @@ function TikrarTahfidzPage() {
 
     if (!validateSection(4)) return
 
-    // CRITICAL: Check if user is properly authenticated
-    if (!user?.id || !user?.email) {
+    // CRITICAL: Check and refresh session before submission
+    console.log('Checking current session validity...')
+
+    try {
+      // Try to get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !session) {
+        console.error('Session error:', sessionError)
+        setSubmitStatus('error')
+        alert('Error: Session telah berakhir. Silakan login kembali untuk melanjutkan.')
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
+        return
+      }
+
+      // Check if session is expired or will expire soon (within 5 minutes)
+      const now = new Date()
+      const expiresAt = new Date(session.expires_at! * 1000)
+      const timeUntilExpiry = expiresAt.getTime() - now.getTime()
+      const fiveMinutes = 5 * 60 * 1000
+
+      if (timeUntilExpiry < fiveMinutes) {
+        console.log('Session expires soon, refreshing...')
+        const { error: refreshError } = await supabase.auth.refreshSession()
+
+        if (refreshError) {
+          console.error('Failed to refresh session:', refreshError)
+          setSubmitStatus('error')
+          alert('Error: Gagal memperbarui session. Silakan login kembali.')
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+          return
+        }
+        console.log('Session refreshed successfully')
+      }
+
+      // Re-check user after potential refresh
+      if (!user?.id || !user?.email) {
+        setSubmitStatus('error')
+        alert('Error: User tidak valid. Silakan login kembali.')
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
+        return
+      }
+
+    } catch (sessionCheckError) {
+      console.error('Session check error:', sessionCheckError)
       setSubmitStatus('error')
-      alert('Error: User tidak terautentikasi dengan benar. Silakan logout dan login kembali.')
+      alert('Error: Terjadi kesalahan saat memeriksa session. Silakan login kembali.')
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
       return
     }
 
