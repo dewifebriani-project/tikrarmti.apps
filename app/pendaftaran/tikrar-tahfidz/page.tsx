@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { type PendaftaranData } from '@/lib/pendaftaran'
-import { fetchInitialData, getCachedBatchInfo, getCachedUserProfile } from './optimized-sections'
+import { fetchInitialData, getCachedBatchInfo } from './optimized-sections'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -73,12 +73,6 @@ function TikrarTahfidzPage() {
 
   const [isClient, setIsClient] = useState(false)
   const [currentSection, setCurrentSection] = useState(1)
-  const [userProfile, setUserProfile] = useState<any>(null)
-  const [isOnline, setIsOnline] = useState(true) // Default to true to prevent hydration mismatch
-  const [networkError, setNetworkError] = useState<string | null>(null)
-
-  // Ref to track if user profile has been loaded
-  const userProfileLoadedRef = useRef(false)
   const [formData, setFormData] = useState<FormData>(defaultFormData)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -119,33 +113,6 @@ function TikrarTahfidzPage() {
     }
   }, [])
 
-  // Network status monitoring - only on client side
-  useEffect(() => {
-    if (!isClient) return
-
-    // Set initial network status
-    setIsOnline(navigator.onLine)
-
-    const handleOnline = () => {
-      setIsOnline(true)
-      setNetworkError(null)
-      console.log('Network connection restored')
-    }
-
-    const handleOffline = () => {
-      setIsOnline(false)
-      setNetworkError('Koneksi internet terputus. Beberapa fitur mungkin tidak berfungsi.')
-      console.log('Network connection lost')
-    }
-
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [isClient])
 
   // Optimized data fetching with parallel loading
   useEffect(() => {
@@ -169,22 +136,10 @@ function TikrarTahfidzPage() {
       })
     }
 
-    // Load user profile if user exists
-    if (user) {
-      const cachedProfile = getCachedUserProfile(user.id)
-      if (cachedProfile) {
-        console.log('Loading cached user profile:', cachedProfile);
-        setUserProfile(cachedProfile)
-        userProfileLoadedRef.current = true
-      }
-    }
-
-    // Fetch fresh data in parallel with mobile optimization
+    // Fetch batch info only
     if (navigator.onLine) {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-      fetchInitialData(user?.id).then(({ batchInfo, userProfile }) => {
-        console.log('Fetch initial data result:', { batchInfo, userProfile, userId: user?.id });
+      fetchInitialData(user?.id).then(({ batchInfo }) => {
+        console.log('Fetch batch info result:', { batchInfo });
 
         if (batchInfo) {
           setBatchInfo({
@@ -201,76 +156,9 @@ function TikrarTahfidzPage() {
             registered_count: batchInfo.registered_count
           })
         }
-
-        // Set user profile if it exists (null check on userProfile, not user)
-        if (userProfile) {
-          console.log('Setting user profile from initial fetch:', userProfile);
-          setUserProfile(userProfile)
-          userProfileLoadedRef.current = true
-        } else if (user) {
-          console.warn('User profile not fetched from initial data, will retry...', { userId: user.id });
-        }
-
-        // Clear network error if successful
-        setNetworkError('')
       }).catch(error => {
-        console.error('Error fetching initial data:', error)
-        setNetworkError('Gagal memuat data. Silakan refresh halaman.')
+        console.error('Error fetching batch info:', error)
       })
-
-      // Additional retry for all devices if user profile still missing after initial fetch
-      if (user) {
-        const firstRetryDelay = isMobileDevice ? 2000 : 1000;
-        const secondRetryDelay = isMobileDevice ? 5000 : 3000;
-
-        // First retry
-        setTimeout(() => {
-          if (!userProfileLoadedRef.current) {
-            console.log(`Retrying user profile fetch after ${firstRetryDelay}ms... (userId: ${user.id}, device: ${isMobileDevice ? 'mobile' : 'desktop'})`);
-            import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
-              fetchUserProfileOptimized(user.id).then(retryProfile => {
-                if (retryProfile) {
-                  console.log('User profile loaded on first retry:', retryProfile);
-                  setUserProfile(retryProfile);
-                  userProfileLoadedRef.current = true;
-                } else {
-                  console.warn('First retry returned null profile');
-                }
-              }).catch(error => {
-                console.error('Error in first retry:', error);
-              });
-            });
-          } else {
-            console.log('User profile already loaded, skipping first retry');
-          }
-        }, firstRetryDelay);
-
-        // Second retry
-        setTimeout(() => {
-          if (!userProfileLoadedRef.current) {
-            console.log(`Second retry for user profile after ${secondRetryDelay}ms... (userId: ${user.id})`);
-            import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
-              fetchUserProfileOptimized(user.id).then(secondRetryProfile => {
-                if (secondRetryProfile) {
-                  console.log('User profile loaded on second retry:', secondRetryProfile);
-                  setUserProfile(secondRetryProfile);
-                  userProfileLoadedRef.current = true;
-                } else {
-                  console.warn('Failed to load user profile after both retries');
-                  setNetworkError('Data profil gagal dimuat. Silakan refresh halaman.');
-                }
-              }).catch(error => {
-                console.error('Error in second retry:', error);
-                setNetworkError('Data profil gagal dimuat. Silakan refresh halaman.');
-              });
-            });
-          } else {
-            console.log('User profile already loaded, skipping second retry');
-          }
-        }, secondRetryDelay);
-      }
-    } else if (!cachedBatch) {
-      setNetworkError('Tidak ada koneksi internet. Periksa koneksi Ukhti untuk memuat data program.')
     }
   }, [user, isClient])
 
@@ -379,11 +267,7 @@ function TikrarTahfidzPage() {
     }
 
     if (section === 3) {
-      // Validasi hanya field yang khusus untuk tikrar
-      // Domicile diambil otomatis dari data kota user saat registrasi
-      if (!userProfile?.kota) {
-        newErrors.domicile = 'Data kota belum terisi. Silakan lengkapi profil Ukhti terlebih dahulu.';
-      }
+      // Validasi hanya field akad waktu
       if (!formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
       }
@@ -491,19 +375,18 @@ function TikrarTahfidzPage() {
         motivation: formData.motivation,
         ready_for_team: formData.ready_for_team,
 
-        // Section 3 - Data Pribadi (diambil dari users table)
-        full_name: userProfile?.full_name || '',
-        address: userProfile?.alamat || '',
-        wa_phone: userProfile?.whatsapp || '',
-        telegram_phone: userProfile?.telegram || '',
-        birth_date: userProfile?.tanggal_lahir || null,
-        // birth_place removed - not in database schema
-        age: userProfile?.tanggal_lahir ? Math.floor((new Date().getTime() - new Date(userProfile.tanggal_lahir).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : 0,
-        domicile: userProfile?.kota || '', // Diambil dari field kota di tabel users
-        timezone: userProfile?.zona_waktu || 'WIB',
-        main_time_slot: formData.main_time_slot, // Hanya untuk tikrar
-        backup_time_slot: formData.backup_time_slot, // Hanya untuk tikrar
-        time_commitment: formData.time_commitment, // Hanya untuk tikrar
+        // Section 3 - Data Pribadi (akan diambil dari users table di backend)
+        full_name: '', // Akan diisi otomatis dari backend
+        address: '', // Akan diisi otomatis dari backend
+        wa_phone: '', // Akan diisi otomatis dari backend
+        telegram_phone: '', // Akan diisi otomatis dari backend
+        birth_date: null, // Akan diisi otomatis dari backend
+        age: 0, // Akan dihitung otomatis dari backend
+        domicile: '', // Akan diisi otomatis dari backend
+        timezone: '', // Akan diisi otomatis dari backend
+        main_time_slot: formData.main_time_slot,
+        backup_time_slot: formData.backup_time_slot,
+        time_commitment: formData.time_commitment,
 
         // Section 4 - Program Understanding
         understands_program: formData.understands_program,
@@ -1184,104 +1067,11 @@ function TikrarTahfidzPage() {
       <Alert className="bg-purple-50 border-purple-200">
         <Info className="h-4 w-4 text-purple-600" />
         <AlertDescription className="text-purple-800">
-          <strong>Section 3 of 4</strong> - Konfirmasi Data & Waktu
+          <strong>Section 3 of 4</strong> - Akad Waktu
         </AlertDescription>
       </Alert>
 
-      {/* Data diri sudah diambil dari tabel users - tampilkan sebagai informasi saja */}
-      <div className="bg-gradient-to-br from-gray-50 to-blue-50 p-4 sm:p-5 md:p-6 rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="text-base sm:text-lg md:text-xl font-bold mb-3 sm:mb-4 text-gray-800 flex items-center">
-          <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-blue-500 rounded-full mr-3"></div>
-          Data Diri (Diambil dari profil Ukhti)
-          {!userProfile && user && (
-            <div className="ml-auto">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            </div>
-          )}
-        </h3>
-        {userProfile && user ? (
-              <div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Nama Lengkap</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.full_name || '-'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Email</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-all">{user?.email || '-'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. WhatsApp</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.whatsapp || '-'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">No. Telegram</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.telegram || '-'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Alamat</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">{userProfile?.alamat || '-'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Kota</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.kota || '-'}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Tempat, Tanggal Lahir</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1 break-words">
-                      {userProfile?.tempat_lahir || '-'}
-                      {userProfile?.tanggal_lahir && `, ${new Date(userProfile.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`}
-                    </p>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 hover:border-purple-200 transition-colors">
-                    <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Zona Waktu</span>
-                    <p className="text-sm sm:text-base text-gray-900 font-medium mt-1">{userProfile?.zona_waktu || '-'}</p>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
-                  <p className="text-xs sm:text-sm text-yellow-800 flex items-start">
-                    <span className="text-yellow-600 mr-2 flex-shrink-0">ℹ️</span>
-                    <span>
-                      Jika data di atas tidak lengkap atau salah, silakan perbarui di{' '}
-                      <a
-                        href="/lengkapi-profil"
-                        className="font-semibold underline hover:text-yellow-900"
-                      >
-                        halaman Edit Profil
-                      </a>.
-                    </span>
-                  </p>
-                </div>
-              </div>
-            ) : user ? (
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-sm text-gray-600">
-                    {isOnline ? 'Memuat data profil...' : 'Tidak dapat memuat data. Periksa koneksi internet.'}
-                  </p>
-                  {!isOnline && (
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                    >
-                      🔄 Refresh Halaman
-                    </button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-sm text-gray-600">
-                    Silakan login terlebih dahulu untuk melihat data profil.
-                  </p>
-                </div>
-              </div>
-            )}
-      </div>
-
-      {/* Field yang khusus untuk tikrar */}
+      {/* Field untuk akad waktu */}
       <div className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -1529,10 +1319,7 @@ function TikrarTahfidzPage() {
               <strong>Gagal Mengirim Formulir</strong>
               <br /><br />
               <p className="text-sm">
-                {networkError
-                  ? `${networkError} Silakan periksa koneksi internet Ukhti dan coba lagi.`
-                  : 'Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.'
-                }
+                Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.
               </p>
               <br />
               <div className="space-y-1 text-xs">
@@ -1544,14 +1331,6 @@ function TikrarTahfidzPage() {
                   <li>Hubungi admin jika masalah berlanjut</li>
                 </ul>
               </div>
-              {!isOnline && (
-                <button
-                  onClick={() => window.location.reload()}
-                  className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                >
-                  🔄 Refresh Halaman
-                </button>
-              )}
             </AlertDescription>
           </Alert>
         )}
@@ -1615,24 +1394,6 @@ function TikrarTahfidzPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 pt-16 sm:pt-20 lg:pt-20">
       <div className="max-w-4xl mx-auto px-3 md:px-4 py-8 overflow-x-hidden">
-        {/* Network Status Indicator */}
-        {networkError && (
-          <div className="lg:fixed lg:top-0 lg:left-0 lg:right-0 lg:z-50 bg-red-500 text-white px-4 py-2 text-center relative">
-            <p className="text-sm font-medium">
-              📵 {networkError}
-            </p>
-          </div>
-        )}
-
-        {/* Online Status Indicator */}
-        {!isOnline && (
-          <div className="fixed bottom-4 right-4 z-50 bg-red-500 text-white px-3 py-2 rounded-lg shadow-lg">
-            <p className="text-xs font-medium flex items-center">
-              <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
-              Offline Mode
-            </p>
-          </div>
-        )}
 
         <div className="text-center mb-6 px-4">
           <h1 className="text-2xl md:text-4xl font-bold text-green-900 mb-3">
@@ -1806,18 +1567,13 @@ function TikrarTahfidzPage() {
                   <Button
                     type="button"
                     onClick={() => handleSubmit()}
-                    disabled={isSubmitting || submitStatus === 'success' || !isOnline}
+                    disabled={isSubmitting || submitStatus === 'success'}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-2 px-4 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                         <span>Mengirim Data...</span>
-                      </>
-                    ) : !isOnline ? (
-                      <>
-                        <span>📵 Tidak Ada Koneksi</span>
-                        <Send className="h-5 w-5" />
                       </>
                     ) : (
                       <>

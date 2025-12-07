@@ -20,7 +20,6 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [checkingUser, setCheckingUser] = useState(false);
 
   useEffect(() => {
     let isHandled = false;
@@ -136,56 +135,17 @@ function AuthCallbackContent() {
           }
         }
 
-        // At this point we have a valid session
+        // At this point we have a valid session - langsung redirect ke dashboard
         const userEmail = sessionData.session.user.email;
         console.log('User authenticated:', userEmail);
-
-        // Check if user is registered in our database using API endpoint
-        setCheckingUser(true);
 
         if (!userEmail) {
           throw new Error('User email is required');
         }
 
-        // Call API to check registration status (server-side check) with timeout for mobile
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), isMobile() ? 8000 : 15000);
-
-        const response = await fetch('/api/auth/check-registration', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email: userEmail }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-        const registrationStatus = await response.json();
-
-        if (!registrationStatus.registered) {
-          console.log('User registration incomplete:', userEmail, registrationStatus.reason);
-
-          // Jika user belum terdaftar sama sekali
-          if (registrationStatus.reason?.includes('User tidak ditemukan')) {
-            // User not registered - create minimal profile and redirect to dashboard
-            console.log('Creating minimal profile for Google OAuth user...');
-
-            // User bisa login dengan data minimal dari Google, tanpa harus sign out
-            router.push('/lengkapi-profil?from_oauth=true&message=complete_profile');
-            return;
-          } else {
-            // User sudah ada di database tapi profil belum lengkap
-            // Redirect ke halaman lengkapi profil
-            console.log('Redirecting to profile completion page...');
-            router.push('/lengkapi-profil?from_oauth=true');
-            return;
-          }
-        } else {
-          console.log('User registered, redirecting to dashboard');
-          // User is registered, proceed to dashboard
-          router.push('/dashboard');
-        }
+        // Langsung redirect ke dashboard - user profile akan di-create otomatis jika belum ada
+        console.log('Redirecting to dashboard...');
+        router.push('/dashboard');
 
       } catch (err: any) {
         console.error('Auth callback error:', err);
@@ -194,7 +154,6 @@ function AuthCallbackContent() {
         // Clear the sessionStorage flag
         sessionStorage.removeItem('oauth_from_localhost');
         setLoading(false);
-        setCheckingUser(false);
       }
     };
 
@@ -211,10 +170,10 @@ function AuthCallbackContent() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-green-900 mb-4">
-            {checkingUser ? 'Memeriksa Data Anda...' : 'Mengautentikasi...'}
+            Mengautentikasi...
           </h1>
           <p className="text-gray-600 mb-6 text-sm">
-            {isMobile() ? 'Proses ini akan segera selesai...' : 'Mohon tunggu sebentar'}
+            Mohon tunggu sebentar
           </p>
           <div className="flex justify-center">
             <div className="w-8 h-8 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
