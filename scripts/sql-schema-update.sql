@@ -187,21 +187,27 @@ CREATE TRIGGER update_pendaftaran_updated_at BEFORE UPDATE ON pendaftaran_tikrar
 -- =====================================================
 
 -- Sample admin user (password: Admin123!)
--- Check if user exists before inserting
+-- Create admin user using direct INSERT with explicit column mapping
 DO $$
+DECLARE
+    user_exists BOOLEAN;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM users WHERE email = 'admin@markaztikrar.id') THEN
+    SELECT EXISTS(SELECT 1 FROM users WHERE email = 'admin@markaztikrar.id') INTO user_exists;
+
+    IF NOT user_exists THEN
+        -- Insert with exact field matching
         INSERT INTO users (
-            id, email, password_hash, full_name, avatar_url, role, is_active,
-            created_at, updated_at, negara, provinsi, kota, alamat,
-            whatsapp, telegram, zona_waktu, tanggal_lahir, tempat_lahir,
+            id, email, password_hash, full_name, avatar_url,
+            role, is_active, created_at, updated_at,
+            negara, provinsi, kota, alamat, whatsapp,
+            telegram, zona_waktu, tanggal_lahir, tempat_lahir,
             jenis_kelamin, pekerjaan, alasan_daftar
         ) VALUES (
             gen_random_uuid(),
             'admin@markaztikrar.id',
             'managed_by_auth_system',
             'Admin Tikrar MTI',
-            NULL,  -- avatar_url
+            NULL,
             'admin',
             true,
             NOW(),
@@ -215,9 +221,9 @@ BEGIN
             'WIB',
             '1990-01-01',
             'Jakarta',
-            'laki-laki',      -- jenis_kelamin
-            'Admin Sistem',   -- pekerjaan
-            'Admin Tikrar MTI Apps'  -- alasan_daftar
+            'laki-laki',
+            'Admin Sistem',
+            'Admin Tikrar MTI Apps'
         );
         RAISE NOTICE 'Admin user admin@markaztikrar.id created successfully';
     ELSE
