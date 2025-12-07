@@ -41,36 +41,34 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
-      // Run all data loading functions in parallel for better performance
-      Promise.allSettled([
-        loadUserData(),
-        loadBatchInfo(),
-        loadRecentActivity()
-      ])
+      // Use user data from AuthContext instead of fetching again
+      setUserData(user)
+
+      // Only load batch info - skip recent activity since it's empty
+      loadBatchInfo()
     }
   }, [user])
 
-  const loadUserData = async () => {
-    if (!user) return
-
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (data && !error) {
-        setUserData(data)
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error)
-    }
-  }
-
   const loadBatchInfo = async () => {
     try {
-      // Get current active batch for Tikrar MTI - prioritize Tikrar Tahfidz batches
+      // Check cache first (5 minutes cache)
+      const cached = localStorage.getItem('dashboard_batch_info')
+      if (cached) {
+        const { data: cachedData, timestamp } = JSON.parse(cached)
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setBatchInfo(cachedData)
+          const durationWeeks = cachedData.duration_weeks || 13
+          setStats(prev => ({
+            ...prev,
+            totalHariTarget: durationWeeks,
+            hariAktual: 0,
+            persentaseProgress: 0
+          }))
+          return // Use cache, skip API call
+        }
+      }
+
+      // Fetch from API
       const { data, error } = await supabase
         .from('batches')
         .select('*')
@@ -79,18 +77,22 @@ export default function Dashboard() {
         .limit(1)
 
       if (data && data.length > 0 && !error) {
-        setBatchInfo(data[0] as any)
-
-        // Use duration_weeks from database, default to 0 for pending batch
         const batchData = data[0] as any
-        const durationWeeks = batchData.duration_weeks || 13
+        setBatchInfo(batchData)
 
-        // Set stats with weeks instead of days, and default to 0 for new batch
+        // Cache the result
+        localStorage.setItem('dashboard_batch_info', JSON.stringify({
+          data: batchData,
+          timestamp: Date.now()
+        }))
+
+        // Use duration_weeks from database
+        const durationWeeks = batchData.duration_weeks || 13
         setStats(prev => ({
           ...prev,
-          totalHariTarget: durationWeeks, // Total weeks
-          hariAktual: 0, // Set to 0 for now
-          persentaseProgress: 0 // Set to 0% for now
+          totalHariTarget: durationWeeks,
+          hariAktual: 0,
+          persentaseProgress: 0
         }))
       }
     } catch (error) {

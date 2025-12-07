@@ -61,13 +61,15 @@ function AuthCallbackContent() {
             return;
           }
 
-          // Session is now set, redirect immediately
+          // Session is now set, redirect immediately without setting loading state
           const userEmail = exchangeData.session.user.email;
           console.log('User authenticated:', userEmail);
 
           sessionStorage.removeItem('oauth_from_localhost');
           console.log('Redirecting to dashboard...');
-          window.location.href = '/dashboard';
+
+          // Immediate redirect - don't wait for React state updates
+          window.location.replace('/dashboard');
           return;
         }
 
@@ -100,13 +102,15 @@ function AuthCallbackContent() {
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
 
-            // Session is set, redirect immediately
+            // Session is set, redirect immediately without state updates
             const userEmail = sessionData.session.user.email;
             console.log('User authenticated:', userEmail);
 
             sessionStorage.removeItem('oauth_from_localhost');
             console.log('Redirecting to dashboard...');
-            window.location.href = '/dashboard';
+
+            // Immediate redirect - don't wait for React state updates
+            window.location.replace('/dashboard');
             return;
           }
         }
@@ -134,8 +138,8 @@ function AuthCallbackContent() {
         // Langsung redirect ke dashboard tanpa delay
         console.log('Redirecting to dashboard...');
 
-        // Use window.location for immediate redirect (faster than router.replace)
-        window.location.href = '/dashboard';
+        // Use window.location.replace for immediate redirect (fastest, no history entry)
+        window.location.replace('/dashboard');
         return;
 
       } catch (err: any) {
