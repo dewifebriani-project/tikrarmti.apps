@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { type PendaftaranData } from '@/lib/pendaftaran'
@@ -76,6 +76,9 @@ function TikrarTahfidzPage() {
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isOnline, setIsOnline] = useState(true) // Default to true to prevent hydration mismatch
   const [networkError, setNetworkError] = useState<string | null>(null)
+
+  // Ref to track if user profile has been loaded
+  const userProfileLoadedRef = useRef(false)
   const [formData, setFormData] = useState<FormData>(defaultFormData)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -170,7 +173,9 @@ function TikrarTahfidzPage() {
     if (user) {
       const cachedProfile = getCachedUserProfile(user.id)
       if (cachedProfile) {
+        console.log('Loading cached user profile:', cachedProfile);
         setUserProfile(cachedProfile)
+        userProfileLoadedRef.current = true
       }
     }
 
@@ -179,6 +184,8 @@ function TikrarTahfidzPage() {
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       fetchInitialData(user?.id).then(({ batchInfo, userProfile }) => {
+        console.log('Fetch initial data result:', { batchInfo, userProfile, userId: user?.id });
+
         if (batchInfo) {
           setBatchInfo({
             batch_id: batchInfo.batch_id,
@@ -195,8 +202,13 @@ function TikrarTahfidzPage() {
           })
         }
 
-        if (userProfile && user) {
+        // Set user profile if it exists (null check on userProfile, not user)
+        if (userProfile) {
+          console.log('Setting user profile from initial fetch:', userProfile);
           setUserProfile(userProfile)
+          userProfileLoadedRef.current = true
+        } else if (user) {
+          console.warn('User profile not fetched from initial data, will retry...', { userId: user.id });
         }
 
         // Clear network error if successful
@@ -206,45 +218,56 @@ function TikrarTahfidzPage() {
         setNetworkError('Gagal memuat data. Silakan refresh halaman.')
       })
 
-      // Additional retry for mobile if user profile still missing after initial fetch
-      if (isMobileDevice && user) {
-        // First retry after 2 seconds
+      // Additional retry for all devices if user profile still missing after initial fetch
+      if (user) {
+        const firstRetryDelay = isMobileDevice ? 2000 : 1000;
+        const secondRetryDelay = isMobileDevice ? 5000 : 3000;
+
+        // First retry
         setTimeout(() => {
-          if (!userProfile) {
-            console.log('Retrying user profile fetch for mobile after 2 seconds...');
+          if (!userProfileLoadedRef.current) {
+            console.log(`Retrying user profile fetch after ${firstRetryDelay}ms... (userId: ${user.id}, device: ${isMobileDevice ? 'mobile' : 'desktop'})`);
             import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
               fetchUserProfileOptimized(user.id).then(retryProfile => {
                 if (retryProfile) {
+                  console.log('User profile loaded on first retry:', retryProfile);
                   setUserProfile(retryProfile);
-                  console.log('User profile loaded on retry for mobile');
+                  userProfileLoadedRef.current = true;
+                } else {
+                  console.warn('First retry returned null profile');
                 }
               }).catch(error => {
-                console.error('Error in first retry for mobile:', error);
+                console.error('Error in first retry:', error);
               });
             });
+          } else {
+            console.log('User profile already loaded, skipping first retry');
           }
-        }, 2000);
+        }, firstRetryDelay);
 
-        // Second retry after 5 seconds
+        // Second retry
         setTimeout(() => {
-          if (!userProfile) {
-            console.log('Second retry for user profile on mobile after 5 seconds...');
+          if (!userProfileLoadedRef.current) {
+            console.log(`Second retry for user profile after ${secondRetryDelay}ms... (userId: ${user.id})`);
             import('./optimized-sections').then(({ fetchUserProfileOptimized }) => {
               fetchUserProfileOptimized(user.id).then(secondRetryProfile => {
                 if (secondRetryProfile) {
+                  console.log('User profile loaded on second retry:', secondRetryProfile);
                   setUserProfile(secondRetryProfile);
-                  console.log('User profile loaded on second retry for mobile');
+                  userProfileLoadedRef.current = true;
                 } else {
-                  console.warn('Failed to load user profile after retries on mobile');
+                  console.warn('Failed to load user profile after both retries');
                   setNetworkError('Data profil gagal dimuat. Silakan refresh halaman.');
                 }
               }).catch(error => {
-                console.error('Error in second retry for mobile:', error);
+                console.error('Error in second retry:', error);
                 setNetworkError('Data profil gagal dimuat. Silakan refresh halaman.');
               });
             });
+          } else {
+            console.log('User profile already loaded, skipping second retry');
           }
-        }, 5000);
+        }, secondRetryDelay);
       }
     } else if (!cachedBatch) {
       setNetworkError('Tidak ada koneksi internet. Periksa koneksi Ukhti untuk memuat data program.')
