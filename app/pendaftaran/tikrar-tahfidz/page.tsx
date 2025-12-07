@@ -384,7 +384,6 @@ function TikrarTahfidzPage() {
       // Prepare data for database
       const submissionData: any = {
         user_id: user?.id || '',
-        email: user?.email || '',
         full_name: user?.full_name || user?.email?.split('@')[0] || '',
         provider: user?.app_metadata?.provider || user?.user_metadata?.provider || 'email',
         batch_id: batchInfo.batch_id,
