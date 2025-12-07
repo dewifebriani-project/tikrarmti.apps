@@ -399,7 +399,14 @@ function TikrarTahfidzPage() {
   const handleSubmit = async (retryCount = 0) => {
     const maxRetries = 3
 
-    if (!validateSection(4)) return
+    // Validate all sections before submission
+    for (let i = 1; i <= 4; i++) {
+      if (!validateSection(i)) {
+        // Scroll to the first section that has errors
+        setCurrentSection(i)
+        return
+      }
+    }
 
     // Declare authUser at higher scope
     let authUser: any;

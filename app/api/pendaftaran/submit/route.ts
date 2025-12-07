@@ -32,7 +32,14 @@ export async function POST(request: Request) {
     const { birth_place, email, provider, ...cleanedBody } = body;
 
     // Remove optional fields that are empty/null/undefined to avoid DB errors
+    // But keep has_permission even if empty since it's required by DB constraint
     const filteredBody = Object.entries(cleanedBody).reduce((acc, [key, value]) => {
+      // Keep has_permission even if empty (should be validated on frontend)
+      if (key === 'has_permission') {
+        acc[key] = value || '';
+        return acc;
+      }
+
       // Keep the value if it's not null, undefined, or empty string
       // But keep boolean false and number 0
       if (value !== null && value !== undefined && value !== '') {

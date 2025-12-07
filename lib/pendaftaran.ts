@@ -11,7 +11,7 @@ export interface PendaftaranData {
   has_telegram: boolean
   saved_contact: boolean
   // Section 2 fields
-  has_permission: boolean
+  has_permission: 'yes' | 'janda' | ''
   permission_name: string
   permission_phone: string
   chosen_juz: string
