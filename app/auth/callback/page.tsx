@@ -87,8 +87,8 @@ function AuthCallbackContent() {
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
 
-            // Wait a bit for session to be properly set (optimized for mobile)
-            await new Promise(resolve => setTimeout(resolve, isMobile() ? 50 : 100));
+            // Minimal delay to ensure session is set
+            await new Promise(resolve => setTimeout(resolve, 10));
           }
         }
 
@@ -110,9 +110,9 @@ function AuthCallbackContent() {
           const hasAuthParams = searchParams.has('code') || searchParams.has('access_token');
 
           if (hasAuthParams) {
-            console.log('Auth params found, retrying session...', { isMobile: isMobile() });
-            // Optimized delay based on device type
-            await new Promise(resolve => setTimeout(resolve, getOptimizedDelay()));
+            console.log('Auth params found, retrying session immediately...');
+            // Minimal delay to avoid race condition
+            await new Promise(resolve => setTimeout(resolve, 5));
 
             // Try to get session again
             const { data: retryData, error: retryError } = await supabase.auth.getSession();
@@ -145,7 +145,8 @@ function AuthCallbackContent() {
 
         // Langsung redirect ke dashboard - user profile akan di-create otomatis jika belum ada
         console.log('Redirecting to dashboard...');
-        router.push('/dashboard');
+        // Use replace instead of push for faster navigation without history
+        router.replace('/dashboard');
 
       } catch (err: any) {
         console.error('Auth callback error:', err);
