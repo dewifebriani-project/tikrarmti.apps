@@ -335,76 +335,48 @@ function TikrarTahfidzPage() {
 
     if (!validateSection(4)) return
 
-    // CRITICAL: Comprehensive session management before submission
-    console.log('Performing comprehensive session check...')
-
+    // Fast session validation before submission (optimized for speed)
     try {
-      // Use session manager for robust session handling
-      const isSessionValid = await sessionManager.checkSession();
+      // Quick session check without detailed logging to reduce delay
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!isSessionValid) {
-        console.log('Session invalid, attempting refresh...')
-        const refreshed = await sessionManager.refreshSession();
+      if (!session) {
+        setSubmitStatus('error')
+        alert('Session tidak valid. Silakan login kembali.')
+        router.push('/login')
+        return
+      }
 
-        if (!refreshed) {
-          console.error('Session refresh failed completely')
+      // Check if session is expired (simple check)
+      const now = Date.now();
+      const expiresAt = session.expires_at! * 1000;
+      const isExpired = now >= expiresAt;
+
+      if (isExpired) {
+        // Only refresh if expired, not for validation
+        const { error } = await supabase.auth.refreshSession();
+
+        if (error) {
           setSubmitStatus('error')
-          alert('Session telah berakhir. Silakan login kembali untuk melanjutkan.')
-          setTimeout(() => {
-            router.push('/login')
-          }, 2000)
+          alert('Session telah berakhir. Silakan login kembali.')
+          router.push('/login')
           return
         }
       }
 
-      // Get detailed session info
-      const sessionInfo = await sessionManager.getSessionInfo();
-      console.log('Session info:', {
-        valid: sessionInfo.valid,
-        expiresAt: sessionInfo.expiresAt,
-        timeUntilExpiry: Math.round(sessionInfo.timeUntilExpiry / (1000 * 60)) + ' minutes'
-      });
-
-      // Extend session if less than 1 day remaining
-      const oneDay = 24 * 60 * 60 * 1000;
-      if (sessionInfo.timeUntilExpiry < oneDay && sessionInfo.timeUntilExpiry > 0) {
-        console.log('Session expires within 24 hours, extending...');
-        const extended = await sessionManager.extendSession();
-
-        if (!extended) {
-          console.log('Could not extend session, but current session is still valid');
-        }
-      }
-
-      // Final validation
-      if (!sessionInfo.valid) {
-        setSubmitStatus('error')
-        alert('Session tidak valid. Silakan login kembali.')
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
-        return
-      }
-
-      // Re-check user context after session management
+      // Final user validation
       if (!user?.id || !user?.email) {
         setSubmitStatus('error')
         alert('User tidak valid. Silakan login kembali.')
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
+        router.push('/login')
         return
       }
 
-      console.log('Session validation passed successfully')
-
-    } catch (sessionCheckError) {
-      console.error('Session management error:', sessionCheckError)
+    } catch (sessionError) {
+      console.error('Fast session check failed:', sessionError)
       setSubmitStatus('error')
-      alert('Terjadi kesalahan session. Silakan refresh halaman dan login kembali.')
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
+      alert('Terjadi kesalahan session. Silakan login kembali.')
+      router.push('/login')
       return
     }
 

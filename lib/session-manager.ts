@@ -3,6 +3,7 @@ import { supabase } from './supabase-singleton';
 interface SessionManager {
   checkSession(): Promise<boolean>;
   refreshSession(): Promise<boolean>;
+  refreshSessionWithRetry(): Promise<boolean>;
   extendSession(): Promise<boolean>;
   getSessionInfo(): Promise<{ valid: boolean; expiresAt: Date | null; timeUntilExpiry: number }>;
   forceRefreshSession(): Promise<boolean>;
@@ -68,29 +69,61 @@ export const sessionManager: SessionManager = {
   },
 
   /**
-   * Refresh the current session with retry mechanism
+   * Optimized session refresh with reduced delay
    */
   async refreshSession(): Promise<boolean> {
-    const maxRetries = 3;
-    const retryDelay = 1000; // 1 second
+    try {
+      // Fast refresh attempt without retries first
+      const { data, error } = await supabase.auth.refreshSession();
+
+      if (error) {
+        console.warn('Fast session refresh failed:', error);
+
+        // Only retry on network errors, not auth errors
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          return await this.refreshSessionWithRetry();
+        }
+
+        return false;
+      }
+
+      if (data?.session) {
+        console.log('Session refreshed successfully (fast)');
+        return true;
+      }
+
+      return false;
+
+    } catch (error) {
+      console.error('Fast refresh error:', error);
+
+      // Only retry on network errors
+      if (error instanceof Error &&
+          (error.message.includes('network') || error.message.includes('fetch'))) {
+        return await this.refreshSessionWithRetry();
+      }
+
+      return false;
+    }
+  },
+
+  /**
+   * Session refresh with retry mechanism (only for network errors)
+   */
+  async refreshSessionWithRetry(): Promise<boolean> {
+    const maxRetries = 2; // Reduced from 3
+    const retryDelay = 500; // Reduced from 1 second
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`Refreshing session (attempt ${attempt}/${maxRetries})...`);
-
-        // Clear any existing session data first
-        if (attempt > 1) {
-          console.log('Clearing session data before retry...');
-          await supabase.auth.signOut({ scope: 'local' });
-        }
+        console.log(`Session refresh retry ${attempt}/${maxRetries}...`);
 
         const { data, error } = await supabase.auth.refreshSession();
 
         if (error) {
-          console.warn(`Session refresh attempt ${attempt} failed:`, error);
+          console.warn(`Retry ${attempt} failed:`, error);
 
           if (attempt < maxRetries) {
-            console.log(`Waiting ${retryDelay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, retryDelay));
             continue;
           }
@@ -99,28 +132,20 @@ export const sessionManager: SessionManager = {
         }
 
         if (data?.session) {
-          console.log('Session refreshed successfully');
-
-          // Verify the refreshed session
-          const isValid = await this.checkSession();
-          if (isValid) {
-            return true;
-          } else {
-            console.warn('Refreshed session failed validation');
-          }
+          console.log('Session refreshed via retry');
+          return true;
         }
 
       } catch (error) {
-        console.error(`Critical error in refresh attempt ${attempt}:`, error);
+        console.error(`Retry ${attempt} error:`, error);
 
         if (attempt < maxRetries) {
-          console.log(`Waiting ${retryDelay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
         }
       }
     }
 
-    console.error('All session refresh attempts failed');
+    console.error('All retries failed');
     return false;
   },
 

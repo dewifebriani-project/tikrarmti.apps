@@ -331,62 +331,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Start periodic session maintenance (every 30 minutes)
       sessionMaintenance.start(30);
 
-      // Enhanced user activity listener with mobile optimization
+      // Optimized user activity listener with reduced frequency
       const handleUserActivity = (event: Event) => {
-        // Debounced activity handler
+        // Debounced activity handler with longer timeout
         if (window.activityTimeout) {
           clearTimeout(window.activityTimeout);
         }
 
         window.activityTimeout = setTimeout(async () => {
           try {
-            // Check if session needs refresh before attempting
-            const sessionInfo = await sessionManager.getSessionInfo();
+            // Fast session check without detailed info
+            const isSessionValid = await sessionManager.checkSession();
 
-            // Only refresh if session is valid but expires within 30 minutes
-            const thirtyMinutes = 30 * 60 * 1000;
-            if (sessionInfo.valid && sessionInfo.timeUntilExpiry < thirtyMinutes) {
+            if (!isSessionValid) {
+              console.log('Activity detected invalid session, refreshing...');
               const refreshed = await sessionManager.refreshSession();
-              if (refreshed) {
-                console.log('Session refreshed due to user activity');
-              } else {
-                console.warn('Activity-based session refresh failed, trying force refresh');
-                await sessionManager.forceRefreshSession();
+              if (!refreshed) {
+                console.warn('Activity refresh failed, skipping force refresh to reduce delay');
               }
             }
           } catch (error) {
-            console.error('Activity-based session refresh failed:', error);
+            console.error('Activity session check failed:', error);
           }
-        }, 3000); // Reduced to 3 seconds for better responsiveness
+        }, 5000); // Increased to 5 seconds to reduce frequency
 
-        // Additional mobile-specific handling
-        if (event.type === 'touchstart' || event.type === 'scroll') {
-          // Mobile devices need more frequent checks due to different behavior
-          const immediateCheck = async () => {
+        // Only handle critical mobile events (not all touch/scroll events)
+        if (event.type === 'touchstart' && 'ontouchstart' in window) {
+          // Only check session on first touch, not continuous touches
+          const quickCheck = async () => {
             try {
-              const isSessionValid = await sessionManager.checkSession();
-              if (!isSessionValid) {
-                console.warn('Mobile activity detected invalid session, attempting refresh...');
-                await sessionManager.forceRefreshSession();
+              // Use a simple session existence check
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) {
+                console.log('No session detected on touch');
+                // Don't immediately refresh to avoid delay, let periodic maintenance handle it
               }
             } catch (error) {
-              console.error('Mobile immediate session check failed:', error);
+              // Silent fail to avoid disrupting user experience
             }
           };
 
-          // Run immediate check with a small delay
-          setTimeout(immediateCheck, 100);
+          setTimeout(quickCheck, 200);
         }
       };
 
-      // Enhanced event listeners for better mobile/tablet support
+      // Reduced event listeners to minimize authentication overhead
       const events = [
-        // Desktop events
-        'mousedown', 'keypress', 'click', 'keydown', 'keyup',
-        // Mobile/tablet events
-        'touchstart', 'touchend', 'touchmove', 'scroll',
-        // Common events
-        'focus', 'blur', 'resize', 'visibilitychange'
+        // Primary events only (removed scroll and touchmove to reduce frequency)
+        'mousedown', 'click', 'keydown', 'visibilitychange', 'focus'
       ];
 
       events.forEach(event => {
