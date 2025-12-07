@@ -6,7 +6,15 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword, deleteUser as supabaseDeleteUser } from '@/lib/auth';
 import { getDeviceInfo, getAuthTimeout, getRetryCount, shouldUseOptimizedOAuth } from '@/lib/platform-detection';
 import { authPerformance } from '@/lib/auth-performance';
+import { sessionManager, sessionMaintenance } from '@/lib/session-manager';
 import type { User, UserRole, AuthContextType } from '@/types';
+
+// Extend Window interface for activity timeout
+declare global {
+  interface Window {
+    activityTimeout?: NodeJS.Timeout;
+  }
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -290,6 +298,77 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(null);
     }
   }, []);
+
+  // Session maintenance - auto refresh and extend session
+  useEffect(() => {
+    // Start session maintenance when user is logged in
+    if (user && user.id) {
+      console.log('Starting session maintenance for user:', user.id);
+
+      // Check session immediately
+      const checkSessionImmediately = async () => {
+        try {
+          const isSessionValid = await sessionManager.checkSession();
+
+          if (!isSessionValid) {
+            console.log('Session invalid, attempting refresh...');
+            const refreshed = await sessionManager.refreshSession();
+
+            if (!refreshed) {
+              console.warn('Session refresh failed, user may need to re-login');
+              // Don't automatically logout, let it handle naturally
+            }
+          } else {
+            console.log('Session is valid');
+          }
+        } catch (error) {
+          console.error('Session check error:', error);
+        }
+      };
+
+      checkSessionImmediately();
+
+      // Start periodic session maintenance (every 30 minutes)
+      sessionMaintenance.start(30);
+
+      // Also setup user activity listener
+      const handleUserActivity = () => {
+        // Debounced activity handler
+        if (window.activityTimeout) {
+          clearTimeout(window.activityTimeout);
+        }
+
+        window.activityTimeout = setTimeout(async () => {
+          try {
+            await sessionManager.refreshSession();
+            console.log('Session refreshed due to user activity');
+          } catch (error) {
+            console.error('Activity-based session refresh failed:', error);
+          }
+        }, 5000); // Wait 5 seconds after last activity
+      };
+
+      // Listen for various user activities
+      const events = ['mousedown', 'keypress', 'scroll', 'touchstart', 'click'];
+      events.forEach(event => {
+        document.addEventListener(event, handleUserActivity, true);
+      });
+
+      // Cleanup function
+      return () => {
+        console.log('Cleaning up session maintenance');
+        sessionMaintenance.stop();
+
+        events.forEach(event => {
+          document.removeEventListener(event, handleUserActivity, true);
+        });
+
+        if (window.activityTimeout) {
+          clearTimeout(window.activityTimeout);
+        }
+      };
+    }
+  }, [user]);
 
   // Helper function to create user object from database profile
   const createUserObjectFromProfile = (authUser: any, profile: any, googlePhotoUrl?: string): User => {

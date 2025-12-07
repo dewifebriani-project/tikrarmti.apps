@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { type PendaftaranData } from '@/lib/pendaftaran'
 import { fetchInitialData, getCachedBatchInfo } from './optimized-sections'
 import { supabase } from '@/lib/supabase-singleton'
+import { sessionManager, autoExtendSession } from '@/lib/session-manager'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -334,59 +335,73 @@ function TikrarTahfidzPage() {
 
     if (!validateSection(4)) return
 
-    // CRITICAL: Check and refresh session before submission
-    console.log('Checking current session validity...')
+    // CRITICAL: Comprehensive session management before submission
+    console.log('Performing comprehensive session check...')
 
     try {
-      // Try to get current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      // Use session manager for robust session handling
+      const isSessionValid = await sessionManager.checkSession();
 
-      if (sessionError || !session) {
-        console.error('Session error:', sessionError)
-        setSubmitStatus('error')
-        alert('Error: Session telah berakhir. Silakan login kembali untuk melanjutkan.')
-        setTimeout(() => {
-          router.push('/login')
-        }, 2000)
-        return
-      }
+      if (!isSessionValid) {
+        console.log('Session invalid, attempting refresh...')
+        const refreshed = await sessionManager.refreshSession();
 
-      // Check if session is expired or will expire soon (within 5 minutes)
-      const now = new Date()
-      const expiresAt = new Date(session.expires_at! * 1000)
-      const timeUntilExpiry = expiresAt.getTime() - now.getTime()
-      const fiveMinutes = 5 * 60 * 1000
-
-      if (timeUntilExpiry < fiveMinutes) {
-        console.log('Session expires soon, refreshing...')
-        const { error: refreshError } = await supabase.auth.refreshSession()
-
-        if (refreshError) {
-          console.error('Failed to refresh session:', refreshError)
+        if (!refreshed) {
+          console.error('Session refresh failed completely')
           setSubmitStatus('error')
-          alert('Error: Gagal memperbarui session. Silakan login kembali.')
+          alert('Session telah berakhir. Silakan login kembali untuk melanjutkan.')
           setTimeout(() => {
             router.push('/login')
           }, 2000)
           return
         }
-        console.log('Session refreshed successfully')
       }
 
-      // Re-check user after potential refresh
-      if (!user?.id || !user?.email) {
+      // Get detailed session info
+      const sessionInfo = await sessionManager.getSessionInfo();
+      console.log('Session info:', {
+        valid: sessionInfo.valid,
+        expiresAt: sessionInfo.expiresAt,
+        timeUntilExpiry: Math.round(sessionInfo.timeUntilExpiry / (1000 * 60)) + ' minutes'
+      });
+
+      // Extend session if less than 1 day remaining
+      const oneDay = 24 * 60 * 60 * 1000;
+      if (sessionInfo.timeUntilExpiry < oneDay && sessionInfo.timeUntilExpiry > 0) {
+        console.log('Session expires within 24 hours, extending...');
+        const extended = await sessionManager.extendSession();
+
+        if (!extended) {
+          console.log('Could not extend session, but current session is still valid');
+        }
+      }
+
+      // Final validation
+      if (!sessionInfo.valid) {
         setSubmitStatus('error')
-        alert('Error: User tidak valid. Silakan login kembali.')
+        alert('Session tidak valid. Silakan login kembali.')
         setTimeout(() => {
           router.push('/login')
         }, 2000)
         return
       }
 
+      // Re-check user context after session management
+      if (!user?.id || !user?.email) {
+        setSubmitStatus('error')
+        alert('User tidak valid. Silakan login kembali.')
+        setTimeout(() => {
+          router.push('/login')
+        }, 2000)
+        return
+      }
+
+      console.log('Session validation passed successfully')
+
     } catch (sessionCheckError) {
-      console.error('Session check error:', sessionCheckError)
+      console.error('Session management error:', sessionCheckError)
       setSubmitStatus('error')
-      alert('Error: Terjadi kesalahan saat memeriksa session. Silakan login kembali.')
+      alert('Terjadi kesalahan session. Silakan refresh halaman dan login kembali.')
       setTimeout(() => {
         router.push('/login')
       }, 2000)
