@@ -61,7 +61,9 @@
       "Bash(PORT=3010 npm run dev:*)",
       "Bash(git grep:*)",
       "Bash(del:*)",
-      "Bash(npx supabase db dump:*)"
+      "Bash(npx supabase db dump:*)",
+      "Bash(npx supabase db reset:*)",
+      "Bash(npx supabase db remote commit:*)"
     ],
     "deny": [],
     "ask": []
