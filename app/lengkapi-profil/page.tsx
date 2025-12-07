@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Phone, MapPin, Calendar, Briefcase } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { validatePhoneNumberFormat } from '@/lib/utils/sanitize';
 
 const negaraList = [
   "Indonesia",
@@ -185,6 +187,19 @@ export default function LengkapiProfilPage() {
         setIsLoading(false);
         return;
       }
+    }
+
+    // Validasi format nomor telepon
+    if (!validatePhoneNumberFormat(formData.whatsapp, formData.negara)) {
+      setError('Format nomor WhatsApp tidak valid');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!validatePhoneNumberFormat(formData.telegram, formData.negara)) {
+      setError('Format nomor Telegram tidak valid');
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -388,39 +403,27 @@ export default function LengkapiProfilPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="whatsapp">
-                      WhatsApp <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative mt-1">
-                      <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                      <Input
-                        id="whatsapp"
-                        type="tel"
-                        placeholder="08xx-xxxx-xxxx"
-                        value={formData.whatsapp}
-                        onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+                    <PhoneInput
+                      id="whatsapp"
+                      label="WhatsApp"
+                      value={formData.whatsapp}
+                      onChange={(value) => setFormData({ ...formData, whatsapp: value })}
+                      selectedCountry={formData.negara}
+                      placeholder="812-3456-7890"
+                      required
+                    />
                   </div>
 
                   <div>
-                    <Label htmlFor="telegram">
-                      Telegram <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative mt-1">
-                      <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                      <Input
-                        id="telegram"
-                        type="tel"
-                        placeholder="08xx-xxxx-xxxx"
-                        value={formData.telegram}
-                        onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+                    <PhoneInput
+                      id="telegram"
+                      label="Telegram"
+                      value={formData.telegram}
+                      onChange={(value) => setFormData({ ...formData, telegram: value })}
+                      selectedCountry={formData.negara}
+                      placeholder="812-3456-7890"
+                      required
+                    />
                   </div>
                 </div>
               </div>

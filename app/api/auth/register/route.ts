@@ -91,12 +91,21 @@ export async function POST(request: NextRequest) {
       const sanitizedProvinsi = provinsi ? sanitizeCity(provinsi) : null;
       const sanitizedKota = sanitizeCity(kota);
       const sanitizedAlamat = sanitizeAddress(alamat);
-      const sanitizedWhatsApp = sanitizePhone(whatsapp);
-      const sanitizedTelegram = telegram ? sanitizePhone(telegram) : null;
+      const sanitizedWhatsApp = sanitizePhone(whatsapp, negara);
+      const sanitizedTelegram = telegram ? sanitizePhone(telegram, negara) : null;
       const sanitizedZonaWaktu = sanitizeGeneric(zona_waktu, 10);
 
       // Check timezone validity (extended for international)
-      const validTimezones = ['WIB', 'WITA', 'WIT', 'MYT', 'AWST', 'ACST', 'AEST', 'OTHER'];
+      const validTimezones = [
+        'WIB', 'WITA', 'WIT', // Indonesia
+        'MYT', 'PHT', 'ICT', // Southeast Asia
+        'IST', 'PKT', 'BST', // South Asia
+        'CST', 'JST', 'KST', // East Asia
+        'GMT', 'CET', 'EET', 'MSK', // Europe & Middle East
+        'GST', 'TRT', // Gulf & Turkey
+        'AWST', 'ACST', 'AEST', 'AEDT', 'NZST', // Australia & NZ
+        'EST', 'CST', 'MST', 'PST', 'HST', 'AST' // Americas
+      ];
       if (!validTimezones.includes(sanitizedZonaWaktu)) {
         return NextResponse.json(
           { message: 'Zona waktu tidak valid' },

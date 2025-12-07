@@ -71,28 +71,82 @@ export function sanitizeEmail(input: string | null | undefined): string {
   return sanitized;
 }
 
-// Validate and sanitize phone number (Indonesia format)
-export function sanitizePhone(input: string | null | undefined): string {
+import { countryCodes } from '@/lib/data/country-codes';
+
+export function sanitizePhone(input: string | null | undefined, countryCode?: string): string {
   if (!input) return '';
 
   // Remove all non-digit characters except + and -
   let sanitized = input.replace(/[^\d\+\-]/g, '');
 
-  // Convert common formats to +62
-  if (sanitized.startsWith('0')) {
-    sanitized = '+62' + sanitized.substring(1);
-  } else if (sanitized.startsWith('62') && !sanitized.startsWith('+62')) {
-    sanitized = '+' + sanitized;
+  // If country code is provided, ensure proper format
+  if (countryCode) {
+    const country = countryCodes.find(c => c.code === countryCode || c.name === countryCode);
+    if (country && !sanitized.startsWith(country.dialCode)) {
+      // If input doesn't start with country code, add it
+      if (sanitized.startsWith('0')) {
+        // Remove leading 0 and add country code
+        sanitized = country.dialCode + sanitized.substring(1);
+      } else if (!sanitized.startsWith('+')) {
+        // Add country code if not present
+        sanitized = country.dialCode + sanitized;
+      }
+    } else if (sanitized.startsWith('+') && !sanitized.startsWith(country.dialCode)) {
+      // Check if the country code matches the input
+      const matchingCountry = countryCodes.find(c => sanitized.startsWith(c.dialCode));
+      if (matchingCountry) {
+        throw new Error(`Phone number country code (${matchingCountry.dialCode}) doesn't match selected country (${country.dialCode})`);
+      }
+    }
   }
 
-  // Validate Indonesian phone format
-  const phoneRegex = /^\+62[1-9]\d{8,12}$/;
+  // Ensure it starts with +
+  if (!sanitized.startsWith('+')) {
+    // Try to guess the country based on the number format
+    if (sanitized.startsWith('0')) {
+      // Default to Indonesia for numbers starting with 0
+      sanitized = '+62' + sanitized.substring(1);
+    } else if (!sanitized.includes('+')) {
+      // For international format without +
+      sanitized = '+' + sanitized;
+    }
+  }
+
+  // Validate phone number format
+  const phoneRegex = /^\+\d{8,15}$/;
 
   if (!phoneRegex.test(sanitized)) {
-    throw new Error('Invalid phone number format');
+    throw new Error('Invalid phone number format. Please enter a valid international phone number.');
   }
 
   return sanitized;
+}
+
+export function validatePhoneNumberFormat(phoneNumber: string, countryCode?: string): boolean {
+  try {
+    const sanitized = sanitizePhone(phoneNumber, countryCode);
+
+    // Basic validation: should be 8-15 digits after +
+    const digits = sanitized.substring(1);
+    if (digits.length < 8 || digits.length > 15) {
+      return false;
+    }
+
+    // If country code is specified, validate specific format
+    if (countryCode) {
+      const country = countryCodes.find(c => c.code === countryCode || c.name === countryCode);
+      if (country) {
+        // Check if phone number starts with correct country code
+        if (!sanitized.startsWith(country.dialCode)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // Validate and sanitize address

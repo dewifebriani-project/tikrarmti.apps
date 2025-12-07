@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Crown, Heart, ArrowRight, CheckCircle } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { validatePhoneNumberFormat } from "@/lib/utils/sanitize";
 
 const negaraList = [
   "Indonesia",
@@ -180,6 +182,15 @@ function RegisterPageContent() {
 
     if (!formData.telegram.trim()) {
       newErrors.telegram = 'Nomor Telegram harus diisi';
+    }
+
+    // Validasi format nomor telepon
+    if (!validatePhoneNumberFormat(formData.whatsapp, formData.negara)) {
+      newErrors.whatsapp = 'Format nomor WhatsApp tidak valid untuk negara yang dipilih';
+    }
+
+    if (!validatePhoneNumberFormat(formData.telegram, formData.negara)) {
+      newErrors.telegram = 'Format nomor Telegram tidak valid untuk negara yang dipilih';
     }
 
     if (!formData.zonaWaktu) {
@@ -428,33 +439,29 @@ function RegisterPageContent() {
               </div>
 
               <div>
-                <Label htmlFor="whatsapp">WhatsApp *</Label>
-                <Input
+                <PhoneInput
                   id="whatsapp"
-                  type="tel"
+                  label="WhatsApp"
                   value={formData.whatsapp}
-                  onChange={(e) => handleInputChange('whatsapp', e.target.value)}
-                  className="mt-1"
-                  placeholder="08xx-xxxx-xxxx"
+                  onChange={(value) => handleInputChange('whatsapp', value)}
+                  selectedCountry={formData.negara}
+                  placeholder="812-3456-7890"
+                  required
+                  error={errors.whatsapp}
                 />
-                {errors.whatsapp && (
-                  <p className="text-red-500 text-sm mt-1">{errors.whatsapp}</p>
-                )}
               </div>
 
               <div>
-                <Label htmlFor="telegram">Telegram *</Label>
-                <Input
+                <PhoneInput
                   id="telegram"
-                  type="tel"
+                  label="Telegram"
                   value={formData.telegram}
-                  onChange={(e) => handleInputChange('telegram', e.target.value)}
-                  className="mt-1"
-                  placeholder="08xx-xxxx-xxxx"
+                  onChange={(value) => handleInputChange('telegram', value)}
+                  selectedCountry={formData.negara}
+                  placeholder="812-3456-7890"
+                  required
+                  error={errors.telegram}
                 />
-                {errors.telegram && (
-                  <p className="text-red-500 text-sm mt-1">{errors.telegram}</p>
-                )}
               </div>
 
               </div>
