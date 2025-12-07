@@ -136,9 +136,9 @@ function TikrarTahfidzPage() {
       })
     }
 
-    // Fetch batch info only
+    // Fetch batch info only (don't fetch user profile to avoid 401 errors)
     if (navigator.onLine) {
-      fetchInitialData(user?.id).then(({ batchInfo }) => {
+      fetchInitialData().then(({ batchInfo }) => {
         console.log('Fetch batch info result:', { batchInfo });
 
         if (batchInfo) {
@@ -160,7 +160,7 @@ function TikrarTahfidzPage() {
         console.error('Error fetching batch info:', error)
       })
     }
-  }, [user, isClient])
+  }, [isClient])
 
   // Save form state to localStorage whenever it changes - client side only
   useEffect(() => {
@@ -354,7 +354,7 @@ function TikrarTahfidzPage() {
       }
 
       // Prepare data for database
-      const submissionData: PendaftaranData = {
+      const submissionData: any = {
         user_id: user?.id || '',
         batch_id: batchInfo.batch_id,
         program_id: batchInfo.program_id,
@@ -375,22 +375,13 @@ function TikrarTahfidzPage() {
         motivation: formData.motivation,
         ready_for_team: formData.ready_for_team,
 
-        // Section 3 - Data Pribadi (akan diambil dari users table di backend)
-        full_name: '', // Akan diisi otomatis dari backend
-        address: '', // Akan diisi otomatis dari backend
-        wa_phone: '', // Akan diisi otomatis dari backend
-        telegram_phone: '', // Akan diisi otomatis dari backend
-        birth_date: '', // Akan diisi otomatis dari backend
-        age: 0, // Akan dihitung otomatis dari backend
-        domicile: '', // Akan diisi otomatis dari backend
-        timezone: '', // Akan diisi otomatis dari backend
+        // Section 3 - Time slots only (personal data will be fetched from users table in backend)
         main_time_slot: formData.main_time_slot,
         backup_time_slot: formData.backup_time_slot,
         time_commitment: formData.time_commitment,
 
         // Section 4 - Program Understanding
         understands_program: formData.understands_program,
-        questions: formData.questions,
 
         // Batch info
         batch_name: batchInfo.batch_name,
@@ -399,6 +390,11 @@ function TikrarTahfidzPage() {
         status: 'pending',
         selection_status: 'pending',
         submission_date: new Date().toISOString()
+      }
+
+      // Only add questions if not empty
+      if (formData.questions && formData.questions.trim() !== '') {
+        submissionData.questions = formData.questions
       }
 
       console.log('Submitting form with data:', submissionData)

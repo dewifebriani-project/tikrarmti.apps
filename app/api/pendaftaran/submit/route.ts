@@ -28,12 +28,22 @@ export async function POST(request: Request) {
 
     console.log('API: Using Supabase client...');
 
-    // Remove fields that don't exist in database schema
+    // Remove fields that don't exist in database schema or are undefined/null/empty
     const { birth_place, ...cleanedBody } = body;
+
+    // Remove optional fields that are empty/null/undefined to avoid DB errors
+    const filteredBody = Object.entries(cleanedBody).reduce((acc, [key, value]) => {
+      // Keep the value if it's not null, undefined, or empty string
+      // But keep boolean false and number 0
+      if (value !== null && value !== undefined && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
 
     // Prepare submission data
     const submissionData: PendaftaranData = {
-      ...cleanedBody,
+      ...filteredBody,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       status: 'pending',

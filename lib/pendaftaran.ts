@@ -19,15 +19,15 @@ export interface PendaftaranData {
   motivation: string
   ready_for_team: string
   // Section 3 fields (additional data not in users table)
-  full_name: string // Redundan dengan users, tetap disimpan untuk backup
-  address: string // Redundan dengan users.alamat, tetap disimpan untuk backup
-  wa_phone: string // Redundan dengan users.whatsapp, tetap disimpan untuk backup
-  telegram_phone?: string // Redundan dengan users.telegram, tetap disimpan untuk backup
-  birth_date?: string // Tanggal lahir dari users.birth_date
-  birth_place?: string // Tempat lahir dari users.tempat_lahir
-  age: number // Redundan dengan users.tanggal_lahir, tetap disimpan untuk backup
-  domicile: string // Hanya untuk tikrar, tidak ada di users
-  timezone: string // Redundan dengan users.zona_waktu, tetap disimpan untuk backup
+  full_name?: string // Optional - can be fetched from users table
+  address?: string // Optional - can be fetched from users.alamat
+  wa_phone?: string // Optional - can be fetched from users.whatsapp
+  telegram_phone?: string // Optional - can be fetched from users.telegram
+  birth_date?: string // Optional - can be fetched from users.tanggal_lahir
+  birth_place?: string // Optional - can be fetched from users.tempat_lahir
+  age?: number // Optional - can be calculated from users.tanggal_lahir
+  domicile?: string // Optional - can be fetched from users.kota
+  timezone?: string // Optional - can be fetched from users.zona_waktu
   main_time_slot: string // Hanya untuk tikrar, tidak ada di users
   backup_time_slot: string // Hanya untuk tikrar, tidak ada di users
   time_commitment: boolean // Hanya untuk tikrar, tidak ada di users
