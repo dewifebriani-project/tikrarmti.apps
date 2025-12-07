@@ -400,8 +400,14 @@ function TikrarTahfidzPage() {
       console.log('Submitting form with data:', submissionData)
 
       // Submit to API with timeout and retry mechanism
+      // Longer timeout for mobile devices with slower connections
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      const timeout = isMobile ? 60000 : 30000 // 60s for mobile, 30s for desktop
+
+      console.log(`Submitting with timeout: ${timeout}ms (Mobile: ${isMobile})`)
+
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout for submit
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
 
       const response = await fetch('/api/pendaftaran/submit', {
         method: 'POST',
@@ -436,10 +442,19 @@ function TikrarTahfidzPage() {
       // Don't auto-redirect - let user read the success message and click button to navigate
     } catch (error: any) {
       console.error('Submit error:', error)
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
 
       // Handle specific error types
       if (error.name === 'AbortError') {
-        alert('Koneksi terlalu lambat. Silakan coba lagi dengan koneksi internet yang lebih stabil.')
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        const message = isMobile
+          ? 'Koneksi terlalu lambat (lebih dari 60 detik). Pastikan sinyal internet Ukhti stabil dan coba lagi.'
+          : 'Koneksi terlalu lambat. Silakan coba lagi dengan koneksi internet yang lebih stabil.'
+        alert(message)
         setSubmitStatus('error')
       } else if (error.name === 'TypeError' && retryCount < maxRetries) {
         // Network error, retry
@@ -447,7 +462,13 @@ function TikrarTahfidzPage() {
         await new Promise(resolve => setTimeout(resolve, 3000 * (retryCount + 1)))
         return handleSubmit(retryCount + 1)
       } else {
-        alert(`Gagal mengirim formulir: ${error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui'}. Silakan coba lagi atau hubungi admin.`)
+        const errorMsg = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui'
+        alert(`Gagal mengirim formulir: ${errorMsg}.
+
+Silakan:
+1. Pastikan koneksi internet stabil
+2. Coba refresh halaman
+3. Atau hubungi admin jika masalah berlanjut`)
         setSubmitStatus('error')
       }
     } finally {

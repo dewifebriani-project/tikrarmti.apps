@@ -131,91 +131,15 @@ const buildUserProfile = (data: any): UserProfile => {
   };
 };
 
-// Direct Supabase fetcher - bypass API endpoint
+// Direct Supabase fetcher - DISABLED to prevent 401 errors
+// User data should come from AuthContext instead
 export const fetchUserProfileDirect = async (userId: string): Promise<UserProfile | null> => {
-  console.log('[fetchUserProfileDirect] Starting direct Supabase fetch for userId:', userId);
+  console.log('[fetchUserProfileDirect] DISABLED - User data should come from AuthContext');
+  console.log('[fetchUserProfileDirect] Returning null for userId:', userId);
 
-  try {
-    // Import supabase client
-    const { supabase } = await import('@/lib/supabase-singleton');
-
-    console.log('[fetchUserProfileDirect] Querying users table directly');
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
-      .eq('id', userId)
-      .maybeSingle() as { data: any; error: any }; // Use maybeSingle to avoid throwing on no rows
-
-    if (error) {
-      console.error('[fetchUserProfileDirect] Supabase error:', error);
-      return null;
-    }
-
-    // If no user data, try to create from auth.users
-    if (!data) {
-      console.warn('[fetchUserProfileDirect] No user data found, attempting to create from auth data...');
-
-      // Get user from auth
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-
-      if (authUser && authUser.id === userId) {
-        console.log('[fetchUserProfileDirect] Creating user profile from auth data');
-
-        // Insert minimal profile from auth data
-        const insertData = {
-          id: authUser.id,
-          email: authUser.email || '',
-          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
-          role: 'calon_thalibah'
-        };
-
-        const { data: newUser, error: insertError } = await (supabase
-          .from('users') as any)
-          .insert([insertData])
-          .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
-          .single();
-
-        if (insertError) {
-          console.error('[fetchUserProfileDirect] Error creating user profile:', insertError);
-          return null;
-        }
-
-        if (newUser) {
-          console.log('[fetchUserProfileDirect] User profile created successfully');
-          // Use the newly created user data
-          return buildUserProfile(newUser);
-        }
-      }
-
-      console.warn('[fetchUserProfileDirect] Could not create user profile');
-      return null;
-    }
-
-    console.log('[fetchUserProfileDirect] User data fetched successfully:', {
-      userId: data.id,
-      full_name: data.full_name,
-      hasEmail: !!data.email,
-      hasWhatsapp: !!data.whatsapp
-    });
-
-    // Build user profile using helper
-    const userProfile = buildUserProfile(data);
-
-    // Cache with timestamp
-    const cacheData = {
-      ...userProfile,
-      cached_at: Date.now()
-    };
-
-    localStorage.setItem(`user_profile_optimized_${userId}`, JSON.stringify(cacheData));
-    console.log('[fetchUserProfileDirect] Data cached successfully');
-
-    return userProfile;
-  } catch (error: any) {
-    console.error('[fetchUserProfileDirect] Unexpected error:', error);
-    return null;
-  }
+  // Return null immediately without making any Supabase calls
+  // This prevents 401 Unauthorized errors when called from client-side
+  return null;
 };
 
 // Keep old function for backward compatibility but use direct fetch
