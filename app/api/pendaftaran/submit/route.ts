@@ -53,6 +53,33 @@ export async function POST(request: Request) {
 
     console.log('API: Prepared submission data:', JSON.stringify(submissionData, null, 2));
 
+    // CRITICAL: Always ensure user exists before submitting form
+    console.log('API: Ensuring user exists in database before submission...');
+
+    try {
+      const ensureResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/ensure-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: body.user_id,
+          email: body.email || '',
+          full_name: body.full_name || '',
+          provider: body.provider || 'unknown'
+        })
+      });
+
+      if (ensureResponse.ok) {
+        const ensureResult = await ensureResponse.json();
+        console.log('API: User ensure result:', ensureResult);
+      } else {
+        console.error('API: Failed to ensure user exists:', await ensureResponse.text());
+        // Continue anyway - the insert will fail if user truly doesn't exist
+      }
+    } catch (ensureError) {
+      console.error('API: Error ensuring user:', ensureError);
+      // Continue anyway - user might already exist
+    }
+
     // Insert into tikrar_tahfidz table
     const { data: result, error } = await supabase
       .from('tikrar_tahfidz')
@@ -62,6 +89,19 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('API: Error inserting registration:', JSON.stringify(error, null, 2));
+
+      // If it's a foreign key constraint error, provide more helpful message
+      if (error.code === '23503' || error.message.includes('foreign key constraint')) {
+        return NextResponse.json(
+          {
+            error: 'User authentication error. Please try logging out and logging back in, then submit the form again.',
+            details: error.message,
+            code: 'FOREIGN_KEY_VIOLATION'
+          },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
         { error: `Failed to submit registration: ${error.message}` },
         { status: 500 }

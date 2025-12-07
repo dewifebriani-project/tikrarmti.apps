@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 import { supabase } from '@/lib/supabase-singleton';
 import { supabaseAdmin } from '@/lib/supabase';
 import { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword, deleteUser as supabaseDeleteUser } from '@/lib/auth';
+import { getDeviceInfo, getAuthTimeout, getRetryCount, shouldUseOptimizedOAuth } from '@/lib/platform-detection';
+import { authPerformance } from '@/lib/auth-performance';
 import type { User, UserRole, AuthContextType } from '@/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,39 +31,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session with timeout
+    // Get initial session - optimized with platform detection
     const getInitialSession = async () => {
-      try {
-  
-        // Add timeout to prevent hanging - increased to 15 seconds for slow connections
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session timeout')), 15000)
-        );
+      const sessionStart = authPerformance.startSession();
+      const device = getDeviceInfo();
+      const timeout = getAuthTimeout(device.isSlowConnection ? 8000 : 5000);
+      const maxRetries = getRetryCount();
+      let retryCount = 0;
 
-        const sessionPromise = supabase.auth.getSession();
-
-        let session;
+      const attemptSession = async (): Promise<any> => {
         try {
-          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          session = result.data.session;
-        } catch (timeoutError) {
-          console.warn('Session fetch timed out, trying again without timeout...');
-          // Try one more time without timeout
-          const fallbackResult = await supabase.auth.getSession();
-          session = fallbackResult.data.session;
-        }
+          const timeoutPromise = new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error('Session timeout')), timeout)
+          );
 
-  
+          const sessionPromise = supabase.auth.getSession();
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          return result.data.session;
+        } catch (error) {
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.warn(`Session fetch attempt ${retryCount} failed, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+            return attemptSession();
+          }
+          throw error;
+        }
+      };
+
+      try {
+        const session = await attemptSession();
+
         if (session?.user) {
-                    await fetchUserProfile(session.user);
+          const isOAuthProvider = session.user.app_metadata?.provider === 'google' || session.user.app_metadata?.provider === 'apple';
+
+          // Use optimized OAuth flow for mobile/tablet
+          if (isOAuthProvider && shouldUseOptimizedOAuth() && userCache.has(session.user.id)) {
+            const cached = userCache.get(session.user.id)!;
+            if (Date.now() - cached.timestamp < CACHE_DURATION) {
+              setUser(cached.user);
+              setLoading(false);
+              const profileEnd = performance.now();
+              authPerformance.endSession(sessionStart, sessionStart, profileEnd);
+              return;
+            }
+          }
+
+          const profileStart = performance.now();
+          await fetchUserProfile(session.user);
+          const profileEnd = performance.now();
+          authPerformance.endSession(sessionStart, profileStart, profileEnd);
         } else {
-          // Silent session check - no need to warn when no session on initial load
           setUser(null);
+          const profileEnd = performance.now();
+          authPerformance.endSession(sessionStart, sessionStart, profileEnd);
         }
       } catch (error) {
-        console.error('Session fetch error:', error);
-        // Don't set user to null immediately - wait for auth state change
-        console.log('Waiting for auth state change...');
+        console.warn('Session fetch failed, treating as no session');
+        setUser(null);
+        const profileEnd = performance.now();
+        authPerformance.endSession(sessionStart, sessionStart, profileEnd);
       } finally {
         setLoading(false);
       }
@@ -73,6 +102,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
+          const isOAuthProvider = session.user.app_metadata?.provider === 'google' || session.user.app_metadata?.provider === 'apple';
+
+          // Use optimized OAuth flow for mobile/tablet
+          if (isOAuthProvider && shouldUseOptimizedOAuth() && userCache.has(session.user.id)) {
+            const cached = userCache.get(session.user.id)!;
+            if (Date.now() - cached.timestamp < CACHE_DURATION) {
+              setUser(cached.user);
+              setLoading(false);
+              return;
+            }
+          }
+
           await fetchUserProfile(session.user);
         } else {
           setUser(null);
@@ -86,24 +127,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const fetchUserProfile = useCallback(async (authUser: any) => {
     try {
-      // Clear expired cache entries (using forEach for compatibility)
       const now = Date.now();
-      userCache.forEach((value, key) => {
-        if (now - value.timestamp > CACHE_DURATION) {
-          userCache.delete(key);
-        }
-      });
 
-      // Check cache first
+      // Check cache first - most important optimization
       const cached = userCache.get(authUser.id);
       if (cached && now - cached.timestamp < CACHE_DURATION) {
         setUser(cached.user);
         return;
       }
 
-      // Add timeout to database query (increased for slower connections)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Database query timeout')), 20000)
+      // Clear expired cache entries (limit cleanup to 5 entries for performance)
+      let cleaned = 0;
+      userCache.forEach((value, key) => {
+        if (cleaned < 5 && now - value.timestamp > CACHE_DURATION) {
+          userCache.delete(key);
+          cleaned++;
+        }
+      });
+
+      // Platform-specific timeout
+      const device = getDeviceInfo();
+      const timeout = getAuthTimeout(device.isSlowConnection ? 12000 : 8000);
+      const timeoutPromise = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error('Database query timeout')), timeout)
       );
 
       // Get user metadata from auth (includes Google photo)
@@ -121,10 +167,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         profile = result.data;
         error = result.error;
       } catch (timeoutError) {
-        console.warn('Database query timed out, attempting to create profile anyway...');
-        // If timeout, treat as no profile found and try to create
-        profile = null;
-        error = null;
+        console.warn('Database query timeout, using minimal user data');
+        // Create minimal user object from auth data only
+        const minimalUserObj = {
+          id: authUser.id,
+          email: authUser.email || '',
+          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+          avatar_url: googlePhotoUrl,
+          role: 'calon_thalibah' as UserRole,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          displayName: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+          photoURL: googlePhotoUrl,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isProfileComplete: false,
+        };
+
+        setUser(minimalUserObj);
+        return;
       }
 
       if (error) {

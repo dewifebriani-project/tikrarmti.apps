@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { getAuthTimeout } from '@/lib/platform-detection';
 import {
   Users,
   Calendar,
@@ -211,19 +212,30 @@ export default function AdminPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const checkAuth = async () => {
-    console.log('Starting authentication check...');
+    console.log('Starting admin authentication check...');
     const startTime = Date.now();
 
+    // Platform-specific timeout
+    const timeout = getAuthTimeout(8000); // 8s base timeout
     const authTimeout = setTimeout(() => {
       const elapsed = Date.now() - startTime;
-      console.error(`Authentication timeout after 30 seconds (elapsed: ${elapsed}ms)`);
+      console.error(`Admin authentication timeout after ${timeout}ms (elapsed: ${elapsed}ms)`);
       setLoading(false);
       router.push('/login');
-    }, 30000); // 30 second timeout - increased for development compilation time
+    }, timeout);
 
     try {
       console.log('Getting Supabase user...');
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      // Use a race condition to avoid hanging
+      const userPromise = supabase.auth.getUser();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('User fetch timeout')), timeout - 1000)
+      );
+
+      const { data: { user: authUser }, error: authError } = await Promise.race([
+        userPromise,
+        timeoutPromise
+      ]) as any;
 
       if (authError || !authUser) {
         console.error('Auth error:', authError);
@@ -233,18 +245,26 @@ export default function AdminPage() {
         return;
       }
 
-      // Get user role
-      const { data: userData, error: userError } = await supabaseAdmin
+      // Parallel fetch of user role with timeout
+      const rolePromise = supabaseAdmin
         .from('users')
         .select('role')
         .eq('id', authUser.id)
         .single<{ role: string }>();
 
+      const roleTimeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Role fetch timeout')), 3000)
+      );
+
+      const { data: userData, error: userError } = await Promise.race([
+        rolePromise,
+        roleTimeoutPromise
+      ]) as any;
+
       if (userError) {
         console.error('User data error:', userError);
         clearTimeout(authTimeout);
         setLoading(false);
-        // If user not found in users table, redirect to dashboard
         router.push('/dashboard');
         return;
       }

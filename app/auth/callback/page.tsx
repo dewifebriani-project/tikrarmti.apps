@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase-singleton';
 import { Crown } from "lucide-react";
 import { debugOAuth } from '@/lib/oauth-debug';
+import { getDeviceInfo, getAuthTimeout, shouldUseOptimizedOAuth } from '@/lib/platform-detection';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -68,15 +69,35 @@ function AuthCallbackContent() {
 
           console.log('User authenticated:', userEmail);
 
-          // Ensure user exists in database BEFORE redirect
+          // Ensure user exists in database BEFORE redirect - with platform optimization
           try {
-            await fetch('/api/auth/ensure-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId, email: userEmail, full_name: fullName })
-            });
-          } catch (err) {
-            console.error('Failed to ensure user:', err);
+            const device = getDeviceInfo();
+            const provider = exchangeData.session.user.app_metadata?.provider || 'google';
+
+            // Skip ensure-user for mobile/tablet OAuth to speed up authentication
+            if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
+              console.log('Skipping ensure-user for optimized OAuth flow');
+            } else {
+              // Add timeout for ensure-user call
+              const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+              await fetch('/api/auth/ensure-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
+                signal: controller.signal
+              });
+
+              clearTimeout(timeoutId);
+            }
+          } catch (err: any) {
+            if (err.name === 'AbortError') {
+              console.warn('Ensure-user call timed out, continuing anyway');
+            } else {
+              console.error('Failed to ensure user:', err);
+            }
             // Continue anyway - user might already exist
           }
 
@@ -124,15 +145,35 @@ function AuthCallbackContent() {
 
             console.log('User authenticated:', userEmail);
 
-            // Ensure user exists in database BEFORE redirect
+            // Ensure user exists in database BEFORE redirect - with platform optimization
             try {
-              await fetch('/api/auth/ensure-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, email: userEmail, full_name: fullName })
-              });
-            } catch (err) {
-              console.error('Failed to ensure user:', err);
+              const device = getDeviceInfo();
+              const provider = sessionData.session.user.app_metadata?.provider || 'google';
+
+              // Skip ensure-user for mobile/tablet OAuth to speed up authentication
+              if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
+                console.log('Skipping ensure-user for optimized OAuth flow');
+              } else {
+                // Add timeout for ensure-user call
+                const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                await fetch('/api/auth/ensure-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
+                  signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+              }
+            } catch (err: any) {
+              if (err.name === 'AbortError') {
+                console.warn('Ensure-user call timed out, continuing anyway');
+              } else {
+                console.error('Failed to ensure user:', err);
+              }
               // Continue anyway - user might already exist
             }
 
@@ -165,15 +206,35 @@ function AuthCallbackContent() {
           throw new Error('User email is required');
         }
 
-        // Ensure user exists in database BEFORE redirect
+        // Ensure user exists in database BEFORE redirect - with platform optimization
         try {
-          await fetch('/api/auth/ensure-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, email: userEmail, full_name: fullName })
-          });
-        } catch (err) {
-          console.error('Failed to ensure user:', err);
+          const device = getDeviceInfo();
+          const provider = sessionData.session.user.app_metadata?.provider || 'email';
+
+          // Skip ensure-user for mobile/tablet OAuth to speed up authentication
+          if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
+            console.log('Skipping ensure-user for optimized OAuth flow');
+          } else {
+            // Add timeout for ensure-user call
+            const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            await fetch('/api/auth/ensure-user', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
+              signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+          }
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            console.warn('Ensure-user call timed out, continuing anyway');
+          } else {
+            console.error('Failed to ensure user:', err);
+          }
           // Continue anyway - user might already exist
         }
 

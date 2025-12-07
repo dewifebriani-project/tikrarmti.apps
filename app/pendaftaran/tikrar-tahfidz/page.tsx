@@ -332,8 +332,11 @@ function TikrarTahfidzPage() {
     const maxRetries = 3
 
     if (!validateSection(4)) return
-    if (!user?.email) {
+
+    // CRITICAL: Check if user is properly authenticated
+    if (!user?.id || !user?.email) {
       setSubmitStatus('error')
+      alert('Error: User tidak terautentikasi dengan benar. Silakan logout dan login kembali.')
       return
     }
 
@@ -346,6 +349,31 @@ function TikrarTahfidzPage() {
 
     setIsSubmitting(true)
     try {
+      // CRITICAL: Ensure user exists in database before submitting form
+      // This prevents foreign key constraint violations
+      console.log('Ensuring user exists before form submission...')
+      try {
+        const ensureResponse = await fetch('/api/auth/ensure-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email,
+            full_name: user.full_name || user.email?.split('@')[0],
+            provider: user?.app_metadata?.provider || user?.user_metadata?.provider || 'email'
+          })
+        })
+
+        if (!ensureResponse.ok) {
+          console.error('Failed to ensure user exists:', await ensureResponse.text())
+        } else {
+          console.log('User ensured successfully')
+        }
+      } catch (ensureError) {
+        console.error('Error ensuring user:', ensureError)
+        // Continue anyway - user might already exist
+      }
+
       // Check if we have batch info
       if (!batchInfo) {
         setSubmitStatus('error')
@@ -356,6 +384,9 @@ function TikrarTahfidzPage() {
       // Prepare data for database
       const submissionData: any = {
         user_id: user?.id || '',
+        email: user?.email || '',
+        full_name: user?.full_name || user?.email?.split('@')[0] || '',
+        provider: user?.app_metadata?.provider || user?.user_metadata?.provider || 'email',
         batch_id: batchInfo.batch_id,
         program_id: batchInfo.program_id,
 
@@ -463,12 +494,32 @@ function TikrarTahfidzPage() {
         return handleSubmit(retryCount + 1)
       } else {
         const errorMsg = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui'
-        alert(`Gagal mengirim formulir: ${errorMsg}.
+
+        // Check if it's a foreign key violation error
+        if (typeof errorMsg === 'string' && errorMsg.includes('foreign key constraint')) {
+          alert(`Gagal mengirim formulir: Error autentikasi user.
+
+Solusi:
+1. Logout dari akun Ukhti
+2. Login kembali
+3. Coba kirim formulir lagi
+4. Jika masih gagal, hubungi admin WhatsApp 08567712914`)
+        } else if (typeof errorMsg === 'string' && errorMsg.includes('FOREIGN_KEY_VIOLATION')) {
+          alert(`Gagal mengirim formulir: Error autentikasi user.
+
+Solusi:
+1. Logout dari akun Ukhti
+2. Login kembali
+3. Coba kirim formulir lagi
+4. Jika masih gagal, hubungi admin WhatsApp 08567712914`)
+        } else {
+          alert(`Gagal mengirim formulir: ${errorMsg}.
 
 Silakan:
 1. Pastikan koneksi internet stabil
 2. Coba refresh halaman
 3. Atau hubungi admin jika masalah berlanjut`)
+        }
         setSubmitStatus('error')
       }
     } finally {
