@@ -33,26 +33,28 @@ export async function middleware(request: NextRequest) {
   }
 
   // For protected paths, check authentication using cookies
+  // Extract the access token from cookies
+  const accessToken = request.cookies.get('sb-access-token')?.value;
+  const refreshToken = request.cookies.get('sb-refresh-token')?.value;
+
+  if (!accessToken) {
+    // No token found, redirect to login
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('redirectedFrom', pathname);
+    return NextResponse.redirect(url);
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          // Not needed for middleware
-        },
-        remove(name: string, options: any) {
-          // Not needed for middleware
-        },
-      },
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken || ''
+    });
 
     if (error || !session) {
       // No valid session, redirect to login
