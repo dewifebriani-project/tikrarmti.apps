@@ -187,29 +187,12 @@ CREATE TRIGGER update_pendaftaran_updated_at BEFORE UPDATE ON pendaftaran_tikrar
 -- =====================================================
 
 -- Sample admin user (password: Admin123!)
--- Note: Field order must match table definition exactly
+-- Using named parameter syntax for clarity
 INSERT INTO users (
-    id,
-    email,
-    password_hash,
-    full_name,
-    avatar_url,
-    role,
-    is_active,
-    created_at,
-    updated_at,
-    negara,
-    provinsi,
-    kota,
-    alamat,
-    whatsapp,
-    telegram,
-    zona_waktu,
-    tanggal_lahir,
-    tempat_lahir,
-    jenis_kelamin,
-    pekerjaan,
-    alasan_daftar
+    id, email, password_hash, full_name, avatar_url, role, is_active,
+    created_at, updated_at, negara, provinsi, kota, alamat, whatsapp,
+    telegram, zona_waktu, tanggal_lahir, tempat_lahir, jenis_kelamin,
+    pekerjaan, alasan_daftar
 ) VALUES (
     gen_random_uuid(),
     'admin@markaztikrar.id',
@@ -229,9 +212,9 @@ INSERT INTO users (
     'WIB',
     '1990-01-01',
     'Jakarta',
-    'laki-laki',  -- jenis_kelamin
-    'Admin Sistem',  -- pekerjaan
-    'Admin Tikrar MTI Apps'  -- alasan_daftar
+    'laki-laki',
+    'Admin Sistem',
+    'Admin Tikrar MTI Apps'
 ) ON CONFLICT (email) DO NOTHING;
 
 -- Note: Password for admin@markaztikrar.id is "Admin123!"
