@@ -20,9 +20,15 @@ interface UserProfile {
   email?: string;
   phone?: string;
   whatsapp?: string;
+  telegram?: string;
   provinsi?: string;
   kota?: string;
   alamat?: string;
+  zona_waktu?: string;
+  tanggal_lahir?: string | null;
+  tempat_lahir?: string;
+  negara?: string;
+  age?: string;
 }
 
 // Mobile detection helper
@@ -139,7 +145,7 @@ export const fetchUserProfileDirect = async (userId: string): Promise<UserProfil
       .from('users')
       .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
       .eq('id', userId)
-      .maybeSingle(); // Use maybeSingle to avoid throwing on no rows
+      .maybeSingle() as { data: any; error: any }; // Use maybeSingle to avoid throwing on no rows
 
     if (error) {
       console.error('[fetchUserProfileDirect] Supabase error:', error);
@@ -157,14 +163,16 @@ export const fetchUserProfileDirect = async (userId: string): Promise<UserProfil
         console.log('[fetchUserProfileDirect] Creating user profile from auth data');
 
         // Insert minimal profile from auth data
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authUser.id,
-            email: authUser.email || '',
-            full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
-            role: 'calon_thalibah'
-          })
+        const insertData = {
+          id: authUser.id,
+          email: authUser.email || '',
+          full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
+          role: 'calon_thalibah'
+        };
+
+        const { data: newUser, error: insertError } = await (supabase
+          .from('users') as any)
+          .insert([insertData])
           .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
           .single();
 
