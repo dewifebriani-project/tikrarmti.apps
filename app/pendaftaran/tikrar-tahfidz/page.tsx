@@ -541,13 +541,22 @@ function TikrarTahfidzPage() {
         motivation: formData.motivation,
         ready_for_team: formData.ready_for_team,
 
-        // Section 3 - Time slots only (personal data will be fetched from users table in backend)
+        // Section 3 - Time slots
         main_time_slot: formData.main_time_slot,
         backup_time_slot: formData.backup_time_slot,
         time_commitment: formData.time_commitment,
 
         // Section 4 - Program Understanding
         understands_program: formData.understands_program,
+
+        // Personal Data from profile
+        birth_date: currentUser.tanggal_lahir || null,
+        age: currentUser.tanggal_lahir ? Math.floor((new Date().getTime() - new Date(currentUser.tanggal_lahir).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null,
+        domicile: `${currentUser.kota}, ${currentUser.provinsi || ''}`,
+        address: currentUser.alamat || null,
+        wa_phone: currentUser.whatsapp || null,
+        telegram_phone: currentUser.telegram || null,
+        timezone: currentUser.zona_waktu || 'WIB',
 
         // Batch info
         batch_name: batchInfo.batch_name,
