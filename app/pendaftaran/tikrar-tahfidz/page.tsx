@@ -335,60 +335,156 @@ function TikrarTahfidzPage() {
 
     if (!validateSection(4)) return
 
-    // Fast session validation before submission (optimized for speed)
-    try {
-      // Quick session check without detailed logging to reduce delay
-      const { data: { session } } = await supabase.auth.getSession();
+    // Declare authUser at higher scope
+    let authUser: any;
+    let finalSession: any;
 
-      if (!session) {
+    // Robust authentication validation using multiple sources
+    try {
+      console.log('Starting robust auth validation...');
+
+      // Method 1: Get current session directly from Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error('No session found:', sessionError);
         setSubmitStatus('error')
         alert('Session tidak valid. Silakan login kembali.')
         router.push('/login')
         return
       }
 
-      // Check if session is expired (simple check)
+      console.log('Session found:', session.user.id, session.user.email);
+      finalSession = session;
+
+      // Method 2: Validate session is not expired
       const now = Date.now();
       const expiresAt = session.expires_at! * 1000;
-      const isExpired = now >= expiresAt;
+      const timeUntilExpiry = expiresAt - now;
+      const isExpired = timeUntilExpiry <= 0;
 
       if (isExpired) {
-        // Only refresh if expired, not for validation
-        const { error } = await supabase.auth.refreshSession();
+        console.log('Session expired, attempting refresh...');
+        // Try to refresh the session
+        const { error: refreshError } = await supabase.auth.refreshSession();
 
-        if (error) {
+        if (refreshError) {
+          console.error('Session refresh failed:', refreshError);
           setSubmitStatus('error')
           alert('Session telah berakhir. Silakan login kembali.')
           router.push('/login')
           return
         }
+
+        // Get refreshed session
+        const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+        if (!refreshedSession) {
+          setSubmitStatus('error')
+          alert('Gagal memperbarui session. Silakan login kembali.')
+          router.push('/login')
+          return
+        }
+
+        console.log('Session refreshed successfully');
+        finalSession = refreshedSession;
       }
 
-      // Final user validation
-      if (!user?.id || !user?.email) {
+      // Method 3: Get user data from AuthContext as backup
+      authUser = user;
+
+      // Method 4: If AuthContext user is missing, get from session directly
+      if (!authUser?.id || !authUser?.email) {
+        console.log('AuthContext user missing, getting from session...');
+        // Create a compatible user object from session user
+        authUser = {
+          id: session.user.id,
+          email: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name ||
+                     session.user.user_metadata?.name ||
+                     session.user.email?.split('@')[0] || '',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          avatar_url: session.user.user_metadata?.avatar_url,
+          role: 'calon_thalibah'
+        } as any;
+      }
+
+      // Method 5: Final validation using getUser API
+      if (!authUser?.id || !authUser?.email) {
+        console.log('Getting user via getUser API...');
+        const { data: { user: apiUser }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !apiUser) {
+          console.error('Failed to get user from API:', userError);
+          setSubmitStatus('error')
+          alert('Data user tidak valid. Silakan login kembali.')
+          router.push('/login')
+          return
+        }
+
+        // Create compatible user object from API user
+        authUser = {
+          id: apiUser.id,
+          email: apiUser.email || '',
+          full_name: apiUser.user_metadata?.full_name ||
+                     apiUser.user_metadata?.name ||
+                     apiUser.email?.split('@')[0],
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          avatar_url: apiUser.user_metadata?.avatar_url,
+          role: 'calon_thalibah'
+        } as any;
+      }
+
+      // Final validation
+      if (!authUser?.id || !authUser?.email) {
+        console.error('User validation failed:', {
+          hasId: !!authUser?.id,
+          hasEmail: !!authUser?.email,
+          userId: authUser?.id,
+          userEmail: authUser?.email
+        });
+
         setSubmitStatus('error')
-        alert('User tidak valid. Silakan login kembali.')
+        alert('Data user tidak lengkap. Silakan login kembali.')
         router.push('/login')
         return
       }
 
+      console.log('Auth validation passed for user:', authUser.email);
+
     } catch (sessionError) {
-      console.error('Fast session check failed:', sessionError)
-      setSubmitStatus('error')
-      alert('Terjadi kesalahan session. Silakan login kembali.')
-      router.push('/login')
-      return
+      console.error('Auth validation failed:', sessionError);
+      setSubmitStatus('error');
+      alert('Terjadi kesalahan autentikasi. Silakan login kembali.');
+      router.push('/login');
+      return;
     }
 
     // Check network connectivity
     if (!navigator.onLine) {
-      setSubmitStatus('error')
+      setSubmitStatus('error');
       alert('Tidak ada koneksi internet. Silakan periksa koneksi Ukhti dan coba lagi.')
       return
     }
 
     setIsSubmitting(true)
     try {
+      // Re-get session to ensure we have the latest data
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const currentUser = {
+        id: authUser?.id || currentSession?.user?.id || '',
+        email: authUser?.email || currentSession?.user?.email || '',
+        full_name: authUser?.full_name ||
+                   currentSession?.user?.user_metadata?.full_name ||
+                   currentSession?.user?.user_metadata?.name ||
+                   currentSession?.user?.email?.split('@')[0] || ''
+      };
+
+      console.log('Final user for submission:', currentUser);
+
       // CRITICAL: Ensure user exists in database before submitting form
       // This prevents foreign key constraint violations
       console.log('Ensuring user exists before form submission...')
@@ -397,10 +493,11 @@ function TikrarTahfidzPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.id,
-            email: user.email,
-            full_name: user.full_name || user.email?.split('@')[0],
-            provider: user?.app_metadata?.provider || user?.user_metadata?.provider || 'email'
+            userId: currentUser.id,
+            email: currentUser.email,
+            full_name: currentUser.full_name,
+            provider: finalSession?.user?.app_metadata?.provider ||
+                     finalSession?.user?.user_metadata?.provider || 'email'
           })
         })
 
@@ -423,8 +520,8 @@ function TikrarTahfidzPage() {
 
       // Prepare data for database
       const submissionData: any = {
-        user_id: user?.id || '',
-        full_name: user?.full_name || user?.email?.split('@')[0] || '',
+        user_id: currentUser.id,
+        full_name: currentUser.full_name,
         batch_id: batchInfo.batch_id,
         program_id: batchInfo.program_id,
 
