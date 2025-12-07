@@ -311,7 +311,7 @@ export default function Dashboard() {
                         Lihat Program
                       </Button>
                     </Link>
-                    <Link href="/register" className="flex-1 sm:flex-none">
+                    <Link href="/pendaftaran/tikrar-tahfidz" className="flex-1 sm:flex-none">
                       <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
                         Daftar Sekarang
                       </Button>
