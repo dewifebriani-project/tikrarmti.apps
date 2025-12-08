@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Check if user has already registered in pendaftaran_tikrar_tahfidz table
+    // First try to find by user_id
     console.log('Querying with user_id:', session.user.id);
     const { data: registration, error } = await serviceSupabase
       .from('pendaftaran_tikrar_tahfidz')
@@ -58,48 +58,8 @@ export async function GET(request: Request) {
     console.log('Query result - registration:', registration);
     console.log('Query result - error:', error);
 
-    // If there's an error, try searching by email as a fallback
-    // This handles cases where user_id might not match due to auth provider changes
-    if (error) {
-      console.error('Error checking registration by user_id:', error);
-
-      // Try to find by email if user_id search fails
-      if (session.user.email) {
-        const { data: emailRegistration, error: emailError } = await serviceSupabase
-          .from('pendaftaran_tikrar_tahfidz')
-          .select('*')
-          .eq('email', session.user.email)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (emailError) {
-          console.error('Error checking email registration:', emailError);
-        }
-
-        if (emailRegistration) {
-          return NextResponse.json({
-            hasRegistered: true,
-            registration: {
-              id: emailRegistration.id,
-              status: emailRegistration.status,
-              selection_status: emailRegistration.selection_status,
-              submission_date: emailRegistration.submission_date,
-              chosen_juz: emailRegistration.chosen_juz,
-              batch_name: emailRegistration.batch_name,
-              full_name: emailRegistration.full_name
-            }
-          });
-        }
-      }
-
-      // If both searches fail, return not registered (don't return error to avoid breaking the UI)
-      return NextResponse.json({
-        hasRegistered: false
-      });
-    }
-
-    if (registration) {
+    // If we found registration by user_id, return it
+    if (registration && !error) {
       return NextResponse.json({
         hasRegistered: true,
         registration: {
@@ -114,6 +74,48 @@ export async function GET(request: Request) {
       });
     }
 
+    // If no registration found by user_id, try searching by email as a fallback
+    // This handles cases where user_id might not match due to auth provider changes
+    if (session.user.email) {
+      console.log('No registration found by user_id, trying email search...');
+      const { data: emailRegistration, error: emailError } = await serviceSupabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('*')
+        .eq('email', session.user.email.toLowerCase())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      console.log('Email search result - registration:', emailRegistration);
+      console.log('Email search result - error:', emailError);
+
+      if (emailRegistration && !emailError) {
+        // Update the user_id if it's different to fix future queries
+        if (emailRegistration.user_id !== session.user.id) {
+          console.log('Updating user_id for registration:', emailRegistration.id);
+          await serviceSupabase
+            .from('pendaftaran_tikrar_tahfidz')
+            .update({ user_id: session.user.id })
+            .eq('id', emailRegistration.id);
+        }
+
+        return NextResponse.json({
+          hasRegistered: true,
+          registration: {
+            id: emailRegistration.id,
+            status: emailRegistration.status,
+            selection_status: emailRegistration.selection_status,
+            submission_date: emailRegistration.submission_date,
+            chosen_juz: emailRegistration.chosen_juz,
+            batch_name: emailRegistration.batch_name,
+            full_name: emailRegistration.full_name
+          }
+        });
+      }
+    }
+
+    // If no registration found by either method
+    console.log('No registration found for user:', session.user.id, session.user.email);
     return NextResponse.json({
       hasRegistered: false
     });

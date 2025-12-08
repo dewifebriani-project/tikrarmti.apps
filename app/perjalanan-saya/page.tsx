@@ -38,13 +38,22 @@ export default function PerjalananSaya() {
     if (user) {
       const fetchRegistrationStatus = async () => {
         try {
+          console.log('Fetching registration status for user:', user.id, user.email);
           const response = await fetch('/api/auth/check-registration');
-          if (response.ok) {
-            const data = await response.json();
-            setRegistrationStatus(data);
+
+          if (!response.ok) {
+            console.error('Failed to fetch registration status:', response.status, response.statusText);
+            setRegistrationStatus({ hasRegistered: false });
+            setIsLoading(false);
+            return;
           }
+
+          const data = await response.json();
+          console.log('Registration status response:', data);
+          setRegistrationStatus(data);
         } catch (error) {
           console.error('Error fetching registration status:', error);
+          setRegistrationStatus({ hasRegistered: false });
         } finally {
           setIsLoading(false);
         }
@@ -53,6 +62,7 @@ export default function PerjalananSaya() {
       fetchRegistrationStatus();
     } else if (!authLoading) {
       // User is not logged in and auth is finished loading
+      console.log('User not logged in, setting loading to false');
       setIsLoading(false);
     }
   }, [user, authLoading]);
@@ -345,16 +355,37 @@ export default function PerjalananSaya() {
             <CardContent className="p-6">
               <div className="flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                <div>
+                <div className="flex-grow">
                   <h3 className="font-medium text-yellow-800">Belum Mendaftar</h3>
                   <p className="text-yellow-700 text-sm mt-1">
                     Ukhti belum terdaftar di program Tikrar Tahfidz.
                   </p>
-                  <Link href="/pendaftaran/tikrar-tahfidz" className="mt-3 inline-block">
-                    <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                      Daftar Sekarang
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Link href="/pendaftaran/tikrar-tahfidz" className="inline-block">
+                      <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                        Daftar Sekarang
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        console.log('Opening debug API...');
+                        fetch('/api/debug/registration')
+                          .then(res => res.json())
+                          .then(data => {
+                            console.log('Debug data:', data);
+                            alert(`Debug info logged to console. User ID: ${data.userInfo?.id}, Email: ${data.userInfo?.email}, Registrations by user_id: ${data.registrationsByUserId?.count}, by email: ${data.registrationsByEmail?.count}`);
+                          })
+                          .catch(err => {
+                            console.error('Debug error:', err);
+                            alert('Error getting debug info. Check console.');
+                          });
+                      }}
+                    >
+                      Debug Info
                     </Button>
-                  </Link>
+                  </div>
                 </div>
               </div>
             </CardContent>
