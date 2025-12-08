@@ -353,15 +353,22 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                     <div className="border-t border-gray-100 my-2"></div>
 
                     <button
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Logout button clicked in profile dropdown');
                         try {
                           await logout();
+                          console.log('Logout successful, redirecting to login');
                           window.location.href = '/login';
                         } catch (error) {
                           console.error('Error logging out:', error);
+                          // Still redirect even if there's an error
+                          window.location.href = '/login';
                         }
                       }}
-                      className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full"
+                      type="button"
+                      className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Keluar</span>
@@ -395,15 +402,22 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
             {/* Mobile Logout Button */}
             <div className="mt-4 pt-4 border-t border-green-900/20">
               <button
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Logout button clicked in mobile menu');
                   try {
                     await logout();
+                    console.log('Logout successful, redirecting to login');
                     window.location.href = '/login';
                   } catch (error) {
                     console.error('Error logging out:', error);
+                    // Still redirect even if there's an error
+                    window.location.href = '/login';
                   }
                 }}
-                className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full"
+                type="button"
+                className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Keluar</span>

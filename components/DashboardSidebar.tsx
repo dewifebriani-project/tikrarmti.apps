@@ -191,15 +191,22 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
           {/* Logout Button */}
           <div className="px-3 sm:px-4 py-4 border-t border-green-900/20">
             <button
-              onClick={async () => {
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Logout button clicked in sidebar');
                 try {
                   await logout();
+                  console.log('Logout successful, redirecting to login');
                   window.location.href = '/login';
                 } catch (error) {
                   console.error('Error logging out:', error);
+                  // Still redirect even if there's an error
+                  window.location.href = '/login';
                 }
               }}
-              className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-300 group"
+              type="button"
+              className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <LogOut className="w-5 h-5 mr-3" />
               <span>Keluar</span>
