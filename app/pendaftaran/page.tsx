@@ -16,9 +16,12 @@ import {
   Loader2,
   Crown
 } from 'lucide-react';
-import PublicLayout from '@/components/PublicLayout';
+import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { useBatchProgram } from '@/hooks/useBatchProgram';
 import { BatchStatus, ProgramStatus } from '@/types/database';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface PendaftaranType {
   id: string;
@@ -44,13 +47,33 @@ interface PendaftaranType {
 
 export default function PendaftaranPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [pendaftaranTypes, setPendaftaranTypes] = useState<PendaftaranType[]>([]);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [pendingRegistration, setPendingRegistration] = useState<PendaftaranType | null>(null);
+  const [registrationStatus, setRegistrationStatus] = useState<any>(null);
 
   const { batches, programs, loading, error } = useBatchProgram();
+
+  useEffect(() => {
+    // Check registration status if user is logged in
+    if (user) {
+      const checkRegistrationStatus = async () => {
+        try {
+          const response = await fetch('/api/auth/check-registration');
+          if (response.ok) {
+            const data = await response.json();
+            setRegistrationStatus(data);
+          }
+        } catch (error) {
+          console.error('Error checking registration status:', error);
+        }
+      };
+      checkRegistrationStatus();
+    }
+  }, [user]);
 
   useEffect(() => {
     // Transform data from API to match expected format
@@ -305,281 +328,342 @@ export default function PendaftaranPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
-      <PublicLayout>
+      <AuthenticatedLayout title="Pendaftaran">
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-900" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
             <p className="text-gray-600">Memuat data program...</p>
           </div>
         </div>
-      </PublicLayout>
+      </AuthenticatedLayout>
     );
   }
 
   if (error) {
     return (
-      <PublicLayout>
+      <AuthenticatedLayout title="Pendaftaran">
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800"
-            >
+            <Button onClick={() => window.location.reload()}>
               Coba Lagi
-            </button>
+            </Button>
           </div>
         </div>
-      </PublicLayout>
+      </AuthenticatedLayout>
     );
   }
 
   return (
-    <PublicLayout>
-      <div className="space-y-8">
-      {/* Terms and Conditions Modal */}
-      {showTermsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 sm:p-6">
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">Syarat dan Ketentuan</h2>
-              <p className="text-sm sm:text-base text-green-100">Markaz Tikrar Indonesia (MTI)</p>
-            </div>
-
-            {/* Modal Content - Scrollable */}
-            <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh] space-y-4">
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                <p className="text-sm text-yellow-800">
-                  <strong>Penting:</strong> Silakan baca dengan seksama syarat dan ketentuan di bawah ini sebelum melanjutkan pendaftaran.
-                </p>
-              </div>
-
-              {/* Quick Summary */}
-              <div className="space-y-3 text-sm text-gray-700">
-                <h3 className="font-bold text-base text-green-900">Ringkasan Syarat dan Ketentuan:</h3>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-green-800">✅ Komitmen Anda:</h4>
-                  <ul className="list-disc list-inside space-y-1 pl-2">
-                    <li>Mengikuti program hingga selesai (13-16 pekan)</li>
-                    <li>Menyediakan waktu minimal 2 jam/hari untuk menghafal</li>
-                    <li>Melaksanakan tikrar 40x tanpa pengurangan</li>
-                    <li>Konsisten dalam setoran harian kepada pasangan</li>
-                    <li>Mendapat izin dari suami/wali yang bertanggung jawab</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-red-800">⚠️ Larangan:</h4>
-                  <ul className="list-disc list-inside space-y-1 pl-2 text-red-700">
-                    <li>Keluar dari program tanpa udzur syar'i</li>
-                    <li>Mendzolimi waktu pasangan tikrar</li>
-                    <li>Nego-nego jumlah tikrar atau aturan program</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-orange-800">🚫 Sanksi Blacklist:</h4>
-                  <p className="text-orange-700 pl-2">
-                    Thalibah yang keluar tanpa udzur syar'i akan masuk <strong>blacklist permanen</strong> dan tidak dapat mendaftar kembali di MTI.
-                  </p>
-                </div>
-
-                <div className="bg-green-50 p-3 rounded-lg mt-4">
-                  <p className="text-xs text-green-800">
-                    <strong>Catatan:</strong> Pendaftaran ini merupakan akad (perjanjian) yang akan dipertanggungjawabkan di hadapan Allah Ta'ala.
-                  </p>
-                </div>
-              </div>
-
-              {/* Full Terms Link */}
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800 mb-2">
-                  Untuk membaca syarat dan ketentuan lengkap:
-                </p>
-                <a
-                  href="/syarat-ketentuan"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 font-semibold underline text-sm"
-                >
-                  Buka Syarat dan Ketentuan Lengkap (Tab Baru) →
-                </a>
-              </div>
-
-              {/* Agreement Checkbox */}
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-                <label className="flex items-start space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
-                  />
-                  <span className="text-sm text-gray-700 flex-1">
-                    <strong>Bismillah,</strong> saya menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang berlaku di Markaz Tikrar Indonesia. Saya berkomitmen untuk menjalankan seluruh kewajiban dengan penuh tanggung jawab lillahi ta'ala.
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 p-4 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 border-t">
-              <button
-                onClick={() => {
-                  setShowTermsModal(false);
-                  setAgreedToTerms(false);
-                }}
-                className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleProceedToRegistration}
-                disabled={!agreedToTerms}
-                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all ${
-                  agreedToTerms
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-md'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {agreedToTerms ? 'Lanjutkan Pendaftaran' : 'Centang Persetujuan Dulu'}
-              </button>
-            </div>
-          </div>
+    <AuthenticatedLayout title="Pendaftaran">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pendaftaran Program</h1>
+          <p className="text-gray-600">
+            Pilih program yang sesuai dengan kebutuhan dan minat Ukhti
+          </p>
         </div>
-      )}
 
-      {/* Registration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-        {pendaftaranTypes.map((type) => {
-          const Icon = type.icon;
-          const isExpanded = selectedType === type.id;
-
-          return (
-            <div
-              key={type.id}
-              className="bg-white rounded-xl shadow-lg border-2 border-amber-200 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300"
-            >
-              {/* Card Header */}
-              <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 p-4 sm:p-6 border-b border-amber-200 relative overflow-hidden">
-                {/* Decorative crown sparkles */}
-                <div className="absolute top-2 right-2 opacity-20">
-                  <Crown className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400" />
+        {/* Registration Status Alert */}
+        {user && registrationStatus?.hasRegistered && (
+          <Card className="border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-green-900">
+                <CheckCircle className="w-5 h-5" />
+                <span>Status Pendaftaran</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <p className="text-green-800">
+                  Ukhti telah terdaftar di program Tikrar Tahfidz dengan status:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Status Pendaftaran</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      registrationStatus.registration.status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : registrationStatus.registration.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : registrationStatus.registration.status === 'rejected'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {registrationStatus.registration.status === 'pending' ? 'Menunggu Konfirmasi' :
+                       registrationStatus.registration.status === 'approved' ? 'Disetujui' :
+                       registrationStatus.registration.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Tanggal Pendaftaran</p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
                 </div>
-
-                <div className="flex items-start gap-3 sm:gap-4 relative z-10">
-                  <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/50">
-                      <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
-                    </div>
-                    {/* Sparkle effect */}
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
-                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{type.description}</p>
-                  </div>
+                <div className="pt-3 border-t border-green-200">
+                  <p className="text-sm text-green-700">
+                    Untuk melihat perjalanan Ukhti, silakan kunjungi halaman{' '}
+                    <a href="/perjalanan-saya" className="text-green-900 font-semibold underline hover:text-green-700">
+                      Perjalanan Saya
+                    </a>
+                  </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Quick Info */}
-                {type.batchInfo && (
-                  <div className="space-y-3 mt-4">
-                    <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                      <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
-                      <span className="truncate">{type.batchInfo.period}</span>
-                    </div>
-                    <div className="flex justify-center">
-                      {getStatusBadge(type.status)}
-                    </div>
-                    <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                      <Users className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
-                      <span>{type.batchInfo.registered}/{type.batchInfo.capacity} peserta</span>
-                    </div>
-                  </div>
-                )}
+        {/* Terms and Conditions Modal */}
+        {showTermsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold mb-2">Syarat dan Ketentuan</h2>
+                <p className="text-sm sm:text-base text-green-100">Markaz Tikrar Indonesia (MTI)</p>
               </div>
 
-              {/* Card Content */}
-              <div className="p-4 sm:p-6">
-                <div className="space-y-4">
-                  {/* Price and Duration */}
-                  {type.price && (
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-3 sm:p-4 border border-amber-200">
-                      <div className="flex-1">
-                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Biaya Program</p>
-                        <p className="font-bold text-base sm:text-lg text-gray-900">{type.price}</p>
-                      </div>
-                      {type.duration && (
-                        <div className="flex-1 sm:text-right">
-                          <p className="text-xs sm:text-sm text-gray-600 mb-1">Durasi</p>
-                          <p className="font-medium text-base sm:text-lg text-gray-900">{type.duration}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+              {/* Modal Content - Scrollable */}
+              <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh] space-y-4">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Penting:</strong> Silakan baca dengan seksama syarat dan ketentuan di bawah ini sebelum melanjutkan pendaftaran.
+                  </p>
+                </div>
 
-                  {/* Progress Bar */}
-                  {type.batchInfo && type.batchInfo.capacity > 0 && (
-                    <div>
-                      <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-2">
-                        <span>Kuota Tersedia</span>
-                        <span className="font-semibold text-amber-600">{type.batchInfo.capacity - type.batchInfo.registered} lagi</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full rounded-full transition-all duration-500 shadow-md"
-                          style={{
-                            width: `${(type.batchInfo.registered / type.batchInfo.capacity) * 100}%`
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
+                {/* Quick Summary */}
+                <div className="space-y-3 text-sm text-gray-700">
+                  <h3 className="font-bold text-base text-green-900">Ringkasan Syarat dan Ketentuan:</h3>
 
-                  {/* Action Button */}
-                  <button
-                    onClick={() => handleRegistrationClick(type)}
-                    disabled={type.status !== 'open'}
-                    className={`w-full flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg ${
-                      type.status === 'open'
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transform hover:-translate-y-0.5'
-                        : type.status === 'upcoming'
-                        ? 'bg-amber-100 text-amber-900 cursor-not-allowed'
-                        : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                    }`}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-green-800">✅ Komitmen Anda:</h4>
+                    <ul className="list-disc list-inside space-y-1 pl-2">
+                      <li>Mengikuti program hingga selesai (13-16 pekan)</li>
+                      <li>Menyediakan waktu minimal 2 jam/hari untuk menghafal</li>
+                      <li>Melaksanakan tikrar 40x tanpa pengurangan</li>
+                      <li>Konsisten dalam setoran harian kepada pasangan</li>
+                      <li>Mendapat izin dari suami/wali yang bertanggung jawab</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-red-800">⚠️ Larangan:</h4>
+                    <ul className="list-disc list-inside space-y-1 pl-2 text-red-700">
+                      <li>Keluar dari program tanpa udzur syar'i</li>
+                      <li>Mendzolimi waktu pasangan tikrar</li>
+                      <li>Nego-nego jumlah tikrar atau aturan program</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-orange-800">🚫 Sanksi Blacklist:</h4>
+                    <p className="text-orange-700 pl-2">
+                      Thalibah yang keluar tanpa udzur syar'i akan masuk <strong>blacklist permanen</strong> dan tidak dapat mendaftar kembali di MTI.
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 p-3 rounded-lg mt-4">
+                    <p className="text-xs text-green-800">
+                      <strong>Catatan:</strong> Pendaftaran ini merupakan akad (perjanjian) yang akan dipertanggungjawabkan di hadapan Allah Ta'ala.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Full Terms Link */}
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800 mb-2">
+                    Untuk membaca syarat dan ketentuan lengkap:
+                  </p>
+                  <a
+                    href="/syarat-ketentuan"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 font-semibold underline text-sm"
                   >
-                    {type.status === 'open' && (
-                      <>
-                        Daftar Sekarang
-                        <ChevronRight className="w-5 h-5 ml-2" />
-                      </>
-                    )}
-                    {type.status === 'upcoming' && 'Pendaftaran Akan Dibuka'}
-                    {type.status === 'closed' && 'Pendaftaran Ditutup'}
-                  </button>
+                    Buka Syarat dan Ketentuan Lengkap (Tab Baru) →
+                  </a>
+                </div>
+
+                {/* Agreement Checkbox */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700 flex-1">
+                      <strong>Bismillah,</strong> saya menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang berlaku di Markaz Tikrar Indonesia. Saya berkomitmen untuk menjalankan seluruh kewajiban dengan penuh tanggung jawab lillahi ta'ala.
+                    </span>
+                  </label>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Empty State */}
-      {pendaftaranTypes.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-gray-400" />
+              {/* Modal Footer */}
+              <div className="bg-gray-50 p-4 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowTermsModal(false);
+                    setAgreedToTerms(false);
+                  }}
+                  className="flex-1"
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={handleProceedToRegistration}
+                  disabled={!agreedToTerms}
+                  className={`flex-1 ${
+                    agreedToTerms
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {agreedToTerms ? 'Lanjutkan Pendaftaran' : 'Centang Persetujuan Dulu'}
+                </Button>
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Program Tersedia</h3>
-          <p className="text-gray-600">Program pembelajaran akan segera dibuka. Silakan cembali lagi nanti.</p>
+        )}
+
+        {/* Registration Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          {pendaftaranTypes.map((type) => {
+            const Icon = type.icon;
+            const isExpanded = selectedType === type.id;
+
+            return (
+              <Card key={type.id} className="overflow-hidden hover:shadow-lg transition-all duration-300">
+                {/* Card Header */}
+                <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 p-4 sm:p-6 border-b border-amber-200 relative overflow-hidden">
+                  {/* Decorative crown sparkles */}
+                  <div className="absolute top-2 right-2 opacity-20">
+                    <Crown className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400" />
+                  </div>
+
+                  <div className="flex items-start gap-3 sm:gap-4 relative z-10">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/50">
+                        <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
+                      </div>
+                      {/* Sparkle effect */}
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{type.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Quick Info */}
+                  {type.batchInfo && (
+                    <div className="space-y-3 mt-4">
+                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
+                        <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
+                        <span className="truncate">{type.batchInfo.period}</span>
+                      </div>
+                      <div className="flex justify-center">
+                        {getStatusBadge(type.status)}
+                      </div>
+                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
+                        <Users className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
+                        <span>{type.batchInfo.registered}/{type.batchInfo.capacity} peserta</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-4">
+                    {/* Price and Duration */}
+                    {type.price && (
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-3 sm:p-4 border border-amber-200">
+                        <div className="flex-1">
+                          <p className="text-xs sm:text-sm text-gray-600 mb-1">Biaya Program</p>
+                          <p className="font-bold text-base sm:text-lg text-gray-900">{type.price}</p>
+                        </div>
+                        {type.duration && (
+                          <div className="flex-1 sm:text-right">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-1">Durasi</p>
+                            <p className="font-medium text-base sm:text-lg text-gray-900">{type.duration}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Progress Bar */}
+                    {type.batchInfo && type.batchInfo.capacity > 0 && (
+                      <div>
+                        <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-2">
+                          <span>Kuota Tersedia</span>
+                          <span className="font-semibold text-amber-600">{type.batchInfo.capacity - type.batchInfo.registered} lagi</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-amber-500 to-yellow-500 h-full rounded-full transition-all duration-500 shadow-md"
+                            style={{
+                              width: `${(type.batchInfo.registered / type.batchInfo.capacity) * 100}%`
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    <Button
+                      onClick={() => handleRegistrationClick(type)}
+                      disabled={type.status !== 'open' || (user && registrationStatus?.hasRegistered)}
+                      className={`w-full flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg ${
+                        type.status === 'open' && !(user && registrationStatus?.hasRegistered)
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                          : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {type.status === 'open' && !(user && registrationStatus?.hasRegistered) ? (
+                        <>
+                          Daftar Sekarang
+                          <ChevronRight className="w-5 h-5 ml-2" />
+                        </>
+                      ) : user && registrationStatus?.hasRegistered ? (
+                        'Sudah Terdaftar'
+                      ) : type.status === 'upcoming' ? (
+                        'Pendaftaran Akan Dibuka'
+                      ) : (
+                        'Pendaftaran Ditutup'
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-      )}
+
+        {/* Empty State */}
+        {pendaftaranTypes.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum Ada Program Tersedia</h3>
+              <p className="text-gray-600">Program pembelajaran akan segera dibuka. Silakan cembali lagi nanti.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    </PublicLayout>
+    </AuthenticatedLayout>
   );
 }
