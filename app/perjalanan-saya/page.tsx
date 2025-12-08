@@ -316,13 +316,13 @@ export default function PerjalananSaya() {
 
   return (
     <AuthenticatedLayout title="Perjalanan Saya">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
             Linimasa Perjalanan Hafalan <em>Ukhti</em>
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             Setiap langkah adalah bagian dari ikhtiar. Teruslah semangat hingga akhir!
           </p>
         </div>
@@ -364,20 +364,20 @@ export default function PerjalananSaya() {
         {/* User Info Card */}
         {registrationStatus?.hasRegistered && (
           <Card className="bg-green-50 border-green-200">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-green-900">
-                <CheckCircle className="w-5 h-5" />
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center space-x-2 text-green-900 text-lg sm:text-xl">
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                 <span>Status Pendaftaran</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Nama Lengkap</p>
-                  <p className="font-medium">{registrationStatus.registration.full_name}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
+                  <p className="font-medium text-sm sm:text-base">{registrationStatus.registration.full_name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Status</p>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     registrationStatus.registration.status === 'approved'
                       ? 'bg-green-100 text-green-800'
@@ -393,8 +393,8 @@ export default function PerjalananSaya() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Tanggal Pendaftaran</p>
-                  <p className="font-medium">
+                  <p className="text-xs sm:text-sm text-gray-600">Tanggal Pendaftaran</p>
+                  <p className="font-medium text-sm sm:text-base">
                     {new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', {
                       day: 'numeric',
                       month: 'long',
@@ -404,8 +404,8 @@ export default function PerjalananSaya() {
                 </div>
                 {registrationStatus.registration.batch_name && (
                   <div>
-                    <p className="text-sm text-gray-600">Batch</p>
-                    <p className="font-medium">{registrationStatus.registration.batch_name}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Batch</p>
+                    <p className="font-medium text-sm sm:text-base">{registrationStatus.registration.batch_name}</p>
                   </div>
                 )}
               </div>
@@ -415,23 +415,23 @@ export default function PerjalananSaya() {
 
         {/* Timeline Container */}
         {user && !isLoading && (
-          <div className="space-y-6">
-            {/* Mobile View - Single Column Timeline */}
+          <div className="space-y-4 sm:space-y-6">
+            {/* Mobile & Tablet View - Single Column Timeline */}
             <div className="block lg:hidden">
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {timelineData.map((item) => {
                   const styles = getStatusStyles(item.status);
                   return (
                     <Card key={item.id} className={`${styles.cardBg} ${styles.cardBorder} transition-all duration-300 hover:shadow-md`}>
-                      <CardContent className="p-6">
-                        <div className="flex items-start space-x-4">
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex items-start space-x-3 sm:space-x-4">
                           {/* Icon */}
-                          <div className={`relative flex-shrink-0 w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
-                            <div className={styles.iconColor}>
+                          <div className={`relative flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
+                            <div className={`w-4 h-4 sm:w-5 sm:h-5 ${styles.iconColor}`}>
                               {item.icon}
                             </div>
                             {item.status === 'current' && (
-                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                             )}
                           </div>
 
@@ -439,24 +439,24 @@ export default function PerjalananSaya() {
                           <div className="flex-grow min-w-0">
                             {/* Date */}
                             {item.day !== '-' && (
-                              <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                              <div className={`text-xs sm:text-sm ${styles.textColor} mb-1.5 sm:mb-2 font-medium`}>
                                 {item.day} • {item.date}
-                                {item.hijriDate !== '-' && <span className="block text-xs mt-1">{item.hijriDate}</span>}
+                                {item.hijriDate !== '-' && <span className="block text-xs mt-0.5 sm:mt-1">{item.hijriDate}</span>}
                               </div>
                             )}
                             {item.day === '-' && (
-                              <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
+                              <div className={`text-xs sm:text-sm ${styles.textColor} mb-1.5 sm:mb-2 font-medium`}>
                                 {item.date}
                               </div>
                             )}
 
                             {/* Title */}
-                            <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
+                            <h3 className={`text-base sm:text-lg font-bold mb-1.5 sm:mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
                               {item.title}
                             </h3>
 
                             {/* Description */}
-                            <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                            <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
                               {item.description}
                             </p>
                           </div>
@@ -533,35 +533,35 @@ export default function PerjalananSaya() {
 
         {/* Progress Overview */}
         {user && !isLoading && (
-          <Card className="mt-8">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Target className="h-5 w-5 text-green-600" />
+          <Card className="mt-6 sm:mt-8">
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
                 <span>Progres Perjalanan</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm sm:text-base">
                 Tracking perjalanan hafalan Ukhti
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+            <CardContent className="pt-0">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Progres Perjalanan</h3>
-                  <p className="text-sm text-gray-600">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Progres Perjalanan</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">
                     {completedCount} dari {totalCount} tahapan selesai
                   </p>
                 </div>
 
-                {/* Progress Dots */}
-                <div className="flex items-center space-x-2">
+                {/* Progress Dots - Responsive */}
+                <div className="flex items-center space-x-1 sm:space-x-2 max-w-xs sm:max-w-none overflow-x-auto pb-1 sm:pb-0">
                   {timelineData.map((item, index) => (
                     <div
                       key={index}
-                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      className={`flex-shrink-0 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${
                         item.status === 'completed'
                           ? 'bg-teal-500'
                           : item.status === 'current'
-                          ? 'w-3 h-3 bg-yellow-500 animate-pulse'
+                          ? 'w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 animate-pulse'
                           : 'bg-gray-300'
                       }`}
                     />
@@ -570,20 +570,20 @@ export default function PerjalananSaya() {
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="mt-3 sm:mt-4">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                   <div
-                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-2 rounded-full transition-all duration-500"
+                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-1.5 sm:h-2 rounded-full transition-all duration-500"
                     style={{ width: `${(completedCount / totalCount) * 100}%` }}
                   ></div>
                 </div>
               </div>
 
               {/* Current Status */}
-              <div className="mt-4 flex items-center space-x-2">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-                <p className="text-sm text-gray-600">
-                  Saat ini: <span className="font-medium text-gray-900">
+              <div className="mt-3 sm:mt-4 flex items-center space-x-2">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full animate-pulse"></div>
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Saat ini: <span className="font-medium text-gray-900 text-xs sm:text-sm">
                     {timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}
                   </span>
                 </p>
@@ -591,18 +591,19 @@ export default function PerjalananSaya() {
 
               {/* Quick Actions */}
               {registrationStatus?.hasRegistered && (
-                <div className="mt-6 pt-6 border-t">
-                  <h4 className="font-medium text-gray-900 mb-3">Aksi Cepat</h4>
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
+                  <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Aksi Cepat</h4>
                   <div className="flex flex-wrap gap-2">
                     <Link href="/jurnal-harian">
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        Jurnal Harian
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
+                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                        <span className="hidden xs:inline">Jurnal Harian</span>
+                        <span className="xs:hidden">Jurnal</span>
                       </Button>
                     </Link>
                     <Link href="/tashih">
-                      <Button size="sm" variant="outline">
-                        <CheckCircle className="w-4 h-4 mr-2" />
+                      <Button size="sm" variant="outline" className="text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
+                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                         Tashih
                       </Button>
                     </Link>

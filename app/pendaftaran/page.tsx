@@ -285,23 +285,26 @@ export default function PendaftaranPage() {
     switch (status) {
       case 'open':
         return (
-          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-green-500/50 animate-pulse">
-            <CheckCircle className="w-4 h-4 mr-1.5" />
-            Pendaftaran Dibuka
+          <span className="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-green-500/50 animate-pulse">
+            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5" />
+            <span className="hidden xs:inline">Pendaftaran Dibuka</span>
+            <span className="xs:hidden">Dibuka</span>
           </span>
         );
       case 'closed':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-900">
+          <span className="inline-flex items-center px-2.5 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-red-100 text-red-900">
             <AlertCircle className="w-3 h-3 mr-1" />
-            Pendaftaran Ditutup
+            <span className="hidden xs:inline">Pendaftaran Ditutup</span>
+            <span className="xs:hidden">Ditutup</span>
           </span>
         );
       case 'upcoming':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-900">
+          <span className="inline-flex items-center px-2.5 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-green-100 text-green-900">
             <Clock className="w-3 h-3 mr-1" />
-            Akan Dibuka
+            <span className="hidden xs:inline">Akan Dibuka</span>
+            <span className="xs:hidden">Akan Dibuka</span>
           </span>
         );
     }
@@ -359,11 +362,11 @@ export default function PendaftaranPage() {
 
   return (
     <AuthenticatedLayout title="Pendaftaran">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pendaftaran Program</h1>
-          <p className="text-gray-600">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Pendaftaran Program</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             Pilih program yang sesuai dengan kebutuhan dan minat Ukhti
           </p>
         </div>
@@ -539,7 +542,7 @@ export default function PendaftaranPage() {
         )}
 
         {/* Registration Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {pendaftaranTypes.map((type) => {
             const Icon = type.icon;
             const isExpanded = selectedType === type.id;
@@ -547,52 +550,52 @@ export default function PendaftaranPage() {
             return (
               <Card key={type.id} className="overflow-hidden hover:shadow-lg transition-all duration-300">
                 {/* Card Header */}
-                <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 p-4 sm:p-6 border-b border-amber-200 relative overflow-hidden">
+                <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 p-3 sm:p-4 lg:p-6 border-b border-amber-200 relative overflow-hidden">
                   {/* Decorative crown sparkles */}
                   <div className="absolute top-2 right-2 opacity-20">
-                    <Crown className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400" />
+                    <Crown className="w-12 h-12 sm:w-16 lg:w-20 text-amber-400" />
                   </div>
 
-                  <div className="flex items-start gap-3 sm:gap-4 relative z-10">
+                  <div className="flex items-start gap-2 sm:gap-3 lg:gap-4 relative z-10">
                     <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-3 sm:mr-4 shadow-lg shadow-amber-500/50">
-                        <Crown className="w-6 h-6 sm:w-7 sm:h-7 text-white animate-pulse" />
+                      <div className="w-10 h-10 sm:w-12 lg:w-14 h-10 sm:h-12 lg:h-14 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center mr-2 sm:mr-3 lg:mr-4 shadow-lg shadow-amber-500/50">
+                        <Crown className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white animate-pulse" />
                       </div>
                       {/* Sparkle effect */}
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping"></div>
+                      <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 bg-yellow-300 rounded-full animate-ping"></div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{type.description}</p>
+                      <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-1 leading-tight">{type.title}</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-relaxed line-clamp-2">{type.description}</p>
                     </div>
                   </div>
 
                   {/* Quick Info */}
                   {type.batchInfo && (
-                    <div className="space-y-3 mt-4">
-                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                        <Calendar className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
-                        <span className="truncate">{type.batchInfo.period}</span>
+                    <div className="space-y-2 sm:space-y-3 mt-3 sm:mt-4">
+                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2">
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-amber-600 flex-shrink-0" />
+                        <span className="truncate text-xs sm:text-sm">{type.batchInfo.period}</span>
                       </div>
                       <div className="flex justify-center">
                         {getStatusBadge(type.status)}
                       </div>
-                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-3 py-2">
-                        <Users className="w-4 h-4 mr-2 text-amber-600 flex-shrink-0" />
-                        <span>{type.batchInfo.registered}/{type.batchInfo.capacity} peserta</span>
+                      <div className="flex items-center text-gray-700 bg-white/60 rounded-lg px-2 py-1.5 sm:px-3 sm:py-2">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-amber-600 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm">{type.batchInfo.registered}/{type.batchInfo.capacity} peserta</span>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <CardContent className="p-4 sm:p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Price and Duration */}
                     {type.price && (
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-3 sm:p-4 border border-amber-200">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-2.5 sm:p-3 lg:p-4 border border-amber-200">
                         <div className="flex-1">
                           <p className="text-xs sm:text-sm text-gray-600 mb-1">Biaya Program</p>
-                          <p className="font-bold text-base sm:text-lg text-gray-900">{type.price}</p>
+                          <p className="font-bold text-sm sm:text-base lg:text-lg text-gray-900">{type.price}</p>
                         </div>
                         {type.duration && (
                           <div className="flex-1 sm:text-right">

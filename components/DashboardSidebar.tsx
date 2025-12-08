@@ -189,7 +189,7 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
           })}
 
           {/* Logout Button */}
-          <div className="px-3 sm:px-4 py-4 border-t border-green-900/20">
+          <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-green-900/20">
             <button
               onClick={async (e) => {
                 e.preventDefault();
@@ -206,10 +206,13 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
                 }
               }}
               type="button"
-              className="flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500"
+              aria-label="Keluar dari akun"
+              title="Keluar"
+              className="flex items-center justify-center sm:justify-start w-full px-3 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation"
             >
-              <LogOut className="w-5 h-5 mr-3" />
-              <span>Keluar</span>
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
+              <span className="hidden xs:inline">Keluar</span>
+              <span className="xs:hidden">Out</span>
             </button>
           </div>
         </nav>

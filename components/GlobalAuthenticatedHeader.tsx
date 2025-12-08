@@ -191,7 +191,30 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
           <div className="hidden md:flex items-center flex-1"></div>
 
           {/* Right Section - Actions & Profile */}
-          <div className="flex items-center space-x-2 md:space-x-4">
+          <div className="flex items-center space-x-1 md:space-x-4">
+
+            {/* Quick Logout - Mobile Only */}
+            <button
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Quick logout button clicked in header');
+                try {
+                  await logout();
+                  console.log('Logout successful, redirecting to login');
+                  window.location.href = '/login';
+                } catch (error) {
+                  console.error('Error logging out:', error);
+                  window.location.href = '/login';
+                }
+              }}
+              type="button"
+              aria-label="Keluar dari akun"
+              title="Keluar"
+              className="md:hidden p-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 touch-manipulation"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
 
             {/* Notifications - Desktop/Tablet */}
             <div className="relative hidden md:block" ref={notificationRef}>
@@ -368,7 +391,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                         }
                       }}
                       type="button"
-                      className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                      aria-label="Keluar dari akun"
+                      className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3 px-3 py-2.5 sm:py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[44px]"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Keluar</span>
@@ -417,7 +441,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                   }
                 }}
                 type="button"
-                className="flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                aria-label="Keluar dari akun"
+                className="flex items-center justify-between space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[44px] font-medium border border-red-200 hover:border-red-300"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Keluar</span>
