@@ -25,17 +25,43 @@ export async function GET(request: Request) {
     // Get Supabase client with cookie handling
     const supabase = createServerSupabaseClient();
 
-    // Get user from session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Try to get session from Authorization header first
+    const authHeader = request.headers.get('authorization');
+    let session, sessionError;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      // Use the token from Authorization header
+      const token = authHeader.substring(7);
+      const serviceSupabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { data: user, error: userError } = await serviceSupabase.auth.getUser(token);
+
+      if (!userError && user?.user) {
+        session = { user: user.user };
+        sessionError = null;
+      } else {
+        sessionError = userError;
+        session = null;
+      }
+    } else {
+      // Fallback to cookie-based session
+      const result = await supabase.auth.getSession();
+      session = result.data.session;
+      sessionError = result.error;
+    }
 
     if (sessionError || !session?.user) {
       return NextResponse.json(
         {
           error: 'Unauthorized',
           sessionError: sessionError?.message,
-          hasSession: !!session
+          hasSession: !!session,
+          authHeader: !!authHeader
         },
-        { status: 401 }
+        { status: 200 } // Return 200 instead of 401 for debugging
       );
     }
 

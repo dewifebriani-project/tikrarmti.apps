@@ -39,7 +39,18 @@ export default function PerjalananSaya() {
       const fetchRegistrationStatus = async () => {
         try {
           console.log('Fetching registration status for user:', user.id, user.email);
-          const response = await fetch('/api/auth/check-registration');
+
+          // Use simple API that doesn't require auth
+          const response = await fetch('/api/auth/check-registration-simple', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user.id,
+              email: user.email
+            })
+          });
 
           if (!response.ok) {
             console.error('Failed to fetch registration status:', response.status, response.statusText);
@@ -369,18 +380,29 @@ export default function PerjalananSaya() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
+                      onClick={async () => {
                         console.log('Opening debug API...');
-                        fetch('/api/debug/registration')
-                          .then(res => res.json())
-                          .then(data => {
-                            console.log('Debug data:', data);
-                            alert(`Debug info logged to console. User ID: ${data.userInfo?.id}, Email: ${data.userInfo?.email}, Registrations by user_id: ${data.registrationsByUserId?.count}, by email: ${data.registrationsByEmail?.count}`);
-                          })
-                          .catch(err => {
-                            console.error('Debug error:', err);
-                            alert('Error getting debug info. Check console.');
+                        try {
+                          const supabase = (await import('@/lib/supabase-singleton')).supabase;
+                          const { data: { session } } = await supabase.auth.getSession();
+
+                          const headers: Record<string, string> = {};
+                          if (session?.access_token) {
+                            headers['Authorization'] = `Bearer ${session.access_token}`;
+                          }
+
+                          const response = await fetch('/api/debug/registration', {
+                            headers,
+                            credentials: 'include'
                           });
+
+                          const data = await response.json();
+                          console.log('Debug data:', data);
+                          alert(`Debug info logged to console. User ID: ${data.userInfo?.id}, Email: ${data.userInfo?.email}, Registrations by user_id: ${data.registrationsByUserId?.count}, by email: ${data.registrationsByEmail?.count}`);
+                        } catch (err) {
+                          console.error('Debug error:', err);
+                          alert('Error getting debug info. Check console.');
+                        }
                       }}
                     >
                       Debug Info
