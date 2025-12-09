@@ -2,6 +2,10 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Suspense } from 'react';
+
+// Import FAQ component as default export
+import FAQComponent from '@/components/FAQ';
 import {
   Star,
   Users,
@@ -72,6 +76,19 @@ export default function Home() {
                 <Star className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
                 Pelajari Metode Tikrar
               </Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="lg"
+              className="text-green-900 hover:bg-green-50 px-8 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
+            >
+              <a href="#faq" className="flex items-center gap-3">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                FAQ
+              </a>
             </Button>
           </div>
 
@@ -212,6 +229,11 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <Suspense fallback={<div className="py-16 text-center">Loading FAQ...</div>}>
+        <FAQComponent />
+      </Suspense>
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-green-900 to-green-800 relative overflow-hidden">
