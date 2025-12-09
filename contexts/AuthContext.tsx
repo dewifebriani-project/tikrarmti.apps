@@ -1,12 +1,14 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase-singleton';
 import { supabaseAdmin } from '@/lib/supabase';
 import { loginWithEmail, loginWithGoogle, registerWithEmail, resetPassword, deleteUser as supabaseDeleteUser } from '@/lib/auth';
 import { getDeviceInfo, getAuthTimeout, getRetryCount, shouldUseOptimizedOAuth } from '@/lib/platform-detection';
 import { authPerformance } from '@/lib/auth-performance';
 import { sessionManager, sessionMaintenance } from '@/lib/session-manager';
+// import { syncUserProfile, ensureUserProfileComplete } from '@/lib/user-profile-sync'; // Temporarily commented out for build
 import type { User, UserRole, AuthContextType } from '@/types';
 
 // Extend Window interface for activity timeout
@@ -35,6 +37,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -108,7 +111,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, session ? 'Session exists' : 'No session');
+
+        // Handle session expiration or sign out
+        if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+          console.log('Session expired or user signed out');
+          setUser(null);
+
+          // Clear cache
+          if (user) {
+            userCache.delete(user.id);
+          }
+
+          // Stop session maintenance
+          sessionMaintenance.stop();
+
+          // Redirect to login after a short delay to allow state to update
+          setTimeout(() => {
+            const currentPath = window.location.pathname;
+            // Only redirect if not already on login or register page
+            if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+              router.push('/login?message=Session expired. Please login again.');
+            }
+          }, 100);
+
+          setLoading(false);
+          return;
+        }
+
         if (session?.user) {
           const isOAuthProvider = session.user.app_metadata?.provider === 'google' || session.user.app_metadata?.provider === 'apple';
 
@@ -315,14 +346,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const refreshed = await sessionManager.refreshSession();
 
             if (!refreshed) {
-              console.warn('Session refresh failed, user may need to re-login');
-              // Don't automatically logout, let it handle naturally
+              console.warn('Session refresh failed, redirecting to login');
+              // Clear user state and redirect
+              setUser(null);
+              if (user) {
+                userCache.delete(user.id);
+              }
+              sessionMaintenance.stop();
+
+              const currentPath = window.location.pathname;
+              if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+                router.push('/login?message=Session expired. Please login again.');
+              }
             }
           } else {
             console.log('Session is valid');
           }
         } catch (error) {
           console.error('Session check error:', error);
+          // On critical error, redirect to login
+          setUser(null);
+          if (user) {
+            userCache.delete(user.id);
+          }
+          sessionMaintenance.stop();
+
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+            router.push('/login?message=Authentication error. Please login again.');
+          }
         }
       };
 
@@ -347,11 +399,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log('Activity detected invalid session, refreshing...');
               const refreshed = await sessionManager.refreshSession();
               if (!refreshed) {
-                console.warn('Activity refresh failed, skipping force refresh to reduce delay');
+                console.warn('Activity refresh failed, redirecting to login');
+                // Clear user state and redirect
+                setUser(null);
+                if (user) {
+                  userCache.delete(user.id);
+                }
+                sessionMaintenance.stop();
+
+                const currentPath = window.location.pathname;
+                if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+                  router.push('/login?message=Session expired. Please login again.');
+                }
               }
             }
           } catch (error) {
             console.error('Activity session check failed:', error);
+            // On critical error, redirect to login
+            setUser(null);
+            if (user) {
+              userCache.delete(user.id);
+            }
+            sessionMaintenance.stop();
+
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+              router.push('/login?message=Authentication error. Please login again.');
+            }
           }
         }, 5000); // Increased to 5 seconds to reduce frequency
 
@@ -422,10 +496,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const isSessionValid = await sessionManager.checkSession();
             if (!isSessionValid) {
               console.warn('Session invalid when page became visible, attempting refresh...');
-              await sessionManager.forceRefreshSession();
+              const refreshed = await sessionManager.forceRefreshSession();
+
+              if (!refreshed) {
+                console.warn('Force refresh failed, redirecting to login');
+                // Clear user state and redirect
+                setUser(null);
+                if (user) {
+                  userCache.delete(user.id);
+                }
+                sessionMaintenance.stop();
+
+                const currentPath = window.location.pathname;
+                if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+                  router.push('/login?message=Session expired. Please login again.');
+                }
+              }
             }
           } catch (error) {
             console.error('Visibility change session check failed:', error);
+            // On critical error, redirect to login
+            setUser(null);
+            if (user) {
+              userCache.delete(user.id);
+            }
+            sessionMaintenance.stop();
+
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+              router.push('/login?message=Authentication error. Please login again.');
+            }
           }
         }
       };
