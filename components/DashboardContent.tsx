@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle, Users, LogOut } from 'lucide-react'
+import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AuthenticatedLayout from '@/components/AuthenticatedLayout'
@@ -32,33 +32,7 @@ export default function DashboardContent() {
     total: 7
   }
 
-  const handleLogout = async () => {
-    console.log('LOGOUT: Process started')
-
-    // Clear storage immediately
-    if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
-    }
-
-    // Call server logout without waiting
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    }).catch(() => {})
-
-    // Supabase logout (don't wait for completion)
-    supabase.auth.signOut().catch(() => {})
-
-    // Redirect immediately
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login'
-      setTimeout(() => window.location.replace('/login'), 50)
-    }
-
-    console.log('LOGOUT: Redirect commands sent')
-  }
-
+  
   // Debug: Log user state changes
   useEffect(() => {
     console.log('=== Dashboard User State Update ===')
@@ -310,22 +284,6 @@ export default function DashboardContent() {
             </div>
           </CardContent>
               </Card>
-
-        {/* Test Logout Button */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Test Logout Button:</span>
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Test Keluar</span>
-              </button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Announcement Card - Pembukaan Tikrar-Tahfidz Batch 2 */}
         {batchInfo && (
