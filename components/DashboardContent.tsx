@@ -244,9 +244,35 @@ export default function DashboardContent() {
     }
   ]
 
-  // Return null immediately if not authenticated to avoid any flash
-  if (loading || !user) {
-    return null
+  // Show loading spinner if still loading
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if authentication failed
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center max-w-md p-6">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold mb-2">Gagal Memuat Dashboard</h2>
+          <p className="text-gray-600 mb-4">Tidak dapat memuat informasi pengguna. Silakan periksa koneksi internet Anda dan coba lagi.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Muat Ulang Halaman
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
