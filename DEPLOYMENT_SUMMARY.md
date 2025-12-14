@@ -1,6 +1,6 @@
 # 🚀 Deployment Summary - Tikrar MTI Apps
 
-**Deployment Date:** 6 Desember 2025
+**Latest Deployment Date:** 14 Desember 2025
 **Deployment Status:** ✅ **BERHASIL**
 **Platform:** Vercel (Production)
 
@@ -33,8 +33,8 @@
 ## 🌐 Deployment URLs
 
 ### Latest Production Deployment:
-- **Primary:** https://tikrarmtiapps-6docpap8n-dewifebriani-projects.vercel.app
-- **Mirror:** https://tikrarmtiapps-ao9rh2vj5-dewifebriani-projects.vercel.app
+- **Primary:** https://tikrarmtiapps-h1npe6u4w-dewifebriani-projects.vercel.app
+- **Previous:** https://tikrarmtiapps-6docpap8n-dewifebriani-projects.vercel.app
 
 ### Status:
 - ✅ Ready (Production)
@@ -117,9 +117,19 @@ Build Time Average: ~40 seconds
 
 ## 🔄 Git Commit Information
 
-**Commit Hash:** 3d28bf5
+**Latest Commit Hash:** 8a3c8a1
 **Branch:** main
-**Commit Message:**
+**Latest Commit Message:**
+```
+Fix: Build errors for production deployment
+
+- Fixed TypeScript errors in admin page by adding batch_id to program query and interface
+- Fixed import errors in API routes by changing createClient to createServerClient
+- Fixed React hook error in seleksi page by properly importing useEffect
+- Build now completes successfully for all platforms
+```
+
+**Previous Commit:** 3d28bf5
 ```
 Add international user support (Malaysia, Australia) and registration status badge
 
@@ -188,6 +198,6 @@ Aplikasi Tikrar MTI sekarang mendukung:
 
 ---
 
-*Generated on: 2025-12-06*
+*Latest Update: 2025-12-14*
 *Deployed by: Claude Code*
 *Platform: Vercel*
