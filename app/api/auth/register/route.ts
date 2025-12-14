@@ -197,19 +197,19 @@ export async function POST(request: NextRequest) {
     // Initialize Supabase client
     const supabase = createServerClient();
 
-    // Check if email already exists in auth system using signUp check
-    const { data: authCheckData, error: authCheckError } = await supabase.auth.signInWithPassword({
-      email: body.email,
-      password: 'dummy-password-check'
-    });
+    // Check if email already exists in auth system using admin.getUserByEmail
+    const { data: existingAuthUsers, error: authListError } = await supabase.auth.admin.listUsers();
 
-    // If there's no error about invalid credentials, user might exist
-    if (authCheckError && !authCheckError.message.includes('Invalid login credentials')) {
-      // User exists in auth system
-      return NextResponse.json(
-        { message: 'Email sudah terdaftar. Silakan login.' },
-        { status: 409 }
-      );
+    if (!authListError && existingAuthUsers.users) {
+      const userExists = existingAuthUsers.users.some(user => user.email === body.email);
+
+      if (userExists) {
+        // User exists in auth system
+        return NextResponse.json(
+          { message: 'Email sudah terdaftar. Silakan login.' },
+          { status: 409 }
+        );
+      }
     }
 
     // Check if email already exists in users table
