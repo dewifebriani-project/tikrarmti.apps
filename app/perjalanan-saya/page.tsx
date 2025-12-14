@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Clock, AlertCircle, Calendar, BookOpen, Award, Target } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar } from 'lucide-react';
 
 interface TimelineItem {
   id: number;
@@ -17,6 +16,7 @@ interface TimelineItem {
   title: string;
   description: string;
   icon: React.ReactElement;
+  hasSelectionTasks?: boolean;
 }
 
 interface TimelineItemWithStatus extends TimelineItem {
@@ -28,6 +28,13 @@ export default function PerjalananSaya() {
   const [isClient, setIsClient] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectionStatus, setSelectionStatus] = useState<{
+    audioSubmitted: boolean;
+    quizSubmitted: boolean;
+  }>({
+    audioSubmitted: false,
+    quizSubmitted: false
+  });
 
   useEffect(() => {
     setIsClient(true);
@@ -62,6 +69,22 @@ export default function PerjalananSaya() {
           const data = await response.json();
           console.log('Registration status response:', data);
           setRegistrationStatus(data);
+
+          // Fetch selection status if registration is approved
+          if (data.hasRegistered && data.registration?.status === 'approved') {
+            const selectionResponse = await fetch('/api/seleksi/submit', {
+              method: 'GET',
+              credentials: 'include'
+            });
+
+            if (selectionResponse.ok) {
+              const selectionData = await selectionResponse.json();
+              setSelectionStatus({
+                audioSubmitted: selectionData.hasOral || false,
+                quizSubmitted: selectionData.hasWritten || false
+              });
+            }
+          }
         } catch (error) {
           console.error('Error fetching registration status:', error);
           setRegistrationStatus({ hasRegistered: false });
@@ -123,13 +146,11 @@ export default function PerjalananSaya() {
   const baseTimelineData: TimelineItem[] = [
     {
       id: 1,
-      date: '6 Desember 2025',
-      day: 'Jumat',
-      hijriDate: '2 Jumadil Akhir 1446',
+      date: '1 - 14 Desember 2025',
+      day: 'Senin - Ahad',
+      hijriDate: '6 - 19 Jumadil Akhir 1446',
       title: 'Mendaftar Program',
-      description: registrationStatus?.hasRegistered
-        ? `Pendaftaran selesai pada ${new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}. Status: ${registrationStatus.registration.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration.status === 'approved' ? 'Disetujui' : registrationStatus.registration.status === 'rejected' ? 'Ditolak' : 'Ditarik'}`
-        : 'Pendaftaran awal program tahfidz',
+      description: 'Pendaftaran awal program tahfidz',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -138,22 +159,23 @@ export default function PerjalananSaya() {
     },
     {
       id: 2,
-      date: '6 Desember 2025',
-      day: 'Jumat',
-      hijriDate: '2 Jumadil Akhir 1446',
+      date: '15 - 21 Desember 2025',
+      day: 'Senin - Ahad',
+      hijriDate: '20 - 26 Jumadil Akhir 1446',
       title: 'Seleksi',
       description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-      )
+      ),
+      hasSelectionTasks: true
     },
     {
       id: 3,
-      date: '14 Januari 2026',
-      day: 'Selasa',
-      hijriDate: '14 Rajab 1446',
+      date: '22 Desember 2025',
+      day: 'Senin',
+      hijriDate: '27 Jumadil Akhir 1446',
       title: 'Lulus Seleksi',
       description: 'Pengumuman hasil seleksi.',
       icon: (
@@ -164,9 +186,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 4,
-      date: '15 Januari 2026',
-      day: 'Rabu',
-      hijriDate: '15 Rajab 1446',
+      date: '30 Desember 2025',
+      day: 'Selasa',
+      hijriDate: '5 Rajab 1446',
       title: 'Mendaftar Ulang',
       description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
       icon: (
@@ -177,10 +199,10 @@ export default function PerjalananSaya() {
     },
     {
       id: 5,
-      date: '17 Januari 2026',
+      date: '5 Januari 2026',
       day: 'Sabtu',
-      hijriDate: '17 Rajab 1446',
-      title: 'Memulai Program',
+      hijriDate: '7 Rajab 1446',
+      title: 'Kelas Perdana Gabungan',
       description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,9 +213,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 6,
-      date: 'Pekan 1 2026',
-      day: '-',
-      hijriDate: '-',
+      date: 'Pekan 1 (05-11 Jan 2026)',
+      day: 'Senin - Ahad',
+      hijriDate: '7 - 13 Rajab 1446',
       title: 'Proses pembelajaran (tashih)',
       description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
       icon: (
@@ -204,9 +226,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 7,
-      date: 'Pekan 2 - 11 2026',
-      day: '-',
-      hijriDate: '-',
+      date: 'Pekan 2 - 11 (12 Jan - 22 Mar 2026)',
+      day: 'Senin - Ahad',
+      hijriDate: '14 Rajab - 25 Ramadhan 1446',
       title: 'Proses pembelajaran',
       description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
       icon: (
@@ -217,9 +239,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 8,
-      date: 'Pekan 12 2026',
-      day: '-',
-      hijriDate: '-',
+      date: 'Pekan 12 (23 - 29 Mar 2026)',
+      day: 'Senin - Ahad',
+      hijriDate: '26 Ramadhan - 3 Syawal 1446',
       title: 'Pekan muraja\'ah',
       description: 'Muraja\'ah hafalan juz target.',
       icon: (
@@ -230,9 +252,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 9,
-      date: 'Pekan 13 2026',
-      day: '-',
-      hijriDate: '-',
+      date: 'Pekan 13 (30 Mar - 5 Apr 2026)',
+      day: 'Senin - Ahad',
+      hijriDate: '4 - 10 Syawal 1446',
       title: 'Ujian Akhir',
       description: 'Ujian komprehensif hafalan juz target.',
       icon: (
@@ -243,9 +265,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 10,
-      date: 'Pekan ke 14 2026',
-      day: '-',
-      hijriDate: '-',
+      date: 'Pekan 14 (6 - 12 Apr 2026)',
+      day: 'Senin - Ahad',
+      hijriDate: '11 - 17 Syawal 1446',
       title: 'Wisuda & Kelulusan',
       description: 'Penyerahan sertifikat kelulusan (syahadah) program tahfidz.',
       icon: (
@@ -318,8 +340,8 @@ export default function PerjalananSaya() {
           iconBg: 'bg-yellow-100',
           iconColor: 'text-yellow-600',
           cardBorder: 'border-l-4 border-l-yellow-500',
-          cardBg: 'bg-yellow-50',
-          textColor: 'text-gray-800'
+          cardBg: 'bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border-2 border-yellow-300 shadow-lg',
+          textColor: 'text-gray-900'
         };
       case 'future':
         return {
@@ -509,9 +531,102 @@ export default function PerjalananSaya() {
                             </h3>
 
                             {/* Description */}
-                            <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                              {item.description}
-                            </p>
+                            {item.id === 1 && registrationStatus?.hasRegistered ? (
+                              <div className="space-y-1.5">
+                                <div className="flex items-start space-x-2">
+                                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                                  <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                    Pendaftaran pada {new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                                  </p>
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                                  <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                    Status: {registrationStatus.registration.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration.status === 'approved' ? 'Disetujui' : registrationStatus.registration.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : item.hasSelectionTasks && registrationStatus?.registration?.status === 'approved' ? (
+                              <div className="space-y-3">
+                                <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                  {item.description}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                  {/* Card Rekam Suara */}
+                                  <Card className={`border-2 ${selectionStatus.audioSubmitted ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50'} hover:shadow-md transition-all cursor-pointer`}
+                                        onClick={() => {
+                                          if (!selectionStatus.audioSubmitted) {
+                                            window.location.href = '/seleksi/rekam-suara';
+                                          }
+                                        }}>
+                                    <CardContent className="p-3 sm:p-4">
+                                      <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${selectionStatus.audioSubmitted ? 'bg-green-200' : 'bg-blue-200'} rounded-full flex items-center justify-center`}>
+                                          {selectionStatus.audioSubmitted ? (
+                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                          ) : (
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                            </svg>
+                                          )}
+                                        </div>
+                                        <div className="flex-grow">
+                                          <h4 className="text-sm sm:text-base font-semibold text-gray-900">Rekam Suara</h4>
+                                          <p className="text-xs text-gray-600">Ujian lisan</p>
+                                        </div>
+                                      </div>
+                                      <p className={`text-xs ${selectionStatus.audioSubmitted ? 'text-green-700' : 'text-blue-700'}`}>
+                                        {selectionStatus.audioSubmitted ? 'Sudah dikumpulkan ✓' : 'Klik untuk rekam'}
+                                      </p>
+                                    </CardContent>
+                                  </Card>
+
+                                  {/* Card Pilihan Ganda */}
+                                  <Card className={`border-2 ${selectionStatus.quizSubmitted ? 'border-green-300 bg-green-50' : 'border-purple-300 bg-purple-50'} hover:shadow-md transition-all cursor-pointer`}
+                                        onClick={() => {
+                                          if (!selectionStatus.quizSubmitted) {
+                                            window.location.href = '/seleksi/pilihan-ganda';
+                                          }
+                                        }}>
+                                    <CardContent className="p-3 sm:p-4">
+                                      <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${selectionStatus.quizSubmitted ? 'bg-green-200' : 'bg-purple-200'} rounded-full flex items-center justify-center`}>
+                                          {selectionStatus.quizSubmitted ? (
+                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                          ) : (
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                          )}
+                                        </div>
+                                        <div className="flex-grow">
+                                          <h4 className="text-sm sm:text-base font-semibold text-gray-900">Pilihan Ganda</h4>
+                                          <p className="text-xs text-gray-600">Ujian tulisan</p>
+                                        </div>
+                                      </div>
+                                      <p className={`text-xs ${selectionStatus.quizSubmitted ? 'text-green-700' : 'text-purple-700'}`}>
+                                        {selectionStatus.quizSubmitted ? 'Sudah dikerjakan ✓' : 'Klik untuk mengerjakan'}
+                                      </p>
+                                    </CardContent>
+                                  </Card>
+                                </div>
+                              </div>
+                            ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
+                              <div className="space-y-2">
+                                <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                  {item.description}
+                                </p>
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 sm:p-3">
+                                  <p className="text-xs text-yellow-800">
+                                    <span className="font-semibold">Status:</span> Menunggu konfirmasi admin untuk membuka tahapan seleksi
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                {item.description}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -557,9 +672,102 @@ export default function PerjalananSaya() {
                               </h3>
 
                               {/* Description */}
-                              <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                {item.description}
-                              </p>
+                              {item.id === 1 && registrationStatus?.hasRegistered ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-start space-x-2">
+                                    <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                                    <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                                      Pendaftaran pada {new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}.
+                                    </p>
+                                  </div>
+                                  <div className="flex items-start space-x-2">
+                                    <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                                    <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                                      Status: {registrationStatus.registration.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration.status === 'approved' ? 'Disetujui' : registrationStatus.registration.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : item.hasSelectionTasks && registrationStatus?.registration?.status === 'approved' ? (
+                                <div className="space-y-3">
+                                  <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                                    {item.description}
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    {/* Card Rekam Suara */}
+                                    <Card className={`border-2 ${selectionStatus.audioSubmitted ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50'} hover:shadow-md transition-all cursor-pointer`}
+                                          onClick={() => {
+                                            if (!selectionStatus.audioSubmitted) {
+                                              window.location.href = '/seleksi/rekam-suara';
+                                            }
+                                          }}>
+                                      <CardContent className="p-4">
+                                        <div className="flex items-center space-x-3 mb-2">
+                                          <div className={`w-10 h-10 ${selectionStatus.audioSubmitted ? 'bg-green-200' : 'bg-blue-200'} rounded-full flex items-center justify-center`}>
+                                            {selectionStatus.audioSubmitted ? (
+                                              <CheckCircle className="w-5 h-5 text-green-600" />
+                                            ) : (
+                                              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                              </svg>
+                                            )}
+                                          </div>
+                                          <div className="flex-grow">
+                                            <h4 className="text-base font-semibold text-gray-900">Rekam Suara</h4>
+                                            <p className="text-sm text-gray-600">Ujian lisan</p>
+                                          </div>
+                                        </div>
+                                        <p className={`text-sm ${selectionStatus.audioSubmitted ? 'text-green-700' : 'text-blue-700'}`}>
+                                          {selectionStatus.audioSubmitted ? 'Sudah dikumpulkan ✓' : 'Klik untuk rekam'}
+                                        </p>
+                                      </CardContent>
+                                    </Card>
+
+                                    {/* Card Pilihan Ganda */}
+                                    <Card className={`border-2 ${selectionStatus.quizSubmitted ? 'border-green-300 bg-green-50' : 'border-purple-300 bg-purple-50'} hover:shadow-md transition-all cursor-pointer`}
+                                          onClick={() => {
+                                            if (!selectionStatus.quizSubmitted) {
+                                              window.location.href = '/seleksi/pilihan-ganda';
+                                            }
+                                          }}>
+                                      <CardContent className="p-4">
+                                        <div className="flex items-center space-x-3 mb-2">
+                                          <div className={`w-10 h-10 ${selectionStatus.quizSubmitted ? 'bg-green-200' : 'bg-purple-200'} rounded-full flex items-center justify-center`}>
+                                            {selectionStatus.quizSubmitted ? (
+                                              <CheckCircle className="w-5 h-5 text-green-600" />
+                                            ) : (
+                                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                              </svg>
+                                            )}
+                                          </div>
+                                          <div className="flex-grow">
+                                            <h4 className="text-base font-semibold text-gray-900">Pilihan Ganda</h4>
+                                            <p className="text-sm text-gray-600">Ujian tulisan</p>
+                                          </div>
+                                        </div>
+                                        <p className={`text-sm ${selectionStatus.quizSubmitted ? 'text-green-700' : 'text-purple-700'}`}>
+                                          {selectionStatus.quizSubmitted ? 'Sudah dikerjakan ✓' : 'Klik untuk mengerjakan'}
+                                        </p>
+                                      </CardContent>
+                                    </Card>
+                                  </div>
+                                </div>
+                              ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
+                                <div className="space-y-2">
+                                  <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                                    {item.description}
+                                  </p>
+                                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                    <p className="text-sm text-yellow-800">
+                                      <span className="font-semibold">Status:</span> Menunggu konfirmasi admin untuk membuka tahapan seleksi
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className={`text-sm ${styles.textColor} leading-relaxed`}>
+                                  {item.description}
+                                </p>
+                              )}
                             </CardContent>
                           </Card>
                         </div>

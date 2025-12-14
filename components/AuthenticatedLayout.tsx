@@ -115,7 +115,7 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
         />
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="flex-1 overflow-y-auto bg-gray-50 pt-0">
           <main className="p-3 sm:p-4 lg:p-6">
             <div className="max-w-full">
               {children}

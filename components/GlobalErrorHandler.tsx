@@ -17,6 +17,13 @@ export default function GlobalErrorHandler() {
 
     // Handle runtime errors
     const handleError = (event: ErrorEvent) => {
+      // Ignore hydration errors in development (they're handled by React)
+      if (event.error?.message?.includes('Hydration failed') ||
+          event.error?.message?.includes('hydrating this Suspense boundary')) {
+        event.preventDefault();
+        return;
+      }
+
       console.error('Runtime error:', event.error);
 
       // Ignore specific browser extension errors

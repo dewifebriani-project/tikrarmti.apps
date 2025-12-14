@@ -9,11 +9,26 @@ import {
   sanitizeCity,
   sanitizeGeneric
 } from '@/lib/utils/sanitize';
-import { logUser, logSecurity, logError } from '@/lib/logger';
+import { logUser } from '@/lib/logger';
+import { logger } from '@/lib/logger-secure';
+import { getCSRFTokenFromRequest, validateCSRFToken } from '@/lib/csrf';
 
 export async function POST(request: NextRequest) {
   // Get client IP once for the entire function
   const ip = getClientIP(request);
+
+  // CSRF Protection - Skip in development for debugging
+  if (process.env.NODE_ENV === 'production') {
+    const csrfToken = getCSRFTokenFromRequest(request);
+    const cookieToken = request.cookies.get('csrf-token')?.value;
+
+    if (!csrfToken || !cookieToken || !validateCSRFToken(csrfToken, cookieToken)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token. Please refresh the page and try again.' },
+        { status: 403 }
+      );
+    }
+  }
 
   let body: any;
 
@@ -21,17 +36,53 @@ export async function POST(request: NextRequest) {
     // Parse request body early so it's available in catch block
     body = await request.json();
 
+    // reCAPTCHA validation
+    if (process.env.NODE_ENV === 'production') {
+      const recaptchaToken = body.recaptchaToken;
+      if (!recaptchaToken) {
+        return NextResponse.json(
+          { error: 'reCAPTCHA verification is required' },
+          { status: 400 }
+        );
+      }
+
+      const recaptchaResponse = await fetch(
+        'https://www.google.com/recaptcha/api/siteverify',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `secret=${encodeURIComponent(process.env.RECAPTCHA_SECRET_KEY || '')}&response=${encodeURIComponent(recaptchaToken)}`,
+        }
+      );
+
+      const recaptchaResult = await recaptchaResponse.json();
+
+      if (!recaptchaResult.success || recaptchaResult.score < 0.5) {
+        logger.warn('reCAPTCHA verification failed', {
+          ip,
+          endpoint: '/api/auth/register',
+          score: recaptchaResult.score
+        });
+
+        return NextResponse.json(
+          { error: 'reCAPTCHA verification failed. Please try again.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Apply rate limiting
     if (authRateLimit) {
       const { success } = await authRateLimit.limit(ip);
 
       if (!success) {
         // Log rate limit exceeded
-        await logSecurity.rateLimitExceeded(
+        logger.warn('Rate limit exceeded', {
           ip,
-          '/api/auth/register',
-          request.headers.get('user-agent') || undefined
-        );
+          endpoint: '/api/auth/register'
+        });
 
         return NextResponse.json(
           { error: 'Too many registration attempts. Please try again later.' },
@@ -91,8 +142,10 @@ export async function POST(request: NextRequest) {
       const sanitizedProvinsi = provinsi ? sanitizeCity(provinsi) : null;
       const sanitizedKota = sanitizeCity(kota);
       const sanitizedAlamat = sanitizeAddress(alamat);
+
       const sanitizedWhatsApp = sanitizePhone(whatsapp, negara);
       const sanitizedTelegram = telegram ? sanitizePhone(telegram, negara) : null;
+
       const sanitizedZonaWaktu = sanitizeGeneric(zona_waktu, 10);
 
       // Check timezone validity (extended for international)
@@ -195,26 +248,55 @@ export async function POST(request: NextRequest) {
     let newUser;
     let authUser;
 
-    // Create user in Supabase Auth
+    // Create user with auto-confirmed email
     const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
       email: body.email,
       password: body.password,
-      email_confirm: true, // Auto-confirm email for simplicity
+      email_confirm: true, // Auto-confirm email
       user_metadata: {
         full_name: body.full_name,
         role: body.role
       }
     });
 
+    if (!signUpError) {
+      logger.info('User created and auto-confirmed', {
+        email: body.email,
+        userId: signUpData.user.id,
+        autoConfirmed: true
+      });
+    }
+
     if (signUpError) {
-      console.error('Sign up error:', signUpError);
+      logger.error('Sign up error', {
+        email: body.email,
+        errorType: signUpError.name,
+        errorDetail: signUpError.message
+      });
+
       return NextResponse.json(
-        { message: 'Gagal membuat akun: ' + signUpError.message },
+        { message: 'Gagal membuat akun. Silakan periksa data Anda.' },
         { status: 400 }
       );
     }
 
     authUser = signUpData.user;
+
+    // Log successful user creation
+    logger.info('User created successfully', {
+      userId: authUser.id,
+      email: body.email,
+      emailConfirmed: authUser.email_confirmed_at
+    });
+
+    // Check if user was actually created and if email confirmation was sent
+    if (authUser && !authUser.email_confirmed_at) {
+      logger.info('Confirmation email sent', {
+        userId: authUser.id,
+        email: body.email,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm`
+      });
+    }
 
     if (existingUser) {
       // Update existing incomplete user profile
@@ -242,7 +324,11 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (updateError) {
-        console.error('Update error:', updateError);
+        logger.error('Profile update error', {
+          userId: authUser.id,
+          email: body.email
+        });
+
         // Clean up auth user if profile update fails
         await supabase.auth.admin.deleteUser(authUser.id);
         return NextResponse.json(
@@ -281,7 +367,12 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError) {
-        console.error('Insert error:', insertError);
+        logger.error('Profile insert error', {
+          userId: authUser.id,
+          email: body.email,
+          error: insertError
+        });
+
         // Clean up auth user if profile insert fails
         await supabase.auth.admin.deleteUser(authUser.id);
         return NextResponse.json(
@@ -295,14 +386,32 @@ export async function POST(request: NextRequest) {
 
     // Log registration/update
     if (existingUser) {
-      await logUser.profileUpdate(newUser.id, body, ip);
+      logger.auth('Profile updated', newUser.id, {
+        email: newUser.email,
+        role: newUser.role,
+        ip
+      });
     } else {
-      await logUser.register(newUser.id, newUser.email, newUser.role, ip);
+      logger.auth('User registered', newUser.id, {
+        email: newUser.email,
+        role: newUser.role,
+        ip
+      });
     }
+
+    const responseMessage = existingUser
+      ? 'Profil berhasil diperbarui'
+      : `🎉 Pendaftaran berhasil! Anda sudah dapat login menggunakan email dan password yang telah didaftarkan.`;
+
+    logger.auth('Registration completed', newUser.id, {
+      email: body.email,
+      isUpdate: !!existingUser
+    });
 
     return NextResponse.json(
       {
-        message: existingUser ? 'Profil berhasil diperbarui' : 'Pendaftaran berhasil',
+        message: responseMessage,
+        requiresEmailVerification: false,
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -314,13 +423,10 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Registration error:', error);
-
-    // Log error
-    await logError(error as Error, {
+    logger.error('Registration error', {
       endpoint: '/api/auth/register',
       ip,
-      body: body // Only for debugging, remove in production
+      error: error as Error
     });
 
     return NextResponse.json(

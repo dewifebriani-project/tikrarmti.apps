@@ -20,7 +20,7 @@ function LoginPageContent() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState<React.ReactNode>('');
   const [showPassword, setShowPassword] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -36,7 +36,22 @@ function LoginPageContent() {
     const email = searchParams.get('email');
 
     if (message === 'registration_success') {
-      setSuccessMessage('Registrasi berhasil! Silakan login dengan email dan password yang sudah terdaftar.');
+      setSuccessMessage(
+        <div className="space-y-2">
+          <p className="flex items-center">
+            <svg className="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Registrasi Berhasil!
+          </p>
+          <p className="text-base">
+            ✅ Akun Anda telah aktif. <strong>Silakan login</strong> dengan email dan password yang telah Anda daftarkan.
+          </p>
+          <p className="text-sm text-gray-600">
+            Tidak perlu konfirmasi email. Akun langsung dapat digunakan.
+          </p>
+        </div>
+      );
     } else if (message === 'not_registered') {
       const emailText = email ? ` (${email})` : '';
       setErrors({
@@ -58,21 +73,7 @@ function LoginPageContent() {
     }
   }, [searchParams, isClient]);
 
-  useEffect(() => {
-    if (!isClient) return;
-
-    // Check if user is already logged in
-    const checkUserSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        router.push('/dashboard');
-      }
-    };
-
-    checkUserSession();
-  }, [router, isClient]);
-
+  
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -92,15 +93,39 @@ function LoginPageContent() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
+      // Use API route to login (sets cookies properly)
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important: include cookies
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
-      if (error) {
-        setErrors({ general: error.message || 'Login gagal. Periksa email dan password Anda.' });
-      } else {
-        router.push('/dashboard');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login gagal');
+      }
+
+      if (data.success) {
+        // Set client-side session immediately
+        if (data.session) {
+          supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          }).catch(() => {
+            // Ignore session setting error since server-side auth is set
+          });
+        }
+
+        // Force redirect using window.location
+        // This bypasses Next.js router and ensures we go to dashboard
+        window.location.href = '/dashboard';
       }
     } catch (error: any) {
       setErrors({ general: error.message || 'Login gagal. Silakan coba lagi.' });
@@ -209,8 +234,18 @@ function LoginPageContent() {
               </Button>
             </form>
 
+            {/* Forgot Password Link */}
+            <div className="text-center mb-4">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-gray-500 hover:text-green-600 transition-colors"
+              >
+                Lupa password?
+              </Link>
+            </div>
+
             {/* Register Link */}
-            <div className="mt-6 sm:mt-8 text-center">
+            <div className="text-center">
               <p className="text-gray-600 mb-2 text-sm sm:text-base">
                 Belum terdaftar di sistem MTI?
               </p>

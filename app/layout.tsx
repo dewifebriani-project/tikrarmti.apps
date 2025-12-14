@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from 'next'
-import Link from 'next/link'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { CSRFProvider } from '@/contexts/CSRFContext'
 import AppLayout from '@/components/AppLayout'
 import GlobalErrorHandler from '@/components/GlobalErrorHandler'
+import ErrorHandlers from '@/components/ErrorHandlers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Star, Crown } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Tikrar MTI Apps | Aplikasi Tahfidz dari Markaz Tikrar Indonesia',
@@ -43,15 +43,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="id">
-      <body className="antialiased">
+    <html lang="id" suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
         <ErrorBoundary>
-          <GlobalErrorHandler />
-          <AuthProvider>
-            <AppLayout>
-              {children}
-            </AppLayout>
-          </AuthProvider>
+          <ErrorHandlers>
+            <GlobalErrorHandler />
+            <AuthProvider>
+              <CSRFProvider>
+                <AppLayout>
+                  {children}
+                </AppLayout>
+              </CSRFProvider>
+            </AuthProvider>
+          </ErrorHandlers>
         </ErrorBoundary>
       </body>
     </html>

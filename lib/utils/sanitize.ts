@@ -77,46 +77,49 @@ export function sanitizePhone(input: string | null | undefined, countryCode?: st
   if (!input) return '';
 
   // Remove all non-digit characters except + and -
-  let sanitized = input.replace(/[^\d\+\-]/g, '');
+  let sanitized = input.replace(/[^\d\+\-\s\(\)]/g, '');
 
-  // If country code is provided, ensure proper format
-  if (countryCode) {
+  // Remove spaces and formatting characters for processing
+  sanitized = sanitized.replace(/[\s\-\(\)]/g, '');
+
+  // If input already starts with + and has a country code, validate it
+  if (sanitized.startsWith('+')) {
+    // Try to find a matching country code by checking all possible dial codes
+    let matchingCountry = null;
+    for (const country of countryCodes) {
+      if (sanitized.startsWith(country.dialCode)) {
+        matchingCountry = country;
+        break;
+      }
+    }
+
+    if (!matchingCountry) {
+      throw new Error('Kode negara tidak valid. Format: ID +62 [nomor telepon]');
+    }
+
+    // Check if it matches the selected country
+    if (countryCode) {
+      const selectedCountry = countryCodes.find(c => c.code === countryCode || c.name === countryCode);
+      if (selectedCountry && matchingCountry.dialCode !== selectedCountry.dialCode) {
+        throw new Error(`Kode negara (${matchingCountry.dialCode}) tidak cocok dengan negara yang dipilih (${selectedCountry.dialCode})`);
+      }
+    }
+  } else if (countryCode) {
+    // If no country code in input but country is selected, add it
     const country = countryCodes.find(c => c.code === countryCode || c.name === countryCode);
-    if (country && !sanitized.startsWith(country.dialCode)) {
-      // If input doesn't start with country code, add it
-      if (sanitized.startsWith('0')) {
-        // Remove leading 0 and add country code
-        sanitized = country.dialCode + sanitized.substring(1);
-      } else if (!sanitized.startsWith('+')) {
-        // Add country code if not present
-        sanitized = country.dialCode + sanitized;
-      }
-    } else if (sanitized.startsWith('+') && country && !sanitized.startsWith(country.dialCode)) {
-      // Check if the country code matches the input
-      const matchingCountry = countryCodes.find(c => sanitized.startsWith(c.dialCode));
-      if (matchingCountry) {
-        throw new Error(`Phone number country code (${matchingCountry.dialCode}) doesn't match selected country (${country.dialCode})`);
-      }
+    if (country) {
+      sanitized = country.dialCode + sanitized;
     }
+  } else {
+    // Default to adding + if no country code at all
+    sanitized = '+' + sanitized;
   }
 
-  // Ensure it starts with +
-  if (!sanitized.startsWith('+')) {
-    // Try to guess the country based on the number format
-    if (sanitized.startsWith('0')) {
-      // Default to Indonesia for numbers starting with 0
-      sanitized = '+62' + sanitized.substring(1);
-    } else if (!sanitized.includes('+')) {
-      // For international format without +
-      sanitized = '+' + sanitized;
-    }
-  }
-
-  // Validate phone number format
+  // Validate phone number format - should start with + followed by 8-15 digits
   const phoneRegex = /^\+\d{8,15}$/;
 
   if (!phoneRegex.test(sanitized)) {
-    throw new Error('Invalid phone number format. Please enter a valid international phone number.');
+    throw new Error('Format nomor telepon tidak valid. Format: ID +62 [nomor telepon]');
   }
 
   return sanitized;

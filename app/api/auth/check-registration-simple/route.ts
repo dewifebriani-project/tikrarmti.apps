@@ -70,7 +70,24 @@ export async function POST(request: Request) {
           submission_date: registration.submission_date,
           chosen_juz: registration.chosen_juz,
           batch_name: registration.batch_name,
-          full_name: registration.full_name
+          full_name: registration.full_name,
+          // Include all form fields for editing
+          understands_commitment: registration.understands_commitment,
+          tried_simulation: registration.tried_simulation,
+          no_negotiation: registration.no_negotiation,
+          has_telegram: registration.has_telegram,
+          saved_contact: registration.saved_contact,
+          has_permission: registration.has_permission,
+          permission_name: registration.permission_name,
+          permission_phone: registration.permission_phone,
+          no_travel_plans: registration.no_travel_plans,
+          motivation: registration.motivation,
+          ready_for_team: registration.ready_for_team,
+          main_time_slot: registration.main_time_slot,
+          backup_time_slot: registration.backup_time_slot,
+          time_commitment: registration.time_commitment,
+          understands_program: registration.understands_program,
+          questions: registration.questions
         }
       });
     }

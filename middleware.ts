@@ -10,6 +10,8 @@ export async function middleware(request: NextRequest) {
     '/',
     '/login',
     '/register',
+    '/forgot-password',
+    '/reset-password',
     '/pendaftaran', // Allow users to view registration programs without auth
     '/pendaftaran/tikrar-tahfidz', // Allow access to registration form
     '/auth/callback',

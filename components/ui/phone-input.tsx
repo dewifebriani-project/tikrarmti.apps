@@ -34,10 +34,18 @@ export function PhoneInput({
 }: PhoneInputProps) {
   const [country, setCountry] = useState<CountryCode>(countryCodes[0]); // Default to Indonesia
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Set mounted state
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Update country when selectedCountry prop changes
   useEffect(() => {
+    if (!isMounted) return;
+
     if (selectedCountry) {
       const countryData = getCountryCodeByName(selectedCountry);
       if (countryData) {
@@ -47,10 +55,12 @@ export function PhoneInput({
         }
       }
     }
-  }, [selectedCountry, onCountryChange]);
+  }, [selectedCountry, onCountryChange, isMounted]);
 
   // Initialize phone number from value prop
   useEffect(() => {
+    if (!isMounted) return;
+
     if (value) {
       // Extract country code if present
       const countryData = countryCodes.find(cc => value.startsWith(cc.dialCode));
@@ -68,7 +78,7 @@ export function PhoneInput({
     } else {
       setPhoneNumber('');
     }
-  }, [value, country.dialCode]);
+  }, [value, country.dialCode, isMounted]);
 
   const handleCountryChange = (countryName: string) => {
     const newCountry = getCountryCodeByName(countryName);
@@ -88,6 +98,9 @@ export function PhoneInput({
 
     // Allow only digits and some formatting characters
     newValue = newValue.replace(/[^\d\s\-\(\)]/g, '');
+
+    // Remove leading zeros (common mistake for users)
+    newValue = newValue.replace(/^0+/, '');
 
     setPhoneNumber(newValue);
 
@@ -173,7 +186,7 @@ export function PhoneInput({
         <p className="text-red-500 text-sm mt-1">{error}</p>
       )}
       <p className="text-xs text-gray-500">
-        Format: {country.flag} {country.dialCode} [nomor telepon]
+        Format: {country.code} {country.dialCode} [nomor telepon]
       </p>
     </div>
   );

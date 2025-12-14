@@ -62,10 +62,22 @@ export default function PendaftaranPage() {
     if (user) {
       const checkRegistrationStatus = async () => {
         try {
-          const response = await fetch('/api/auth/check-registration');
+          const response = await fetch('/api/auth/check-registration-simple', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Include cookies for authentication
+            body: JSON.stringify({
+              userId: user.id,
+              email: user.email
+            })
+          });
           if (response.ok) {
             const data = await response.json();
             setRegistrationStatus(data);
+          } else {
+            console.error('Failed to check registration status:', response.status);
           }
         } catch (error) {
           console.error('Error checking registration status:', error);
@@ -311,7 +323,7 @@ export default function PendaftaranPage() {
   };
 
   const handleRegistrationClick = (type: PendaftaranType) => {
-    if (type.status === 'open') {
+    if (type.status === 'open' && !registrationStatus?.hasRegistered) {
       // Show terms modal before allowing registration
       setPendingRegistration(type);
       setShowTermsModal(true);
@@ -371,61 +383,7 @@ export default function PendaftaranPage() {
           </p>
         </div>
 
-        {/* Registration Status Alert */}
-        {user && registrationStatus?.hasRegistered && (
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-green-900">
-                <CheckCircle className="w-5 h-5" />
-                <span>Status Pendaftaran</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <p className="text-green-800">
-                  Ukhti telah terdaftar di program Tikrar Tahfidz dengan status:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Status Pendaftaran</p>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      registrationStatus.registration.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : registrationStatus.registration.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : registrationStatus.registration.status === 'rejected'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {registrationStatus.registration.status === 'pending' ? 'Menunggu Konfirmasi' :
-                       registrationStatus.registration.status === 'approved' ? 'Disetujui' :
-                       registrationStatus.registration.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Tanggal Pendaftaran</p>
-                    <p className="font-medium text-gray-900">
-                      {new Date(registrationStatus.registration.submission_date).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-green-200">
-                  <p className="text-sm text-green-700">
-                    Untuk melihat perjalanan Ukhti, silakan kunjungi halaman{' '}
-                    <a href="/perjalanan-saya" className="text-green-900 font-semibold underline hover:text-green-700">
-                      Perjalanan Saya
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
+  
         {/* Terms and Conditions Modal */}
         {showTermsModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

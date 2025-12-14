@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -179,8 +179,13 @@ const faqData = [
 ];
 
 export default function FAQ() {
+  const [isMounted, setIsMounted] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
   const [expandedQuestion, setExpandedQuestion] = useState<{ category: number; question: number } | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const toggleCategory = (index: number) => {
     setExpandedCategory(expandedCategory === index ? null : index);
@@ -191,6 +196,11 @@ export default function FAQ() {
     const current = expandedQuestion?.category === categoryIndex && expandedQuestion?.question === questionIndex;
     setExpandedQuestion(current ? null : { category: categoryIndex, question: questionIndex });
   };
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <section id="faq" className="py-16 sm:py-24 bg-white">

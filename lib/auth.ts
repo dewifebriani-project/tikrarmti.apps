@@ -7,15 +7,14 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
   try {
     console.log('Checking registration for email:', email);
 
-    // Check if user exists in users table with all required fields
+    // Check if user exists in users table
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, whatsapp, telegram, provinsi, kota, alamat, zona_waktu, role')
+      .select('id, email, full_name, role')
       .eq('email', email)
-      .maybeSingle<{id: string, email: string, full_name: string | null, whatsapp: string | null, telegram: string | null, provinsi: string | null, kota: string | null, alamat: string | null, zona_waktu: string | null, role: string | null}>(); // Use maybeSingle to avoid errors if not found
+      .maybeSingle<{id: string, email: string, full_name: string | null, role: string | null}>();
 
     console.log('User query result:', { user, userError });
-    console.log('User details:', JSON.stringify(user, null, 2));
 
     if (userError) {
       console.error('Database error checking user:', userError);
@@ -27,50 +26,9 @@ export const checkUserRegistrationComplete = async (email: string): Promise<bool
       return false;
     }
 
-    // Check if user has admin role - admin can login without full registration
-    if (user.role === 'admin') {
-      console.log('Admin user found, checking full_name:', !!user.full_name);
-      return !!user.full_name; // Admin hanya butuh full_name
-    }
-
-    // For other roles, check if all required fields from registration form are filled
-    const hasRequiredFields = !!(
-      user.full_name &&
-      user.provinsi &&
-      user.kota &&
-      user.alamat &&
-      user.whatsapp &&
-      user.telegram &&
-      user.zona_waktu
-    );
-
-    console.log('User validation:', {
-      email: user.email,
-      role: user.role,
-      has_full_name: !!user.full_name,
-      has_provinsi: !!user.provinsi,
-      has_kota: !!user.kota,
-      has_alamat: !!user.alamat,
-      has_whatsapp: !!user.whatsapp,
-      has_telegram: !!user.telegram,
-      has_zona_waktu: !!user.zona_waktu,
-      is_valid: hasRequiredFields
-    });
-
-    // If validation fails, log specific reason
-    if (!hasRequiredFields) {
-      console.log('Validation failed:', {
-        missing_full_name: !user.full_name,
-        missing_provinsi: !user.provinsi,
-        missing_kota: !user.kota,
-        missing_alamat: !user.alamat,
-        missing_whatsapp: !user.whatsapp,
-        missing_telegram: !user.telegram,
-        missing_zona_waktu: !user.zona_waktu
-      });
-    }
-
-    return hasRequiredFields;
+    // Allow all registered users to login regardless of profile completion
+    console.log('User found, allowing login for role:', user.role);
+    return true;
   } catch (error: any) {
     console.error('Error checking user registration:', error);
     return false;
@@ -86,12 +44,12 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
   try {
     console.log('Checking registration status for email:', email);
 
-    // Check if user exists in users table with all required fields
+    // Check if user exists in users table
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, full_name, whatsapp, telegram, provinsi, kota, alamat, zona_waktu, role')
+      .select('id, email, full_name, role')
       .eq('email', email)
-      .maybeSingle<{id: string, email: string, full_name: string | null, whatsapp: string | null, telegram: string | null, provinsi: string | null, kota: string | null, alamat: string | null, zona_waktu: string | null, role: string | null}>();
+      .maybeSingle<{id: string, email: string, full_name: string | null, role: string | null}>();
 
     console.log('User query result:', { user, userError });
 
@@ -111,42 +69,11 @@ export const checkUserRegistrationStatus = async (email: string): Promise<{
       };
     }
 
-    // Check if user has admin role - admin can login without full registration
-    if (user.role === 'admin') {
-      if (!user.full_name) {
-        return {
-          registered: false,
-          reason: 'Nama lengkap admin belum diisi',
-          user
-        };
-      }
-      return {
-        registered: true,
-        user
-      };
-    }
-
-    // For other roles, check if all required fields from registration form are filled
-    const missingFields = [];
-    if (!user.full_name) missingFields.push('nama lengkap');
-    if (!user.provinsi) missingFields.push('provinsi');
-    if (!user.kota) missingFields.push('kota');
-    if (!user.alamat) missingFields.push('alamat');
-    if (!user.whatsapp) missingFields.push('nomor WhatsApp');
-    if (!user.telegram) missingFields.push('nomor Telegram');
-    if (!user.zona_waktu) missingFields.push('zona waktu');
-
-    if (missingFields.length > 0) {
-      return {
-        registered: false,
-        reason: `Data profil belum lengkap. Mohon lengkapi: ${missingFields.join(', ')}`,
-        user
-      };
-    }
-
+    // Allow all registered users to login
     return {
       registered: true,
-      user
+      user,
+      reason: `User dengan role ${user.role} diizinkan login`
     };
 
   } catch (error: any) {
@@ -177,36 +104,8 @@ export const checkUserApprovedForThalibah = async (email: string): Promise<{ app
       return { approved: false, reason: 'User tidak ditemukan. Silakan registrasi terlebih dahulu.' };
     }
 
-    // If user is already thalibah, allow login
-    if (user.role === 'thalibah') {
-      return { approved: true, reason: 'User sudah terdaftar sebagai thalibah' };
-    }
-
-    // If user is calon_thalibah, check if they have an approved pendaftaran
-    if (user.role === 'calon_thalibah') {
-      const { data: pendaftaran, error: pendaftaranError } = await supabase
-        .from('pendaftaran_batch2')
-        .select('status')
-        .eq('userId', user.id)
-        .eq('status', 'approved')
-        .single();
-
-      if (pendaftaranError || !pendaftaran) {
-        return {
-          approved: false,
-          reason: 'Pendaftaran Ukhti belum disetujui. Silakan tunggu persetujuan dari admin atau lengkapi pendaftaran di halaman pendaftaran.'
-        };
-      }
-
-      return { approved: true, reason: 'User telah disetujui sebagai thalibah' };
-    }
-
-    // If user has other roles (admin, musyrifah, muallimah), allow login
-    if (user.role && ['admin', 'musyrifah', 'muallimah'].includes(user.role)) {
-      return { approved: true, reason: 'User dengan role ' + user.role + ' diizinkan' };
-    }
-
-    return { approved: false, reason: 'Role user tidak dikenal. Hubungi admin.' };
+    // Allow all roles to login directly
+    return { approved: true, reason: 'User dengan role ' + (user.role || 'calon_thalibah') + ' diizinkan' };
   } catch (error: any) {
     console.error('Error checking user approval:', error);
     return { approved: false, reason: 'Terjadi kesalahan saat memeriksa status user.' };
@@ -216,21 +115,30 @@ export const checkUserApprovedForThalibah = async (email: string): Promise<{ app
 // Login dengan Email dan Password
 export const loginWithEmail = async (email: string, password: string) => {
   try {
-    // Check if user is approved for login based on role and pendaftaran status
-    const { approved, reason } = await checkUserApprovedForThalibah(email);
-    if (!approved) {
-      throw new Error(reason);
-    }
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      // Handle specific error cases
+      if (error.message?.includes('Email not confirmed')) {
+        // Since we're using auto-confirm, this error shouldn't normally happen
+        // But if it does, we should handle it gracefully
+        throw new Error('Akun Anda belum aktif. Silakan hubungi admin untuk aktivasi.');
+      }
+      if (error.message?.includes('Invalid login credentials')) {
+        throw new Error('Email atau password salah.');
+      }
+      if (error.message?.includes('Email rate limit exceeded')) {
+        throw new Error('Terlalu banyak percobaan login. Silakan coba lagi beberapa saat.');
+      }
+      throw error;
+    }
+
     return data.user;
   } catch (error: any) {
-    throw new Error(error.message);
+    throw new Error(error.message || 'Login gagal. Silakan coba lagi.');
   }
 };
 

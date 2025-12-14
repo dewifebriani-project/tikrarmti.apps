@@ -11,7 +11,7 @@ interface ProfileCompletionCheckProps {
 }
 
 export default function ProfileCompletionCheck({ children, fallback }: ProfileCompletionCheckProps) {
-  const { user, isProfileComplete } = useAuth();
+  const { user } = useAuth();
 
   // Routes that don't require profile completion
   const excludedRoutes = [
@@ -25,6 +25,12 @@ export default function ProfileCompletionCheck({ children, fallback }: ProfileCo
   const isExcludedRoute = () => {
     if (typeof window === 'undefined') return false;
     return excludedRoutes.some(route => window.location.pathname.startsWith(route));
+  };
+
+  // Check if profile is complete
+  const isProfileComplete = () => {
+    if (!user) return false;
+    return !!(user.full_name && (user as any).phone);
   };
 
   // If profile is complete or route is excluded, show children

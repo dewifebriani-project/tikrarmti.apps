@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
-import { getAuthTimeout } from '@/lib/platform-detection';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Users,
   Calendar,
@@ -13,13 +13,15 @@ import {
   FileText,
   BarChart3,
   Plus,
-  Edit2,
   UserPlus,
   ClipboardList,
   Clock,
   Award
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
+import { AdminDataTable, Column } from '@/components/AdminDataTable';
+import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
+import { AdminDeleteModal } from '@/components/AdminDeleteModal';
 
 interface Batch {
   id: string;
@@ -57,7 +59,10 @@ interface Halaqah {
   location?: string;
   max_students?: number;
   status: string;
-  program?: { name: string };
+  program?: {
+    name: string;
+    batch_id: string;
+  };
 }
 
 interface User {
@@ -170,10 +175,10 @@ type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'hala
 
 export default function AdminPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
-  const [user, setUser] = useState<any>(null);
 
   // Data states
   const [users, setUsers] = useState<User[]>([]);
@@ -185,6 +190,7 @@ export default function AdminPage() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [tikrar, setTikrar] = useState<TikrarTahfidz[]>([]);
+  const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
   const [stats, setStats] = useState({
     totalBatches: 0,
     totalPrograms: 0,
@@ -197,9 +203,24 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    console.log('Admin page mounted, starting auth check...');
-    checkAuth();
-  }, []);
+    console.log('=== Admin Page Auth Check ===');
+    console.log('Auth loading:', authLoading);
+    console.log('User:', user);
+    console.log('User role:', user?.role);
+
+    if (!authLoading) {
+      if (!user) {
+        console.log('No user found, redirecting to login');
+        router.push('/login');
+      } else if (user.role !== 'admin') {
+        console.log('User is not admin, role:', user.role);
+        router.push('/dashboard');
+      } else {
+        console.log('Admin access granted');
+        setLoading(false);
+      }
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (user) {
@@ -211,83 +232,6 @@ export default function AdminPage() {
   // Disable eslint exhaustive-deps warning for loadData
   // eslint-disable-next-line react-hooks/exhaustive-deps
 
-  const checkAuth = async () => {
-    console.log('Starting admin authentication check...');
-    const startTime = Date.now();
-
-    // Platform-specific timeout
-    const timeout = getAuthTimeout(8000); // 8s base timeout
-    const authTimeout = setTimeout(() => {
-      const elapsed = Date.now() - startTime;
-      console.error(`Admin authentication timeout after ${timeout}ms (elapsed: ${elapsed}ms)`);
-      setLoading(false);
-      router.push('/login');
-    }, timeout);
-
-    try {
-      console.log('Getting Supabase user...');
-      // Use a race condition to avoid hanging
-      const userPromise = supabase.auth.getUser();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('User fetch timeout')), timeout - 1000)
-      );
-
-      const { data: { user: authUser }, error: authError } = await Promise.race([
-        userPromise,
-        timeoutPromise
-      ]) as any;
-
-      if (authError || !authUser) {
-        console.error('Auth error:', authError);
-        clearTimeout(authTimeout);
-        setLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      // Parallel fetch of user role with timeout
-      const rolePromise = supabaseAdmin
-        .from('users')
-        .select('role')
-        .eq('id', authUser.id)
-        .single<{ role: string }>();
-
-      const roleTimeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Role fetch timeout')), 3000)
-      );
-
-      const { data: userData, error: userError } = await Promise.race([
-        rolePromise,
-        roleTimeoutPromise
-      ]) as any;
-
-      if (userError) {
-        console.error('User data error:', userError);
-        clearTimeout(authTimeout);
-        setLoading(false);
-        router.push('/dashboard');
-        return;
-      }
-
-      if (!userData || userData.role !== 'admin') {
-        console.log('User is not admin:', userData?.role);
-        clearTimeout(authTimeout);
-        setLoading(false);
-        router.push('/dashboard');
-        return;
-      }
-
-      clearTimeout(authTimeout);
-      setUser(authUser);
-      setLoading(false);
-    } catch (error) {
-      console.error('Unexpected error in checkAuth:', error);
-      clearTimeout(authTimeout);
-      setLoading(false);
-      router.push('/login');
-    }
-  };
-
   const loadData = async () => {
     setDataLoading(true);
     const dataTimeout = setTimeout(() => {
@@ -298,45 +242,28 @@ export default function AdminPage() {
     try {
 
       if (activeTab === 'overview') {
-        // Load statistics
-        const [
-          { count: batchCount },
-          { count: programCount },
-          { count: halaqahCount },
-          { count: userCount },
-          { count: thalibahCount },
-          { count: mentorCount },
-          { count: pendingCount },
-          { count: tikrarPendingCount }
-        ] = await Promise.all([
-          // @ts-ignore
-          supabase.from('batches').select('*', { count: 'exact', head: true }),
-          // @ts-ignore
-          supabase.from('programs').select('*', { count: 'exact', head: true }),
-          // @ts-ignore
-          supabase.from('halaqah').select('*', { count: 'exact', head: true }),
-          // @ts-ignore
-          supabase.from('users').select('*', { count: 'exact', head: true }),
-          // @ts-ignore
-          supabase.from('users').select('*', { count: 'exact', head: true }).eq('role', 'thalibah'),
-          // @ts-ignore
-          supabase.from('users').select('*', { count: 'exact', head: true }).in('role', ['ustadzah', 'musyrifah']),
-          // @ts-ignore
-          supabase.from('pendaftaran').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-          // @ts-ignore
-          supabase.from('tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-        ]);
+        // Get current session token
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
 
-        setStats({
-          totalBatches: batchCount || 0,
-          totalPrograms: programCount || 0,
-          totalHalaqah: halaqahCount || 0,
-          totalUsers: userCount || 0,
-          totalThalibah: thalibahCount || 0,
-          totalMentors: mentorCount || 0,
-          pendingRegistrations: pendingCount || 0,
-          pendingTikrar: tikrarPendingCount || 0
+        // Use API route to bypass RLS
+        const response = await fetch('/api/admin/stats', {
+          credentials: 'include',
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
         });
+        if (response.ok) {
+          const { stats } = await response.json();
+          setStats(stats);
+        } else {
+          const error = await response.json();
+          console.error('Error loading stats:', error);
+          if (error.needsLogin) {
+            console.log('Session expired, redirecting to login');
+            router.push('/login');
+          }
+        }
       } else if (activeTab === 'batches') {
         const { data, error } = await supabase
           .from('batches')
@@ -352,16 +279,33 @@ export default function AdminPage() {
         if (error) console.error('Error loading programs:', error);
         setPrograms(data || []);
       } else if (activeTab === 'users') {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) console.error('Error loading users:', error);
-        setUsers(data || []);
+        // Get current session token
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        // Use API route to bypass RLS
+        const response = await fetch('/api/admin/users', {
+          credentials: 'include',
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
+        });
+        if (response.ok) {
+          const { users: data } = await response.json();
+          setUsers(data || []);
+        } else {
+          const error = await response.json();
+          console.error('Error loading users:', error);
+          if (error.needsLogin) {
+            console.log('Session expired, redirecting to login');
+            router.push('/login');
+          }
+          setUsers([]);
+        }
       } else if (activeTab === 'halaqah') {
         const { data, error } = await supabase
           .from('halaqah')
-          .select('*, program:programs(name)')
+          .select('*, program:programs(name, batch_id)')
           .order('created_at', { ascending: false });
         if (error) console.error('Error loading halaqah:', error);
         setHalaqahs(data || []);
@@ -454,22 +398,12 @@ export default function AdminPage() {
       } else if (activeTab === 'tikrar') {
         try {
           const { data, error } = await supabase
-            .from('tikrar_tahfidz')
-            .select('*, user:users(full_name, email), batch:batches(name), program:programs(name)')
+            .from('pendaftaran_tikrar_tahfidz')
+            .select('*, users!pendaftaran_tikrar_tahfidz_user_id_fkey(full_name, email), batches(name), programs(name)')
             .order('submission_date', { ascending: false });
           if (error) {
             console.error('Error loading tikrar:', error);
-            // Check if table doesn't exist or other errors
-            if (error.code === 'PGRST116') {
-              console.log('Table tikrar_tahfidz does not exist yet');
-              setTikrar([]);
-            } else if (error.message && error.message.includes('relationship')) {
-              console.log('Foreign key relationship issue for tikrar_tahfidz');
-              setTikrar([]);
-            } else {
-              console.error('Database error:', error.message);
-              setTikrar([]);
-            }
+            setTikrar([]);
           } else {
             setTikrar(data || []);
           }
@@ -525,7 +459,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 -m-6 mb-0 px-6">
-        <nav className="flex space-x-8" aria-label="Tabs">
+        <nav className="flex flex-wrap gap-x-4 sm:gap-x-6 lg:gap-x-8 overflow-x-auto scrollbar-hide" aria-label="Tabs">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -533,15 +467,15 @@ export default function AdminPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm
+                  flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap
                   ${activeTab === tab.id
                     ? 'border-green-900 text-green-900'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }
                 `}
               >
-                <Icon className="w-5 h-5" />
-                {tab.name}
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">{tab.name}</span>
               </button>
             );
           })}
@@ -562,13 +496,45 @@ export default function AdminPage() {
         {activeTab === 'overview' && <OverviewTab stats={stats} />}
         {activeTab === 'users' && <UsersTab users={users} onRefresh={loadData} />}
         {activeTab === 'batches' && <BatchesTab batches={batches} onRefresh={loadData} />}
-        {activeTab === 'programs' && <ProgramsTab programs={programs} onRefresh={loadData} />}
-        {activeTab === 'halaqah' && <HalaqahTab halaqahs={halaqahs} onRefresh={loadData} />}
+        {activeTab === 'programs' && (
+          <ProgramsTab
+            programs={programs}
+            batches={batches}
+            selectedBatchFilter={selectedBatchFilter}
+            onBatchFilterChange={setSelectedBatchFilter}
+            onRefresh={loadData}
+          />
+        )}
+        {activeTab === 'halaqah' && (
+          <HalaqahTab
+            halaqahs={halaqahs}
+            batches={batches}
+            selectedBatchFilter={selectedBatchFilter}
+            onBatchFilterChange={setSelectedBatchFilter}
+            onRefresh={loadData}
+          />
+        )}
         {activeTab === 'halaqah-mentors' && <HalaqahMentorsTab mentors={halaqahMentors} onRefresh={loadData} />}
         {activeTab === 'halaqah-students' && <HalaqahStudentsTab students={halaqahStudents} onRefresh={loadData} />}
-        {activeTab === 'pendaftaran' && <PendaftaranTab pendaftaran={pendaftaran} onRefresh={loadData} />}
+        {activeTab === 'pendaftaran' && (
+          <PendaftaranTab
+            pendaftaran={pendaftaran}
+            batches={batches}
+            selectedBatchFilter={selectedBatchFilter}
+            onBatchFilterChange={setSelectedBatchFilter}
+            onRefresh={loadData}
+          />
+        )}
         {activeTab === 'presensi' && <PresensiTab presensi={presensi} onRefresh={loadData} />}
-        {activeTab === 'tikrar' && <TikrarTab tikrar={tikrar} onRefresh={loadData} />}
+        {activeTab === 'tikrar' && (
+          <TikrarTab
+            tikrar={tikrar}
+            batches={batches}
+            selectedBatchFilter={selectedBatchFilter}
+            onBatchFilterChange={setSelectedBatchFilter}
+            onRefresh={loadData}
+          />
+        )}
         {activeTab === 'reports' && <ReportsTab />}
       </div>
     </AuthenticatedLayout>
@@ -617,14 +583,95 @@ function OverviewTab({ stats }: { stats: any }) {
 // Batches Tab Component
 function BatchesTab({ batches, onRefresh }: { batches: Batch[], onRefresh: () => void }) {
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
+
+  const columns: Column<Batch>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      filterable: true,
+      render: (batch) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{batch.name}</div>
+          <div className="text-sm text-gray-500">{batch.description || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'start_date',
+      label: 'Period',
+      sortable: true,
+      render: (batch) => (
+        <span className="text-sm text-gray-900">
+          {new Date(batch.start_date).toLocaleDateString('id-ID')} - {new Date(batch.end_date).toLocaleDateString('id-ID')}
+        </span>
+      ),
+    },
+    {
+      key: 'duration_weeks',
+      label: 'Duration',
+      sortable: true,
+      render: (batch) => (
+        <span>{batch.duration_weeks ? `${batch.duration_weeks} weeks` : '-'}</span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      filterable: true,
+      render: (batch) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${batch.status === 'open' ? 'bg-green-100 text-green-800' :
+            batch.status === 'closed' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-800'}`}>
+          {batch.status}
+        </span>
+      ),
+    },
+  ];
+
+  const handleEdit = (batch: Batch) => {
+    setEditingBatch(batch);
+    setShowForm(true);
+  };
+
+  const handleDelete = (batch: Batch) => {
+    setEditingBatch(batch);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!editingBatch) return;
+
+    try {
+      const { error } = await supabase
+        .from('batches')
+        .delete()
+        .eq('id', editingBatch.id);
+
+      if (error) throw error;
+
+      onRefresh();
+      setShowDeleteModal(false);
+      setEditingBatch(null);
+    } catch (error) {
+      console.error('Error deleting batch:', error);
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Batches Management</h2>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setEditingBatch(null);
+            setShowForm(true);
+          }}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
         >
           <Plus className="w-5 h-5 mr-2" />
@@ -647,70 +694,22 @@ function BatchesTab({ batches, onRefresh }: { batches: Batch[], onRefresh: () =>
         />
       )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        {batches.length === 0 ? (
-          <div className="text-center py-12">
-            <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No batches</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new batch.</p>
-            <div className="mt-6">
-              <button
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add Batch
-              </button>
-            </div>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {batches.map((batch) => (
-              <tr key={batch.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{batch.name}</div>
-                  <div className="text-sm text-gray-500">{batch.description}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(batch.start_date).toLocaleDateString('id-ID')} - {new Date(batch.end_date).toLocaleDateString('id-ID')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {batch.duration_weeks ? `${batch.duration_weeks} weeks` : '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                    ${batch.status === 'open' ? 'bg-green-100 text-green-800' :
-                      batch.status === 'closed' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'}`}>
-                    {batch.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => {
-                      setEditingBatch(batch);
-                      setShowForm(true);
-                    }}
-                    className="text-green-900 hover:text-green-700 mr-4"
-                  >
-                    <Edit2 className="w-5 h-5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        )}
+      <AdminDataTable
+        data={batches}
+        columns={columns}
+        onEdit={handleEdit}
+        rowKey="id"
+        searchPlaceholder="Search batches by name, status..."
+        emptyMessage="No batches found"
+        emptyIcon={<Calendar className="mx-auto h-12 w-12 text-gray-400" />}
+      />
+
+      {/* WARNING: Delete disabled to prevent cascade deletion of Tikrar data */}
+      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <p className="text-sm text-red-800">
+          ⚠️ <strong>Warning:</strong> Batch deletion is temporarily disabled because it will CASCADE DELETE all related data (programs, pendaftaran, tikrar_tahfidz).
+          Please use database admin to safely manage batches or implement soft delete.
+        </p>
       </div>
     </div>
   );
@@ -773,14 +772,14 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
     setSaving(true);
 
     try {
-      let result;
+      let result: any;
       if (batch) {
-        result = await supabaseAdmin
+        result = await (supabase as any)
           .from('batches')
           .update(formData)
           .eq('id', batch.id);
       } else {
-        result = await supabaseAdmin
+        result = await (supabase as any)
           .from('batches')
           .insert([formData]);
       }
@@ -921,21 +920,139 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
 }
 
 // Programs Tab Component
-function ProgramsTab({ programs, onRefresh }: { programs: Program[], onRefresh: () => void }) {
+interface ProgramsTabProps {
+  programs: Program[];
+  batches: Batch[];
+  selectedBatchFilter: string;
+  onBatchFilterChange: (batchId: string) => void;
+  onRefresh: () => void;
+}
+
+function ProgramsTab({ programs, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: ProgramsTabProps) {
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+
+  // Filter programs by selected batch
+  const filteredPrograms = selectedBatchFilter === 'all'
+    ? programs
+    : programs.filter(p => p.batch_id === selectedBatchFilter);
+
+  const columns: Column<Program>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      filterable: true,
+      render: (program) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{program.name}</div>
+          <div className="text-sm text-gray-500">{program.target_level || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'batch_id',
+      label: 'Batch',
+      sortable: true,
+      filterable: true,
+      render: (program) => program.batch?.name || '-',
+    },
+    {
+      key: 'duration_weeks',
+      label: 'Duration',
+      sortable: true,
+      render: (program) => `${program.duration_weeks || 0} weeks`,
+    },
+    {
+      key: 'max_thalibah',
+      label: 'Max Students',
+      sortable: true,
+      render: (program) => program.max_thalibah || '-',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      filterable: true,
+      render: (program) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${program.status === 'open' ? 'bg-green-100 text-green-800' :
+            program.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
+            program.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+            'bg-yellow-100 text-yellow-800'}`}>
+          {program.status}
+        </span>
+      ),
+    },
+  ];
+
+  const handleEdit = (program: Program) => {
+    setEditingProgram(program);
+    setShowForm(true);
+  };
+
+  const handleDelete = (program: Program) => {
+    setEditingProgram(program);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!editingProgram) return;
+
+    try {
+      const { error } = await supabase
+        .from('programs')
+        .delete()
+        .eq('id', editingProgram.id);
+
+      if (error) throw error;
+
+      onRefresh();
+      setShowDeleteModal(false);
+      setEditingProgram(null);
+    } catch (error) {
+      console.error('Error deleting program:', error);
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Programs Management</h2>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setEditingProgram(null);
+            setShowForm(true);
+          }}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Program
         </button>
+      </div>
+
+      {/* Batch Filter */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+        <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+        <select
+          value={selectedBatchFilter}
+          onChange={(e) => onBatchFilterChange(e.target.value)}
+          className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+        >
+          <option value="all">All Batches ({programs.length})</option>
+          {batches.map((batch) => (
+            <option key={batch.id} value={batch.id}>
+              {batch.name} ({programs.filter(p => p.batch_id === batch.id).length})
+            </option>
+          ))}
+        </select>
+        {selectedBatchFilter !== 'all' && (
+          <span className="text-sm text-gray-500">
+            Showing {filteredPrograms.length} of {programs.length} programs
+          </span>
+        )}
       </div>
 
       {showForm && (
@@ -953,75 +1070,21 @@ function ProgramsTab({ programs, onRefresh }: { programs: Program[], onRefresh: 
         />
       )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        {programs.length === 0 ? (
-          <div className="text-center py-12">
-            <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No programs</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new program.</p>
-            <div className="mt-6">
-              <button
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add Program
-              </button>
-            </div>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Students</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {programs.map((program) => (
-                <tr key={program.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{program.name}</div>
-                    <div className="text-sm text-gray-500">{program.target_level}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {program.batch?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {program.duration_weeks} weeks
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {program.max_thalibah || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                      ${program.status === 'open' ? 'bg-green-100 text-green-800' :
-                        program.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
-                        program.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                        'bg-yellow-100 text-yellow-800'}`}>
-                      {program.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => {
-                        setEditingProgram(program);
-                        setShowForm(true);
-                      }}
-                      className="text-green-900 hover:text-green-700 mr-4"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <AdminDataTable
+        data={filteredPrograms}
+        columns={columns}
+        onEdit={handleEdit}
+        rowKey="id"
+        searchPlaceholder="Search programs by name, batch, status..."
+        emptyMessage="No programs found"
+        emptyIcon={<BookOpen className="mx-auto h-12 w-12 text-gray-400" />}
+      />
+
+      {/* WARNING: Delete disabled to prevent cascade deletion */}
+      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <p className="text-sm text-red-800">
+          ⚠️ <strong>Warning:</strong> Program deletion is temporarily disabled due to CASCADE DELETE constraints.
+        </p>
       </div>
     </div>
   );
@@ -1065,14 +1128,14 @@ function ProgramForm({ program, onClose, onSuccess }: { program: Program | null,
         max_thalibah: formData.max_thalibah || 0
       };
 
-      let result;
+      let result: any;
       if (program) {
-        result = await supabaseAdmin
+        result = await (supabase as any)
           .from('programs')
           .update(submitData)
           .eq('id', program.id);
       } else {
-        result = await supabaseAdmin
+        result = await (supabase as any)
           .from('programs')
           .insert([submitData]);
       }
@@ -1203,23 +1266,157 @@ function ProgramForm({ program, onClose, onSuccess }: { program: Program | null,
 }
 
 // Halaqah Tab Component
-function HalaqahTab({ halaqahs, onRefresh }: { halaqahs: Halaqah[], onRefresh: () => void }) {
+interface HalaqahTabProps {
+  halaqahs: Halaqah[];
+  batches: Batch[];
+  selectedBatchFilter: string;
+  onBatchFilterChange: (batchId: string) => void;
+  onRefresh: () => void;
+}
+
+function HalaqahTab({ halaqahs, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: HalaqahTabProps) {
   const [showForm, setShowForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingHalaqah, setEditingHalaqah] = useState<Halaqah | null>(null);
 
   const daysOfWeek = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+  // Filter halaqahs by batch (via program)
+  const filteredHalaqahs = selectedBatchFilter === 'all'
+    ? halaqahs
+    : halaqahs.filter(h => {
+        const program = h.program;
+        return program && program.batch_id === selectedBatchFilter;
+      });
+
+  const columns: Column<Halaqah>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+      filterable: true,
+      render: (halaqah) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{halaqah.name}</div>
+          <div className="text-sm text-gray-500">{halaqah.description || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'program_id',
+      label: 'Program',
+      sortable: true,
+      filterable: true,
+      render: (halaqah) => halaqah.program?.name || '-',
+    },
+    {
+      key: 'day_of_week',
+      label: 'Schedule',
+      sortable: true,
+      render: (halaqah) => (
+        <div>
+          <div>{halaqah.day_of_week ? daysOfWeek[halaqah.day_of_week] : '-'}</div>
+          {halaqah.start_time && halaqah.end_time && (
+            <div className="text-xs text-gray-500">{halaqah.start_time} - {halaqah.end_time}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'location',
+      label: 'Location',
+      sortable: true,
+      filterable: true,
+      render: (halaqah) => halaqah.location || '-',
+    },
+    {
+      key: 'max_students',
+      label: 'Max Students',
+      sortable: true,
+      render: (halaqah) => halaqah.max_students || '-',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      filterable: true,
+      render: (halaqah) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${halaqah.status === 'active' ? 'bg-green-100 text-green-800' :
+            halaqah.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-gray-100 text-gray-800'}`}>
+          {halaqah.status}
+        </span>
+      ),
+    },
+  ];
+
+  const handleEdit = (halaqah: Halaqah) => {
+    setEditingHalaqah(halaqah);
+    setShowForm(true);
+  };
+
+  const handleDelete = (halaqah: Halaqah) => {
+    setEditingHalaqah(halaqah);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!editingHalaqah) return;
+
+    try {
+      const { error } = await supabase
+        .from('halaqah')
+        .delete()
+        .eq('id', editingHalaqah.id);
+
+      if (error) throw error;
+
+      onRefresh();
+      setShowDeleteModal(false);
+      setEditingHalaqah(null);
+    } catch (error) {
+      console.error('Error deleting halaqah:', error);
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Halaqah Management</h2>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setEditingHalaqah(null);
+            setShowForm(true);
+          }}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Halaqah
         </button>
+      </div>
+
+      {/* Batch Filter */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+        <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+        <select
+          value={selectedBatchFilter}
+          onChange={(e) => onBatchFilterChange(e.target.value)}
+          className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+        >
+          <option value="all">All Batches ({halaqahs.length})</option>
+          {batches.map((batch) => (
+            <option key={batch.id} value={batch.id}>
+              {batch.name} ({halaqahs.filter(h => h.program?.batch_id === batch.id).length})
+            </option>
+          ))}
+        </select>
+        {selectedBatchFilter !== 'all' && (
+          <span className="text-sm text-gray-500">
+            Showing {filteredHalaqahs.length} of {halaqahs.length} halaqah sessions
+          </span>
+        )}
       </div>
 
       {showForm && (
@@ -1237,81 +1434,21 @@ function HalaqahTab({ halaqahs, onRefresh }: { halaqahs: Halaqah[], onRefresh: (
         />
       )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        {halaqahs.length === 0 ? (
-          <div className="text-center py-12">
-            <GraduationCap className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No halaqah sessions</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new halaqah session.</p>
-            <div className="mt-6">
-              <button
-                onClick={() => setShowForm(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add Halaqah
-              </button>
-            </div>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Students</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {halaqahs.map((halaqah) => (
-                <tr key={halaqah.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{halaqah.name}</div>
-                    <div className="text-sm text-gray-500">{halaqah.description}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {halaqah.program?.name || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {halaqah.day_of_week ? daysOfWeek[halaqah.day_of_week] : '-'}
-                    {halaqah.start_time && halaqah.end_time && (
-                      <div>{halaqah.start_time} - {halaqah.end_time}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {halaqah.location || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {halaqah.max_students || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                      ${halaqah.status === 'active' ? 'bg-green-100 text-green-800' :
-                        halaqah.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'}`}>
-                      {halaqah.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => {
-                        setEditingHalaqah(halaqah);
-                        setShowForm(true);
-                      }}
-                      className="text-green-900 hover:text-green-700 mr-4"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <AdminDataTable
+        data={filteredHalaqahs}
+        columns={columns}
+        onEdit={handleEdit}
+        rowKey="id"
+        searchPlaceholder="Search halaqah by name, program, location..."
+        emptyMessage="No halaqah sessions found"
+        emptyIcon={<GraduationCap className="mx-auto h-12 w-12 text-gray-400" />}
+      />
+
+      {/* WARNING: Delete disabled to prevent cascade deletion */}
+      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+        <p className="text-sm text-red-800">
+          ⚠️ <strong>Warning:</strong> Halaqah deletion is temporarily disabled due to CASCADE DELETE constraints.
+        </p>
       </div>
     </div>
   );
@@ -1350,14 +1487,14 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
     setSaving(true);
 
     try {
-      let result;
+      let result: any;
       if (halaqah) {
-        result = await supabaseAdmin
+        result = await (supabase as any)
           .from('halaqah')
           .update(formData)
           .eq('id', halaqah.id);
       } else {
-        result = await supabaseAdmin
+        result = await (supabase as any)
           .from('halaqah')
           .insert([formData]);
       }
@@ -1512,70 +1649,207 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
 
 // Users Tab Component
 function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }) {
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  const columns: Column<User>[] = [
+    {
+      key: 'full_name',
+      label: 'Name',
+      sortable: true,
+      filterable: true,
+      render: (user) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{user.full_name || '-'}</div>
+          <div className="text-sm text-gray-500">{user.phone || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+      filterable: true,
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      sortable: true,
+      filterable: true,
+      render: (user) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+            user.role === 'ustadzah' ? 'bg-blue-100 text-blue-800' :
+            user.role === 'musyrifah' ? 'bg-green-100 text-green-800' :
+            user.role === 'thalibah' ? 'bg-yellow-100 text-yellow-800' :
+            'bg-gray-100 text-gray-800'}`}>
+          {user.role || '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'is_active',
+      label: 'Status',
+      sortable: true,
+      render: (user) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {user.is_active ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'kota',
+      label: 'Location',
+      sortable: true,
+      filterable: true,
+      render: (user) => (
+        <span>{user.kota && user.provinsi ? `${user.kota}, ${user.provinsi}` : '-'}</span>
+      ),
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      sortable: true,
+      render: (user) => new Date(user.created_at).toLocaleDateString('id-ID'),
+    },
+  ];
+
+  const formFields: FormField[] = [
+    { name: 'full_name', label: 'Full Name', type: 'text', required: true },
+    { name: 'email', label: 'Email', type: 'email', required: true },
+    { name: 'phone', label: 'Phone', type: 'tel' },
+    {
+      name: 'role',
+      label: 'Role',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'admin', label: 'Admin' },
+        { value: 'ustadzah', label: 'Ustadzah' },
+        { value: 'musyrifah', label: 'Musyrifah' },
+        { value: 'thalibah', label: 'Thalibah' },
+        { value: 'calon_thalibah', label: 'Calon Thalibah' },
+      ]
+    },
+    { name: 'provinsi', label: 'Provinsi', type: 'text' },
+    { name: 'kota', label: 'Kota', type: 'text' },
+    { name: 'alamat', label: 'Alamat', type: 'textarea', rows: 3 },
+    { name: 'whatsapp', label: 'WhatsApp', type: 'tel' },
+    { name: 'telegram', label: 'Telegram', type: 'text' },
+    { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
+  ];
+
+  const handleEdit = (user: User) => {
+    setSelectedUser(user);
+    setShowModal(true);
+  };
+
+  const handleDelete = (user: User) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+
+  const handleSubmit = async (data: Record<string, any>) => {
+    try {
+      if (selectedUser) {
+        // Update existing user
+        const { error } = await (supabase as any)
+          .from('users')
+          .update(data)
+          .eq('id', selectedUser.id);
+
+        if (error) throw error;
+      } else {
+        // Create new user
+        const { error } = await (supabase as any)
+          .from('users')
+          .insert([data]);
+
+        if (error) throw error;
+      }
+
+      onRefresh();
+      setShowModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error saving user:', error);
+      throw error;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      onRefresh();
+      setShowDeleteModal(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
+        <button
+          onClick={() => {
+            setSelectedUser(null);
+            setShowModal(true);
+          }}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Add User
+        </button>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        {users.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No users</h3>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{user.full_name || '-'}</div>
-                      <div className="text-sm text-gray-500">{user.phone || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                          user.role === 'ustadzah' ? 'bg-blue-100 text-blue-800' :
-                          user.role === 'musyrifah' ? 'bg-green-100 text-green-800' :
-                          user.role === 'thalibah' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'}`}>
-                        {user.role || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {user.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.kota && user.provinsi ? `${user.kota}, ${user.provinsi}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleDateString('id-ID')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <AdminDataTable
+        data={users}
+        columns={columns}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        rowKey="id"
+        searchPlaceholder="Search users by name, email, role..."
+        emptyMessage="No users found"
+        emptyIcon={<Users className="mx-auto h-12 w-12 text-gray-400" />}
+      />
+
+      <AdminCrudModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedUser(null);
+        }}
+        onSubmit={handleSubmit}
+        title={selectedUser ? 'Edit User' : 'Add New User'}
+        fields={formFields}
+        initialData={selectedUser || {}}
+        isEditing={!!selectedUser}
+      />
+
+      <AdminDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedUser(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This will remove all associated data."
+        itemName={selectedUser?.full_name || selectedUser?.email}
+      />
     </div>
   );
 }
@@ -1702,68 +1976,115 @@ function HalaqahStudentsTab({ students, onRefresh }: { students: HalaqahStudent[
 }
 
 // Pendaftaran Tab Component
-function PendaftaranTab({ pendaftaran, onRefresh }: { pendaftaran: Pendaftaran[], onRefresh: () => void }) {
+interface PendaftaranTabProps {
+  pendaftaran: Pendaftaran[];
+  batches: Batch[];
+  selectedBatchFilter: string;
+  onBatchFilterChange: (batchId: string) => void;
+  onRefresh: () => void;
+}
+
+function PendaftaranTab({ pendaftaran, batches, selectedBatchFilter, onBatchFilterChange }: PendaftaranTabProps) {
+  // Filter pendaftaran by batch
+  const filteredPendaftaran = selectedBatchFilter === 'all'
+    ? pendaftaran
+    : pendaftaran.filter(p => p.batch_id === selectedBatchFilter);
+
+  const columns: Column<Pendaftaran>[] = [
+    {
+      key: 'thalibah_id',
+      label: 'Thalibah',
+      sortable: true,
+      filterable: true,
+      render: (reg) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{reg.thalibah?.full_name || '-'}</div>
+          <div className="text-sm text-gray-500">{reg.thalibah?.email || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'program_id',
+      label: 'Program',
+      sortable: true,
+      filterable: true,
+      render: (reg) => reg.program?.name || '-',
+    },
+    {
+      key: 'batch_id',
+      label: 'Batch',
+      sortable: true,
+      filterable: true,
+      render: (reg) => reg.batch?.name || '-',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      filterable: true,
+      render: (reg) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${reg.status === 'approved' ? 'bg-green-100 text-green-800' :
+            reg.status === 'rejected' ? 'bg-red-100 text-red-800' :
+            reg.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+            reg.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+            'bg-blue-100 text-blue-800'}`}>
+          {reg.status}
+        </span>
+      ),
+    },
+    {
+      key: 'registration_date',
+      label: 'Registration Date',
+      sortable: true,
+      render: (reg) => new Date(reg.registration_date).toLocaleDateString('id-ID'),
+    },
+    {
+      key: 'notes',
+      label: 'Notes',
+      render: (reg) => (
+        <span className="max-w-xs truncate block">{reg.notes || '-'}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Registrations Management</h2>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        {pendaftaran.length === 0 ? (
-          <div className="text-center py-12">
-            <ClipboardList className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No registrations</h3>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thalibah</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registration Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {pendaftaran.map((reg) => (
-                  <tr key={reg.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{reg.thalibah?.full_name || '-'}</div>
-                      <div className="text-sm text-gray-500">{reg.thalibah?.email || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {reg.program?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {reg.batch?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${reg.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          reg.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          reg.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          reg.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
-                          'bg-blue-100 text-blue-800'}`}>
-                        {reg.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(reg.registration_date).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                      {reg.notes || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Batch Filter */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+        <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+        <select
+          value={selectedBatchFilter}
+          onChange={(e) => onBatchFilterChange(e.target.value)}
+          className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+        >
+          <option value="all">All Batches ({pendaftaran.length})</option>
+          {batches.map((batch) => (
+            <option key={batch.id} value={batch.id}>
+              {batch.name} ({pendaftaran.filter(p => p.batch_id === batch.id).length})
+            </option>
+          ))}
+        </select>
+        {selectedBatchFilter !== 'all' && (
+          <span className="text-sm text-gray-500">
+            Showing {filteredPendaftaran.length} of {pendaftaran.length} registrations
+          </span>
         )}
       </div>
+
+      <AdminDataTable
+        data={filteredPendaftaran}
+        columns={columns}
+        rowKey="id"
+        searchPlaceholder="Search registrations by thalibah, program, batch..."
+        emptyMessage="No registrations found"
+        emptyIcon={<ClipboardList className="mx-auto h-12 w-12 text-gray-400" />}
+        defaultItemsPerPage={25}
+      />
     </div>
   );
 }
@@ -1836,76 +2157,139 @@ function PresensiTab({ presensi, onRefresh }: { presensi: Presensi[], onRefresh:
 }
 
 // Tikrar Tab Component
-function TikrarTab({ tikrar, onRefresh }: { tikrar: TikrarTahfidz[], onRefresh: () => void }) {
+interface TikrarTabProps {
+  tikrar: TikrarTahfidz[];
+  batches: Batch[];
+  selectedBatchFilter: string;
+  onBatchFilterChange: (batchId: string) => void;
+  onRefresh: () => void;
+}
+
+function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange }: TikrarTabProps) {
+  // Filter tikrar by batch_id or batch_name
+  const filteredTikrar = selectedBatchFilter === 'all'
+    ? tikrar
+    : tikrar.filter(t => t.batch_id === selectedBatchFilter);
+
+  const columns: Column<TikrarTahfidz>[] = [
+    {
+      key: 'full_name',
+      label: 'Applicant',
+      sortable: true,
+      filterable: true,
+      render: (t) => (
+        <div>
+          <div className="text-sm font-medium text-gray-900">{t.full_name || t.user?.full_name || '-'}</div>
+          <div className="text-sm text-gray-500">{t.user?.email || '-'}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'batch_name',
+      label: 'Batch',
+      sortable: true,
+      filterable: true,
+      render: (t) => t.batch_name || t.batch?.name || '-',
+    },
+    {
+      key: 'program_id',
+      label: 'Program',
+      sortable: true,
+      filterable: true,
+      render: (t) => t.program?.name || '-',
+    },
+    {
+      key: 'chosen_juz',
+      label: 'Chosen Juz',
+      sortable: true,
+      filterable: true,
+      render: (t) => t.chosen_juz || '-',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      filterable: true,
+      render: (t) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
+            t.status === 'rejected' ? 'bg-red-100 text-red-800' :
+            t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+            'bg-yellow-100 text-yellow-800'}`}>
+          {t.status}
+        </span>
+      ),
+    },
+    {
+      key: 'selection_status',
+      label: 'Selection Status',
+      sortable: true,
+      filterable: true,
+      render: (t) => (
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${t.selection_status === 'approved' ? 'bg-green-100 text-green-800' :
+            t.selection_status === 'rejected' ? 'bg-red-100 text-red-800' :
+            'bg-yellow-100 text-yellow-800'}`}>
+          {t.selection_status}
+        </span>
+      ),
+    },
+    {
+      key: 'submission_date',
+      label: 'Submission Date',
+      sortable: true,
+      render: (t) => new Date(t.submission_date).toLocaleDateString('id-ID'),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Tikrar Tahfidz Applications</h2>
+        <div className="text-sm text-gray-500">
+          Pending: {filteredTikrar.filter(t => t.status === 'pending').length}
+        </div>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        {tikrar.length === 0 ? (
-          <div className="text-center py-12">
-            <Award className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No tikrar applications</h3>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Applicant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chosen Juz</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Selection Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submission Date</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {tikrar.map((t) => (
-                  <tr key={t.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{t.full_name || t.user?.full_name || '-'}</div>
-                      <div className="text-sm text-gray-500">{t.user?.email || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {t.batch_name || t.batch?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {t.program?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {t.chosen_juz || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          t.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
-                          'bg-yellow-100 text-yellow-800'}`}>
-                        {t.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                        ${t.selection_status === 'approved' ? 'bg-green-100 text-green-800' :
-                          t.selection_status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'}`}>
-                        {t.selection_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(t.submission_date).toLocaleDateString('id-ID')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Batch Filter */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+        <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+        <select
+          value={selectedBatchFilter}
+          onChange={(e) => onBatchFilterChange(e.target.value)}
+          className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+        >
+          <option value="all">All Batches ({tikrar.length})</option>
+          {batches.map((batch) => (
+            <option key={batch.id} value={batch.id}>
+              {batch.name} ({tikrar.filter(t => t.batch_id === batch.id).length})
+            </option>
+          ))}
+        </select>
+        {selectedBatchFilter !== 'all' && (
+          <span className="text-sm text-gray-500">
+            Showing {filteredTikrar.length} of {tikrar.length} applications
+          </span>
         )}
       </div>
+
+      <AdminDataTable
+        data={filteredTikrar}
+        columns={columns}
+        rowKey="id"
+        searchPlaceholder="Search tikrar by applicant, batch, program, juz..."
+        emptyMessage="No tikrar applications found"
+        emptyIcon={<Award className="mx-auto h-12 w-12 text-gray-400" />}
+        defaultItemsPerPage={25}
+      />
+
+      {filteredTikrar.some(t => t.status === 'pending') && (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Tip:</strong> Click on a pending application row to approve or reject it.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1944,7 +2328,7 @@ function ReportsTab() {
         // @ts-ignore
         supabase.from('users').select('*'),
         // @ts-ignore
-        supabase.from('tikrar_tahfidz').select('*, user:users(full_name, email), batch:batches(name), program:programs(name)')
+        supabase.from('pendaftaran_tikrar_tahfidz').select('*, users!pendaftaran_tikrar_tahfidz_user_id_fkey(full_name, email), batches(name), programs(name)')
       ]);
 
       // Extract data with error handling

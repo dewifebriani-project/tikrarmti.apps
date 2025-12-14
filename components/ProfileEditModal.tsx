@@ -33,8 +33,6 @@ export default function ProfileEditModal({ user, userData, onProfileUpdate, chil
     address: userData?.alamat || '',
     bio: userData?.bio || '',
   });
-  const { updateUserProfile } = useAuth();
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -50,11 +48,15 @@ export default function ProfileEditModal({ user, userData, onProfileUpdate, chil
     try {
       // Update Supabase profile
       if (user?.id) {
-        await updateUserProfile({
-          displayName: formData.displayName,
-          phoneNumber: formData.phoneNumber,
-          alamat: formData.address,
-        });
+        const { error } = await (supabase as any)
+          .from('users')
+          .update({
+            full_name: formData.displayName,
+            phone: formData.phoneNumber,
+          })
+          .eq('id', user.id);
+
+        if (error) throw error;
       }
 
       // Call parent callback with updated data

@@ -92,6 +92,9 @@ function TikrarTahfidzPage() {
     total_quota: number,
     registered_count: number
   } | null>(null)
+  const [existingRegistration, setExistingRegistration] = useState<any>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [isLoadingRegistration, setIsLoadingRegistration] = useState(false)
 
   const totalSections = 4
   const progressPercentage = useMemo(() => (currentSection / totalSections) * 100, [currentSection])
@@ -115,6 +118,76 @@ function TikrarTahfidzPage() {
     }
   }, [])
 
+  // Check for existing registration - optimized for faster loading
+  useEffect(() => {
+    if (!isClient || !user) return
+
+    const checkExistingRegistration = async () => {
+      setIsLoadingRegistration(true)
+      try {
+        console.log('Checking existing registration for user:', user.id, user.email)
+
+        // Fetch registration data
+        const checkResponse = await fetch('/api/auth/check-registration-simple', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies for authentication
+          body: JSON.stringify({
+            userId: user.id,
+            email: user.email
+          })
+        })
+
+        if (checkResponse.ok) {
+          const data = await checkResponse.json()
+          console.log('Existing registration data:', data)
+
+          if (data.hasRegistered && data.registration) {
+            setExistingRegistration(data.registration)
+            setIsEditMode(true)
+
+            // API now returns all form fields, no need for second API call
+            console.log('Full registration data:', data.registration)
+
+            // Populate form with existing data - using object spread for cleaner code
+            const populatedForm = {
+              understands_commitment: data.registration.understands_commitment ?? false,
+              tried_simulation: data.registration.tried_simulation ?? false,
+              no_negotiation: data.registration.no_negotiation ?? false,
+              has_telegram: data.registration.has_telegram ?? false,
+              saved_contact: data.registration.saved_contact ?? false,
+              has_permission: data.registration.has_permission || '',
+              permission_name: data.registration.permission_name || '',
+              permission_phone: data.registration.permission_phone || '',
+              permission_phone_validation: data.registration.permission_phone || '',
+              chosen_juz: data.registration.chosen_juz || '',
+              no_travel_plans: data.registration.no_travel_plans ?? false,
+              motivation: data.registration.motivation || '',
+              ready_for_team: data.registration.ready_for_team || '',
+              main_time_slot: data.registration.main_time_slot || '',
+              backup_time_slot: data.registration.backup_time_slot || '',
+              time_commitment: data.registration.time_commitment ?? false,
+              understands_program: data.registration.understands_program ?? false,
+              questions: data.registration.questions || ''
+            }
+
+            setFormData(populatedForm)
+          }
+        }
+      } catch (error) {
+        console.error('Error checking existing registration:', error)
+      } finally {
+        setIsLoadingRegistration(false)
+      }
+    }
+
+    // Add a small delay to ensure all state is properly initialized
+    const timeoutId = setTimeout(checkExistingRegistration, 50)
+
+    return () => clearTimeout(timeoutId)
+  }, [isClient, user])
 
   // Optimized data fetching with parallel loading
   useEffect(() => {
@@ -606,6 +679,7 @@ function TikrarTahfidzPage() {
         const ensureResponse = await fetch('/api/auth/ensure-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // Include cookies for authentication
           body: JSON.stringify({
             userId: currentUser.id,
             email: currentUser.email,
@@ -709,11 +783,31 @@ function TikrarTahfidzPage() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-      const response = await fetch('/api/pendaftaran/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Check if this is an edit or create operation
+      let apiUrl = '/api/pendaftaran/submit'
+      let apiMethod = 'POST'
+
+      if (isEditMode && existingRegistration) {
+        apiUrl = `/api/pendaftaran/${existingRegistration.id}`
+        apiMethod = 'PUT'
+      }
+
+      // Get current session for Authorization header
+      const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !authSession?.access_token) {
+        throw new Error('Authentication token not available. Please login again.');
+      }
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authSession.access_token}`, // Send token as Bearer
+      };
+
+      const response = await fetch(apiUrl, {
+        method: apiMethod,
+        headers: headers,
+        credentials: 'include', // Include cookies for authentication as fallback
         body: JSON.stringify(submissionData),
         signal: controller.signal
       })
@@ -1523,10 +1617,15 @@ Silakan:
           <Alert className="bg-green-50 border-green-200 border-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
             <AlertDescription className="text-green-800">
-              <strong className="text-lg">Alhamdulillah! Pendaftaran Berhasil! 🎉</strong>
+              <strong className="text-lg">
+                {isEditMode ? 'Alhamdulillah! Data Berhasil Diperbarui! ✅' : 'Alhamdulillah! Pendaftaran Berhasil! 🎉'}
+              </strong>
               <br /><br />
               <p className="text-base">
-                Formulir pendaftaran Ukhti telah berhasil dikirim. Jazakillahu khairan atas keseriusan Ukhti untuk bergabung dengan program Tikrar MTI.
+                {isEditMode
+                  ? 'Data formulir pendaftaran Ukhti telah berhasil diperbarui. Jazakillahu khairan.'
+                  : 'Formulir pendaftaran Ukhti telah berhasil dikirim. Jazakillahu khairan atas keseriusan Ukhti untuk bergabung dengan program Tikrar MTI.'
+                }
               </p>
               <br />
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 my-3 rounded">
@@ -1581,58 +1680,71 @@ Silakan:
     </div>
   )
 
-  // Bypass authentication check temporarily for debugging
-  // if (loading || !user) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
-  //       <div className="max-w-4xl mx-auto px-4">
-  //         <div className="text-center mb-8">
-  //           <h1 className="text-4xl font-bold text-green-900 mb-3">
-  //             Formulir Pendaftaran MTI Batch 2
-  //           </h1>
-  //           <p className="text-lg text-gray-600">
-  //             Program Hafalan Al-Qur'an Gratis Khusus Akhawat
-  //           </p>
-  //         </div>
+  // Authentication check - user must be logged in to access this page
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-green-900 mb-3">
+              Formulir Pendaftaran MTI Batch 2
+            </h1>
+            <p className="text-lg text-gray-600">
+              Program Hafalan Al-Qur'an Gratis Khusus Akhawat
+            </p>
+          </div>
 
-  //         {/* Skeleton Loading */}
-  //         <div className="animate-pulse">
-  //           <div className="bg-white rounded-lg shadow-lg p-8">
-  //             <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-  //             <div className="h-2 bg-gray-200 rounded w-full mb-8"></div>
+          {/* Authentication Required Message */}
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-10 h-10 text-yellow-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Login Diperlukan
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Untuk mengakses formulir pendaftaran Tikrar MTI, Ukhti harus login terlebih dahulu.
+              </p>
+            </div>
 
-  //             {/* Form Sections Skeleton */}
-  //             <div className="space-y-6">
-  //               <div className="space-y-4">
-  //                 <div className="h-6 bg-gray-200 rounded w-2/3"></div>
-  //                 <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-  //                 <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-  //                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-  //               </div>
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <h3 className="font-semibold text-blue-800 mb-2">📋 Cara Mendaftar:</h3>
+                <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                  <li>Login ke akun MTI Apps</li>
+                  <li>Lengkapi profil data diri</li>
+                  <li>Kembali ke halaman ini untuk mengisi formulir</li>
+                </ol>
+              </div>
 
-  //               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  //                 <div className="h-12 bg-gray-200 rounded"></div>
-  //                 <div className="h-12 bg-gray-200 rounded"></div>
-  //               </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a
+                  href="/login"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  Masuk/Login
+                </a>
+                <a
+                  href="/register"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  Daftar Baru
+                </a>
+              </div>
+            </div>
 
-  //               <div className="flex justify-between pt-6 border-t">
-  //                 <div className="h-10 bg-gray-200 rounded w-24"></div>
-  //                 <div className="h-10 bg-gray-200 rounded w-24"></div>
-  //               </div>
-  //             </div>
-  //           </div>
-  //         </div>
-
-  //         <div className="text-center mt-8">
-  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900 mx-auto mb-4"></div>
-  //           <p className="text-gray-600">Memuat formulir pendaftaran...</p>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   )
-  // }
-
-  // Show form directly
+            {loading && (
+              <div className="mt-6 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900 mx-auto mb-2"></div>
+                <p className="text-gray-600">Memeriksa status login...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 pt-16 sm:pt-20 lg:pt-20">
@@ -1640,12 +1752,32 @@ Silakan:
 
         <div className="text-center mb-6 px-4">
           <h1 className="text-2xl md:text-4xl font-bold text-green-900 mb-3">
-            Formulir Pendaftaran MTI Batch 2
+            {isEditMode ? 'Edit Pendaftaran MTI Batch 2' : 'Formulir Pendaftaran MTI Batch 2'}
           </h1>
           <p className="text-sm md:text-lg text-gray-600">
             Program Hafalan Al-Qur'an Gratis Khusus Akhawat<br/>
             <span className="text-xs md:text-base text-green-700 font-medium">Metode Tikrar 40 Kali - Juz 1, 28, 29, 30</span>
           </p>
+          {isLoadingRegistration ? (
+            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg max-w-md mx-auto">
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-900"></div>
+                <p className="text-sm text-gray-700">Memeriksa status pendaftaran...</p>
+              </div>
+            </div>
+          ) : isEditMode && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg max-w-md mx-auto">
+              <p className="text-sm text-blue-800">
+                <strong>Mode Edit:</strong> Ukhti sudah terdaftar. Perbarui data formulir jika ada perubahan.
+              </p>
+              {existingRegistration && (
+                <p className="text-xs text-blue-600 mt-1">
+                  Status: {existingRegistration.status} |
+                  Tanggal Daftar: {new Date(existingRegistration.submission_date).toLocaleDateString('id-ID')}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Link ke Perjalanan Program */}
           <div className="mt-3 md:mt-4">
@@ -1711,11 +1843,11 @@ Silakan:
                     {isSubmitting ? (
                       <>
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        <span>Mengirim Data...</span>
+                        <span>{isEditMode ? 'Memperbarui Data...' : 'Mengirim Data...'}</span>
                       </>
                     ) : (
                       <>
-                        <span>Kirim Pendaftaran</span>
+                        <span>{isEditMode ? 'Update Pendaftaran' : 'Kirim Pendaftaran'}</span>
                         <Send className="h-5 w-5" />
                       </>
                     )}

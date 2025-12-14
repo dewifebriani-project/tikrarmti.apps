@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Suspense } from 'react';
 
 // Import FAQ component as default export
 import FAQComponent from '@/components/FAQ';
@@ -21,7 +20,7 @@ import {
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white">
+    <>
       {/* Minimal Background Elements */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-32 h-32 bg-green-900/5 rounded-full opacity-20 blur-3xl"></div>
@@ -231,9 +230,7 @@ export default function Home() {
       </section>
 
       {/* FAQ Section */}
-      <Suspense fallback={<div className="py-16 text-center">Loading FAQ...</div>}>
-        <FAQComponent />
-      </Suspense>
+      <FAQComponent />
 
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-r from-green-900 to-green-800 relative overflow-hidden">
@@ -284,6 +281,6 @@ export default function Home() {
       </section>
 
       {/* Floating Register Button - Removed */}
-    </main>
+    </>
   );
 }

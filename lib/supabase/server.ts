@@ -1,7 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-// Load environment variables with fallback
-export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith('ey') ? 'https://nmbvklixthlqtkkgqnjl.supabase.co' : ''
+// Load environment variables
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 export function createServerClient() {

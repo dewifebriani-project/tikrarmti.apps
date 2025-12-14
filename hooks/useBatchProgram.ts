@@ -30,9 +30,16 @@ export function useBatchProgram() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchData = async () => {
+    await Promise.all([
+      fetchBatches(),
+      fetchPrograms()
+    ]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    fetchBatches();
-    fetchPrograms();
+    fetchData();
   }, []);
 
   const fetchBatches = async () => {
@@ -46,6 +53,7 @@ export function useBatchProgram() {
     } catch (err) {
       console.error('Error fetching batches:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch batches');
+      setBatches([]); // Set empty array on error
     }
   };
 
@@ -65,15 +73,13 @@ export function useBatchProgram() {
     } catch (err) {
       console.error('Error fetching programs:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch programs');
-    } finally {
-      setLoading(false);
+      setPrograms([]); // Set empty array on error
     }
   };
 
   const refetch = () => {
     setLoading(true);
-    fetchBatches();
-    fetchPrograms();
+    fetchData();
   };
 
   return {

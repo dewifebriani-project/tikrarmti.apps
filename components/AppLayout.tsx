@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import PublicLayout from './PublicLayout';
 import DonasiAuthenticatedLayout from './DonasiAuthenticatedLayout';
 
@@ -11,6 +12,11 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children, title }: AppLayoutProps) {
   const pathname = usePathname() || '';
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Auth routes that don't need any wrapper (login, register)
   const authRoutes = ['/login', '/register', '/auth/callback'];
@@ -46,6 +52,11 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
 
   // Combine pendaftaran routes with authenticated routes
   const requiresAuth = isAuthenticatedRoute || isPendaftaranRoute;
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return <>{children}</>;
+  }
 
   // Use donasi layout for donasi dashboard
   if (pathname === '/donasi-dashboard') {

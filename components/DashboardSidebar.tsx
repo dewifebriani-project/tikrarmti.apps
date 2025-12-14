@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { X, BookOpen, GraduationCap, Users, LogOut, User, Settings } from 'lucide-react';
+import { X, BookOpen, GraduationCap, Users, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UniversalSidebarProps {
@@ -12,7 +12,7 @@ interface UniversalSidebarProps {
   onClose?: () => void;
 }
 
-export default function DashboardSidebar({ currentPath, isOpen, onClose }: UniversalSidebarProps) {
+export default function DashboardSidebar({ isOpen, onClose }: UniversalSidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
 
@@ -123,7 +123,7 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
 
       {/* Sidebar */}
       <aside className={`
-        fixed md:sticky inset-y-0 md:top-0 left-0 z-50 md:z-30 w-64 sm:w-72 bg-white shadow-lg border-r border-green-900/20
+        fixed md:sticky inset-y-0 md:top-0 left-0 z-50 md:z-20 w-64 sm:w-72 bg-white shadow-lg border-r border-green-900/20
         transform transition-transform duration-300 ease-in-out md:h-screen
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
@@ -154,21 +154,21 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/20 scrollbar-track-transparent">
+        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/20 scrollbar-track-transparent -webkit-overflow-scrolling:touch">
           {navItems.map((item) => {
             return (
               <div key={item.href} className="relative">
                 <Link
                   href={item.href}
                   className={`
-                    flex items-center px-2 sm:px-3 py-2 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 hover:scale-105 relative min-w-0
+                    flex items-center px-3 py-3 sm:px-3 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition-all duration-300 hover:scale-105 relative min-w-0 touch-manipulation
                     ${isActive(item.href)
                       ? 'bg-gradient-to-r from-green-900 to-green-800 text-white shadow-md'
                       : 'text-gray-700 hover:bg-green-50 hover:text-green-900'
                     }
                   `}
                 >
-                  <div className={`mr-2 sm:mr-3 w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center rounded-full flex-shrink-0 ${
+                  <div className={`mr-3 sm:mr-3 w-5 h-5 sm:w-5 sm:h-5 flex items-center justify-center rounded-full flex-shrink-0 ${
                     isActive(item.href)
                       ? 'bg-yellow-400/20'
                       : 'bg-green-100'
@@ -194,25 +194,27 @@ export default function DashboardSidebar({ currentPath, isOpen, onClose }: Unive
               onClick={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Logout button clicked in sidebar');
-                try {
-                  await logout();
-                  console.log('Logout successful, redirecting to login');
-                  window.location.href = '/login';
-                } catch (error) {
-                  console.error('Error logging out:', error);
-                  // Still redirect even if there's an error
-                  window.location.href = '/login';
+
+                // Show confirmation dialog
+                if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                  return;
                 }
+
+                // Show loading state
+                const buttonElement = e.currentTarget;
+                buttonElement.disabled = true;
+                buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
+
+                // Perform logout - the logout function will handle the redirect
+                await logout();
               }}
               type="button"
               aria-label="Keluar dari akun"
               title="Keluar"
-              className="flex items-center justify-center sm:justify-start w-full px-3 py-2.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation"
+              className="flex items-center justify-center sm:justify-start w-full px-4 py-4 sm:px-3 sm:py-2.5 rounded-lg text-base sm:text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 flex-shrink-0" />
-              <span className="hidden xs:inline">Keluar</span>
-              <span className="xs:hidden">Out</span>
+              <LogOut className="w-6 h-6 sm:w-5 sm:h-5 mr-3 flex-shrink-0" />
+              <span>Keluar</span>
             </button>
           </div>
         </nav>

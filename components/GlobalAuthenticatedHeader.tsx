@@ -122,7 +122,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
   ];
 
   return (
-    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 lg:fixed lg:top-0 lg:z-40 transition-all duration-300 lg:left-0 lg:right-0">
+    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 sticky top-0 z-30 transition-all duration-300 md:relative md:left-auto md:right-auto">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           {/* Left Section - Hamburger Menu & Breadcrumbs */}
@@ -193,29 +193,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
           {/* Right Section - Actions & Profile */}
           <div className="flex items-center space-x-1 md:space-x-4">
 
-            {/* Quick Logout - Mobile Only */}
-            <button
-              onClick={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Quick logout button clicked in header');
-                try {
-                  await logout();
-                  console.log('Logout successful, redirecting to login');
-                  window.location.href = '/login';
-                } catch (error) {
-                  console.error('Error logging out:', error);
-                  window.location.href = '/login';
-                }
-              }}
-              type="button"
-              aria-label="Keluar dari akun"
-              title="Keluar"
-              className="md:hidden p-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 touch-manipulation"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-
+  
             {/* Notifications - Desktop/Tablet */}
             <div className="relative hidden md:block" ref={notificationRef}>
               <button
@@ -230,7 +208,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
 
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-50">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <h3 className="font-semibold">Notifikasi</h3>
                     <p className="text-sm opacity-90">{notifications.filter(n => !n.read).length} belum dibaca</p>
@@ -308,7 +286,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
 
               {/* Profile Dropdown */}
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-50">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <div className="flex items-center space-x-3">
                       {/* Avatar in dropdown */}
@@ -379,22 +357,36 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                       onClick={async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Logout button clicked in profile dropdown');
+                        console.log('BUTTON: Logout clicked');
+
+                        // Show confirmation dialog
+                        if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                          console.log('BUTTON: User cancelled logout');
+                          return;
+                        }
+
+                        console.log('BUTTON: User confirmed logout');
+
+                        // Show loading state
+                        const buttonElement = e.currentTarget;
+                        buttonElement.disabled = true;
+                        buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
+
                         try {
+                          console.log('BUTTON: Calling logout function');
                           await logout();
-                          console.log('Logout successful, redirecting to login');
-                          window.location.href = '/login';
+                          console.log('BUTTON: Logout function returned');
                         } catch (error) {
-                          console.error('Error logging out:', error);
-                          // Still redirect even if there's an error
+                          console.error('BUTTON: Logout error:', error);
+                          // Force manual redirect if logout fails
                           window.location.href = '/login';
                         }
                       }}
                       type="button"
                       aria-label="Keluar dari akun"
-                      className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3 px-3 py-2.5 sm:py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[44px]"
+                      className="flex items-center space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] font-medium sm:px-3 sm:py-3 sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-6 h-6 sm:w-5 sm:h-5" />
                       <span>Keluar</span>
                     </button>
                   </div>
@@ -406,7 +398,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
 
         {/* Mobile Menu */}
         {showMobileMenu && (
-          <div className="lg:hidden border-t border-green-900/20 py-4">
+          <div className="lg:hidden border-t border-green-900/20 py-4 relative z-40">
             {/* Mobile Quick Links */}
             <nav className="grid grid-cols-2 gap-2">
               {quickLinks.map((link) => (
@@ -429,22 +421,25 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                 onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Logout button clicked in mobile menu');
-                  try {
-                    await logout();
-                    console.log('Logout successful, redirecting to login');
-                    window.location.href = '/login';
-                  } catch (error) {
-                    console.error('Error logging out:', error);
-                    // Still redirect even if there's an error
-                    window.location.href = '/login';
+
+                  // Show confirmation dialog
+                  if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                    return;
                   }
+
+                  // Show loading state
+                  const buttonElement = e.currentTarget;
+                  buttonElement.disabled = true;
+                  buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
+
+                  // Perform logout - the logout function will handle the redirect
+                  await logout();
                 }}
                 type="button"
                 aria-label="Keluar dari akun"
-                className="flex items-center justify-between space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[44px] font-medium border border-red-200 hover:border-red-300"
+                className="flex items-center space-x-3 px-4 py-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] font-medium border border-red-200 hover:border-red-300 sm:px-4 sm:py-3 sm:text-sm sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-6 h-6" />
                 <span>Keluar</span>
               </button>
             </div>

@@ -1,40 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger-secure'
+import { getClientIP } from '@/lib/rate-limiter'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
+    // Initialize Supabase server client to verify authentication
+    const supabase = createServerClient()
 
-    console.log('[API /user/profile] Request received:', { userId });
+    // Verify user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (!userId) {
-      console.error('[API /user/profile] No userId provided');
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    if (authError || !user) {
+      logger.warn('Authentication failed', {
+        ip: getClientIP(request),
+        endpoint: '/api/user/profile'
+      });
+      return NextResponse.json(
+        { error: 'Unauthorized - Please login to access this resource' },
+        { status: 401 }
+      )
     }
 
-    // Use service role key to bypass RLS (safe for reading user's own profile)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // Get userId from query params (must match authenticated user)
+    const { searchParams } = new URL(request.url)
+    const requestedUserId = searchParams.get('userId')
 
-    console.log('[API /user/profile] Supabase client created');
+    if (!requestedUserId) {
+      logger.warn('No userId provided in profile request', {
+        authenticatedUserId: user.id
+      });
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Security check: Users can only access their own profile
+    // Admin users can access any profile (add this check if needed)
+    if (user.id !== requestedUserId) {
+      logger.warn('Unauthorized profile access attempt', {
+        ip: getClientIP(request),
+        endpoint: '/api/user/profile',
+        authenticatedUserId: user.id.substring(0, 8) + '...',
+        requestedUserId: requestedUserId.substring(0, 8) + '...'
+      });
+      return NextResponse.json(
+        { error: 'Access denied - You can only access your own profile' },
+        { status: 403 }
+      )
+    }
+
+    // Use authenticated user's ID instead of requested ID for security
+    const userId = user.id
 
     // Check if mobile for optimization
     const userAgent = request.headers.get('user-agent') || ''
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
 
-    console.log('[API /user/profile] Device type:', isMobile ? 'mobile' : 'desktop');
-
-    // Direct query without timeout complexity - simpler approach
-    console.log('[API /user/profile] Querying users table for userId:', userId);
+    logger.debug('Fetching user profile', {
+      userId: userId.substring(0, 8) + '...',
+      isMobile
+    });
 
     const { data, error } = await supabase
       .from('users')
@@ -43,27 +70,23 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('[API /user/profile] Supabase error:', error);
+      logger.error('Failed to fetch user profile', {
+        userId: userId.substring(0, 8) + '...',
+        error: error.message
+      });
       return NextResponse.json({
-        error: 'Failed to fetch user profile',
-        details: error.message,
-        code: error.code
+        error: 'Failed to fetch user profile'
       }, { status: 500 })
     }
 
     if (!data) {
-      console.error('[API /user/profile] No data returned from Supabase');
+      logger.warn('User not found in database', {
+        userId: userId.substring(0, 8) + '...'
+      });
       return NextResponse.json({
         error: 'User not found'
       }, { status: 404 })
     }
-
-    console.log('[API /user/profile] User data fetched successfully:', {
-      userId: data.id,
-      full_name: data.full_name,
-      hasEmail: !!data.email,
-      hasWhatsapp: !!data.whatsapp
-    });
 
     // Optimized age calculation
     let age = 0
@@ -94,8 +117,6 @@ export async function GET(request: NextRequest) {
       age: age.toString()
     }
 
-    console.log('[API /user/profile] Returning user profile:', userProfile);
-
     // Add cache headers for better performance
     return NextResponse.json(userProfile, {
       headers: {
@@ -104,10 +125,11 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('[API /user/profile] Unhandled error:', error);
+    logger.error('Unhandled error in profile API', {
+      error: error
+    });
     return NextResponse.json({
-      error: 'Internal server error',
-      details: error.message
+      error: 'Internal server error'
     }, { status: 500 })
   }
 }
