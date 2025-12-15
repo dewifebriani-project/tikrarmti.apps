@@ -105,10 +105,15 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
 
   // Redirect to login if not authenticated (client-side protection)
   useEffect(() => {
-    if (isMounted && !loading && !user) {
-      console.log('AuthenticatedLayout: No user found, redirecting to login');
-      router.push(`/login?redirectedFrom=${pathname}`);
-    }
+    // Add a delay for mobile to allow auth context to initialize
+    const timer = setTimeout(() => {
+      if (isMounted && !loading && !user) {
+        console.log('AuthenticatedLayout: No user found after delay, redirecting to login');
+        router.push(`/login?redirectedFrom=${pathname}`);
+      }
+    }, 1500); // 1.5 second delay for mobile
+
+    return () => clearTimeout(timer);
   }, [user, loading, pathname, router, isMounted]);
 
   useEffect(() => {

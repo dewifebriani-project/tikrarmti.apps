@@ -150,11 +150,16 @@ export default function DashboardContent() {
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      console.log('User not authenticated, redirecting to login...')
-      router.push('/login')
-      return
-    }
+    // Add a delay for mobile to allow auth context to initialize
+    const timer = setTimeout(() => {
+      if (!loading && !user) {
+        console.log('User not authenticated after delay, redirecting to login...')
+        router.push('/login')
+        return
+      }
+    }, 1000); // 1 second delay for mobile
+
+    return () => clearTimeout(timer);
   }, [loading, user, router])
 
   
@@ -262,6 +267,23 @@ export default function DashboardContent() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Memuat data...</p>
+          {/* Mobile Debug Button */}
+          {typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+            <button
+              onClick={() => {
+                fetch('/api/debug/auth-status')
+                  .then(res => res.json())
+                  .then(data => {
+                    console.log('Mobile Auth Debug:', data);
+                    alert(`Auth Status:\nUser: ${data.authentication.hasUser ? data.authentication.user.email : 'No user'}\nCookies: ${data.cookies.accessTokenPresent ? 'Present' : 'Missing'}`);
+                  })
+                  .catch(err => console.error('Debug error:', err));
+              }}
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded text-sm"
+            >
+              Debug Mobile Auth
+            </button>
+          )}
         </div>
       </div>
     )
@@ -275,12 +297,31 @@ export default function DashboardContent() {
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-xl font-bold mb-2">Gagal Memuat Dashboard</h2>
           <p className="text-gray-600 mb-4">Tidak dapat memuat informasi pengguna. Silakan periksa koneksi internet Anda dan coba lagi.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            Muat Ulang Halaman
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Muat Ulang Halaman
+            </button>
+            {/* Mobile Debug Button */}
+            {typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+              <button
+                onClick={() => {
+                  fetch('/api/debug/auth-status')
+                    .then(res => res.json())
+                    .then(data => {
+                      console.log('Mobile Auth Debug:', data);
+                      alert(`Auth Status:\nUser: ${data.authentication.hasUser ? data.authentication.user.email : 'No user'}\nCookies: ${data.cookies.accessTokenPresent ? 'Present' : 'Missing'}`);
+                    })
+                    .catch(err => console.error('Debug error:', err));
+                }}
+                className="w-full px-4 py-2 bg-red-500 text-white rounded-lg text-sm"
+              >
+                Debug Mobile Auth
+              </button>
+            )}
+          </div>
         </div>
       </div>
     )

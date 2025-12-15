@@ -126,6 +126,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
 
+      // Mobile detection for debugging
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      console.log('=== AuthContext Initialize User ===');
+      console.log('Is Mobile:', isMobile);
+      console.log('User Agent:', navigator.userAgent.substring(0, 100));
+      console.log('Has localStorage:', typeof window !== 'undefined' && !!window.localStorage);
+      console.log('=================================');
+
       // Try to validate session via API endpoint (server-side cookies)
       let apiErrorOccurred = false;
       try {
@@ -151,7 +159,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Mobile fallback: Try to restore from localStorage first
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       if ((isMobile || apiErrorOccurred) && typeof window !== 'undefined') {
         try {
           const storedTokens = localStorage.getItem('mti-auth-tokens');
