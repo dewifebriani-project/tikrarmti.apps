@@ -36,10 +36,8 @@ const nextConfig = {
   },
     // CORS configuration
   async headers() {
-    const isProduction = process.env.NODE_ENV === 'production';
-    const allowedOrigins = isProduction
-      ? 'https://markaztikrar.id, https://www.markaztikrar.id'
-      : '*';
+    // Always allow multiple origins including the production domain
+    const allowedOrigins = 'https://markaztikrar.id, https://www.markaztikrar.id, https://192.168.110.223:3000, http://192.168.110.223:3000, http://localhost:3000, http://localhost:3001, http://localhost:3002, http://localhost:3003, *';
 
     return [
       {

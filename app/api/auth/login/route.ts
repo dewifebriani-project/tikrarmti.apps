@@ -111,16 +111,21 @@ export async function POST(request: Request) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
 
+    // Get the origin/hostname to determine if we're on production domain
+    const origin = request.headers.get('origin') || '';
+    const host = request.headers.get('host') || '';
+    const isProductionDomain = host.includes('markaztikrar.id') || origin.includes('markaztikrar.id');
+    const isSecure = isProductionDomain || process.env.NODE_ENV === 'production';
+
     // Enhanced cookie options for mobile and cross-domain compatibility
-    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
       httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' as const : 'lax' as const,
+      secure: isSecure,
+      sameSite: isProductionDomain ? 'none' as const : 'lax' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
-      // Add domain for production
-      ...(isProduction && {
+      // Add domain for production domains
+      ...(isProductionDomain && {
         domain: '.markaztikrar.id'
       })
     };
@@ -132,6 +137,10 @@ export async function POST(request: Request) {
       environment: process.env.NODE_ENV,
       isMobile,
       isSafari,
+      isProductionDomain,
+      isSecure,
+      host,
+      origin,
       userAgent: userAgent.substring(0, 50)
     });
 
@@ -150,24 +159,24 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
-    // For mobile Safari, add additional non-httpOnly cookies as fallback (less secure but more compatible)
-    if ((isMobile && isSafari) || isMobile) {
+    // For mobile Safari or production domains, add additional non-httpOnly cookies as fallback
+    if ((isMobile && isSafari) || isMobile || isProductionDomain) {
       // Set fallback cookies that client-side can access if httpOnly cookies fail
       response.cookies.set({
         name: 'sb-access-token-fallback',
         value: data.session.access_token,
-        secure: isProduction,
-        sameSite: isProduction ? 'none' as const : 'lax' as const,
+        secure: isSecure,
+        sameSite: isProductionDomain ? 'none' as const : 'lax' as const,
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         // Note: httpOnly is false for fallback
-        // Add domain for production
-        ...(isProduction && {
+        // Add domain for production domains
+        ...(isProductionDomain && {
           domain: '.markaztikrar.id'
         })
       });
 
-      console.log('Mobile detected - Setting fallback cookies');
+      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}`);
     }
 
     return response;
