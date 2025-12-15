@@ -111,13 +111,18 @@ export async function POST(request: Request) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
 
-    // Enhanced cookie options for mobile compatibility
+    // Enhanced cookie options for mobile and cross-domain compatibility
+    const isProduction = process.env.NODE_ENV === 'production';
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' as const : 'lax' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
+      // Add domain for production
+      ...(isProduction && {
+        domain: '.markaztikrar.id'
+      })
     };
 
     console.log('Setting auth cookies on response:', {
@@ -151,11 +156,15 @@ export async function POST(request: Request) {
       response.cookies.set({
         name: 'sb-access-token-fallback',
         value: data.session.access_token,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
+        secure: isProduction,
+        sameSite: isProduction ? 'none' as const : 'lax' as const,
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         // Note: httpOnly is false for fallback
+        // Add domain for production
+        ...(isProduction && {
+          domain: '.markaztikrar.id'
+        })
       });
 
       console.log('Mobile detected - Setting fallback cookies');

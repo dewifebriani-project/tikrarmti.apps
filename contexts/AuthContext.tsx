@@ -158,8 +158,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('API session validation failed, trying client-side');
       }
 
-      // Mobile fallback: Try to restore from localStorage first
-      if ((isMobile || apiErrorOccurred) && typeof window !== 'undefined') {
+      // Mobile/Production fallback: Try to restore from localStorage first
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isProductionDomain = typeof window !== 'undefined' &&
+        (window.location.hostname === 'markaztikrar.id' ||
+         window.location.hostname === 'www.markaztikrar.id');
+
+      if ((isMobile || apiErrorOccurred || isProductionDomain) && typeof window !== 'undefined') {
         try {
           const storedTokens = localStorage.getItem('mti-auth-tokens');
           if (storedTokens) {
@@ -353,8 +358,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('Error setting client session:', setSessionError);
           }
 
-          // For mobile devices, store tokens in localStorage as additional fallback
-          if (isMobile && typeof window !== 'undefined') {
+          // For mobile devices or production domains, store tokens in localStorage as additional fallback
+          const isProductionDomain = typeof window !== 'undefined' &&
+            (window.location.hostname === 'markaztikrar.id' ||
+             window.location.hostname === 'www.markaztikrar.id');
+
+          if ((isMobile || isProductionDomain) && typeof window !== 'undefined') {
             try {
               localStorage.setItem('mti-auth-tokens', JSON.stringify({
                 access_token: data.session.access_token,

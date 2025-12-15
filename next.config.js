@@ -36,15 +36,18 @@ const nextConfig = {
   },
     // CORS configuration
   async headers() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const allowedOrigins = isProduction
+      ? 'https://markaztikrar.id, https://www.markaztikrar.id'
+      : '*';
+
     return [
       {
         source: '/api/:path*',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'development'
-              ? '*'
-              : process.env.ALLOWED_ORIGINS || 'http://localhost:3003',
+            value: allowedOrigins,
           },
           {
             key: 'Access-Control-Allow-Methods',
@@ -53,6 +56,10 @@ const nextConfig = {
           {
             key: 'Access-Control-Allow-Headers',
             value: 'Content-Type, Authorization, X-Client-Version',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
           },
           {
             key: 'Access-Control-Max-Age',
