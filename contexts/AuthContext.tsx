@@ -164,6 +164,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         (window.location.hostname === 'markaztikrar.id' ||
          window.location.hostname === 'www.markaztikrar.id');
 
+      // For production domain, try token verification endpoint first
+      if (isProductionDomain && typeof window !== 'undefined') {
+        try {
+          const storedTokens = localStorage.getItem('mti-auth-tokens');
+          if (storedTokens) {
+            const tokens = JSON.parse(storedTokens);
+            console.log('Production: Found stored tokens, verifying with server...');
+
+            // Call token verification endpoint
+            const verifyResponse = await fetch('/api/auth/verify-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+              }),
+            });
+
+            if (verifyResponse.ok) {
+              const verifyData = await verifyResponse.json();
+              if (verifyData.valid && verifyData.user) {
+                console.log('Production: Token verification successful, setting user');
+                setUser(verifyData.user);
+
+                // Update stored tokens if refreshed
+                if (verifyData.session) {
+                  localStorage.setItem('mti-auth-tokens', JSON.stringify({
+                    access_token: verifyData.session.access_token,
+                    refresh_token: verifyData.session.refresh_token,
+                    expires_at: verifyData.session.expires_at,
+                  }));
+                }
+                return;
+              }
+            } else {
+              console.log('Production: Token verification failed, clearing tokens');
+              localStorage.removeItem('mti-auth-tokens');
+            }
+          }
+        } catch (verifyError) {
+          console.error('Production: Token verification error:', verifyError);
+        }
+      }
+
       if ((isMobile || apiErrorOccurred || isProductionDomain) && typeof window !== 'undefined') {
         try {
           const storedTokens = localStorage.getItem('mti-auth-tokens');

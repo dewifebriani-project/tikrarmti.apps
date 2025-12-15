@@ -79,6 +79,12 @@ export async function POST(request: Request) {
       console.error('Database error checking user:', userError);
     }
 
+    // Get the origin/hostname to determine if we're on production domain
+    const origin = request.headers.get('origin') || '';
+    const host = request.headers.get('host') || '';
+    const isProductionDomain = host.includes('markaztikrar.id') || origin.includes('markaztikrar.id');
+    const isSecure = isProductionDomain || process.env.NODE_ENV === 'production';
+
     // Create response and set auth cookies properly
     const response = NextResponse.json({
       success: true,
@@ -103,6 +109,12 @@ export async function POST(request: Request) {
         full_name: userData?.full_name || data.user.user_metadata?.full_name || '',
         role: userData?.role || data.user.user_metadata?.role || 'calon_thalibah',
         created_at: userData?.created_at,
+      },
+      // Add production domain info for client-side handling
+      domain_info: {
+        isProductionDomain,
+        host,
+        origin
       }
     });
 
@@ -110,12 +122,6 @@ export async function POST(request: Request) {
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
     const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
-
-    // Get the origin/hostname to determine if we're on production domain
-    const origin = request.headers.get('origin') || '';
-    const host = request.headers.get('host') || '';
-    const isProductionDomain = host.includes('markaztikrar.id') || origin.includes('markaztikrar.id');
-    const isSecure = isProductionDomain || process.env.NODE_ENV === 'production';
 
     // Enhanced cookie options for mobile and cross-domain compatibility
     const cookieOptions = {
