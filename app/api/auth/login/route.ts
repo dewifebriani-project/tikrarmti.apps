@@ -93,7 +93,12 @@ export async function POST(request: Request) {
       }
     });
 
-    // Set cookies on the response object - this is the correct way in Next.js 16
+    // Check if the request is from a mobile device
+    const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+    const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
+
+    // Enhanced cookie options for mobile compatibility
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -106,7 +111,10 @@ export async function POST(request: Request) {
       accessToken: data.session.access_token.substring(0, 20) + '...',
       refreshToken: data.session.refresh_token.substring(0, 20) + '...',
       cookieOptions,
-      environment: process.env.NODE_ENV
+      environment: process.env.NODE_ENV,
+      isMobile,
+      isSafari,
+      userAgent: userAgent.substring(0, 50)
     });
 
     // Set access token cookie
@@ -123,6 +131,22 @@ export async function POST(request: Request) {
       ...cookieOptions,
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
+
+    // For mobile Safari, add additional non-httpOnly cookies as fallback (less secure but more compatible)
+    if ((isMobile && isSafari) || isMobile) {
+      // Set fallback cookies that client-side can access if httpOnly cookies fail
+      response.cookies.set({
+        name: 'sb-access-token-fallback',
+        value: data.session.access_token,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax' as const,
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+        // Note: httpOnly is false for fallback
+      });
+
+      console.log('Mobile detected - Setting fallback cookies');
+    }
 
     return response;
 

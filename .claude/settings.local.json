@@ -80,7 +80,9 @@
       "Bash(PORT=3002 npm run dev:*)",
       "Bash(if exist .env.local echo Found .env.local file else echo No .env.local file found)",
       "Bash(git rm:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

@@ -145,6 +145,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('API session validation failed, trying client-side');
       }
 
+      // Mobile fallback: Try to restore from localStorage
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile && typeof window !== 'undefined') {
+        try {
+          const storedTokens = localStorage.getItem('mti-auth-tokens');
+          if (storedTokens) {
+            const tokens = JSON.parse(storedTokens);
+
+            // Check if tokens are still valid
+            if (tokens.expires_at && Date.now() < tokens.expires_at * 1000) {
+              console.log('Mobile: Restoring session from localStorage');
+
+              const { error: setSessionError } = await supabase.auth.setSession({
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+              });
+
+              if (!setSessionError) {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                  setUser({
+                    id: session.user.id,
+                    email: session.user.email || '',
+                    full_name: session.user.user_metadata?.full_name || '',
+                    role: session.user.user_metadata?.role || 'calon_thalibah',
+                    created_at: session.user.created_at,
+                  });
+                  console.log('Mobile: Session restored from localStorage');
+                  return;
+                }
+              }
+            } else {
+              console.log('Mobile: Stored tokens expired, clearing localStorage');
+              localStorage.removeItem('mti-auth-tokens');
+            }
+          }
+        } catch (error) {
+          console.warn('Mobile: Could not restore from localStorage:', error);
+        }
+      }
+
       // Fallback: Get current session from client-side
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -276,6 +317,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Check if mobile device for additional handling
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         // Set client-side session with returned tokens
         if (data.session) {
           const { error: setSessionError } = await supabase.auth.setSession({
@@ -285,6 +329,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           if (setSessionError) {
             console.error('Error setting client session:', setSessionError);
+          }
+
+          // For mobile devices, store tokens in localStorage as additional fallback
+          if (isMobile && typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('mti-auth-tokens', JSON.stringify({
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+                expires_at: data.session.expires_at
+              }));
+              console.log('Mobile: Stored auth tokens in localStorage as fallback');
+            } catch (error) {
+              console.warn('Mobile: Could not store tokens in localStorage:', error);
+            }
           }
         }
 
@@ -336,7 +394,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Step 1: Clear user state immediately
       setUser(null);
 
-      // Step 2: Call server logout API to delete cookies - WAIT for completion
+      // Step 2: Clear localStorage tokens (for mobile fallback)
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('mti-auth-tokens');
+          console.log('LOGOUT: Cleared localStorage tokens');
+        } catch (error) {
+          console.warn('LOGOUT: Could not clear localStorage:', error);
+        }
+      }
+
+      // Step 3: Call server logout API to delete cookies - WAIT for completion
       console.log('LOGOUT: Calling server API to delete cookies');
       await fetch('/api/auth/logout', {
         method: 'POST',
@@ -344,7 +412,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       console.log('LOGOUT: Server cookies deleted');
 
-      // Step 3: Sign out from Supabase client
+      // Step 4: Sign out from Supabase client
       console.log('LOGOUT: Signing out from Supabase');
       await supabase.auth.signOut();
       console.log('LOGOUT: Supabase sign out complete');

@@ -13,27 +13,38 @@ export async function GET() {
     // Check specifically for auth cookies
     const accessToken = allCookies.find(c => c.name === 'sb-access-token');
     const refreshToken = allCookies.find(c => c.name === 'sb-refresh-token');
+
+    // Check for fallback cookies (for mobile browsers)
+    const accessTokenFallback = allCookies.find(c => c.name === 'sb-access-token-fallback');
+
     console.log('Auth cookies found:', {
       hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
-      accessTokenValue: accessToken?.value?.substring(0, 20) + '...'
+      hasAccessTokenFallback: !!accessTokenFallback,
+      accessTokenValue: accessToken?.value?.substring(0, 20) + '...',
+      accessTokenFallbackValue: accessTokenFallback?.value?.substring(0, 20) + '...'
     });
+
+    // Determine which tokens to use (prefer httpOnly, fallback to fallback cookies)
+    const finalAccessToken = accessToken?.value || accessTokenFallback?.value;
+    const finalRefreshToken = refreshToken?.value;
 
     // If we have tokens, create a Supabase client with them directly
     let supabase;
-    if (accessToken?.value && refreshToken?.value) {
+    if (finalAccessToken && finalRefreshToken) {
       console.log('Creating Supabase client with direct tokens');
 
       // Debug: Decode JWT token to check expiration
       try {
-        const tokenPayload = JSON.parse(atob(accessToken.value.split('.')[1]));
+        const tokenPayload = JSON.parse(atob(finalAccessToken.split('.')[1]));
         console.log('Token payload decoded:', {
           exp: tokenPayload.exp,
           expDate: new Date(tokenPayload.exp * 1000).toISOString(),
           now: new Date().toISOString(),
           isExpired: Date.now() > (tokenPayload.exp * 1000),
           userId: tokenPayload.sub,
-          email: tokenPayload.email
+          email: tokenPayload.email,
+          usedFallback: !!accessTokenFallback
         });
       } catch (error) {
         console.error('Error decoding token:', error);
@@ -45,7 +56,7 @@ export async function GET() {
         {
           global: {
             headers: {
-              Authorization: `Bearer ${accessToken.value}`,
+              Authorization: `Bearer ${finalAccessToken}`,
             },
           },
           auth: {
@@ -92,7 +103,8 @@ export async function GET() {
         sessionData: session,
         userData: user,
         cookiesPresent: allCookies.map(c => c.name),
-        accessTokenLength: accessToken?.value?.length || 0
+        accessTokenLength: finalAccessToken?.length || 0,
+        hasFallback: !!accessTokenFallback
       });
       return NextResponse.json({ error: 'Invalid session', details: authError?.message }, { status: 401 });
     }
