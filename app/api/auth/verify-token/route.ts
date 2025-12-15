@@ -72,10 +72,10 @@ export async function POST(request: NextRequest) {
         role: userData?.role || user.user_metadata?.role || 'calon_thalibah',
         created_at: userData?.created_at || user.created_at,
       },
-      session: sessionData ? {
-        access_token: sessionData.access_token,
-        refresh_token: sessionData.refresh_token,
-        expires_at: sessionData.expires_at,
+      session: sessionData?.session ? {
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token,
+        expires_at: sessionData.session.expires_at,
       } : null,
     });
 

@@ -499,9 +499,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (typeof window !== 'undefined') {
         const keysToRemove = [
           'mti-auth-token',
+          'mti-auth-tokens',
           'supabase.auth.token',
           'sb-access-token',
-          'sb-refresh-token'
+          'sb-refresh-token',
+          'sb-access-token-fallback',
+          'sb-refresh-token-fallback'
         ];
 
         keysToRemove.forEach(key => {

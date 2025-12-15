@@ -56,6 +56,20 @@ export async function POST(request: NextRequest) {
       })
     });
 
+    cookieStore.set({
+      name: 'sb-refresh-token-fallback',
+      value: '',
+      httpOnly: false,
+      secure: isSecure,
+      sameSite: isProductionDomain ? 'none' : 'lax',
+      maxAge: 0,
+      path: '/',
+      // Add domain for production
+      ...(isProductionDomain && {
+        domain: '.markaztikrar.id'
+      })
+    });
+
     console.log('Logout: Server-side cookies cleared successfully');
 
     return NextResponse.json({ success: true });
