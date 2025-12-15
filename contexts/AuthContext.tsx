@@ -127,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
 
       // Try to validate session via API endpoint (server-side cookies)
+      let apiErrorOccurred = false;
       try {
         const response = await fetch('/api/auth/me', {
           method: 'GET',
@@ -140,14 +141,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(data.user);
             return;
           }
+        } else {
+          apiErrorOccurred = true;
+          console.log('API session validation returned error:', response.status);
         }
       } catch (apiError) {
+        apiErrorOccurred = true;
         console.log('API session validation failed, trying client-side');
       }
 
-      // Mobile fallback: Try to restore from localStorage
+      // Mobile fallback: Try to restore from localStorage first
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile && typeof window !== 'undefined') {
+      if ((isMobile || apiErrorOccurred) && typeof window !== 'undefined') {
         try {
           const storedTokens = localStorage.getItem('mti-auth-tokens');
           if (storedTokens) {
@@ -256,6 +261,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('Auth state changed:', event);
 
       if (event === 'SIGNED_IN' && session?.user) {
+        // Store tokens in localStorage for mobile devices
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile && typeof window !== 'undefined' && session.access_token && session.refresh_token) {
+          localStorage.setItem('mti-auth-tokens', JSON.stringify({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_at: session.expires_at,
+          }));
+        }
+
         // Fetch user data, create if not exists
         let userData = await fetchUserData(session.user.id);
 

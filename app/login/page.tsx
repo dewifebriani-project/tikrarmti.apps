@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from '@/lib/supabase-singleton';
 
 function LoginPageContent() {
@@ -22,6 +22,11 @@ function LoginPageContent() {
   const [successMessage, setSuccessMessage] = useState<React.ReactNode>('');
   const [showPassword, setShowPassword] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   // Set isClient flag after mount to prevent hydration mismatch
   useEffect(() => {
@@ -72,7 +77,25 @@ function LoginPageContent() {
     }
   }, [searchParams, isClient]);
 
-  
+  const fetchDebugInfo = async () => {
+    try {
+      const response = await fetch('/api/debug/mobile-auth', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDebugInfo(data);
+        setShowDebugInfo(true);
+        console.log('Debug info:', data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch debug info:', error);
+    }
+  };
+
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -84,14 +107,21 @@ function LoginPageContent() {
     e.preventDefault();
     setIsLoading(true);
     setErrors({});
+    setShowNotification(false);
 
     if (!formData.email || !formData.password) {
-      setErrors({ general: 'Email dan password harus diisi' });
+      const errorMsg = 'Email dan password harus diisi';
+      setErrors({ general: errorMsg });
+      setNotificationMessage(errorMsg);
+      setNotificationType('error');
+      setShowNotification(true);
       setIsLoading(false);
       return;
     }
 
     try {
+      console.log('Submitting login form...');
+
       // Use API route to login (sets cookies properly)
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -100,63 +130,153 @@ function LoginPageContent() {
         },
         credentials: 'include', // Important: include cookies
         body: JSON.stringify({
-          email: formData.email,
+          email: formData.email.toLowerCase().trim(),
           password: formData.password,
         }),
       });
 
+      console.log('Login response status:', response.status);
+
       const data = await response.json();
+      console.log('Login response data:', { success: data.success, error: data.error });
 
       if (!response.ok) {
         throw new Error(data.error || 'Login gagal');
       }
 
       if (data.success) {
+        // Show success notification
+        setNotificationMessage('Login berhasil! Mengarahkan ke dashboard...');
+        setNotificationType('success');
+        setShowNotification(true);
+
         // Set client-side session immediately
         if (data.session) {
+          console.log('Setting client session...');
           supabase.auth.setSession({
             access_token: data.session.access_token,
             refresh_token: data.session.refresh_token,
-          }).catch(() => {
+          }).catch((error) => {
+            console.error('Session setting error:', error);
             // Ignore session setting error since server-side auth is set
           });
         }
 
-        // Force redirect using window.location
-        // This bypasses Next.js router and ensures we go to dashboard
-        window.location.href = '/dashboard';
+        // Small delay for user to see success message
+        setTimeout(() => {
+          // Force redirect using window.location
+          // This bypasses Next.js router and ensures we go to dashboard
+          console.log('Redirecting to dashboard...');
+          window.location.href = '/dashboard';
+        }, 1000);
       }
     } catch (error: any) {
-      setErrors({ general: error.message || 'Login gagal. Silakan coba lagi.' });
+      console.error('Login error:', error);
+      const errorMsg = error.message || 'Login gagal. Silakan coba lagi.';
+      setErrors({ general: errorMsg });
+      setNotificationMessage(errorMsg);
+      setNotificationType('error');
+      setShowNotification(true);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8 sm:py-12">
-      {/* Minimal Background Elements */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-10 left-5 sm:top-20 sm:left-10 w-24 h-24 sm:w-32 sm:h-32 bg-green-900/5 rounded-full opacity-20 blur-3xl"></div>
-        <div className="absolute bottom-10 right-5 sm:bottom-20 sm:right-20 w-32 h-32 sm:w-40 sm:h-40 bg-yellow-500/5 rounded-full opacity-20 blur-3xl"></div>
-      </div>
+    <>
+      {/* Mobile Notification Toast */}
+      {showNotification && (
+        <div className={`fixed top-4 right-4 left-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+          notificationType === 'success'
+            ? 'bg-green-500 text-white'
+            : 'bg-red-500 text-white'
+        }`}>
+          <div className="flex items-center">
+            {notificationType === 'success' ? (
+              <CheckCircle2 className="w-6 h-6 mr-3" />
+            ) : (
+              <AlertCircle className="w-6 h-6 mr-3" />
+            )}
+            <div className="flex-1">
+              <p className="font-semibold text-base">
+                {notificationType === 'success' ? 'Berhasil!' : 'Error!'}
+              </p>
+              <p className="text-sm opacity-90">{notificationMessage}</p>
+            </div>
+            <button
+              onClick={() => setShowNotification(false)}
+              className="ml-4 text-white hover:opacity-80"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="w-full max-w-md sm:max-w-lg mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <img
-                src="/mti-logo.jpg"
-                alt="Tikrar MTI Apps"
-                className="w-32 h-32 sm:w-40 sm:h-40 object-contain"
-              />
-              <div className="absolute inset-0 -z-10 bg-green-500/20 blur-2xl rounded-full scale-150"></div>
+      {/* Debug Info Overlay */}
+      {showDebugInfo && debugInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Debug Information</h2>
+              <button
+                onClick={() => setShowDebugInfo(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <h3 className="font-semibold mb-2">Device Info</h3>
+                <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+                  {JSON.stringify(debugInfo.device, null, 2)}
+                </pre>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">Auth Cookies ({debugInfo.cookies.auth.length})</h3>
+                {debugInfo.cookies.auth.length > 0 ? (
+                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-xs">
+                    {JSON.stringify(debugInfo.cookies.auth, null, 2)}
+                  </pre>
+                ) : (
+                  <p className="text-red-600">No auth cookies found</p>
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2">Environment</h3>
+                <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
+                  {JSON.stringify(debugInfo.environment, null, 2)}
+                </pre>
+              </div>
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
-          <p className="text-gray-600">Portal Santri Markaz Tikrar Indonesia</p>
         </div>
+      )}
+
+      <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8 sm:py-12">
+        {/* Minimal Background Elements */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+          <div className="absolute top-10 left-5 sm:top-20 sm:left-10 w-24 h-24 sm:w-32 sm:h-32 bg-green-900/5 rounded-full opacity-20 blur-3xl"></div>
+          <div className="absolute bottom-10 right-5 sm:bottom-20 sm:right-20 w-32 h-32 sm:w-40 sm:h-40 bg-yellow-500/5 rounded-full opacity-20 blur-3xl"></div>
+        </div>
+
+        <div className="w-full max-w-md sm:max-w-lg mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <img
+                  src="/mti-logo.jpg"
+                  alt="Tikrar MTI Apps"
+                  className="w-32 h-32 sm:w-40 sm:h-40 object-contain"
+                />
+                <div className="absolute inset-0 -z-10 bg-green-500/20 blur-2xl rounded-full scale-150"></div>
+              </div>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
+            <p className="text-gray-600">Portal Santri Markaz Tikrar Indonesia</p>
+          </div>
 
         {/* Login Form */}
         <Card className="shadow-xl border-0">
@@ -255,10 +375,24 @@ function LoginPageContent() {
                 Daftar sebagai anggota baru
               </Link>
             </div>
+
+            {/* Debug Button - Only visible in development or on mobile */}
+            {isClient && (process.env.NODE_ENV === 'development' || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) && (
+              <div className="text-center mt-4">
+                <button
+                  onClick={fetchDebugInfo}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                  type="button"
+                >
+                  Debug Auth
+                </button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
+    </>
   );
 }
 

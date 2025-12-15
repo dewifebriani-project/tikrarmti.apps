@@ -23,7 +23,20 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Login error:', error);
-      return NextResponse.json({ error: error.message }, { status: 401 });
+      let errorMessage = error.message;
+
+      // Provide more specific error messages for common issues
+      if (error.message === 'Invalid login credentials') {
+        errorMessage = 'Email atau password salah. Silakan periksa kembali.';
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox Anda.';
+      }
+
+      return NextResponse.json({
+        error: errorMessage,
+        originalError: error.message,
+        type: 'auth_error'
+      }, { status: 401 });
     }
 
     if (!data.session) {
