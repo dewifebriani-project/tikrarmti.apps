@@ -6,8 +6,9 @@ import { logger } from '@/lib/logger-secure';
 import { cookies } from 'next/headers';
 
 // Create a Supabase client with cookie handling
-const createServerSupabaseClient = () => {
-  const cookieStore = cookies();
+const createServerSupabaseClient = async () => {
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
 
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +17,7 @@ const createServerSupabaseClient = () => {
       global: {
         headers: {
           // Forward cookies to Supabase
-          cookie: cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ')
+          cookie: allCookies.map(c => `${c.name}=${c.value}`).join('; ')
         }
       }
     } as any
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
     // Method 2: Fall back to cookie-based authentication if header method failed
     if (!session) {
       console.log('Trying cookie-based authentication');
-      const supabase = createServerSupabaseClient();
+      const supabase = await createServerSupabaseClient();
       const { data: { session: cookieSession }, error: cookieError } = await supabase.auth.getSession();
 
       if (!cookieError && cookieSession?.user) {
@@ -100,12 +101,12 @@ export async function POST(request: Request) {
     // Method 3: Final fallback using setSession with cookies
     if (!session) {
       console.log('Trying setSession fallback');
-      const cookieStore = cookies();
-      const accessToken = cookieStore.get('sb-access-token')?.value;
-      const refreshToken = cookieStore.get('sb-refresh-token')?.value;
-
-      // Debug: Log all cookies
+      const cookieStore = await cookies();
       const allCookies = cookieStore.getAll();
+      const accessTokenCookie = allCookies.find(c => c.name === 'sb-access-token');
+      const refreshTokenCookie = allCookies.find(c => c.name === 'sb-refresh-token');
+      const accessToken = accessTokenCookie?.value;
+      const refreshToken = refreshTokenCookie?.value;
       console.log('All cookies:', allCookies.map(c => c.name));
       console.log('Access token exists:', !!accessToken);
       console.log('Refresh token exists:', !!refreshToken);
@@ -134,12 +135,13 @@ export async function POST(request: Request) {
     }
 
     if (sessionError || !session?.user) {
+      const cookieStoreForLog = await cookies();
       logger.warn('Unauthorized form submission attempt', {
         ip: clientIP,
         endpoint: '/api/pendaftaran/submit',
         sessionError: sessionError?.message,
         hasAuthHeader: !!authHeader,
-        availableCookies: cookies().getAll().map(c => c.name)
+        availableCookies: cookieStoreForLog.getAll().map(c => c.name)
       });
 
       return NextResponse.json(

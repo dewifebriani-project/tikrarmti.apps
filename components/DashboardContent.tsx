@@ -43,6 +43,17 @@ export default function DashboardContent() {
     console.log('==================================')
   }, [user, loading])
 
+  // Debug: Log batch info and registration status
+  useEffect(() => {
+    if (user) {
+      console.log('=== Batch Debug Info for User:', user.email, '===')
+      console.log('Batch Info:', batchInfo)
+      console.log('Registration Status:', registrationStatus)
+      console.log('Should show card:', !!batchInfo)
+      console.log('=======================')
+    }
+  }, [user, batchInfo, registrationStatus])
+
   // Load user data when authenticated
   useEffect(() => {
     if (user) {

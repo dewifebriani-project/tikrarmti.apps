@@ -19,9 +19,10 @@ import { useAuth } from '@/contexts/AuthContext';
 interface GlobalAuthenticatedHeaderProps {
   onMenuToggle?: () => void;
   isSidebarOpen?: boolean;
+  isMounted?: boolean;
 }
 
-export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen }: GlobalAuthenticatedHeaderProps) {
+export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen, isMounted = false }: GlobalAuthenticatedHeaderProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -137,7 +138,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                     setShowMobileMenu(!showMobileMenu);
                   }
                 }}
-                className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors duration-200"
+                className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50"
+                disabled={!isMounted}
               >
                 {isSidebarOpen !== undefined ? (
                   isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
@@ -198,7 +200,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
             <div className="relative hidden md:block" ref={notificationRef}>
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors duration-200"
+                className="relative p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50"
+                disabled={!isMounted}
               >
                 <Bell className="w-5 h-5" />
                 {notifications.filter(n => !n.read).length > 0 && (
@@ -207,7 +210,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
               </button>
 
               {/* Notifications Dropdown */}
-              {showNotifications && (
+              {isMounted && showNotifications && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-50">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <h3 className="font-semibold">Notifikasi</h3>
@@ -247,7 +250,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                className="flex items-center space-x-2 p-1 rounded-lg hover:bg-green-50 transition-colors duration-200 group"
+                className="flex items-center space-x-2 p-1 rounded-lg group hover:bg-green-50"
+                disabled={!isMounted}
               >
                 {/* Avatar from Google/Gmail or generated from name */}
                 {user?.photoURL || user?.avatar_url ? (
@@ -279,13 +283,13 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
                     </span>
                   </div>
                 )}
-                <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${
+                <ChevronDown className={`w-4 h-4 text-gray-600 ${
                   showProfileDropdown ? 'rotate-180' : ''
                 }`} />
               </button>
 
               {/* Profile Dropdown */}
-              {showProfileDropdown && (
+              {isMounted && showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-50">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <div className="flex items-center space-x-3">
@@ -397,7 +401,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen 
         </div>
 
         {/* Mobile Menu */}
-        {showMobileMenu && (
+        {isMounted && showMobileMenu && (
           <div className="lg:hidden border-t border-green-900/20 py-4 relative z-40">
             {/* Mobile Quick Links */}
             <nav className="grid grid-cols-2 gap-2">

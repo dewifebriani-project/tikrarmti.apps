@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
@@ -10,19 +9,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    // Create Supabase client with cookie handling
-    const cookieStore = cookies();
+    // Create Supabase client
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            // Forward cookies to Supabase
-            cookie: cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ')
-          }
-        }
-      } as any
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
     // Sign in with email and password
@@ -39,23 +29,6 @@ export async function POST(request: Request) {
     if (!data.session) {
       return NextResponse.json({ error: 'No session created' }, { status: 500 });
     }
-
-    // Set auth cookies for server-side use (middleware and API routes)
-    cookieStore.set('sb-access-token', data.session.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    });
-
-    cookieStore.set('sb-refresh-token', data.session.refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/',
-    });
 
     // Check if user exists in users table, create if not
     let { data: userData, error: userError } = await supabase
@@ -93,7 +66,8 @@ export async function POST(request: Request) {
       console.error('Database error checking user:', userError);
     }
 
-    return NextResponse.json({
+    // Create response and set auth cookies properly
+    const response = NextResponse.json({
       success: true,
       user: {
         id: data.user.id,
@@ -118,6 +92,39 @@ export async function POST(request: Request) {
         created_at: userData?.created_at,
       }
     });
+
+    // Set cookies on the response object - this is the correct way in Next.js 16
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    };
+
+    console.log('Setting auth cookies on response:', {
+      accessToken: data.session.access_token.substring(0, 20) + '...',
+      refreshToken: data.session.refresh_token.substring(0, 20) + '...',
+      cookieOptions,
+      environment: process.env.NODE_ENV
+    });
+
+    // Set access token cookie
+    response.cookies.set({
+      name: 'sb-access-token',
+      value: data.session.access_token,
+      ...cookieOptions,
+    });
+
+    // Set refresh token cookie with longer expiry
+    response.cookies.set({
+      name: 'sb-refresh-token',
+      value: data.session.refresh_token,
+      ...cookieOptions,
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Login API error:', error);

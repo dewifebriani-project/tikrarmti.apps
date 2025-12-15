@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { X, BookOpen, GraduationCap, Users, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 interface UniversalSidebarProps {
   currentPath?: string;
@@ -12,9 +13,14 @@ interface UniversalSidebarProps {
   onClose?: () => void;
 }
 
-export default function DashboardSidebar({ isOpen, onClose }: UniversalSidebarProps) {
+export default function DashboardSidebar({ isOpen = false, onClose }: UniversalSidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Role-based navigation items
   const getNavItems = () => {
@@ -113,19 +119,19 @@ export default function DashboardSidebar({ isOpen, onClose }: UniversalSidebarPr
   
   return (
     <>
-      {/* Mobile overlay */}
-      {isOpen && (
+      {/* Mobile overlay - Only render after mount to prevent hydration mismatch */}
+      {isMounted && isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Ensure consistent className between server and client */}
       <aside className={`
         fixed md:sticky inset-y-0 md:top-0 left-0 z-50 md:z-20 w-64 sm:w-72 bg-white shadow-lg border-r border-green-900/20
         transform transition-transform duration-300 ease-in-out md:h-screen
-        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        ${isMounted && isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
         {/* Logo */}
@@ -138,6 +144,7 @@ export default function DashboardSidebar({ isOpen, onClose }: UniversalSidebarPr
                 width={40}
                 height={40}
                 className="object-contain"
+                style={{ width: 'auto', height: 'auto' }}
                 unoptimized // For external images
               />
             </div>

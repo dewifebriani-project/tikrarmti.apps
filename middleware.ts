@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -34,31 +34,47 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For protected paths, check authentication using cookies
-  // Extract the access token from cookies
-  const accessToken = request.cookies.get('sb-access-token')?.value;
-  const refreshToken = request.cookies.get('sb-refresh-token')?.value;
+  // For protected paths, check authentication using server client
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  if (!accessToken) {
-    // No token found, redirect to login
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('redirectedFrom', pathname);
-    return NextResponse.redirect(url);
-  }
-
-  const supabase = createClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => {
+          return request.cookies.getAll().map((cookie) => ({
+            name: cookie.name,
+            value: cookie.value,
+          }));
+        },
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
   );
 
   try {
-    const { data: { session }, error } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || ''
+    // Debug: Log cookies received by middleware
+    const requestCookies = request.cookies.getAll();
+    const authCookies = requestCookies.filter(c => c.name.includes('sb-') || c.name.includes('auth'));
+    console.log('Middleware cookies for path:', pathname, {
+      totalCookies: requestCookies.length,
+      authCookies: authCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' }))
     });
 
+    const { data: { session }, error } = await supabase.auth.getSession();
+
     if (error || !session) {
+      console.log('Middleware: No valid session found, redirecting to login', { error: error?.message });
       // No valid session, redirect to login
       const url = request.nextUrl.clone();
       url.pathname = '/login';
@@ -66,8 +82,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
+    console.log('Middleware: Valid session found for user:', session.user.id);
     // User is authenticated, continue
-    return NextResponse.next();
+    return response;
   } catch (error) {
     console.error('Middleware auth error:', error);
     // On error, redirect to login

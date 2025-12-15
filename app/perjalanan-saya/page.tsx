@@ -357,6 +357,17 @@ export default function PerjalananSaya() {
   const completedCount = timelineData.filter(item => item.status === 'completed').length;
   const totalCount = timelineData.length;
 
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isClient) {
+    return (
+      <AuthenticatedLayout title="Perjalanan Saya">
+        <div className="flex h-screen items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        </div>
+      </AuthenticatedLayout>
+    );
+  }
+
   return (
     <AuthenticatedLayout title="Perjalanan Saya">
       <div className="space-y-4 sm:space-y-6">

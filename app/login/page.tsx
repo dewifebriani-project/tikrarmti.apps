@@ -2,13 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Crown, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from '@/lib/supabase-singleton';
 
 function LoginPageContent() {
@@ -145,18 +144,18 @@ function LoginPageContent() {
       <div className="w-full max-w-md sm:max-w-lg mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Image
-              src="/mti-logo.jpg"
-              alt="Tikrar MTI Apps"
-              width={64}
-              height={64}
-              className="object-contain w-12 h-12 sm:w-16 sm:h-16"
-              priority
-            />
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <img
+                src="/mti-logo.jpg"
+                alt="Tikrar MTI Apps"
+                className="w-32 h-32 sm:w-40 sm:h-40 object-contain"
+              />
+              <div className="absolute inset-0 -z-10 bg-green-500/20 blur-2xl rounded-full scale-150"></div>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Masuk ke akun Ukhti</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
+          <p className="text-gray-600">Portal Santri Markaz Tikrar Indonesia</p>
         </div>
 
         {/* Login Form */}
@@ -266,22 +265,8 @@ function LoginPageContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-yellow-600 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/mti-logo.jpg"
-              alt="Tikrar MTI Apps"
-              width={64}
-              height={64}
-              className="object-contain animate-pulse"
-              priority
-            />
-          </div>
-          <div className="flex justify-center">
-            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
       </div>
     }>
       <LoginPageContent />

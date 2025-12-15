@@ -62,12 +62,29 @@ function AuthCallbackContent() {
             return;
           }
 
-          // Session is now set, ensure user exists in database before redirect
+          // Session is now set, set server-side cookies first
           const userEmail = exchangeData.session.user.email;
           const userId = exchangeData.session.user.id;
           const fullName = exchangeData.session.user.user_metadata?.full_name || exchangeData.session.user.user_metadata?.name;
 
           console.log('User authenticated:', userEmail);
+
+          // Set server-side cookies for middleware authentication
+          try {
+            await fetch('/api/auth/set-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                access_token: exchangeData.session.access_token,
+                refresh_token: exchangeData.session.refresh_token,
+              }),
+            });
+            console.log('Server-side cookies set successfully');
+          } catch (err) {
+            console.error('Failed to set server-side cookies:', err);
+            // Continue anyway - client-side session is already set
+          }
 
           // Ensure user exists in database BEFORE redirect - with platform optimization
           try {
@@ -138,12 +155,29 @@ function AuthCallbackContent() {
             // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname);
 
-            // Session is set, ensure user exists in database before redirect
+            // Session is set, set server-side cookies first
             const userEmail = sessionData.session.user.email;
             const userId = sessionData.session.user.id;
             const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
 
             console.log('User authenticated:', userEmail);
+
+            // Set server-side cookies for middleware authentication
+            try {
+              await fetch('/api/auth/set-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  access_token: accessToken,
+                  refresh_token: refreshToken || '',
+                }),
+              });
+              console.log('Server-side cookies set successfully');
+            } catch (err) {
+              console.error('Failed to set server-side cookies:', err);
+              // Continue anyway - client-side session is already set
+            }
 
             // Ensure user exists in database BEFORE redirect - with platform optimization
             try {
@@ -195,7 +229,7 @@ function AuthCallbackContent() {
           return;
         }
 
-        // At this point we have a valid session - ensure user exists before redirect
+        // At this point we have a valid session - set server-side cookies first
         const userEmail = sessionData.session.user.email;
         const userId = sessionData.session.user.id;
         const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
@@ -204,6 +238,23 @@ function AuthCallbackContent() {
 
         if (!userEmail) {
           throw new Error('User email is required');
+        }
+
+        // Set server-side cookies for middleware authentication
+        try {
+          await fetch('/api/auth/set-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              access_token: sessionData.session.access_token,
+              refresh_token: sessionData.session.refresh_token,
+            }),
+          });
+          console.log('Server-side cookies set successfully');
+        } catch (err) {
+          console.error('Failed to set server-side cookies:', err);
+          // Continue anyway - client-side session is already set
         }
 
         // Ensure user exists in database BEFORE redirect - with platform optimization

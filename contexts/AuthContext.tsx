@@ -126,7 +126,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
 
-      // Get current session
+      // Try to validate session via API endpoint (server-side cookies)
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            console.log('Session validated via API, user:', data.user.email);
+            setUser(data.user);
+            return;
+          }
+        }
+      } catch (apiError) {
+        console.log('API session validation failed, trying client-side');
+      }
+
+      // Fallback: Get current session from client-side
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
@@ -136,6 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (!session?.user) {
+        console.log('No session found');
         setUser(null);
         return;
       }
@@ -312,55 +332,55 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     console.log('LOGOUT: Process started');
 
-    // Immediately clear user state
-    setUser(null);
+    try {
+      // Step 1: Clear user state immediately
+      setUser(null);
 
-    // Clear storage properly
-    if (typeof window !== 'undefined') {
-      // Clear specific auth keys first
-      const keysToRemove = [
-        'mti-auth-token',
-        'supabase.auth.token',
-        'sb-access-token',
-        'sb-refresh-token'
-      ];
-
-      keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
-        sessionStorage.removeItem(key);
+      // Step 2: Call server logout API to delete cookies - WAIT for completion
+      console.log('LOGOUT: Calling server API to delete cookies');
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
       });
+      console.log('LOGOUT: Server cookies deleted');
 
-      // Then clear everything as fallback
-      localStorage.clear();
-      sessionStorage.clear();
+      // Step 3: Sign out from Supabase client
+      console.log('LOGOUT: Signing out from Supabase');
+      await supabase.auth.signOut();
+      console.log('LOGOUT: Supabase sign out complete');
+
+      // Step 4: Clear all local storage
+      if (typeof window !== 'undefined') {
+        const keysToRemove = [
+          'mti-auth-token',
+          'supabase.auth.token',
+          'sb-access-token',
+          'sb-refresh-token'
+        ];
+
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        });
+
+        // Clear all storage as final step
+        localStorage.clear();
+        sessionStorage.clear();
+        console.log('LOGOUT: Local storage cleared');
+      }
+
+      // Step 5: Redirect to login after everything is cleared
+      console.log('LOGOUT: Redirecting to login');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('LOGOUT: Error during logout process:', error);
+      // Still redirect even if there's an error
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
-
-    // Call server logout without waiting
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-    }).catch(() => {});
-
-    // Supabase logout (don't wait for completion)
-    supabase.auth.signOut().catch(() => {});
-
-    // Redirect immediately using multiple methods
-    if (typeof window !== 'undefined') {
-      // Method 1: Direct assignment
-      window.location.href = '/login';
-
-      // Method 2: Fallback after 50ms
-      setTimeout(() => {
-        window.location.replace('/login');
-      }, 50);
-
-      // Method 3: Final fallback after 100ms
-      setTimeout(() => {
-        window.location.assign('/login');
-      }, 100);
-    }
-
-    console.log('LOGOUT: Redirect commands sent');
   };
 
   const refreshUser = async () => {

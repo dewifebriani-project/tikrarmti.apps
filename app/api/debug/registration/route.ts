@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 // Create a Supabase client with cookie handling
-const createServerSupabaseClient = () => {
-  const cookieStore = cookies();
+const createServerSupabaseClient = async () => {
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
 
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +14,7 @@ const createServerSupabaseClient = () => {
       global: {
         headers: {
           // Forward cookies to Supabase
-          cookie: cookieStore.getAll().map(c => `${c.name}=${c.value}`).join('; ')
+          cookie: allCookies.map(c => `${c.name}=${c.value}`).join('; ')
         }
       }
     } as any
@@ -23,7 +24,7 @@ const createServerSupabaseClient = () => {
 export async function GET(request: Request) {
   try {
     // Get Supabase client with cookie handling
-    const supabase = createServerSupabaseClient();
+    const supabase = await createServerSupabaseClient();
 
     // Try to get session from Authorization header first
     const authHeader = request.headers.get('authorization');

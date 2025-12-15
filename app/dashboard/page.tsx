@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic'
 
 // Dynamic import with no SSR to prevent hydration issues

@@ -16,9 +16,12 @@ const supabaseAdmin = createClient(
 export async function GET(request: NextRequest) {
   try {
     // Get access token from cookies (same as middleware)
-    const cookieStore = cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value;
-    const refreshToken = cookieStore.get('sb-refresh-token')?.value;
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    const accessTokenCookie = allCookies.find(c => c.name === 'sb-access-token');
+    const refreshTokenCookie = allCookies.find(c => c.name === 'sb-refresh-token');
+    const accessToken = accessTokenCookie?.value;
+    const refreshToken = refreshTokenCookie?.value;
 
     // Also try to get from Authorization header as fallback
     const authHeader = request.headers.get('authorization');
