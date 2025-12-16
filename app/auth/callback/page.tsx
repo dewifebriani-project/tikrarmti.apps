@@ -128,20 +128,30 @@ function AuthCallbackContent() {
 
         // Handle hash fragment (for implicit flow - legacy and password recovery)
         if (typeof window !== 'undefined' && window.location.hash) {
+          console.log('Hash fragment detected:', window.location.hash);
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
           const type = hashParams.get('type');
 
+          console.log('Hash params:', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            type: type
+          });
+
           // Check if this is a password recovery link
-          if (type === 'recovery' && accessToken) {
-            console.log('Password recovery detected, setting session and redirecting...');
+          // Recovery links have type=recovery OR no code (since PKCE doesn't use hash)
+          if (accessToken && (type === 'recovery' || !code)) {
+            console.log('Password recovery detected (type=' + type + '), setting session and redirecting...');
 
             // First set the session
             const { data: recoveryData, error: recoveryError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
+
+            console.log('setSession result:', { data: recoveryData, error: recoveryError });
 
             if (recoveryError) {
               console.error('Recovery session error:', recoveryError);
@@ -150,7 +160,14 @@ function AuthCallbackContent() {
               return;
             }
 
-            console.log('Recovery session set, redirecting to reset-password page...');
+            if (!recoveryData.session) {
+              console.error('No session returned from setSession');
+              setError('Gagal membuat session dari link reset password.');
+              setLoading(false);
+              return;
+            }
+
+            console.log('Recovery session set successfully, redirecting to reset-password page...');
             // Now redirect to reset-password page (session already set)
             window.location.replace('/reset-password');
             return;
