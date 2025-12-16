@@ -59,7 +59,13 @@ export async function POST(request: NextRequest) {
     // Get host and origin for domain detection
     const host = request.headers.get('host') || '';
     const origin = request.headers.get('origin') || '';
-    const isProductionDomain = host.includes('markaztikrar.id') || origin.includes('markaztikrar.id');
+    const referer = request.headers.get('referer') || '';
+
+    // Enhanced production domain detection (check all possible sources)
+    const isProductionDomain =
+      host.includes('markaztikrar.id') ||
+      origin.includes('markaztikrar.id') ||
+      referer.includes('markaztikrar.id');
 
     // Create response
     const response = NextResponse.json({
@@ -79,7 +85,7 @@ export async function POST(request: NextRequest) {
       } : null,
     });
 
-    // Set cookies as fallback (may not work in production domain, but let's try)
+    // Set cookies as fallback for production domain
     if (isProductionDomain) {
       const isSecure = true; // Always use secure for production domain
 
@@ -89,7 +95,7 @@ export async function POST(request: NextRequest) {
         value: access_token,
         httpOnly: false, // Client-side accessible for fallback
         secure: isSecure,
-        sameSite: 'none',
+        sameSite: 'lax', // Use 'lax' for better mobile compatibility
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         domain: '.markaztikrar.id'
@@ -102,7 +108,7 @@ export async function POST(request: NextRequest) {
           value: refresh_token,
           httpOnly: false, // Client-side accessible for fallback
           secure: isSecure,
-          sameSite: 'none',
+          sameSite: 'lax', // Use 'lax' for better mobile compatibility
           path: '/',
           maxAge: 60 * 60 * 24 * 30, // 30 days
           domain: '.markaztikrar.id'

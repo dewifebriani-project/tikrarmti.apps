@@ -8,8 +8,16 @@ export async function POST(request: NextRequest) {
     // Get the origin/hostname to determine if we're on production domain
     const host = request.headers.get('host') || '';
     const origin = request.headers.get('origin') || '';
-    const isProductionDomain = host.includes('markaztikrar.id') || origin.includes('markaztikrar.id');
-    const isSecure = isProductionDomain || process.env.NODE_ENV === 'production';
+    const referer = request.headers.get('referer') || '';
+
+    // Enhanced production domain detection (check all possible sources)
+    const isProductionDomain =
+      host.includes('markaztikrar.id') ||
+      origin.includes('markaztikrar.id') ||
+      referer.includes('markaztikrar.id');
+
+    // For production domain, ALWAYS use secure cookies (required for sameSite: 'none')
+    const isSecure = isProductionDomain ? true : (process.env.NODE_ENV === 'production');
 
     // Delete authentication cookies with the EXACT same properties as when they were set
     // This is critical - domain, path, secure, sameSite must match the login cookies
@@ -18,7 +26,7 @@ export async function POST(request: NextRequest) {
       value: '',
       httpOnly: true,
       secure: isSecure,
-      sameSite: isProductionDomain ? 'none' : 'lax',
+      sameSite: 'lax', // Must match login cookie settings
       maxAge: 0, // Expire immediately
       path: '/',
       // Add domain for production to match login cookies
@@ -32,7 +40,7 @@ export async function POST(request: NextRequest) {
       value: '',
       httpOnly: true,
       secure: isSecure,
-      sameSite: isProductionDomain ? 'none' : 'lax',
+      sameSite: 'lax', // Must match login cookie settings
       maxAge: 0, // Expire immediately
       path: '/',
       // Add domain for production to match login cookies
@@ -47,7 +55,7 @@ export async function POST(request: NextRequest) {
       value: '',
       httpOnly: false,
       secure: isSecure,
-      sameSite: isProductionDomain ? 'none' : 'lax',
+      sameSite: 'lax', // Must match login cookie settings
       maxAge: 0,
       path: '/',
       // Add domain for production
@@ -61,7 +69,7 @@ export async function POST(request: NextRequest) {
       value: '',
       httpOnly: false,
       secure: isSecure,
-      sameSite: isProductionDomain ? 'none' : 'lax',
+      sameSite: 'lax', // Must match login cookie settings
       maxAge: 0,
       path: '/',
       // Add domain for production

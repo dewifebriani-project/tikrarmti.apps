@@ -82,8 +82,17 @@ export async function POST(request: Request) {
     // Get the origin/hostname to determine if we're on production domain
     const origin = request.headers.get('origin') || '';
     const host = request.headers.get('host') || '';
-    const isProductionDomain = host.includes('markaztikrar.id') || origin.includes('markaztikrar.id');
-    const isSecure = isProductionDomain || process.env.NODE_ENV === 'production';
+    const referer = request.headers.get('referer') || '';
+
+    // Enhanced production domain detection (check all possible sources)
+    const isProductionDomain =
+      host.includes('markaztikrar.id') ||
+      origin.includes('markaztikrar.id') ||
+      referer.includes('markaztikrar.id');
+
+    // For production domain, ALWAYS use secure cookies (required for sameSite: 'none')
+    // For local development, use secure only in production NODE_ENV
+    const isSecure = isProductionDomain ? true : (process.env.NODE_ENV === 'production');
 
     // Create response and set auth cookies properly
     const response = NextResponse.json({
@@ -124,10 +133,13 @@ export async function POST(request: Request) {
     const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
 
     // Enhanced cookie options for mobile and cross-domain compatibility
+    // IMPORTANT: sameSite: 'none' REQUIRES secure: true (browser will reject otherwise)
     const cookieOptions = {
       httpOnly: true,
       secure: isSecure,
-      sameSite: isProductionDomain ? 'none' as const : 'lax' as const,
+      // Use 'lax' for better mobile compatibility - 'none' often fails on mobile browsers
+      // even with secure=true due to browser privacy settings
+      sameSite: 'lax' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       // Add domain for production domains
@@ -147,6 +159,7 @@ export async function POST(request: Request) {
       isSecure,
       host,
       origin,
+      referer,
       userAgent: userAgent.substring(0, 50)
     });
 
@@ -172,7 +185,7 @@ export async function POST(request: Request) {
         name: 'sb-access-token-fallback',
         value: data.session.access_token,
         secure: isSecure,
-        sameSite: isProductionDomain ? 'none' as const : 'lax' as const,
+        sameSite: 'lax' as const, // Use 'lax' for better mobile compatibility
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         // Note: httpOnly is false for fallback
@@ -182,7 +195,7 @@ export async function POST(request: Request) {
         })
       });
 
-      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}`);
+      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}`);
     }
 
     return response;
