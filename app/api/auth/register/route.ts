@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
     // Parse request body early so it's available in catch block
     body = await request.json();
 
-    // reCAPTCHA validation
-    if (process.env.NODE_ENV === 'production') {
+    // reCAPTCHA validation - Only required if RECAPTCHA_SECRET_KEY is configured
+    if (process.env.NODE_ENV === 'production' && process.env.RECAPTCHA_SECRET_KEY) {
       const recaptchaToken = body.recaptchaToken;
       if (!recaptchaToken) {
         return NextResponse.json(

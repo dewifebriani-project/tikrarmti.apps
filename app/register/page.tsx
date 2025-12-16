@@ -50,7 +50,7 @@ function RegisterPageContent() {
   const [countdown, setCountdown] = useState(0);
   const [savedDataLoaded, setSavedDataLoaded] = useState(false);
 
-  const { token: csrfToken } = useCSRF();
+  const { token: csrfToken, isLoading: csrfLoading, refreshCSRFToken } = useCSRF();
 
   // Load saved form data from localStorage on mount
   React.useEffect(() => {
@@ -187,7 +187,7 @@ function RegisterPageContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, retryCount = 0) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -197,12 +197,31 @@ function RegisterPageContent() {
     setIsLoading(true);
 
     try {
+      // Prepare headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add CSRF token if available
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+        console.log('CSRF token added to registration:', csrfToken.substring(0, 20) + '...');
+      } else {
+        console.warn('CSRF token not available, attempting to refresh...');
+        await refreshCSRFToken();
+        // Try to get the token from cookie after refresh
+        const cookieToken = document.cookie.split('; ').find(c => c.startsWith('csrf-token='))?.split('=')[1];
+        if (cookieToken) {
+          headers['X-CSRF-Token'] = cookieToken;
+          console.log('CSRF token retrieved from cookie:', cookieToken.substring(0, 20) + '...');
+        } else {
+          console.error('Failed to get CSRF token from cookie. Available cookies:', document.cookie);
+        }
+      }
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken || '',
-        },
+        headers: headers,
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -244,10 +263,25 @@ function RegisterPageContent() {
           });
         }, 1000);
       } else {
-        setErrors({ general: data.message || 'Registrasi gagal' });
+        // Handle CSRF token validation error (403 Forbidden)
+        if (response.status === 403 && data.error?.includes('CSRF')) {
+          console.error('CSRF token validation failed, refreshing token...');
+          // Refresh CSRF token and retry once
+          if (retryCount === 0) {
+            await refreshCSRFToken();
+            console.log('CSRF token refreshed, retrying registration...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            setIsLoading(false);
+            return handleSubmit(e, retryCount + 1);
+          }
+          setErrors({ general: 'Token keamanan tidak valid. Silakan refresh halaman dan coba lagi.' });
+        } else {
+          setErrors({ general: data.message || data.error || 'Registrasi gagal' });
+        }
         setIsLoading(false);
       }
     } catch (error) {
+      console.error('Registration error:', error);
       setErrors({ general: 'Terjadi kesalahan. Silakan coba lagi.' });
       setIsLoading(false);
     }
