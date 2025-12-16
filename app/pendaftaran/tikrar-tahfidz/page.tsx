@@ -101,6 +101,25 @@ function TikrarTahfidzPage() {
   const totalSections = 4
   const progressPercentage = useMemo(() => (currentSection / totalSections) * 100, [currentSection])
 
+  // Version check to force reload on new deployments
+  useEffect(() => {
+    const CURRENT_VERSION = '2025-12-16-v2'; // Update this to force cache clear
+    const storedVersion = localStorage.getItem('tikrar_page_version');
+
+    if (storedVersion !== CURRENT_VERSION) {
+      console.log('New version detected, clearing cache...');
+      // Clear old cache but preserve form data
+      const savedFormState = localStorage.getItem('tikrar_form_state');
+      localStorage.clear();
+      if (savedFormState) {
+        localStorage.setItem('tikrar_form_state', savedFormState);
+      }
+      localStorage.setItem('tikrar_page_version', CURRENT_VERSION);
+      // Force reload to get fresh resources
+      window.location.reload();
+    }
+  }, []);
+
   // Initialize state after component mounts to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true)
