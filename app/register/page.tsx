@@ -585,7 +585,11 @@ function RegisterPageContent() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-3"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 touch-manipulation"
+              style={{
+                WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation'
+              }}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
