@@ -135,6 +135,8 @@ export async function POST(request: Request) {
 
     // Enhanced cookie options for mobile and cross-domain compatibility
     // IMPORTANT: sameSite: 'none' REQUIRES secure: true (browser will reject otherwise)
+    // Note: We DON'T set domain for httpOnly cookies to avoid issues with www/non-www
+    // The browser will automatically scope the cookie to the current domain
     const cookieOptions = {
       httpOnly: true,
       secure: isSecure,
@@ -143,10 +145,6 @@ export async function POST(request: Request) {
       sameSite: 'lax' as const,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
-      // Add domain for production domains
-      ...(isProductionDomain && {
-        domain: '.markaztikrar.id'
-      })
     };
 
     console.log('Setting auth cookies on response:', {
@@ -181,6 +179,7 @@ export async function POST(request: Request) {
 
     // For mobile Safari or production domains, add additional non-httpOnly cookies as fallback
     // IMPORTANT: Always set fallback for production domain to ensure authentication works
+    // Note: We don't use wildcard domain to avoid www/non-www issues - cookie will be scoped to current host
     if ((isMobile && isSafari) || isMobile || isProductionDomain) {
       // Set fallback cookies that client-side can access if httpOnly cookies fail
       response.cookies.set({
@@ -191,10 +190,6 @@ export async function POST(request: Request) {
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         // Note: httpOnly is false for fallback
-        // Add domain for production domains
-        ...(isProductionDomain && {
-          domain: '.markaztikrar.id'
-        })
       });
 
       // Also set refresh token fallback for token refresh
@@ -205,12 +200,9 @@ export async function POST(request: Request) {
         sameSite: 'lax' as const,
         path: '/',
         maxAge: 60 * 60 * 24 * 30, // 30 days
-        ...(isProductionDomain && {
-          domain: '.markaztikrar.id'
-        })
       });
 
-      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}, Domain: ${isProductionDomain ? '.markaztikrar.id' : 'none'}`);
+      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}, Host: ${host}`);
     }
 
     return response;
