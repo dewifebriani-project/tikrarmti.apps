@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Crown, Heart, ArrowRight, CheckCircle } from "lucide-react";
+import { Crown, Heart, ArrowRight } from "lucide-react";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { validatePhoneNumberFormat } from "@/lib/utils/sanitize";
 import { useCSRF } from "@/contexts/CSRFContext";
@@ -45,9 +45,7 @@ function RegisterPageContent() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const [savedDataLoaded, setSavedDataLoaded] = useState(false);
 
   const { token: csrfToken, isLoading: csrfLoading, refreshCSRFToken } = useCSRF();
@@ -248,20 +246,8 @@ function RegisterPageContent() {
         // Clear saved form data on success
         localStorage.removeItem('registerFormData');
 
-        setSuccess(data.message || 'Pendaftaran berhasil!');
-        setIsLoading(false);
-        setCountdown(3);
-
-        const timer = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              window.location.href = '/login?message=registration_success';
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+        // Redirect immediately to login page
+        window.location.href = '/login?message=registration_success';
       } else {
         // Handle CSRF token validation error (403 Forbidden)
         if (response.status === 403 && data.error?.includes('CSRF')) {
@@ -323,23 +309,6 @@ function RegisterPageContent() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Success Message */}
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    <span className="font-semibold">{success}</span>
-                  </div>
-                  {countdown > 0 && (
-                    <p className="text-sm text-green-600">
-                      Mengalihkan ke halaman login dalam {countdown} detik...
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Error Message */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
