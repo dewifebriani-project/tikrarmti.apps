@@ -126,11 +126,21 @@ function AuthCallbackContent() {
           return;
         }
 
-        // Handle hash fragment (for implicit flow - legacy)
+        // Handle hash fragment (for implicit flow - legacy and password recovery)
         if (typeof window !== 'undefined' && window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
+          const type = hashParams.get('type');
+
+          // Check if this is a password recovery link
+          if (type === 'recovery' && accessToken) {
+            console.log('Password recovery detected, redirecting to reset password page...');
+            // Redirect to reset-password page with tokens
+            const resetUrl = `/reset-password?access_token=${accessToken}&refresh_token=${refreshToken || ''}`;
+            window.location.replace(resetUrl);
+            return;
+          }
 
           if (accessToken) {
             console.log('Found access token in hash fragment, setting session...');
