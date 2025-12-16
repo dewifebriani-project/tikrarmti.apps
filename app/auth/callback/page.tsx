@@ -135,10 +135,24 @@ function AuthCallbackContent() {
 
           // Check if this is a password recovery link
           if (type === 'recovery' && accessToken) {
-            console.log('Password recovery detected, redirecting to reset password page...');
-            // Redirect to reset-password page with tokens
-            const resetUrl = `/reset-password?access_token=${accessToken}&refresh_token=${refreshToken || ''}`;
-            window.location.replace(resetUrl);
+            console.log('Password recovery detected, setting session and redirecting...');
+
+            // First set the session
+            const { data: recoveryData, error: recoveryError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            if (recoveryError) {
+              console.error('Recovery session error:', recoveryError);
+              setError(`Gagal memvalidasi link reset password: ${recoveryError.message}`);
+              setLoading(false);
+              return;
+            }
+
+            console.log('Recovery session set, redirecting to reset-password page...');
+            // Now redirect to reset-password page (session already set)
+            window.location.replace('/reset-password');
             return;
           }
 
