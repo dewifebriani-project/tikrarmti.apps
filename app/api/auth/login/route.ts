@@ -179,6 +179,7 @@ export async function POST(request: Request) {
     });
 
     // For mobile Safari or production domains, add additional non-httpOnly cookies as fallback
+    // IMPORTANT: Always set fallback for production domain to ensure authentication works
     if ((isMobile && isSafari) || isMobile || isProductionDomain) {
       // Set fallback cookies that client-side can access if httpOnly cookies fail
       response.cookies.set({
@@ -195,7 +196,20 @@ export async function POST(request: Request) {
         })
       });
 
-      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}`);
+      // Also set refresh token fallback for token refresh
+      response.cookies.set({
+        name: 'sb-refresh-token-fallback',
+        value: data.session.refresh_token,
+        secure: isSecure,
+        sameSite: 'lax' as const,
+        path: '/',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        ...(isProductionDomain && {
+          domain: '.markaztikrar.id'
+        })
+      });
+
+      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}, Domain: ${isProductionDomain ? '.markaztikrar.id' : 'none'}`);
     }
 
     return response;

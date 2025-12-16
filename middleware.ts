@@ -68,13 +68,68 @@ export async function middleware(request: NextRequest) {
     const authCookies = requestCookies.filter(c => c.name.includes('sb-') || c.name.includes('auth'));
     console.log('Middleware cookies for path:', pathname, {
       totalCookies: requestCookies.length,
-      authCookies: authCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' }))
+      authCookies: authCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' })),
+      host: request.headers.get('host'),
+      userAgent: request.headers.get('user-agent')?.substring(0, 50)
     });
 
-    const { data: { session }, error } = await supabase.auth.getSession();
+    // Check for fallback token (for mobile browsers where httpOnly cookies may fail)
+    const fallbackToken = request.cookies.get('sb-access-token-fallback');
+    const hasHttpOnlyCookie = request.cookies.get('sb-access-token');
+
+    console.log('Middleware token check:', {
+      hasHttpOnlyCookie: !!hasHttpOnlyCookie,
+      hasFallbackToken: !!fallbackToken,
+      fallbackTokenPreview: fallbackToken?.value?.substring(0, 20) + '...'
+    });
+
+    // First try to get session from cookies (standard flow)
+    let { data: { session }, error } = await supabase.auth.getSession();
+
+    // If no session but we have fallback token, try to validate it directly
+    if ((!session || error) && fallbackToken) {
+      console.log('Middleware: No session from httpOnly cookies, trying fallback token...');
+
+      // Create a new supabase client with the fallback token for verification
+      const { createClient } = await import('@supabase/supabase-js');
+      const tokenValidationClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${fallbackToken.value}`,
+            },
+          },
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        }
+      );
+
+      // Try to get user with the fallback token
+      const { data: { user }, error: userError } = await tokenValidationClient.auth.getUser();
+
+      console.log('Middleware fallback token validation:', {
+        hasUser: !!user,
+        userId: user?.id,
+        error: userError?.message
+      });
+
+      if (user && !userError) {
+        // Token is valid, allow access
+        console.log('Middleware: Valid session from fallback token for user:', user.id);
+        return response;
+      }
+    }
 
     if (error || !session) {
-      console.log('Middleware: No valid session found, redirecting to login', { error: error?.message });
+      console.log('Middleware: No valid session found (checked both cookies and fallback), redirecting to login', {
+        error: error?.message,
+        hasFallbackToken: !!fallbackToken,
+        pathname
+      });
       // No valid session, redirect to login
       const url = request.nextUrl.clone();
       url.pathname = '/login';

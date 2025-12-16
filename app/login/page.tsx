@@ -160,6 +160,19 @@ function LoginPageContent() {
             console.error('Session setting error:', error);
             // Ignore session setting error since server-side auth is set
           });
+
+          // Also store in localStorage as additional fallback
+          // This helps with mobile browsers that may have cookie issues
+          try {
+            localStorage.setItem('mti-auth-token', JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+              expires_at: data.session.expires_at,
+            }));
+            console.log('Tokens stored in localStorage as fallback');
+          } catch (storageError) {
+            console.warn('Failed to store tokens in localStorage:', storageError);
+          }
         }
 
         // Small delay for user to see success message
