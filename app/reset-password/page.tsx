@@ -25,12 +25,37 @@ function ResetPasswordPageContent() {
   // Get the access token from URL parameters
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
+  const [sessionSet, setSessionSet] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) {
-      setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
-    }
-  }, [accessToken]);
+    const setSessionFromUrl = async () => {
+      if (!accessToken) {
+        setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
+        return;
+      }
+
+      // Set the session immediately when page loads
+      try {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
+        } else {
+          console.log('Session set successfully');
+          setSessionSet(true);
+        }
+      } catch (err) {
+        console.error('Error setting session:', err);
+        setError('Terjadi kesalahan saat memvalidasi link. Silakan coba lagi.');
+      }
+    };
+
+    setSessionFromUrl();
+  }, [accessToken, refreshToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,34 +80,36 @@ function ResetPasswordPageContent() {
       return;
     }
 
+    if (!sessionSet) {
+      setError('Session belum siap. Silakan tunggu sebentar dan coba lagi.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Set the session using the tokens from URL
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken!,
-        refresh_token: refreshToken || '',
-      });
-
-      if (sessionError) {
-        setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Update the password
+      console.log('Updating password...');
+      // Update the password (session already set in useEffect)
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
       });
 
       if (updateError) {
+        console.error('Update password error:', updateError);
         setError('Gagal memperbarui password. Silakan coba lagi.');
       } else {
+        console.log('Password updated successfully');
         setSuccess(true);
+
+        // Sign out to clear the recovery session
+        await supabase.auth.signOut();
+
         // Redirect to login after 2 seconds
         setTimeout(() => {
           router.push('/login?message=password_reset_success');
         }, 2000);
       }
     } catch (error: any) {
+      console.error('Error updating password:', error);
       setError(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
