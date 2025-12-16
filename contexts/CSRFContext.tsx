@@ -40,7 +40,9 @@ export const CSRFProvider: React.FC<CSRFProviderProps> = ({ children }) => {
           setToken(csrfToken);
           // Store in cookie for future requests
           if (typeof window !== 'undefined') {
-            document.cookie = `csrf-token=${csrfToken}; path=/; secure; samesite=strict; max-age=3600`;
+            const isProduction = window.location.protocol === 'https:';
+            const secureFlag = isProduction ? 'secure;' : '';
+            document.cookie = `csrf-token=${csrfToken}; path=/; ${secureFlag} samesite=lax; max-age=3600`;
           }
         }
       }

@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCSRF } from '@/contexts/CSRFContext'
 import { type PendaftaranData } from '@/lib/pendaftaran'
 import { fetchInitialData, getCachedBatchInfo } from './optimized-sections'
 import { supabase } from '@/lib/supabase-singleton'
@@ -50,6 +51,7 @@ interface FormData {
 function TikrarTahfidzPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
+  const { token: csrfToken, isLoading: csrfLoading, refreshCSRFToken } = useCSRF()
 
   // Default form data
   const defaultFormData = {
@@ -804,6 +806,23 @@ function TikrarTahfidzPage() {
         'Authorization': `Bearer ${authSession.access_token}`, // Send token as Bearer
       };
 
+      // Add CSRF token if available for production security
+      if (csrfToken) {
+        headers['x-csrf-token'] = csrfToken;
+        console.log('CSRF token added to headers:', csrfToken.substring(0, 20) + '...');
+      } else {
+        console.warn('CSRF token not available, attempting to refresh...');
+        await refreshCSRFToken();
+        // Try to get the token from cookie after refresh
+        const cookieToken = document.cookie.split('; ').find(c => c.startsWith('csrf-token='))?.split('=')[1];
+        if (cookieToken) {
+          headers['x-csrf-token'] = cookieToken;
+          console.log('CSRF token retrieved from cookie:', cookieToken.substring(0, 20) + '...');
+        } else {
+          console.error('Failed to get CSRF token from cookie. Available cookies:', document.cookie);
+        }
+      }
+
       const response = await fetch(apiUrl, {
         method: apiMethod,
         headers: headers,
@@ -818,6 +837,19 @@ function TikrarTahfidzPage() {
       console.log('Server response:', result)
 
       if (!response.ok) {
+        // Handle CSRF token validation error (403 Forbidden)
+        if (response.status === 403 && result.error?.includes('CSRF')) {
+          console.error('CSRF token validation failed, refreshing token...');
+          // Refresh CSRF token and retry once
+          if (retryCount === 0) {
+            await refreshCSRFToken();
+            console.log('CSRF token refreshed, retrying submission...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return handleSubmit(retryCount + 1);
+          }
+          throw new Error('Token keamanan tidak valid. Silakan refresh halaman dan coba lagi.');
+        }
+
         // Check if it's a network error that can be retried
         if (retryCount < maxRetries && (response.status >= 500 || !navigator.onLine)) {
           console.log(`Retrying submit attempt ${retryCount + 1} of ${maxRetries}`)

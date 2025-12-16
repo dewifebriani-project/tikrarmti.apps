@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   response.cookies.set('csrf-token', token, {
     httpOnly: false, // Client needs to read this
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax', // Changed from 'strict' to 'lax' for better mobile browser compatibility
     maxAge: 60 * 60, // 1 hour
     path: '/'
   });
