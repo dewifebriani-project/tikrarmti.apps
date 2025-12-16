@@ -86,26 +86,44 @@ export default function DashboardContent() {
       // Load batch info directly in useEffect to avoid hooks violation
       const loadBatchInfo = async () => {
         try {
+          console.log('=== Loading Batch Info ===')
+          console.log('User:', user?.email, 'Role:', user?.role)
+
           // Check cache first (5 minutes cache) - only if window is defined
+          // Using v2 to invalidate old cache from previous version
           if (typeof window !== 'undefined') {
-            const cached = localStorage.getItem('dashboard_batch_info')
+            // Clean up old cache key
+            localStorage.removeItem('dashboard_batch_info')
+
+            const cached = localStorage.getItem('dashboard_batch_info_v2')
             if (cached) {
-              const { data: cachedData, timestamp } = JSON.parse(cached)
-              if (Date.now() - timestamp < 5 * 60 * 1000) {
-                setBatchInfo(cachedData)
-                const durationWeeks = cachedData.duration_weeks || 13
-                setStats(prev => ({
-                  ...prev,
-                  totalHariTarget: durationWeeks,
-                  hariAktual: 0,
-                  persentaseProgress: 0
-                }))
-                return // Use cache, skip API call
+              try {
+                const { data: cachedData, timestamp } = JSON.parse(cached)
+                if (Date.now() - timestamp < 5 * 60 * 1000) {
+                  console.log('Using cached batch info:', cachedData.name)
+                  setBatchInfo(cachedData)
+                  const durationWeeks = cachedData.duration_weeks || 13
+                  setStats(prev => ({
+                    ...prev,
+                    totalHariTarget: durationWeeks,
+                    hariAktual: 0,
+                    persentaseProgress: 0
+                  }))
+                  return // Use cache, skip API call
+                } else {
+                  console.log('Cache expired, fetching from API')
+                }
+              } catch (e) {
+                console.warn('Invalid cache data, clearing and fetching from API')
+                localStorage.removeItem('dashboard_batch_info_v2')
               }
+            } else {
+              console.log('No cache found, fetching from API')
             }
           }
 
           // Fetch from API
+          console.log('Querying batches with status=open...')
           const { data, error } = await supabase
             .from('batches')
             .select('*')
@@ -113,13 +131,17 @@ export default function DashboardContent() {
             .order('created_at', { ascending: false })
             .limit(1)
 
+          console.log('Query result:', { data, error })
+          console.log('Data length:', data?.length)
+
           if (data && data.length > 0 && !error) {
             const batchData = data[0] as any
+            console.log('✅ Batch found:', batchData.name)
             setBatchInfo(batchData)
 
             // Cache the result - only if window is defined
             if (typeof window !== 'undefined') {
-              localStorage.setItem('dashboard_batch_info', JSON.stringify({
+              localStorage.setItem('dashboard_batch_info_v2', JSON.stringify({
                 data: batchData,
                 timestamp: Date.now()
               }))
@@ -133,9 +155,13 @@ export default function DashboardContent() {
               hariAktual: 0,
               persentaseProgress: 0
             }))
+          } else if (error) {
+            console.error('❌ Error querying batches:', error)
+          } else {
+            console.warn('⚠️ No batch found with status=open')
           }
         } catch (error) {
-          console.error('Error loading batch info:', error)
+          console.error('❌ Exception loading batch info:', error)
         }
       }
 
