@@ -134,17 +134,18 @@ export async function POST(request: Request) {
     const isSafari = /Safari/i.test(userAgent) && !/Chrome/i.test(userAgent);
 
     // Enhanced cookie options for mobile and cross-domain compatibility
-    // IMPORTANT: sameSite: 'none' REQUIRES secure: true (browser will reject otherwise)
-    // Note: We DON'T set domain for httpOnly cookies to avoid issues with www/non-www
-    // The browser will automatically scope the cookie to the current domain
+    // CRITICAL for mobile: Use sameSite 'lax' and explicit domain with dot prefix
+    // This ensures cookies work on both www and non-www subdomains
     const cookieOptions = {
       httpOnly: true,
       secure: isSecure,
-      // Use 'lax' for better mobile compatibility - 'none' often fails on mobile browsers
-      // even with secure=true due to browser privacy settings
-      sameSite: 'lax' as const,
+      sameSite: 'lax' as const, // CRITICAL: 'lax' is most compatible with mobile browsers
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
+      // Use wildcard domain for production to support both www and non-www
+      ...(isProductionDomain && {
+        domain: '.markaztikrar.id' // Dot prefix allows www.markaztikrar.id and markaztikrar.id
+      })
     };
 
     console.log('Setting auth cookies on response:', {
@@ -179,17 +180,21 @@ export async function POST(request: Request) {
 
     // For mobile Safari or production domains, add additional non-httpOnly cookies as fallback
     // IMPORTANT: Always set fallback for production domain to ensure authentication works
-    // Note: We don't use wildcard domain to avoid www/non-www issues - cookie will be scoped to current host
+    // Use same domain configuration as httpOnly cookies for consistency
     if ((isMobile && isSafari) || isMobile || isProductionDomain) {
       // Set fallback cookies that client-side can access if httpOnly cookies fail
       response.cookies.set({
         name: 'sb-access-token-fallback',
         value: data.session.access_token,
         secure: isSecure,
-        sameSite: 'lax' as const, // Use 'lax' for better mobile compatibility
+        sameSite: 'lax' as const, // CRITICAL: 'lax' for mobile compatibility
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 7 days
         // Note: httpOnly is false for fallback
+        // Use same domain configuration as httpOnly cookies
+        ...(isProductionDomain && {
+          domain: '.markaztikrar.id'
+        })
       });
 
       // Also set refresh token fallback for token refresh
@@ -197,12 +202,15 @@ export async function POST(request: Request) {
         name: 'sb-refresh-token-fallback',
         value: data.session.refresh_token,
         secure: isSecure,
-        sameSite: 'lax' as const,
+        sameSite: 'lax' as const, // CRITICAL: 'lax' for mobile compatibility
         path: '/',
         maxAge: 60 * 60 * 24 * 30, // 30 days
+        ...(isProductionDomain && {
+          domain: '.markaztikrar.id'
+        })
       });
 
-      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}, Host: ${host}`);
+      console.log(`Setting fallback cookies - Mobile: ${isMobile}, Production Domain: ${isProductionDomain}, isSecure: ${isSecure}, Host: ${host}, Domain: ${isProductionDomain ? '.markaztikrar.id' : 'localhost'}`);
     }
 
     return response;

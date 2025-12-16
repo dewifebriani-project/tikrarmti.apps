@@ -175,13 +175,14 @@ function LoginPageContent() {
           }
         }
 
-        // Small delay for user to see success message
+        // CRITICAL: Delay to allow mobile browsers to commit cookies before redirect
+        // Mobile browsers need more time to save cookies than desktop
         setTimeout(() => {
           // Force redirect using window.location
           // This bypasses Next.js router and ensures we go to dashboard
           console.log('Redirecting to dashboard...');
           window.location.href = '/dashboard';
-        }, 1000);
+        }, 1500); // Increased from 1000ms to 1500ms for mobile cookie commit
       }
     } catch (error: any) {
       console.error('Login error:', error);
