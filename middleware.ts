@@ -4,6 +4,15 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get('host') || '';
+
+  // Redirect www to non-www for production domain
+  if (host.startsWith('www.markaztikrar.id')) {
+    const url = request.nextUrl.clone();
+    url.host = 'markaztikrar.id';
+    console.log('Redirecting from www to non-www:', { from: host, to: url.host });
+    return NextResponse.redirect(url, { status: 301 });
+  }
 
   // These paths should be accessible without authentication
   const publicPaths = [

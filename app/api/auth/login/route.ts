@@ -85,6 +85,7 @@ export async function POST(request: Request) {
     const referer = request.headers.get('referer') || '';
 
     // Enhanced production domain detection (check all possible sources)
+    // Support both www and non-www
     const isProductionDomain =
       host.includes('markaztikrar.id') ||
       origin.includes('markaztikrar.id') ||

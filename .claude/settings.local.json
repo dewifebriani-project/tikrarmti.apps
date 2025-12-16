@@ -82,7 +82,8 @@
       "Bash(git rm:*)",
       "Bash(test:*)",
       "Bash(git pull:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
