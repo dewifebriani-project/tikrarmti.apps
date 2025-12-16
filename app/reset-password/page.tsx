@@ -26,31 +26,51 @@ function ResetPasswordPageContent() {
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const [sessionSet, setSessionSet] = useState(false);
+  const [isSettingSession, setIsSettingSession] = useState(true);
 
   useEffect(() => {
     const setSessionFromUrl = async () => {
+      console.log('=== Reset Password Debug ===');
+      console.log('Access Token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'MISSING');
+      console.log('Refresh Token:', refreshToken ? `${refreshToken.substring(0, 20)}...` : 'MISSING');
+
       if (!accessToken) {
+        console.error('No access token found in URL');
         setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
+        setIsSettingSession(false);
         return;
       }
 
       // Set the session immediately when page loads
       try {
-        const { error: sessionError } = await supabase.auth.setSession({
+        console.log('Attempting to set session...');
+        const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || '',
         });
 
+        console.log('setSession response:', { data, error: sessionError });
+
         if (sessionError) {
           console.error('Session error:', sessionError);
-          setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
-        } else {
-          console.log('Session set successfully');
+          setError(`Link reset password tidak valid: ${sessionError.message}`);
+          setIsSettingSession(false);
+        } else if (data.session) {
+          console.log('Session set successfully:', {
+            user: data.session.user.email,
+            expiresAt: data.session.expires_at
+          });
           setSessionSet(true);
+          setIsSettingSession(false);
+        } else {
+          console.error('No session returned');
+          setError('Gagal membuat session. Silakan minta link reset baru.');
+          setIsSettingSession(false);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error setting session:', err);
-        setError('Terjadi kesalahan saat memvalidasi link. Silakan coba lagi.');
+        setError(`Terjadi kesalahan: ${err.message || 'Unknown error'}`);
+        setIsSettingSession(false);
       }
     };
 
@@ -148,6 +168,25 @@ function ResetPasswordPageContent() {
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Password Berhasil Diubah!</h2>
               <p className="text-gray-600">Anda akan dialihkan ke halaman login...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading state while setting session
+  if (isSettingSession) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Memvalidasi Link</h2>
+              <p className="text-gray-600">Mohon tunggu sebentar...</p>
             </div>
           </CardContent>
         </Card>
