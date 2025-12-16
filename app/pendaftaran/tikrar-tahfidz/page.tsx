@@ -103,20 +103,34 @@ function TikrarTahfidzPage() {
 
   // Version check to force reload on new deployments
   useEffect(() => {
-    const CURRENT_VERSION = '2025-12-16-v2'; // Update this to force cache clear
+    const CURRENT_VERSION = '2025-12-16-v3'; // Update this to force cache clear
     const storedVersion = localStorage.getItem('tikrar_page_version');
 
     if (storedVersion !== CURRENT_VERSION) {
-      console.log('New version detected, clearing cache...');
-      // Clear old cache but preserve form data
+      console.log('New version detected, clearing form-specific cache...');
+      // IMPORTANT: Only clear form-specific cache, NOT dashboard or other app caches
+      // Preserve important data like batch info and form state
       const savedFormState = localStorage.getItem('tikrar_form_state');
-      localStorage.clear();
+      const dashboardBatchInfo = localStorage.getItem('dashboard_batch_info_v2');
+      const authData = localStorage.getItem('auth_user');
+
+      // Remove only form-specific items instead of clearing all localStorage
+      const keysToRemove = ['tikrar_form_validation', 'tikrar_form_errors'];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // Restore preserved data
       if (savedFormState) {
         localStorage.setItem('tikrar_form_state', savedFormState);
       }
+      if (dashboardBatchInfo) {
+        localStorage.setItem('dashboard_batch_info_v2', dashboardBatchInfo);
+      }
+      if (authData) {
+        localStorage.setItem('auth_user', authData);
+      }
+
       localStorage.setItem('tikrar_page_version', CURRENT_VERSION);
-      // Force reload to get fresh resources
-      window.location.reload();
+      console.log('Form cache cleared, dashboard data preserved');
     }
   }, []);
 
@@ -491,16 +505,26 @@ function TikrarTahfidzPage() {
   }
 
   const handleSubmit = async (retryCount = 0) => {
+    console.log('========================================')
+    console.log('🚀 SUBMIT BUTTON CLICKED - Starting handleSubmit')
+    console.log('Retry count:', retryCount)
+    console.log('Is submitting:', isSubmitting)
+    console.log('Submit status:', submitStatus)
+    console.log('========================================')
+
     const maxRetries = 3
 
     // Validate all sections before submission
+    console.log('Validating all sections...')
     for (let i = 1; i <= 4; i++) {
       if (!validateSection(i)) {
+        console.error(`❌ Validation failed for section ${i}`)
         // Scroll to the first section that has errors
         setCurrentSection(i)
         return
       }
     }
+    console.log('✅ All sections validated successfully')
 
     // Declare authUser at higher scope
     let authUser: any;
@@ -637,8 +661,11 @@ function TikrarTahfidzPage() {
       return
     }
 
+    console.log('Setting isSubmitting to true...')
     setIsSubmitting(true)
+
     try {
+      console.log('📝 Preparing submission data...')
       // Re-get session to ensure we have the latest data
       // For mobile, refresh session to prevent expiration issues
       let currentSession = null;
@@ -793,13 +820,16 @@ function TikrarTahfidzPage() {
       }
 
       console.log('Submitting form with data:', submissionData)
+      console.log('User ID:', submissionData.user_id)
+      console.log('Batch ID:', submissionData.batch_id)
+      console.log('Program ID:', submissionData.program_id)
 
       // Submit to API with timeout and retry mechanism
       // Longer timeout for mobile devices with slower connections
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       const timeout = isMobile ? 60000 : 30000 // 60s for mobile, 30s for desktop
 
-      console.log(`Submitting with timeout: ${timeout}ms (Mobile: ${isMobile})`)
+      console.log(`📤 Submitting to API with timeout: ${timeout}ms (Mobile: ${isMobile})`)
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -842,6 +872,9 @@ function TikrarTahfidzPage() {
         }
       }
 
+      console.log(`📡 Sending ${apiMethod} request to ${apiUrl}...`)
+      console.log('Headers:', Object.keys(headers))
+
       const response = await fetch(apiUrl, {
         method: apiMethod,
         headers: headers,
@@ -852,8 +885,10 @@ function TikrarTahfidzPage() {
 
       clearTimeout(timeoutId)
 
+      console.log('✅ Response received. Status:', response.status, response.statusText)
+
       const result = await response.json()
-      console.log('Server response:', result)
+      console.log('📦 Server response:', result)
 
       if (!response.ok) {
         // Handle CSRF token validation error (403 Forbidden)
@@ -886,15 +921,18 @@ function TikrarTahfidzPage() {
 
       // Don't auto-redirect - let user read the success message and click button to navigate
     } catch (error: any) {
-      console.error('Submit error:', error)
+      console.error('❌ SUBMIT ERROR CAUGHT')
+      console.error('Error:', error)
       console.error('Error details:', {
         name: error.name,
         message: error.message,
         stack: error.stack
       })
+      console.error('========================================')
 
       // Handle specific error types
       if (error.name === 'AbortError') {
+        console.error('⏱️ Request timeout (AbortError)')
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
         const message = isMobile
           ? 'Koneksi terlalu lambat (lebih dari 60 detik). Pastikan sinyal internet Ukhti stabil dan coba lagi.'
