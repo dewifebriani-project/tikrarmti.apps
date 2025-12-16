@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from '@/lib/supabase-singleton';
 
 function LoginPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: '',
@@ -390,8 +389,8 @@ function LoginPageContent() {
               </Link>
             </div>
 
-            {/* Debug Button - Only visible in development or on mobile */}
-            {isClient && (process.env.NODE_ENV === 'development' || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) && (
+            {/* Debug Button - Only visible in development */}
+            {isClient && process.env.NODE_ENV === 'development' && (
               <div className="text-center mt-4">
                 <button
                   onClick={fetchDebugInfo}
