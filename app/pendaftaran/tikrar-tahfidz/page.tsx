@@ -896,9 +896,16 @@ function TikrarTahfidzPage() {
       }
 
       // Get current session for Authorization header
+      // Get session for authentication
       const { data: { session: authSession }, error: sessionError } = await supabase.auth.getSession();
 
+      console.log('🔐 Checking authentication...');
+      console.log('Session error:', sessionError);
+      console.log('Session exists:', !!authSession);
+      console.log('Access token exists:', !!authSession?.access_token);
+
       if (sessionError || !authSession?.access_token) {
+        console.error('❌ Authentication failed:', sessionError);
         throw new Error('Authentication token not available. Please login again.');
       }
 
@@ -908,24 +915,39 @@ function TikrarTahfidzPage() {
       };
 
       // Add CSRF token if available for production security
-      if (csrfToken) {
-        headers['x-csrf-token'] = csrfToken;
-        console.log('CSRF token added to headers:', csrfToken.substring(0, 20) + '...');
+      // Skip CSRF in development for easier debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Development mode - skipping CSRF token');
       } else {
-        console.warn('CSRF token not available, attempting to refresh...');
-        await refreshCSRFToken();
-        // Try to get the token from cookie after refresh
-        const cookieToken = document.cookie.split('; ').find(c => c.startsWith('csrf-token='))?.split('=')[1];
-        if (cookieToken) {
-          headers['x-csrf-token'] = cookieToken;
-          console.log('CSRF token retrieved from cookie:', cookieToken.substring(0, 20) + '...');
+        if (csrfToken) {
+          headers['x-csrf-token'] = csrfToken;
+          console.log('✅ CSRF token added to headers');
         } else {
-          console.error('Failed to get CSRF token from cookie. Available cookies:', document.cookie);
+          console.warn('⚠️ CSRF token not available, attempting to refresh...');
+          try {
+            await refreshCSRFToken();
+            // Try to get the token from cookie after refresh
+            const cookieToken = document.cookie.split('; ').find(c => c.startsWith('csrf-token='))?.split('=')[1];
+            if (cookieToken) {
+              headers['x-csrf-token'] = cookieToken;
+              console.log('✅ CSRF token retrieved from cookie');
+            } else {
+              console.error('❌ Failed to get CSRF token from cookie. Available cookies:', document.cookie);
+            }
+          } catch (csrfError) {
+            console.error('❌ Error refreshing CSRF token:', csrfError);
+          }
         }
       }
 
-      console.log(`📡 Sending ${apiMethod} request to ${apiUrl}...`)
-      console.log('Headers:', Object.keys(headers))
+      console.log(`📡 Sending ${apiMethod} request to ${apiUrl}...`);
+      console.log('📊 Request data preview:', {
+        user_id: submissionData.user_id?.substring(0, 8) + '...',
+        batch_id: submissionData.batch_id,
+        program_id: submissionData.program_id,
+        has_permission: submissionData.has_permission,
+        chosen_juz: submissionData.chosen_juz
+      });
 
       const response = await fetch(apiUrl, {
         method: apiMethod,
@@ -937,10 +959,25 @@ function TikrarTahfidzPage() {
 
       clearTimeout(timeoutId)
 
-      console.log('✅ Response received. Status:', response.status, response.statusText)
+      console.log('✅ Response received');
+      console.log('📊 Response status:', response.status, response.statusText);
+      console.log('📊 Response headers:', {
+        contentType: response.headers.get('content-type'),
+        cacheControl: response.headers.get('cache-control')
+      });
 
-      const result = await response.json()
-      console.log('📦 Server response:', result)
+      // Try to parse JSON response
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log('📦 Raw response text (first 500 chars):', responseText.substring(0, 500));
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        throw new Error(`Invalid server response: ${await response.text()}`);
+      }
+
+      console.log('📦 Parsed server response:', result);
 
       if (!response.ok) {
         // Handle CSRF token validation error (403 Forbidden)
