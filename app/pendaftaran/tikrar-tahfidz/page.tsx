@@ -1905,9 +1905,22 @@ Silakan:
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={handlePrevious}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (currentSection > 1 && !isSubmitting) {
+                      handlePrevious();
+                    }
+                  }}
                   disabled={currentSection === 1 || isSubmitting}
-                  className="flex items-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 text-base py-2 px-4"
+                  className="flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px] touch-manipulation"
+                  style={{
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    WebkitTouchCallout: 'none'
+                  }}
                 >
                   <ChevronLeft className="h-5 w-5" />
                   <span>Previous</span>
@@ -1916,8 +1929,21 @@ Silakan:
                 {currentSection < totalSections ? (
                   <Button
                     type="button"
-                    onClick={handleNext}
-                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-2 px-4"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (currentSection < totalSections && !isSubmitting) {
+                        handleNext();
+                      }
+                    }}
+                    className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px] touch-manipulation"
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      WebkitTouchCallout: 'none'
+                    }}
                   >
                     <span>Next</span>
                     <ChevronRight className="h-5 w-5" />
@@ -1928,21 +1954,18 @@ Silakan:
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleSubmit();
-                    }}
-                    onTouchEnd={(e) => {
-                      // Handle touch events for better mobile support
                       if (!isSubmitting && submitStatus !== 'success') {
-                        e.preventDefault();
-                        e.stopPropagation();
                         handleSubmit();
                       }
                     }}
                     disabled={isSubmitting || submitStatus === 'success'}
-                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-2 px-4 disabled:bg-gray-400 disabled:cursor-not-allowed touch-manipulation"
+                    className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
                     style={{
                       WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation'
+                      touchAction: 'manipulation',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      WebkitTouchCallout: 'none'
                     }}
                   >
                     {isSubmitting ? (

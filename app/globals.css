@@ -105,6 +105,24 @@
     button, a, [role="button"] {
       min-block-size: 44px;
       min-inline-size: 44px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* Enhanced mobile button styles for better touch response */
+    button[type="submit"], button[type="button"] {
+      padding: 12px 24px;
+      font-size: 16px;
+      min-height: 48px;
+    }
+
+    /* Fix for submit button touch issues */
+    button:active {
+      transform: scale(0.98);
+      transition: transform 0.1s ease-in-out;
     }
 
     .checkbox {
