@@ -24,6 +24,10 @@ function ConfirmEmailPageContent() {
 
     const confirmEmail = async () => {
       const token = searchParams.get('token');
+      const type = searchParams.get('type');
+      const next = searchParams.get('next');
+
+      console.log('Confirm page params:', { token: !!token, type, next });
 
       if (!token) {
         setStatus('error');
@@ -31,6 +35,34 @@ function ConfirmEmailPageContent() {
         return;
       }
 
+      // Handle password recovery
+      if (type === 'recovery') {
+        console.log('Password recovery detected, redirecting to reset password...');
+        setMessage('Memvalidasi link reset password...');
+
+        try {
+          // Verify token via API
+          const response = await fetch(`/api/auth/confirm?token=${token}&type=recovery`);
+          const data = await response.json();
+
+          if (response.ok) {
+            // Redirect to reset password page
+            const redirectUrl = next || '/reset-password';
+            console.log('Redirecting to:', redirectUrl);
+            router.push(redirectUrl);
+          } else {
+            setStatus('error');
+            setMessage(data.error || 'Link reset password tidak valid atau sudah kadaluarsa.');
+          }
+        } catch (error) {
+          console.error('Error verifying recovery token:', error);
+          setStatus('error');
+          setMessage('Terjadi kesalahan saat memvalidasi link. Silakan coba lagi.');
+        }
+        return;
+      }
+
+      // Handle email confirmation
       try {
         const response = await fetch(`/api/auth/confirm?token=${token}`);
         const data = await response.json();

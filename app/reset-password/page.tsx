@@ -22,15 +22,37 @@ function ResetPasswordPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Get the access token from URL parameters
-  const accessToken = searchParams.get('access_token');
-  const refreshToken = searchParams.get('refresh_token');
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) {
-      setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
-    }
-  }, [accessToken]);
+    const checkSession = async () => {
+      console.log('=== Reset Password Page ===');
+      console.log('Checking if user has active session...');
+
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        console.log('Session check result:', {
+          hasSession: !!session,
+          user: session?.user?.email,
+          error: sessionError?.message
+        });
+
+        if (sessionError || !session) {
+          console.error('No valid session found');
+          setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
+        }
+
+        setSessionChecked(true);
+      } catch (err: any) {
+        console.error('Error checking session:', err);
+        setError(`Terjadi kesalahan: ${err.message || 'Unknown error'}`);
+        setSessionChecked(true);
+      }
+    };
+
+    checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,53 +78,47 @@ function ResetPasswordPageContent() {
     }
 
     try {
-      // Set the session using the tokens from URL
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken!,
-        refresh_token: refreshToken || '',
-      });
-
-      if (sessionError) {
-        setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Update the password
+      console.log('Updating password...');
+      // Update the password (session already set in auth/callback)
       const { error: updateError } = await supabase.auth.updateUser({
         password: password,
       });
 
       if (updateError) {
+        console.error('Update password error:', updateError);
         setError('Gagal memperbarui password. Silakan coba lagi.');
       } else {
+        console.log('Password updated successfully');
         setSuccess(true);
+
+        // Sign out to clear the recovery session
+        await supabase.auth.signOut();
+
         // Redirect to login after 2 seconds
         setTimeout(() => {
           router.push('/login?message=password_reset_success');
         }, 2000);
       }
     } catch (error: any) {
+      console.error('Error updating password:', error);
       setError(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!accessToken) {
+  // Show loading while checking session
+  if (!sessionChecked) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8">
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
             <div className="text-center">
-              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <Lock className="w-6 h-6 text-red-600" />
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-900"></div>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Link Tidak Valid</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <Link href="/forgot-password" className="text-green-900 hover:text-green-700">
-                Minta Link Reset Baru
-              </Link>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Memvalidasi Session</h2>
+              <p className="text-gray-600">Mohon tunggu sebentar...</p>
             </div>
           </CardContent>
         </Card>

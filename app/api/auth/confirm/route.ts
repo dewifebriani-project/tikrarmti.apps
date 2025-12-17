@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
+    const type = searchParams.get('type');
 
     if (!token) {
       return NextResponse.json(
@@ -20,9 +21,41 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // Verify the token and confirm the email
-    const { data, error } = await (supabase.auth as any).verifyOtp({
-      token,
+    // Handle password recovery
+    if (type === 'recovery') {
+      logger.info('Password recovery token verification', {
+        tokenStart: token.substring(0, 8) + '...'
+      });
+
+      // Verify OTP for recovery
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery'
+      });
+
+      if (error) {
+        logger.error('Recovery token verification failed', {
+          error: error.message,
+          tokenStart: token.substring(0, 8) + '...'
+        });
+
+        return NextResponse.json(
+          { error: 'Link reset password tidak valid atau sudah kadaluarsa' },
+          { status: 400 }
+        );
+      }
+
+      logger.auth('Recovery token verified successfully', data.user?.id);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Token recovery valid'
+      });
+    }
+
+    // Verify the token and confirm the email (signup)
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: token,
       type: 'signup'
     });
 
@@ -46,12 +79,12 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error in email confirmation', {
+    logger.error('Error in confirmation', {
       error: error as Error
     });
 
     return NextResponse.json(
-      { error: 'Terjadi kesalahan saat mengkonfirmasi email' },
+      { error: 'Terjadi kesalahan saat konfirmasi' },
       { status: 500 }
     );
   }
