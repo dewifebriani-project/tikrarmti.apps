@@ -22,6 +22,7 @@ import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
+import AdminApprovalModal from '@/components/AdminApprovalModal';
 
 interface Batch {
   id: string;
@@ -397,18 +398,35 @@ export default function AdminPage() {
         }
       } else if (activeTab === 'tikrar') {
         try {
-          const { data, error } = await supabase
-            .from('pendaftaran_tikrar_tahfidz')
-            .select('*, users!pendaftaran_tikrar_tahfidz_user_id_fkey(full_name, email), batches(name), programs(name)')
-            .order('submission_date', { ascending: false });
-          if (error) {
-            console.error('Error loading tikrar:', error);
-            setTikrar([]);
+          console.log('Loading tikrar data via API...');
+
+          // Get current session token
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+
+          // Use API route to bypass RLS
+          const response = await fetch('/api/admin/tikrar', {
+            credentials: 'include',
+            headers: token ? {
+              'Authorization': `Bearer ${token}`
+            } : {}
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Tikrar API result:', result);
+            setTikrar(result.data || []);
           } else {
-            setTikrar(data || []);
+            const error = await response.json();
+            console.error('Error loading tikrar via API:', error);
+            if (error.needsLogin) {
+              console.log('Session expired, redirecting to login');
+              router.push('/login');
+            }
+            setTikrar([]);
           }
         } catch (err: any) {
-          console.error('Unexpected error loading tikrar:', err);
+          console.error('Unexpected error loading tikrar via API:', err);
           setTikrar([]);
         }
       }
@@ -2165,11 +2183,21 @@ interface TikrarTabProps {
   onRefresh: () => void;
 }
 
-function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange }: TikrarTabProps) {
+function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: TikrarTabProps) {
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<TikrarTahfidz | null>(null);
+
   // Filter tikrar by batch_id or batch_name
   const filteredTikrar = selectedBatchFilter === 'all'
     ? tikrar
     : tikrar.filter(t => t.batch_id === selectedBatchFilter);
+
+  const handleRowClick = (application: TikrarTahfidz) => {
+    if (application.status === 'pending') {
+      setSelectedApplication(application);
+      setShowApprovalModal(true);
+    }
+  };
 
   const columns: Column<TikrarTahfidz>[] = [
     {
@@ -2211,13 +2239,20 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange }
       sortable: true,
       filterable: true,
       render: (t) => (
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-          ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
-            t.status === 'rejected' ? 'bg-red-100 text-red-800' :
-            t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
-            'bg-yellow-100 text-yellow-800'}`}>
-          {t.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+            ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
+              t.status === 'rejected' ? 'bg-red-100 text-red-800' :
+              t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+              'bg-yellow-100 text-yellow-800'}`}>
+            {t.status}
+          </span>
+          {t.status === 'pending' && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+              Click to review
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -2277,6 +2312,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange }
         data={filteredTikrar}
         columns={columns}
         rowKey="id"
+        onRowClick={handleRowClick}
         searchPlaceholder="Search tikrar by applicant, batch, program, juz..."
         emptyMessage="No tikrar applications found"
         emptyIcon={<Award className="mx-auto h-12 w-12 text-gray-400" />}
@@ -2285,11 +2321,31 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange }
 
       {filteredTikrar.some(t => t.status === 'pending') && (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <p className="text-sm text-blue-800">
-            💡 <strong>Tip:</strong> Click on a pending application row to approve or reject it.
-          </p>
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-800">
+                <strong>Approval Required:</strong> {filteredTikrar.filter(t => t.status === 'pending').length} pending application(s) need review.
+                Click on any pending row to approve or reject.
+              </p>
+            </div>
+          </div>
         </div>
       )}
+
+      <AdminApprovalModal
+        isOpen={showApprovalModal}
+        onClose={() => {
+          setShowApprovalModal(false);
+          setSelectedApplication(null);
+        }}
+        application={selectedApplication}
+        onRefresh={onRefresh}
+      />
     </div>
   );
 }

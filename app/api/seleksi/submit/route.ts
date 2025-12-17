@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       updateData.written_quiz_score = submissionData.score;
       updateData.written_quiz_total_questions = submissionData.total_questions;
       updateData.written_quiz_correct_answers = submissionData.correct_answers;
-      updateData.written_submitted_at = new Date().toISOString();
+      updateData.written_quiz_submitted_at = new Date().toISOString();
 
       // Update selection_status if it's still pending
       if (existingRegistration.selection_status === 'pending') {

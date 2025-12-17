@@ -18,6 +18,7 @@ export interface DataTableProps<T> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onView?: (row: T) => void;
+  onRowClick?: (row: T) => void;
   searchPlaceholder?: string;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
@@ -34,6 +35,7 @@ export function AdminDataTable<T extends Record<string, any>>({
   onEdit,
   onDelete,
   onView,
+  onRowClick,
   searchPlaceholder = 'Search...',
   emptyMessage = 'No data found',
   emptyIcon,
@@ -250,7 +252,11 @@ export function AdminDataTable<T extends Record<string, any>>({
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedData.map((row) => (
-                    <tr key={String(row[rowKey])} className="hover:bg-gray-50">
+                    <tr
+                      key={String(row[rowKey])}
+                      className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
+                      onClick={() => onRowClick?.(row)}
+                    >
                       {columns.map((column) => (
                         <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {column.render ? column.render(row) : String(row[column.key] ?? '-')}

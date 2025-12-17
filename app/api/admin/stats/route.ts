@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'thalibah'),
       supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).in('role', ['ustadzah', 'musyrifah']),
       supabaseAdmin.from('pendaftaran').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabaseAdmin.from('tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      supabaseAdmin.from('pendaftaran_tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('status', 'pending')
     ]);
 
     const [
