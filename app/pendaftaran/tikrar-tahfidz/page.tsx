@@ -53,6 +53,37 @@ function TikrarTahfidzPage() {
   const { user, loading } = useAuth()
   const { token: csrfToken, isLoading: csrfLoading, refreshCSRFToken } = useCSRF()
 
+  // Add global error listener for mobile debugging
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('🚨 GLOBAL ERROR CAUGHT:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('🚨 UNHANDLED PROMISE REJECTION:', {
+        reason: event.reason,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   // Default form data
   const defaultFormData = {
     understands_commitment: false,
@@ -136,19 +167,27 @@ function TikrarTahfidzPage() {
 
   // Initialize state after component mounts to prevent hydration mismatch
   useEffect(() => {
+    // Mark as client-side rendered
     setIsClient(true)
+    console.log('🔧 Client-side hydration complete')
 
     // Load saved state from localStorage after mount
     if (typeof window !== 'undefined') {
-      const savedState = localStorage.getItem('tikrar_form_state')
-      if (savedState) {
-        try {
+      try {
+        const savedState = localStorage.getItem('tikrar_form_state')
+        if (savedState) {
           const parsed = JSON.parse(savedState)
-          if (parsed.currentSection) setCurrentSection(parsed.currentSection)
-          if (parsed.formData) setFormData(parsed.formData)
-        } catch (e) {
-          console.error('Error parsing saved state:', e)
+          if (parsed.currentSection) {
+            setCurrentSection(parsed.currentSection)
+            console.log('📋 Restored current section:', parsed.currentSection)
+          }
+          if (parsed.formData) {
+            setFormData(parsed.formData)
+            console.log('📝 Restored form data')
+          }
         }
+      } catch (e) {
+        console.error('❌ Error parsing saved state:', e)
       }
     }
   }, [])
@@ -506,25 +545,38 @@ function TikrarTahfidzPage() {
 
   const handleSubmit = async (retryCount = 0) => {
     console.log('========================================')
-    console.log('🚀 SUBMIT BUTTON CLICKED - Starting handleSubmit')
+    console.log('🚀 handleSubmit FUNCTION CALLED')
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('User Agent:', navigator.userAgent)
+    console.log('Is Mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
     console.log('Retry count:', retryCount)
     console.log('Is submitting:', isSubmitting)
     console.log('Submit status:', submitStatus)
+    console.log('Current section:', currentSection, '/', totalSections)
     console.log('========================================')
 
     const maxRetries = 3
 
     // Validate all sections before submission
-    console.log('Validating all sections...')
-    for (let i = 1; i <= 4; i++) {
-      if (!validateSection(i)) {
-        console.error(`❌ Validation failed for section ${i}`)
-        // Scroll to the first section that has errors
-        setCurrentSection(i)
-        return
+    console.log('🔍 Starting validation of all sections...')
+    try {
+      for (let i = 1; i <= 4; i++) {
+        console.log(`📝 Validating section ${i}...`)
+        const isValid = validateSection(i)
+        if (!isValid) {
+          console.error(`❌ Validation failed for section ${i}`)
+          console.log('🔄 Navigating to failed section:', i)
+          // Scroll to the first section that has errors
+          setCurrentSection(i)
+          return
+        }
       }
+      console.log('✅ All sections validated successfully')
+    } catch (validationError) {
+      console.error('🚨 Validation error:', validationError)
+      alert('Terjadi kesalahan saat memvalidasi formulir. Silakan refresh halaman dan coba lagi.')
+      return
     }
-    console.log('✅ All sections validated successfully')
 
     // Declare authUser at higher scope
     let authUser: any;
@@ -1895,7 +1947,24 @@ Silakan:
           </CardHeader>
 
           <CardContent className="pt-6 overflow-x-hidden">
-            <form id="registration-form" onSubmit={(e) => e.preventDefault()} className="space-y-6">
+            <form
+              id="registration-form"
+              onSubmit={async (e) => {
+                console.log("🚀 FORM SUBMIT TRIGGERED - onSubmit event fired!");
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Only submit if we're on the last section
+                if (currentSection === totalSections && !isSubmitting && submitStatus !== 'success') {
+                  console.log("✅ Form validation passed, calling handleSubmit...");
+                  await handleSubmit();
+                } else if (currentSection < totalSections) {
+                  console.log("📄 Not on last section, moving to next section...");
+                  handleNext();
+                }
+              }}
+              className="space-y-6"
+            >
               {currentSection === 1 && renderSection1()}
               {currentSection === 2 && renderSection2()}
               {currentSection === 3 && renderSection3()}
@@ -1906,6 +1975,7 @@ Silakan:
                   type="button"
                   variant="outline"
                   onClick={(e) => {
+                    console.log("🔙 Previous button clicked");
                     e.preventDefault();
                     e.stopPropagation();
                     if (currentSection > 1 && !isSubmitting) {
@@ -1928,13 +1998,10 @@ Silakan:
 
                 {currentSection < totalSections ? (
                   <Button
-                    type="button"
+                    type="submit"
                     onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (currentSection < totalSections && !isSubmitting) {
-                        handleNext();
-                      }
+                      console.log("➡️ Next button clicked, triggering form submit");
+                      // No preventDefault here - let the form's onSubmit handle it
                     }}
                     className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px] touch-manipulation"
                     style={{
@@ -1950,14 +2017,7 @@ Silakan:
                   </Button>
                 ) : (
                   <Button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isSubmitting && submitStatus !== 'success') {
-                        handleSubmit();
-                      }
-                    }}
+                    type="submit"
                     disabled={isSubmitting || submitStatus === 'success'}
                     className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
                     style={{
