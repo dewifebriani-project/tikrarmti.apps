@@ -544,16 +544,7 @@ function TikrarTahfidzPage() {
   }
 
   const handleSubmit = async (retryCount = 0) => {
-    console.log('========================================')
-    console.log('🚀 handleSubmit FUNCTION CALLED')
-    console.log('Timestamp:', new Date().toISOString())
-    console.log('User Agent:', navigator.userAgent)
-    console.log('Is Mobile:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
-    console.log('Retry count:', retryCount)
-    console.log('Is submitting:', isSubmitting)
-    console.log('Submit status:', submitStatus)
-    console.log('Current section:', currentSection, '/', totalSections)
-    console.log('========================================')
+    console.log('Starting form submission...')
 
     const maxRetries = 3
 
