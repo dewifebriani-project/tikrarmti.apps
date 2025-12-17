@@ -22,7 +22,7 @@ import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
-import AdminApprovalModal from '@/components/AdminApprovalModal';
+import AdminApprovalModal from '@/components/AdminApprovalModalFixed';
 
 interface Batch {
   id: string;

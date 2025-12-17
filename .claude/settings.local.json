@@ -88,7 +88,8 @@
       "Bash(npx supabase link:*)",
       "Bash(npx supabase db diff:*)",
       "Bash(PORT=3003 npm run dev:*)",
-      "Bash(if exist appapidebugtikrar-testroute.ts del appapidebugtikrar-testroute.ts)"
+      "Bash(if exist appapidebugtikrar-testroute.ts del appapidebugtikrar-testroute.ts)",
+      "Bash(docker build:*)"
     ],
     "deny": [],
     "ask": []
