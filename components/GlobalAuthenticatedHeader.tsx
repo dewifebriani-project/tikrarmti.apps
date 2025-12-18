@@ -13,6 +13,8 @@ import {
   X,
   ChevronDown,
   LogOut,
+  RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -31,6 +33,31 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Fungsi untuk reload halaman
+  const handleReload = () => {
+    console.log('🔄 Reloading page...');
+    window.location.reload();
+  };
+
+  // Fungsi untuk clear cache
+  const handleClearCache = () => {
+    console.log('🧹 Clearing cache...');
+    if (typeof window !== 'undefined') {
+      // Clear localStorage
+      localStorage.clear();
+      // Clear sessionStorage
+      sessionStorage.clear();
+      // Clear cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // Tampilkan notifikasi
+      alert('Cache telah dibersihkan! Halaman akan di-reload.');
+      window.location.reload();
+    }
+  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -141,24 +168,28 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                 className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50"
                 disabled={!isMounted}
               >
-                {isSidebarOpen !== undefined ? (
-                  isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
-                ) : (
-                  showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                {isMounted && (
+                  <>
+                    {isSidebarOpen !== undefined ? (
+                      isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                    ) : (
+                      showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                    )}
+                  </>
                 )}
               </button>
             </div>
 
-            {/* Mobile Breadcrumbs - Always visible on mobile */}
+            {/* Mobile Breadcrumbs - Hide "Beranda" on mobile */}
             <nav className="flex md:hidden items-center space-x-1 text-xs overflow-hidden">
-              {getBreadcrumbs().slice(-2).map((crumb, index, arr) => (
+              {isMounted && getBreadcrumbs().filter(crumb => crumb.label !== 'Beranda').slice(-2).map((crumb, index, arr) => (
                 <div key={crumb.href} className="flex items-center space-x-1">
                   {index > 0 && (
                     <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
                     </svg>
                   )}
-                  <span className={`truncate max-w-[100px] ${
+                  <span className={`truncate max-w-[120px] ${
                     index === arr.length - 1 ? 'text-green-900 font-medium' : 'text-gray-600'
                   }`}>
                     {crumb.label}
@@ -195,7 +226,24 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
           {/* Right Section - Actions & Profile */}
           <div className="flex items-center space-x-1 md:space-x-4">
 
-  
+            {/* Reload Button - Desktop */}
+            <button
+              onClick={handleReload}
+              className="hidden md:block p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors duration-200"
+              title="Reload Halaman"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+
+            {/* Clear Cache Button - Desktop */}
+            <button
+              onClick={handleClearCache}
+              className="hidden md:block p-2 rounded-lg text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors duration-200"
+              title="Bersihkan Cache"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+
             {/* Notifications - Desktop/Tablet */}
             <div className="relative hidden md:block" ref={notificationRef}>
               <button
@@ -355,6 +403,22 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                       <span>Edit Profil</span>
                     </Link>
 
+                    <button
+                      onClick={handleReload}
+                      className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200 w-full"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Reload Halaman</span>
+                    </button>
+
+                    <button
+                      onClick={handleClearCache}
+                      className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors duration-200 w-full"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Bersihkan Cache</span>
+                    </button>
+
                     <div className="border-t border-gray-100 my-2"></div>
 
                     <button
@@ -419,6 +483,26 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
             </nav>
 
   
+            {/* Mobile Action Buttons */}
+            <div className="mt-4 pt-4 border-t border-green-900/20">
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <button
+                  onClick={handleReload}
+                  className="flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Reload</span>
+                </button>
+                <button
+                  onClick={handleClearCache}
+                  className="flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors duration-200"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear Cache</span>
+                </button>
+              </div>
+            </div>
+
             {/* Mobile Logout Button */}
             <div className="mt-4 pt-4 border-t border-green-900/20">
               <button

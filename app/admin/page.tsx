@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-singleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Users,
@@ -234,35 +234,76 @@ export default function AdminPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
+    console.log('loadData called for tab:', activeTab);
     setDataLoading(true);
-    const dataTimeout = setTimeout(() => {
-      console.error('Data loading timeout');
+
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.error('Request aborted after 20 seconds for tab:', activeTab);
       setDataLoading(false);
-    }, 15000); // 15 second timeout
+    }, 20000); // 20 second timeout
 
     try {
+      console.log('=== Starting data load for tab:', activeTab, '===', new Date().toISOString());
 
       if (activeTab === 'overview') {
-        // Get current session token
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
+        console.log('=== Loading Overview Stats at', new Date().toISOString(), '===');
 
-        // Use API route to bypass RLS
-        const response = await fetch('/api/admin/stats', {
-          credentials: 'include',
-          headers: token ? {
-            'Authorization': `Bearer ${token}`
-          } : {}
-        });
-        if (response.ok) {
-          const { stats } = await response.json();
-          setStats(stats);
-        } else {
-          const error = await response.json();
-          console.error('Error loading stats:', error);
-          if (error.needsLogin) {
-            console.log('Session expired, redirecting to login');
-            router.push('/login');
+        // First try the simple stats API (faster)
+        try {
+          console.log('Trying simple stats API at', new Date().toISOString(), '...');
+          const response = await fetch('/api/admin/stats-simple', {
+            credentials: 'include'
+          });
+
+          console.log('Simple stats API response status:', response.status);
+          if (response.ok) {
+            const { stats } = await response.json();
+            console.log('Simple stats loaded successfully at', new Date().toISOString(), ':', stats);
+            setStats(stats);
+          } else {
+            const errorText = await response.text();
+            console.error('Simple stats API error response:', errorText);
+            throw new Error(`Simple stats API failed with status ${response.status}`);
+          }
+        } catch (simpleStatsError) {
+          console.warn('Simple stats API failed, trying full stats API...', simpleStatsError);
+
+          // Fallback to the full stats API
+          try {
+            // Get current session token
+            console.log('Getting session token...');
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            console.log('Session token obtained:', !!token);
+
+            console.log('Calling /api/admin/stats...');
+            // Use API route to bypass RLS
+            const response = await fetch('/api/admin/stats', {
+              credentials: 'include',
+              headers: token ? {
+                'Authorization': `Bearer ${token}`
+              } : {}
+            });
+
+            console.log('Stats API response status:', response.status);
+            if (response.ok) {
+              const { stats } = await response.json();
+              console.log('Stats loaded successfully:', stats);
+              setStats(stats);
+            } else {
+              const error = await response.json();
+              console.error('Error loading stats:', error);
+              if (error.needsLogin) {
+                console.log('Session expired, redirecting to login');
+                router.push('/login');
+              }
+            }
+          } catch (statsError) {
+            console.error('All stats APIs failed, using default values:', statsError);
+            // Keep default values (all zeros)
           }
         }
       } else if (activeTab === 'batches') {
@@ -404,9 +445,11 @@ export default function AdminPage() {
           const { data: { session } } = await supabase.auth.getSession();
           const token = session?.access_token;
 
-          // Use API route to bypass RLS
-          const response = await fetch('/api/admin/tikrar', {
+          // Use API route to bypass RLS with pagination
+          // Use skipCount=true for faster initial load
+          const response = await fetch('/api/admin/tikrar?limit=20&skipCount=true', {
             credentials: 'include',
+            signal: controller.signal,
             headers: token ? {
               'Authorization': `Bearer ${token}`
             } : {}
@@ -426,14 +469,19 @@ export default function AdminPage() {
             setTikrar([]);
           }
         } catch (err: any) {
-          console.error('Unexpected error loading tikrar via API:', err);
+          if (err.name === 'AbortError') {
+            console.log('Tikrar data fetch was aborted due to timeout');
+          } else {
+            console.error('Unexpected error loading tikrar via API:', err);
+          }
           setTikrar([]);
         }
       }
     } catch (error) {
       console.error('Error in loadData:', error);
     } finally {
-      clearTimeout(dataTimeout);
+      clearTimeout(timeoutId);
+      console.log('=== Data load completed for tab:', activeTab, 'at', new Date().toISOString(), '===');
       setDataLoading(false);
     }
   };

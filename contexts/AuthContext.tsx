@@ -128,11 +128,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Mobile detection for debugging
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      console.log('=== AuthContext Initialize User ===');
-      console.log('Is Mobile:', isMobile);
-      console.log('User Agent:', navigator.userAgent.substring(0, 100));
-      console.log('Has localStorage:', typeof window !== 'undefined' && !!window.localStorage);
-      console.log('=================================');
+      // console.log('=== AuthContext Initialize User ===');
+      // console.log('Is Mobile:', isMobile);
+      // console.log('User Agent:', navigator.userAgent.substring(0, 100));
+      // console.log('Has localStorage:', typeof window !== 'undefined' && !!window.localStorage);
+      // console.log('=================================');
 
       // Try to validate session via API endpoint (server-side cookies)
       let apiErrorOccurred = false;
@@ -145,17 +145,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (response.ok) {
           const data = await response.json();
           if (data.user) {
-            console.log('Session validated via API, user:', data.user.email);
+            // console.log('Session validated via API, user:', data.user.email);
             setUser(data.user);
             return;
           }
         } else {
           apiErrorOccurred = true;
-          console.log('API session validation returned error:', response.status);
+          // console.log('API session validation returned error:', response.status);
         }
       } catch (apiError) {
         apiErrorOccurred = true;
-        console.log('API session validation failed, trying client-side');
+        // console.log('API session validation failed, trying client-side');
       }
 
       // Mobile/Production fallback: Try to restore from localStorage first
@@ -317,7 +317,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+      // console.log('Auth state changed:', event);
 
       if (event === 'SIGNED_IN' && session?.user) {
         // Store tokens in localStorage for mobile devices

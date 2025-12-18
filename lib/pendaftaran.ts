@@ -1,4 +1,7 @@
-import { supabase, supabaseAdmin } from './supabase'
+import { supabase } from './supabase'
+import { createSupabaseAdmin } from './supabase'
+
+const supabaseAdmin = createSupabaseAdmin()
 
 export interface PendaftaranData {
   user_id: string

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createSupabaseAdmin } from '@/lib/supabase';
 import { requireAdmin } from '@/lib/auth-middleware';
+
+const supabaseAdmin = createSupabaseAdmin();
 
 export async function GET(
   request: NextRequest,

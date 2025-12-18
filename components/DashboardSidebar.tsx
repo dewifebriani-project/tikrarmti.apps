@@ -137,17 +137,16 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         {/* Logo */}
         <div className="flex items-center justify-between h-20 border-b border-green-900/20 px-4 flex-shrink-0">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10">
-              <Image
+            <Image
                 src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
                 alt="Tikrar MTI Apps"
                 width={40}
                 height={40}
-                className="object-contain"
-                style={{ width: 'auto', height: 'auto' }}
+                className="object-contain flex-shrink-0"
+                sizes="40px"
+                priority
                 unoptimized // For external images
               />
-            </div>
             <span className="text-xl font-bold text-green-900">Tikrar MTI Apps</span>
           </Link>
 

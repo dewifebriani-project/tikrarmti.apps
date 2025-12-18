@@ -1,16 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClient();
+    // Create Supabase client for POST
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Get auth token from header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    // Verify token and get user
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Invalid token' },
         { status: 401 }
       );
     }
@@ -32,22 +49,28 @@ export async function POST(request: NextRequest) {
 
       // Upload to Supabase Storage
       const fileName = `selection-${user.id}-${Date.now()}.webm`;
+      // console.log('📤 Uploading audio file:', fileName, 'Size:', audioFile.size);
+
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('selection-audios')
         .upload(fileName, audioFile);
 
       if (uploadError) {
-        console.error('Upload error:', uploadError);
+        // console.error('❌ Upload error:', uploadError);
         return NextResponse.json(
-          { error: 'Failed to upload audio' },
+          { error: 'Failed to upload audio', details: uploadError.message },
           { status: 500 }
         );
       }
+
+      // console.log('✅ Upload successful:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('selection-audios')
         .getPublicUrl(fileName);
+
+      // console.log('🔗 Public URL:', publicUrl);
 
       submissionData = {
         user_id: user.id,
@@ -72,18 +95,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists in pendaftaran_tikrar_tahfidz
+    // console.log('🔍 Checking registration for user:', user.id);
+
     const { data: existingRegistration, error: checkError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
+    if (checkError) {
+      // console.error('❌ Check registration error:', checkError);
+    }
+
     if (!existingRegistration) {
+      // console.error('❌ Registration not found for user:', user.id);
       return NextResponse.json(
         { error: 'Pendaftaran tidak ditemukan' },
         { status: 404 }
       );
     }
+
+    // console.log('✅ Found registration:', existingRegistration.id);
 
     // Check if already submitted this type of selection
     if (submissionData.type === 'oral' && existingRegistration.oral_submission_url) {
@@ -110,10 +142,8 @@ export async function POST(request: NextRequest) {
       updateData.oral_submission_file_name = submissionData.file_name;
       updateData.oral_submitted_at = new Date().toISOString();
 
-      // Update selection_status if it's still pending
-      if (existingRegistration.selection_status === 'pending') {
-        updateData.selection_status = 'in_progress';
-      }
+      // selection_status tetap 'pending' sampai admin review
+      // Valid values: 'pending', 'selected', 'not_selected', 'waitlist'
     } else {
       updateData.written_quiz_answers = submissionData.answers;
       updateData.written_quiz_score = submissionData.score;
@@ -121,11 +151,10 @@ export async function POST(request: NextRequest) {
       updateData.written_quiz_correct_answers = submissionData.correct_answers;
       updateData.written_quiz_submitted_at = new Date().toISOString();
 
-      // Update selection_status if it's still pending
-      if (existingRegistration.selection_status === 'pending') {
-        updateData.selection_status = 'in_progress';
-      }
+      // selection_status tetap 'pending' sampai admin review
     }
+
+    // console.log('💾 Updating registration with data:', updateData);
 
     const { data: submission, error: updateError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
@@ -135,12 +164,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (updateError) {
-      console.error('Update error:', updateError);
+      // console.error('❌ Update error:', updateError);
+      // console.error('❌ Update error details:', JSON.stringify(updateError, null, 2));
       return NextResponse.json(
-        { error: 'Failed to save submission' },
+        { error: 'Failed to save submission', details: updateError.message, code: updateError.code },
         { status: 500 }
       );
     }
+
+    // console.log('✅ Update successful:', submission);
 
     return NextResponse.json({
       success: true,
@@ -159,9 +191,50 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient();
+    // Get cookies from the request
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
 
-    // Get current user
+    // Find auth tokens
+    const accessToken = allCookies.find(c => c.name === 'sb-access-token');
+    const refreshToken = allCookies.find(c => c.name === 'sb-refresh-token');
+    const accessTokenFallback = allCookies.find(c => c.name === 'sb-access-token-fallback');
+
+    const finalAccessToken = accessToken?.value || accessTokenFallback?.value;
+    const finalRefreshToken = refreshToken?.value;
+
+    // Create Supabase client
+    let supabase;
+    if (finalAccessToken && finalRefreshToken) {
+      supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: true,
+        },
+      });
+
+      // Set the session
+      await supabase.auth.setSession({
+        access_token: finalAccessToken,
+        refresh_token: finalRefreshToken,
+      });
+    } else {
+      // Fallback to cookie-based client
+      supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          },
+        },
+      });
+    }
+
+    // Get current user from session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

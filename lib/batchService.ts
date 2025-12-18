@@ -1,4 +1,7 @@
-import { supabase, supabaseAdmin } from './supabase'
+import { supabase } from './supabase'
+import { createSupabaseAdmin } from './supabase'
+
+const supabaseAdmin = createSupabaseAdmin()
 import type { Batch, BatchCreateRequest, BatchUpdateRequest, BatchEnrollment, BatchSession, BatchStatistics, ExtendedBatchFilter, EnrollmentApprovalRequest } from '@/types/batch'
 
 export class BatchService {

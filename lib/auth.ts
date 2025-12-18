@@ -1,4 +1,7 @@
-import { supabase, supabaseAdmin } from './supabase';
+import { supabase } from './supabase';
+import { createSupabaseAdmin } from './supabase';
+
+const supabaseAdmin = createSupabaseAdmin();
 import type { User, UserRole } from '@/types/database';
 import { debugOAuth, getEnvironmentInfo } from './oauth-debug';
 

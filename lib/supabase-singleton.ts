@@ -1,17 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+// Debug logging
+// console.log('[Singleton] Environment check:', {
+//   supabaseUrl: supabaseUrl ? 'SET' : 'NOT SET',
+//   supabaseAnonKey: supabaseAnonKey ? 'SET' : 'NOT SET'
+// })
+
+// Validate environment variables immediately
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[Singleton] Missing environment variables:', {
+    supabaseUrl: !!supabaseUrl,
+    supabaseAnonKey: !!supabaseAnonKey
+  })
+  throw new Error('Supabase environment variables are not properly configured. Please check your .env.local file.')
+}
 
 // Singleton instance to prevent multiple clients
 let supabaseClient: ReturnType<typeof createClient> | null = null
 
 function getSupabaseClient() {
   if (!supabaseClient) {
-    console.log('[Singleton] Creating new Supabase client instance...')
-    supabaseClient = createClient(
-      supabaseUrl || 'https://placeholder.supabase.co',
-      supabaseAnonKey || 'placeholder-anon-key',
+    // console.log('[Singleton] Creating new Supabase client instance...')
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey,
       {
         auth: {
           persistSession: true,
@@ -67,7 +80,7 @@ function getSupabaseClient() {
       }
     )
   } else {
-    console.log('[Singleton] Using existing Supabase client instance')
+    // console.log('[Singleton] Using existing Supabase client instance')
   }
   return supabaseClient
 }

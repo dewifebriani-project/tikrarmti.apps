@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
+import { createSupabaseAdmin } from '@/lib/supabase';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+const supabaseAdmin = createSupabaseAdmin();
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,48 +71,92 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all stats using admin client (bypasses RLS)
-    const results = await Promise.allSettled([
-      supabaseAdmin.from('batches').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('programs').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('halaqah').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'thalibah'),
-      supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).in('role', ['ustadzah', 'musyrifah']),
-      supabaseAdmin.from('pendaftaran').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabaseAdmin.from('pendaftaran_tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-    ]);
-
-    const [
-      batchResult,
-      programResult,
-      halaqahResult,
-      userResult,
-      thalibahResult,
-      mentorResult,
-      pendingResult,
-      tikrarPendingResult
-    ] = results;
-
-    const batchCount = batchResult.status === 'fulfilled' ? batchResult.value.count : 0;
-    const programCount = programResult.status === 'fulfilled' ? programResult.value.count : 0;
-    const halaqahCount = halaqahResult.status === 'fulfilled' ? halaqahResult.value.count : 0;
-    const userCount = userResult.status === 'fulfilled' ? userResult.value.count : 0;
-    const thalibahCount = thalibahResult.status === 'fulfilled' ? thalibahResult.value.count : 0;
-    const mentorCount = mentorResult.status === 'fulfilled' ? mentorResult.value.count : 0;
-    const pendingCount = pendingResult.status === 'fulfilled' ? pendingResult.value.count : 0;
-    const tikrarPendingCount = tikrarPendingResult.status === 'fulfilled' ? tikrarPendingResult.value.count : 0;
-
-    const stats = {
-      totalBatches: batchCount || 0,
-      totalPrograms: programCount || 0,
-      totalHalaqah: halaqahCount || 0,
-      totalUsers: userCount || 0,
-      totalThalibah: thalibahCount || 0,
-      totalMentors: mentorCount || 0,
-      pendingRegistrations: pendingCount || 0,
-      pendingTikrar: tikrarPendingCount || 0
+    // Initialize with default values
+    const stats: any = {
+      totalBatches: 0,
+      totalPrograms: 0,
+      totalHalaqah: 0,
+      totalUsers: 0,
+      totalThalibah: 0,
+      totalMentors: 0,
+      pendingRegistrations: 0,
+      pendingTikrar: 0
     };
 
+    // Create timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 8000);
+    });
+
+    // Get counts in parallel with timeout protection
+    try {
+      const promises = [
+        // Basic counts
+        supabaseAdmin.from('batches').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('programs').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('halaqah').select('*', { count: 'exact', head: true }),
+
+        // User counts
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'thalibah'),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).in('role', ['ustadzah', 'musyrifah']),
+
+        // Pending counts
+        supabaseAdmin.from('pendaftaran').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabaseAdmin.from('pendaftaran_tikrar_tahfidz').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      ];
+
+      // Race between the queries and timeout
+      const results = await Promise.race([
+        Promise.allSettled(promises),
+        timeoutPromise
+      ]);
+
+      if (Array.isArray(results)) {
+        // Extract counts from results
+        if (results[0].status === 'fulfilled') {
+          stats.totalBatches = results[0].value.count || 0;
+        }
+        if (results[1].status === 'fulfilled') {
+          stats.totalPrograms = results[1].value.count || 0;
+        }
+        if (results[2].status === 'fulfilled') {
+          stats.totalHalaqah = results[2].value.count || 0;
+        }
+        if (results[3].status === 'fulfilled') {
+          stats.totalUsers = results[3].value.count || 0;
+        }
+        if (results[4].status === 'fulfilled') {
+          stats.totalThalibah = results[4].value.count || 0;
+        }
+        if (results[5].status === 'fulfilled') {
+          stats.totalMentors = results[5].value.count || 0;
+        }
+        if (results[6].status === 'fulfilled') {
+          stats.pendingRegistrations = results[6].value.count || 0;
+        }
+        if (results[7].status === 'fulfilled') {
+          stats.pendingTikrar = results[7].value.count || 0;
+        }
+
+        // Log any errors for debugging
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            const fieldNames = ['batches', 'programs', 'halaqah', 'users', 'thalibah', 'mentors', 'pendaftaran', 'tikrar'];
+            console.error(`Error getting ${fieldNames[index]} count:`, result.reason);
+          }
+        });
+      }
+    } catch (error: any) {
+      if (error.message === 'Database query timeout') {
+        console.error('Stats query timeout after 8 seconds, returning partial data');
+      } else {
+        console.error('Unexpected error in stats query:', error);
+      }
+      // Return default values (already set)
+    }
+
+  
     return NextResponse.json({ stats });
   } catch (error: any) {
     console.error('Error in admin stats API:', error);

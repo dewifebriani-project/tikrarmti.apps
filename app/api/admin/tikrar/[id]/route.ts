@@ -5,9 +5,15 @@ import { createSupabaseAdmin } from '@/lib/supabase';
 
 const supabaseAdmin = createSupabaseAdmin();
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    // Get access token from cookies (same as middleware)
+    // Await params (Next.js 15+ requirement)
+    const { id } = await params;
+
+    // Get access token from cookies
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
     const accessTokenCookie = allCookies.find(c => c.name === 'sb-access-token');
@@ -73,57 +79,84 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get pagination parameters from query string
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50); // Reduced default to 20, max 50
-    const offset = (page - 1) * limit;
-    const skipCount = searchParams.get('skipCount') === 'true';
-
-    // Fetch tikrar data with admin client (bypasses RLS)
-    // Add logging for performance tracking
-    console.log('Starting tikrar data fetch at', new Date().toISOString());
-    console.log('Query parameters:', { page, limit, offset });
-
-    const { data, error } = await supabaseAdmin
+    // Fetch single tikrar application with all details using admin client
+    // Step 1: Get the basic application data first
+    let { data: appData, error: appError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
-      .order('submission_date', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .eq('id', id)
+      .single();
 
-    console.log('Query completed at', new Date().toISOString());
-    console.log('Data length:', data?.length || 0);
-
-    if (error) {
-      console.error('Error fetching tikrar data:', error);
+    if (appError) {
+      console.error('Error fetching application data:', appError);
       return NextResponse.json(
-        { error: 'Failed to fetch data', details: error.message },
+        {
+          error: 'Failed to fetch application',
+          details: appError.message
+        },
         { status: 500 }
       );
     }
 
-    // Get total count for pagination (use estimated count for better performance)
-    // Skip count query if requested for faster initial load
-    let totalCount = null;
-    if (!skipCount) {
-      console.log('Starting count query at', new Date().toISOString());
-      const { count } = await supabaseAdmin
-        .from('pendaftaran_tikrar_tahfidz')
-        .select('*', { count: 'estimated', head: true });
-      totalCount = count;
-      console.log('Count query completed at', new Date().toISOString());
-      console.log('Total count:', totalCount);
+    // Step 2: Fetch related data separately if needed
+    const data: any = { ...appData };
+
+    // Get user data if user_id exists
+    if (appData.user_id) {
+      const { data: userData, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name, email, tanggal_lahir, whatsapp, telegram, alamat, kota, provinsi, zona_waktu')
+        .eq('id', appData.user_id)
+        .single();
+
+      if (!userError && userData) {
+        data.user = userData;
+      }
     }
 
+    // Get batch data if batch_id exists
+    if (appData.batch_id) {
+      const { data: batchData, error: batchError } = await supabaseAdmin
+        .from('batches')
+        .select('id, name, start_date, end_date')
+        .eq('id', appData.batch_id)
+        .single();
+
+      if (!batchError && batchData) {
+        data.batch = batchData;
+      }
+    }
+
+    // Get program data if program_id exists
+    if (appData.program_id) {
+      const { data: programData, error: programError } = await supabaseAdmin
+        .from('programs')
+        .select('id, name, description')
+        .eq('id', appData.program_id)
+        .single();
+
+      if (!programError && programData) {
+        data.program = programData;
+      }
+    }
+
+    // Get approver data if approved_by exists
+    if (appData.approved_by) {
+      const { data: approverData, error: approverError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name, email')
+        .eq('id', appData.approved_by)
+        .single();
+
+      if (!approverError && approverData) {
+        data.approver = approverData;
+      }
+    }
+
+    
     return NextResponse.json({
       success: true,
-      data: data || [],
-      pagination: {
-        page,
-        limit,
-        total: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / limit)
-      }
+      data: data
     });
 
   } catch (error) {

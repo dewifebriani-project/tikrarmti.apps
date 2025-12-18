@@ -98,43 +98,42 @@ const quizData: QuizQuestion[] = [
   },
   {
     id: 8,
-    question: "Berapa jumlah juz dalam Al-Qur'an?",
+    question: "Hukum membaca Al-Qur'an adalah:",
     options: [
-      "25",
-      "30",
-      "35",
-      "40"
+      "Makruh",
+      "Mubah",
+      "Wajib",
+      "Sunnah"
     ],
-    correctAnswer: 1
+    correctAnswer: 2
   },
   {
     id: 9,
-    question: "Surah terpanjang dalam Al-Qur'an adalah:",
+    question: "Salah satu nama lain Al-Qur'an adalah:",
     options: [
-      "Al-Baqarah",
-      "Ali Imran",
-      "An-Nisa",
-      "Al-Maidah"
+      "Az-Zikr",
+      "Al-Hidayah",
+      "Asy-Syifa",
+      "Semua benar"
     ],
-    correctAnswer: 0
+    correctAnswer: 3
   },
   {
     id: 10,
-    question: "Surah terpendek dalam Al-Qur'an adalah:",
+    question: "Juz 30 terdiri dari surah berikut, kecuali:",
     options: [
-      "An-Naas",
-      "Al-Ikhlas",
-      "Al-Kautsar",
-      "Al-Falaq"
+      "Surah An-Naba'",
+      "Surah Al-Mulk",
+      "Surah An-Nas",
+      "Surah Al-Ikhlas"
     ],
-    correctAnswer: 2
+    correctAnswer: 1
   }
 ];
 
 export default function PilihanGandaPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [isClient, setIsClient] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,15 +141,15 @@ export default function PilihanGandaPage() {
   const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
   const [quizStarted, setQuizStarted] = useState(false);
 
-  // Set client-side flag
+  // Check authentication on mount
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [authLoading, user, router]);
 
   // Timer countdown
   useEffect(() => {
-    if (!isClient) return;
-
     if (quizStarted && timeLeft > 0) {
       const timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1);
@@ -159,7 +158,7 @@ export default function PilihanGandaPage() {
     } else if (timeLeft === 0 && quizStarted) {
       handleSubmit();
     }
-  }, [timeLeft, quizStarted, isClient]);
+  }, [timeLeft, quizStarted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -196,14 +195,6 @@ export default function PilihanGandaPage() {
     setSubmitStatus('idle');
 
     try {
-      // Get session token
-      const { data: { session }, error: sessionError } = await (await import('@/lib/supabase')).supabase.auth.getSession();
-
-      if (sessionError || !session) {
-        console.error('Session error:', sessionError);
-        throw new Error('Tidak ada session. Silakan login kembali.');
-      }
-
       // Calculate score
       let correctAnswers = 0;
       quizData.forEach(question => {
@@ -218,7 +209,6 @@ export default function PilihanGandaPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           type: 'written',
@@ -230,9 +220,7 @@ export default function PilihanGandaPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Submit error:', errorData);
-        throw new Error(errorData.error || 'Gagal mengirim jawaban');
+        throw new Error('Gagal mengirim jawaban');
       }
 
       const result = await response.json();
@@ -242,10 +230,9 @@ export default function PilihanGandaPage() {
       setTimeout(() => {
         router.push('/perjalanan-saya');
       }, 3000);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting quiz:', error);
       setSubmitStatus('error');
-      alert(error.message || 'Gagal mengirim jawaban');
     } finally {
       setIsSubmitting(false);
     }
@@ -256,17 +243,6 @@ export default function PilihanGandaPage() {
   };
 
   const progressPercentage = ((Object.keys(answers).length) / quizData.length) * 100;
-
-  // Prevent hydration mismatch
-  if (!isClient) {
-    return (
-      <AuthenticatedLayout title="Seleksi - Pilihan Ganda">
-        <div className="flex h-screen items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-        </div>
-      </AuthenticatedLayout>
-    );
-  }
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -279,9 +255,8 @@ export default function PilihanGandaPage() {
     );
   }
 
-  // Redirect if not authenticated
+  // Don't render if not authenticated
   if (!user) {
-    router.push('/login');
     return null;
   }
 
@@ -303,111 +278,83 @@ export default function PilihanGandaPage() {
                 <AlertDescription className="text-blue-800">
                   <strong>Informasi Ujian:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>Jumlah soal: {quizData.length} pertanyaan</li>
-                    <li>Waktu: 30 menit</li>
-                    <li>Setiap soal memiliki 4 pilihan jawaban</li>
-                    <li>Pastikan menjawab semua soal sebelum submit</li>
+                    <li>10 pertanyaan pilihan ganda</li>
+                    <li>Waktu pengerjaan: 30 menit</li>
+                    <li>Nilai minimal untuk lulus: 70%</li>
+                    <li>Jawaban tidak dapat diubah setelah submit</li>
                   </ul>
                 </AlertDescription>
               </Alert>
 
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900">Petunjuk Pengerjaan:</h3>
-                <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                  <li>Baca setiap pertanyaan dengan teliti</li>
-                  <li>Pilih salah satu jawaban yang paling tepat</li>
-                  <li>Gunakan tombol "Sebelumnya" dan "Selanjutnya" untuk navigasi</li>
-                  <li>Pastikan semua soal terjawab sebelum submit</li>
-                  <li>Klik "Submit Jawaban" jika sudah selesai</li>
-                </ol>
-              </div>
-
-              <div className="flex justify-center pt-4">
+              <div className="text-center">
                 <Button
                   onClick={startQuiz}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
                   size="lg"
                 >
-                  <FileText className="w-5 h-5 mr-2" />
                   Mulai Ujian
                 </Button>
               </div>
             </CardContent>
           </Card>
         ) : (
-          /* Quiz Screen */
           <>
-            {/* Timer and Progress Bar */}
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                    <span className="font-semibold text-blue-900">
-                      Sisa Waktu: {formatTime(timeLeft)}
-                    </span>
-                  </div>
-                  <div className="text-sm text-blue-700">
-                    Soal {currentQuestion + 1} dari {quizData.length}
-                  </div>
+            {/* Timer and Progress */}
+            <div className="flex justify-between items-center bg-white rounded-lg shadow p-4">
+              <div className="flex items-center space-x-3">
+                <Clock className={`w-5 h-5 ${timeLeft < 300 ? 'text-red-600' : 'text-gray-600'}`} />
+                <span className={`text-lg font-semibold ${timeLeft < 300 ? 'text-red-600' : 'text-gray-900'}`}>
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-600">
+                  Progress: {Object.keys(answers).length}/{quizData.length}
+                </span>
+                <div className="w-32 bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
                 </div>
-                <div className="mt-3">
-                  <div className="w-full bg-blue-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progressPercentage}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-blue-600 mt-1">
-                    {Object.keys(answers).length} dari {quizData.length} soal terjawab ({Math.round(progressPercentage)}%)
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Question Card */}
             <Card className="bg-white shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg">
-                  Pertanyaan {currentQuestion + 1}
+                <CardTitle className="text-center">
+                  Pertanyaan {currentQuestion + 1} dari {quizData.length}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-900 font-medium">
-                    {quizData[currentQuestion].question}
-                  </p>
+                {/* Question */}
+                <div className="text-lg font-medium text-gray-900">
+                  {quizData[currentQuestion].question}
                 </div>
 
+                {/* Options */}
                 <RadioGroup
                   value={answers[quizData[currentQuestion].id]?.toString() || ''}
                   onValueChange={(value) => handleAnswerChange(quizData[currentQuestion].id, value)}
+                  className="space-y-3"
                 >
-                  <div className="space-y-3">
-                    {quizData[currentQuestion].options.map((option, index) => (
-                      <div
-                        key={index}
-                        className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                          answers[quizData[currentQuestion].id] === index
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        <RadioGroupItem value={index.toString()} id={`option-${index}`} />
-                        <Label htmlFor={`option-${index}`} className="flex-grow cursor-pointer">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                  {quizData[currentQuestion].options.map((option, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                      <RadioGroupItem value={index.toString()} id={`option-${index}`} />
+                      <Label htmlFor={`option-${index}`} className="flex-grow cursor-pointer">
+                        {option}
+                      </Label>
+                    </div>
+                  ))}
                 </RadioGroup>
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between pt-4">
+                {/* Navigation */}
+                <div className="flex justify-between pt-4 border-t">
                   <Button
+                    variant="outline"
                     onClick={handlePrevious}
                     disabled={currentQuestion === 0}
-                    variant="outline"
                   >
                     Sebelumnya
                   </Button>
@@ -415,14 +362,14 @@ export default function PilihanGandaPage() {
                   {currentQuestion < quizData.length - 1 ? (
                     <Button
                       onClick={handleNext}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      disabled={!answers.hasOwnProperty(quizData[currentQuestion].id)}
                     >
                       Selanjutnya
                     </Button>
                   ) : (
                     <Button
                       onClick={handleSubmit}
-                      disabled={isSubmitting || submitStatus === 'success'}
+                      disabled={Object.keys(answers).length < quizData.length || isSubmitting}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       {isSubmitting ? (
@@ -430,42 +377,11 @@ export default function PilihanGandaPage() {
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                           Mengirim...
                         </>
-                      ) : submitStatus === 'success' ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Berhasil
-                        </>
                       ) : (
-                        'Submit Jawaban'
+                        'Selesai & Submit'
                       )}
                     </Button>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Question Navigator */}
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="text-base">Navigasi Soal</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                  {quizData.map((question, index) => (
-                    <button
-                      key={question.id}
-                      onClick={() => setCurrentQuestion(index)}
-                      className={`w-10 h-10 rounded-lg font-medium transition-all ${
-                        currentQuestion === index
-                          ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                          : answers[question.id] !== undefined
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
                 </div>
               </CardContent>
             </Card>

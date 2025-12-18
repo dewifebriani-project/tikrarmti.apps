@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createSupabaseAdmin } from '@/lib/supabase';
+
+const supabaseAdmin = createSupabaseAdmin();
 
 // GET /api/program - Get all programs with optional filtering
 export async function GET(request: NextRequest) {

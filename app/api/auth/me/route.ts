@@ -6,9 +6,8 @@ export async function GET() {
   try {
     const cookieStore = await cookies();
 
-    // Debug: Log all cookies to see what we're receiving
+    // Get all cookies
     const allCookies = cookieStore.getAll();
-    console.log('All cookies received by /api/auth/me:', allCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' })));
 
     // Check specifically for auth cookies
     const accessToken = allCookies.find(c => c.name === 'sb-access-token');
@@ -17,14 +16,6 @@ export async function GET() {
     // Check for fallback cookies (for mobile browsers)
     const accessTokenFallback = allCookies.find(c => c.name === 'sb-access-token-fallback');
 
-    console.log('Auth cookies found:', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      hasAccessTokenFallback: !!accessTokenFallback,
-      accessTokenValue: accessToken?.value?.substring(0, 20) + '...',
-      accessTokenFallbackValue: accessTokenFallback?.value?.substring(0, 20) + '...'
-    });
-
     // Determine which tokens to use (prefer httpOnly, fallback to fallback cookies)
     const finalAccessToken = accessToken?.value || accessTokenFallback?.value;
     const finalRefreshToken = refreshToken?.value;
@@ -32,80 +23,62 @@ export async function GET() {
     // If we have tokens, create a Supabase client with them directly
     let supabase;
     if (finalAccessToken && finalRefreshToken) {
-      console.log('Creating Supabase client with direct tokens');
-
-      // Debug: Decode JWT token to check expiration
+      // Check if token is expired
       try {
         const tokenPayload = JSON.parse(atob(finalAccessToken.split('.')[1]));
-        console.log('Token payload decoded:', {
-          exp: tokenPayload.exp,
-          expDate: new Date(tokenPayload.exp * 1000).toISOString(),
-          now: new Date().toISOString(),
-          isExpired: Date.now() > (tokenPayload.exp * 1000),
-          userId: tokenPayload.sub,
-          email: tokenPayload.email,
-          usedFallback: !!accessTokenFallback
-        });
+        if (Date.now() > (tokenPayload.exp * 1000)) {
+          // Token is expired, but setSession will handle refresh
+        }
       } catch (error) {
-        console.error('Error decoding token:', error);
+        // Token decode failed, but continue anyway
       }
 
+      // Create client with both tokens
       supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         {
-          global: {
-            headers: {
-              Authorization: `Bearer ${finalAccessToken}`,
-            },
-          },
           auth: {
             persistSession: false,
-            autoRefreshToken: false,
+            autoRefreshToken: true,
           },
         }
       );
+
+      // Manually set the session
+      await supabase.auth.setSession({
+        access_token: finalAccessToken,
+        refresh_token: finalRefreshToken,
+      });
     } else {
-      console.log('No auth tokens found, creating default client');
       supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
     }
 
-    // Try both getSession and getUser to debug
+    // Try to get user session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     const session = sessionData?.session;
-    console.log('Supabase session result:', {
-      hasSession: !!session,
-      hasSessionUser: !!session?.user,
-      sessionUserId: session?.user?.id,
-      sessionError: sessionError?.message
-    });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // If session exists, use it; otherwise try getUser
+    let user = session?.user;
+    let userError = sessionError;
 
-    console.log('Supabase getUser result:', {
-      hasUser: !!user,
-      userId: user?.id,
-      error: userError?.message,
-      errorCode: userError?.status
-    });
+    if (!user) {
+      const { data: userData, error: getUserError } = await supabase.auth.getUser();
+      user = userData.user;
+      userError = getUserError;
+    }
 
-    // Use session if available, otherwise fall back to getUser
-    const authenticatedUser = session?.user || user;
-    const authError = sessionError || userError;
+    const authenticatedUser = user;
+    const authError = userError;
 
     if (authError || !authenticatedUser) {
-      console.error('Detailed auth error:', {
-        sessionError: sessionError?.message,
-        userError: userError?.message,
-        sessionData: session,
-        userData: user,
-        cookiesPresent: allCookies.map(c => c.name),
-        accessTokenLength: finalAccessToken?.length || 0,
-        hasFallback: !!accessTokenFallback
-      });
+      // Minimal error logging for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Auth error:', authError?.message);
+      }
       return NextResponse.json({ error: 'Invalid session', details: authError?.message }, { status: 401 });
     }
 

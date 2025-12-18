@@ -45,7 +45,7 @@ export default function PerjalananSaya() {
     if (user) {
       const fetchRegistrationStatus = async () => {
         try {
-          console.log('Fetching registration status for user:', user.id, user.email);
+          // console.log('Fetching registration status for user:', user.id, user.email);
 
           // Use simple API that doesn't require auth
           const response = await fetch('/api/auth/check-registration-simple', {
@@ -67,7 +67,7 @@ export default function PerjalananSaya() {
           }
 
           const data = await response.json();
-          console.log('Registration status response:', data);
+          // console.log('Registration status response:', data);
           setRegistrationStatus(data);
 
           // Fetch selection status if registration is approved
@@ -592,31 +592,22 @@ export default function PerjalananSaya() {
                                     </CardContent>
                                   </Card>
 
-                                  {/* Card Pilihan Ganda */}
-                                  <Card className={`border-2 ${selectionStatus.quizSubmitted ? 'border-green-300 bg-green-50' : 'border-purple-300 bg-purple-50'} hover:shadow-md transition-all cursor-pointer`}
-                                        onClick={() => {
-                                          if (!selectionStatus.quizSubmitted) {
-                                            window.location.href = '/seleksi/pilihan-ganda';
-                                          }
-                                        }}>
+                                  {/* Card Pilihan Ganda - DISABLED */}
+                                  <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
                                     <CardContent className="p-3 sm:p-4">
                                       <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${selectionStatus.quizSubmitted ? 'bg-green-200' : 'bg-purple-200'} rounded-full flex items-center justify-center`}>
-                                          {selectionStatus.quizSubmitted ? (
-                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                                          ) : (
-                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                          )}
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center`}>
+                                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                          </svg>
                                         </div>
                                         <div className="flex-grow">
-                                          <h4 className="text-sm sm:text-base font-semibold text-gray-900">Pilihan Ganda</h4>
-                                          <p className="text-xs text-gray-600">Ujian tulisan</p>
+                                          <h4 className="text-sm sm:text-base font-semibold text-gray-600">Pilihan Ganda</h4>
+                                          <p className="text-xs text-gray-500">Ujian tulisan</p>
                                         </div>
                                       </div>
-                                      <p className={`text-xs ${selectionStatus.quizSubmitted ? 'text-green-700' : 'text-purple-700'}`}>
-                                        {selectionStatus.quizSubmitted ? 'Sudah dikerjakan ✓' : 'Klik untuk mengerjakan'}
+                                      <p className="text-xs text-gray-600">
+                                        Soal belum tersedia
                                       </p>
                                     </CardContent>
                                   </Card>
@@ -733,31 +724,22 @@ export default function PerjalananSaya() {
                                       </CardContent>
                                     </Card>
 
-                                    {/* Card Pilihan Ganda */}
-                                    <Card className={`border-2 ${selectionStatus.quizSubmitted ? 'border-green-300 bg-green-50' : 'border-purple-300 bg-purple-50'} hover:shadow-md transition-all cursor-pointer`}
-                                          onClick={() => {
-                                            if (!selectionStatus.quizSubmitted) {
-                                              window.location.href = '/seleksi/pilihan-ganda';
-                                            }
-                                          }}>
+                                    {/* Card Pilihan Ganda - DISABLED */}
+                                    <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
                                       <CardContent className="p-4">
                                         <div className="flex items-center space-x-3 mb-2">
-                                          <div className={`w-10 h-10 ${selectionStatus.quizSubmitted ? 'bg-green-200' : 'bg-purple-200'} rounded-full flex items-center justify-center`}>
-                                            {selectionStatus.quizSubmitted ? (
-                                              <CheckCircle className="w-5 h-5 text-green-600" />
-                                            ) : (
-                                              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                              </svg>
-                                            )}
+                                          <div className={`w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center`}>
+                                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
                                           </div>
                                           <div className="flex-grow">
-                                            <h4 className="text-base font-semibold text-gray-900">Pilihan Ganda</h4>
-                                            <p className="text-sm text-gray-600">Ujian tulisan</p>
+                                            <h4 className="text-base font-semibold text-gray-600">Pilihan Ganda</h4>
+                                            <p className="text-sm text-gray-500">Ujian tulisan</p>
                                           </div>
                                         </div>
-                                        <p className={`text-sm ${selectionStatus.quizSubmitted ? 'text-green-700' : 'text-purple-700'}`}>
-                                          {selectionStatus.quizSubmitted ? 'Sudah dikerjakan ✓' : 'Klik untuk mengerjakan'}
+                                        <p className="text-sm text-gray-600">
+                                          Soal belum tersedia
                                         </p>
                                       </CardContent>
                                     </Card>

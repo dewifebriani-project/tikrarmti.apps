@@ -1072,7 +1072,7 @@ Silakan:
         <h3 className="font-bold text-lg md:text-xl mb-4 md:mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
 
         <div className="space-y-3 md:space-y-4 text-sm md:text-base text-gray-700">
-          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an {batchInfo?.is_free ? 'gratis' : 'berbayar'} khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
+          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
           <p>📆 Durasi program: InsyaAllah selama {Math.ceil((batchInfo?.duration_weeks || 16) / 4)} Bulan ({batchInfo?.duration_weeks || 16} Pekan) dimulai dari tanggal {batchInfo ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '5 Januari 2026'} untuk target hafalan 1/2 juz.</p>
           {batchInfo && (
             <p>💰 Biaya program: {batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price.toLocaleString('id-ID')}/bulan`}</p>
@@ -1221,15 +1221,15 @@ Silakan:
             onValueChange={(value) => handleInputChange('understands_commitment', value === "yes")}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="understands_commitment_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="understands_commitment_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.
               </Label>
             </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="no" id="understands_commitment_no" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="understands_commitment_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="no" id="understands_commitment_no" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="understands_commitment_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Belum, saya perlu waktu untuk mempertimbangkan kembali.
               </Label>
             </div>
@@ -1257,15 +1257,15 @@ Silakan:
             onValueChange={(value) => handleInputChange('tried_simulation', value === "yes")}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="yes" id="tried_simulation_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="tried_simulation_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="tried_simulation_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="tried_simulation_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
               </Label>
             </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="no" id="tried_simulation_no" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="tried_simulation_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="no" id="tried_simulation_no" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="tried_simulation_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Belum, saya akan mencoba terlebih dahulu.
               </Label>
             </div>
@@ -1288,15 +1288,15 @@ Silakan:
             onValueChange={(value) => handleInputChange('no_negotiation', value === "yes")}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="yes" id="no_negotiation_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="no_negotiation_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="no_negotiation_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="no_negotiation_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
               </Label>
             </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="no" id="no_negotiation_no" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="no_negotiation_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-red-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="no" id="no_negotiation_no" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="no_negotiation_no" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Saya masih perlu pertimbangan.
               </Label>
             </div>
@@ -1319,9 +1319,9 @@ Silakan:
             onValueChange={(value) => handleInputChange('has_telegram', value === "yes")}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="yes" id="has_telegram_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="has_telegram_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="has_telegram_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="has_telegram_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Alhamdulillah saya sudah download telegram di hp saya
               </Label>
             </div>
@@ -1342,9 +1342,9 @@ Silakan:
             onValueChange={(value) => handleInputChange('saved_contact', value === "yes")}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="yes" id="saved_contact_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="saved_contact_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="saved_contact_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="saved_contact_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara
               </Label>
             </div>
@@ -1382,15 +1382,15 @@ Silakan:
             onValueChange={(value) => handleInputChange('has_permission', value as 'yes' | 'janda' | '')}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="yes" id="has_permission_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="has_permission_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="has_permission_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="has_permission_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Alhamdulillah sudah (ini jawaban saya sejujur-jujurnya yang akan saya pertanggungjawabkan di akhirat nanti)
               </Label>
             </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer">
-              <RadioGroupItem value="janda" id="has_permission_janda" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="has_permission_janda" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="janda" id="has_permission_janda" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="has_permission_janda" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Bismillah.. Saya seorang janda yang mandiri, tidak terikat, tidak perlu persetujuan siapapun dan mengikuti program ini tidak akan mempengaruhi siapapun.
               </Label>
             </div>
@@ -1510,9 +1510,9 @@ Silakan:
             onValueChange={(value) => handleInputChange('no_travel_plans', value === "yes")}
             className="space-y-2"
           >
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <RadioGroupItem value="yes" id="no_travel_plans_yes" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="no_travel_plans_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="yes" id="no_travel_plans_yes" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="no_travel_plans_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 InsyaAllah saya tidak ada rencana safar, kalaupun tiba-tiba safar saya akan bertanggungjawab memprioritaskan waktu untuk memenuhi kewajiban setoran kepada pasangan
               </Label>
             </div>
@@ -1546,15 +1546,15 @@ Silakan:
             <span className="text-red-500">*</span>
           </Label>
           <RadioGroup id="ready_for_team" value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-2">
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <RadioGroupItem value="ready" id="ready" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="ready" id="ready" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 InsyaAllah siapppp → Jawaban ini kami catat sebagai akad
               </Label>
             </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <RadioGroupItem value="infaq" id="infaq" className="mt-0.5 w-4 h-4" />
-              <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors" style={{ minHeight: '48px', WebkitUserSelect: 'none' }}>
+              <RadioGroupItem value="infaq" id="infaq" className="mt-0.5 w-5 h-5 pointer-events-auto border-2 border-gray-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 data-[state=checked]:text-white" style={{ touchAction: 'manipulation' }} />
+              <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1" style={{ touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none' }}>
                 Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan infaq sesuai dengan kemampuan saya dan bersedia dimasukkan ke group donatur MTI
               </Label>
             </div>
@@ -1917,7 +1917,7 @@ Silakan:
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 pt-16 sm:pt-20 lg:pt-20">
-      <div className="max-w-4xl mx-auto px-3 md:px-4 py-8 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto px-3 md:px-4 py-8 overflow-x-hidden" style={{ touchAction: 'manipulation' }}>
 
         <div className="text-center mb-6 px-4">
           <h1 className="text-2xl md:text-4xl font-bold text-green-900 mb-3">
@@ -2011,14 +2011,7 @@ Silakan:
                     }
                   }}
                   disabled={currentSection === 1 || isSubmitting}
-                  className="flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px] touch-manipulation"
-                  style={{
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    WebkitTouchCallout: 'none'
-                  }}
+                  className="flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px]"
                 >
                   <ChevronLeft className="h-5 w-5" />
                   <span>Previous</span>
@@ -2031,14 +2024,7 @@ Silakan:
                       console.log("➡️ Next button clicked, triggering form submit");
                       // No preventDefault here - let the form's onSubmit handle it
                     }}
-                    className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px] touch-manipulation"
-                    style={{
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation',
-                      userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                      WebkitTouchCallout: 'none'
-                    }}
+                    className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 min-h-[44px]"
                   >
                     <span>Next</span>
                     <ChevronRight className="h-5 w-5" />
@@ -2047,14 +2033,7 @@ Silakan:
                   <Button
                     type="submit"
                     disabled={isSubmitting || submitStatus === 'success'}
-                    className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[44px] touch-manipulation"
-                    style={{
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation',
-                      userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                      WebkitTouchCallout: 'none'
-                    }}
+                    className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 active:bg-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-base py-3 sm:py-2 px-4 sm:px-4 disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[44px]"
                   >
                     {isSubmitting ? (
                       <>
