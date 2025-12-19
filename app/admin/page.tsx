@@ -21,7 +21,10 @@ import {
   ChevronsLeft,
   ChevronLeft,
   ChevronRight,
-  ChevronsRight
+  ChevronsRight,
+  CheckCircle,
+  AlertCircle,
+  XCircle
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
@@ -84,6 +87,17 @@ interface User {
   alamat?: string;
   whatsapp?: string;
   telegram?: string;
+  tikrar_registrations?: Array<{
+    id: string;
+    batch_id: string;
+    batch_name: string;
+    status: string;
+    selection_status: string;
+    batch?: {
+      name: string;
+      status: string;
+    };
+  }>;
 }
 
 interface Pendaftaran {
@@ -1789,6 +1803,67 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
       render: (user) => (
         <span>{user.kota && user.provinsi ? `${user.kota}, ${user.provinsi}` : '-'}</span>
       ),
+    },
+    {
+      key: 'tikrar_batch',
+      label: 'Tikrar Batch',
+      sortable: true,
+      filterable: true,
+      render: (user) => {
+        if (!user.tikrar_registrations || user.tikrar_registrations.length === 0) {
+          return <span className="text-gray-400">-</span>;
+        }
+
+        // Get the latest registration
+        const latestReg = user.tikrar_registrations[0];
+
+        // Extract batch number for styling
+        const batchMatch = latestReg.batch_name?.match(/Batch (\d+)/i);
+        const batchNum = batchMatch ? parseInt(batchMatch[1]) : 0;
+
+        // Determine color based on batch number
+        const getBatchColor = (num: number) => {
+          switch (num) {
+            case 2: return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 1: return 'bg-gray-100 text-gray-800 border-gray-200';
+            default: return 'bg-purple-100 text-purple-800 border-purple-200';
+          }
+        };
+
+        // Get status icon and color
+        const getStatusInfo = (status: string) => {
+          switch (status) {
+            case 'selected':
+              return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', label: 'Diterima' };
+            case 'pending':
+              return { icon: AlertCircle, color: 'text-yellow-600', bgColor: 'bg-yellow-50', label: 'Menunggu' };
+            case 'not_selected':
+              return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-50', label: 'Tidak Diterima' };
+            default:
+              return { icon: AlertCircle, color: 'text-gray-600', bgColor: 'bg-gray-50', label: status };
+          }
+        };
+
+        const statusInfo = getStatusInfo(latestReg.selection_status);
+        const StatusIcon = statusInfo.icon;
+
+        return (
+          <div className="flex flex-col gap-1.5">
+            <div className={`px-2.5 py-1 inline-flex items-center text-xs font-semibold rounded-full border ${getBatchColor(batchNum)}`}>
+              {latestReg.batch_name}
+              {batchNum === 2 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-blue-500 text-white rounded-full">
+                  2
+                </span>
+              )}
+            </div>
+            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
+              <StatusIcon className="w-3 h-3" />
+              {statusInfo.label}
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'created_at',
