@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at,
         avatar_url,
-        tikrar_registrations:pendaftaran_tikrar_tahfidz(
+        tikrar_registrations:pendaftaran_tikrar_tahfidz!pendaftaran_tikrar_tahfidz_user_id_fkey(
           id,
           batch_id,
           batch_name,
