@@ -83,24 +83,40 @@ export async function GET(request: NextRequest) {
     console.log('Starting users data fetch for export at', new Date().toISOString());
 
     // Try to get users data with error handling for missing columns
-    const { data: users, error } = await supabaseAdmin
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        phone,
-        role,
-        is_active,
-        created_at,
-        updated_at,
-        provinsi,
-        kota,
-        alamat,
-        whatsapp,
-        telegram
-      `)
-      .order('created_at', { ascending: false });
+    // First, try with extended fields
+    let users, error;
+    try {
+      const result = await supabaseAdmin
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          role,
+          is_active,
+          created_at,
+          updated_at,
+          provinsi,
+          kota,
+          alamat,
+          whatsapp,
+          telegram,
+          tanggal_lahir,
+          tempat_lahir,
+          pekerjaan,
+          alasan_daftar,
+          jenis_kelamin,
+          negara,
+          zona_waktu
+        `)
+        .order('created_at', { ascending: false });
+
+      users = result.data;
+      error = result.error;
+    } catch (err: any) {
+      console.error('Error fetching with extended fields:', err);
+      error = err;
+    }
 
     console.log('Users data fetch completed at', new Date().toISOString());
     console.log('Total users found:', users?.length || 0);
@@ -108,16 +124,15 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Error fetching users for export:', error);
 
-      // If column doesn't exist error, try without those columns
-      if (error.message?.includes('column') && error.message?.includes('does not exist')) {
-        console.log('Retrying without address columns...');
+      // If column doesn't exist error, try with basic columns only
+      if (error.message?.includes('column') || error.code === 'PGRST116') {
+        console.log('Retrying with basic columns only...');
         const { data: usersSimple, error: errorSimple } = await supabaseAdmin
           .from('users')
           .select(`
             id,
             email,
             full_name,
-            phone,
             role,
             is_active,
             created_at,
@@ -126,19 +141,22 @@ export async function GET(request: NextRequest) {
           .order('created_at', { ascending: false });
 
         if (errorSimple) {
-          console.error('Error fetching users (simple):', errorSimple);
+          console.error('Error fetching users (basic):', errorSimple);
           return NextResponse.json(
-            { error: 'Failed to fetch users data' },
+            {
+              error: 'Failed to fetch users data',
+              details: errorSimple.message,
+              code: errorSimple.code
+            },
             { status: 500 }
           );
         }
 
-        // Transform data for Excel export (without address columns)
+        // Transform data for Excel export (basic columns only)
         const exportData = usersSimple?.map(user => ({
           ID: user.id,
           Email: user.email || '',
           'Nama Lengkap': user.full_name || '',
-          'No. HP': user.phone || '',
           Role: user.role || '',
           Status: user.is_active ? 'Active' : 'Inactive',
           'Tanggal Dibuat': user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '',
@@ -149,12 +167,11 @@ export async function GET(request: NextRequest) {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(exportData);
 
-        // Set column widths for simple data
+        // Set column widths for basic data
         const colWidths = [
-          { wch: 15 }, // ID
+          { wch: 36 }, // ID
           { wch: 30 }, // Email
           { wch: 25 }, // Nama Lengkap
-          { wch: 15 }, // No. HP
           { wch: 15 }, // Role
           { wch: 10 }, // Status
           { wch: 25 }, // Tanggal Dibuat
@@ -172,6 +189,8 @@ export async function GET(request: NextRequest) {
         const timestamp = new Date().toISOString().split('T')[0];
         const filename = `users_export_${timestamp}.xlsx`;
 
+        console.log('Export successful with basic columns. Total users:', usersSimple?.length);
+
         // Return file response
         return new NextResponse(excelBuffer as ArrayBuffer, {
           status: 200,
@@ -183,24 +202,34 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: 'Failed to fetch users data' },
+        {
+          error: 'Failed to fetch users data',
+          details: error.message,
+          code: error.code
+        },
         { status: 500 }
       );
     }
 
-    // Transform data for Excel export
-    const exportData = users?.map(user => ({
+    // Transform data for Excel export with all available fields
+    const exportData = users?.map((user: any) => ({
       ID: user.id,
       Email: user.email || '',
       'Nama Lengkap': user.full_name || '',
-      'No. HP': user.phone || '',
       Role: user.role || '',
       Status: user.is_active ? 'Active' : 'Inactive',
+      'Tanggal Lahir': user.tanggal_lahir || '',
+      'Tempat Lahir': user.tempat_lahir || '',
+      'Jenis Kelamin': user.jenis_kelamin || '',
+      Negara: user.negara || '',
       Provinsi: user.provinsi || '',
       Kota: user.kota || '',
       Alamat: user.alamat || '',
       WhatsApp: user.whatsapp || '',
       Telegram: user.telegram || '',
+      'Zona Waktu': user.zona_waktu || '',
+      Pekerjaan: user.pekerjaan || '',
+      'Alasan Daftar': user.alasan_daftar || '',
       'Tanggal Dibuat': user.created_at ? new Date(user.created_at).toLocaleString('id-ID') : '',
       'Tanggal Diupdate': user.updated_at ? new Date(user.updated_at).toLocaleString('id-ID') : ''
     })) || [];
@@ -209,19 +238,25 @@ export async function GET(request: NextRequest) {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(exportData);
 
-    // Set column widths
+    // Set column widths for all fields
     const colWidths = [
-      { wch: 15 }, // ID
+      { wch: 36 }, // ID
       { wch: 30 }, // Email
       { wch: 25 }, // Nama Lengkap
-      { wch: 15 }, // No. HP
       { wch: 15 }, // Role
       { wch: 10 }, // Status
+      { wch: 15 }, // Tanggal Lahir
+      { wch: 20 }, // Tempat Lahir
+      { wch: 15 }, // Jenis Kelamin
+      { wch: 15 }, // Negara
       { wch: 20 }, // Provinsi
       { wch: 20 }, // Kota
       { wch: 40 }, // Alamat
       { wch: 15 }, // WhatsApp
       { wch: 15 }, // Telegram
+      { wch: 15 }, // Zona Waktu
+      { wch: 20 }, // Pekerjaan
+      { wch: 40 }, // Alasan Daftar
       { wch: 25 }, // Tanggal Dibuat
       { wch: 25 }  // Tanggal Diupdate
     ];

@@ -53,9 +53,9 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       });
 
-      // Tampilkan notifikasi
-      alert('Cache telah dibersihkan! Halaman akan di-reload.');
-      window.location.reload();
+      // Tampilkan notifikasi dan arahkan ke login
+      alert('Cache telah dibersihkan! Anda akan diarahkan ke halaman login.');
+      window.location.href = '/login';
     }
   };
 
