@@ -1782,7 +1782,10 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
       filterable: true,
       render: (user) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">{user.full_name || '-'}</div>
+          <div className={`text-sm font-medium ${user.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+            {user.full_name || '-'}
+            {!user.is_active && <span className="ml-2 text-xs text-red-600">(Deactivated)</span>}
+          </div>
           <div className="text-sm text-gray-500">{user.phone || '-'}</div>
         </div>
       ),
@@ -1982,13 +1985,21 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
         throw new Error(error.error || 'Failed to delete user');
       }
 
+      const result = await response.json();
+
       // Close modal and clear state first
       setShowDeleteModal(false);
       setSelectedUser(null);
 
       // Then refresh data and show success message
       await onRefresh();
-      toast.success(`User "${userName}" has been deleted successfully`);
+
+      // Show appropriate message based on delete type
+      if (result.softDelete) {
+        toast.success(`User "${userName}" has been deactivated (has existing registrations)`);
+      } else {
+        toast.success(`User "${userName}" has been deleted successfully`);
+      }
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`);
