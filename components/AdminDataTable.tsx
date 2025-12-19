@@ -327,7 +327,7 @@ export function AdminDataTable<T extends Record<string, any>>({
                 <button
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
                   title="First page"
                 >
                   <ChevronsLeft className="w-5 h-5" />
@@ -335,7 +335,7 @@ export function AdminDataTable<T extends Record<string, any>>({
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
                   title="Previous page"
                 >
                   <ChevronLeft className="w-5 h-5" />
@@ -359,10 +359,10 @@ export function AdminDataTable<T extends Record<string, any>>({
                       <button
                         key={pageNumber}
                         onClick={() => handlePageChange(pageNumber)}
-                        className={`px-3 py-1 rounded-md text-sm ${
+                        className={`px-3 py-1 rounded-md text-sm border ${
                           currentPage === pageNumber
-                            ? 'bg-green-900 text-white'
-                            : 'hover:bg-gray-100'
+                            ? 'bg-green-900 text-white border-green-900'
+                            : 'hover:bg-gray-100 border-gray-300 bg-white'
                         }`}
                       >
                         {pageNumber}
@@ -374,7 +374,7 @@ export function AdminDataTable<T extends Record<string, any>>({
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
                   title="Next page"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -382,7 +382,7 @@ export function AdminDataTable<T extends Record<string, any>>({
                 <button
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
                   title="Last page"
                 >
                   <ChevronsRight className="w-5 h-5" />
