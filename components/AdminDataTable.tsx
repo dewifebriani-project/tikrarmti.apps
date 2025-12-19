@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Eye } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Eye, Settings, X } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -50,6 +50,36 @@ export function AdminDataTable<T extends Record<string, any>>({
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showColumnCustomizer, setShowColumnCustomizer] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    new Set(columns.map(col => col.key))
+  );
+
+  // Initialize visible columns when columns change
+  useEffect(() => {
+    setVisibleColumns(new Set(columns.map(col => col.key)));
+  }, [columns]);
+
+  // Filter columns based on visibility
+  const displayColumns = useMemo(() => {
+    return columns.filter(col => visibleColumns.has(col.key));
+  }, [columns, visibleColumns]);
+
+  // Toggle column visibility
+  const toggleColumn = (columnKey: string) => {
+    setVisibleColumns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(columnKey)) {
+        // Don't allow hiding all columns
+        if (newSet.size > 1) {
+          newSet.delete(columnKey);
+        }
+      } else {
+        newSet.add(columnKey);
+      }
+      return newSet;
+    });
+  };
 
   // Filter data based on search query and column filters
   const filteredData = useMemo(() => {
@@ -161,15 +191,73 @@ export function AdminDataTable<T extends Record<string, any>>({
           />
         </div>
 
-        {/* Filter Toggle */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <Filter className="w-4 h-4 mr-2" />
-          Filters {Object.values(filters).filter(Boolean).length > 0 && `(${Object.values(filters).filter(Boolean).length})`}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {/* Customize Columns Button */}
+          <button
+            onClick={() => setShowColumnCustomizer(!showColumnCustomizer)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            title="Customize Columns"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Columns
+          </button>
+
+          {/* Filter Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Filters {Object.values(filters).filter(Boolean).length > 0 && `(${Object.values(filters).filter(Boolean).length})`}
+          </button>
+        </div>
       </div>
+
+      {/* Column Customizer Modal */}
+      {showColumnCustomizer && (
+        <div className="bg-white border border-gray-200 rounded-md p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Customize Columns</h3>
+            <button
+              onClick={() => setShowColumnCustomizer(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {columns.map((column) => (
+              <label
+                key={column.key}
+                className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-2 rounded"
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleColumns.has(column.key)}
+                  onChange={() => toggleColumn(column.key)}
+                  disabled={visibleColumns.size === 1 && visibleColumns.has(column.key)}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span className={visibleColumns.has(column.key) ? 'font-medium' : 'text-gray-500'}>
+                  {column.label}
+                </span>
+              </label>
+            ))}
+          </div>
+          <div className="mt-4 flex justify-between items-center">
+            <button
+              onClick={() => setVisibleColumns(new Set(columns.map(col => col.key)))}
+              className="text-sm text-green-700 hover:text-green-800 font-medium"
+            >
+              Show All
+            </button>
+            <span className="text-xs text-gray-500">
+              {visibleColumns.size} of {columns.length} columns visible
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Advanced Filters */}
       {showFilters && (
@@ -217,7 +305,7 @@ export function AdminDataTable<T extends Record<string, any>>({
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {columns.map((column) => (
+                    {displayColumns.map((column) => (
                       <th
                         key={column.key}
                         className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.width || ''}`}
@@ -230,12 +318,12 @@ export function AdminDataTable<T extends Record<string, any>>({
                             <span>{column.label}</span>
                             {sortColumn === column.key ? (
                               sortDirection === 'asc' ? (
-                                <ArrowUp className="w-4 h-4" />
+                                <ArrowUp className="w-4 h-4 text-green-600" />
                               ) : (
-                                <ArrowDown className="w-4 h-4" />
+                                <ArrowDown className="w-4 h-4 text-green-600" />
                               )
                             ) : (
-                              <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50" />
+                              <ArrowUpDown className="w-4 h-4 opacity-30 group-hover:opacity-100" />
                             )}
                           </button>
                         ) : (
@@ -257,7 +345,7 @@ export function AdminDataTable<T extends Record<string, any>>({
                       className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
                       onClick={() => onRowClick?.(row)}
                     >
-                      {columns.map((column) => (
+                      {displayColumns.map((column) => (
                         <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {column.render ? column.render(row) : String(row[column.key] ?? '-')}
                         </td>
