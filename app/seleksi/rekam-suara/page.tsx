@@ -769,10 +769,12 @@ export default function RekamSuaraPage() {
           <AlertCircle className="h-5 w-5 text-amber-600" />
           <AlertDescription className="text-amber-800">
             <strong>🔍 Mobile Debugging Info:</strong>
-            <div className="mt-2 text-xs">
-              <p>📱 <strong>Console:</strong> Swipe dari bawah atas untuk membuka Eruda debugging console</p>
-              <p>📊 <strong>Logs:</strong> Semua proses recording dan upload akan terlihat di console</p>
-              <p>🔧 <strong>Debug Tools:</strong> Gunakan tab Console, Network, dan Resources di Eruda</p>
+            <div className="mt-2 text-xs space-y-1">
+              <p>📱 <strong>Console:</strong> Eruda debugging console akan muncul otomatis di pojok layar</p>
+              <p>🔄 <strong>Jika tidak muncul:</strong> Lihat tombol hijau "Debug Console" di pojok kanan atas</p>
+              <p>📊 <strong>Logs:</strong> Semua proses recording dan upload terlihat di console</p>
+              <p>🔧 <strong>Debug Tools:</strong> Gunakan tab Console, Network, dan Resources</p>
+              <p>💡 <strong>Refresh:</strong> Refresh halaman jika console tidak muncul</p>
             </div>
           </AlertDescription>
         </Alert>
