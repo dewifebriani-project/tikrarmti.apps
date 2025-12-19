@@ -192,6 +192,12 @@ export default function AdminPage() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [tikrar, setTikrar] = useState<TikrarTahfidz[]>([]);
+  const [tikrarPagination, setTikrarPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
   const [stats, setStats] = useState({
     totalBatches: 0,
@@ -229,7 +235,7 @@ export default function AdminPage() {
       console.log('Loading data for tab:', activeTab);
       loadData();
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, tikrarPagination.page]);
 
   // Disable eslint exhaustive-deps warning for loadData
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -447,8 +453,8 @@ export default function AdminPage() {
           const token = session?.access_token;
 
           // Use API route to bypass RLS with pagination
-          // Use skipCount=true for faster initial load
-          const response = await fetch('/api/admin/tikrar?limit=20&skipCount=true', {
+          // Include pagination info
+          const response = await fetch(`/api/admin/tikrar?page=${tikrarPagination.page}&limit=${tikrarPagination.limit}`, {
             credentials: 'include',
             signal: controller.signal,
             headers: token ? {
@@ -460,6 +466,9 @@ export default function AdminPage() {
             const result = await response.json();
             console.log('Tikrar API result:', result);
             setTikrar(result.data || []);
+            if (result.pagination) {
+              setTikrarPagination(result.pagination);
+            }
           } else {
             const error = await response.json();
             console.error('Error loading tikrar via API:', error);
@@ -600,6 +609,8 @@ export default function AdminPage() {
             selectedBatchFilter={selectedBatchFilter}
             onBatchFilterChange={setSelectedBatchFilter}
             onRefresh={loadData}
+            pagination={tikrarPagination}
+            onPageChange={(page) => setTikrarPagination(prev => ({ ...prev, page }))}
           />
         )}
         {activeTab === 'reports' && <ReportsTab />}
@@ -2281,9 +2292,16 @@ interface TikrarTabProps {
   selectedBatchFilter: string;
   onBatchFilterChange: (batchId: string) => void;
   onRefresh: () => void;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  onPageChange: (page: number) => void;
 }
 
-function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: TikrarTabProps) {
+function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh, pagination, onPageChange }: TikrarTabProps) {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<TikrarTahfidz | null>(null);
 
@@ -2291,6 +2309,61 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   const filteredTikrar = selectedBatchFilter === 'all'
     ? tikrar
     : tikrar.filter(t => t.batch_id === selectedBatchFilter);
+
+  // Custom pagination controls
+  const handlePageChange = (page: number) => {
+    onPageChange(page);
+  };
+
+  // Custom table component for Tikrar
+  const CustomTikrarTable = ({ data, columns, onRowClick, emptyMessage, emptyIcon }: any) => {
+    if (data.length === 0) {
+      return (
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div className="text-center py-12">
+            {emptyIcon}
+            <h3 className="mt-2 text-sm font-medium text-gray-900">{emptyMessage}</h3>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {columns.map((column: any) => (
+                  <th
+                    key={column.key}
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.width || ''}`}
+                  >
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {data.map((row: any) => (
+                <tr
+                  key={row.id}
+                  className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={() => onRowClick?.(row)}
+                >
+                  {columns.map((column: any) => (
+                    <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {column.render ? column.render(row) : String(row[column.key] ?? '-')}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   const handleRowClick = (application: TikrarTahfidz) => {
     if (application.status === 'pending') {
@@ -2408,16 +2481,89 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
         )}
       </div>
 
-      <AdminDataTable
+      <CustomTikrarTable
         data={filteredTikrar}
         columns={columns}
-        rowKey="id"
         onRowClick={handleRowClick}
-        searchPlaceholder="Search tikrar by applicant, batch, program, juz..."
         emptyMessage="No tikrar applications found"
         emptyIcon={<Award className="mx-auto h-12 w-12 text-gray-400" />}
-        defaultItemsPerPage={25}
       />
+
+      {/* Custom Pagination */}
+      <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-700">
+            Showing {((pagination.page - 1) * pagination.limit) + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
+          </span>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handlePageChange(1)}
+            disabled={pagination.page === 1}
+            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
+            title="First page"
+          >
+            <ChevronsLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page === 1}
+            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
+            title="Previous page"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {/* Page numbers */}
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+              let pageNumber;
+              if (pagination.totalPages <= 5) {
+                pageNumber = i + 1;
+              } else if (pagination.page <= 3) {
+                pageNumber = i + 1;
+              } else if (pagination.page >= pagination.totalPages - 2) {
+                pageNumber = pagination.totalPages - 4 + i;
+              } else {
+                pageNumber = pagination.page - 2 + i;
+              }
+
+              return (
+                <button
+                  key={pageNumber}
+                  onClick={() => handlePageChange(pageNumber)}
+                  className={`px-3 py-1 rounded-md text-sm border ${
+                    pagination.page === pageNumber
+                      ? 'bg-green-900 text-white border-green-900'
+                      : 'hover:bg-gray-100 border-gray-300 bg-white'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page === pagination.totalPages}
+            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
+            title="Next page"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => handlePageChange(pagination.totalPages)}
+            disabled={pagination.page === pagination.totalPages}
+            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
+            title="Last page"
+          >
+            <ChevronsRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
 
       {filteredTikrar.some(t => t.status === 'pending') && (
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
