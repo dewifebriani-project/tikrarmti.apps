@@ -71,96 +71,42 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all users with their Tikrar batch info using admin client (bypasses RLS)
-    // Try with extended fields first
-    let users: any[] | null = null;
-    let error: any = null;
+    // Start with basic fields that we know exist
+    console.log('Fetching users with basic fields...');
 
-    try {
-      const result = await supabaseAdmin
-        .from('users')
-        .select(`
+    const { data: users, error } = await supabaseAdmin
+      .from('users')
+      .select(`
+        id,
+        email,
+        full_name,
+        role,
+        is_active,
+        created_at,
+        updated_at,
+        avatar_url,
+        tikrar_registrations:pendaftaran_tikrar_tahfidz(
           id,
-          email,
-          full_name,
-          role,
-          is_active,
-          created_at,
-          updated_at,
-          avatar_url,
-          provinsi,
-          kota,
-          alamat,
-          whatsapp,
-          telegram,
-          tanggal_lahir,
-          tempat_lahir,
-          pekerjaan,
-          alasan_daftar,
-          jenis_kelamin,
-          negara,
-          zona_waktu,
-          tikrar_registrations:pendaftaran_tikrar_tahfidz(
-            id,
-            batch_id,
-            batch_name,
-            status,
-            selection_status,
-            batch:batches(name, status)
-          )
-        `)
-        .order('created_at', { ascending: false });
+          batch_id,
+          batch_name,
+          status,
+          selection_status
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-      users = result.data;
-      error = result.error;
-    } catch (err: any) {
-      console.error('Error fetching users with extended fields:', err);
-      error = err;
-    }
-
-    // If error due to missing columns, fallback to basic fields
-    if (error && (error.message?.includes('column') || error.code === 'PGRST116')) {
-      console.log('Retrying with basic fields only...');
-      const { data: usersBasic, error: errorBasic } = await supabaseAdmin
-        .from('users')
-        .select(`
-          id,
-          email,
-          full_name,
-          role,
-          is_active,
-          created_at,
-          updated_at,
-          avatar_url,
-          tikrar_registrations:pendaftaran_tikrar_tahfidz(
-            id,
-            batch_id,
-            batch_name,
-            status,
-            selection_status,
-            batch:batches(name, status)
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (errorBasic) {
-        console.error('Error fetching users with basic fields:', errorBasic);
-        return NextResponse.json({
-          error: 'Failed to fetch users',
-          details: errorBasic.message,
-          code: errorBasic.code
-        }, { status: 500 });
-      }
-
-      users = usersBasic;
-    } else if (error) {
+    if (error) {
       console.error('Error fetching users:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return NextResponse.json({
         error: 'Failed to fetch users',
         details: error.message,
-        code: error.code
+        code: error.code,
+        hint: error.hint
       }, { status: 500 });
     }
 
+    console.log(`Successfully fetched ${users?.length || 0} users`);
     return NextResponse.json({ users });
   } catch (error: any) {
     console.error('Error in admin users API:', error);
