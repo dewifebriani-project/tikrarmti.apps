@@ -31,6 +31,7 @@ import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
+import { UserDetailModal } from '@/components/UserDetailModal';
 import AdminApprovalModal from '@/components/AdminApprovalModalFixed';
 
 interface Batch {
@@ -1772,6 +1773,7 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
 function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }) {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const columns: Column<User>[] = [
@@ -1782,7 +1784,13 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
       filterable: true,
       render: (user) => (
         <div>
-          <div className={`text-sm font-medium ${user.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+          <div
+            className={`text-sm font-medium cursor-pointer hover:underline ${user.is_active ? 'text-blue-600' : 'text-gray-400 line-through'}`}
+            onClick={() => {
+              setSelectedUser(user);
+              setShowDetailModal(true);
+            }}
+          >
             {user.full_name || '-'}
             {!user.is_active && <span className="ml-2 text-xs text-red-600">(Deactivated)</span>}
           </div>
@@ -2109,6 +2117,17 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
         message="Are you sure you want to delete this user? This will remove all associated data."
         itemName={selectedUser?.full_name || selectedUser?.email}
       />
+
+      {selectedUser && (
+        <UserDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedUser(null);
+          }}
+          userId={selectedUser.id}
+        />
+      )}
     </div>
   );
 }
