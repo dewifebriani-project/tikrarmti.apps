@@ -198,6 +198,8 @@ interface TikrarTahfidz {
   selection_status: string;
   approved_by?: string;
   approved_at?: string;
+  oral_submitted_at?: string;
+  written_submitted_at?: string;
   user?: User;
   batch?: { name: string };
   program?: { name: string };
@@ -2760,6 +2762,24 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     },
   ];
 
+  // Calculate statistics
+  const stats = {
+    total: filteredTikrar.length,
+    pending: filteredTikrar.filter(t => t.status === 'pending').length,
+    approved: filteredTikrar.filter(t => t.status === 'approved').length,
+    rejected: filteredTikrar.filter(t => t.status === 'rejected').length,
+    withdrawn: filteredTikrar.filter(t => t.status === 'withdrawn').length,
+    completed: filteredTikrar.filter(t => t.status === 'completed').length,
+    // Selection status
+    selectionPending: filteredTikrar.filter(t => t.selection_status === 'pending').length,
+    selectionApproved: filteredTikrar.filter(t => t.selection_status === 'approved').length,
+    selectionRejected: filteredTikrar.filter(t => t.selection_status === 'rejected').length,
+    // Test submissions
+    oralSubmitted: filteredTikrar.filter(t => t.oral_submitted_at).length,
+    writtenSubmitted: filteredTikrar.filter(t => t.written_submitted_at).length,
+    bothTestsSubmitted: filteredTikrar.filter(t => t.oral_submitted_at && t.written_submitted_at).length,
+  };
+
   return (
     <div className="space-y-6">
       {/* Batch Filter */}
@@ -2782,6 +2802,148 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
             Showing {filteredTikrar.length} of {tikrar.length} applications
           </span>
         )}
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Applications */}
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium">Total Applications</p>
+              <p className="text-3xl font-bold mt-2">{stats.total}</p>
+            </div>
+            <div className="bg-blue-400 bg-opacity-30 rounded-full p-3">
+              <Award className="h-8 w-8" />
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Review */}
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-yellow-100 text-sm font-medium">Pending Review</p>
+              <p className="text-3xl font-bold mt-2">{stats.pending}</p>
+              <p className="text-yellow-100 text-xs mt-1">
+                {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% of total
+              </p>
+            </div>
+            <div className="bg-yellow-400 bg-opacity-30 rounded-full p-3">
+              <Clock className="h-8 w-8" />
+            </div>
+          </div>
+        </div>
+
+        {/* Approved */}
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm font-medium">Approved</p>
+              <p className="text-3xl font-bold mt-2">{stats.approved}</p>
+              <p className="text-green-100 text-xs mt-1">
+                {stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0}% of total
+              </p>
+            </div>
+            <div className="bg-green-400 bg-opacity-30 rounded-full p-3">
+              <CheckCircle className="h-8 w-8" />
+            </div>
+          </div>
+        </div>
+
+        {/* Rejected */}
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-100 text-sm font-medium">Rejected</p>
+              <p className="text-3xl font-bold mt-2">{stats.rejected}</p>
+              <p className="text-red-100 text-xs mt-1">
+                {stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0}% of total
+              </p>
+            </div>
+            <div className="bg-red-400 bg-opacity-30 rounded-full p-3">
+              <XCircle className="h-8 w-8" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Selection Status & Test Submission Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Selection Status Breakdown */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Selection Status</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Pending Selection</span>
+              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                {stats.selectionPending}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Selected</span>
+              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                {stats.selectionApproved}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Not Selected</span>
+              <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                {stats.selectionRejected}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Test Submission Stats */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Test Submissions</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Oral Test</span>
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                {stats.oralSubmitted}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Written Test</span>
+              <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                {stats.writtenSubmitted}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Both Tests</span>
+              <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm font-semibold">
+                {stats.bothTestsSubmitted}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Status */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Other Status</h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Withdrawn</span>
+              <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">
+                {stats.withdrawn}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Completed</span>
+              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-semibold">
+                {stats.completed}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Completion Rate</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {stats.approved > 0 ? Math.round((stats.completed / stats.approved) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Bulk Actions */}
