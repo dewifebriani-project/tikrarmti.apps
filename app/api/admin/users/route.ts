@@ -70,15 +70,95 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    // Get all users using admin client (bypasses RLS)
-    const { data: users, error } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Get all users with their Tikrar batch info using admin client (bypasses RLS)
+    // Try with extended fields first
+    let users: any[] | null = null;
+    let error: any = null;
 
-    if (error) {
+    try {
+      const result = await supabaseAdmin
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          role,
+          is_active,
+          created_at,
+          updated_at,
+          avatar_url,
+          provinsi,
+          kota,
+          alamat,
+          whatsapp,
+          telegram,
+          tanggal_lahir,
+          tempat_lahir,
+          pekerjaan,
+          alasan_daftar,
+          jenis_kelamin,
+          negara,
+          zona_waktu,
+          tikrar_registrations:pendaftaran_tikrar_tahfidz(
+            id,
+            batch_id,
+            batch_name,
+            status,
+            selection_status,
+            batch:batches(name, status)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      users = result.data;
+      error = result.error;
+    } catch (err: any) {
+      console.error('Error fetching users with extended fields:', err);
+      error = err;
+    }
+
+    // If error due to missing columns, fallback to basic fields
+    if (error && (error.message?.includes('column') || error.code === 'PGRST116')) {
+      console.log('Retrying with basic fields only...');
+      const { data: usersBasic, error: errorBasic } = await supabaseAdmin
+        .from('users')
+        .select(`
+          id,
+          email,
+          full_name,
+          role,
+          is_active,
+          created_at,
+          updated_at,
+          avatar_url,
+          tikrar_registrations:pendaftaran_tikrar_tahfidz(
+            id,
+            batch_id,
+            batch_name,
+            status,
+            selection_status,
+            batch:batches(name, status)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (errorBasic) {
+        console.error('Error fetching users with basic fields:', errorBasic);
+        return NextResponse.json({
+          error: 'Failed to fetch users',
+          details: errorBasic.message,
+          code: errorBasic.code
+        }, { status: 500 });
+      }
+
+      users = usersBasic;
+    } else if (error) {
       console.error('Error fetching users:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({
+        error: 'Failed to fetch users',
+        details: error.message,
+        code: error.code
+      }, { status: 500 });
     }
 
     return NextResponse.json({ users });
