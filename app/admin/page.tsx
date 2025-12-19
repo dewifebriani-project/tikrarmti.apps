@@ -16,7 +16,8 @@ import {
   UserPlus,
   ClipboardList,
   Clock,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
@@ -1865,20 +1866,71 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
     }
   };
 
+  const handleDownloadUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users/export', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download users data');
+      }
+
+      // Get filename from response headers or use default
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'users_export.xlsx';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading users:', error);
+      alert('Failed to download users data. Please try again.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
-        <button
-          onClick={() => {
-            setSelectedUser(null);
-            setShowModal(true);
-          }}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add User
-        </button>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Total {users.length} users • Click "Download Excel" to export all data
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={handleDownloadUsers}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Download className="w-5 h-5 mr-2" />
+            Download Excel
+          </button>
+          <button
+            onClick={() => {
+              setSelectedUser(null);
+              setShowModal(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add User
+          </button>
+        </div>
       </div>
 
       <AdminDataTable
