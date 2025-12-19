@@ -1968,14 +1968,19 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
     if (!selectedUser) return;
 
     const userName = selectedUser.full_name || selectedUser.email;
+    const userId = selectedUser.id;
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', selectedUser.id);
+      // Use API endpoint with admin privileges to delete user
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
 
       // Close modal and clear state first
       setShowDeleteModal(false);
