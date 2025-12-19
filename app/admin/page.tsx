@@ -371,17 +371,29 @@ export default function AdminPage() {
       } else if (activeTab === 'users') {
         try {
           console.log('Loading users via API...');
+
           // Get current session token
-          const { data: { session } } = await supabase.auth.getSession();
-          const token = session?.access_token;
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          let token = session?.access_token;
+
+          // Refresh session if no token
+          if (!token && !sessionError) {
+            console.warn('No access token, attempting to refresh session...');
+            const { data: refreshData } = await supabase.auth.refreshSession();
+            token = refreshData.session?.access_token;
+          }
 
           // Use API route to bypass RLS
-          const response = await fetch('/api/admin/users', {
+          const response = await fetch(`/api/admin/users?t=${Date.now()}`, {
+            method: 'GET',
             credentials: 'include',
             signal: controller.signal,
-            headers: token ? {
-              'Authorization': `Bearer ${token}`
-            } : {}
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
           });
 
           if (response.ok) {
@@ -389,22 +401,23 @@ export default function AdminPage() {
             console.log(`Users loaded: ${data?.length || 0} records`);
             setUsers(data || []);
           } else {
-            const error = await response.json();
-            console.error('Error loading users:', error);
-            if (error.needsLogin) {
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+            console.error('Error loading users:', error, 'Status:', response.status);
+            if (error.needsLogin || response.status === 401) {
               console.log('Session expired, redirecting to login');
               router.push('/login');
             } else {
-              toast.error('Failed to load users');
+              toast.error(`Failed to load users: ${error.error || 'Unknown error'}`);
             }
             setUsers([]);
           }
         } catch (err: any) {
           if (err.name === 'AbortError') {
             console.log('Users data fetch was aborted due to timeout');
+            toast.error('Loading timeout. Please try again.');
           } else {
             console.error('Unexpected error loading users:', err);
-            toast.error('Error loading users');
+            toast.error(`Error loading users: ${err.message}`);
           }
           setUsers([]);
         }
@@ -506,47 +519,104 @@ export default function AdminPage() {
           setPresensi([]);
         }
       } else if (activeTab === 'tikrar') {
-        try {
-          console.log('Loading tikrar data via API...', { page: tikrarPagination.page, limit: tikrarPagination.limit });
+        // Retry mechanism for Tikrar API
+        const maxRetries = 2;
+        let retryCount = 0;
+        let success = false;
 
-          // Get current session token
-          const { data: { session } } = await supabase.auth.getSession();
-          const token = session?.access_token;
-
-          // Use API route to bypass RLS - load ALL data without pagination for better performance
-          const response = await fetch(`/api/admin/tikrar?skipCount=true`, {
-            credentials: 'include',
-            signal: controller.signal,
-            headers: token ? {
-              'Authorization': `Bearer ${token}`
-            } : {}
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            console.log(`Tikrar loaded: ${result.data?.length || 0} records`);
-            setTikrar(result.data || []);
-            // Don't update pagination since we're loading all data
-          } else {
-            const error = await response.json();
-            console.error('Error loading tikrar via API:', error);
-            if (error.needsLogin) {
-              console.log('Session expired, redirecting to login');
-              router.push('/login');
+        while (retryCount <= maxRetries && !success) {
+          try {
+            if (retryCount > 0) {
+              console.log(`Retry attempt ${retryCount} for tikrar data...`);
+              toast.loading(`Retrying... (${retryCount}/${maxRetries})`);
             } else {
-              toast.error('Failed to load Tikrar applications');
+              console.log('Loading tikrar data via API...');
             }
-            setTikrar([]);
+
+            // Get current session token with retry
+            let session, token;
+            try {
+              const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+              if (sessionError) throw sessionError;
+              session = sessionData.session;
+              token = session?.access_token;
+
+              if (!token) {
+                console.warn('No access token, attempting to refresh session...');
+                const { data: refreshData } = await supabase.auth.refreshSession();
+                session = refreshData.session;
+                token = session?.access_token;
+              }
+            } catch (sessionErr) {
+              console.error('Session error:', sessionErr);
+              if (retryCount >= maxRetries) {
+                toast.error('Session expired. Please login again.');
+                router.push('/login');
+                return;
+              }
+              throw sessionErr;
+            }
+
+            // Use API route to bypass RLS - load ALL data without pagination
+            const response = await fetch(`/api/admin/tikrar?skipCount=true&t=${Date.now()}`, {
+              method: 'GET',
+              credentials: 'include',
+              signal: controller.signal,
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+              },
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log(`Tikrar loaded successfully: ${result.data?.length || 0} records`);
+              setTikrar(result.data || []);
+              success = true;
+
+              if (retryCount > 0) {
+                toast.success('Data loaded successfully');
+              }
+            } else {
+              const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+              console.error('Error loading tikrar via API:', error, 'Status:', response.status);
+
+              if (error.needsLogin || response.status === 401) {
+                console.log('Session expired, redirecting to login');
+                router.push('/login');
+                return;
+              }
+
+              if (retryCount >= maxRetries) {
+                toast.error(`Failed to load Tikrar: ${error.error || 'Unknown error'}`);
+                setTikrar([]);
+              } else {
+                throw new Error(error.error || 'API request failed');
+              }
+            }
+          } catch (err: any) {
+            console.error(`Tikrar load attempt ${retryCount + 1} failed:`, err);
+
+            if (err.name === 'AbortError') {
+              console.log('Tikrar data fetch was aborted due to timeout');
+              if (retryCount >= maxRetries) {
+                toast.error('Loading timeout. Please refresh the page.');
+                setTikrar([]);
+              }
+            } else if (retryCount >= maxRetries) {
+              toast.error(`Error loading Tikrar: ${err.message}`);
+              setTikrar([]);
+            }
+
+            retryCount++;
+
+            // Wait before retry (exponential backoff)
+            if (retryCount <= maxRetries && !success) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
           }
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            console.log('Tikrar data fetch was aborted due to timeout');
-            toast.error('Tikrar loading timeout. Please try again.');
-          } else {
-            console.error('Unexpected error loading tikrar via API:', err);
-            toast.error('Error loading Tikrar applications');
-          }
-          setTikrar([]);
         }
       }
     } catch (error) {
