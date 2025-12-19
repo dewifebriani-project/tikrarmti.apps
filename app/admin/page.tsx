@@ -265,7 +265,7 @@ export default function AdminPage() {
       console.log('Loading data for tab:', activeTab);
       loadData();
     }
-  }, [activeTab, user, tikrarPagination.page]);
+  }, [activeTab, user]);
 
   // Disable eslint exhaustive-deps warning for loadData
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -278,9 +278,10 @@ export default function AdminPage() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.error('Request aborted after 20 seconds for tab:', activeTab);
+      console.error('Request aborted after 10 seconds for tab:', activeTab);
+      toast.error(`Loading timeout for ${activeTab}. Please try again.`);
       setDataLoading(false);
-    }, 20000); // 20 second timeout
+    }, 10000); // Reduced to 10 second timeout
 
     try {
       console.log('=== Starting data load for tab:', activeTab, '===', new Date().toISOString());
@@ -348,36 +349,60 @@ export default function AdminPage() {
           .from('batches')
           .select('*')
           .order('created_at', { ascending: false });
-        if (error) console.error('Error loading batches:', error);
+        if (error) {
+          console.error('Error loading batches:', error);
+          toast.error('Error loading batches');
+        }
+        console.log(`Batches loaded: ${data?.length || 0} records`);
         setBatches(data || []);
       } else if (activeTab === 'programs') {
         const { data, error } = await supabase
           .from('programs')
           .select('*, batch:batches(name)')
           .order('created_at', { ascending: false });
-        if (error) console.error('Error loading programs:', error);
+        if (error) {
+          console.error('Error loading programs:', error);
+          toast.error('Error loading programs');
+        }
+        console.log(`Programs loaded: ${data?.length || 0} records`);
         setPrograms(data || []);
       } else if (activeTab === 'users') {
-        // Get current session token
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
+        try {
+          console.log('Loading users via API...');
+          // Get current session token
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
 
-        // Use API route to bypass RLS
-        const response = await fetch('/api/admin/users', {
-          credentials: 'include',
-          headers: token ? {
-            'Authorization': `Bearer ${token}`
-          } : {}
-        });
-        if (response.ok) {
-          const { users: data } = await response.json();
-          setUsers(data || []);
-        } else {
-          const error = await response.json();
-          console.error('Error loading users:', error);
-          if (error.needsLogin) {
-            console.log('Session expired, redirecting to login');
-            router.push('/login');
+          // Use API route to bypass RLS
+          const response = await fetch('/api/admin/users', {
+            credentials: 'include',
+            signal: controller.signal,
+            headers: token ? {
+              'Authorization': `Bearer ${token}`
+            } : {}
+          });
+
+          if (response.ok) {
+            const { users: data } = await response.json();
+            console.log(`Users loaded: ${data?.length || 0} records`);
+            setUsers(data || []);
+          } else {
+            const error = await response.json();
+            console.error('Error loading users:', error);
+            if (error.needsLogin) {
+              console.log('Session expired, redirecting to login');
+              router.push('/login');
+            } else {
+              toast.error('Failed to load users');
+            }
+            setUsers([]);
+          }
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            console.log('Users data fetch was aborted due to timeout');
+          } else {
+            console.error('Unexpected error loading users:', err);
+            toast.error('Error loading users');
           }
           setUsers([]);
         }
@@ -386,7 +411,11 @@ export default function AdminPage() {
           .from('halaqah')
           .select('*, program:programs(name, batch_id)')
           .order('created_at', { ascending: false });
-        if (error) console.error('Error loading halaqah:', error);
+        if (error) {
+          console.error('Error loading halaqah:', error);
+          toast.error('Error loading halaqah');
+        }
+        console.log(`Halaqah loaded: ${data?.length || 0} records`);
         setHalaqahs(data || []);
       } else if (activeTab === 'halaqah-mentors') {
         try {
@@ -476,15 +505,14 @@ export default function AdminPage() {
         }
       } else if (activeTab === 'tikrar') {
         try {
-          console.log('Loading tikrar data via API...');
+          console.log('Loading tikrar data via API...', { page: tikrarPagination.page, limit: tikrarPagination.limit });
 
           // Get current session token
           const { data: { session } } = await supabase.auth.getSession();
           const token = session?.access_token;
 
-          // Use API route to bypass RLS with pagination
-          // Include pagination info
-          const response = await fetch(`/api/admin/tikrar?page=${tikrarPagination.page}&limit=${tikrarPagination.limit}`, {
+          // Use API route to bypass RLS - load ALL data without pagination for better performance
+          const response = await fetch(`/api/admin/tikrar?skipCount=true`, {
             credentials: 'include',
             signal: controller.signal,
             headers: token ? {
@@ -494,25 +522,27 @@ export default function AdminPage() {
 
           if (response.ok) {
             const result = await response.json();
-            console.log('Tikrar API result:', result);
+            console.log(`Tikrar loaded: ${result.data?.length || 0} records`);
             setTikrar(result.data || []);
-            if (result.pagination) {
-              setTikrarPagination(result.pagination);
-            }
+            // Don't update pagination since we're loading all data
           } else {
             const error = await response.json();
             console.error('Error loading tikrar via API:', error);
             if (error.needsLogin) {
               console.log('Session expired, redirecting to login');
               router.push('/login');
+            } else {
+              toast.error('Failed to load Tikrar applications');
             }
             setTikrar([]);
           }
         } catch (err: any) {
           if (err.name === 'AbortError') {
             console.log('Tikrar data fetch was aborted due to timeout');
+            toast.error('Tikrar loading timeout. Please try again.');
           } else {
             console.error('Unexpected error loading tikrar via API:', err);
+            toast.error('Error loading Tikrar applications');
           }
           setTikrar([]);
         }
