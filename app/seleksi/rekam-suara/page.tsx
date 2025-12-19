@@ -148,6 +148,18 @@ export default function RekamSuaraPage() {
     try {
       setPermissionError(null);
 
+      // Detect mobile device first
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
+      console.log('📱 Device detection for recording:', {
+        isMobile,
+        isIOS,
+        isSafari,
+        userAgent: navigator.userAgent
+      });
+
       // Check if running on HTTPS or localhost
       const isSecureContext = window.isSecureContext;
       if (!isSecureContext) {
@@ -164,22 +176,36 @@ export default function RekamSuaraPage() {
       // console.log('🎤 Requesting microphone access...');
       // console.log('🎯 Using device ID:', selectedDeviceId);
 
+      // Mobile-optimized audio constraints
+      let audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      };
+
+      // Mobile-specific optimizations
+      if (isMobile) {
+        // Lower sample rate for mobile to reduce processing load
+        audioConstraints.sampleRate = 22050;
+        // Mono instead of stereo for mobile
+        audioConstraints.channelCount = 1;
+        console.log('📱 Using mobile-optimized audio constraints:', audioConstraints);
+      } else {
+        // Higher quality for desktop
+        audioConstraints.sampleRate = 48000;
+        audioConstraints.channelCount = 2;
+      }
+
       const constraints: MediaStreamConstraints = {
         audio: selectedDeviceId
           ? {
-              deviceId: { exact: selectedDeviceId },
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000
+              ...audioConstraints,
+              deviceId: { exact: selectedDeviceId }
             }
-          : {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 48000
-            }
+          : audioConstraints
       };
+
+      console.log('🎯 Audio constraints:', constraints);
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
@@ -210,11 +236,6 @@ export default function RekamSuaraPage() {
 
       // Set up MediaRecorder with mobile/tablet specific MIME type handling
       let mimeType: string;
-
-      // Check for mobile/tablet browsers and their supported formats
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
       console.log('📱 Device detection for audio format:', {
         isMobile,
@@ -337,8 +358,16 @@ export default function RekamSuaraPage() {
         // console.log('▶️ Recording started');
       };
 
-      // console.log('🎙️ Starting MediaRecorder...');
-      mediaRecorder.start(100); // Collect data every 100ms
+      console.log('🎙️ Starting MediaRecorder...');
+
+      // Mobile-specific recording settings
+      let timeSlice = 100; // default
+      if (isMobile) {
+        timeSlice = 500; // longer intervals for mobile to reduce CPU load
+        console.log('📱 Using mobile-optimized recording interval:', timeSlice);
+      }
+
+      mediaRecorder.start(timeSlice); // Collect data at mobile-optimized intervals
       setIsRecording(true);
 
       // Refresh device list after recording starts (helps on mobile)
@@ -346,10 +375,25 @@ export default function RekamSuaraPage() {
         loadAudioDevices();
       }, 1000);
 
-      // console.log('✅ Recording active');
+      console.log('✅ Recording active with settings:', {
+        mimeType,
+        timeSlice,
+        state: mediaRecorder.state,
+        audioTracks: stream.getAudioTracks().length
+      });
     } catch (error: any) {
-      console.error('Error accessing microphone:', error);
+      console.error('❌ Error accessing microphone:', error);
+      console.error('❌ Full error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        constraint: error.constraint,
+        toString: error.toString()
+      });
       setMicPermission('denied');
+
+      // Re-detect mobile for error message
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       let errorMessage = 'Tidak dapat mengakses mikrofon. ';
 
@@ -365,6 +409,11 @@ export default function RekamSuaraPage() {
         errorMessage += 'Akses mikrofon diblokir karena alasan keamanan. Pastikan Anda mengakses halaman ini melalui HTTPS.';
       } else {
         errorMessage += 'Error: ' + error.message;
+      }
+
+      // Add mobile-specific suggestions
+      if (isMobile) {
+        errorMessage += ' 📱 Mobile tips: Pastikan tidak ada aplikasi lain yang menggunakan mikrofon, coba restart browser, atau gunakan browser Chrome/Edge terbaru.';
       }
 
       setPermissionError(errorMessage);
@@ -482,13 +531,25 @@ export default function RekamSuaraPage() {
 
       console.log('📤 Client: Sending request to /api/seleksi/submit');
 
-      const response = await fetch('/api/seleksi/submit', {
+      // Mobile-specific upload configuration
+      const uploadConfig: RequestInit = {
         method: 'POST',
         body: formData,
         headers: {
           'Authorization': `Bearer ${session.access_token}`
         }
-      });
+      };
+
+      // Add timeout for mobile
+      if (isMobile) {
+        // Create an AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for mobile
+        uploadConfig.signal = controller.signal;
+        console.log('📱 Mobile: Added 60-second timeout');
+      }
+
+      const response = await fetch('/api/seleksi/submit', uploadConfig);
 
       console.log('📥 Client: Response received:', {
         status: response.status,
@@ -501,6 +562,25 @@ export default function RekamSuaraPage() {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('❌ Client: Submit error:', errorData);
         console.error('❌ Client: Response status:', response.status);
+
+        // Try alternative upload method for mobile
+        if (isMobile && response.status >= 400 && response.status < 500) {
+          console.log('🔄 Trying alternative Base64 upload method for mobile...');
+          try {
+            const base64Result = await tryBase64Upload(audioBlob, session.access_token, fileName);
+            console.log('✅ Base64 upload successful:', base64Result);
+            setSubmitStatus('success');
+            setTimeout(() => {
+              router.push('/perjalanan-saya');
+            }, 2000);
+            return;
+          } catch (base64Error: any) {
+            console.error('❌ Base64 upload also failed:', base64Error);
+            const base64ErrorMessage = base64Error?.message || 'Unknown Base64 error';
+            throw new Error(`Upload gagal. FormData error: ${errorData.error || response.status}. Base64 error: ${base64ErrorMessage}`);
+          }
+        }
+
         throw new Error(errorData.error || `Gagal mengirim rekaman (${response.status})`);
       }
 
@@ -528,6 +608,59 @@ export default function RekamSuaraPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Alternative Base64 upload method for mobile fallback
+  const tryBase64Upload = async (blob: Blob, token: string, fileName: string) => {
+    console.log('🔄 Starting Base64 upload...');
+
+    // Convert blob to base64
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const base64Content = base64Data.split(',')[1]; // Remove data:...;base64, prefix
+
+          console.log('📊 Base64 conversion successful, size:', base64Content.length);
+
+          const payload = {
+            audioBase64: base64Content,
+            fileName: fileName,
+            mimeType: blob.type,
+            size: blob.size
+          };
+
+          console.log('📤 Sending Base64 payload...');
+
+          const response = await fetch('/api/seleksi/submit-base64', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || `Base64 upload failed (${response.status})`);
+          }
+
+          resolve(result);
+        } catch (error) {
+          console.error('❌ Base64 upload error:', error);
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to convert audio to base64'));
+      };
+
+      reader.readAsDataURL(blob);
+    });
   };
 
   const formatTime = (seconds: number) => {
