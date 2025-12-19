@@ -75,21 +75,27 @@ export async function GET(request: NextRequest) {
 
     // Get pagination parameters from query string
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50); // Reduced default to 20, max 50
-    const offset = (page - 1) * limit;
     const skipCount = searchParams.get('skipCount') === 'true';
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '1000'), 1000); // Increased max to 1000
+    const offset = (page - 1) * limit;
 
     // Fetch tikrar data with admin client (bypasses RLS)
-    // Add logging for performance tracking
     console.log('Starting tikrar data fetch at', new Date().toISOString());
-    console.log('Query parameters:', { page, limit, offset });
+    console.log('Query parameters:', { skipCount, page, limit, offset });
 
-    const { data, error } = await supabaseAdmin
+    // If skipCount is true, load ALL data without pagination
+    let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
-      .order('submission_date', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('submission_date', { ascending: false });
+
+    // Only apply range if NOT skipping count (i.e., if using pagination)
+    if (!skipCount) {
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error } = await query;
 
     console.log('Query completed at', new Date().toISOString());
     console.log('Data length:', data?.length || 0);
@@ -102,15 +108,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get total count for pagination (use estimated count for better performance)
-    // Skip count query if requested for faster initial load
-    let totalCount = null;
+    // Get total count for pagination
+    let totalCount = data?.length || 0;
     if (!skipCount) {
       console.log('Starting count query at', new Date().toISOString());
       const { count } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
         .select('*', { count: 'estimated', head: true });
-      totalCount = count;
+      totalCount = count || 0;
       console.log('Count query completed at', new Date().toISOString());
       console.log('Total count:', totalCount);
     }
@@ -121,8 +126,8 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / limit)
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit)
       }
     });
 
