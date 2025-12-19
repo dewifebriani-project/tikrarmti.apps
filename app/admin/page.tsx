@@ -663,8 +663,6 @@ export default function AdminPage() {
             selectedBatchFilter={selectedBatchFilter}
             onBatchFilterChange={setSelectedBatchFilter}
             onRefresh={loadData}
-            pagination={tikrarPagination}
-            onPageChange={(page) => setTikrarPagination(prev => ({ ...prev, page }))}
           />
         )}
         {activeTab === 'reports' && <ReportsTab />}
@@ -2492,17 +2490,12 @@ interface TikrarTabProps {
   selectedBatchFilter: string;
   onBatchFilterChange: (batchId: string) => void;
   onRefresh: () => void;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  onPageChange: (page: number) => void;
 }
 
-function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh, pagination, onPageChange }: TikrarTabProps) {
+function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: TikrarTabProps) {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<TikrarTahfidz | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
@@ -2517,11 +2510,6 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
 
   // Get only pending applications
   const pendingTikrar = filteredTikrar.filter(t => t.status === 'pending');
-
-  // Custom pagination controls
-  const handlePageChange = (page: number) => {
-    onPageChange(page);
-  };
 
   // Bulk selection handlers
   const handleSelectAll = (checked: boolean) => {
@@ -2605,78 +2593,20 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     setBulkRejectionReason('');
   };
 
-  // Custom table component for Tikrar
-  const CustomTikrarTable = ({ data, columns, onRowClick, emptyMessage, emptyIcon }: any) => {
-    if (data.length === 0) {
-      return (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="text-center py-12">
-            {emptyIcon}
-            <h3 className="mt-2 text-sm font-medium text-gray-900">{emptyMessage}</h3>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {columns.map((column: any) => (
-                  <th
-                    key={column.key}
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.width || ''}`}
-                  >
-                    {column.key === 'select' && pendingTikrar.length > 0 ? (
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = isIndeterminate;
-                        }}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
-                      />
-                    ) : (
-                      column.label
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((row: any) => (
-                <tr
-                  key={row.id}
-                  className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
-                  onClick={(e) => onRowClick?.(row, e)}
-                >
-                  {columns.map((column: any) => (
-                    <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {column.render ? column.render(row) : String(row[column.key] ?? '-')}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
+  // CRUD handlers
+  const handleEdit = (tikrarData: TikrarTahfidz) => {
+    setSelectedApplication(tikrarData);
+    setShowModal(true);
   };
 
-  const handleRowClick = (application: TikrarTahfidz, event: React.MouseEvent) => {
-    // Don't trigger row click if clicking on checkbox
-    if ((event.target as HTMLElement).closest('input[type="checkbox"]')) {
-      return;
-    }
+  const handleDelete = (tikrarData: TikrarTahfidz) => {
+    setSelectedApplication(tikrarData);
+    setShowDeleteModal(true);
+  };
 
-    if (application.status === 'pending') {
-      setSelectedApplication(application);
-      setShowApprovalModal(true);
-    }
+  const handleView = (tikrarData: TikrarTahfidz) => {
+    setSelectedApplication(tikrarData);
+    setShowApprovalModal(true);
   };
 
   const columns: Column<TikrarTahfidz>[] = [
@@ -2738,20 +2668,13 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       sortable: true,
       filterable: true,
       render: (t) => (
-        <div className="flex items-center gap-2">
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-            ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
-              t.status === 'rejected' ? 'bg-red-100 text-red-800' :
-              t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
-              'bg-yellow-100 text-yellow-800'}`}>
-            {t.status}
-          </span>
-          {t.status === 'pending' && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-              Click to review
-            </span>
-          )}
-        </div>
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+          ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
+            t.status === 'rejected' ? 'bg-red-100 text-red-800' :
+            t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+            'bg-yellow-100 text-yellow-800'}`}>
+          {t.status}
+        </span>
       ),
     },
     {
@@ -2776,15 +2699,39 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     },
   ];
 
+  // Form fields for CRUD modal
+  const formFields: FormField[] = [
+    { name: 'full_name', label: 'Full Name', type: 'text', required: true },
+    { name: 'batch_name', label: 'Batch Name', type: 'text', required: true },
+    { name: 'chosen_juz', label: 'Chosen Juz', type: 'text', required: false },
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'pending', label: 'Pending' },
+        { value: 'approved', label: 'Approved' },
+        { value: 'rejected', label: 'Rejected' },
+        { value: 'withdrawn', label: 'Withdrawn' },
+        { value: 'completed', label: 'Completed' },
+      ]
+    },
+    {
+      name: 'selection_status',
+      label: 'Selection Status',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'pending', label: 'Pending' },
+        { value: 'approved', label: 'Approved' },
+        { value: 'rejected', label: 'Rejected' },
+      ]
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Tikrar Tahfidz Applications</h2>
-        <div className="text-sm text-gray-500">
-          Pending: {filteredTikrar.filter(t => t.status === 'pending').length}
-        </div>
-      </div>
-
       {/* Batch Filter */}
       <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
         <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
@@ -2842,107 +2789,86 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
         </div>
       )}
 
-      <CustomTikrarTable
+      {/* AdminDataTable with sorting */}
+      <AdminDataTable
         data={filteredTikrar}
         columns={columns}
-        onRowClick={handleRowClick}
+        rowKey="id"
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        onView={handleView}
         emptyMessage="No tikrar applications found"
         emptyIcon={<Award className="mx-auto h-12 w-12 text-gray-400" />}
       />
 
-      {/* Custom Pagination */}
-      <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-700">
-            Showing {((pagination.page - 1) * pagination.limit) + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} entries
-          </span>
-        </div>
+      {/* CRUD Modals */}
+      <AdminCrudModal
+        isOpen={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setSelectedApplication(null);
+        }}
+        onSubmit={async (formData) => {
+          try {
+            if (selectedApplication) {
+              // Update - prepare update data
+              const updateData = {
+                full_name: formData.full_name,
+                batch_name: formData.batch_name,
+                chosen_juz: formData.chosen_juz,
+                status: formData.status,
+                selection_status: formData.selection_status,
+              };
 
-        {/* Pagination Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handlePageChange(1)}
-            disabled={pagination.page === 1}
-            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
-            title="First page"
-          >
-            <ChevronsLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => handlePageChange(pagination.page - 1)}
-            disabled={pagination.page === 1}
-            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
-            title="Previous page"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+              // @ts-ignore - Supabase update types issue
+              const { error } = await supabase
+                .from('pendaftaran_tikrar_tahfidz')
+                // @ts-ignore
+                .update(updateData)
+                .eq('id', selectedApplication.id);
 
-          {/* Page numbers */}
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-              let pageNumber;
-              if (pagination.totalPages <= 5) {
-                pageNumber = i + 1;
-              } else if (pagination.page <= 3) {
-                pageNumber = i + 1;
-              } else if (pagination.page >= pagination.totalPages - 2) {
-                pageNumber = pagination.totalPages - 4 + i;
-              } else {
-                pageNumber = pagination.page - 2 + i;
-              }
+              if (error) throw error;
+              toast.success('Application updated successfully');
+            }
+            setShowModal(false);
+            setSelectedApplication(null);
+            onRefresh();
+          } catch (error: any) {
+            toast.error(error.message);
+          }
+        }}
+        title={selectedApplication ? 'Edit Application' : 'Create Application'}
+        fields={formFields}
+        initialData={selectedApplication || undefined}
+      />
 
-              return (
-                <button
-                  key={pageNumber}
-                  onClick={() => handlePageChange(pageNumber)}
-                  className={`px-3 py-1 rounded-md text-sm border ${
-                    pagination.page === pageNumber
-                      ? 'bg-green-900 text-white border-green-900'
-                      : 'hover:bg-gray-100 border-gray-300 bg-white'
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-          </div>
+      <AdminDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedApplication(null);
+        }}
+        onConfirm={async () => {
+          try {
+            if (selectedApplication) {
+              const { error } = await supabase
+                .from('pendaftaran_tikrar_tahfidz')
+                .delete()
+                .eq('id', selectedApplication.id);
 
-          <button
-            onClick={() => handlePageChange(pagination.page + 1)}
-            disabled={pagination.page === pagination.totalPages}
-            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
-            title="Next page"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => handlePageChange(pagination.totalPages)}
-            disabled={pagination.page === pagination.totalPages}
-            className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-300 disabled:border-gray-200 bg-white"
-            title="Last page"
-          >
-            <ChevronsRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {filteredTikrar.some(t => t.status === 'pending') && (
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-800">
-                <strong>Approval Required:</strong> {filteredTikrar.filter(t => t.status === 'pending').length} pending application(s) need review.
-                Click on any pending row to approve or reject.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+              if (error) throw error;
+              toast.success('Application deleted successfully');
+            }
+            setShowDeleteModal(false);
+            setSelectedApplication(null);
+            onRefresh();
+          } catch (error: any) {
+            toast.error(error.message);
+          }
+        }}
+        title="Delete Application"
+        message={`Are you sure you want to delete the application from "${selectedApplication?.full_name}"? This action cannot be undone.`}
+      />
 
       {/* Bulk Confirmation Modal */}
       {showBulkConfirmModal && (
