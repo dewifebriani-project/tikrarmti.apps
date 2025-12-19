@@ -2504,15 +2504,105 @@ interface TikrarTabProps {
 function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh, pagination, onPageChange }: TikrarTabProps) {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<TikrarTahfidz | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'approve' | 'reject' | null>(null);
+  const [bulkRejectionReason, setBulkRejectionReason] = useState('');
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   // Filter tikrar by batch_id or batch_name
   const filteredTikrar = selectedBatchFilter === 'all'
     ? tikrar
     : tikrar.filter(t => t.batch_id === selectedBatchFilter);
 
+  // Get only pending applications
+  const pendingTikrar = filteredTikrar.filter(t => t.status === 'pending');
+
   // Custom pagination controls
   const handlePageChange = (page: number) => {
     onPageChange(page);
+  };
+
+  // Bulk selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(pendingTikrar.map(t => t.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+    }
+  };
+
+  const isSelected = (id: string) => selectedIds.includes(id);
+  const isAllSelected = pendingTikrar.length > 0 && selectedIds.length === pendingTikrar.length;
+  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < pendingTikrar.length;
+
+  // Bulk action handlers
+  const handleBulkApprove = () => {
+    if (selectedIds.length === 0) return;
+    setBulkAction('approve');
+    setShowBulkConfirmModal(true);
+  };
+
+  const handleBulkReject = () => {
+    if (selectedIds.length === 0) return;
+    setBulkAction('reject');
+    setBulkRejectionReason('');
+    setShowBulkConfirmModal(true);
+  };
+
+  const confirmBulkAction = async () => {
+    if (!bulkAction || selectedIds.length === 0) return;
+
+    setIsBulkProcessing(true);
+    try {
+      const response = await fetch('/api/admin/tikrar/bulk-approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: selectedIds,
+          action: bulkAction,
+          rejectionReason: bulkAction === 'reject' ? bulkRejectionReason : undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process bulk action');
+      }
+
+      alert(`Successfully ${bulkAction === 'approve' ? 'approved' : 'rejected'} ${result.updatedCount} application(s)`);
+
+      // Reset state
+      setSelectedIds([]);
+      setShowBulkConfirmModal(false);
+      setBulkAction(null);
+      setBulkRejectionReason('');
+
+      // Refresh data
+      onRefresh();
+    } catch (error: any) {
+      console.error('Bulk action error:', error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const cancelBulkAction = () => {
+    setShowBulkConfirmModal(false);
+    setBulkAction(null);
+    setBulkRejectionReason('');
   };
 
   // Custom table component for Tikrar
@@ -2539,7 +2629,19 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                     key={column.key}
                     className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.width || ''}`}
                   >
-                    {column.label}
+                    {column.key === 'select' && pendingTikrar.length > 0 ? (
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isIndeterminate;
+                        }}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+                      />
+                    ) : (
+                      column.label
+                    )}
                   </th>
                 ))}
               </tr>
@@ -2549,7 +2651,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                 <tr
                   key={row.id}
                   className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
-                  onClick={() => onRowClick?.(row)}
+                  onClick={(e) => onRowClick?.(row, e)}
                 >
                   {columns.map((column: any) => (
                     <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -2565,7 +2667,12 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     );
   };
 
-  const handleRowClick = (application: TikrarTahfidz) => {
+  const handleRowClick = (application: TikrarTahfidz, event: React.MouseEvent) => {
+    // Don't trigger row click if clicking on checkbox
+    if ((event.target as HTMLElement).closest('input[type="checkbox"]')) {
+      return;
+    }
+
     if (application.status === 'pending') {
       setSelectedApplication(application);
       setShowApprovalModal(true);
@@ -2573,6 +2680,25 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   };
 
   const columns: Column<TikrarTahfidz>[] = [
+    {
+      key: 'select',
+      label: '',
+      width: 'w-12',
+      render: (t) => {
+        if (t.status !== 'pending') return null;
+        return (
+          <input
+            type="checkbox"
+            checked={isSelected(t.id)}
+            onChange={(e) => {
+              e.stopPropagation();
+              handleSelectOne(t.id, e.target.checked);
+            }}
+            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
+          />
+        );
+      },
+    },
     {
       key: 'full_name',
       label: 'Applicant',
@@ -2681,6 +2807,41 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
         )}
       </div>
 
+      {/* Bulk Actions */}
+      {selectedIds.length > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-green-900">
+                {selectedIds.length} application(s) selected
+              </span>
+              <button
+                onClick={() => setSelectedIds([])}
+                className="text-sm text-green-700 hover:text-green-900 underline"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleBulkApprove}
+                disabled={isBulkProcessing}
+                className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Approve Selected
+              </button>
+              <button
+                onClick={handleBulkReject}
+                disabled={isBulkProcessing}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reject Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CustomTikrarTable
         data={filteredTikrar}
         columns={columns}
@@ -2778,6 +2939,83 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                 <strong>Approval Required:</strong> {filteredTikrar.filter(t => t.status === 'pending').length} pending application(s) need review.
                 Click on any pending row to approve or reject.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Confirmation Modal */}
+      {showBulkConfirmModal && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={cancelBulkAction}></div>
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${bulkAction === 'approve' ? 'bg-green-100' : 'bg-red-100'} sm:mx-0 sm:h-10 sm:w-10`}>
+                    {bulkAction === 'approve' ? (
+                      <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      {bulkAction === 'approve' ? 'Bulk Approve Applications' : 'Bulk Reject Applications'}
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to {bulkAction} {selectedIds.length} application(s)? This action cannot be undone.
+                      </p>
+
+                      {bulkAction === 'reject' && (
+                        <div className="mt-4">
+                          <label htmlFor="bulk-rejection-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                            Rejection Reason (Optional)
+                          </label>
+                          <textarea
+                            id="bulk-rejection-reason"
+                            rows={3}
+                            value={bulkRejectionReason}
+                            onChange={(e) => setBulkRejectionReason(e.target.value)}
+                            className="shadow-sm focus:ring-red-500 focus:border-red-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            placeholder="Enter reason for rejection..."
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  disabled={isBulkProcessing}
+                  onClick={confirmBulkAction}
+                  className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+                    bulkAction === 'approve'
+                      ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                      : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                  }`}
+                >
+                  {isBulkProcessing ? 'Processing...' : `Yes, ${bulkAction}`}
+                </button>
+                <button
+                  type="button"
+                  disabled={isBulkProcessing}
+                  onClick={cancelBulkAction}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
