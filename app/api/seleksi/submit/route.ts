@@ -7,12 +7,17 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🎵 API: Received audio submission request');
+
     // Create Supabase client for POST
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Get auth token from header
     const authHeader = request.headers.get('authorization');
+    console.log('🔍 Auth header:', authHeader ? 'Present' : 'Missing');
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ API: No Bearer token found');
       return NextResponse.json(
         { error: 'Unauthorized - No token provided' },
         { status: 401 }
@@ -20,57 +25,124 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log('🔑 Token length:', token.length);
 
     // Verify token and get user
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.error('Auth error:', authError);
+      console.error('❌ API: Auth error:', authError);
       return NextResponse.json(
         { error: 'Unauthorized - Invalid token' },
         { status: 401 }
       );
     }
 
+    console.log('✅ API: User authenticated:', user.id);
+
     const contentType = request.headers.get('content-type');
+    console.log('📄 Content-Type:', contentType);
+
     let submissionData: any = {};
 
     if (contentType?.includes('multipart/form-data')) {
+      console.log('📎 API: Processing multipart form data');
+
       // Handle audio file upload
       const formData = await request.formData();
+      console.log('📋 API: FormData keys received:', Array.from(formData.keys()));
+
       const audioFile = formData.get('audio') as File;
+      console.log('🎵 API: Audio file details:', {
+        name: audioFile?.name,
+        size: audioFile?.size,
+        type: audioFile?.type,
+        isFile: audioFile instanceof File
+      });
 
       if (!audioFile) {
+        console.error('❌ API: No audio file in form data');
         return NextResponse.json(
           { error: 'No audio file provided' },
           { status: 400 }
         );
       }
 
-      // Upload to Supabase Storage
-      const fileName = `selection-${user.id}-${Date.now()}.webm`;
-      // console.log('📤 Uploading audio file:', fileName, 'Size:', audioFile.size);
+      // Validate file
+      if (!(audioFile instanceof File)) {
+        console.error('❌ API: audioFile is not a File object:', typeof audioFile);
+        return NextResponse.json(
+          { error: 'Invalid audio file format' },
+          { status: 400 }
+        );
+      }
+
+      if (audioFile.size === 0) {
+        console.error('❌ API: Audio file is empty');
+        return NextResponse.json(
+          { error: 'Audio file is empty' },
+          { status: 400 }
+        );
+      }
+
+      console.log('🎵 API: Audio file validation passed');
+
+      // Determine file extension based on MIME type
+      let fileExtension = 'webm'; // default
+      if (audioFile.type.includes('mp4') || audioFile.type.includes('m4a')) {
+        fileExtension = 'mp4';
+      } else if (audioFile.type.includes('ogg')) {
+        fileExtension = 'ogg';
+      } else if (audioFile.type.includes('wav')) {
+        fileExtension = 'wav';
+      }
+
+      const fileName = `selection-${user.id}-${Date.now()}.${fileExtension}`;
+      console.log('📤 API: Uploading audio file:', fileName, 'Size:', audioFile.size, 'Type:', audioFile.type);
+
+      // Additional validation for mobile/tablet uploads
+      const validAudioTypes = [
+        'audio/webm',
+        'audio/webm;codecs=opus',
+        'audio/mp4',
+        'audio/mpeg',
+        'audio/ogg',
+        'audio/wav',
+        'audio/m4a'
+      ];
+
+      const isValidAudioType = validAudioTypes.some(type =>
+        audioFile.type === type || audioFile.type.includes(type.split(';')[0])
+      );
+
+      if (!isValidAudioType && !audioFile.type.startsWith('audio/')) {
+        console.warn('⚠️ API: Unusual audio MIME type:', audioFile.type);
+        // Still try to upload, but log the warning
+      }
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('selection-audios')
-        .upload(fileName, audioFile);
+        .upload(fileName, audioFile, {
+          contentType: audioFile.type || 'audio/webm',
+          cacheControl: '3600'
+        });
 
       if (uploadError) {
-        // console.error('❌ Upload error:', uploadError);
+        console.error('❌ API: Upload error:', uploadError);
         return NextResponse.json(
           { error: 'Failed to upload audio', details: uploadError.message },
           { status: 500 }
         );
       }
 
-      // console.log('✅ Upload successful:', uploadData);
+      console.log('✅ API: Upload successful:', uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('selection-audios')
         .getPublicUrl(fileName);
 
-      // console.log('🔗 Public URL:', publicUrl);
+      console.log('🔗 API: Public URL:', publicUrl);
 
       submissionData = {
         user_id: user.id,
@@ -221,16 +293,9 @@ export async function GET(request: NextRequest) {
     } else {
       // Fallback to cookie-based client
       supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
-        },
+        auth: {
+          flowType: 'pkce'
+        }
       });
     }
 

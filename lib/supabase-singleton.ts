@@ -24,7 +24,7 @@ let supabaseClient: ReturnType<typeof createClient> | null = null
 function getSupabaseClient() {
   if (!supabaseClient) {
     // console.log('[Singleton] Creating new Supabase client instance...')
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey,
+    supabaseClient = createClient(supabaseUrl || '', supabaseAnonKey || '',
       {
         auth: {
           persistSession: true,

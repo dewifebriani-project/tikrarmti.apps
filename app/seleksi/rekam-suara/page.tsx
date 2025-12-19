@@ -208,14 +208,56 @@ export default function RekamSuaraPage() {
         console.error('⚠️ Audio context error:', error);
       }
 
-      // Set up MediaRecorder
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      // Set up MediaRecorder with mobile/tablet specific MIME type handling
+      let mimeType: string;
 
-      // console.log('🎬 Using MIME type:', mimeType);
+      // Check for mobile/tablet browsers and their supported formats
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      console.log('📱 Device detection for audio format:', {
+        isMobile,
+        isIOS,
+        isSafari,
+        userAgent: navigator.userAgent
+      });
+
+      // iOS/Safari have limited audio format support
+      if (isIOS || isSafari) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else {
+          // Fallback for older browsers
+          mimeType = 'audio/ogg';
+        }
+      } else {
+        // Standard format for other browsers
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else {
+          mimeType = 'audio/ogg';
+        }
+      }
+
+      console.log('🎬 Selected MIME type:', mimeType);
+
+      // Create MediaRecorder with error handling
+      let mediaRecorder: MediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+      } catch (error) {
+        console.warn('⚠️ Failed to create MediaRecorder with MIME type:', mimeType, 'Falling back to default');
+        mediaRecorder = new MediaRecorder(stream);
+      }
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -227,12 +269,44 @@ export default function RekamSuaraPage() {
       };
 
       mediaRecorder.onstop = () => {
-        // console.log('⏹️ Recording stopped');
-        // console.log('📦 Total chunks:', chunksRef.current.length);
-        // console.log('📊 Chunk sizes:', chunksRef.current.map(chunk => chunk.size));
+        console.log('⏹️ Recording stopped');
+        console.log('📦 Total chunks:', chunksRef.current.length);
+        console.log('📊 Chunk sizes:', chunksRef.current.map(chunk => chunk.size));
 
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        // console.log('🎵 Final blob size:', blob.size, 'bytes');
+        // Mobile/tablet specific blob handling
+        let blob: Blob;
+
+        try {
+          // For iOS/Safari, ensure proper MIME type
+          if (isIOS || isSafari) {
+            // Some iOS browsers have issues with webm, try to convert to mp4 if possible
+            if (mimeType === 'audio/webm' || mimeType === 'audio/webm;codecs=opus') {
+              blob = new Blob(chunksRef.current, { type: 'audio/mp4' });
+              console.log('🔄 Converted webm to mp4 for iOS/Safari');
+            } else {
+              blob = new Blob(chunksRef.current, { type: mimeType });
+            }
+          } else {
+            blob = new Blob(chunksRef.current, { type: mimeType });
+          }
+        } catch (blobError) {
+          console.warn('⚠️ Error creating blob with MIME type:', mimeType, blobError);
+          // Fallback to generic blob
+          blob = new Blob(chunksRef.current);
+        }
+
+        console.log('🎵 Final blob details:', {
+          size: blob.size,
+          type: blob.type,
+          isAudio: blob.type.startsWith('audio/')
+        });
+
+        // Validate blob before setting
+        if (blob.size === 0) {
+          console.error('❌ Audio blob is empty!');
+          setPermissionError('Rekaman audio gagal. Silakan coba lagi dengan pastikan mikrofon berfungsi.');
+          return;
+        }
 
         setAudioBlob(blob);
         const url = URL.createObjectURL(blob);
@@ -344,17 +418,69 @@ export default function RekamSuaraPage() {
     setSubmitStatus('idle');
 
     try {
+      console.log('🎵 Client: Starting audio upload...');
+      console.log('📊 Client: Audio blob details:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        isAudio: audioBlob.type.startsWith('audio/'),
+        constructor: audioBlob.constructor.name
+      });
+
+      // Detect mobile/tablet
+      const userAgent = navigator.userAgent;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      const isTablet = /iPad|Android|Tablet/i.test(userAgent) && !/Mobile/i.test(userAgent);
+      console.log('📱 Client: Device detection:', {
+        userAgent,
+        isMobile,
+        isTablet,
+        platform: navigator.platform,
+        vendor: navigator.vendor
+      });
+
       // Get current session with fresh tokens
       const supabase = (await import('@/lib/supabase')).supabase;
       const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
 
       if (sessionError || !session) {
-        console.error('Session error:', sessionError);
+        console.error('❌ Client: Session error:', sessionError);
         throw new Error('Tidak ada session. Silakan login kembali.');
       }
 
+      console.log('✅ Client: Session refreshed successfully');
+      console.log('🔑 Client: Token length:', session.access_token?.length);
+
+      // Create FormData with proper error handling
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'rekaman-seleksi.webm');
+
+      // Determine appropriate file extension based on MIME type
+      let fileExtension = 'webm'; // default
+      if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) {
+        fileExtension = 'mp4';
+      } else if (audioBlob.type.includes('ogg')) {
+        fileExtension = 'ogg';
+      } else if (audioBlob.type.includes('wav')) {
+        fileExtension = 'wav';
+      }
+
+      const fileName = `rekaman-seleksi-${Date.now()}.${fileExtension}`;
+
+      try {
+        formData.append('audio', audioBlob, fileName);
+        console.log('✅ Client: FormData created successfully with file:', fileName);
+        console.log('✅ Client: FormData created successfully');
+        console.log('📋 Client: FormData entries:', Array.from(formData.entries()).map(([key, value]) => [key, {
+          name: (value as File).name,
+          size: (value as File).size,
+          type: (value as File).type,
+          isFile: value instanceof File
+        }]));
+      } catch (formError) {
+        console.error('❌ Client: FormData creation error:', formError);
+        throw new Error('Gagal membuat form data audio');
+      }
+
+      console.log('📤 Client: Sending request to /api/seleksi/submit');
 
       const response = await fetch('/api/seleksi/submit', {
         method: 'POST',
@@ -364,23 +490,41 @@ export default function RekamSuaraPage() {
         }
       });
 
+      console.log('📥 Client: Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Submit error:', errorData);
-        throw new Error(errorData.error || 'Gagal mengirim rekaman');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('❌ Client: Submit error:', errorData);
+        console.error('❌ Client: Response status:', response.status);
+        throw new Error(errorData.error || `Gagal mengirim rekaman (${response.status})`);
       }
 
       const result = await response.json();
-      // console.log('Submission result:', result);
+      console.log('✅ Client: Submission successful:', result);
 
       setSubmitStatus('success');
       setTimeout(() => {
         router.push('/perjalanan-saya');
       }, 2000);
     } catch (error: any) {
-      console.error('Error submitting audio:', error);
+      console.error('❌ Client: Error submitting audio:', error);
       setSubmitStatus('error');
-      alert(error.message || 'Gagal mengirim rekaman');
+
+      // Show detailed error for debugging
+      const errorMessage = error.message || 'Gagal mengirim rekaman';
+      console.error('❌ Client: Full error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        toString: error.toString()
+      });
+
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

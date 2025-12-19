@@ -67,7 +67,7 @@ export async function GET() {
 
     if (!user) {
       const { data: userData, error: getUserError } = await supabase.auth.getUser();
-      user = userData.user;
+      user = userData.user ?? undefined;
       userError = getUserError;
     }
 

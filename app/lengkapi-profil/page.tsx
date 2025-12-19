@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, createSupabaseAdmin } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -204,6 +204,7 @@ export default function LengkapiProfilPage() {
 
     try {
       // Update user profile
+      const supabaseAdmin = createSupabaseAdmin();
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({

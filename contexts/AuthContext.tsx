@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (existingUser) {
         console.log('User profile already exists');
-        return existingUser;
+        return existingUser as any;
       }
 
       console.log('Creating user profile for:', authUser.email);

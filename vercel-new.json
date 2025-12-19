@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "regions": ["sin1"],
+  "name": "tikrarmti.apps",
+
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ],
+
+  "rewrites": [
+    { "source": "/login", "destination": "/login" },
+    { "source": "/auth/callback", "destination": "/auth/callback" }
+  ],
+
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1",
+      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    }
+  ]
+}
