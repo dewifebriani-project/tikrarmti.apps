@@ -1967,6 +1967,8 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   const handleConfirmDelete = async () => {
     if (!selectedUser) return;
 
+    const userName = selectedUser.full_name || selectedUser.email;
+
     try {
       const { error } = await supabase
         .from('users')
@@ -1975,10 +1977,13 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
 
       if (error) throw error;
 
-      toast.success(`User "${selectedUser.full_name || selectedUser.email}" has been deleted successfully`);
-      onRefresh();
+      // Close modal and clear state first
       setShowDeleteModal(false);
       setSelectedUser(null);
+
+      // Then refresh data and show success message
+      await onRefresh();
+      toast.success(`User "${userName}" has been deleted successfully`);
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`);
