@@ -71,57 +71,84 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all users with their Tikrar batch info using admin client (bypasses RLS)
-    // Start with basic fields that we know exist
-    console.log('Fetching users with basic fields...');
+    console.log('Fetching users...');
 
-    const { data: users, error } = await supabaseAdmin
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        nama_kunyah,
-        phone,
-        role,
-        is_active,
-        created_at,
-        updated_at,
-        avatar_url,
-        provinsi,
-        kota,
-        alamat,
-        whatsapp,
-        telegram,
-        zona_waktu,
-        tanggal_lahir,
-        tempat_lahir,
-        pekerjaan,
-        alasan_daftar,
-        jenis_kelamin,
-        negara,
-        tikrar_registrations:pendaftaran_tikrar_tahfidz!pendaftaran_tikrar_tahfidz_user_id_fkey(
+    // Try to fetch with relationships first
+    let users;
+    let fetchError;
+
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select(`
           id,
-          batch_id,
-          batch_name,
-          status,
-          selection_status
-        )
-      `)
-      .order('created_at', { ascending: false });
+          email,
+          full_name,
+          nama_kunyah,
+          phone,
+          role,
+          is_active,
+          created_at,
+          updated_at,
+          avatar_url,
+          provinsi,
+          kota,
+          alamat,
+          whatsapp,
+          telegram,
+          zona_waktu,
+          tanggal_lahir,
+          tempat_lahir,
+          pekerjaan,
+          alasan_daftar,
+          jenis_kelamin,
+          negara,
+          tikrar_registrations:pendaftaran_tikrar_tahfidz!pendaftaran_tikrar_tahfidz_user_id_fkey(
+            id,
+            batch_id,
+            batch_name,
+            status,
+            selection_status
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching users:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      return NextResponse.json({
-        error: 'Failed to fetch users',
-        details: error.message,
-        code: error.code,
-        hint: error.hint
-      }, { status: 500 });
+      if (error) {
+        console.warn('Error fetching users with relationships:', error);
+        fetchError = error;
+      } else {
+        users = data;
+        console.log(`Successfully fetched ${users?.length || 0} users with relationships`);
+      }
+    } catch (err: any) {
+      console.warn('Exception fetching users with relationships:', err);
+      fetchError = err;
     }
 
-    console.log(`Successfully fetched ${users?.length || 0} users`);
-    return NextResponse.json({ users });
+    // If relationship fetch failed, try without relationships
+    if (fetchError || !users) {
+      console.log('Retrying without relationships...');
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users (fallback):', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        return NextResponse.json({
+          error: 'Failed to fetch users',
+          details: error.message,
+          code: error.code,
+          hint: error.hint
+        }, { status: 500 });
+      }
+
+      users = data;
+      console.log(`Successfully fetched ${users?.length || 0} users (without relationships)`);
+    }
+
+    return NextResponse.json({ users: users || [] });
   } catch (error: any) {
     console.error('Error in admin users API:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
