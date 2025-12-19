@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['lucide-react'],
-  trailingSlash: true,
+  trailingSlash: false,
   poweredByHeader: false, // Remove powered by header for security
 
   // Performance and cross-platform optimizations
