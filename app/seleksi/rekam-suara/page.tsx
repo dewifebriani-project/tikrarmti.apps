@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mic, MicOff, Upload, CheckCircle, AlertCircle, Play, Pause, RotateCcw } from 'lucide-react';
+import ErudaConsole from '@/components/ErudaConsole';
 
 export default function RekamSuaraPage() {
   const router = useRouter();
@@ -597,14 +598,42 @@ export default function RekamSuaraPage() {
 
       // Show detailed error for debugging
       const errorMessage = error.message || 'Gagal mengirim rekaman';
+      // Re-detect mobile for error context
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
       console.error('❌ Client: Full error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
-        toString: error.toString()
+        toString: error.toString(),
+        isMobile,
+        blobInfo: audioBlob ? {
+          size: audioBlob.size,
+          type: audioBlob.type,
+          constructor: audioBlob.constructor.name
+        } : 'No blob'
       });
 
-      alert(errorMessage);
+      // Mobile-specific error logging
+      if (isMobile) {
+        console.error('📱 Mobile Upload Error Context:', {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          connection: (navigator as any).connection ? {
+            effectiveType: (navigator as any).connection.effectiveType,
+            downlink: (navigator as any).connection.downlink,
+            rtt: (navigator as any).connection.rtt
+          } : 'No connection info',
+          memory: (performance as any).memory ? {
+            usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
+            totalJSHeapSize: (performance as any).memory.totalJSHeapSize
+          } : 'No memory info'
+        });
+      }
+
+      // Show user-friendly error with debugging info
+      const userErrorMessage = `${errorMessage}${isMobile ? ' 📱 Lihat console untuk detail debugging' : ''}`;
+      alert(userErrorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -699,6 +728,9 @@ export default function RekamSuaraPage() {
 
   return (
     <AuthenticatedLayout title="Seleksi - Rekam Suara">
+      {/* Mobile Debugging Console */}
+      <ErudaConsole enabled={true} />
+
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Permission Error Alert */}
         {permissionError && (
@@ -731,6 +763,19 @@ export default function RekamSuaraPage() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Mobile Debugging Info */}
+        <Alert className="bg-amber-50 border-amber-200">
+          <AlertCircle className="h-5 w-5 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>🔍 Mobile Debugging Info:</strong>
+            <div className="mt-2 text-xs">
+              <p>📱 <strong>Console:</strong> Swipe dari bawah atas untuk membuka Eruda debugging console</p>
+              <p>📊 <strong>Logs:</strong> Semua proses recording dan upload akan terlihat di console</p>
+              <p>🔧 <strong>Debug Tools:</strong> Gunakan tab Console, Network, dan Resources di Eruda</p>
+            </div>
+          </AlertDescription>
+        </Alert>
 
         {/* Instructions - Mobile & Desktop */}
         <Alert className="bg-blue-50 border-blue-200">
