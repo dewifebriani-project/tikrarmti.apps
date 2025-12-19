@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         id,
         email,
         full_name,
+        nama_kunyah,
         role,
         is_active,
         created_at,

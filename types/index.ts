@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
+  nama_kunyah?: string;
   phone?: string;
   role: UserRole;
   avatar_url?: string;

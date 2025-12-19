@@ -80,6 +80,7 @@ interface User {
   id: string;
   email: string;
   full_name?: string;
+  nama_kunyah?: string;
   phone?: string;
   role: string;
   is_active: boolean;
@@ -1794,6 +1795,9 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
             {user.full_name || '-'}
             {!user.is_active && <span className="ml-2 text-xs text-red-600">(Deactivated)</span>}
           </div>
+          {user.nama_kunyah && (
+            <div className="text-xs text-gray-500 italic">({user.nama_kunyah})</div>
+          )}
           <div className="text-sm text-gray-500">{user.phone || '-'}</div>
         </div>
       ),
@@ -1947,7 +1951,8 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   ];
 
   const formFields: FormField[] = [
-    { name: 'full_name', label: 'Full Name', type: 'text', required: true },
+    { name: 'full_name', label: 'Nama Lengkap (sesuai KTP)', type: 'text', required: true },
+    { name: 'nama_kunyah', label: 'Nama Kunyah/Panggilan', type: 'text', required: false },
     { name: 'email', label: 'Email', type: 'email', required: true },
     { name: 'phone', label: 'Phone', type: 'tel' },
     {
