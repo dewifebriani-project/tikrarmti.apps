@@ -163,7 +163,7 @@ export default function RekamSuaraPage() {
         isChrome,
         isFirefox,
         userAgent: navigator.userAgent,
-        platform: navigator.userAgentData?.platform || navigator.platform
+        platform: (navigator as any).userAgentData?.platform || navigator.platform
       });
 
       // Enhanced mobile detection
@@ -204,7 +204,11 @@ export default function RekamSuaraPage() {
       let audioConstraints: MediaTrackConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true,
+        autoGainControl: true
+      };
+
+      // Add Chrome-specific constraints (with type assertion)
+      const advancedConstraints: any = {
         latency: 0, // Lowest possible latency
         googEchoCancellation: true,
         googNoiseSuppression: true,
@@ -218,20 +222,15 @@ export default function RekamSuaraPage() {
         // More conservative settings for mobile/tablet
         audioConstraints.sampleRate = 16000; // Even lower for better mobile compatibility
         audioConstraints.channelCount = 1; // Force mono
-        audioConstraints.bitrate = 32000; // Lower bitrate for mobile
-        audioConstraints.audioBitsPerSecond = 32000;
-
-        // Remove some advanced features that might not work on mobile
-        delete audioConstraints.latency;
-        delete audioConstraints.googHighpassFilter;
 
         console.log('📱 Using mobile-optimized audio constraints:', audioConstraints);
       } else {
         // Higher quality for desktop
         audioConstraints.sampleRate = 44100; // Standard CD quality
         audioConstraints.channelCount = 2; // Stereo for desktop
-        audioConstraints.bitrate = 128000; // Higher bitrate for desktop
-        audioConstraints.audioBitsPerSecond = 128000;
+
+        // Add advanced constraints for desktop Chrome
+        Object.assign(audioConstraints, advancedConstraints);
       }
 
       const constraints: MediaStreamConstraints = {
@@ -532,7 +531,9 @@ export default function RekamSuaraPage() {
       if (isMobile || isTablet) {
         // Adaptive time slice based on device capabilities
         const isLowEndDevice = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
-        const isLowMemory = (deviceMemory !== undefined && deviceMemory <= 4); // deviceMemory might not be available on all browsers
+        // Check deviceMemory with proper type assertion
+        const deviceMemory = (navigator as any).deviceMemory;
+        const isLowMemory = deviceMemory !== undefined && deviceMemory <= 4; // deviceMemory might not be available on all browsers
 
         if (isLowEndDevice || isLowMemory) {
           timeSlice = 2000; // 2 seconds for low-end devices
@@ -548,7 +549,7 @@ export default function RekamSuaraPage() {
           isLowEndDevice,
           isLowMemory,
           hardwareCores: navigator.hardwareConcurrency,
-          deviceMemory: (deviceMemory !== undefined ? deviceMemory : 'unknown') + 'GB'
+          deviceMemory: deviceMemory !== undefined ? deviceMemory + 'GB' : 'unknown'
         });
       } else {
         timeSlice = 100; // Desktop gets more frequent updates
