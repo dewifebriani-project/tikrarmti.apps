@@ -30,9 +30,12 @@ export function AdminDeleteModal({
     setError(null);
     try {
       await onConfirm();
+      // Close modal on success (onConfirm will show toast notification)
       onClose();
     } catch (err) {
+      // Keep modal open on error and show error message
       setError(err instanceof Error ? err.message : 'Failed to delete item');
+      console.error('Delete error:', err);
     } finally {
       setIsDeleting(false);
     }

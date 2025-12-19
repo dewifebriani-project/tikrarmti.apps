@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase-singleton';
 import { useAuth } from '@/contexts/AuthContext';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   Users,
   Calendar,
@@ -543,6 +544,30 @@ export default function AdminPage() {
 
   return (
     <AuthenticatedLayout title="Admin Dashboard">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       {/* Admin Header */}
       <div className="bg-white border-b border-gray-200 -m-6 mb-0 px-6 py-6 rounded-t-lg">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -1918,6 +1943,7 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
           .eq('id', selectedUser.id);
 
         if (error) throw error;
+        toast.success('User updated successfully');
       } else {
         // Create new user
         const { error } = await (supabase as any)
@@ -1925,6 +1951,7 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
           .insert([data]);
 
         if (error) throw error;
+        toast.success('User created successfully');
       }
 
       onRefresh();
@@ -1932,6 +1959,7 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
       setSelectedUser(null);
     } catch (error) {
       console.error('Error saving user:', error);
+      toast.error(`Failed to save user: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
     }
   };
@@ -1947,11 +1975,13 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
 
       if (error) throw error;
 
+      toast.success(`User "${selectedUser.full_name || selectedUser.email}" has been deleted successfully`);
       onRefresh();
       setShowDeleteModal(false);
       setSelectedUser(null);
     } catch (error) {
       console.error('Error deleting user:', error);
+      toast.error(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
     }
   };
