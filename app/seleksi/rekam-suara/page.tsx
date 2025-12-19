@@ -153,12 +153,29 @@ export default function RekamSuaraPage() {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge/.test(navigator.userAgent);
+      const isFirefox = /Firefox/.test(navigator.userAgent);
 
       console.log('📱 Device detection for recording:', {
         isMobile,
         isIOS,
         isSafari,
-        userAgent: navigator.userAgent
+        isChrome,
+        isFirefox,
+        userAgent: navigator.userAgent,
+        platform: navigator.userAgentData?.platform || navigator.platform
+      });
+
+      // Enhanced mobile detection
+      const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(navigator.userAgent);
+      const isSmallScreen = window.innerWidth <= 768;
+
+      console.log('📐 Screen and device info:', {
+        isTablet,
+        isSmallScreen,
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio
       });
 
       // Check if running on HTTPS or localhost
@@ -174,27 +191,47 @@ export default function RekamSuaraPage() {
         return;
       }
 
-      // console.log('🎤 Requesting microphone access...');
-      // console.log('🎯 Using device ID:', selectedDeviceId);
+      // Check if MediaRecorder is supported
+      if (!window.MediaRecorder) {
+        setPermissionError('Browser Anda tidak mendukung MediaRecorder API. Silakan update browser Anda ke versi terbaru.');
+        return;
+      }
 
-      // Mobile-optimized audio constraints
+      console.log('🎤 Requesting microphone access...');
+      console.log('🎯 Using device ID:', selectedDeviceId || 'default device');
+
+      // Mobile-optimized audio constraints with better fallbacks
       let audioConstraints: MediaTrackConstraints = {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
+        latency: 0, // Lowest possible latency
+        googEchoCancellation: true,
+        googNoiseSuppression: true,
+        googAutoGainControl: true,
+        googHighpassFilter: false, // Disable highpass filter for mobile
+        googAudioMirroring: false
       };
 
       // Mobile-specific optimizations
-      if (isMobile) {
-        // Lower sample rate for mobile to reduce processing load
-        audioConstraints.sampleRate = 22050;
-        // Mono instead of stereo for mobile
-        audioConstraints.channelCount = 1;
+      if (isMobile || isTablet) {
+        // More conservative settings for mobile/tablet
+        audioConstraints.sampleRate = 16000; // Even lower for better mobile compatibility
+        audioConstraints.channelCount = 1; // Force mono
+        audioConstraints.bitrate = 32000; // Lower bitrate for mobile
+        audioConstraints.audioBitsPerSecond = 32000;
+
+        // Remove some advanced features that might not work on mobile
+        delete audioConstraints.latency;
+        delete audioConstraints.googHighpassFilter;
+
         console.log('📱 Using mobile-optimized audio constraints:', audioConstraints);
       } else {
         // Higher quality for desktop
-        audioConstraints.sampleRate = 48000;
-        audioConstraints.channelCount = 2;
+        audioConstraints.sampleRate = 44100; // Standard CD quality
+        audioConstraints.channelCount = 2; // Stereo for desktop
+        audioConstraints.bitrate = 128000; // Higher bitrate for desktop
+        audioConstraints.audioBitsPerSecond = 128000;
       }
 
       const constraints: MediaStreamConstraints = {
@@ -237,97 +274,211 @@ export default function RekamSuaraPage() {
 
       // Set up MediaRecorder with mobile/tablet specific MIME type handling
       let mimeType: string;
+      let fallbackOptions: string[] = [];
 
       console.log('📱 Device detection for audio format:', {
         isMobile,
         isIOS,
         isSafari,
+        isChrome,
+        isFirefox,
         userAgent: navigator.userAgent
+      });
+
+      // Check all supported MIME types
+      const supportedTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/mp4;codecs=mp4a.40.2', // AAC-LC for iOS
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/wav',
+        'audio/mpeg' // For older mobile browsers
+      ];
+
+      console.log('🔍 Checking supported MIME types:');
+      supportedTypes.forEach(type => {
+        const isSupported = MediaRecorder.isTypeSupported(type);
+        console.log(`  ${type}: ${isSupported ? '✅' : '❌'}`);
+        if (isSupported) fallbackOptions.push(type);
       });
 
       // iOS/Safari have limited audio format support
       if (isIOS || isSafari) {
+        // iOS prefers mp4/aac format
         if (MediaRecorder.isTypeSupported('audio/mp4')) {
           mimeType = 'audio/mp4';
         } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           mimeType = 'audio/webm;codecs=opus';
         } else if (MediaRecorder.isTypeSupported('audio/webm')) {
           mimeType = 'audio/webm';
+        } else if (fallbackOptions.length > 0) {
+          mimeType = fallbackOptions[0];
         } else {
-          // Fallback for older browsers
-          mimeType = 'audio/ogg';
+          // Last resort - create without MIME type
+          console.warn('⚠️ No supported MIME types found, using default');
+          mimeType = '';
         }
-      } else {
-        // Standard format for other browsers
+      } else if (isChrome && !isMobile) {
+        // Chrome desktop prefers webm with opus
         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           mimeType = 'audio/webm;codecs=opus';
         } else if (MediaRecorder.isTypeSupported('audio/webm')) {
           mimeType = 'audio/webm';
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
+        } else if (fallbackOptions.length > 0) {
+          mimeType = fallbackOptions[0];
         } else {
-          mimeType = 'audio/ogg';
+          mimeType = '';
+        }
+      } else {
+        // For mobile Chrome, Firefox, and other browsers
+        if (fallbackOptions.length > 0) {
+          mimeType = fallbackOptions[0];
+        } else {
+          mimeType = '';
         }
       }
 
-      console.log('🎬 Selected MIME type:', mimeType);
+      console.log('🎬 Selected MIME type:', mimeType || 'default (browser will choose)');
 
-      // Create MediaRecorder with error handling
+      // Create MediaRecorder with enhanced error handling
       let mediaRecorder: MediaRecorder;
       try {
-        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        const recorderOptions: MediaRecorderOptions = mimeType ? { mimeType } : {};
+        mediaRecorder = new MediaRecorder(stream, recorderOptions);
+        console.log('✅ MediaRecorder created successfully with options:', recorderOptions);
       } catch (error) {
-        console.warn('⚠️ Failed to create MediaRecorder with MIME type:', mimeType, 'Falling back to default');
-        mediaRecorder = new MediaRecorder(stream);
+        console.warn('⚠️ Failed to create MediaRecorder with options:', { mimeType }, error);
+
+        // Try without MIME type as fallback
+        try {
+          mediaRecorder = new MediaRecorder(stream);
+          console.log('✅ MediaRecorder created with default settings');
+        } catch (fallbackError) {
+          console.error('❌ Failed to create MediaRecorder at all:', fallbackError);
+          throw new Error('Browser Anda tidak mendukung perekaman audio. Silakan gunakan browser lain atau update browser Anda.');
+        }
       }
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
+      // Set mobile-specific recording parameters
+      const recordingConfig = {
+        timeSlice: isMobile || isTablet ? 1000 : 100, // Longer intervals for mobile
+        maxChunkSize: isMobile || isTablet ? 50000 : 10000, // Larger chunks for mobile
+        retryCount: 0,
+        maxRetries: 3
+      };
+
+      console.log('📱 Recording configuration:', recordingConfig);
+
       mediaRecorder.ondataavailable = (event) => {
-        // console.log('📦 Data available:', event.data.size, 'bytes');
+        console.log('📦 Data available:', {
+          size: event.data.size,
+          type: event.data.type,
+          time: new Date().toISOString(),
+          chunkNumber: chunksRef.current.length + 1
+        });
+
         if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
+          // Validate the chunk
+          if (event.data.size < recordingConfig.maxChunkSize || chunksRef.current.length === 0) {
+            chunksRef.current.push(event.data);
+            console.log(`✅ Chunk ${chunksRef.current.length} accepted (${event.data.size} bytes)`);
+          } else {
+            console.warn(`⚠️ Chunk too large (${event.data.size} bytes), but keeping for debugging`);
+            chunksRef.current.push(event.data);
+          }
+        } else {
+          console.warn('⚠️ Received empty chunk, ignoring');
+        }
+
+        // Mobile-specific: Check total size to prevent memory issues
+        if (isMobile || isTablet) {
+          const totalSize = chunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+          const maxMobileSize = 10 * 1024 * 1024; // 10MB limit for mobile
+
+          if (totalSize > maxMobileSize) {
+            console.warn(`⚠️ Mobile recording getting large (${(totalSize / 1024 / 1024).toFixed(2)}MB), consider stopping soon`);
+          }
         }
       };
 
       mediaRecorder.onstop = () => {
         console.log('⏹️ Recording stopped');
         console.log('📦 Total chunks:', chunksRef.current.length);
-        console.log('📊 Chunk sizes:', chunksRef.current.map(chunk => chunk.size));
+        console.log('📊 Chunk sizes:', chunksRef.current.map((chunk, i) => `Chunk ${i + 1}: ${chunk.size} bytes`));
 
-        // Mobile/tablet specific blob handling
+        const totalSize = chunksRef.current.reduce((sum, chunk) => sum + chunk.size, 0);
+        console.log('📊 Total recording size:', `${(totalSize / 1024).toFixed(2)} KB`);
+
+        // Enhanced mobile/tablet blob handling with multiple fallbacks
         let blob: Blob;
+        let finalMimeType = mimeType || 'audio/webm';
 
-        try {
-          // For iOS/Safari, ensure proper MIME type
-          if (isIOS || isSafari) {
-            // Some iOS browsers have issues with webm, try to convert to mp4 if possible
-            if (mimeType === 'audio/webm' || mimeType === 'audio/webm;codecs=opus') {
-              blob = new Blob(chunksRef.current, { type: 'audio/mp4' });
-              console.log('🔄 Converted webm to mp4 for iOS/Safari');
-            } else {
-              blob = new Blob(chunksRef.current, { type: mimeType });
-            }
-          } else {
-            blob = new Blob(chunksRef.current, { type: mimeType });
+        // Determine best MIME type for the current platform
+        if (isIOS || isSafari) {
+          // iOS/Safari work best with mp4
+          if (finalMimeType === 'audio/webm' || finalMimeType === 'audio/webm;codecs=opus') {
+            finalMimeType = 'audio/mp4';
+            console.log('🔄 Converting webm to mp4 for iOS/Safari compatibility');
           }
-        } catch (blobError) {
-          console.warn('⚠️ Error creating blob with MIME type:', mimeType, blobError);
-          // Fallback to generic blob
-          blob = new Blob(chunksRef.current);
+        } else if (isMobile && !isChrome) {
+          // Some mobile browsers prefer basic formats
+          if (!finalMimeType.includes('webm') && !finalMimeType.includes('mp4')) {
+            finalMimeType = 'audio/webm';
+          }
+        }
+
+        // Try creating blob with determined MIME type
+        try {
+          blob = new Blob(chunksRef.current, { type: finalMimeType });
+          console.log('✅ Blob created successfully with type:', finalMimeType);
+        } catch (primaryError) {
+          console.warn('⚠️ Primary blob creation failed:', primaryError);
+
+          // Fallback 1: Try with generic audio type
+          try {
+            blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+            console.log('✅ Blob created with fallback type: audio/webm');
+            finalMimeType = 'audio/webm';
+          } catch (fallback1Error) {
+            console.warn('⚠️ First fallback failed:', fallback1Error);
+
+            // Fallback 2: Try mp4
+            try {
+              blob = new Blob(chunksRef.current, { type: 'audio/mp4' });
+              console.log('✅ Blob created with second fallback type: audio/mp4');
+              finalMimeType = 'audio/mp4';
+            } catch (fallback2Error) {
+              console.warn('⚠️ Second fallback failed:', fallback2Error);
+
+              // Last resort: Create blob without type
+              blob = new Blob(chunksRef.current);
+              finalMimeType = 'application/octet-stream';
+              console.log('⚠️ Created blob without type (last resort)');
+            }
+          }
         }
 
         console.log('🎵 Final blob details:', {
           size: blob.size,
           type: blob.type,
-          isAudio: blob.type.startsWith('audio/')
+          isAudio: blob.type.startsWith('audio/'),
+          finalMimeType: finalMimeType
         });
 
-        // Validate blob before setting
+        // Enhanced blob validation
         if (blob.size === 0) {
           console.error('❌ Audio blob is empty!');
-          setPermissionError('Rekaman audio gagal. Silakan coba lagi dengan pastikan mikrofon berfungsi.');
+          setPermissionError('Rekaman audio gagal menghasilkan data. Pastikan mikrofon berfungsi dan coba lagi.');
           return;
+        }
+
+        // Check if blob is suspiciously small (likely failed recording)
+        if (blob.size < 1000 && recordingTime > 2) {
+          console.warn('⚠️ Blob size is very small for recording duration, may be corrupted');
         }
 
         setAudioBlob(blob);
@@ -340,15 +491,28 @@ export default function RekamSuaraPage() {
           animationFrameRef.current = null;
         }
 
+        // Clean up all media streams
         stream.getTracks().forEach(track => {
-          // console.log('🛑 Stopping track:', track.label);
-          track.stop();
+          console.log('🛑 Stopping track:', track.label || 'Unknown track');
+          try {
+            track.stop();
+          } catch (trackError) {
+            console.warn('⚠️ Error stopping track:', trackError);
+          }
         });
 
+        // Clean up audio context
         if (audioContextRef.current) {
-          audioContextRef.current.close();
-          audioContextRef.current = null;
+          try {
+            audioContextRef.current.close();
+          } catch (ctxError) {
+            console.warn('⚠️ Error closing audio context:', ctxError);
+          } finally {
+            audioContextRef.current = null;
+          }
         }
+
+        console.log('✅ Recording cleanup completed successfully');
       };
 
       mediaRecorder.onerror = (event: any) => {
@@ -361,14 +525,50 @@ export default function RekamSuaraPage() {
 
       console.log('🎙️ Starting MediaRecorder...');
 
-      // Mobile-specific recording settings
-      let timeSlice = 100; // default
-      if (isMobile) {
-        timeSlice = 500; // longer intervals for mobile to reduce CPU load
-        console.log('📱 Using mobile-optimized recording interval:', timeSlice);
+      // Mobile-specific recording settings with adaptive intervals
+      let timeSlice: number | undefined;
+      let recordingStrategy = 'default';
+
+      if (isMobile || isTablet) {
+        // Adaptive time slice based on device capabilities
+        const isLowEndDevice = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+        const isLowMemory = (deviceMemory !== undefined && deviceMemory <= 4); // deviceMemory might not be available on all browsers
+
+        if (isLowEndDevice || isLowMemory) {
+          timeSlice = 2000; // 2 seconds for low-end devices
+          recordingStrategy = 'low-end-mobile';
+        } else {
+          timeSlice = 1000; // 1 second for regular mobile
+          recordingStrategy = 'standard-mobile';
+        }
+
+        console.log('📱 Using mobile recording strategy:', {
+          strategy: recordingStrategy,
+          timeSlice: timeSlice,
+          isLowEndDevice,
+          isLowMemory,
+          hardwareCores: navigator.hardwareConcurrency,
+          deviceMemory: (deviceMemory !== undefined ? deviceMemory : 'unknown') + 'GB'
+        });
+      } else {
+        timeSlice = 100; // Desktop gets more frequent updates
+        recordingStrategy = 'desktop';
+        console.log('🖥️ Using desktop recording strategy:', { timeSlice, strategy: recordingStrategy });
       }
 
-      mediaRecorder.start(timeSlice); // Collect data at mobile-optimized intervals
+      // Start recording with error handling
+      try {
+        if (timeSlice) {
+          mediaRecorder.start(timeSlice);
+          console.log(`✅ MediaRecorder started with ${timeSlice}ms intervals`);
+        } else {
+          mediaRecorder.start();
+          console.log('✅ MediaRecorder started without intervals (will collect all data at once)');
+        }
+      } catch (startError) {
+        console.error('❌ Failed to start MediaRecorder:', startError);
+        throw new Error('Gagal memulai perekaman. Silakan refresh halaman dan coba lagi.');
+      }
       setIsRecording(true);
 
       // Refresh device list after recording starts (helps on mobile)
@@ -395,29 +595,61 @@ export default function RekamSuaraPage() {
 
       // Re-detect mobile for error message
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
       let errorMessage = 'Tidak dapat mengakses mikrofon. ';
+      let mobileSuggestions = '';
 
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage += 'Anda menolak izin akses mikrofon. Silakan klik ikon gembok/info di address bar browser, lalu izinkan akses mikrofon untuk situs ini.';
+        errorMessage += 'Anda menolak izin akses mikrofon. ';
+        if (isIOS) {
+          mobileSuggestions = '📱 iOS: Buka Settings > Safari > Microphone, lalu izinkan untuk situs ini. Atau tap ikon "aa" di address bar dan pilih Website Settings > Microphone > Allow.';
+        } else if (isMobile) {
+          mobileSuggestions = '📱 Android: Tap ikon gembok/info di address bar, lalu izinkan akses mikrofon. Atau buka browser Settings > Site settings > Microphone.';
+        } else {
+          mobileSuggestions = 'Desktop: Klik ikon gembok/info di address bar browser, lalu izinkan akses mikrofon untuk situs ini.';
+        }
       } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        errorMessage += 'Tidak ada mikrofon yang terdeteksi di perangkat Anda. Pastikan mikrofon terhubung dan diaktifkan.';
+        errorMessage += 'Tidak ada mikrofon yang terdeteksi di perangkat Anda. ';
+        if (isMobile) {
+          mobileSuggestions = '📱 Pastikan: 1) Mikrofon tidak digunakan aplikasi lain, 2) Mode panggilan tidak aktif, 3) Perangkat memiliki mikrofon built-in atau headset terhubung.';
+        } else {
+          mobileSuggestions = 'Pastikan mikrofon terhubung dan diaktifkan di Sound Settings.';
+        }
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage += 'Mikrofon sedang digunakan oleh aplikasi lain. Tutup aplikasi lain yang menggunakan mikrofon (seperti Zoom, Teams, WhatsApp Desktop) lalu coba lagi.';
-      } else if (error.name === 'OverconstrainedError') {
-        errorMessage += 'Pengaturan audio tidak didukung oleh mikrofon Anda.';
+        errorMessage += 'Mikrofon sedang digunakan oleh aplikasi lain. ';
+        if (isMobile) {
+          mobileSuggestions = '📱 Tutup semua aplikasi yang menggunakan mikrofon (WhatsApp, Telegram, Zoom, Teams, panggilan telepon). Lalu restart browser.';
+        } else {
+          mobileSuggestions = 'Tutup aplikasi desktop yang menggunakan mikrofon (Zoom, Teams, WhatsApp Desktop, Discord) lalu coba lagi.';
+        }
+      } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+        errorMessage += 'Pengaturan audio tidak didukung oleh mikrofon Anda. ';
+        mobileSuggestions = 'Coba gunakan mikrofon default atau hubungkan mikrofon eksternal yang kompatibel.';
       } else if (error.name === 'SecurityError') {
-        errorMessage += 'Akses mikrofon diblokir karena alasan keamanan. Pastikan Anda mengakses halaman ini melalui HTTPS.';
+        errorMessage += 'Akses mikrofon diblokir karena alasan keamanan. ';
+        mobileSuggestions = 'Pastikan Anda mengakses halaman ini melalui HTTPS, bukan HTTP.';
+      } else if (error.name === 'TypeError') {
+        errorMessage += 'Tipe data tidak didukung oleh browser. ';
+        mobileSuggestions = 'Coba update browser ke versi terbaru atau gunakan browser yang berbeda.';
       } else {
-        errorMessage += 'Error: ' + error.message;
+        errorMessage += `Error: ${error.name} - ${error.message}. `;
+        mobileSuggestions = 'Coba refresh halaman dan gunakan browser Chrome atau Firefox terbaru.';
       }
 
-      // Add mobile-specific suggestions
+      // Additional mobile-specific troubleshooting
       if (isMobile) {
-        errorMessage += ' 📱 Mobile tips: Pastikan tidak ada aplikasi lain yang menggunakan mikrofon, coba restart browser, atau gunakan browser Chrome/Edge terbaru.';
+        mobileSuggestions += '\n\n🔧 Mobile Troubleshooting:\n';
+        mobileSuggestions += '• Restart browser aplikasi\n';
+        mobileSuggestions += '• Clear browser cache\n';
+        mobileSuggestions += '• Matikan dan hidupkan kembali perangkat\n';
+        mobileSuggestions += '• Coba gunakan browser Chrome/Edge terbaru\n';
+        if (isIOS) {
+          mobileSuggestions += '• Pastikan iOS versi 14.0 atau lebih tinggi';
+        }
       }
 
-      setPermissionError(errorMessage);
+      setPermissionError(errorMessage + '\n\n' + mobileSuggestions);
     }
   };
 
@@ -532,25 +764,67 @@ export default function RekamSuaraPage() {
 
       console.log('📤 Client: Sending request to /api/seleksi/submit');
 
-      // Mobile-specific upload configuration
+      // Enhanced mobile-specific upload configuration
       const uploadConfig: RequestInit = {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'User-Agent': navigator.userAgent,
+          'X-Mobile-Device': isMobile ? 'true' : 'false',
+          'X-Platform': navigator.platform || 'unknown'
         }
       };
 
-      // Add timeout for mobile
-      if (isMobile) {
+      // Add timeout and retry configuration for mobile
+      if (isMobile || isTablet) {
         // Create an AbortController for timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for mobile
+        const timeoutMs = isTablet ? 90000 : 120000; // 90s for tablet, 120s for mobile
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+          console.log(`📱 Upload timeout after ${timeoutMs}ms`);
+        }, timeoutMs);
+
         uploadConfig.signal = controller.signal;
-        console.log('📱 Mobile: Added 60-second timeout');
+        console.log(`📱 Mobile/Tablet: Added ${timeoutMs/1000}s timeout`);
+
+        // Store timeout ID for potential cleanup
+        (uploadConfig as any).timeoutId = timeoutId;
+      } else {
+        // Desktop gets shorter timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for desktop
+        uploadConfig.signal = controller.signal;
+        console.log('🖥️ Desktop: Added 30-second timeout');
       }
 
-      const response = await fetch('/api/seleksi/submit', uploadConfig);
+      // Upload with progress tracking
+      console.log('📤 Starting upload request...');
+      const uploadStartTime = Date.now();
+
+      let response: Response;
+      try {
+        response = await fetch('/api/seleksi/submit', uploadConfig);
+      } catch (fetchError: any) {
+        const uploadDuration = Date.now() - uploadStartTime;
+        console.error('❌ Upload fetch failed:', {
+          error: fetchError,
+          duration: `${uploadDuration}ms`,
+          isAborted: fetchError.name === 'AbortError',
+          isMobile,
+          isTablet
+        });
+
+        if (fetchError.name === 'AbortError') {
+          throw new Error(`Upload timeout. Koneksi terlalu lambat (${(uploadDuration/1000).toFixed(1)}s). Coba lagi dengan koneksi yang lebih stabil.`);
+        } else {
+          throw new Error(`Gagal mengirim ke server: ${fetchError.message || 'Network error'}`);
+        }
+      }
+
+      const uploadDuration = Date.now() - uploadStartTime;
+      console.log(`✅ Upload completed in ${uploadDuration}ms`);
 
       console.log('📥 Client: Response received:', {
         status: response.status,
