@@ -85,11 +85,20 @@ interface User {
   role: string;
   is_active: boolean;
   created_at: string;
+  updated_at?: string;
+  avatar_url?: string;
   provinsi?: string;
   kota?: string;
   alamat?: string;
   whatsapp?: string;
   telegram?: string;
+  zona_waktu?: string;
+  tanggal_lahir?: string;
+  tempat_lahir?: string;
+  pekerjaan?: string;
+  alasan_daftar?: string;
+  jenis_kelamin?: string;
+  negara?: string;
   tikrar_registrations?: Array<{
     id: string;
     batch_id: string;
