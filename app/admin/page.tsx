@@ -17,7 +17,11 @@ import {
   ClipboardList,
   Clock,
   Award,
-  Download
+  Download,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
