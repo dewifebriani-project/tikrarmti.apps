@@ -84,7 +84,9 @@ export async function GET(request: NextRequest) {
 
     // Try to get users data with error handling for missing columns
     // First, try with extended fields
-    let users, error;
+    let users: any[] | null = null;
+    let error: any = null;
+
     try {
       const result = await supabaseAdmin
         .from('users')
