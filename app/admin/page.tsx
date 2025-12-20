@@ -2736,25 +2736,32 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     }
 
     try {
-      const response = await fetch('/api/admin/tikrar/bulk-approve', {
+      const response = await fetch('/api/admin/tikrar/unapprove', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'unapprove',
-          applicationIds: [selectedApplication.id],
-          reason: unapproveReason
+          applicationId: selectedApplication.id,
+          reason: unapproveReason.trim()
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to unapprove application');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to unapprove application');
+      }
 
-      toast.success('Application unapproved successfully');
-      setShowUnapproveModal(false);
-      setUnapproveReason('');
-      setSelectedApplication(null);
-      onRefresh();
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Application unapproved successfully');
+        setShowUnapproveModal(false);
+        setUnapproveReason('');
+        setSelectedApplication(null);
+        onRefresh();
+      } else {
+        throw new Error(result.error || 'Failed to unapprove application');
+      }
     } catch (error: any) {
       console.error('Error unapproving application:', error);
       toast.error('Error unapproving application: ' + error.message);
