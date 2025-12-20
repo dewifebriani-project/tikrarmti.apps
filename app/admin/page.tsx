@@ -217,7 +217,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   // Only enable SWR hooks when user is authenticated and is admin
-  const isAdmin = !authLoading && user && user.role === 'admin';
+  const isAdmin: boolean = !authLoading && user?.role === 'admin';
 
   // SWR hooks for data fetching - only enabled when admin is authenticated
   const {
@@ -225,21 +225,21 @@ export default function AdminPage() {
     isLoading: usersLoading,
     isError: usersError,
     mutate: mutateUsers
-  } = useAdminUsers(isAdmin ?? false);
+  } = useAdminUsers(isAdmin);
 
   const {
     tikrar: swrTikrar,
     isLoading: tikrarLoading,
     isError: tikrarError,
     mutate: mutateTikrar
-  } = useAdminTikrar(isAdmin ?? false);
+  } = useAdminTikrar(isAdmin);
 
   const {
     stats: swrStats,
     isLoading: statsLoading,
     isError: statsError,
     mutate: mutateStats
-  } = useAdminStats(isAdmin ?? false);
+  } = useAdminStats(isAdmin);
 
   // Data states (kept for compatibility with other tabs)
   const [batches, setBatches] = useState<Batch[]>([]);
