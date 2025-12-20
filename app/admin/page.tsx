@@ -2637,6 +2637,54 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     setShowBulkConfirmModal(true);
   };
 
+  // Handle approve all pending applications
+  const handleApproveAll = async () => {
+    if (stats.pending === 0) {
+      toast('No pending applications to approve');
+      return;
+    }
+
+    // Get all pending application IDs
+    const allPendingIds = pendingTikrar.map(t => t.id);
+
+    // Show confirmation dialog
+    if (!window.confirm(
+      `Are you sure you want to approve ALL ${stats.pending} pending applications?\n\nThis action cannot be undone.`
+    )) {
+      return;
+    }
+
+    setIsBulkProcessing(true);
+    try {
+      const response = await fetch('/api/admin/tikrar/bulk-approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: allPendingIds,
+          action: 'approve',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to approve all applications');
+      }
+
+      toast.success(`Successfully approved ${result.updatedCount} application(s)`);
+
+      // Refresh data
+      onRefresh();
+    } catch (error: any) {
+      console.error('Approve all error:', error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
   const confirmBulkAction = async () => {
     if (!bulkAction || selectedIds.length === 0) return;
 
@@ -3331,6 +3379,27 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
           </div>
         </div>
       </div>
+
+      {/* Approve All Pending Applications */}
+      {stats.pending > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-blue-900">Pending Applications</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                {stats.pending} application(s) waiting for approval
+              </p>
+            </div>
+            <button
+              onClick={() => handleApproveAll()}
+              disabled={isBulkProcessing}
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Approve All Pending
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bulk Actions */}
       {selectedIds.length > 0 && (
