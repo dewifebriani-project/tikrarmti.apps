@@ -224,21 +224,21 @@ export default function AdminPage() {
     isLoading: usersLoading,
     isError: usersError,
     mutate: mutateUsers
-  } = useAdminUsers(isAdmin);
+  } = useAdminUsers(isAdmin ?? false);
 
   const {
     tikrar: swrTikrar,
     isLoading: tikrarLoading,
     isError: tikrarError,
     mutate: mutateTikrar
-  } = useAdminTikrar(isAdmin);
+  } = useAdminTikrar(isAdmin ?? false);
 
   const {
     stats: swrStats,
     isLoading: statsLoading,
     isError: statsError,
     mutate: mutateStats
-  } = useAdminStats(isAdmin);
+  } = useAdminStats(isAdmin ?? false);
 
   // Data states (kept for compatibility with other tabs)
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -2840,14 +2840,14 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
 
   // Calculate Covenant Time distribution
   const covenantTimeDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
-    const time = t.covenant_time || 'Not specified';
+    const time = t.main_time_slot || 'Not specified';
     acc[time] = (acc[time] || 0) + 1;
     return acc;
   }, {});
 
   // Calculate Province distribution (top 5)
   const provinceDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
-    const province = t.provinsi || 'Not specified';
+    const province = t.domicile || 'Not specified';
     acc[province] = (acc[province] || 0) + 1;
     return acc;
   }, {});
@@ -2857,7 +2857,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
 
   // Calculate Country distribution
   const countryDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
-    const country = t.negara || 'Indonesia'; // Default Indonesia
+    const country = 'Indonesia'; // Default Indonesia
     acc[country] = (acc[country] || 0) + 1;
     return acc;
   }, {});
