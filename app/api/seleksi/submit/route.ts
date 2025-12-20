@@ -107,17 +107,27 @@ export async function POST(request: NextRequest) {
         'audio/mp4',
         'audio/mpeg',
         'audio/ogg',
+        'audio/ogg;codecs=opus',
         'audio/wav',
-        'audio/m4a'
+        'audio/m4a',
+        'audio/mp3',
+        'audio/x-m4a',
+        'audio/3gpp', // Some Android devices
+        'audio/x-wav' // Some iOS devices
       ];
 
+      // Check if type is valid OR if it starts with audio/ OR if it's empty/mobile-specific
       const isValidAudioType = validAudioTypes.some(type =>
-        audioFile.type === type || audioFile.type.includes(type.split(';')[0])
+        audioFile.type === type ||
+        audioFile.type.includes(type.split(';')[0]) ||
+        audioFile.type.startsWith('audio/') ||
+        !audioFile.type || // Empty type is ok for mobile
+        audioFile.type === 'application/octet-stream' // Some mobile browsers use this
       );
 
-      if (!isValidAudioType && !audioFile.type.startsWith('audio/')) {
+      if (!isValidAudioType) {
         console.warn('⚠️ API: Unusual audio MIME type:', audioFile.type);
-        // Still try to upload, but log the warning
+        // Still try to upload - be more permissive for mobile devices
       }
 
       const { data: uploadData, error: uploadError } = await supabase.storage

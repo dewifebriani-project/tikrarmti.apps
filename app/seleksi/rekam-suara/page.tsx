@@ -102,23 +102,33 @@ export default function RekamSuaraPage() {
 
     const checkPermission = async () => {
       try {
-        if (navigator.permissions && navigator.permissions.query) {
+        // Skip permission check on mobile/iOS as it's not well supported
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+        if (!isMobile && !isIOS && navigator.permissions && navigator.permissions.query) {
           const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
           setMicPermission(result.state as 'prompt' | 'granted' | 'denied');
 
           result.addEventListener('change', () => {
             setMicPermission(result.state as 'prompt' | 'granted' | 'denied');
           });
+        } else {
+          // On mobile, set permission to 'prompt' initially
+          // Will be updated when user actually tries to record
+          setMicPermission('prompt');
         }
       } catch (error) {
-        console.log('Permission API not supported');
+        console.log('Permission API not supported (normal on mobile)');
+        setMicPermission('prompt'); // Assume prompt on mobile
       }
     };
 
     checkPermission();
 
-    // Load devices after checking permission on mobile
-    if (micPermission === 'granted') {
+    // On mobile, load devices without checking permission first
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
       loadAudioDevices();
     }
   }, [isClient]);
@@ -738,18 +748,37 @@ export default function RekamSuaraPage() {
 
       // Determine appropriate file extension based on MIME type
       let fileExtension = 'webm'; // default
-      if (audioBlob.type.includes('mp4') || audioBlob.type.includes('m4a')) {
+      let finalMimeType = audioBlob.type;
+
+      // Fix for mobile browsers that return empty or incorrect MIME type
+      if (!finalMimeType || finalMimeType === '' || finalMimeType === 'application/octet-stream') {
+        finalMimeType = 'audio/webm';
+        fileExtension = 'webm';
+      } else if (finalMimeType.includes('mp4') || finalMimeType.includes('m4a')) {
         fileExtension = 'mp4';
-      } else if (audioBlob.type.includes('ogg')) {
+      } else if (finalMimeType.includes('ogg')) {
         fileExtension = 'ogg';
-      } else if (audioBlob.type.includes('wav')) {
+      } else if (finalMimeType.includes('wav')) {
         fileExtension = 'wav';
       }
 
       const fileName = `rekaman-seleksi-${Date.now()}.${fileExtension}`;
 
+      // Create a new File object with proper MIME type if needed
+      let fileToUpload: File;
       try {
-        formData.append('audio', audioBlob, fileName);
+        fileToUpload = new File([audioBlob], fileName, {
+          type: finalMimeType,
+          lastModified: Date.now()
+        });
+        console.log('✅ Client: File created with type:', finalMimeType);
+      } catch (fileError) {
+        console.warn('⚠️ Could not create File object, using blob directly:', fileError);
+        fileToUpload = audioBlob as any;
+      }
+
+      try {
+        formData.append('audio', fileToUpload);
         console.log('✅ Client: FormData created successfully with file:', fileName);
         console.log('✅ Client: FormData created successfully');
         console.log('📋 Client: FormData entries:', Array.from(formData.entries()).map(([key, value]) => [key, {
@@ -781,7 +810,8 @@ export default function RekamSuaraPage() {
       if (isMobile || isTablet) {
         // Create an AbortController for timeout
         const controller = new AbortController();
-        const timeoutMs = isTablet ? 90000 : 120000; // 90s for tablet, 120s for mobile
+        // Increased timeout for slower mobile connections
+        const timeoutMs = isTablet ? 180000 : 300000; // 3 minutes for tablet, 5 minutes for mobile
         const timeoutId = setTimeout(() => {
           controller.abort();
           console.log(`📱 Upload timeout after ${timeoutMs}ms`);
@@ -793,11 +823,11 @@ export default function RekamSuaraPage() {
         // Store timeout ID for potential cleanup
         (uploadConfig as any).timeoutId = timeoutId;
       } else {
-        // Desktop gets shorter timeout
+        // Desktop gets moderate timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for desktop
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for desktop
         uploadConfig.signal = controller.signal;
-        console.log('🖥️ Desktop: Added 30-second timeout');
+        console.log('🖥️ Desktop: Added 60-second timeout');
       }
 
       // Upload with progress tracking
@@ -840,8 +870,8 @@ export default function RekamSuaraPage() {
         console.error('❌ Client: Response status:', response.status);
 
         // Try alternative upload method for mobile
-        if (isMobile && response.status >= 400 && response.status < 500) {
-          console.log('🔄 Trying alternative Base64 upload method for mobile...');
+        if ((isMobile || isTablet) && (response.status >= 400 && response.status < 500)) {
+          console.log('🔄 Trying alternative Base64 upload method for mobile/tablet...');
           try {
             const base64Result = await tryBase64Upload(audioBlob, session.access_token, fileName);
             console.log('✅ Base64 upload successful:', base64Result);
@@ -854,6 +884,22 @@ export default function RekamSuaraPage() {
             console.error('❌ Base64 upload also failed:', base64Error);
             const base64ErrorMessage = base64Error?.message || 'Unknown Base64 error';
             throw new Error(`Upload gagal. FormData error: ${errorData.error || response.status}. Base64 error: ${base64ErrorMessage}`);
+          }
+        }
+
+        // For network errors on mobile, try once more with Base64
+        if ((isMobile || isTablet) && (response.status === 0 || !response.ok)) {
+          console.log('🔄 Network error detected, trying Base64 as fallback...');
+          try {
+            const base64Result = await tryBase64Upload(audioBlob, session.access_token, fileName);
+            console.log('✅ Base64 fallback upload successful:', base64Result);
+            setSubmitStatus('success');
+            setTimeout(() => {
+              router.push('/perjalanan-saya');
+            }, 2000);
+            return;
+          } catch (base64Error: any) {
+            console.error('❌ Base64 fallback also failed:', base64Error);
           }
         }
 
@@ -1061,7 +1107,7 @@ export default function RekamSuaraPage() {
             <strong>Petunjuk:</strong>
             <ol className="list-decimal list-inside mt-2 space-y-1">
               <li>Klik tombol "Mulai Rekam" untuk memulai perekaman</li>
-              <li>Bacalah Surah Al-Fatihah dengan tartil dan tajwid yang benar</li>
+              <li>Bacalah Surah Al-Fath ayat 29 dengan tartil dan tajwid yang benar</li>
               <li>Klik tombol "Stop Rekam" setelah selesai</li>
               <li>Dengarkan kembali rekaman Anda</li>
               <li>Klik "Kirim" jika sudah yakin dengan rekaman</li>
