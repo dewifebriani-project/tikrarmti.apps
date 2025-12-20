@@ -171,9 +171,17 @@ export async function POST(request: NextRequest) {
       query = query.eq('status', 'pending'); // Only update pending applications
     }
 
+    console.log('Executing query with updateData:', JSON.stringify(updateData, null, 2));
+    console.log('Target IDs:', targetIds);
+    console.log('Action:', action);
+
     const { error, data } = await query.select();
 
-    console.log('Bulk update result:', { error, updatedCount: data?.length });
+    console.log('Bulk update result:', {
+      error: error ? { message: error.message, code: error.code, details: error.details } : null,
+      updatedCount: data?.length,
+      data: data ? data.slice(0, 2) : null // Show first 2 records for debugging
+    });
 
     if (error) {
       console.error('Error bulk updating tikrar applications:', error);
