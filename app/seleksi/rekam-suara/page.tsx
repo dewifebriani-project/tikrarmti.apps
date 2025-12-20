@@ -157,7 +157,9 @@ export default function RekamSuaraPage() {
 
   const startRecording = async () => {
     try {
+      console.log('🎯 startRecording function called');
       setPermissionError(null);
+      console.log('🎯 Permission error cleared');
 
       // Detect mobile device first
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -221,16 +223,36 @@ export default function RekamSuaraPage() {
               cursor: pointer;
               width: 100%;
             ">OK, Siap!</button>
+            <button id="cancel-mic-btn" style="
+              background: #f44336;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 5px;
+              font-size: 14px;
+              cursor: pointer;
+              margin-top: 10px;
+              width: 100%;
+            ">Batal</button>
           `;
 
           promptDiv.appendChild(contentDiv);
           document.body.appendChild(promptDiv);
 
           const btn = document.getElementById('allow-mic-btn');
+          const cancelBtn = document.getElementById('cancel-mic-btn');
+
           if (btn) {
             btn.onclick = () => {
               promptDiv.remove();
               resolve(true);
+            };
+          }
+
+          if (cancelBtn) {
+            cancelBtn.onclick = () => {
+              promptDiv.remove();
+              resolve(false);
             };
           }
 
@@ -244,7 +266,7 @@ export default function RekamSuaraPage() {
         });
 
         if (!userConfirmed) {
-          throw new Error('Anda perlu mengizinkan akses mikrofon untuk merekam.');
+          return; // Just return, don't throw error to allow retry
         }
       }
 
@@ -1102,6 +1124,12 @@ export default function RekamSuaraPage() {
     );
   }
 
+  // Clean up any existing permission dialogs on mount
+  useEffect(() => {
+    const existingDialogs = document.querySelectorAll('[id^="prompt-"], [id^="allow-"], [id^="cancel-"]');
+    existingDialogs.forEach(el => el.remove());
+  }, []);
+
   // Show loading state while checking authentication
   if (authLoading) {
     return (
@@ -1361,9 +1389,20 @@ export default function RekamSuaraPage() {
               <div className="flex justify-center space-x-3">
                 {!isRecording ? (
                   <Button
-                    onClick={startRecording}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-3 min-h-[48px] touch-manipulation"
+                    onClick={() => {
+                      console.log('🎯 Recording button clicked');
+                      setPermissionError(null);
+                      // Add small delay to ensure click is registered
+                      setTimeout(() => {
+                        startRecording().catch(error => {
+                          console.error('❌ Recording error:', error);
+                          setPermissionError(error.message || 'Gagal memulai rekaman');
+                        });
+                      }, 100);
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 sm:px-6 py-3 min-h-[48px] touch-manipulation relative"
                     size="lg"
+                    disabled={isRecording}
                   >
                     <Mic className="w-5 h-5 mr-2" />
                     <span className="text-sm sm:text-base">Mulai Rekam</span>
