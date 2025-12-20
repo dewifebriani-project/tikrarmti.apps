@@ -176,6 +176,78 @@ export default function RekamSuaraPage() {
         platform: (navigator as any).userAgentData?.platform || navigator.platform
       });
 
+      // Mobile-specific: Try to get user attention first
+      if (isMobile || isIOS) {
+        // Show a user gesture prompt for mobile
+        const userConfirmed = await new Promise<boolean>((resolve) => {
+          const promptDiv = document.createElement('div');
+          promptDiv.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999999;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          `;
+
+          const contentDiv = document.createElement('div');
+          contentDiv.style.cssText = `
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 90%;
+            text-align: center;
+          `;
+
+          contentDiv.innerHTML = `
+            <h2 style="margin: 0 0 20px 0; color: #333;">🎤 Izinkan Mikrofon</h2>
+            <p style="margin: 0 0 20px 0; color: #666; line-height: 1.5;">
+              Aplikasi membutuhkan akses mikrofon untuk merekam suara.<br><br>
+              <strong>Setelah klik "OK", akan muncul popup izin.</strong><br>
+              Pilih "Allow" atau "Izinkan" pada popup tersebut.
+            </p>
+            <button id="allow-mic-btn" style="
+              background: #4CAF50;
+              color: white;
+              border: none;
+              padding: 15px 30px;
+              border-radius: 5px;
+              font-size: 16px;
+              cursor: pointer;
+              width: 100%;
+            ">OK, Siap!</button>
+          `;
+
+          promptDiv.appendChild(contentDiv);
+          document.body.appendChild(promptDiv);
+
+          const btn = document.getElementById('allow-mic-btn');
+          if (btn) {
+            btn.onclick = () => {
+              promptDiv.remove();
+              resolve(true);
+            };
+          }
+
+          // Auto-cancel after 10 seconds
+          setTimeout(() => {
+            if (document.body.contains(promptDiv)) {
+              promptDiv.remove();
+              resolve(false);
+            }
+          }, 10000);
+        });
+
+        if (!userConfirmed) {
+          throw new Error('Anda perlu mengizinkan akses mikrofon untuk merekam.');
+        }
+      }
+
       // Enhanced mobile detection
       const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(navigator.userAgent);
       const isSmallScreen = window.innerWidth <= 768;
@@ -1091,14 +1163,51 @@ export default function RekamSuaraPage() {
           <AlertDescription className="text-amber-800">
             <strong>🔍 Mobile Debugging Info:</strong>
             <div className="mt-2 text-xs space-y-1">
-              <p>📱 <strong>Console:</strong> Eruda debugging console akan muncul otomatis di pojok layar</p>
-              <p>🔄 <strong>Jika tidak muncul:</strong> Lihat tombol hijau "Debug Console" di pojok kanan atas</p>
+              <p>📱 <strong>Console:</strong> Eruda debugging console akan muncul otomatis</p>
+              <p>🔄 <strong>Jika tidak muncul:</strong> Cari tombol hijau "Debug Console" di pojok kanan atas</p>
               <p>📊 <strong>Logs:</strong> Semua proses recording dan upload terlihat di console</p>
               <p>🔧 <strong>Debug Tools:</strong> Gunakan tab Console, Network, dan Resources</p>
               <p>💡 <strong>Refresh:</strong> Refresh halaman jika console tidak muncul</p>
             </div>
           </AlertDescription>
         </Alert>
+
+        {/* Mobile Permission Helper */}
+        {(isClient && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) && (
+          <Alert className="bg-red-50 border-red-200">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <strong>⚠️ Mobile Permission Guide:</strong>
+              <div className="mt-2 text-xs space-y-2">
+                <div>
+                  <p><strong>🚫 Jika muncul "Situs ini tidak dapat meminta izin":</strong></p>
+                  <ol className="list-decimal list-inside mt-1 ml-2 space-y-1">
+                    <li>Tutup semua tab browser yang buka website ini</li>
+                    <li>Buka kembali website ini di tab baru</li>
+                    <li>Klik "Mulai Rekam" SEKALI lagi</li>
+                    <li>Saat popup muncul, langsung klik "Allow" atau "Izinkan"</li>
+                  </ol>
+                </div>
+                <div>
+                  <p><strong>📱 iPhone/iPad Safari:</strong></p>
+                  <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                    <li>Buka Settings → Safari → Mikrofon</li>
+                    <li>Izinkan untuk situs ini</li>
+                    <li>Refresh halaman ini</li>
+                  </ul>
+                </div>
+                <div>
+                  <p><strong>📱 Android Chrome:</strong></p>
+                  <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                    <li>Tap ikon gembok di address bar</li>
+                    <li>Ubah Mikrofon menjadi "Allow"</li>
+                    <li>Refresh halaman</li>
+                  </ul>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Instructions - Mobile & Desktop */}
         <Alert className="bg-blue-50 border-blue-200">
@@ -1285,17 +1394,34 @@ export default function RekamSuaraPage() {
 
               {/* Retry Permission Button */}
               {permissionError && (
-                <Button
-                  onClick={() => {
-                    setPermissionError(null);
-                    startRecording();
-                  }}
-                  variant="outline"
-                  className="px-4 py-3 min-h-[48px] touch-manipulation"
-                  size="sm"
-                >
-                  🔄 Coba Lagi
-                </Button>
+                <div className="flex flex-col items-center space-y-3">
+                  <Button
+                    onClick={() => {
+                      setPermissionError(null);
+                      startRecording();
+                    }}
+                    variant="outline"
+                    className="px-4 py-3 min-h-[48px] touch-manipulation"
+                    size="sm"
+                  >
+                    🔄 Coba Lagi
+                  </Button>
+
+                  {/* Mobile Bypass Button */}
+                  {(isClient && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) && (
+                    <Button
+                      onClick={() => {
+                        setPermissionError(null);
+                        window.open('/seleksi/rekam-suara', '_blank');
+                      }}
+                      variant="outline"
+                      className="px-4 py-3 min-h-[48px] touch-manipulation text-orange-600 border-orange-300 hover:bg-orange-50"
+                      size="sm"
+                    >
+                      📱 Buka di Tab Baru
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 

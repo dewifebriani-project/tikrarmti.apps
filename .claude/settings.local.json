@@ -93,7 +93,8 @@
       "Bash(if exist .next rd /s /q .next)",
       "Bash(npx supabase db describe:*)",
       "Bash(npx supabase db pull:*)",
-      "Bash(psql \"$NEXT_PUBLIC_SUPABASE_URL\" -c \"\\\\d pendaftaran_tikrar_tahfidz\")"
+      "Bash(psql \"$NEXT_PUBLIC_SUPABASE_URL\" -c \"\\\\d pendaftaran_tikrar_tahfidz\")",
+      "Bash(PORT=3014 npm run dev:*)"
     ],
     "deny": [],
     "ask": []

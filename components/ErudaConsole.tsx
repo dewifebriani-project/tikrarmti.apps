@@ -239,6 +239,12 @@ export default function ErudaConsole({ enabled = true }: ErudaConsoleProps) {
   // Add a manual trigger button if Eruda fails to load
   useEffect(() => {
     if (!erudaLoaded && enabled) {
+      // Remove existing button if present
+      const existingBtn = document.getElementById('eruda-trigger');
+      if (existingBtn) {
+        existingBtn.remove();
+      }
+
       const triggerButton = document.createElement('button');
       triggerButton.id = 'eruda-trigger';
       triggerButton.textContent = '🛠️ Debug Console';
@@ -249,51 +255,139 @@ export default function ErudaConsole({ enabled = true }: ErudaConsoleProps) {
         background: #4CAF50;
         color: white;
         border: none;
-        padding: 8px 12px;
-        border-radius: 4px;
-        font-size: 12px;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
         z-index: 999999;
         cursor: pointer;
-        font-family: monospace;
+        font-family: -apple-system, BlinkMacSystemFont, monospace;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
       `;
+
+      // Add hover effects
+      triggerButton.onmouseover = () => {
+        triggerButton.style.transform = 'scale(1.05)';
+        triggerButton.style.background = '#45a049';
+      };
+
+      triggerButton.onmouseout = () => {
+        triggerButton.style.transform = 'scale(1)';
+        triggerButton.style.background = '#4CAF50';
+      };
+
       triggerButton.onclick = async () => {
         try {
-          const eruda = await import('eruda');
-          eruda.default.init();
-          eruda.default.show();
-          triggerButton.remove();
+          console.log('🛠️ Manual Eruda trigger clicked');
+
+          // Try direct global eruda first
+          if ((window as any).eruda) {
+            console.log('✅ Found global eruda, initializing...');
+            (window as any).eruda.init();
+            (window as any).eruda.show();
+            triggerButton.remove();
+            return;
+          }
+
+          // Try loading via script tag
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/eruda@2.11.2/eruda.min.js';
+          script.onload = () => {
+            console.log('✅ Eruda loaded via manual trigger');
+            if ((window as any).eruda) {
+              (window as any).eruda.init({
+                defaults: {
+                  displaySize: 50,
+                  transparency: 0.9
+                }
+              });
+              (window as any).eruda.show();
+              triggerButton.remove();
+            }
+          };
+          script.onerror = () => {
+            console.error('❌ Failed to load Eruda manually');
+            showMobileDebugPanel();
+          };
+          document.head.appendChild(script);
+
         } catch (error) {
           console.error('Failed to load Eruda manually:', error);
-          // Show manual debug panel
-          const panel = document.createElement('div');
-          panel.style.cssText = `
-            position: fixed;
-            top: 50px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 10px;
-            z-index: 999999;
-            max-width: 300px;
-            word-wrap: break-word;
-          `;
-          panel.innerHTML = `
-            <div>❌ Eruda failed to load</div>
-            <div style="margin-top: 5px; font-size: 9px;">Check browser console for details</div>
-            <button onclick="this.parentElement.remove()" style="margin-top: 5px; background: #f44336; color: white; border: none; padding: 2px 5px; cursor: pointer; font-size: 9px;">Close</button>
-          `;
-          document.body.appendChild(panel);
-          setTimeout(() => panel.remove(), 5000);
+          showMobileDebugPanel();
         }
       };
 
-      // Only add button if it doesn't exist
-      if (!document.getElementById('eruda-trigger')) {
-        document.body.appendChild(triggerButton);
+      document.body.appendChild(triggerButton);
+
+      // Auto-click on mobile after 2 seconds to draw attention
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      if (isMobile) {
+        setTimeout(() => {
+          if (document.getElementById('eruda-trigger')) {
+            // Make button pulse to draw attention
+            triggerButton.style.animation = 'pulse 2s infinite';
+            const style = document.createElement('style');
+            style.textContent = `
+              @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+              }
+            `;
+            document.head.appendChild(style);
+          }
+        }, 2000);
       }
+
+      // Show mobile debug panel as helper function
+      const showMobileDebugPanel = () => {
+        if (document.getElementById('mobile-debug-helper')) return;
+
+        const panel = document.createElement('div');
+        panel.id = 'mobile-debug-helper';
+        panel.style.cssText = `
+          position: fixed;
+          top: 70px;
+          right: 10px;
+          background: rgba(0, 0, 0, 0.95);
+          color: white;
+          padding: 15px;
+          border-radius: 8px;
+          font-family: monospace;
+          font-size: 11px;
+          z-index: 999998;
+          max-width: 350px;
+          word-wrap: break-word;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        panel.innerHTML = `
+          <div style="margin-bottom: 10px; font-weight: bold;">🔍 Debug Helper</div>
+          <div style="margin-bottom: 10px;">Console logs available in browser's native console:</div>
+          <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px; margin-bottom: 10px; font-size: 10px;">
+            • Android: Chrome Menu → More Tools → Developer Tools<br>
+            • iPhone: Settings → Safari → Advanced → Web Inspector<br>
+            • Or connect to desktop and debug via USB
+          </div>
+          <button onclick="this.parentElement.remove()" style="
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 10px;
+          ">Close</button>
+        `;
+        document.body.appendChild(panel);
+
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+          if (document.getElementById('mobile-debug-helper')) {
+            panel.remove();
+          }
+        }, 10000);
+      };
 
       // Remove button after Eruda loads
       if (erudaLoaded) {
