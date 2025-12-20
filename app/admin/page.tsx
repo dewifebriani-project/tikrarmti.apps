@@ -33,6 +33,7 @@ import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
 import { UserDetailModal } from '@/components/UserDetailModal';
 import AdminApprovalModal from '@/components/AdminApprovalModalFixed';
+import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdminData';
 
 interface Batch {
   id: string;
@@ -214,8 +215,29 @@ export default function AdminPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
-  // Data states
-  const [users, setUsers] = useState<User[]>([]);
+  // SWR hooks for data fetching
+  const {
+    users: swrUsers,
+    isLoading: usersLoading,
+    isError: usersError,
+    mutate: mutateUsers
+  } = useAdminUsers();
+
+  const {
+    tikrar: swrTikrar,
+    isLoading: tikrarLoading,
+    isError: tikrarError,
+    mutate: mutateTikrar
+  } = useAdminTikrar();
+
+  const {
+    stats: swrStats,
+    isLoading: statsLoading,
+    isError: statsError,
+    mutate: mutateStats
+  } = useAdminStats();
+
+  // Data states (kept for compatibility with other tabs)
   const [batches, setBatches] = useState<Batch[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
@@ -223,24 +245,7 @@ export default function AdminPage() {
   const [halaqahStudents, setHalaqahStudents] = useState<HalaqahStudent[]>([]);
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
-  const [tikrar, setTikrar] = useState<TikrarTahfidz[]>([]);
-  const [tikrarPagination, setTikrarPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0
-  });
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
-  const [stats, setStats] = useState({
-    totalBatches: 0,
-    totalPrograms: 0,
-    totalHalaqah: 0,
-    totalUsers: 0,
-    totalThalibah: 0,
-    totalMentors: 0,
-    pendingRegistrations: 0,
-    pendingTikrar: 0
-  });
 
   useEffect(() => {
     console.log('=== Admin Page Auth Check ===');
@@ -288,64 +293,16 @@ export default function AdminPage() {
     try {
       console.log('=== Starting data load for tab:', activeTab, '===', new Date().toISOString());
 
+      // Overview, Users, and Tikrar tabs are now handled by SWR hooks - no need to fetch here
       if (activeTab === 'overview') {
-        console.log('=== Loading Overview Stats at', new Date().toISOString(), '===');
-
-        // First try the simple stats API (faster)
-        try {
-          console.log('Trying simple stats API at', new Date().toISOString(), '...');
-          const response = await fetch('/api/admin/stats-simple', {
-            credentials: 'include'
-          });
-
-          console.log('Simple stats API response status:', response.status);
-          if (response.ok) {
-            const { stats } = await response.json();
-            console.log('Simple stats loaded successfully at', new Date().toISOString(), ':', stats);
-            setStats(stats);
-          } else {
-            const errorText = await response.text();
-            console.error('Simple stats API error response:', errorText);
-            throw new Error(`Simple stats API failed with status ${response.status}`);
-          }
-        } catch (simpleStatsError) {
-          console.warn('Simple stats API failed, trying full stats API...', simpleStatsError);
-
-          // Fallback to the full stats API
-          try {
-            // Get current session token
-            console.log('Getting session token...');
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-            console.log('Session token obtained:', !!token);
-
-            console.log('Calling /api/admin/stats...');
-            // Use API route to bypass RLS
-            const response = await fetch('/api/admin/stats', {
-              credentials: 'include',
-              headers: token ? {
-                'Authorization': `Bearer ${token}`
-              } : {}
-            });
-
-            console.log('Stats API response status:', response.status);
-            if (response.ok) {
-              const { stats } = await response.json();
-              console.log('Stats loaded successfully:', stats);
-              setStats(stats);
-            } else {
-              const error = await response.json();
-              console.error('Error loading stats:', error);
-              if (error.needsLogin) {
-                console.log('Session expired, redirecting to login');
-                router.push('/login');
-              }
-            }
-          } catch (statsError) {
-            console.error('All stats APIs failed, using default values:', statsError);
-            // Keep default values (all zeros)
-          }
-        }
+        // Data is loaded automatically by useAdminStats hook
+        console.log('Overview stats handled by SWR');
+      } else if (activeTab === 'users') {
+        // Data is loaded automatically by useAdminUsers hook
+        console.log('Users data handled by SWR');
+      } else if (activeTab === 'tikrar') {
+        // Data is loaded automatically by useAdminTikrar hook
+        console.log('Tikrar data handled by SWR');
       } else if (activeTab === 'batches') {
         const { data, error } = await supabase
           .from('batches')
@@ -368,59 +325,6 @@ export default function AdminPage() {
         }
         console.log(`Programs loaded: ${data?.length || 0} records`);
         setPrograms(data || []);
-      } else if (activeTab === 'users') {
-        try {
-          console.log('Loading users via API...');
-
-          // Get current session token
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          let token = session?.access_token;
-
-          // Refresh session if no token
-          if (!token && !sessionError) {
-            console.warn('No access token, attempting to refresh session...');
-            const { data: refreshData } = await supabase.auth.refreshSession();
-            token = refreshData.session?.access_token;
-          }
-
-          // Use API route to bypass RLS
-          const response = await fetch(`/api/admin/users?t=${Date.now()}`, {
-            method: 'GET',
-            credentials: 'include',
-            signal: controller.signal,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache'
-            }
-          });
-
-          if (response.ok) {
-            const { users: data } = await response.json();
-            console.log(`Users loaded: ${data?.length || 0} records`);
-            setUsers(data || []);
-          } else {
-            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-            console.error('Error loading users:', error, 'Status:', response.status);
-            if (error.needsLogin || response.status === 401) {
-              console.log('Session expired, redirecting to login');
-              router.push('/login');
-            } else {
-              toast.error(`Failed to load users: ${error.error || 'Unknown error'}`);
-            }
-            setUsers([]);
-          }
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            console.log('Users data fetch was aborted due to timeout');
-            toast.error('Loading timeout. Please try again.');
-          } else {
-            console.error('Unexpected error loading users:', err);
-            toast.error(`Error loading users: ${err.message}`);
-          }
-          setUsers([]);
-        }
       } else if (activeTab === 'halaqah') {
         const { data, error } = await supabase
           .from('halaqah')
@@ -517,106 +421,6 @@ export default function AdminPage() {
         } catch (err: any) {
           console.error('Unexpected error loading presensi:', err);
           setPresensi([]);
-        }
-      } else if (activeTab === 'tikrar') {
-        // Retry mechanism for Tikrar API
-        const maxRetries = 2;
-        let retryCount = 0;
-        let success = false;
-
-        while (retryCount <= maxRetries && !success) {
-          try {
-            if (retryCount > 0) {
-              console.log(`Retry attempt ${retryCount} for tikrar data...`);
-              toast.loading(`Retrying... (${retryCount}/${maxRetries})`);
-            } else {
-              console.log('Loading tikrar data via API...');
-            }
-
-            // Get current session token with retry
-            let session, token;
-            try {
-              const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-              if (sessionError) throw sessionError;
-              session = sessionData.session;
-              token = session?.access_token;
-
-              if (!token) {
-                console.warn('No access token, attempting to refresh session...');
-                const { data: refreshData } = await supabase.auth.refreshSession();
-                session = refreshData.session;
-                token = session?.access_token;
-              }
-            } catch (sessionErr) {
-              console.error('Session error:', sessionErr);
-              if (retryCount >= maxRetries) {
-                toast.error('Session expired. Please login again.');
-                router.push('/login');
-                return;
-              }
-              throw sessionErr;
-            }
-
-            // Use API route to bypass RLS - load ALL data without pagination
-            const response = await fetch(`/api/admin/tikrar?skipCount=true&t=${Date.now()}`, {
-              method: 'GET',
-              credentials: 'include',
-              signal: controller.signal,
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache'
-              },
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              console.log(`Tikrar loaded successfully: ${result.data?.length || 0} records`);
-              setTikrar(result.data || []);
-              success = true;
-
-              if (retryCount > 0) {
-                toast.success('Data loaded successfully');
-              }
-            } else {
-              const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-              console.error('Error loading tikrar via API:', error, 'Status:', response.status);
-
-              if (error.needsLogin || response.status === 401) {
-                console.log('Session expired, redirecting to login');
-                router.push('/login');
-                return;
-              }
-
-              if (retryCount >= maxRetries) {
-                toast.error(`Failed to load Tikrar: ${error.error || 'Unknown error'}`);
-                setTikrar([]);
-              } else {
-                throw new Error(error.error || 'API request failed');
-              }
-            }
-          } catch (err: any) {
-            console.error(`Tikrar load attempt ${retryCount + 1} failed:`, err);
-
-            if (err.name === 'AbortError') {
-              console.log('Tikrar data fetch was aborted due to timeout');
-              if (retryCount >= maxRetries) {
-                toast.error('Loading timeout. Please refresh the page.');
-                setTikrar([]);
-              }
-            } else if (retryCount >= maxRetries) {
-              toast.error(`Error loading Tikrar: ${err.message}`);
-              setTikrar([]);
-            }
-
-            retryCount++;
-
-            // Wait before retry (exponential backoff)
-            if (retryCount <= maxRetries && !success) {
-              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-            }
-          }
         }
       }
     } catch (error) {
@@ -725,8 +529,39 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab === 'overview' && <OverviewTab stats={stats} />}
-        {activeTab === 'users' && <UsersTab users={users} onRefresh={loadData} />}
+        {activeTab === 'overview' && (
+          statsLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
+            </div>
+          ) : (
+            <OverviewTab stats={swrStats} />
+          )
+        )}
+        {activeTab === 'users' && (
+          usersLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
+                <p className="text-sm text-gray-600">Loading users...</p>
+              </div>
+            </div>
+          ) : usersError ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="text-center">
+                <p className="text-red-600 mb-2">Failed to load users</p>
+                <button
+                  onClick={() => mutateUsers()}
+                  className="px-4 py-2 bg-green-900 text-white rounded hover:bg-green-800"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <UsersTab users={swrUsers} onRefresh={() => mutateUsers()} />
+          )
+        )}
         {activeTab === 'batches' && <BatchesTab batches={batches} onRefresh={loadData} />}
         {activeTab === 'programs' && (
           <ProgramsTab
@@ -759,13 +594,34 @@ export default function AdminPage() {
         )}
         {activeTab === 'presensi' && <PresensiTab presensi={presensi} onRefresh={loadData} />}
         {activeTab === 'tikrar' && (
-          <TikrarTab
-            tikrar={tikrar}
-            batches={batches}
-            selectedBatchFilter={selectedBatchFilter}
-            onBatchFilterChange={setSelectedBatchFilter}
-            onRefresh={loadData}
-          />
+          tikrarLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
+                <p className="text-sm text-gray-600">Loading Tikrar Tahfidz data...</p>
+              </div>
+            </div>
+          ) : tikrarError ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="text-center">
+                <p className="text-red-600 mb-2">Failed to load Tikrar data</p>
+                <button
+                  onClick={() => mutateTikrar()}
+                  className="px-4 py-2 bg-green-900 text-white rounded hover:bg-green-800"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <TikrarTab
+              tikrar={swrTikrar}
+              batches={batches}
+              selectedBatchFilter={selectedBatchFilter}
+              onBatchFilterChange={setSelectedBatchFilter}
+              onRefresh={() => mutateTikrar()}
+            />
+          )
         )}
         {activeTab === 'reports' && <ReportsTab />}
       </div>
