@@ -2826,6 +2826,44 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     bothTestsSubmitted: filteredTikrar.filter(t => t.oral_submitted_at && t.written_submitted_at).length,
   };
 
+  // Calculate Juz distribution
+  const juzDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
+    const juz = t.chosen_juz || 'Not specified';
+    acc[juz] = (acc[juz] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Calculate Covenant Time distribution
+  const covenantTimeDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
+    const time = t.covenant_time || 'Not specified';
+    acc[time] = (acc[time] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Calculate Province distribution (top 5)
+  const provinceDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
+    const province = t.provinsi || 'Not specified';
+    acc[province] = (acc[province] || 0) + 1;
+    return acc;
+  }, {});
+  const topProvinces = Object.entries(provinceDistribution)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  // Calculate Country distribution
+  const countryDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
+    const country = t.negara || 'Indonesia'; // Default Indonesia
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Calculate Program distribution
+  const programDistribution = filteredTikrar.reduce((acc: Record<string, number>, t) => {
+    const program = t.program?.name || 'Not specified';
+    acc[program] = (acc[program] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-6">
       {/* Batch Filter */}
@@ -2988,6 +3026,161 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                 {stats.approved > 0 ? Math.round((stats.completed / stats.approved) * 100) : 0}%
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Statistics - Juz, Covenant Time, Location */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Juz Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-green-600" />
+            Chosen Juz Distribution
+          </h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {Object.entries(juzDistribution)
+              .sort((a, b) => {
+                // Sort by juz number if it's a number, otherwise alphabetically
+                const aNum = parseInt(a[0].replace(/\D/g, ''));
+                const bNum = parseInt(b[0].replace(/\D/g, ''));
+                if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+                return a[0].localeCompare(b[0]);
+              })
+              .map(([juz, count]) => (
+                <div key={juz} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">{juz}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{ width: `${(count / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-8 text-right">{count}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Covenant Time Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-blue-600" />
+            Covenant Time Preference
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(covenantTimeDistribution)
+              .sort((a, b) => b[1] - a[1])
+              .map(([time, count]) => (
+                <div key={time} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">{time}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{ width: `${(count / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-8 text-right">{count}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Program Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-purple-600" />
+            Program Selection
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(programDistribution)
+              .sort((a, b) => b[1] - a[1])
+              .map(([program, count]) => (
+                <div key={program} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 truncate max-w-[150px]" title={program}>
+                    {program}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-purple-600 h-2 rounded-full"
+                        style={{ width: `${(count / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-8 text-right">{count}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Geographic Distribution */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Top 5 Provinces */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <svg className="h-4 w-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Top 5 Provinces
+          </h3>
+          <div className="space-y-2">
+            {topProvinces.map(([province, count], index) => (
+              <div key={province} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-gray-500 w-4">#{index + 1}</span>
+                  <span className="text-sm text-gray-600 truncate max-w-[180px]" title={province}>
+                    {province}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-24 bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-orange-600 h-2 rounded-full"
+                      style={{ width: `${(count / stats.total) * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900 w-8 text-right">{count}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Country Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <svg className="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Country Distribution
+          </h3>
+          <div className="space-y-2">
+            {Object.entries(countryDistribution)
+              .sort((a, b) => b[1] - a[1])
+              .map(([country, count]) => (
+                <div key={country} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">{country}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-indigo-600 h-2 rounded-full"
+                        style={{ width: `${(count / stats.total) * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 w-8 text-right">{count}</span>
+                    <span className="text-xs text-gray-500">
+                      ({Math.round((count / stats.total) * 100)}%)
+                    </span>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       </div>
