@@ -215,27 +215,30 @@ export default function AdminPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
-  // SWR hooks for data fetching
+  // Only enable SWR hooks when user is authenticated and is admin
+  const isAdmin = !authLoading && user && user.role === 'admin';
+
+  // SWR hooks for data fetching - only enabled when admin is authenticated
   const {
     users: swrUsers,
     isLoading: usersLoading,
     isError: usersError,
     mutate: mutateUsers
-  } = useAdminUsers();
+  } = useAdminUsers(isAdmin);
 
   const {
     tikrar: swrTikrar,
     isLoading: tikrarLoading,
     isError: tikrarError,
     mutate: mutateTikrar
-  } = useAdminTikrar();
+  } = useAdminTikrar(isAdmin);
 
   const {
     stats: swrStats,
     isLoading: statsLoading,
     isError: statsError,
     mutate: mutateStats
-  } = useAdminStats();
+  } = useAdminStats(isAdmin);
 
   // Data states (kept for compatibility with other tabs)
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -252,6 +255,8 @@ export default function AdminPage() {
     console.log('Auth loading:', authLoading);
     console.log('User:', user);
     console.log('User role:', user?.role);
+    console.log('Is Admin:', isAdmin);
+    console.log('SWR States - Users loading:', usersLoading, 'Tikrar loading:', tikrarLoading, 'Stats loading:', statsLoading);
 
     if (!authLoading) {
       if (!user) {
@@ -265,7 +270,7 @@ export default function AdminPage() {
         setLoading(false);
       }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isAdmin, usersLoading, tikrarLoading, statsLoading]);
 
   useEffect(() => {
     if (user) {
