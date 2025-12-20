@@ -25,7 +25,8 @@ import {
   ChevronsRight,
   CheckCircle,
   AlertCircle,
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 import AuthenticatedLayout from '@/components/AuthenticatedLayout';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
@@ -2586,6 +2587,13 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   const [bulkRejectionReason, setBulkRejectionReason] = useState('');
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
+  // New states for comprehensive review
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState<any>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
+  const [unapproveReason, setUnapproveReason] = useState('');
+  const [showUnapproveModal, setShowUnapproveModal] = useState(false);
+
   // Filter tikrar by batch_id or batch_name
   const filteredTikrar = selectedBatchFilter === 'all'
     ? tikrar
@@ -2692,6 +2700,67 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     setShowApprovalModal(true);
   };
 
+  // New function for comprehensive review
+  const handleReview = async (tikrarData: TikrarTahfidz) => {
+    setLoadingReview(true);
+    try {
+      const response = await fetch(`/api/admin/tikrar/${tikrarData.id}`);
+      if (!response.ok) throw new Error('Failed to fetch review data');
+      const result = await response.json();
+
+      if (result.success) {
+        setReviewData(result.data);
+        setShowReviewModal(true);
+      } else {
+        toast.error('Failed to load review data');
+      }
+    } catch (error: any) {
+      console.error('Error loading review data:', error);
+      toast.error('Error loading review data: ' + error.message);
+    } finally {
+      setLoadingReview(false);
+    }
+  };
+
+  // Function to handle unapprove
+  const handleUnapprove = (tikrarData: TikrarTahfidz) => {
+    setSelectedApplication(tikrarData);
+    setShowUnapproveModal(true);
+  };
+
+  // Function to confirm unapprove
+  const confirmUnapprove = async () => {
+    if (!selectedApplication || !unapproveReason.trim()) {
+      toast.error('Please provide a reason for unapproval');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/tikrar/bulk-approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'unapprove',
+          applicationIds: [selectedApplication.id],
+          reason: unapproveReason
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to unapprove application');
+
+      toast.success('Application unapproved successfully');
+      setShowUnapproveModal(false);
+      setUnapproveReason('');
+      setSelectedApplication(null);
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error unapproving application:', error);
+      toast.error('Error unapproving application: ' + error.message);
+    }
+  };
+
   const columns: Column<TikrarTahfidz>[] = [
     {
       key: 'select',
@@ -2769,7 +2838,12 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       filterable: true,
       render: (t) => (
         <div>
-          <div className="text-sm font-medium text-gray-900">{t.full_name || t.user?.full_name || '-'}</div>
+          <button
+            onClick={() => handleReview(t)}
+            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline text-left"
+          >
+            {t.full_name || t.user?.full_name || '-'}
+          </button>
           <div className="text-sm text-gray-500">{t.user?.email || '-'}</div>
         </div>
       ),
@@ -2801,13 +2875,24 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       sortable: true,
       filterable: true,
       render: (t) => (
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-          ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
-            t.status === 'rejected' ? 'bg-red-100 text-red-800' :
-            t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
-            'bg-yellow-100 text-yellow-800'}`}>
-          {t.status}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+            ${t.status === 'approved' ? 'bg-green-100 text-green-800' :
+              t.status === 'rejected' ? 'bg-red-100 text-red-800' :
+              t.status === 'withdrawn' ? 'bg-gray-100 text-gray-800' :
+              'bg-yellow-100 text-yellow-800'}`}>
+            {t.status}
+          </span>
+          {t.status === 'approved' && (
+            <button
+              onClick={() => handleUnapprove(t)}
+              className="text-orange-600 hover:text-orange-800 text-xs font-medium"
+              title="Cancel Approval"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       ),
     },
     {
@@ -3442,6 +3527,336 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
         application={selectedApplication}
         onRefresh={onRefresh}
       />
+
+      {/* Comprehensive Review Modal */}
+      {showReviewModal && reviewData && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowReviewModal(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900">Comprehensive Application Review</h3>
+                  <button
+                    onClick={() => setShowReviewModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <X className="h-6 w-6" />
+                  </button>
+                </div>
+
+                {/* User Profile Section */}
+                <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    User Profile
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Full Name</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.full_name || reviewData.full_name || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Email</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.email || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">WhatsApp</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.whatsapp || reviewData.wa_phone || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Birth Date</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.tanggal_lahir || reviewData.birth_date || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Address</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.alamat || reviewData.address || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">City</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.kota || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Province</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.provinsi || reviewData.domicile || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Timezone</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.zona_waktu || reviewData.timezone || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Telegram</label>
+                      <p className="text-sm text-gray-900">{reviewData.user?.telegram || reviewData.telegram_phone || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Application Details Section */}
+                <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg className="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Application Details
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Batch</label>
+                      <p className="text-sm text-gray-900">{reviewData.batch?.name || reviewData.batch_name || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Program</label>
+                      <p className="text-sm text-gray-900">{reviewData.program?.name || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Chosen Juz</label>
+                      <p className="text-sm text-gray-900">{reviewData.chosen_juz || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Main Time Slot</label>
+                      <p className="text-sm text-gray-900">{reviewData.main_time_slot || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Backup Time Slot</label>
+                      <p className="text-sm text-gray-900">{reviewData.backup_time_slot || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Ready for Team</label>
+                      <p className="text-sm text-gray-900 capitalize">{reviewData.ready_for_team || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Understands Commitment</label>
+                      <p className="text-sm text-gray-900">{reviewData.understands_commitment ? 'Yes' : 'No'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Tried Simulation</label>
+                      <p className="text-sm text-gray-900">{reviewData.tried_simulation ? 'Yes' : 'No'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Time Commitment</label>
+                      <p className="text-sm text-gray-900">{reviewData.time_commitment ? 'Yes' : 'No'}</p>
+                    </div>
+                  </div>
+
+                  {reviewData.motivation && (
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-gray-500">Motivation</label>
+                      <p className="text-sm text-gray-900 mt-1">{reviewData.motivation}</p>
+                    </div>
+                  )}
+
+                  {reviewData.questions && (
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-gray-500">Questions</label>
+                      <p className="text-sm text-gray-900 mt-1">{reviewData.questions}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Permission Details */}
+                {reviewData.has_permission && (
+                  <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Permission Details
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Permission Name</label>
+                        <p className="text-sm text-gray-900">{reviewData.permission_name || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Permission Phone</label>
+                        <p className="text-sm text-gray-900">{reviewData.permission_phone || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Test Results Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Oral Test */}
+                  {reviewData.oral_submission_url && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="h-5 w-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        Voice Recording
+                      </h4>
+                      <div className="space-y-3">
+                        <audio controls className="w-full">
+                          <source src={reviewData.oral_submission_url} type="audio/webm" />
+                          <source src={reviewData.oral_submission_url} type="audio/mp4" />
+                          <source src={reviewData.oral_submission_url} type="audio/mp3" />
+                          Your browser does not support the audio element.
+                        </audio>
+                        <div className="text-xs text-gray-500">
+                          <p>Submitted: {reviewData.oral_submitted_at ? new Date(reviewData.oral_submitted_at).toLocaleString('id-ID') : '-'}</p>
+                          <p>File: {reviewData.oral_submission_file_name || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Written Test */}
+                  {reviewData.written_quiz_answers && (
+                    <div className="bg-gray-50 rounded-lg p-6">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        Written Test Results
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="text-center">
+                          <p className="text-3xl font-bold text-indigo-600">
+                            {reviewData.written_quiz_score || 0}%
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {reviewData.written_quiz_correct_answers || 0} / {reviewData.written_quiz_total_questions || 0} Correct
+                          </p>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-indigo-600 h-2 rounded-full"
+                            style={{ width: `${reviewData.written_quiz_score || 0}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          <p>Submitted: {reviewData.written_quiz_submitted_at ? new Date(reviewData.written_quiz_submitted_at).toLocaleString('id-ID') : '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Application Status */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg className="h-5 w-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Application Status
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Status</label>
+                      <div className="mt-1">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                          ${reviewData.status === 'approved' ? 'bg-green-100 text-green-800' :
+                            reviewData.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'}`}>
+                          {reviewData.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Selection Status</label>
+                      <div className="mt-1">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                          ${reviewData.selection_status === 'approved' ? 'bg-green-100 text-green-800' :
+                            reviewData.selection_status === 'rejected' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'}`}>
+                          {reviewData.selection_status}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Submission Date</label>
+                      <p className="text-sm text-gray-900">{new Date(reviewData.submission_date).toLocaleDateString('id-ID')}</p>
+                    </div>
+                    {reviewData.approved_at && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Approved At</label>
+                        <p className="text-sm text-gray-900">{new Date(reviewData.approved_at).toLocaleString('id-ID')}</p>
+                      </div>
+                    )}
+                  </div>
+                  {reviewData.approver && (
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-gray-500">Approved By</label>
+                      <p className="text-sm text-gray-900">{reviewData.approver.full_name} ({reviewData.approver.email})</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unapprove Confirmation Modal */}
+      {showUnapproveModal && selectedApplication && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowUnapproveModal(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Cancel Approval
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to cancel the approval for "{selectedApplication.full_name}"?
+                      </p>
+                      <div className="mt-4">
+                        <label htmlFor="unapprove-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                          Reason for Cancellation <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          id="unapprove-reason"
+                          rows={3}
+                          value={unapproveReason}
+                          onChange={(e) => setUnapproveReason(e.target.value)}
+                          className="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                          placeholder="Enter reason for cancellation..."
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={confirmUnapprove}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel Approval
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUnapproveModal(false);
+                    setUnapproveReason('');
+                    setSelectedApplication(null);
+                  }}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -107,43 +107,72 @@ export async function POST(request: NextRequest) {
     }
 
     // Get request body
-    const { ids, action, rejectionReason } = await request.json();
+    const { ids, action, rejectionReason, applicationIds, reason } = await request.json();
 
     console.log('=== Bulk Approve Tikrar API Called ===');
-    console.log('Request body:', { idsCount: ids?.length, action, userId: user.id });
+    console.log('Request body:', {
+      idsCount: ids?.length || applicationIds?.length,
+      action,
+      userId: user.id,
+      hasApplicationIds: !!applicationIds
+    });
 
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    // Support both old format (ids) and new format (applicationIds)
+    const targetIds = ids || applicationIds;
+    const actualReason = rejectionReason || reason;
+
+    if (!targetIds || !Array.isArray(targetIds) || targetIds.length === 0) {
       console.error('Missing or invalid ids array');
       return NextResponse.json({ error: 'Missing or invalid ids array' }, { status: 400 });
     }
 
-    if (!action || !['approve', 'reject'].includes(action)) {
-      console.error('Invalid action. Must be "approve" or "reject"');
-      return NextResponse.json({ error: 'Invalid action. Must be "approve" or "reject"' }, { status: 400 });
+    if (!action || !['approve', 'reject', 'unapprove'].includes(action)) {
+      console.error('Invalid action. Must be "approve", "reject", or "unapprove"');
+      return NextResponse.json({ error: 'Invalid action. Must be "approve", "reject", or "unapprove"' }, { status: 400 });
     }
 
     // Prepare update data based on action
     const now = new Date().toISOString();
-    const updateData: any = {
-      status: action === 'approve' ? 'approved' : 'rejected',
-      approved_by: user.id,
-      approved_at: now,
+    let updateData: any = {
       updated_at: now
     };
 
-    if (action === 'reject' && rejectionReason) {
-      updateData.rejection_reason = rejectionReason;
+    if (action === 'approve') {
+      updateData.status = 'approved';
+      updateData.approved_by = user.id;
+      updateData.approved_at = now;
+    } else if (action === 'reject') {
+      updateData.status = 'rejected';
+      updateData.approved_by = user.id;
+      updateData.approved_at = now;
+      if (actualReason) {
+        updateData.rejection_reason = actualReason;
+      }
+    } else if (action === 'unapprove') {
+      updateData.status = 'pending';
+      updateData.approved_by = null;
+      updateData.approved_at = null;
+      if (actualReason) {
+        updateData.unapprove_reason = actualReason;
+        updateData.unapproved_by = user.id;
+        updateData.unapproved_at = now;
+      }
     }
 
     console.log('Update data:', updateData);
 
     // Update all applications in bulk using admin client (bypasses RLS)
-    const { error, data } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .update(updateData)
-      .in('id', ids)
-      .eq('status', 'pending') // Only update pending applications
-      .select();
+      .in('id', targetIds);
+
+    // Only filter by status for approve/reject, not for unapprove
+    if (action !== 'unapprove') {
+      query = query.eq('status', 'pending'); // Only update pending applications
+    }
+
+    const { error, data } = await query.select();
 
     console.log('Bulk update result:', { error, updatedCount: data?.length });
 
