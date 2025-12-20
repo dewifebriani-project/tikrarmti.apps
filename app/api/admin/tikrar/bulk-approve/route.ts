@@ -152,10 +152,9 @@ export async function POST(request: NextRequest) {
       updateData.status = 'pending';
       updateData.approved_by = null;
       updateData.approved_at = null;
+      // Use rejection_reason field to store unapprove reason for simplicity
       if (actualReason) {
-        updateData.unapprove_reason = actualReason;
-        updateData.unapproved_by = user.id;
-        updateData.unapproved_at = now;
+        updateData.rejection_reason = `UNAPPROVED: ${actualReason}`;
       }
     }
 
