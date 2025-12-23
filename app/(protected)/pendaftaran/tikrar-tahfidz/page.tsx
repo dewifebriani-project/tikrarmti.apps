@@ -128,8 +128,12 @@ export default function ThalibahBatch2Page() {
           const response = await fetch('/api/auth/me')
           if (response.ok) {
             const result = await response.json()
-            // The result should contain user data from the users table
-            setUserProfile(result.data || result)
+            // The result contains user data in result.data or result.user
+            const userData = result.data || result.user || result
+            setUserProfile(userData)
+            console.log('User profile loaded:', userData)
+          } else {
+            console.error('Failed to fetch user profile:', response.status)
           }
         } catch (error) {
           console.error('Error fetching user profile:', error)
@@ -411,6 +415,19 @@ export default function ThalibahBatch2Page() {
         questions: formData.questions,
         provider: 'email'
       }
+
+      // Debug: log submission data
+      console.log('Submitting registration data:', {
+        userProfile: userProfile,
+        submissionData: {
+          ...submissionData,
+          // Log specific fields that might be empty
+          phone: submissionData.phone,
+          address: submissionData.address,
+          birth_date: submissionData.birth_date,
+          age: submissionData.age
+        }
+      })
 
       if (isEditMode && existingRegistrationId) {
         // Update existing registration
