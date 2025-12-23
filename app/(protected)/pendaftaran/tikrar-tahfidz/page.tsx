@@ -406,7 +406,11 @@ export default function ThalibahBatch2Page() {
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to update registration')
+          // Handle different error response formats
+          const errorMsg = typeof errorData.error === 'string'
+            ? errorData.error
+            : errorData.error?.message || JSON.stringify(errorData.error || errorData)
+          throw new Error(errorMsg)
         }
 
         const result = await response.json()
@@ -423,7 +427,11 @@ export default function ThalibahBatch2Page() {
 
         if (!response.ok) {
           const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to submit registration')
+          // Handle different error response formats
+          const errorMsg = typeof errorData.error === 'string'
+            ? errorData.error
+            : errorData.error?.message || JSON.stringify(errorData.error || errorData)
+          throw new Error(errorMsg)
         }
 
         const result = await response.json()
