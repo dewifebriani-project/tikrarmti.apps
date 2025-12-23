@@ -487,6 +487,7 @@ export default function ThalibahBatch2Page() {
 
         if (!response.ok) {
           const errorData = await response.json()
+          console.error('API Error Response:', JSON.stringify(errorData, null, 2))
           // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
           let errorMsg = 'Failed to submit registration'
           if (errorData.error) {
