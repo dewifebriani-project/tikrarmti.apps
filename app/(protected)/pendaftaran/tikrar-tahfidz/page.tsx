@@ -57,6 +57,7 @@ export default function ThalibahBatch2Page() {
   const [isCreating, setIsCreating] = useState(false)
 
   const [isMounted, setIsMounted] = useState(false)
+  const [userProfile, setUserProfile] = useState<any>(null)
   const [currentSection, setCurrentSection] = useState(1)
   const [isEditMode, setIsEditMode] = useState(false)
   const [existingRegistrationId, setExistingRegistrationId] = useState<string | null>(null)
@@ -118,6 +119,25 @@ export default function ThalibahBatch2Page() {
       }
     }
   }, [tikrarRegistration, user?.id, isEditMode])
+
+  // Fetch user profile data from users table
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id && isAuthenticated) {
+        try {
+          const response = await fetch('/api/auth/me')
+          if (response.ok) {
+            const result = await response.json()
+            // The result should contain user data from the users table
+            setUserProfile(result.data || result)
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error)
+        }
+      }
+    }
+    fetchUserProfile()
+  }, [user?.id, isAuthenticated])
 
   const [formData, setFormData] = useState<FormData>({
     understands_commitment: false,
@@ -326,15 +346,12 @@ export default function ThalibahBatch2Page() {
         return date.toISOString()
       }
 
-      // User metadata type - using any to access Supabase auth metadata
-      const userData = user as any
-
-      // Calculate age from birth_date if available
+      // Use userProfile data from users table, fallback to user metadata
+      const birthDateValue = userProfile?.tanggal_lahir || (user as any)?.user_metadata?.tanggal_lahir
+      const today = new Date()
       let calculatedAge = 15 // default minimum age
-      const birthDateValue = userData?.user_metadata?.birth_date || userData?.user_metadata?.tanggal_lahir
       if (birthDateValue) {
         const birthDate = new Date(birthDateValue)
-        const today = new Date()
         calculatedAge = today.getFullYear() - birthDate.getFullYear()
         const monthDiff = today.getMonth() - birthDate.getMonth()
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -343,33 +360,34 @@ export default function ThalibahBatch2Page() {
       }
 
       // Get gender - convert from database format to schema format
-      const genderValue = userData?.user_metadata?.jenis_kelamin
+      const genderValue = userProfile?.jenis_kelamin
       const genderMapped = genderValue === 'Perempuan' ? 'P' : genderValue === 'Laki-laki' ? 'L' : 'P'
 
       // Get phone number with proper format
-      let phoneValue = userData?.user_metadata?.whatsapp || userData?.user_metadata?.phone || ''
+      let phoneValue = userProfile?.whatsapp || ''
       // Ensure phone starts with Indonesian format
       if (phoneValue && !phoneValue.startsWith('+62') && !phoneValue.startsWith('62')) {
         phoneValue = phoneValue.startsWith('0') ? '62' + phoneValue.slice(1) : '62' + phoneValue
       }
 
       // Prepare data for Tikrar API - include all required fields from schema
+      // Data from users table takes priority over auth metadata
       const submissionData = {
         user_id: user.id,
         batch_id: activeBatch.id,
         program_id: activeBatch.id,
-        // Personal data (from user metadata) - required by schema
-        full_name: userData?.user_metadata?.full_name || userData?.user_metadata?.nama_lengkap || userData?.user_metadata?.name || user.full_name || '',
+        // Personal data (from users table) - required by schema
+        full_name: userProfile?.full_name || user.full_name || '',
         email: user.email || '',
         phone: phoneValue,
-        telegram_phone: userData?.user_metadata?.telegram || '',
-        address: userData?.user_metadata?.alamat || '',
-        birth_place: userData?.user_metadata?.tempat_lahir || '',
+        telegram_phone: userProfile?.telegram || '',
+        address: userProfile?.alamat || '',
+        birth_place: userProfile?.tempat_lahir || '',
         birth_date: toISOWithOffset(birthDateValue),
         age: calculatedAge,
         gender: genderMapped,
-        education: userData?.user_metadata?.pendidikan || '',
-        work: userData?.user_metadata?.pekerjaan || '',
+        education: userProfile?.pendidikan || '',
+        work: userProfile?.pekerjaan || '',
         // Section 1
         understands_commitment: formData.understands_commitment,
         tried_simulation: formData.tried_simulation,
@@ -391,7 +409,7 @@ export default function ThalibahBatch2Page() {
         // Section 4
         understands_program: formData.understands_program,
         questions: formData.questions,
-        provider: userData?.app_metadata?.provider || userData?.app_metadata?.provider_name || 'email'
+        provider: 'email'
       }
 
       if (isEditMode && existingRegistrationId) {
@@ -406,10 +424,23 @@ export default function ThalibahBatch2Page() {
 
         if (!response.ok) {
           const errorData = await response.json()
-          // Handle different error response formats
-          const errorMsg = typeof errorData.error === 'string'
-            ? errorData.error
-            : errorData.error?.message || JSON.stringify(errorData.error || errorData)
+          // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
+          let errorMsg = 'Failed to update registration'
+          if (errorData.error) {
+            if (typeof errorData.error === 'string') {
+              errorMsg = errorData.error
+            } else if (errorData.error.message) {
+              errorMsg = errorData.error.message
+              // Add validation issues if available
+              if (errorData.error.details?.issues) {
+                const issues = errorData.error.details.issues
+                const issueList = issues.map((i: any) => `${i.field}: ${i.message}`).join('\n')
+                errorMsg += '\n\n' + issueList
+              }
+            } else {
+              errorMsg = JSON.stringify(errorData.error)
+            }
+          }
           throw new Error(errorMsg)
         }
 
@@ -427,10 +458,23 @@ export default function ThalibahBatch2Page() {
 
         if (!response.ok) {
           const errorData = await response.json()
-          // Handle different error response formats
-          const errorMsg = typeof errorData.error === 'string'
-            ? errorData.error
-            : errorData.error?.message || JSON.stringify(errorData.error || errorData)
+          // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
+          let errorMsg = 'Failed to submit registration'
+          if (errorData.error) {
+            if (typeof errorData.error === 'string') {
+              errorMsg = errorData.error
+            } else if (errorData.error.message) {
+              errorMsg = errorData.error.message
+              // Add validation issues if available
+              if (errorData.error.details?.issues) {
+                const issues = errorData.error.details.issues
+                const issueList = issues.map((i: any) => `${i.field}: ${i.message}`).join('\n')
+                errorMsg += '\n\n' + issueList
+              }
+            } else {
+              errorMsg = JSON.stringify(errorData.error)
+            }
+          }
           throw new Error(errorMsg)
         }
 
