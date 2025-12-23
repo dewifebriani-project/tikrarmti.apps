@@ -26,7 +26,7 @@ interface FormData {
   saved_contact: boolean
 
   // Section 2 - Izin & Pilihan Program
-  has_permission: boolean
+  has_permission: 'yes' | 'janda' | ''
   permission_name: string
   permission_phone: string
   permission_phone_validation: string
@@ -89,7 +89,7 @@ export default function ThalibahBatch2Page() {
         no_negotiation: registrationData.no_negotiation || false,
         has_telegram: registrationData.has_telegram || false,
         saved_contact: registrationData.saved_contact || false,
-        has_permission: registrationData.has_permission === 'yes',
+        has_permission: registrationData.has_permission || '',
         permission_name: registrationData.permission_name || '',
         permission_phone: registrationData.permission_phone || '',
         permission_phone_validation: '',
@@ -149,7 +149,7 @@ export default function ThalibahBatch2Page() {
     no_negotiation: false,
     has_telegram: false,
     saved_contact: false,
-    has_permission: false,
+    has_permission: '',
     permission_name: '',
     permission_phone: '',
     permission_phone_validation: '',
@@ -261,14 +261,18 @@ export default function ThalibahBatch2Page() {
       if (!formData.has_permission) {
         newErrors.has_permission = 'Wajib memiliki izin dari yang bertanggung jawab'
       }
-      if (!formData.permission_name.trim()) {
-        newErrors.permission_name = 'Nama pemberi izin harus diisi'
-      }
-      if (!formData.permission_phone.trim()) {
-        newErrors.permission_phone = 'Nomor HP pemberi izin harus diisi'
-      }
-      if (formData.permission_phone !== formData.permission_phone_validation) {
-        newErrors.permission_phone_validation = 'Validasi nomor HP tidak cocok'
+      // For janda, permission fields are optional
+      const isJanda = formData.has_permission === 'janda'
+      if (!isJanda) {
+        if (!formData.permission_name.trim()) {
+          newErrors.permission_name = 'Nama pemberi izin harus diisi'
+        }
+        if (!formData.permission_phone.trim()) {
+          newErrors.permission_phone = 'Nomor HP pemberi izin harus diisi'
+        }
+        if (formData.permission_phone !== formData.permission_phone_validation) {
+          newErrors.permission_phone_validation = 'Validasi nomor HP tidak cocok'
+        }
       }
       if (!formData.chosen_juz) {
         newErrors.chosen_juz = 'Pilih salah satu pilihan juz'
@@ -399,7 +403,7 @@ export default function ThalibahBatch2Page() {
         has_telegram: formData.has_telegram,
         saved_contact: formData.saved_contact,
         // Section 2
-        has_permission: formData.has_permission ? 'yes' : '',
+        has_permission: formData.has_permission,
         permission_name: formData.permission_name,
         permission_phone: formData.permission_phone,
         chosen_juz: formData.chosen_juz,
@@ -852,8 +856,8 @@ export default function ThalibahBatch2Page() {
                 name="has_permission"
                 id="has_permission_yes"
                 value="yes"
-                checked={formData.has_permission}
-                onChange={() => handleInputChange('has_permission', true)}
+                checked={formData.has_permission === 'yes'}
+                onChange={() => handleInputChange('has_permission', 'yes' as const)}
                 className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
               />
               <Label htmlFor="has_permission_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
@@ -866,8 +870,8 @@ export default function ThalibahBatch2Page() {
                 name="has_permission"
                 id="has_permission_janda"
                 value="janda"
-                checked={formData.has_permission}
-                onChange={() => handleInputChange('has_permission', true)}
+                checked={formData.has_permission === 'janda'}
+                onChange={() => handleInputChange('has_permission', 'janda' as const)}
                 className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
               />
               <Label htmlFor="has_permission_janda" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
@@ -880,58 +884,72 @@ export default function ThalibahBatch2Page() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="permission_name" className="text-base font-semibold text-gray-800">
-              Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini (Apabila Ukhti Janda, silahkan isi dengan nama sendiri)
-              <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="permission_name"
-              value={formData.permission_name}
-              onChange={(e) => handleInputChange('permission_name', e.target.value)}
-              placeholder="Ketik nama sesuai KTP"
-              className="text-base py-3"
-            />
-            {errors.permission_name && (
-              <p className="text-red-500 text-sm font-medium">{errors.permission_name}</p>
-            )}
-          </div>
+        {/* Permission fields - only show if not janda */}
+        {formData.has_permission !== 'janda' && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="permission_name" className="text-base font-semibold text-gray-800">
+                  Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="permission_name"
+                  value={formData.permission_name}
+                  onChange={(e) => handleInputChange('permission_name', e.target.value)}
+                  placeholder="Ketik nama sesuai KTP"
+                  className="text-base py-3"
+                />
+                {errors.permission_name && (
+                  <p className="text-red-500 text-sm font-medium">{errors.permission_name}</p>
+                )}
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="permission_phone" className="text-base font-semibold text-gray-800">
-              No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini (Apabila Ukhti Janda, silahkan isi dengan No HP sendiri)
-              <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="permission_phone"
-              value={formData.permission_phone}
-              onChange={(e) => handleInputChange('permission_phone', e.target.value)}
-              placeholder="08xx-xxxx-xxxx"
-              className="text-base py-3"
-            />
-            {errors.permission_phone && (
-              <p className="text-red-500 text-sm font-medium">{errors.permission_phone}</p>
-            )}
-          </div>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="permission_phone" className="text-base font-semibold text-gray-800">
+                  No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="permission_phone"
+                  value={formData.permission_phone}
+                  onChange={(e) => handleInputChange('permission_phone', e.target.value)}
+                  placeholder="08xx-xxxx-xxxx"
+                  className="text-base py-3"
+                />
+                {errors.permission_phone && (
+                  <p className="text-red-500 text-sm font-medium">{errors.permission_phone}</p>
+                )}
+              </div>
+            </div>
 
-        <div className="space-y-3">
-          <Label htmlFor="permission_phone_validation" className="text-base font-semibold text-gray-800">
-            Validasi isi sekali lagi No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini (Apabila Ukhti Janda, silahkan isi dengan No HP sendiri)
-            <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="permission_phone_validation"
-            value={formData.permission_phone_validation}
-            onChange={(e) => handleInputChange('permission_phone_validation', e.target.value)}
-            placeholder="Ketik ulang nomor HP"
-            className="text-base py-3"
-          />
-          {errors.permission_phone_validation && (
-            <p className="text-red-500 text-sm font-medium">{errors.permission_phone_validation}</p>
-          )}
-        </div>
+            <div className="space-y-3">
+              <Label htmlFor="permission_phone_validation" className="text-base font-semibold text-gray-800">
+                Validasi isi sekali lagi No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini
+                <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="permission_phone_validation"
+                value={formData.permission_phone_validation}
+                onChange={(e) => handleInputChange('permission_phone_validation', e.target.value)}
+                placeholder="Ketik ulang nomor HP"
+                className="text-base py-3"
+              />
+              {errors.permission_phone_validation && (
+                <p className="text-red-500 text-sm font-medium">{errors.permission_phone_validation}</p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Info message for janda */}
+        {formData.has_permission === 'janda' && (
+          <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+            <p className="text-sm text-green-800">
+              ✓ Sebagai janda yang mandiri, Ukhti tidak perlu mengisi data suami/wali. Data diri Ukhti akan digunakan sebagai kontak penanggung jawab.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-3">
           <Label className="text-base font-semibold text-gray-800">Pilihan juz yang akan dihafalkan<span className="text-red-500">*</span></Label>
