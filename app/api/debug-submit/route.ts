@@ -25,8 +25,8 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    // Debug info
-    const debugInfo = {
+    // Debug info - use type assertion to allow dynamic properties
+    let debugInfo: any = {
       step: 'received',
       user: {
         id: user.id,
