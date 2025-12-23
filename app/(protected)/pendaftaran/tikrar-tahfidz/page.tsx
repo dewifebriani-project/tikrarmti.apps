@@ -9,7 +9,6 @@ import { useJuzOptions } from '@/hooks/useJuzOptions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -556,18 +555,22 @@ export default function ThalibahBatch2Page() {
             Apakah Ukhti  sudah faham dengan semua poin di atas dan bersedia menerima segala komitmen?
             <span className="text-red-500">*</span>
           </Label>
-          <RadioGroup
-            value={formData.understands_commitment ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('understands_commitment', value === "yes")}
-            className="space-y-2 sm:space-y-3"
-          >
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="understands_commitment_yes" className="mt-1 w-4 h-4 sm:w-5 sm:h-5" />
+              <input
+                type="radio"
+                name="understands_commitment"
+                id="understands_commitment_yes"
+                value="yes"
+                checked={formData.understands_commitment}
+                onChange={() => handleInputChange('understands_commitment', true)}
+                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="understands_commitment_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.understands_commitment && (
             <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.understands_commitment}</p>
           )}
@@ -585,18 +588,22 @@ export default function ThalibahBatch2Page() {
               Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin murojaah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
             </p>
           </div>
-          <RadioGroup
-            value={formData.tried_simulation ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('tried_simulation', value === "yes")}
-            className="space-y-2 sm:space-y-3"
-          >
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="tried_simulation_yes" className="mt-1 w-4 h-4 sm:w-5 sm:h-5" />
+              <input
+                type="radio"
+                name="tried_simulation"
+                id="tried_simulation_yes"
+                value="yes"
+                checked={formData.tried_simulation}
+                onChange={() => handleInputChange('tried_simulation', true)}
+                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="tried_simulation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.tried_simulation && (
             <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.tried_simulation}</p>
           )}
@@ -609,18 +616,22 @@ export default function ThalibahBatch2Page() {
               Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin muroja'ah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
             </p>
           </div>
-          <RadioGroup
-            value={formData.no_negotiation ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('no_negotiation', value === "yes")}
-            className="space-y-2 sm:space-y-3"
-          >
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="no_negotiation_yes" className="mt-1 w-4 h-4 sm:w-5 sm:h-5" />
+              <input
+                type="radio"
+                name="no_negotiation"
+                id="no_negotiation_yes"
+                value="yes"
+                checked={formData.no_negotiation}
+                onChange={() => handleInputChange('no_negotiation', true)}
+                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="no_negotiation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.no_negotiation && (
             <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.no_negotiation}</p>
           )}
@@ -633,18 +644,22 @@ export default function ThalibahBatch2Page() {
           <p className="text-xs sm:text-sm text-gray-500 italic">
             Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp karena keterbatasan memori hp admin.
           </p>
-          <RadioGroup
-            value={formData.has_telegram ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('has_telegram', value === "yes")}
-            className="space-y-2 sm:space-y-3"
-          >
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="has_telegram_yes" className="mt-1 w-4 h-4 sm:w-5 sm:h-5" />
+              <input
+                type="radio"
+                name="has_telegram"
+                id="has_telegram_yes"
+                value="yes"
+                checked={formData.has_telegram}
+                onChange={() => handleInputChange('has_telegram', true)}
+                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="has_telegram_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah saya sudah download telegram di hp saya
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.has_telegram && (
             <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.has_telegram}</p>
           )}
@@ -655,18 +670,22 @@ export default function ThalibahBatch2Page() {
             Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 081313650842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
-          <RadioGroup
-            value={formData.saved_contact ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('saved_contact', value === "yes")}
-            className="space-y-2 sm:space-y-3"
-          >
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="saved_contact_yes" className="mt-1 w-4 h-4 sm:w-5 sm:h-5" />
+              <input
+                type="radio"
+                name="saved_contact"
+                id="saved_contact_yes"
+                value="yes"
+                checked={formData.saved_contact}
+                onChange={() => handleInputChange('saved_contact', true)}
+                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="saved_contact_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.saved_contact && (
             <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.saved_contact}</p>
           )}
@@ -693,24 +712,22 @@ export default function ThalibahBatch2Page() {
           <p className="text-sm text-gray-500 italic">
             (Jika belum silahkan minta izin, jika tidak diizinkan mohon bersabar, berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)
           </p>
-          <RadioGroup
-            value={formData.has_permission ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('has_permission', value === "yes")}
-            className="space-y-3"
-          >
+          <div className="space-y-3">
             <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="yes" id="has_permission_yes" className="mt-1 w-5 h-5" />
+              <input
+                type="radio"
+                name="has_permission"
+                id="has_permission_yes"
+                value="yes"
+                checked={formData.has_permission}
+                onChange={() => handleInputChange('has_permission', true)}
+                className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="has_permission_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah (ini jawaban saya sejujur-jujurnya yang akan saya pertanggungjawabkan di akhirat nanti)
               </Label>
             </div>
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <RadioGroupItem value="janda" id="has_permission_janda" className="mt-1 w-5 h-5" />
-              <Label htmlFor="has_permission_janda" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Saya seorang janda yang mandiri, tidak terikat, tidak perlu persetujuan siapapun dan mengikuti program ini tidak akan mempengaruhi siapapun.
-              </Label>
-            </div>
-          </RadioGroup>
+          </div>
           {errors.has_permission && (
             <p className="text-red-500 text-sm font-medium">{errors.has_permission}</p>
           )}
@@ -800,18 +817,22 @@ export default function ThalibahBatch2Page() {
             Apakah Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI?
             <span className="text-red-500">*</span>
           </Label>
-          <RadioGroup
-            value={formData.no_travel_plans ? "yes" : ""}
-            onValueChange={(value) => handleInputChange('no_travel_plans', value === "yes")}
-            className="space-y-3"
-          >
+          <div className="space-y-3">
             <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <RadioGroupItem value="yes" id="no_travel_plans_yes" className="mt-1" />
+              <input
+                type="radio"
+                name="no_travel_plans"
+                id="no_travel_plans_yes"
+                value="yes"
+                checked={formData.no_travel_plans}
+                onChange={() => handleInputChange('no_travel_plans', true)}
+                className="mt-1 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="no_travel_plans_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 InsyaAllah saya tidak ada rencana safar, kalaupun tiba-tiba safar saya akan bertanggungjawab memprioritaskan waktu untuk memenuhi kewajiban setoran kepada pasangan
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.no_travel_plans && (
             <p className="text-red-500 text-xs">{errors.no_travel_plans}</p>
           )}
@@ -839,20 +860,36 @@ export default function ThalibahBatch2Page() {
             Apakah Ukhti siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?
             <span className="text-red-500">*</span>
           </Label>
-          <RadioGroup value={formData.ready_for_team} onValueChange={(value) => handleInputChange('ready_for_team', value)} className="space-y-3">
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <RadioGroupItem value="ready" id="ready" className="mt-1" />
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <input
+                type="radio"
+                name="ready_for_team"
+                id="ready"
+                value="ready"
+                checked={formData.ready_for_team === 'ready'}
+                onChange={() => handleInputChange('ready_for_team', 'ready')}
+                className="mt-1 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 InsyaAllah siapppp (jawaban ini kami catat sebagai akad)
               </Label>
             </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <RadioGroupItem value="infaq" id="infaq" className="mt-1" />
+            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+              <input
+                type="radio"
+                name="ready_for_team"
+                id="infaq"
+                value="infaq"
+                checked={formData.ready_for_team === 'infaq'}
+                onChange={() => handleInputChange('ready_for_team', 'infaq')}
+                className="mt-1 text-green-600 focus:ring-green-500"
+              />
               <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
                 Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan infaq sesuai dengan kemampuan saya (bersedia masuk group Donatur MTI)
               </Label>
             </div>
-          </RadioGroup>
+          </div>
           {errors.ready_for_team && (
             <p className="text-red-500 text-xs">{errors.ready_for_team}</p>
           )}
