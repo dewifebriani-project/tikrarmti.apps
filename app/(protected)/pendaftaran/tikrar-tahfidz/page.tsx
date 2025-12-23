@@ -110,7 +110,12 @@ export default function ThalibahBatch2Page() {
           const draft = JSON.parse(savedDraft)
           // Only restore if it's from the same user
           if (draft.user_id === user?.id) {
-            setFormData(draft.formData)
+            // Convert old boolean format to new string format for has_permission
+            const formData = draft.formData
+            if (typeof formData.has_permission === 'boolean') {
+              formData.has_permission = formData.has_permission ? 'yes' : ''
+            }
+            setFormData(formData)
             setCurrentSection(draft.currentSection || 1)
           }
         }
@@ -423,13 +428,16 @@ export default function ThalibahBatch2Page() {
       // Debug: log submission data
       console.log('Submitting registration data:', {
         userProfile: userProfile,
+        has_permission_type: typeof formData.has_permission,
+        has_permission_value: formData.has_permission,
         submissionData: {
           ...submissionData,
           // Log specific fields that might be empty
           phone: submissionData.phone,
           address: submissionData.address,
           birth_date: submissionData.birth_date,
-          age: submissionData.age
+          age: submissionData.age,
+          has_permission: submissionData.has_permission
         }
       })
 
