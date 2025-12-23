@@ -93,6 +93,23 @@ export async function POST(request: Request) {
       logger.warn('Failed to fetch batch name', { error: e as Error });
     }
 
+    // Fetch user's domicile and timezone from users table
+    let userDomicile = '';
+    let userTimezone = 'WIB';
+    try {
+      const { data: userData } = await supabaseAdmin
+        .from('users')
+        .select('kota, zona_waktu')
+        .eq('id', filteredBody.user_id)
+        .single();
+      if (userData) {
+        userDomicile = userData.kota || '';
+        userTimezone = userData.zona_waktu || 'WIB';
+      }
+    } catch (e) {
+      logger.warn('Failed to fetch user data', { error: e as Error });
+    }
+
     // Prepare submission data
     const submissionData: PendaftaranData = {
       user_id: filteredBody.user_id,
@@ -123,8 +140,8 @@ export async function POST(request: Request) {
       birth_date: filteredBody.birth_date,
       birth_place: filteredBody.birth_place,
       age: filteredBody.age,
-      domicile: filteredBody.domicile,
-      timezone: filteredBody.timezone || 'WIB',
+      domicile: userDomicile,
+      timezone: userTimezone,
       questions: filteredBody.questions,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
