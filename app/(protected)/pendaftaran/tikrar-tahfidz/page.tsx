@@ -667,7 +667,7 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-2 sm:space-y-3">
           <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 081313650842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
+            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 08567712914? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
           <div className="space-y-2 sm:space-y-3">
@@ -725,6 +725,20 @@ export default function ThalibahBatch2Page() {
               />
               <Label htmlFor="has_permission_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
                 Bismillah.. Alhamdulillah sudah (ini jawaban saya sejujur-jujurnya yang akan saya pertanggungjawabkan di akhirat nanti)
+              </Label>
+            </div>
+            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+              <input
+                type="radio"
+                name="has_permission"
+                id="has_permission_janda"
+                value="janda"
+                checked={formData.has_permission}
+                onChange={() => handleInputChange('has_permission', true)}
+                className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
+              />
+              <Label htmlFor="has_permission_janda" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+                Bismillah.. Saya seorang janda yang mandiri, tidak terikat, tidak perlu persetujuan siapapun dan mengikuti program ini tidak akan mempengaruhi siapapun
               </Label>
             </div>
           </div>
@@ -1162,7 +1176,7 @@ export default function ThalibahBatch2Page() {
           <Alert className="bg-red-50 border-red-200">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 081313650842.
+              Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 08567712914.
             </AlertDescription>
           </Alert>
         )}
@@ -1279,7 +1293,7 @@ export default function ThalibahBatch2Page() {
             </h3>
             <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-yellow-800">
               <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
-              <p>• Simpan nomor WhatsApp Kak Mara (081313650842) agar dapat di-add ke grup setelah lolos seleksi.</p>
+              <p>• Simpan nomor WhatsApp Kak Mara (08567712914) agar dapat di-add ke grup setelah lolos seleksi.</p>
               <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
               <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
               <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>

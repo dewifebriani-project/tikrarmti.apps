@@ -557,7 +557,7 @@ function MuallimahRegistrationContent() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-0.5">•</span>
-                    <span>Apapun keluhan dan keberatan pribadi yang dirasakan selama program berlangsung, mohon langsung komunikasikan kepada kak Mara (081313650842) untuk mendapatkan solusi.</span>
+                    <span>Apapun keluhan dan keberatan pribadi yang dirasakan selama program berlangsung, mohon langsung komunikasikan kepada kak Mara (08567712914) untuk mendapatkan solusi.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-0.5">•</span>
@@ -1178,7 +1178,7 @@ function MuallimahRegistrationContent() {
                     <ul className="space-y-1 pl-4 list-disc">
                       <li>Program ini gratis, MTI tidak bisa menjanjikan ujrah apapun</li>
                       <li>Formulir ini sebagai akad yang berlaku selama 11 pekan kurikulum</li>
-                      <li>Komplain silakan ke Kak Mara (081313650842)</li>
+                      <li>Komplain silakan ke Kak Mara (08567712914)</li>
                       <li>Masalah teknis zoom ke Kak Ucy (082229370282)</li>
                       <li>Izin udzur ke musyrifah minimal 1 jam sebelum kelas</li>
                       <li>Apabila ada udzur, MTI tidak menuntut mengganti jadwal</li>

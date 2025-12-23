@@ -209,6 +209,6 @@ export const BATCH_SETTINGS = {
   ],
   contact_person: {
     name: 'Kak Mara',
-    phone: '081313650842'
+    phone: '08567712914'
   }
 }
