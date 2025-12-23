@@ -8,7 +8,7 @@ import { JuzOption } from '@/types/database'
  * Hook for fetching all juz options
  */
 export function useJuzOptions() {
-  const { data, error, isLoading } = useSWR<{ data: JuzOption[] }>(
+  const { data, error, isLoading } = useSWR<JuzOption[]>(
     '/api/juz',
     getFetcher,
     {
@@ -19,7 +19,7 @@ export function useJuzOptions() {
   )
 
   return {
-    juzOptions: data?.data || [],
+    juzOptions: data || [],
     isLoading,
     isError: !!error,
     error,
