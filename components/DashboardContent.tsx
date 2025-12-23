@@ -5,637 +5,335 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle, Users } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import AuthenticatedLayout from '@/components/AuthenticatedLayout'
-import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { useActiveBatch } from '@/hooks/useBatches'
+import { useDashboardStats } from '@/hooks/useDashboard'
+import { useMyRegistrations } from '@/hooks/useRegistrations'
+import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 
 export default function DashboardContent() {
-  const router = useRouter()
-  const { user, loading } = useAuth()
+  // NOTE: Authentication is now handled by server-side layout
+  // No need for client-side auth checks or redirects
+  const { user, isLoading } = useAuth()
 
-  // ALL STATE HOOKS MUST BE DECLARED BEFORE ANY EARLY RETURNS
-  const [isLoading, setIsLoading] = useState(false)
-  const [userData, setUserData] = useState<any>(null)
-  const [stats, setStats] = useState({
-    totalHariTarget: 13,
-    hariAktual: 0,
-    persentaseProgress: 0
-  })
-  const [recentActivity, setRecentActivity] = useState<any[]>([])
-  const [batchInfo, setBatchInfo] = useState<any | null>(null)
-  const [registrationStatus, setRegistrationStatus] = useState<any>(null)
+  // SWR hooks for data fetching
+  const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
+  const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
+  const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
 
-  // Today's progress calculation
-  const todayProgress = {
-    completed: 3, // Static value for now - can be calculated from actual journal data
-    total: 7
+  // Combined loading state
+  const isPageLoading = isLoading || batchLoading || statsLoading || registrationsLoading
+
+  // Calculate registration status from SWR data
+  const hasRegistered = registrations.length > 0
+  const registrationStatus = hasRegistered ? {
+    registered: true,
+    batchId: registrations[0]?.batch_id,
+    status: registrations[0]?.status
+  } : { registered: false }
+
+  // Calculate stats with fallback
+  const displayStats = {
+    totalHariTarget: stats?.totalHariTarget || activeBatch?.duration_weeks || 13,
+    hariAktual: stats?.hariAktual || 0,
+    persentaseProgress: stats?.persentaseProgress || 0
   }
 
-  
-  // Debug: Log user state changes
-  useEffect(() => {
-    console.log('=== Dashboard User State Update ===')
-    console.log('Auth loading:', loading)
-    console.log('Auth user:', user)
-    console.log('User ID:', user?.id)
-    console.log('User email:', user?.email)
-    console.log('==================================')
-  }, [user, loading])
-
-  // Debug: Log batch info and registration status
-  useEffect(() => {
-    if (user) {
-      console.log('=== Batch Debug Info for User:', user.email, '===')
-      console.log('Batch Info:', batchInfo)
-      console.log('Registration Status:', registrationStatus)
-      console.log('Should show card:', !!batchInfo)
-      console.log('=======================')
-    }
-  }, [user, batchInfo, registrationStatus])
-
-  // Load user data when authenticated
-  useEffect(() => {
-    if (user) {
-      // Use user data from AuthContext instead of fetching again
-      setUserData(user)
-
-      // Check registration status directly in useEffect to avoid hooks violation
-      const checkRegistrationStatus = async () => {
-        try {
-          const response = await fetch('/api/auth/check-registration-simple', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              email: user.email
-            })
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            setRegistrationStatus(data)
-          }
-        } catch (error) {
-          console.error('Error checking registration status:', error)
-        }
-      }
-
-      // Load batch info directly in useEffect to avoid hooks violation
-      const loadBatchInfo = async () => {
-        try {
-          console.log('=== Loading Batch Info ===')
-          console.log('User:', user?.email, 'Role:', user?.role)
-
-          // Check cache first (5 minutes cache) - only if window is defined
-          // Using v2 to invalidate old cache from previous version
-          if (typeof window !== 'undefined') {
-            // Clean up old cache key
-            localStorage.removeItem('dashboard_batch_info')
-
-            const cached = localStorage.getItem('dashboard_batch_info_v2')
-            if (cached) {
-              try {
-                const { data: cachedData, timestamp } = JSON.parse(cached)
-                if (Date.now() - timestamp < 5 * 60 * 1000) {
-                  console.log('Using cached batch info:', cachedData.name)
-                  setBatchInfo(cachedData)
-                  const durationWeeks = cachedData.duration_weeks || 13
-                  setStats(prev => ({
-                    ...prev,
-                    totalHariTarget: durationWeeks,
-                    hariAktual: 0,
-                    persentaseProgress: 0
-                  }))
-                  return // Use cache, skip API call
-                } else {
-                  console.log('Cache expired, fetching from API')
-                }
-              } catch (e) {
-                console.warn('Invalid cache data, clearing and fetching from API')
-                localStorage.removeItem('dashboard_batch_info_v2')
-              }
-            } else {
-              console.log('No cache found, fetching from API')
-            }
-          }
-
-          // Fetch from API
-          console.log('Querying batches with status=open...')
-          const { data, error } = await supabase
-            .from('batches')
-            .select('*')
-            .eq('status', 'open')
-            .order('created_at', { ascending: false })
-            .limit(1)
-
-          console.log('Query result:', { data, error })
-          console.log('Data length:', data?.length)
-
-          if (data && data.length > 0 && !error) {
-            const batchData = data[0] as any
-            console.log('✅ Batch found:', batchData.name)
-            setBatchInfo(batchData)
-
-            // Cache the result - only if window is defined
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('dashboard_batch_info_v2', JSON.stringify({
-                data: batchData,
-                timestamp: Date.now()
-              }))
-            }
-
-            // Use duration_weeks from database
-            const durationWeeks = batchData.duration_weeks || 13
-            setStats(prev => ({
-              ...prev,
-              totalHariTarget: durationWeeks,
-              hariAktual: 0,
-              persentaseProgress: 0
-            }))
-          } else if (error) {
-            console.error('❌ Error querying batches:', error)
-          } else {
-            console.warn('⚠️ No batch found with status=open')
-          }
-        } catch (error) {
-          console.error('❌ Exception loading batch info:', error)
-        }
-      }
-
-      // Execute the functions
-      checkRegistrationStatus()
-      loadBatchInfo()
-
-      // Set recent activity to empty for now
-      setRecentActivity([])
-    }
-  }, [user])
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    // Add a delay for mobile to allow auth context to initialize
-    const timer = setTimeout(() => {
-      if (!loading && !user) {
-        console.log('User not authenticated after delay, redirecting to login...')
-        router.push('/login')
-        return
-      }
-    }, 1000); // 1 second delay for mobile
-
-    return () => clearTimeout(timer);
-  }, [loading, user, router])
-
-  
-  const getWelcomeMessage = () => {
-    const hour = new Date().getHours()
-    // Shabahul Khayr (pagi), Masaa'ul Khayr (sore), Masaa'ul Khayr (malam)
-    const greeting = hour < 12 ? "Shabahul Khayr" : hour < 18 ? "Masaa'ul Khayr" : "Masaa'ul Khayr"
-
-    // Get name from multiple sources with priority: full_name -> displayName -> email -> 'Ukhti'
-    const displayName = user?.full_name || user?.displayName || (user?.email ? user.email.split('@')[0] : null)
-    const userName = displayName ? `Ukhti ${displayName}` : 'Ukhti'
-
-    // Debug logging
-    if (typeof window !== 'undefined') {
-      console.log('=== Dashboard Greeting Debug ===')
-      console.log('User object:', user)
-      console.log('User full_name:', user?.full_name)
-      console.log('User displayName:', user?.displayName)
-      console.log('User email:', user?.email)
-      console.log('User role:', user?.role)
-      console.log('Generated displayName:', displayName)
-      console.log('Generated userName:', userName)
-      console.log('================================')
-    }
-
-    return {
-      greeting,
-      full: `Assalamu'alaikum, <em>${greeting}</em>, ${userName}`
-    }
-  }
-
-  const toHijriDate = (date: Date) => {
-    // Simple approximation - you might want to use a proper Hijri converter library
-    const months = ["Muharram", "Safar", "Rabi'ul Awwal", "Rabi'ul Akhir", "Jumada al-Ula", "Jumada al-Akhirah", "Rajab", "Sha'ban", "Ramadan", "Shawwal", "Dhu al-Qa'dah", "Dhu al-Hijjah"]
-    const hijriYear = 1446 // Approximate
-    const hijriMonth = months[new Date().getMonth()]
-    const hijriDay = new Date().getDate()
-    return `${hijriDay} ${hijriMonth} ${hijriYear} H`
-  }
-
-  const getRoleDisplay = (role?: string) => {
-    // Debug logging
-    if (typeof window !== 'undefined') {
-      console.log('=== Role Display Debug ===')
-      console.log('Input role:', role)
-    }
-
-    let displayRole = 'User'
-    switch (role?.toLowerCase()) {
-      case 'admin':
-        displayRole = 'Administrator'
-        break
-      case 'musyrifah':
-        displayRole = 'Musyrifah'
-        break
-      case 'muallimah':
-        displayRole = 'Muallimah'
-        break
-      case 'thalibah':
-        displayRole = 'Thalibah'
-        break
-      case 'calon_thalibah':
-        displayRole = 'Calon Thalibah'
-        break
-      default:
-        displayRole = 'Calon Thalibah' // Default untuk user baru
-    }
-
-    if (typeof window !== 'undefined') {
-      console.log('Output displayRole:', displayRole)
-      console.log('========================')
-    }
-
-    return displayRole
-  }
-
-  const quickActions = [
-    {
-      title: 'Pendaftaran',
-      description: 'Daftar program Tikrar MTI',
-      icon: CheckCircle,
-      href: '/pendaftaran',
-      color: 'bg-green-600 text-white hover:bg-green-700'
-    },
-    {
-      title: 'Jurnal Harian',
-      description: 'Isi kurikulum 7 tahap hari ini',
-      icon: BookOpen,
-      href: '/jurnal-harian',
-      color: 'bg-green-600 text-white hover:bg-green-700'
-    },
-    {
-      title: 'Perjalanan Saya',
-      description: 'Lihat perjalanan saya',
-      icon: TrendingUp,
-      href: '/perjalanan-saya',
-      color: 'bg-green-600 text-white hover:bg-green-700'
-    }
-  ]
-
-  // Show loading spinner if still loading
-  if (loading) {
+  // Loading state - Consistent across all devices
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data...</p>
-          {/* Mobile Debug Button */}
-          {typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
-            <button
-              onClick={() => {
-                fetch('/api/debug/auth-status')
-                  .then(res => res.json())
-                  .then(data => {
-                    console.log('Mobile Auth Debug:', data);
-                    alert(`Auth Status:\nUser: ${data.authentication.hasUser ? data.authentication.user.email : 'No user'}\nCookies: ${data.cookies.accessTokenPresent ? 'Present' : 'Missing'}`);
-                  })
-                  .catch(err => console.error('Debug error:', err));
-              }}
-              className="mt-4 px-4 py-2 bg-red-500 text-white rounded text-sm"
-            >
-              Debug Mobile Auth
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
+      <div className="space-y-4 sm:space-y-6">
+        {/* Welcome card skeleton */}
+        <Card>
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <div className="h-5 sm:h-6 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+            <div className="h-3.5 sm:h-4 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
+          </CardHeader>
+        </Card>
 
-  // Show error if authentication failed
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md p-6">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold mb-2">Gagal Memuat Dashboard</h2>
-          <p className="text-gray-600 mb-4">Tidak dapat memuat informasi pengguna. Silakan periksa koneksi internet Anda dan coba lagi.</p>
-          <div className="space-y-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Muat Ulang Halaman
-            </button>
-            {/* Mobile Debug Button */}
-            {typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
-              <button
-                onClick={() => {
-                  fetch('/api/debug/auth-status')
-                    .then(res => res.json())
-                    .then(data => {
-                      console.log('Mobile Auth Debug:', data);
-                      alert(`Auth Status:\nUser: ${data.authentication.hasUser ? data.authentication.user.email : 'No user'}\nCookies: ${data.cookies.accessTokenPresent ? 'Present' : 'Missing'}`);
-                    })
-                    .catch(err => console.error('Debug error:', err));
-                }}
-                className="w-full px-4 py-2 bg-red-500 text-white rounded-lg text-sm"
-              >
-                Debug Mobile Auth
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <AuthenticatedLayout title="Dashboard">
-      <div className="space-y-8">
-        {/* Welcome Card */}
-        <Card className="mb-8 bg-gradient-to-r from-green-600 to-green-700 text-white border-0">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-              <div className="flex-1">
-                <h2 className="text-xl sm:text-2xl font-bold mb-2 leading-relaxed">
-                  <span dangerouslySetInnerHTML={{ __html: getWelcomeMessage().full }} />! 👋
-                </h2>
-                <p className="text-green-100 text-sm sm:text-base">
-                  Selamat datang kembali di Tikrar MTI Apps. Semoga hari ini lebih baik dari hari kemarin.
-                </p>
-                <div className="mt-4 flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4">
-                  <div className="flex items-center">
-                    <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-                    <span className="font-medium text-sm sm:text-base">{getRoleDisplay(user?.role)}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-                    <span className="text-sm sm:text-base">Bergabung: {user?.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : new Date().toLocaleDateString('id-ID')}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-                    <span className="text-sm sm:text-base">{toHijriDate(new Date())}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden md:flex items-center justify-center md:ml-4">
-                <Star className="w-12 h-12 lg:w-16 lg:h-16 text-green-300" />
-              </div>
-            </div>
-          </CardContent>
-              </Card>
-
-        {/* Announcement Card - Pembukaan Tikrar-Tahfidz Batch 2 */}
-        {batchInfo && (
-          <Card className="mb-8 border-2 border-green-600 shadow-lg">
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col md:flex-row md:items-start space-y-4 md:space-y-0 md:space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <AlertCircle className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 space-y-2 sm:space-y-0">
-                    <h3 className="text-lg md:text-xl font-bold text-green-900">
-                      Pendaftaran {batchInfo.name || 'Tikrar MTI Batch 2'} Dibuka! 🎉
-                    </h3>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      {batchInfo.status === 'open' ? 'Pendaftaran Dibuka' : 'Pendaftaran Ditutup'}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mb-4 text-sm md:text-base">
-                    Bergabunglah dengan program Tikrar Tahfidz untuk menghafal dan mengulang Al-Quran dengan metode yang telah terbukti efektif.
-                    Program dimulai pada {batchInfo.start_date ? new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'segera'}.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4">
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Calendar className="w-4 h-4 mr-2 text-green-600" />
-                      <div>
-                        <p className="font-medium">Periode Program</p>
-                        <p className="text-gray-600">
-                          {batchInfo.start_date && batchInfo.end_date
-                            ? `${new Date(batchInfo.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - ${new Date(batchInfo.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
-                            : 'Akan diumumkan'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Users className="w-4 h-4 mr-2 text-green-600" />
-                      <div>
-                        <p className="font-medium">Kuota Tersedia</p>
-                        <p className="text-gray-600">{batchInfo.registered_count || 0} dari {batchInfo.total_quota || 100} peserta</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Star className="w-4 h-4 mr-2 text-green-600" />
-                      <div>
-                        <p className="font-medium">Biaya</p>
-                        <p className="text-gray-600 font-semibold">{batchInfo.is_free ? 'GRATIS' : `Rp ${batchInfo.price?.toLocaleString('id-ID')}`}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                    {registrationStatus?.hasRegistered ? (
-                      <div className="flex-1 sm:flex-none">
-                        <Button className="w-full sm:w-auto bg-gray-400 text-white cursor-not-allowed" disabled>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Sudah Terdaftar
-                        </Button>
-                        <p className="text-xs text-gray-600 mt-2">
-                          Status: {registrationStatus.registration?.status} |
-                          Edit <Link href="/pendaftaran/tikrar-tahfidz" className="text-green-600 hover:underline">di sini</Link>
-                        </p>
-                      </div>
-                    ) : (
-                      <Link href="/pendaftaran/tikrar-tahfidz" className="flex-1 sm:flex-none">
-                        <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white">
-                          Daftar Sekarang
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Progress Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-white shadow-sm border border-green-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pekan Target</CardTitle>
-              <Target className="h-4 w-4 text-green-900" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-900">{stats.totalHariTarget}</div>
-              <p className="text-xs text-muted-foreground">Total pekan program</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-sm border border-green-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pekan Aktual</CardTitle>
-              <Calendar className="h-4 w-4 text-green-900" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-900">{stats.hariAktual}</div>
-              <p className="text-xs text-muted-foreground">Pekan selesai</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-sm border border-green-900/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Progress</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-900" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-900">{stats.persentaseProgress}%</div>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                <div
-                  className="bg-green-900 h-2 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${stats.persentaseProgress}%` }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Stats cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+                <div className="h-3.5 sm:h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+                <div className="h-7 sm:h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {quickActions.map((action) => {
-            const Icon = action.icon
-            const isDisabled = batchInfo && batchInfo.status === 'registration'
-            const isRegistrationDisabled = action.title === 'Pendaftaran' && registrationStatus?.hasRegistered
-            return (
-              <Card key={action.title} className={`group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${isDisabled || isRegistrationDisabled ? 'opacity-75' : ''}`}>
-                <CardHeader>
-                  <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-lg ${isDisabled || isRegistrationDisabled ? 'bg-gray-400 text-gray-600' : action.color}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg">{action.title}</CardTitle>
-                      <CardDescription>
-                        {isRegistrationDisabled ? 'Sudah terdaftar di program Tikrar' :
-                         isDisabled ? 'Dikunci karena masa pendaftaran' : action.description}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isDisabled || isRegistrationDisabled ? (
-                    <Button className="w-full bg-gray-400 text-white cursor-not-allowed" disabled>
-                      {isRegistrationDisabled ? 'Sudah Terdaftar' : `${action.title} Dikunci`}
-                    </Button>
-                  ) : (
-                    <Link href={action.href}>
-                      <Button className={`w-full ${action.color}`}>
-                        Mulai {action.title}
-                      </Button>
-                    </Link>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-
-        {/* Recent Activity */}
-        <div className="mb-8">
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Clock className="h-5 w-5 text-green-900" />
-                <span>Aktivitas Terkini</span>
-              </CardTitle>
-              <CardDescription>
-                Aktivitas pembelajaran Ukhti
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentActivity.length > 0 ? (
-                <>
-                  <div className="space-y-4">
-                    {recentActivity.map((activity) => (
-                      <div key={activity.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <div className={`w-2 h-2 rounded-full ${
-                          activity.type === 'jurnal' ? 'bg-green-500' : 'bg-green-600'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {activity.description}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(activity.date).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4">
-                    <Link href="/perjalanan-saya">
-                      <Button variant="outline" className="w-full">
-                        Lihat Semua Aktivitas
-                      </Button>
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="flex justify-center mb-3">
-                    <Clock className="h-12 w-12 text-gray-300" />
-                  </div>
-                  <p className="text-sm text-gray-500 mb-1">Belum ada aktivitas pembelajaran</p>
-                  <p className="text-xs text-gray-400">Mulai aktivitas pembelajaran Ukhti untuk melihat riwayat di sini</p>
-                  <div className="mt-4">
-                    <Link href="/jurnal-harian">
-                      <Button className="bg-green-600 hover:bg-green-700 text-white">
-                        Mulai Jurnal Harian
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Achievement Banner */}
-        <Card className="mt-8 bg-gradient-to-r from-green-900 to-green-600 text-white">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center space-x-3">
-                  <Award className="h-8 w-8" />
-                  <div>
-                    <h3 className="text-xl font-bold">Tetap Konsisten!</h3>
-                    <p className="text-green-100">
-                      Ukhti telah menyelesaikan {stats.hariAktual} pekan dari {stats.totalHariTarget} pekan target.
-                      Pertahankan konsistensi Ukhti!
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden lg:block">
-                <div className="text-4xl font-bold">{stats.persentaseProgress}%</div>
-                <p className="text-green-100 text-sm">Progress</p>
-              </div>
+        {/* Progress card skeleton */}
+        <Card>
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
+            <div className="h-4 sm:h-5 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="h-1.5 sm:h-2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
       </div>
-    </AuthenticatedLayout>
+    )
+  }
+
+  // Error state
+  if (batchError || statsError) {
+    return (
+      <div className="space-y-6">
+        <SWRErrorFallback
+          error={batchError || statsError || new Error('Failed to load dashboard data')}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    )
+  }
+
+  // Get welcome message
+  const getWelcomeMessage = () => {
+    const hour = new Date().getHours()
+    const timeGreeting = hour < 12 ? "Shabahul Khayr" : hour < 18 ? "Masaa'ul Khayr" : "Masaa'ul Khayr"
+    const displayName = user?.full_name || (user?.email ? user.email.split('@')[0] : null)
+    const userName = displayName ? `Ukhti ${displayName}` : 'Ukhti'
+    return `${timeGreeting}, ${userName}!`
+  }
+
+  // Convert Gregorian date to Hijri
+  const toHijri = (date: Date) => {
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      calendar: 'islamic-umalqura'
+    }
+    return new Intl.DateTimeFormat('id-ID', options).format(date)
+  }
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* Welcome Card - Consistent across all devices */}
+      <Card>
+        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+          <CardTitle className="text-lg sm:text-xl text-green-800">
+            Assalamu'alaikum, {getWelcomeMessage()}
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-green-600">
+            Selamat datang di dashboard Tikrar MTI Apps. Kelola pembelajaran dan progress hafalan Al-Qur'an Ukhti di sini.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {/* Batch Announcement Card - Consistent across all devices */}
+      {activeBatch && !hasRegistered && (
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-medium text-orange-800 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+              Pendaftaran {activeBatch.name} Sedang Dibuka!
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-orange-700">
+              Program Tikrar Tahfidz MTI • Program Muallimah MTI • Program Musyrifah MTI
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-xs sm:text-sm text-orange-700">
+                Jangan lewatkan kesempatan untuk bergabung dengan batch ini. Kuota terbatas!
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div>
+                  <span className="font-medium text-orange-800">Tanggal Mulai:</span>
+                  <p className="text-orange-700">
+                    {new Date(activeBatch.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                  <p className="text-orange-600 text-[10px] sm:text-xs italic">
+                    {toHijri(new Date(activeBatch.start_date))}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-medium text-orange-800">Durasi:</span>
+                  <p className="text-orange-700">{activeBatch.duration_weeks || 13} pekan</p>
+                </div>
+              </div>
+
+              {activeBatch.total_quota && activeBatch.registered_count !== undefined && (
+                <div className="space-y-1.5 sm:space-y-2">
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="font-medium text-orange-800">Kuota Tersisa:</span>
+                    <span className="text-orange-700">
+                      {activeBatch.total_quota - activeBatch.registered_count} dari {activeBatch.total_quota}
+                    </span>
+                  </div>
+                  <div className="w-full bg-orange-200 rounded-full h-1.5 sm:h-2">
+                    <div
+                      className="bg-orange-500 h-1.5 sm:h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${((activeBatch.registered_count || 0) / activeBatch.total_quota) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 sm:gap-3">
+                <Button asChild className="flex-1 min-w-[160px] sm:min-w-[200px] bg-orange-600 hover:bg-orange-700 text-white h-10 sm:h-auto">
+                  <Link href="/pendaftaran">
+                    Daftar Sekarang
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Registration Status Card - Consistent across all devices */}
+      {hasRegistered && (
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-medium text-green-800 flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+              Status Pendaftaran: {registrationStatus.status === 'approved' ? 'Disetujui' : registrationStatus.status === 'pending' ? 'Menunggu Persetujuan' : 'Terdaftar'}
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-green-700">
+              {registrationStatus.status === 'approved'
+                ? 'Selamat! Pendaftaran Ukhti telah disetujui. Ukhti dapat mulai mengikuti program.'
+                : registrationStatus.status === 'pending'
+                ? 'Pendaftaran Ukhti sedang dalam proses review. Mohon tunggu persetujuan dari admin.'
+                : 'Ukhti telah terdaftar dalam program ini.'
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="flex flex-wrap gap-2 sm:gap-3">
+              <Link href="/perjalanan-saya">
+                <Button className="bg-green-600 hover:bg-green-700 text-white h-10 sm:h-auto px-4 sm:px-6">
+                  Lihat Perjalanan Saya
+                </Button>
+              </Link>
+              <Link href="/pendaftaran">
+                <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 h-10 sm:h-auto px-4 sm:px-6">
+                  Program Lainnya
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Stats - Consistent across all devices */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-800 flex items-center gap-1.5 sm:gap-2">
+              <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Target Hari
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">{displayStats.totalHariTarget}</div>
+            <p className="text-[10px] sm:text-xs text-blue-700">Total target hari</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-800 flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Hari Aktual
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">{displayStats.hariAktual}</div>
+            <p className="text-[10px] sm:text-xs text-green-700">Hari yang sudah diselesaikan</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-purple-800 flex items-center gap-1.5 sm:gap-2">
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-900">{displayStats.persentaseProgress}%</div>
+            <p className="text-[10px] sm:text-xs text-purple-700">Persentase penyelesaian</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions - Consistent across all devices */}
+      <Card>
+        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">Aksi Cepat</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Akses cepat ke fitur-fitur utama aplikasi
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 lg:gap-4">
+            <Link href="/jurnal-harian">
+              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
+                <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">Jurnal Harian</span>
+              </Button>
+            </Link>
+            <Link href="/tashih">
+              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
+                <BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">Tashih</span>
+              </Button>
+            </Link>
+            <Link href="/progress">
+              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
+                <Award className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">Progress</span>
+              </Button>
+            </Link>
+            <Link href="/perjalanan-saya">
+              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
+                <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">Perjalanan Saya</span>
+              </Button>
+            </Link>
+            <Link href="/pengumuman">
+              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
+                <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">Pengumuman</span>
+              </Button>
+            </Link>
+            <Link href="/bantuan">
+              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
+                <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="text-sm">Bantuan</span>
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity (placeholder for future implementation) - Consistent across all devices */}
+      <Card>
+        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">Aktivitas Terkini</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Aktivitas dan update terbaru Ukhti
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="space-y-3">
+            <div className="text-center py-6 sm:py-8 text-gray-500">
+              <Clock className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-3 opacity-50" />
+              <p className="text-xs sm:text-sm">Belum ada aktivitas terkini</p>
+              <p className="text-[10px] sm:text-xs mt-1">Aktivitas akan muncul di sini setelah Ukhti mulai menggunakan program</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

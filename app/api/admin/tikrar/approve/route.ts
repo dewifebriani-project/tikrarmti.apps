@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 
 const supabaseAdmin = createSupabaseAdmin();
@@ -9,86 +8,16 @@ export async function POST(request: NextRequest) {
   try {
     console.log('=== Approve Tikrar API Started ===');
 
-    // Get access token from cookies
-    const cookieStore = await cookies();
-    const allCookies = cookieStore.getAll();
-    const accessTokenCookie = allCookies.find(c => c.name === 'sb-access-token');
-    const refreshTokenCookie = allCookies.find(c => c.name === 'sb-refresh-token');
-    const accessToken = accessTokenCookie?.value;
-    const refreshToken = refreshTokenCookie?.value;
+    // Use Supabase SSR client to get session
+    const supabase = createServerClient();
 
-    // Also try to get from Authorization header as fallback
-    const authHeader = request.headers.get('authorization');
-    const headerToken = authHeader?.replace('Bearer ', '');
+    // Get user session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    const tokenToUse = accessToken || headerToken;
-
-    console.log('Token availability:', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      hasHeaderToken: !!headerToken,
-      tokenToUse: !!tokenToUse
-    });
-
-    if (!tokenToUse) {
-      console.log('No token found - unauthorized');
+    if (userError || !user) {
+      console.log('Auth error:', userError);
       return NextResponse.json({
-        error: 'Unauthorized - No token found. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
-
-    // Create Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    // First try to use the token directly
-    let session, sessionError;
-
-    try {
-      const result = await supabase.auth.setSession({
-        access_token: tokenToUse,
-        refresh_token: refreshToken || ''
-      });
-      session = result.data.session;
-      sessionError = result.error;
-    } catch (e) {
-      console.error('Session setting error:', e);
-      sessionError = e;
-    }
-
-    // If session setting fails, try to get user from token
-    if (sessionError || !session) {
-      console.log('Session setting failed, trying getUser...')
-      try {
-        const { data: userData, error: userError } = await supabase.auth.getUser(tokenToUse);
-
-        if (userError || !userData.user) {
-          console.error('User retrieval failed:', userError);
-          return NextResponse.json({
-            error: 'Unauthorized - Invalid token. Please login again.',
-            needsLogin: true
-          }, { status: 401 });
-        }
-
-        // Create a minimal session-like object for the user
-        session = { user: userData.user };
-      } catch (e) {
-        console.error('User retrieval exception:', e);
-        return NextResponse.json({
-          error: 'Unauthorized - Token validation failed. Please login again.',
-          needsLogin: true
-        }, { status: 401 });
-      }
-    }
-
-    const user = session.user;
-    if (!user) {
-      console.log('No user in session');
-      return NextResponse.json({
-        error: 'Unauthorized - No user found. Please login again.',
+        error: 'Unauthorized - Invalid session. Please login again.',
         needsLogin: true
       }, { status: 401 });
     }

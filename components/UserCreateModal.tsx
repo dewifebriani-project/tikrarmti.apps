@@ -178,17 +178,17 @@ export default function UserCreateModal({
     setSuccess('');
 
     try {
-      const authUser = await registerWithEmail(
+      const authResponse = await registerWithEmail(
         formData.email,
         formData.password,
         formData.name,
         formData.role
       );
 
-      if (authUser) {
+      if (authResponse?.user) {
         // Fetch the user profile from our database
         const { getUserById } = await import('@/lib/auth');
-        const userProfile = await getUserById(authUser.id);
+        const userProfile = await getUserById(authResponse.user.id);
 
         if (userProfile) {
           onSave(userProfile);

@@ -96,7 +96,14 @@
       "Bash(psql \"$NEXT_PUBLIC_SUPABASE_URL\" -c \"\\\\d pendaftaran_tikrar_tahfidz\")",
       "Bash(PORT=3014 npm run dev:*)",
       "Bash(PORT=3015 npm run dev:*)",
-      "Bash(PORT=3015 HOST=0.0.0.0 npm run dev:*)"
+      "Bash(PORT=3015 HOST=0.0.0.0 npm run dev:*)",
+      "Bash(mkdir:*)",
+      "Bash(pkill:*)",
+      "Bash(if exist .env.local echo .env.local exists else echo .env.local not found)",
+      "Bash(PORT=3011 HOST=0.0.0.0 npm run dev:*)",
+      "Bash(type \"app\\\\\\(protected\\)\\\\layout.tsx\")",
+      "Bash(type \"d:\\\\tikrarmti.apps\\\\app\\\\\\(protected\\)\\\\pendaftaran\\\\page.tsx\")",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,27 +1,47 @@
-// Debug utilities for OAuth flow
-export const debugOAuth = (action: string, data: any) => {
-  console.log(`[OAuth Debug] ${action}:`, data);
+/**
+ * OAuth Debug Utilities
+ * Helper functions for debugging OAuth authentication flow
+ */
 
-  // Also log to console with styling for better visibility
-  if (typeof window !== 'undefined') {
-    console.log(
-      `%c[OAuth] ${action}`,
-      'background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px;',
-      data
-    );
-  }
-};
+export interface OAuthDebugInfo {
+  timestamp: string;
+  provider: string;
+  step: string;
+  data?: Record<string, unknown>;
+  error?: string;
+}
 
-export const getEnvironmentInfo = () => {
-  const info = {
-    NODE_ENV: process.env.NODE_ENV,
-    currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'server-side',
-    userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'server-side',
-    isLocalhost: typeof window !== 'undefined'
-      ? window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-      : false
+/**
+ * Log OAuth debug information
+ */
+export function logOAuthDebug(step: string, data?: Record<string, unknown>, error?: string) {
+  const debugInfo: OAuthDebugInfo = {
+    timestamp: new Date().toISOString(),
+    provider: 'google',
+    step,
+    data,
+    error,
   };
 
-  debugOAuth('Environment Info', info);
-  return info;
-};
+  console.log('[OAuth Debug]', JSON.stringify(debugInfo, null, 2));
+}
+
+/**
+ * Debug OAuth function - alias for logOAuthDebug
+ */
+export function debugOAuth(step: string, data?: Record<string, unknown>, error?: string) {
+  logOAuthDebug(step, data, error);
+}
+
+/**
+ * Format error for display
+ */
+export function formatOAuthError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'Unknown error occurred';
+}

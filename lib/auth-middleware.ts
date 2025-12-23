@@ -1,40 +1,23 @@
-import { createServerClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
-import { logSecurity, getRequestInfo } from '@/lib/logger'
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
 
-export async function requireAuth(request: Request) {
-  const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { ip, userAgent } = getRequestInfo(request)
+/**
+ * Require admin authentication for API routes
+ * @param request NextRequest object
+ * @returns NextResponse if unauthorized, void otherwise
+ */
+export async function requireAdmin(request: NextRequest) {
+  const supabase = createServerClient();
 
-  if (!user) {
-    // Log unauthorized access attempt
-    await logSecurity.unauthorizedAccess(
-      ip,
-      request.url,
-      { user_agent: userAgent }
-    )
-
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  return user
-}
-
-export async function requireAdmin(request: Request) {
-  const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const { ip, userAgent } = getRequestInfo(request)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    // Log unauthorized access attempt
-    await logSecurity.unauthorizedAccess(
-      ip,
-      request.url,
-      { resource: 'admin_endpoint', user_agent: userAgent }
-    )
-
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
   }
 
   // Check if user is admin
@@ -42,30 +25,37 @@ export async function requireAdmin(request: Request) {
     .from('users')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .single();
 
   if (!userData || userData.role !== 'admin') {
-    // Log forbidden access attempt
-    await logSecurity.unauthorizedAccess(
-      ip,
-      request.url,
-      {
-        user_id: user.id,
-        user_role: userData?.role || 'unknown',
-        required_role: 'admin',
-        user_agent: userAgent
-      }
-    )
-
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 })
+    return NextResponse.json(
+      { error: 'Forbidden - Admin access required' },
+      { status: 403 }
+    );
   }
 
-  return user
+  // Return void to indicate success
+  return;
 }
 
-// Helper function to get user from request
-export async function getUser(request: Request) {
-  const supabase = createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+/**
+ * Require authentication for API routes
+ * @param request NextRequest object
+ * @returns NextResponse if unauthorized, void otherwise
+ */
+export async function requireAuth(request: NextRequest) {
+  const supabase = createServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  return;
 }

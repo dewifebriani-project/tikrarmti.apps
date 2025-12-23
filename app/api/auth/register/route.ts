@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
 import { authRateLimit, getClientIP } from '@/lib/rate-limiter';
 import {
   sanitizeEmail,
@@ -11,24 +12,13 @@ import {
 } from '@/lib/utils/sanitize';
 import { logUser } from '@/lib/logger';
 import { logger } from '@/lib/logger-secure';
-import { getCSRFTokenFromRequest, validateCSRFToken } from '@/lib/csrf';
+import { z } from 'zod';
+import { ApiResponses } from '@/lib/api-responses';
+import { authSchemas } from '@/lib/schemas';
 
 export async function POST(request: NextRequest) {
   // Get client IP once for the entire function
   const ip = getClientIP(request);
-
-  // CSRF Protection - Skip in development for debugging
-  if (process.env.NODE_ENV === 'production') {
-    const csrfToken = getCSRFTokenFromRequest(request);
-    const cookieToken = request.cookies.get('csrf-token')?.value;
-
-    if (!csrfToken || !cookieToken || !validateCSRFToken(csrfToken, cookieToken)) {
-      return NextResponse.json(
-        { error: 'Invalid CSRF token. Please refresh the page and try again.' },
-        { status: 403 }
-      );
-    }
-  }
 
   let body: any;
 
@@ -36,14 +26,20 @@ export async function POST(request: NextRequest) {
     // Parse request body early so it's available in catch block
     body = await request.json();
 
+    // Validate request body with Zod schema
+    const validation = authSchemas.register.safeParse(body);
+    if (!validation.success) {
+      return ApiResponses.validationError(validation.error.issues);
+    }
+
+    // Update body with validated data
+    body = validation.data;
+
     // reCAPTCHA validation - Only required if RECAPTCHA_SECRET_KEY is configured
     if (process.env.NODE_ENV === 'production' && process.env.RECAPTCHA_SECRET_KEY) {
       const recaptchaToken = body.recaptchaToken;
       if (!recaptchaToken) {
-        return NextResponse.json(
-          { error: 'reCAPTCHA verification is required' },
-          { status: 400 }
-        );
+        return ApiResponses.customValidationError([{ field: 'recaptcha', message: 'reCAPTCHA verification is required', code: 'custom' }]);
       }
 
       const recaptchaResponse = await fetch(
@@ -66,10 +62,7 @@ export async function POST(request: NextRequest) {
           score: recaptchaResult.score
         });
 
-        return NextResponse.json(
-          { error: 'reCAPTCHA verification failed. Please try again.' },
-          { status: 400 }
-        );
+        return ApiResponses.customValidationError([{ field: 'recaptcha', message: 'reCAPTCHA verification failed. Please try again.', code: 'custom' }]);
       }
     }
 
@@ -84,10 +77,7 @@ export async function POST(request: NextRequest) {
           endpoint: '/api/auth/register'
         });
 
-        return NextResponse.json(
-          { error: 'Too many registration attempts. Please try again later.' },
-          { status: 429 }
-        );
+        return ApiResponses.rateLimit('Too many registration attempts. Please try again later.');
       }
     }
 
@@ -110,29 +100,7 @@ export async function POST(request: NextRequest) {
       role = 'calon_thalibah'
     } = body;
 
-    // Validation - semua field wajib (kecuali provinsi untuk non-Indonesia)
-    if (!email || !password || !full_name || !negara || !kota || !alamat || !whatsapp || !telegram || !zona_waktu || !tanggal_lahir || !tempat_lahir || !jenis_kelamin || !pekerjaan || !alasan_daftar) {
-      return NextResponse.json(
-        { message: 'Semua field wajib diisi' },
-        { status: 400 }
-      );
-    }
-
-    // Password validation
-    if (password.length < 6) {
-      return NextResponse.json(
-        { message: 'Password minimal 6 karakter' },
-        { status: 400 }
-      );
-    }
-
-    // Validasi provinsi hanya untuk Indonesia
-    if (negara === 'Indonesia' && !provinsi) {
-      return NextResponse.json(
-        { message: 'Provinsi wajib diisi untuk pendaftar dari Indonesia' },
-        { status: 400 }
-      );
-    }
+    // Note: Validation is handled by Zod schema above
 
     try {
       // Sanitize all inputs
@@ -148,32 +116,7 @@ export async function POST(request: NextRequest) {
 
       const sanitizedZonaWaktu = sanitizeGeneric(zona_waktu, 10);
 
-      // Check timezone validity (extended for international)
-      const validTimezones = [
-        'WIB', 'WITA', 'WIT', // Indonesia
-        'MYT', 'PHT', 'ICT', // Southeast Asia
-        'IST', 'PKT', 'BST', // South Asia
-        'CST', 'JST', 'KST', // East Asia
-        'GMT', 'CET', 'EET', 'MSK', // Europe & Middle East
-        'GST', 'TRT', // Gulf & Turkey
-        'AWST', 'ACST', 'AEST', 'AEDT', 'NZST', // Australia & NZ
-        'EST', 'CST', 'MST', 'PST', 'HST', 'AST' // Americas
-      ];
-      if (!validTimezones.includes(sanitizedZonaWaktu)) {
-        return NextResponse.json(
-          { message: 'Zona waktu tidak valid' },
-          { status: 400 }
-        );
-      }
-
-      // Check role validity
-      const validRoles = ['calon_thalibah', 'thalibah', 'musyrifah', 'muallimah', 'admin'];
-      if (!validRoles.includes(role)) {
-        return NextResponse.json(
-          { message: 'Role tidak valid' },
-          { status: 400 }
-        );
-      }
+      // Note: Timezone and role validation is handled by Zod schema
 
       // Update body with sanitized values
       body.email = sanitizedEmail;
@@ -188,42 +131,35 @@ export async function POST(request: NextRequest) {
       body.role = role;
 
     } catch (error: any) {
-      return NextResponse.json(
-        { message: error.message || 'Input tidak valid' },
-        { status: 400 }
-      );
+      return ApiResponses.customValidationError([{ field: 'general', message: error.message || 'Input tidak valid', code: 'custom' }]);
     }
 
-    // Initialize Supabase client
+    // Initialize Supabase clients
     const supabase = createServerClient();
+    const supabaseAdmin = createSupabaseAdmin();
 
-    // Check if email already exists in auth system using admin.getUserByEmail
-    const { data: existingAuthUsers, error: authListError } = await supabase.auth.admin.listUsers();
+    // Check if email already exists in auth system using admin client
+    // Note: listUsers is an admin method that bypasses RLS
+    const { data: existingAuthUsers, error: authListError } = await (supabaseAdmin as any).auth.admin.listUsers();
 
     if (!authListError && existingAuthUsers.users) {
-      const userExists = existingAuthUsers.users.some(user => user.email === body.email);
+      const userExists = existingAuthUsers.users.some((user: any) => user.email === body.email);
 
       if (userExists) {
         // User exists in auth system
-        return NextResponse.json(
-          { message: 'Email sudah terdaftar. Silakan login.' },
-          { status: 409 }
-        );
+        return ApiResponses.conflict('Email sudah terdaftar. Silakan login.');
       }
     }
 
-    // Check if email already exists in users table
-    const { data: existingUser, error: checkError } = await supabase
+    // Check if email already exists in users table using admin client to bypass RLS
+    const { data: existingUser, error: checkError } = await supabaseAdmin
       .from('users')
       .select('email, full_name, negara, provinsi, kota, alamat, whatsapp, zona_waktu, role')
       .eq('email', body.email)
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      return NextResponse.json(
-        { message: 'Terjadi kesalahan saat memeriksa email' },
-        { status: 500 }
-      );
+      return ApiResponses.serverError('Terjadi kesalahan saat memeriksa email');
     }
 
     if (existingUser) {
@@ -238,18 +174,15 @@ export async function POST(request: NextRequest) {
       );
 
       if (isProfileComplete) {
-        return NextResponse.json(
-          { message: 'Email sudah terdaftar dan profil lengkap' },
-          { status: 409 }
-        );
+        return ApiResponses.conflict('Email sudah terdaftar dan profil lengkap');
       }
     }
 
     let newUser;
     let authUser;
 
-    // Create user with auto-confirmed email
-    const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
+    // Create user with auto-confirmed email using admin client
+    const { data: signUpData, error: signUpError } = await (supabaseAdmin as any).auth.admin.createUser({
       email: body.email,
       password: body.password,
       email_confirm: true, // Auto-confirm email
@@ -271,13 +204,30 @@ export async function POST(request: NextRequest) {
       logger.error('Sign up error', {
         email: body.email,
         errorType: signUpError.name,
-        errorDetail: signUpError.message
+        errorDetail: signUpError.message,
+        errorStatus: signUpError.status,
+        errorStack: signUpError.stack
       });
 
-      return NextResponse.json(
-        { message: 'Gagal membuat akun. Silakan periksa data Anda.' },
-        { status: 400 }
-      );
+      // Provide more specific error messages based on the error
+      let errorMessage = 'Gagal membuat akun. Silakan periksa data Ukhti.';
+      let errorField = 'general';
+
+      if (signUpError.message === 'User not allowed' || signUpError.message?.includes('already registered') || signUpError.message?.includes('already been registered')) {
+        errorMessage = 'Email sudah terdaftar di sistem. Silakan login atau gunakan email lain.';
+        errorField = 'email';
+      } else if (signUpError.message?.includes('Password')) {
+        errorMessage = 'Password tidak valid. Gunakan minimal 8 karakter.';
+        errorField = 'password';
+      } else if (signUpError.message?.includes('Invalid email')) {
+        errorMessage = 'Format email tidak valid.';
+        errorField = 'email';
+      } else if (signUpError.message?.includes('A user with this email has already been registered')) {
+        errorMessage = 'Email sudah terdaftar di sistem. Silakan login atau gunakan email lain.';
+        errorField = 'email';
+      }
+
+      return ApiResponses.customValidationError([{ field: errorField, message: errorMessage, code: 'custom' }]);
     }
 
     authUser = signUpData.user;
@@ -299,8 +249,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingUser) {
-      // Update existing incomplete user profile
-      const { data: updatedUser, error: updateError } = await supabase
+      // Update existing incomplete user profile using admin client to bypass RLS
+      const { data: updatedUser, error: updateError } = await supabaseAdmin
         .from('users')
         .update({
           full_name: body.full_name,
@@ -330,17 +280,14 @@ export async function POST(request: NextRequest) {
         });
 
         // Clean up auth user if profile update fails
-        await supabase.auth.admin.deleteUser(authUser.id);
-        return NextResponse.json(
-          { message: 'Gagal memperbarui data pengguna' },
-          { status: 500 }
-        );
+        await (supabaseAdmin as any).auth.admin.deleteUser(authUser.id);
+        return ApiResponses.serverError('Gagal memperbarui data pengguna');
       }
 
       newUser = updatedUser;
     } else {
-      // Insert new user
-      const { data: insertedUser, error: insertError } = await supabase
+      // Insert new user using admin client to bypass RLS
+      const { data: insertedUser, error: insertError } = await supabaseAdmin
         .from('users')
         .insert([
           {
@@ -374,11 +321,8 @@ export async function POST(request: NextRequest) {
         });
 
         // Clean up auth user if profile insert fails
-        await supabase.auth.admin.deleteUser(authUser.id);
-        return NextResponse.json(
-          { message: 'Gagal mendaftarkan pengguna baru' },
-          { status: 500 }
-        );
+        await (supabaseAdmin as any).auth.admin.deleteUser(authUser.id);
+        return ApiResponses.serverError('Gagal mendaftarkan pengguna baru');
       }
 
       newUser = insertedUser;
@@ -408,19 +352,17 @@ export async function POST(request: NextRequest) {
       isUpdate: !!existingUser
     });
 
-    return NextResponse.json(
-      {
-        message: responseMessage,
-        requiresEmailVerification: false,
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          full_name: newUser.full_name,
-          role: newUser.role
-        }
-      },
-      { status: 201 }
-    );
+    const responseData = {
+      requiresEmailVerification: false,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        full_name: newUser.full_name,
+        role: newUser.role
+      }
+    };
+
+    return ApiResponses.success(responseData, responseMessage, 201);
 
   } catch (error) {
     logger.error('Registration error', {
@@ -429,9 +371,6 @@ export async function POST(request: NextRequest) {
       error: error as Error
     });
 
-    return NextResponse.json(
-      { message: 'Terjadi kesalahan server. Silakan coba lagi.' },
-      { status: 500 }
-    );
+    return ApiResponses.serverError('Terjadi kesalahan server. Silakan coba lagi.');
   }
 }

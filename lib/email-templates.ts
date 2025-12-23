@@ -157,7 +157,7 @@ export const emailTemplates = {
 
           <h2>Konfirmasi Perubahan Email</h2>
 
-          <p>Anda telah meminta untuk mengubah email akun Tikrar MTI Anda.</p>
+          <p>Ukhti telah meminta untuk mengubah email akun Tikrar MTI Ukhti.</p>
 
           <p>Klik tombol di bawah untuk mengkonfirmasi perubahan email:</p>
 

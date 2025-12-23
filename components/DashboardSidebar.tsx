@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { X, BookOpen, GraduationCap, Users, LogOut } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 
 interface UniversalSidebarProps {
@@ -135,19 +135,23 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       `}>
         <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center justify-between h-20 border-b border-green-900/20 px-4 flex-shrink-0">
-          <Link href="/" className="flex items-center space-x-3">
-            <Image
-                src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
-                alt="Tikrar MTI Apps"
-                width={40}
-                height={40}
-                className="object-contain flex-shrink-0"
-                sizes="40px"
-                priority
-                unoptimized // For external images
-              />
-            <span className="text-xl font-bold text-green-900">Tikrar MTI Apps</span>
+        <div className="flex items-center justify-between h-16 border-b border-green-900/20 px-3 flex-shrink-0">
+          <Link href="/" className="flex items-center space-x-2 min-w-0">
+            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10">
+              <Image
+                  src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
+                  alt="Tikrar MTI"
+                  width={40}
+                  height={40}
+                  className="object-contain w-full h-full"
+                  sizes="40px"
+                  priority
+                  unoptimized
+                />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm sm:text-base font-bold text-green-900 leading-tight truncate">Tikrar MTI Apps</span>
+            </div>
           </Link>
 
           {/* Close button for mobile/tablet */}

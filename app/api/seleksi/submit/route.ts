@@ -1,39 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createServerClient } from '@/lib/supabase/server';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Supabase admin client (service role) for database operations with admin privileges
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🎵 API: Received audio submission request');
 
-    // Create Supabase client for POST
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Simple authentication using Supabase SSR client
+    const supabase = createServerClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    // Get auth token from header
-    const authHeader = request.headers.get('authorization');
-    console.log('🔍 Auth header:', authHeader ? 'Present' : 'Missing');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('❌ API: No Bearer token found');
+    if (userError || !user) {
+      console.error('❌ API: Auth error:', userError);
       return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    console.log('🔑 Token length:', token.length);
-
-    // Verify token and get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error('❌ API: Auth error:', authError);
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
+        { error: 'Unauthorized - Invalid session. Please login again.', needsLogin: true },
         { status: 401 }
       );
     }
@@ -179,7 +165,7 @@ export async function POST(request: NextRequest) {
     // Check if user already exists in pendaftaran_tikrar_tahfidz
     // console.log('🔍 Checking registration for user:', user.id);
 
-    const { data: existingRegistration, error: checkError } = await supabase
+    const { data: existingRegistration, error: checkError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', user.id)
@@ -202,14 +188,14 @@ export async function POST(request: NextRequest) {
     // Check if already submitted this type of selection
     if (submissionData.type === 'oral' && existingRegistration.oral_submission_url) {
       return NextResponse.json(
-        { error: 'Anda sudah menyerahkan rekaman suara' },
+        { error: 'Ukhti sudah menyerahkan rekaman suara' },
         { status: 400 }
       );
     }
 
     if (submissionData.type === 'written' && existingRegistration.written_quiz_answers) {
       return NextResponse.json(
-        { error: 'Anda sudah menyelesaikan ujian tulisan' },
+        { error: 'Ukhti sudah menyelesaikan ujian tulisan' },
         { status: 400 }
       );
     }
@@ -238,7 +224,7 @@ export async function POST(request: NextRequest) {
 
     // console.log('💾 Updating registration with data:', updateData);
 
-    const { data: submission, error: updateError } = await supabase
+    const { data: submission, error: updateError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .update(updateData)
       .eq('id', existingRegistration.id)
@@ -273,54 +259,24 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get cookies from the request
-    const cookieStore = await cookies();
-    const allCookies = cookieStore.getAll();
+    // Simple authentication using Supabase SSR client
+    const supabase = createServerClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    // Find auth tokens
-    const accessToken = allCookies.find(c => c.name === 'sb-access-token');
-    const refreshToken = allCookies.find(c => c.name === 'sb-refresh-token');
-    const accessTokenFallback = allCookies.find(c => c.name === 'sb-access-token-fallback');
-
-    const finalAccessToken = accessToken?.value || accessTokenFallback?.value;
-    const finalRefreshToken = refreshToken?.value;
-
-    // Create Supabase client
-    let supabase;
-    if (finalAccessToken && finalRefreshToken) {
-      supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: true,
-        },
-      });
-
-      // Set the session
-      await supabase.auth.setSession({
-        access_token: finalAccessToken,
-        refresh_token: finalRefreshToken,
-      });
-    } else {
-      // Fallback to cookie-based client
-      supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          flowType: 'pkce'
-        }
-      });
-    }
-
-    // Get current user from session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
+    if (userError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Invalid session. Please login again.', needsLogin: true },
         { status: 401 }
       );
     }
 
-    // Get user's registration data
-    const { data: registration, error } = await supabase
+    // Get user's registration data using admin client for bypassing RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: registration, error } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('user_id', user.id)

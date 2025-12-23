@@ -70,7 +70,7 @@ export default function SyaratKetentuanPage() {
               <p className="text-sm">Peserta program tahfidz yang telah diterima dan terdaftar resmi di MTI.</p>
             </div>
             <div className="pl-4 border-l-4 border-green-500">
-              <p className="font-semibold text-green-900">Mu'allimah</p>
+              <p className="font-semibold text-green-900">Mu\'allimah</p>
               <p className="text-sm">Pengajar Al-Qur'an yang membimbing thalibah dalam program tahfidz.</p>
             </div>
             <div className="pl-4 border-l-4 border-green-500">

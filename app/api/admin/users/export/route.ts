@@ -1,77 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
-import { cookies } from 'next/headers';
+import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 
 const supabaseAdmin = createSupabaseAdmin();
 
 export async function GET(request: NextRequest) {
   try {
-    // Get cookies properly
-    let accessToken: string | undefined;
-    let refreshToken: string | undefined;
+    // Use Supabase SSR client to get session
+    const supabase = createServerClient();
 
-    try {
-      const cookieStore = await cookies();
-      accessToken = cookieStore.get('sb-access-token')?.value;
-      refreshToken = cookieStore.get('sb-refresh-token')?.value;
-    } catch (cookieError) {
-      console.warn('Cookie reading failed, trying headers only:', cookieError);
-    }
+    // Get user session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    // Also try to get from Authorization header as fallback
-    const authHeader = request.headers.get('authorization');
-    const headerToken = authHeader?.replace('Bearer ', '');
-
-    const tokenToUse = accessToken || headerToken;
-
-    if (!tokenToUse) {
-      console.error('No access token found in cookies or headers');
-      return NextResponse.json({
-        error: 'Unauthorized - No token. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
-
-    // Create Supabase client and set session from cookies
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    // Set the session using the tokens from cookies or header
-    const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-      access_token: tokenToUse,
-      refresh_token: refreshToken || ''
-    });
-
-    if (sessionError || !session) {
-      console.error('Session error:', sessionError);
+    if (userError || !user) {
+      console.error('Auth error:', userError);
       return NextResponse.json({
         error: 'Unauthorized - Invalid session. Please login again.',
         needsLogin: true
       }, { status: 401 });
     }
 
-    const user = session.user;
-    if (!user) {
-      console.error('No user in session');
-      return NextResponse.json({
-        error: 'Unauthorized - No user. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
-
     // Check if user is admin using admin client
-    const { data: userData, error: userError } = await supabaseAdmin
+    const { data: userData, error: dbError } = await supabaseAdmin
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (userError || !userData || userData.role !== 'admin') {
-      console.error('Admin check failed:', userError, userData);
+    if (dbError || !userData || userData.role !== 'admin') {
+      console.error('Admin check failed:', dbError, userData);
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }

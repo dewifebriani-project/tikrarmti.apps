@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { AuthProvider } from '@/contexts/AuthContext'
-import { CSRFProvider } from '@/contexts/CSRFContext'
+import { SWRProvider } from '@/lib/swr/provider'
 import AppLayout from '@/components/AppLayout'
 import GlobalErrorHandler from '@/components/GlobalErrorHandler'
 import ErrorHandlers from '@/components/ErrorHandlers'
@@ -48,13 +47,11 @@ export default function RootLayout({
         <ErrorBoundary>
           <ErrorHandlers>
             <GlobalErrorHandler />
-            <AuthProvider>
-              <CSRFProvider>
-                <AppLayout>
-                  {children}
-                </AppLayout>
-              </CSRFProvider>
-            </AuthProvider>
+            <SWRProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </SWRProvider>
           </ErrorHandlers>
         </ErrorBoundary>
       </body>

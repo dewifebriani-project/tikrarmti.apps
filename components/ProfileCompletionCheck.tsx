@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { AlertCircle, User, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 

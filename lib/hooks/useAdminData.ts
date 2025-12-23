@@ -1,32 +1,16 @@
 import useSWR from 'swr';
-import { supabase } from '@/lib/supabase-singleton';
-import { useAuth } from '@/contexts/AuthContext';
 
-// Generic fetcher with auth token
+// Generic fetcher - relies on cookies for authentication
+// The API route will use Supabase SSR to read session from cookies
 const fetcher = async (url: string) => {
   console.log('[SWR Fetcher] Fetching:', url);
 
   try {
-    // Get current session token
-    const { data: { session } } = await supabase.auth.getSession();
-    let token = session?.access_token;
-
-    console.log('[SWR Fetcher] Has token:', !!token);
-
-    // Refresh session if no token
-    if (!token) {
-      console.log('[SWR Fetcher] No token, refreshing session...');
-      const { data: refreshData } = await supabase.auth.refreshSession();
-      token = refreshData.session?.access_token;
-      console.log('[SWR Fetcher] Token after refresh:', !!token);
-    }
-
     const response = await fetch(url, {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'include', // Include cookies for authentication
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       }
     });
 
@@ -163,9 +147,9 @@ export function useAdminStats(enabled: boolean = true) {
 }
 
 // Hook for fetching batches
-export function useAdminBatches() {
+export function useAdminBatches(enabled: boolean = true) {
   const { data, error, isLoading, mutate } = useSWR(
-    '/api/admin/batches',
+    enabled ? '/api/admin/batches' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -175,11 +159,53 @@ export function useAdminBatches() {
       errorRetryInterval: 1000,
       dedupingInterval: 5000,
       refreshInterval: 0,
+      onError: (err) => {
+        console.error('[useAdminBatches] Error:', err);
+      },
+      onSuccess: (data) => {
+        console.log('[useAdminBatches] Success, batches count:', data?.data?.length);
+      }
     }
   );
 
   return {
-    batches: data?.batches || [],
+    batches: data?.data || [],
+    pagination: data?.pagination,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}
+
+// Hook for fetching programs
+export function useAdminPrograms(enabled: boolean = true, batchId?: string) {
+  // Build query string with batch filter if provided
+  const queryString = batchId ? `?batch_id=${batchId}` : '';
+  const url = enabled ? `/api/admin/programs${queryString}` : null;
+
+  const { data, error, isLoading, mutate } = useSWR(
+    url,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      shouldRetryOnError: true,
+      errorRetryCount: 2,
+      errorRetryInterval: 1000,
+      dedupingInterval: 5000,
+      refreshInterval: 0,
+      onError: (err) => {
+        console.error('[useAdminPrograms] Error:', err);
+      },
+      onSuccess: (data) => {
+        console.log('[useAdminPrograms] Success, programs count:', data?.data?.length);
+      }
+    }
+  );
+
+  return {
+    programs: data?.data || [],
+    pagination: data?.pagination,
     isLoading,
     isError: error,
     mutate,

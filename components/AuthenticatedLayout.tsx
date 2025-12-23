@@ -2,7 +2,7 @@
 
 import { useState, useEffect, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import DashboardSidebar from './DashboardSidebar';
 import GlobalAuthenticatedHeader from './GlobalAuthenticatedHeader';
 import Footer from './Footer';
@@ -15,9 +15,10 @@ interface AuthenticatedLayoutProps {
 export default function AuthenticatedLayout({ children, title }: AuthenticatedLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Initialize sidebar state based on screen size to prevent hydration mismatch
   useEffect(() => {
@@ -27,6 +28,17 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
       setIsSidebarOpen(false);
     }
   }, []);
+
+  // Mark auth as checked after loading is complete
+  useEffect(() => {
+    if (!isLoading) {
+      // Add a small delay to ensure user state is properly set
+      const timer = setTimeout(() => {
+        setHasCheckedAuth(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   // Dynamic title based on route
   const getPageTitle = () => {
@@ -46,6 +58,7 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
       '/pengaturan': 'Pengaturan',
       '/profil': 'Profil',
       '/admin': 'Panel Admin',
+      '/pendaftaran': 'Pendaftaran',
     };
 
     // Handle nested routes
@@ -70,6 +83,8 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
       breadcrumbs.push({ label: 'Tashih Bacaan', href: '/tashih' });
     } else if (pathname === '/perjalanan-saya') {
       breadcrumbs.push({ label: 'Perjalanan Saya', href: '/perjalanan-saya' });
+    } else if (pathname.startsWith('/pendaftaran')) {
+      breadcrumbs.push({ label: 'Pendaftaran', href: '/pendaftaran' });
     } else if (pathname === '/ujian') {
       breadcrumbs.push({ label: 'Ujian', href: '/ujian' });
     } else if (pathname === '/alumni') {
@@ -104,17 +119,29 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
   }, []);
 
   // Redirect to login if not authenticated (client-side protection)
+  // NOTE: Middleware already handles route protection, so this is just a fallback
   useEffect(() => {
-    // Add a delay for mobile to allow auth context to initialize
-    const timer = setTimeout(() => {
-      if (isMounted && !loading && !user) {
-        console.log('AuthenticatedLayout: No user found after delay, redirecting to login');
-        router.push(`/login?redirectedFrom=${pathname}`);
-      }
-    }, 1500); // 1.5 second delay for mobile
+    console.log('AuthenticatedLayout - Auth state:', {
+      isMounted,
+      hasCheckedAuth,
+      isLoading,
+      isAuthenticated,
+      hasUser: !!user,
+      userId: user?.id,
+      timestamp: new Date().toISOString()
+    });
 
-    return () => clearTimeout(timer);
-  }, [user, loading, pathname, router, isMounted]);
+    // Only redirect if:
+    // 1. Component is mounted (avoid hydration issues)
+    // 2. Auth check is COMPLETE (not just loading)
+    // 3. SWR has finished loading (isLoading = false)
+    // 4. User is not authenticated after all checks
+    if (isMounted && hasCheckedAuth && !isLoading && !isAuthenticated) {
+      console.log('AuthenticatedLayout: No user found after all checks, redirecting to login');
+      // Use window.location.href instead of router.push to force full reload
+      window.location.href = `/login?redirectedFrom=${pathname}`;
+    }
+  }, [isAuthenticated, hasCheckedAuth, pathname, isMounted, user, isLoading]);
 
   useEffect(() => {
     // Close sidebar on mobile/tablet when route changes
@@ -125,7 +152,7 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
 
   // Always render the same structure to prevent hydration mismatch
   // Only conditionally render content inside
-  const showLoadingOverlay = !isMounted || loading || !user;
+  const showLoadingOverlay = !isMounted || isLoading || !hasCheckedAuth || !user;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -151,7 +178,7 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
               <div className="text-center">
                 <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
                 <p className="mt-4 text-gray-600">
-                  {!isMounted ? 'Memuat...' : loading ? 'Memeriksa autentikasi...' : 'Mengalihkan ke halaman login...'}
+                  {!isMounted ? 'Memuat...' : isLoading ? 'Memeriksa autentikasi...' : 'Mengalihkan ke halaman login...'}
                 </p>
               </div>
             </div>

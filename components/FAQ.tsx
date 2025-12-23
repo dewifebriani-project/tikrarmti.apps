@@ -362,7 +362,7 @@ export default function FAQ() {
                 Masih Ada Pertanyaan?
               </h3>
               <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                Jika jawaban yang Anda cari tidak ada di atas, jangan ragu untuk menghubungi kami melalui WhatsApp atau official account MTI.
+                Jika jawaban yang Ukhti cari tidak ada di atas, jangan ragu untuk menghubungi kami melalui WhatsApp atau official account MTI.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a

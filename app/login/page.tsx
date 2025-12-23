@@ -2,16 +2,19 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
-import { supabase } from '@/lib/supabase-singleton';
+import { createClient } from '@/lib/supabase/client';
 
 function LoginPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const supabase = createClient();
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -24,8 +27,6 @@ function LoginPageContent() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   // Set isClient flag after mount to prevent hydration mismatch
   useEffect(() => {
@@ -90,25 +91,6 @@ function LoginPageContent() {
     }
   }, [searchParams, isClient]);
 
-  const fetchDebugInfo = async () => {
-    try {
-      const response = await fetch('/api/debug/mobile-auth', {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setDebugInfo(data);
-        setShowDebugInfo(true);
-        console.log('Debug info:', data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch debug info:', error);
-    }
-  };
-
-
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -133,69 +115,91 @@ function LoginPageContent() {
     }
 
     try {
-      console.log('Submitting login form...');
-
-      // Use API route to login (sets cookies properly)
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Important: include cookies
-        body: JSON.stringify({
-          email: formData.email.toLowerCase().trim(),
-          password: formData.password,
-        }),
+      // Use Supabase Auth directly
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
       });
 
-      console.log('Login response status:', response.status);
+      if (error) {
+        console.error('Supabase auth error:', error);
+        let errorMessage = error.message;
 
-      const data = await response.json();
-      console.log('Login response data:', { success: data.success, error: data.error });
+        // Provide more specific error messages for common issues
+        if (error.message === 'Invalid login credentials') {
+          errorMessage = 'Email atau password salah. Silakan periksa kembali.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox Anda.';
+        }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Login gagal');
+        throw new Error(errorMessage);
       }
 
-      if (data.success) {
+      if (data.user && data.session) {
         // Show success notification
         setNotificationMessage('Login berhasil! Mengarahkan ke dashboard...');
         setNotificationType('success');
         setShowNotification(true);
 
-        // Set client-side session immediately
-        if (data.session) {
-          console.log('Setting client session...');
-          supabase.auth.setSession({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-          }).catch((error) => {
-            console.error('Session setting error:', error);
-            // Ignore session setting error since server-side auth is set
-          });
+        // Check if user profile exists, create if not
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
 
-          // Also store in localStorage as additional fallback
-          // This helps with mobile browsers that may have cookie issues
-          try {
-            localStorage.setItem('mti-auth-token', JSON.stringify({
-              access_token: data.session.access_token,
-              refresh_token: data.session.refresh_token,
-              expires_at: data.session.expires_at,
-            }));
-            console.log('Tokens stored in localStorage as fallback');
-          } catch (storageError) {
-            console.warn('Failed to store tokens in localStorage:', storageError);
+        if (userError && userError.code === 'PGRST116') {
+          // User not found in database, create profile
+          console.log('Creating user profile for authenticated user:', data.user.email);
+
+          const { error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
+              role: data.user.user_metadata?.role || 'calon_thalibah',
+              created_at: new Date().toISOString(),
+            });
+
+          if (createError) {
+            console.error('Error creating user profile:', createError);
+            // Still allow login even if profile creation fails
+          } else {
+            console.log('User profile created successfully');
           }
         }
 
-        // CRITICAL: Delay to allow mobile browsers to commit cookies before redirect
-        // Mobile browsers need more time to save cookies than desktop
-        setTimeout(() => {
-          // Force redirect using window.location
-          // This bypasses Next.js router and ensures we go to dashboard
-          console.log('Redirecting to dashboard...');
-          window.location.href = '/dashboard';
-        }, 1500); // Increased from 1000ms to 1500ms for mobile cookie commit
+        // CRITICAL: Use server action to set session cookies properly on server
+        // This ensures cookies are set correctly for SSR middleware
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            }),
+            credentials: 'include',
+          });
+
+          if (!response.ok) {
+            console.warn('Server session sync failed, but continuing anyway');
+          } else {
+            console.log('Server session synced successfully');
+          }
+        } catch (err) {
+          console.warn('Server session sync error, but continuing:', err);
+        }
+
+        // Wait for server to process
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Use window.location.href for full page reload to ensure
+        // middleware picks up the session cookies correctly
+        window.location.href = '/dashboard';
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -240,47 +244,7 @@ function LoginPageContent() {
         </div>
       )}
 
-      {/* Debug Info Overlay */}
-      {showDebugInfo && debugInfo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-screen overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Debug Information</h2>
-              <button
-                onClick={() => setShowDebugInfo(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-            <div className="space-y-4 text-sm">
-              <div>
-                <h3 className="font-semibold mb-2">Device Info</h3>
-                <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
-                  {JSON.stringify(debugInfo.device, null, 2)}
-                </pre>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Auth Cookies ({debugInfo.cookies.auth.length})</h3>
-                {debugInfo.cookies.auth.length > 0 ? (
-                  <pre className="bg-gray-100 p-2 rounded overflow-x-auto text-xs">
-                    {JSON.stringify(debugInfo.cookies.auth, null, 2)}
-                  </pre>
-                ) : (
-                  <p className="text-red-600">No auth cookies found</p>
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2">Environment</h3>
-                <pre className="bg-gray-100 p-2 rounded overflow-x-auto">
-                  {JSON.stringify(debugInfo.environment, null, 2)}
-                </pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      
       <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8 sm:py-12">
         {/* Minimal Background Elements */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -332,6 +296,7 @@ function LoginPageContent() {
                   className="mt-1"
                   placeholder="email@example.com"
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
 
@@ -346,6 +311,7 @@ function LoginPageContent() {
                     className="mt-1 pr-12 text-base"
                     placeholder="Masukkan password"
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   <Button
                     type="button"
@@ -403,19 +369,7 @@ function LoginPageContent() {
               </Link>
             </div>
 
-            {/* Debug Button - Only visible in development */}
-            {isClient && process.env.NODE_ENV === 'development' && (
-              <div className="text-center mt-4">
-                <button
-                  onClick={fetchDebugInfo}
-                  className="text-xs text-gray-400 hover:text-gray-600 underline"
-                  type="button"
-                >
-                  Debug Auth
-                </button>
-              </div>
-            )}
-          </CardContent>
+                      </CardContent>
         </Card>
       </div>
     </div>

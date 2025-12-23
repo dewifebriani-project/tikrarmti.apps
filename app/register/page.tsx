@@ -19,7 +19,6 @@ import { Card } from "@/components/ui/card";
 import { Crown, Heart, ArrowRight } from "lucide-react";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { validatePhoneNumberFormat } from "@/lib/utils/sanitize";
-import { useCSRF } from "@/contexts/CSRFContext";
 import { negaraList, provinsiList, zonaWaktuList } from "@/lib/data/registration-data";
 
 function RegisterPageContent() {
@@ -47,8 +46,6 @@ function RegisterPageContent() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [savedDataLoaded, setSavedDataLoaded] = useState(false);
-
-  const { token: csrfToken, isLoading: csrfLoading, refreshCSRFToken } = useCSRF();
 
   // Load saved form data from localStorage on mount
   React.useEffect(() => {
@@ -175,6 +172,8 @@ function RegisterPageContent() {
 
     if (!formData.alasanDaftar.trim()) {
       newErrors.alasanDaftar = 'Alasan mendaftar harus diisi';
+    } else if (formData.alasanDaftar.trim().length < 10) {
+      newErrors.alasanDaftar = 'Alasan mendaftar minimal 10 karakter';
     }
 
     if (!formData.setujuSyarat) {
@@ -185,7 +184,7 @@ function RegisterPageContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent, retryCount = 0) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -195,31 +194,17 @@ function RegisterPageContent() {
     setIsLoading(true);
 
     try {
-      // Prepare headers
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      // Add CSRF token if available
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-        console.log('CSRF token added to registration:', csrfToken.substring(0, 20) + '...');
-      } else {
-        console.warn('CSRF token not available, attempting to refresh...');
-        await refreshCSRFToken();
-        // Try to get the token from cookie after refresh
-        const cookieToken = document.cookie.split('; ').find(c => c.startsWith('csrf-token='))?.split('=')[1];
-        if (cookieToken) {
-          headers['X-CSRF-Token'] = cookieToken;
-          console.log('CSRF token retrieved from cookie:', cookieToken.substring(0, 20) + '...');
-        } else {
-          console.error('Failed to get CSRF token from cookie. Available cookies:', document.cookie);
-        }
-      }
+      // Convert date to ISO datetime format for tanggal_lahir
+      const tanggalLahirISO = formData.tanggalLahir
+        ? new Date(formData.tanggalLahir + 'T00:00:00.000Z').toISOString()
+        : null;
 
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: headers,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -231,7 +216,7 @@ function RegisterPageContent() {
           whatsapp: formData.whatsapp,
           telegram: formData.telegram,
           zona_waktu: formData.zonaWaktu,
-          tanggal_lahir: formData.tanggalLahir,
+          tanggal_lahir: tanggalLahirISO,
           tempat_lahir: formData.tempatLahir,
           jenis_kelamin: formData.jenisKelamin,
           pekerjaan: formData.pekerjaan,
@@ -249,21 +234,73 @@ function RegisterPageContent() {
         // Redirect immediately to login page
         window.location.href = '/login?message=registration_success';
       } else {
-        // Handle CSRF token validation error (403 Forbidden)
-        if (response.status === 403 && data.error?.includes('CSRF')) {
-          console.error('CSRF token validation failed, refreshing token...');
-          // Refresh CSRF token and retry once
-          if (retryCount === 0) {
-            await refreshCSRFToken();
-            console.log('CSRF token refreshed, retrying registration...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setIsLoading(false);
-            return handleSubmit(e, retryCount + 1);
+        // Extract error message from various possible formats
+        const getErrorMessage = (response: any): string => {
+          console.log('[DEBUG] getErrorMessage input:', response);
+          console.log('[DEBUG] response type:', typeof response);
+          console.log('[DEBUG] response.error:', response?.error);
+          console.log('[DEBUG] response.error type:', typeof response?.error);
+
+          if (typeof response === 'string') return response
+
+          // Check for validation errors with issues array (highest priority for specific messages)
+          if (response?.error?.details?.issues && Array.isArray(response.error.details.issues)) {
+            const issues = response.error.details.issues;
+            console.log('[DEBUG] Using validation issues:', issues);
+
+            // Map field names to user-friendly labels
+            const fieldLabels: Record<string, string> = {
+              email: 'Email',
+              password: 'Password',
+              full_name: 'Nama Lengkap',
+              negara: 'Negara',
+              provinsi: 'Provinsi',
+              kota: 'Kota',
+              alamat: 'Alamat',
+              whatsapp: 'WhatsApp',
+              telegram: 'Telegram',
+              zona_waktu: 'Zona Waktu',
+              tanggal_lahir: 'Tanggal Lahir',
+              tempat_lahir: 'Tempat Lahir',
+              jenis_kelamin: 'Jenis Kelamin',
+              pekerjaan: 'Pekerjaan',
+              alasan_daftar: 'Alasan Mendaftar',
+              recaptcha: 'reCAPTCHA',
+              general: 'Registrasi'
+            };
+
+            // Get all error messages
+            const errorMessages = issues.map((issue: any) => {
+              const fieldLabel = fieldLabels[issue.field] || issue.field;
+              return `${fieldLabel}: ${issue.message}`;
+            });
+
+            // Return first error if only one, or join all errors
+            return errorMessages.length === 1
+              ? errorMessages[0]
+              : errorMessages.join('\n');
           }
-          setErrors({ general: 'Token keamanan tidak valid. Silakan refresh halaman dan coba lagi.' });
-        } else {
-          setErrors({ general: data.message || data.error || 'Registrasi gagal' });
+
+          if (response?.error?.message) {
+            console.log('[DEBUG] Using response.error.message:', response.error.message);
+            return response.error.message
+          }
+          if (response?.error?.code) {
+            console.log('[DEBUG] Using response.error.code:', response.error.code);
+            return `Error: ${response.error.code}`
+          }
+          if (response?.message) return response.message
+          if (response?.error) {
+            console.log('[DEBUG] Stringifying response.error');
+            return JSON.stringify(response.error)
+          }
+          console.log('[DEBUG] Using default message');
+          return 'Registrasi gagal'
         }
+
+        const errorMessage = getErrorMessage(data);
+        console.log('[DEBUG] Final error message:', errorMessage, 'Type:', typeof errorMessage);
+        setErrors({ general: errorMessage });
         setIsLoading(false);
       }
     } catch (error) {
@@ -311,8 +348,8 @@ function RegisterPageContent() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Error Message */}
             {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-                {errors.general}
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded whitespace-pre-line">
+                {typeof errors.general === 'string' ? errors.general : JSON.stringify(errors.general)}
               </div>
             )}
 

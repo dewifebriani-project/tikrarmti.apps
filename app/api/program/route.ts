@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { z } from 'zod';
+import { ApiResponses } from '@/lib/api-responses';
+import { programSchemas } from '@/lib/schemas';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -55,21 +58,15 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching programs:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch programs' },
-        { status: 500 }
-      );
+      return ApiResponses.serverError('Failed to fetch programs');
     }
 
     // Transform data to match frontend expectations
     // No transformation needed - return raw data so frontend can handle it
-    return NextResponse.json(data || []);
+    return ApiResponses.success(data || [], 'Programs fetched successfully');
   } catch (error) {
     console.error('Error in programs GET:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return ApiResponses.serverError('Internal server error');
   }
 }
 
@@ -82,26 +79,21 @@ export async function POST(request: NextRequest) {
     //   return authResult;
     // }
     const body = await request.json();
-    const { batch_id, name, description, target_level, duration_weeks, max_thalibah } = body;
 
-    if (!batch_id || !name) {
-      return NextResponse.json(
-        { error: 'batch_id and name are required' },
-        { status: 400 }
-      );
+    // Validate request body
+    const validation = programSchemas.create.safeParse(body);
+    if (!validation.success) {
+      return ApiResponses.validationError(validation.error.issues);
     }
+
+    const validatedData = validation.data;
 
     const supabase = supabaseAdmin;
 
     const { data, error } = await supabase
       .from('programs')
       .insert({
-        batch_id,
-        name,
-        description,
-        target_level,
-        duration_weeks,
-        max_thalibah,
+        ...validatedData,
         status: 'draft',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -111,18 +103,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating program:', error);
-      return NextResponse.json(
-        { error: 'Failed to create program' },
-        { status: 500 }
-      );
+      return ApiResponses.serverError('Failed to create program');
     }
 
-    return NextResponse.json(data, { status: 201 });
+    return ApiResponses.success(data, 'Program created successfully', 201);
   } catch (error) {
     console.error('Error in programs POST:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return ApiResponses.serverError('Internal server error');
   }
 }

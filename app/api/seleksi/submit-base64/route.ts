@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     // Check if already submitted oral
     if (existingRegistration.oral_submission_url) {
       return NextResponse.json(
-        { error: 'Anda sudah menyerahkan rekaman suara' },
+        { error: 'Ukhti sudah menyerahkan rekaman suara' },
         { status: 400 }
       );
     }

@@ -188,6 +188,18 @@ const nextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block'
           },
+          // Content Security Policy - allow Google Fonts
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
+              "img-src 'self' data: https:",
+              "connect-src 'self' https://*.supabase.co",
+            ].join('; ')
+          },
           // Permissions-Policy removed from wildcard - use specific routes instead
           // Performance and caching headers for cross-platform optimization
           {

@@ -1,4 +1,8 @@
-import { useState, useEffect } from 'react';
+'use client'
+
+import { useMemo } from 'react';
+import { useBatches } from './useBatches';
+import { usePrograms } from './usePrograms';
 import { Batch, Program } from '@/types/database';
 
 interface ProgramWithBatch extends Program {
@@ -24,70 +28,115 @@ interface BatchWithStats extends Batch {
   programs_count?: number;
 }
 
+/**
+ * Enhanced hook that combines batches and programs using SWR
+ * Replaces the old manual fetch implementation
+ */
 export function useBatchProgram() {
-  const [batches, setBatches] = useState<BatchWithStats[]>([]);
-  const [programs, setPrograms] = useState<ProgramWithBatch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { batches, isLoading: batchesLoading, error: batchesError } = useBatches({ status: 'open' });
+  const { programs, isLoading: programsLoading, error: programsError } = usePrograms();
 
-  const fetchData = async () => {
-    await Promise.all([
-      fetchBatches(),
-      fetchPrograms()
-    ]);
-    setLoading(false);
-  };
+  // Combine loading states
+  const loading = batchesLoading || programsLoading;
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Combine errors
+  const error = batchesError || programsError;
 
-  const fetchBatches = async () => {
-    try {
-      const response = await fetch('/api/batch');
-      if (!response.ok) {
-        throw new Error('Failed to fetch batches');
-      }
-      const data = await response.json();
-      setBatches(data || []);
-    } catch (err) {
-      console.error('Error fetching batches:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch batches');
-      setBatches([]); // Set empty array on error
-    }
-  };
+  // Transform programs to include batch information
+  const programsWithBatch = useMemo(() => {
+    if (!programs.length || !batches.length) return [];
 
-  const fetchPrograms = async (batchId?: string) => {
-    try {
-      let url = '/api/program';
-      if (batchId) {
-        url += `?batch_id=${batchId}`;
-      }
+    return programs.map(program => {
+      const batch = batches.find(b => b.id === program.batch_id);
+      return {
+        ...program,
+        batch: batch ? {
+          id: batch.id,
+          name: batch.name,
+          description: batch.description,
+          start_date: batch.start_date,
+          end_date: batch.end_date,
+          status: batch.status,
+          registration_start_date: batch.registration_start_date,
+          registration_end_date: batch.registration_end_date,
+          is_free: batch.is_free,
+          price: batch.price,
+          total_quota: batch.total_quota,
+          registered_count: batch.registered_count,
+          duration_weeks: batch.duration_weeks,
+        } : {
+          id: '',
+          name: 'Unknown Batch',
+          start_date: '',
+          end_date: '',
+          status: 'unknown',
+        }
+      };
+    }) as ProgramWithBatch[];
+  }, [programs, batches]);
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch programs');
-      }
-      const data = await response.json();
-      setPrograms(data || []);
-    } catch (err) {
-      console.error('Error fetching programs:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch programs');
-      setPrograms([]); // Set empty array on error
-    }
-  };
+  // Calculate batch statistics
+  const batchStats = useMemo(() => {
+    return batches.map(batch => ({
+      ...batch,
+      registered_count: batch.registered_count || 0,
+      programs_count: programs.filter(p => p.batch_id === batch.id).length,
+    })) as BatchWithStats[];
+  }, [batches, programs]);
 
-  const refetch = () => {
-    setLoading(true);
-    fetchData();
-  };
+  // Get active batch (status: 'open')
+  const activeBatch = useMemo(() => {
+    return batches.find(batch => batch.status === 'open') || null;
+  }, [batches]);
+
+  // Get programs for active batch
+  const activeBatchPrograms = useMemo(() => {
+    if (!activeBatch) return [];
+    return programsWithBatch.filter(program => program.batch_id === activeBatch.id);
+  }, [activeBatch, programsWithBatch]);
+
+  // Check if there are any open batches
+  const hasOpenBatches = useMemo(() => {
+    return batches.some(batch => batch.status === 'open');
+  }, [batches]);
+
+  // Get registration status summary
+  const registrationSummary = useMemo(() => {
+    const totalRegistrations = programsWithBatch.reduce((sum, program) => {
+      return sum + (program.batch.registered_count || 0);
+    }, 0);
+
+    const totalCapacity = programsWithBatch.reduce((sum, program) => {
+      return sum + (program.batch.total_quota || 0);
+    }, 0);
+
+    return {
+      totalRegistrations,
+      totalCapacity,
+      availableSpots: totalCapacity - totalRegistrations,
+      utilizationRate: totalCapacity > 0 ? (totalRegistrations / totalCapacity) * 100 : 0,
+    };
+  }, [programsWithBatch]);
 
   return {
-    batches,
-    programs,
+    // Replaced old state with SWR data
+    batches: batchStats,
+    programs: programsWithBatch,
+    activeBatch,
+    activeBatchPrograms,
+    hasOpenBatches,
+
+    // Statistics
+    registrationSummary,
+
+    // Loading and error states
     loading,
     error,
-    refetch,
-    fetchPrograms
+
+    // Computed properties
+    isEmpty: !loading && !batches.length,
+    hasPrograms: programsWithBatch.length > 0,
   };
 }
+
+export default useBatchProgram;

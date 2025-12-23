@@ -1,29 +1,82 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // Load environment variables
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-export function createServerClient() {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('❌ Supabase credentials missing - checking environment variables...')
-    console.log('NEXT_PUBLIC_SUPABASE_URL:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
-    console.log('SUPABASE_SERVICE_ROLE_KEY:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
-    console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    console.log('NODE_ENV:', process.env.NODE_ENV)
+// Server-side client that can read cookies - for API routes
+export function createClient() {
+  const cookieStore = cookies()
+
+  return createSupabaseServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+}
+
+// Alias for createClient - for backward compatibility
+export const createServerClient = createClient
+
+// Client-side client for use in browser components
+export function createBrowserClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const errorMessage = '❌ Supabase credentials missing:\n' +
+      `NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'SET' : 'MISSING'}\n` +
+      `NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET' : 'MISSING'}`;
+    console.error(errorMessage);
+    throw new Error(errorMessage);
   }
-
-  console.log('✅ Creating Supabase client with URL:', supabaseUrl)
-  console.log('🔑 Service key present:', !!supabaseServiceKey)
 
   return createSupabaseClient(
     supabaseUrl,
-    supabaseServiceKey,
+    supabaseAnonKey,
     {
       auth: {
-        autoRefreshToken: false,
-        persistSession: false
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
       }
     }
   )
+}
+
+// Create a client for authentication operations (login, signup, etc.)
+export function createAuthClient() {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const errorMessage = '❌ Supabase credentials missing:\n' +
+      `NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'SET' : 'MISSING'}\n` +
+      `NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET' : 'MISSING'}`;
+    console.error(errorMessage);
+    throw new Error(errorMessage);
+  }
+
+  try {
+    return createSupabaseClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: false
+        }
+      }
+    )
+  } catch (error) {
+    console.error('❌ Failed to create Supabase auth client:', error);
+    throw new Error(`Failed to create Supabase auth client: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }

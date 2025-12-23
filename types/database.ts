@@ -9,6 +9,20 @@ export type PendaftaranStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn
 export type MentorRole = 'ustadzah' | 'musyrifah';
 export type HalaqahStudentStatus = 'active' | 'transferred' | 'graduated' | 'dropped';
 export type PresensiStatus = 'hadir' | 'izin' | 'sakit' | 'alpha';
+export type JuzPart = 'A' | 'B';
+
+export interface JuzOption {
+  id: string;
+  code: string;
+  name: string;
+  juz_number: number;
+  part: JuzPart;
+  start_page: number;
+  end_page: number;
+  total_pages: number;
+  is_active: boolean;
+  sort_order: number;
+}
 
 export interface User {
   id: string;
@@ -51,6 +65,9 @@ export interface Program {
   status: ProgramStatus;
   created_at: string;
   updated_at: string;
+  price?: number;
+  is_free?: boolean;
+  currency?: string;
 }
 
 export interface Halaqah {
@@ -173,6 +190,9 @@ export interface ProgramForm {
   target_level?: string;
   duration_weeks?: number;
   max_thalibah?: number;
+  price?: number;
+  is_free?: boolean;
+  currency?: string;
 }
 
 export interface HalaqahForm {

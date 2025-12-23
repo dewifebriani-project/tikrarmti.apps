@@ -1,168 +1,120 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse, NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+// Protected routes that require authentication
+const protectedRoutes = [
+  '/dashboard',
+  '/perjalanan-saya',
+  '/pendaftaran',
+  '/alumni',
+  '/jurnal-harian',
+  '/kelulusan-sertifikat',
+  '/tagihan-pembayaran',
+  '/tashih',
+  '/ujian',
+  '/lengkapi-profil',
+  '/pengaturan',
+  '/seleksi',
+  '/admin',
+]
+
+// Public routes that don't require authentication
+const publicRoutes = [
+  '/',
+  '/login',
+  '/register',
+  '/syarat-ketentuan',
+  '/api/auth/callback',
+  '/favicon.ico',
+]
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const host = request.headers.get('host') || '';
+  const startTime = Date.now()
+  const { pathname } = request.nextUrl
+  const response = NextResponse.next()
 
-  // Note: We removed www redirect to avoid redirect loops
-  // Instead, we handle both www and non-www by using wildcard domain cookies
+  console.log('MIDDLEWARE - Request:', {
+    pathname,
+    method: request.method,
+    cookieCount: request.cookies.getAll().length,
+    timestamp: new Date().toISOString()
+  })
 
-  // These paths should be accessible without authentication
-  const publicPaths = [
-    '/',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-    '/pendaftaran', // Allow users to view registration programs without auth
-    '/pendaftaran/tikrar-tahfidz', // Allow access to registration form
-    '/auth/callback',
-    '/syarat-ketentuan',
-    '/api/auth',
-    '/api/batch',
-    '/api/program',
-    '/api/health',
-    '/_next/static',
-    '/favicon.ico',
-    '/api/pendaftaran/submit', // Allow submission without auth (will be checked in the route)
-    '/api/debug'
-  ];
-
-  // Check if the path is public
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
-
-  // If it's a public path, continue
-  if (isPublicPath) {
-    return NextResponse.next();
+  // Skip middleware for static files and public routes
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.includes('.') ||
+    pathname.startsWith('/api') && !pathname.startsWith('/api/auth/callback') ||
+    publicRoutes.some(route => pathname.startsWith(route))
+  ) {
+    return response
   }
 
-  // For protected paths, check authentication using server client
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  // Check if route requires authentication
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
+  if (!isProtectedRoute) {
+    return response
+  }
+
+  console.log('MIDDLEWARE - Protected route detected:', pathname)
+
+  // Create Supabase server client for middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => {
-          return request.cookies.getAll().map((cookie) => ({
-            name: cookie.name,
-            value: cookie.value,
-          }));
+        getAll() {
+          const cookies = request.cookies.getAll()
+          console.log('MIDDLEWARE - Cookies getAll:', {
+            count: cookies.length,
+            names: cookies.map(c => c.name),
+            hasSupabase: cookies.some(c => c.name.includes('supabase') || c.name.includes('sb-'))
+          })
+          return cookies
         },
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
-          });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value)
+            response.cookies.set(name, value)
+          })
         },
       },
     }
-  );
+  )
 
-  try {
-    // Debug: Log cookies received by middleware
-    const requestCookies = request.cookies.getAll();
-    const authCookies = requestCookies.filter(c => c.name.includes('sb-') || c.name.includes('auth'));
-    console.log('Middleware cookies for path:', pathname, {
-      totalCookies: requestCookies.length,
-      authCookies: authCookies.map(c => ({ name: c.name, value: c.value.substring(0, 20) + '...' })),
-      host: request.headers.get('host'),
-      userAgent: request.headers.get('user-agent')?.substring(0, 50)
-    });
+  // Get user session
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    // Check for fallback token (for mobile browsers where httpOnly cookies may fail)
-    const fallbackToken = request.cookies.get('sb-access-token-fallback');
-    const hasHttpOnlyCookie = request.cookies.get('sb-access-token');
+  console.log('MIDDLEWARE - Auth check:', {
+    hasUser: !!user,
+    userId: user?.id,
+    userEmail: user?.email,
+    elapsed: Date.now() - startTime + 'ms'
+  })
 
-    console.log('Middleware token check:', {
-      hasHttpOnlyCookie: !!hasHttpOnlyCookie,
-      hasFallbackToken: !!fallbackToken,
-      fallbackTokenPreview: fallbackToken?.value?.substring(0, 20) + '...'
-    });
-
-    // First try to get session from cookies (standard flow)
-    let { data: { session }, error } = await supabase.auth.getSession();
-
-    // If no session but we have fallback token, try to validate it directly
-    if ((!session || error) && fallbackToken) {
-      console.log('Middleware: No session from httpOnly cookies, trying fallback token...');
-
-      // Create a new supabase client with the fallback token for verification
-      const { createClient } = await import('@supabase/supabase-js');
-      const tokenValidationClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          global: {
-            headers: {
-              Authorization: `Bearer ${fallbackToken.value}`,
-            },
-          },
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-          },
-        }
-      );
-
-      // Try to get user with the fallback token
-      const { data: { user }, error: userError } = await tokenValidationClient.auth.getUser();
-
-      console.log('Middleware fallback token validation:', {
-        hasUser: !!user,
-        userId: user?.id,
-        error: userError?.message
-      });
-
-      if (user && !userError) {
-        // Token is valid, allow access
-        console.log('Middleware: Valid session from fallback token for user:', user.id);
-        return response;
-      }
-    }
-
-    if (error || !session) {
-      console.log('Middleware: No valid session found (checked both cookies and fallback), redirecting to login', {
-        error: error?.message,
-        hasFallbackToken: !!fallbackToken,
-        pathname
-      });
-      // No valid session, redirect to login
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirectedFrom', pathname);
-      return NextResponse.redirect(url);
-    }
-
-    console.log('Middleware: Valid session found for user:', session.user.id);
-    // User is authenticated, continue
-    return response;
-  } catch (error) {
-    console.error('Middleware auth error:', error);
-    // On error, redirect to login
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('redirectedFrom', pathname);
-    return NextResponse.redirect(url);
+  // Redirect to login if user is not authenticated
+  if (!user) {
+    console.log('MIDDLEWARE - Redirecting to login, no user found')
+    return NextResponse.redirect(new URL('/login', request.url))
   }
+
+  console.log('MIDDLEWARE - User authenticated, allowing access')
+  return response
 }
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - favicon.ico (favicon file)
-     * - public (public files)
      */
-    '/((?!api|_next/static|favicon.ico|public).*)',
+    '/((?!_next/static|favicon.ico).*)',
   ],
-};
+}

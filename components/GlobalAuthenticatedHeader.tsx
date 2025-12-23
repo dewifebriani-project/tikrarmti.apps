@@ -16,7 +16,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 interface GlobalAuthenticatedHeaderProps {
   onMenuToggle?: () => void;
@@ -78,6 +78,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
   const getPageTitle = () => {
     const routeTitles: { [key: string]: string } = {
       '/dashboard': 'Dasbor',
+      '/pendaftaran': 'Pendaftaran Program',
       '/jurnal-harian': 'Jurnal Harian',
       '/tashih': 'Tashih Bacaan',
       '/perjalanan-saya': 'Perjalanan Saya',
@@ -107,7 +108,17 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
       { label: 'Beranda', href: '/dashboard' }
     ];
 
-    if (pathname === '/jurnal-harian') {
+    if (pathname.startsWith('/pendaftaran')) {
+      breadcrumbs.push({ label: 'Pendaftaran', href: '/pendaftaran' });
+      // Add sub-page breadcrumbs for pendaftaran
+      if (pathname.includes('/tikrar-tahfidz')) {
+        breadcrumbs.push({ label: 'Tikrar Tahfidz', href: '/pendaftaran/tikrar-tahfidz' });
+      } else if (pathname.includes('/muallimah')) {
+        breadcrumbs.push({ label: 'Muallimah', href: '/pendaftaran/muallimah' });
+      } else if (pathname.includes('/musyrifah')) {
+        breadcrumbs.push({ label: 'Musyrifah', href: '/pendaftaran/musyrifah' });
+      }
+    } else if (pathname === '/jurnal-harian') {
       breadcrumbs.push({ label: 'Jurnal Harian', href: '/jurnal-harian' });
     } else if (pathname === '/tashih') {
       breadcrumbs.push({ label: 'Tashih Bacaan', href: '/tashih' });
@@ -150,7 +161,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
   ];
 
   return (
-    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 sticky top-0 z-30 transition-all duration-300 md:relative md:left-auto md:right-auto">
+    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 sticky top-0 z-[60] transition-all duration-300">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           {/* Left Section - Hamburger Menu & Breadcrumbs */}
@@ -226,24 +237,6 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
           {/* Right Section - Actions & Profile */}
           <div className="flex items-center space-x-1 md:space-x-4">
 
-            {/* Reload Button - Desktop */}
-            <button
-              onClick={handleReload}
-              className="hidden md:block p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors duration-200"
-              title="Reload Halaman"
-            >
-              <RefreshCw className="w-5 h-5" />
-            </button>
-
-            {/* Clear Cache Button - Desktop */}
-            <button
-              onClick={handleClearCache}
-              className="hidden md:block p-2 rounded-lg text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors duration-200"
-              title="Bersihkan Cache"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-
             {/* Notifications - Desktop/Tablet */}
             <div className="relative hidden md:block" ref={notificationRef}>
               <button
@@ -302,9 +295,9 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                 disabled={!isMounted}
               >
                 {/* Avatar from Google/Gmail or generated from name */}
-                {user?.photoURL || user?.avatar_url ? (
+                {(user as any)?.photoURL || user?.avatar_url ? (
                   <Image
-                    src={user.photoURL || user.avatar_url || ''}
+                    src={(user as any)?.photoURL || user?.avatar_url || ''}
                     alt="Profile"
                     width={40}
                     height={40}
@@ -342,9 +335,9 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <div className="flex items-center space-x-3">
                       {/* Avatar in dropdown */}
-                      {user?.photoURL || user?.avatar_url ? (
+                      {(user as any)?.photoURL || user?.avatar_url ? (
                         <Image
-                          src={user.photoURL || user.avatar_url || ''}
+                          src={(user as any)?.photoURL || user?.avatar_url || ''}
                           alt="Profile"
                           width={48}
                           height={48}
@@ -372,7 +365,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                         </div>
                       )}
                       <div>
-                        <p className="font-semibold">{user?.full_name || user?.displayName || 'Pengguna'}</p>
+                        <p className="font-semibold">{user?.full_name || (user as any)?.displayName || 'Pengguna'}</p>
                         <p className="text-sm opacity-90">{user?.email || ''}</p>
                         <p className="text-xs opacity-75 mt-1">
                           {user?.role === 'calon_thalibah' ? 'Calon Thalibah' :
@@ -481,27 +474,6 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                 </Link>
               ))}
             </nav>
-
-  
-            {/* Mobile Action Buttons */}
-            <div className="mt-4 pt-4 border-t border-green-900/20">
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                <button
-                  onClick={handleReload}
-                  className="flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Reload</span>
-                </button>
-                <button
-                  onClick={handleClearCache}
-                  className="flex items-center justify-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 rounded-lg transition-colors duration-200"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Clear Cache</span>
-                </button>
-              </div>
-            </div>
 
             {/* Mobile Logout Button */}
             <div className="mt-4 pt-4 border-t border-green-900/20">
