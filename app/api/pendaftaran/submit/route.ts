@@ -78,11 +78,27 @@ export async function POST(request: Request) {
     // Use validated body - no need for manual filtering since Zod handles validation
     const filteredBody = validatedBody;
 
+    // Fetch batch name for batch_name field (required by schema)
+    let batchName = 'Unknown Batch';
+    try {
+      const { data: batch } = await supabaseAdmin
+        .from('batches')
+        .select('name')
+        .eq('id', filteredBody.batch_id)
+        .single();
+      if (batch) {
+        batchName = batch.name;
+      }
+    } catch (e) {
+      logger.warn('Failed to fetch batch name', { error: e as Error });
+    }
+
     // Prepare submission data
     const submissionData: PendaftaranData = {
       user_id: filteredBody.user_id,
       batch_id: filteredBody.batch_id,
       program_id: filteredBody.program_id,
+      batch_name: batchName, // Required by schema
       understands_commitment: filteredBody.understands_commitment || false,
       tried_simulation: filteredBody.tried_simulation || false,
       no_negotiation: filteredBody.no_negotiation || false,
@@ -106,6 +122,9 @@ export async function POST(request: Request) {
       telegram_phone: filteredBody.telegram_phone,
       birth_date: filteredBody.birth_date,
       birth_place: filteredBody.birth_place,
+      age: filteredBody.age,
+      domicile: filteredBody.domicile,
+      timezone: filteredBody.timezone || 'WIB',
       questions: filteredBody.questions,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
