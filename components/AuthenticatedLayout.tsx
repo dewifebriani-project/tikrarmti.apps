@@ -164,12 +164,14 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Global Header - Always render to maintain structure, but handle interactive elements inside */}
-        <GlobalAuthenticatedHeader
-          onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          isSidebarOpen={isSidebarOpen}
-          isMounted={isMounted}
-        />
+        {/* Global Header - Sticky at top */}
+        <div className="sticky top-0 z-50">
+          <GlobalAuthenticatedHeader
+            onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+            isSidebarOpen={isSidebarOpen}
+            isMounted={isMounted}
+          />
+        </div>
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto bg-gray-50 pt-0">

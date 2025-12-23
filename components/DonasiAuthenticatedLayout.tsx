@@ -38,8 +38,10 @@ export default function DonasiAuthenticatedLayout({ children, title }: DonasiAut
 
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Global Header */}
-          <GlobalAuthenticatedHeader />
+          {/* Global Header - Sticky at top */}
+          <div className="sticky top-0 z-50">
+            <GlobalAuthenticatedHeader />
+          </div>
 
           {/* Content */}
           <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-6">

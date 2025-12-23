@@ -78,6 +78,7 @@ export const authSchemas = {
 
   // Register form (extended for full registration)
   register: z.object({
+    nama_kunyah: z.string().optional(),
     email: commonSchemas.email,
     password: z.string().min(6, 'Password minimal 6 karakter'),
     full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),

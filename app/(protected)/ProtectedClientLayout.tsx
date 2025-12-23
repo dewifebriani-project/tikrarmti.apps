@@ -57,14 +57,12 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 relative">
-          {/* Global Header - Fixed at top */}
-          <div className="sticky top-0 z-50 bg-gray-50">
-            <GlobalAuthenticatedHeader
-              onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-              isSidebarOpen={isSidebarOpen}
-              isMounted={isMounted}
-            />
-          </div>
+          {/* Global Header - Sticky at top */}
+          <GlobalAuthenticatedHeader
+            onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+            isSidebarOpen={isSidebarOpen}
+            isMounted={isMounted}
+          />
 
           {/* Scrollable Content Area */}
           <div className="flex-1 bg-gray-50 overflow-auto">

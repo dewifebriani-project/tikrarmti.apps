@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
+      nama_kunyah,
       email,
       password,
       full_name,
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
     try {
       // Sanitize all inputs
       const sanitizedEmail = sanitizeEmail(email);
+      const sanitizedNamaKunyah = nama_kunyah ? sanitizeName(nama_kunyah) : null;
       const sanitizedFullName = sanitizeName(full_name);
       const sanitizedNegara = sanitizeCity(negara);
       const sanitizedProvinsi = provinsi ? sanitizeCity(provinsi) : null;
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
       // Note: Timezone and role validation is handled by Zod schema
 
       // Update body with sanitized values
+      body.nama_kunyah = sanitizedNamaKunyah;
       body.email = sanitizedEmail;
       body.full_name = sanitizedFullName;
       body.negara = sanitizedNegara;
@@ -253,6 +256,7 @@ export async function POST(request: NextRequest) {
       const { data: updatedUser, error: updateError } = await supabaseAdmin
         .from('users')
         .update({
+          nama_kunyah: body.nama_kunyah,
           full_name: body.full_name,
           negara: body.negara,
           provinsi: body.provinsi,
@@ -293,6 +297,7 @@ export async function POST(request: NextRequest) {
           {
             id: authUser.id, // Use auth user ID
             email: body.email,
+            nama_kunyah: body.nama_kunyah,
             full_name: body.full_name,
             negara: body.negara,
             provinsi: body.provinsi,

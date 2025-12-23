@@ -24,6 +24,7 @@ import { negaraList, provinsiList, zonaWaktuList } from "@/lib/data/registration
 function RegisterPageContent() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    namaKunyah: '',
     namaLengkap: '',
     email: '',
     password: '',
@@ -71,6 +72,7 @@ function RegisterPageContent() {
   const clearSavedData = () => {
     localStorage.removeItem('registerFormData');
     setFormData({
+      namaKunyah: '',
       namaLengkap: '',
       email: '',
       password: '',
@@ -206,6 +208,7 @@ function RegisterPageContent() {
         },
         credentials: 'include',
         body: JSON.stringify({
+          nama_kunyah: formData.namaKunyah || null,
           email: formData.email,
           password: formData.password,
           full_name: formData.namaLengkap,
@@ -250,6 +253,7 @@ function RegisterPageContent() {
 
             // Map field names to user-friendly labels
             const fieldLabels: Record<string, string> = {
+              nama_kunyah: 'Nama Kunyah',
               email: 'Email',
               password: 'Password',
               full_name: 'Nama Lengkap',
@@ -362,11 +366,24 @@ function RegisterPageContent() {
                   type="text"
                   value={formData.namaLengkap}
                   onChange={(e) => handleInputChange('namaLengkap', e.target.value)}
-                  placeholder="Masukkan nama lengkap"
+                  placeholder="Masukkan nama lengkap (tanpa gelar)"
                   className={errors.namaLengkap ? 'border-red-500' : ''}
                   required
                 />
                 {errors.namaLengkap && <p className="text-red-500 text-sm mt-1">{errors.namaLengkap}</p>}
+              </div>
+
+              {/* Nama Kunyah */}
+              <div>
+                <Label htmlFor="namaKunyah">Nama Kunyah</Label>
+                <Input
+                  id="namaKunyah"
+                  type="text"
+                  value={formData.namaKunyah}
+                  onChange={(e) => handleInputChange('namaKunyah', e.target.value)}
+                  placeholder="Contoh: Ummu Fulanah"
+                />
+                <p className="text-gray-500 text-xs mt-1">Nama panggilan Islam (opsional)</p>
               </div>
 
               {/* Email */}

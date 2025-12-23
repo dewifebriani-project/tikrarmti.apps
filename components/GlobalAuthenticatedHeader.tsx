@@ -30,9 +30,26 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Perform logout function
+  const performLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
+    try {
+      console.log('BUTTON: Calling logout function');
+      await logout();
+      console.log('BUTTON: Logout function returned');
+    } catch (error) {
+      console.error('BUTTON: Logout error:', error);
+      // Force manual redirect if logout fails
+      window.location.href = '/login';
+    }
+  };
 
   // Fungsi untuk reload halaman
   const handleReload = () => {
@@ -161,7 +178,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
   ];
 
   return (
-    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 transition-all duration-300">
+    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 transition-all duration-300 sticky top-0 w-full">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           {/* Left Section - Hamburger Menu & Breadcrumbs */}
@@ -252,7 +269,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
 
               {/* Notifications Dropdown */}
               {isMounted && showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-50">
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-[100]">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <h3 className="font-semibold">Notifikasi</h3>
                     <p className="text-sm opacity-90">{notifications.filter(n => !n.read).length} belum dibaca</p>
@@ -331,7 +348,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
 
               {/* Profile Dropdown */}
               {isMounted && showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-50">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-green-900/20 overflow-hidden z-[100]">
                   <div className="bg-gradient-to-r from-green-900 to-green-800 text-white p-4">
                     <div className="flex items-center space-x-3">
                       {/* Avatar in dropdown */}
@@ -420,32 +437,28 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                         e.stopPropagation();
                         console.log('BUTTON: Logout clicked');
 
-                        // Show confirmation dialog
-                        if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
-                          console.log('BUTTON: User cancelled logout');
-                          return;
-                        }
-
-                        console.log('BUTTON: User confirmed logout');
-
-                        // Show loading state
+                        // Show loading state immediately for fast response
                         const buttonElement = e.currentTarget;
                         buttonElement.disabled = true;
                         buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
 
-                        try {
-                          console.log('BUTTON: Calling logout function');
-                          await logout();
-                          console.log('BUTTON: Logout function returned');
-                        } catch (error) {
-                          console.error('BUTTON: Logout error:', error);
-                          // Force manual redirect if logout fails
-                          window.location.href = '/login';
-                        }
+                        // Show confirmation dialog AFTER showing loading state (non-blocking)
+                        setTimeout(() => {
+                          if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                            console.log('BUTTON: User cancelled logout');
+                            // Reset button state
+                            buttonElement.disabled = false;
+                            buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="w-6 h-6 sm:w-5 sm:h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span>Keluar</span></div>';
+                            return;
+                          }
+
+                          console.log('BUTTON: User confirmed logout');
+                          performLogout();
+                        }, 50);
                       }}
                       type="button"
                       aria-label="Keluar dari akun"
-                      className="flex items-center space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] font-medium sm:px-3 sm:py-3 sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex items-center space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] font-medium sm:px-3 sm:py-3 sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <LogOut className="w-6 h-6 sm:w-5 sm:h-5" />
                       <span>Keluar</span>
@@ -482,22 +495,27 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                   e.preventDefault();
                   e.stopPropagation();
 
-                  // Show confirmation dialog
-                  if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
-                    return;
-                  }
-
-                  // Show loading state
+                  // Show loading state immediately for fast response
                   const buttonElement = e.currentTarget;
                   buttonElement.disabled = true;
                   buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
 
-                  // Perform logout - the logout function will handle the redirect
-                  await logout();
+                  // Show confirmation dialog AFTER showing loading state
+                  setTimeout(() => {
+                    if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                      // Reset button state
+                      buttonElement.disabled = false;
+                      buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span>Keluar</span></div>';
+                      return;
+                    }
+
+                    // Perform logout
+                    performLogout();
+                  }, 50);
                 }}
                 type="button"
                 aria-label="Keluar dari akun"
-                className="flex items-center space-x-3 px-4 py-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] font-medium border border-red-200 hover:border-red-300 sm:px-4 sm:py-3 sm:text-sm sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center space-x-3 px-4 py-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 rounded-lg transition-all duration-200 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] font-medium border border-red-200 hover:border-red-300 sm:px-4 sm:py-3 sm:text-sm sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <LogOut className="w-6 h-6" />
                 <span>Keluar</span>

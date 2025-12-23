@@ -23,21 +23,29 @@ type MuallimahFormData = {
   teaching_communities: string;
   memorized_tajweed_matan: string;
   studied_matan_exegesis: string;
-  memorization_level: string;
   memorized_juz: string[];
   examined_juz: string[];
   certified_juz: string[];
   preferred_juz: string;
-  // Schedule 1: Day (single) and Time slot (single selection)
+  class_type: 'tashih_ujian' | 'tashih_only' | 'ujian_only';
+  preferred_max_thalibah?: number;
+  // Schedule 1: Day (single) and Time range (start-end)
   schedule1_day: string;
-  schedule1_time: string;
-  // Schedule 2: Day (single) and Time slot (single selection)
+  schedule1_time_start: string;
+  schedule1_time_end: string;
+  // Schedule 2: Day (single) and Time range (start-end) - Optional
   schedule2_day: string;
-  schedule2_time: string;
+  schedule2_time_start: string;
+  schedule2_time_end: string;
   // Paid class options
   wants_paid_class: boolean;
   paid_class_name?: string;
-  paid_class_schedule?: string;
+  paid_class_schedule1_day?: string;
+  paid_class_schedule1_time_start?: string;
+  paid_class_schedule1_time_end?: string;
+  paid_class_schedule2_day?: string;
+  paid_class_schedule2_time_start?: string;
+  paid_class_schedule2_time_end?: string;
   paid_class_max_students?: number;
   paid_class_spp_percentage?: string; // '100', '80', or '60'
   paid_class_interest: string;
@@ -55,32 +63,10 @@ const dayOptions = [
   { value: 'ahad', label: 'Ahad' },
 ];
 
-// Hourly time options from 08:00 to 21:00
-const timeSlotOptions = [
-  { value: '08:00', label: '08:00' },
-  { value: '09:00', label: '09:00' },
-  { value: '10:00', label: '10:00' },
-  { value: '11:00', label: '11:00' },
-  { value: '12:00', label: '12:00' },
-  { value: '13:00', label: '13:00' },
-  { value: '14:00', label: '14:00' },
-  { value: '15:00', label: '15:00' },
-  { value: '16:00', label: '16:00' },
-  { value: '17:00', label: '17:00' },
-  { value: '18:00', label: '18:00' },
-  { value: '19:00', label: '19:00' },
-  { value: '20:00', label: '20:00' },
-  { value: '21:00', label: '21:00' },
-];
-
-const memorizationLevels = [
-  { value: '1-3', label: '1-3 Juz' },
-  { value: '4-6', label: '4-6 Juz' },
-  { value: '7-10', label: '7-10 Juz' },
-  { value: '11-15', label: '11-15 Juz' },
-  { value: '16-20', label: '16-20 Juz' },
-  { value: '21-25', label: '21-25 Juz' },
-  { value: '26-30', label: '26-30 Juz (Khatam)' },
+const classTypeOptions = [
+  { value: 'tashih_ujian', label: 'Kelas Tashih + Ujian' },
+  { value: 'tashih_only', label: 'Kelas Tashih Saja' },
+  { value: 'ujian_only', label: 'Kelas Ujian Saja' },
 ];
 
 const targetJuzOptions = ['1', '28', '29', '30'];
@@ -120,18 +106,26 @@ function MuallimahRegistrationContent() {
     teaching_communities: '',
     memorized_tajweed_matan: '',
     studied_matan_exegesis: '',
-    memorization_level: '',
     memorized_juz: [],
     examined_juz: [],
     certified_juz: [],
     preferred_juz: '',
+    class_type: 'tashih_ujian',
+    preferred_max_thalibah: undefined,
     schedule1_day: '',
-    schedule1_time: '',
+    schedule1_time_start: '',
+    schedule1_time_end: '',
     schedule2_day: '',
-    schedule2_time: '',
+    schedule2_time_start: '',
+    schedule2_time_end: '',
     wants_paid_class: false,
     paid_class_name: '',
-    paid_class_schedule: '',
+    paid_class_schedule1_day: '',
+    paid_class_schedule1_time_start: '',
+    paid_class_schedule1_time_end: '',
+    paid_class_schedule2_day: '',
+    paid_class_schedule2_time_start: '',
+    paid_class_schedule2_time_end: '',
     paid_class_max_students: undefined,
     paid_class_spp_percentage: '',
     paid_class_interest: '',
@@ -203,18 +197,26 @@ function MuallimahRegistrationContent() {
           teaching_communities: data.teaching_communities || '',
           memorized_tajweed_matan: data.memorized_tajweed_matan || '',
           studied_matan_exegesis: data.studied_maten_exegesis || '',
-          memorization_level: data.memorization_level || '',
           memorized_juz: data.memorized_juz ? data.memorized_juz.split(', ') : [],
           examined_juz: data.examined_juz ? data.examined_juz.split(', ') : [],
           certified_juz: data.certified_juz ? data.certified_juz.split(', ') : [],
           preferred_juz: data.preferred_juz || '',
+          class_type: data.class_type || 'tashih_ujian',
+          preferred_max_thalibah: data.preferred_max_thalibah,
           schedule1_day: preferredSchedule?.day || '',
-          schedule1_time: preferredSchedule?.time || '',
+          schedule1_time_start: preferredSchedule?.time_start || '',
+          schedule1_time_end: preferredSchedule?.time_end || '',
           schedule2_day: backupSchedule?.day || '',
-          schedule2_time: backupSchedule?.time || '',
+          schedule2_time_start: backupSchedule?.time_start || '',
+          schedule2_time_end: backupSchedule?.time_end || '',
           wants_paid_class: !!paidClassInterest,
           paid_class_name: paidClassInterest?.name || '',
-          paid_class_schedule: paidClassInterest?.schedule || '',
+          paid_class_schedule1_day: paidClassInterest?.schedule1_day || '',
+          paid_class_schedule1_time_start: paidClassInterest?.schedule1_time_start || '',
+          paid_class_schedule1_time_end: paidClassInterest?.schedule1_time_end || '',
+          paid_class_schedule2_day: paidClassInterest?.schedule2_day || '',
+          paid_class_schedule2_time_start: paidClassInterest?.schedule2_time_start || '',
+          paid_class_schedule2_time_end: paidClassInterest?.schedule2_time_end || '',
           paid_class_max_students: paidClassInterest?.max_students,
           paid_class_spp_percentage: paidClassInterest?.spp_percentage || '',
           paid_class_interest: paidClassInterest?.additional_info || '',
@@ -286,31 +288,32 @@ function MuallimahRegistrationContent() {
     if (!formData.quran_institution?.trim()) {
       newErrors.quran_institution = 'Lembaga hafal Quran harus diisi';
     }
-    if (!formData.memorization_level) {
-      newErrors.memorization_level = 'Jumlah hafalan harus dipilih';
-    }
     if (!formData.preferred_juz) {
       newErrors.preferred_juz = 'Juz yang bersedia diampu harus dipilih';
     }
     if (!formData.schedule1_day) {
       newErrors.schedule1_day = 'Pilih hari untuk Jadwal 1';
     }
-    if (!formData.schedule1_time) {
-      newErrors.schedule1_time = 'Pilih jam untuk Jadwal 1';
+    if (!formData.schedule1_time_start) {
+      newErrors.schedule1_time_start = 'Pilih jam mulai untuk Jadwal 1';
     }
-    if (!formData.schedule2_day) {
-      newErrors.schedule2_day = 'Pilih hari untuk Jadwal 2';
+    if (!formData.schedule1_time_end) {
+      newErrors.schedule1_time_end = 'Pilih jam selesai untuk Jadwal 1';
     }
-    if (!formData.schedule2_time) {
-      newErrors.schedule2_time = 'Pilih jam untuk Jadwal 2';
-    }
+    // Note: Schedule 2 is optional, so no validation required
     // Validate paid class fields if user wants to open paid class
     if (formData.wants_paid_class) {
       if (!formData.paid_class_name?.trim()) {
         newErrors.paid_class_name = 'Nama kelas harus diisi';
       }
-      if (!formData.paid_class_schedule?.trim()) {
-        newErrors.paid_class_schedule = 'Jadwal kelas harus diisi';
+      if (!formData.paid_class_schedule1_day) {
+        newErrors.paid_class_schedule1_day = 'Pilih hari untuk Jadwal 1';
+      }
+      if (!formData.paid_class_schedule1_time_start) {
+        newErrors.paid_class_schedule1_time_start = 'Pilih jam mulai untuk Jadwal 1';
+      }
+      if (!formData.paid_class_schedule1_time_end) {
+        newErrors.paid_class_schedule1_time_end = 'Pilih jam selesai untuk Jadwal 1';
       }
       if (!formData.paid_class_max_students || formData.paid_class_max_students < 1) {
         newErrors.paid_class_max_students = 'Jumlah maksimal peserta harus diisi';
@@ -328,10 +331,19 @@ function MuallimahRegistrationContent() {
   };
 
   // Helper to format schedule for storage
-  const formatSchedule = (day: string, time: string) => {
+  const formatSchedule = (day: string, timeStart: string, timeEnd: string) => {
     const dayLabel = dayOptions.find(d => d.value === day)?.label || day;
-    const timeLabel = timeSlotOptions.find(t => t.value === time)?.label || time;
-    return { day: dayLabel, time: timeLabel };
+    return { day: dayLabel, time_start: timeStart, time_end: timeEnd };
+  };
+
+  // Helper to format paid class schedule
+  const formatPaidClassSchedule = (day: string, timeStart: string, timeEnd: string) => {
+    const dayLabel = dayOptions.find(d => d.value === day)?.label || day;
+    return {
+      day: dayLabel,
+      time_start: timeStart,
+      time_end: timeEnd
+    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -360,8 +372,11 @@ function MuallimahRegistrationContent() {
       }
 
       // Submit muallimah registration data
-      const schedule1Formatted = formatSchedule(formData.schedule1_day, formData.schedule1_time);
-      const schedule2Formatted = formatSchedule(formData.schedule2_day, formData.schedule2_time);
+      const schedule1Formatted = formatSchedule(formData.schedule1_day, formData.schedule1_time_start, formData.schedule1_time_end);
+      let schedule2Formatted = null;
+      if (formData.schedule2_day && formData.schedule2_time_start && formData.schedule2_time_end) {
+        schedule2Formatted = formatSchedule(formData.schedule2_day, formData.schedule2_time_start, formData.schedule2_time_end);
+      }
 
       const submitData = {
         user_id: authUser.id,
@@ -380,30 +395,28 @@ function MuallimahRegistrationContent() {
         quran_institution: formData.quran_institution,
         teaching_communities: formData.teaching_communities || null,
         memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
-        studied_matan_exegesis: formData.studied_matan_exegesis || null,
-        memorization_level: formData.memorization_level,
+        studied_maten_exegesis: formData.studied_matan_exegesis || null,
         memorized_juz: formData.memorized_juz.length > 0 ? formData.memorized_juz.join(', ') : null,
         examined_juz: formData.examined_juz.length > 0 ? formData.examined_juz.join(', ') : null,
         certified_juz: formData.certified_juz.length > 0 ? formData.certified_juz.join(', ') : null,
         preferred_juz: formData.preferred_juz,
+        class_type: formData.class_type,
+        preferred_max_thalibah: formData.preferred_max_thalibah || null,
         teaching_experience: '', // Legacy field
         teaching_years: null,
         teaching_institutions: null,
         // Store schedule as JSON string
-        preferred_schedule: JSON.stringify({
-          day: formData.schedule1_day,
-          time: formData.schedule1_time,
-          formatted: schedule1Formatted
-        }),
-        backup_schedule: JSON.stringify({
-          day: formData.schedule2_day,
-          time: formData.schedule2_time,
-          formatted: schedule2Formatted
-        }),
-        timezone: userData?.zona_waktu || 'WIB',
+        preferred_schedule: JSON.stringify(schedule1Formatted),
+        backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : null,
+        timezone: 'WIB',
         paid_class_interest: formData.wants_paid_class ? JSON.stringify({
           name: formData.paid_class_name || null,
-          schedule: formData.paid_class_schedule || null,
+          schedule1: formData.paid_class_schedule1_day
+            ? formatPaidClassSchedule(formData.paid_class_schedule1_day, formData.paid_class_schedule1_time_start || '', formData.paid_class_schedule1_time_end || '')
+            : null,
+          schedule2: formData.paid_class_schedule2_day
+            ? formatPaidClassSchedule(formData.paid_class_schedule2_day, formData.paid_class_schedule2_time_start || '', formData.paid_class_schedule2_time_end || '')
+            : null,
           max_students: formData.paid_class_max_students || null,
           spp_percentage: formData.paid_class_spp_percentage || null,
           additional_info: formData.paid_class_interest || null,
@@ -423,9 +436,13 @@ function MuallimahRegistrationContent() {
           .eq('id', existingRegistrationId)
           .eq('user_id', authUser.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Update error:', updateError);
+          toast.error('Gagal memperbarui data pendaftaran. Silakan coba lagi.');
+          throw updateError;
+        }
 
-        toast.success('Data pendaftaran Muallimah berhasil diperbarui!');
+        toast.success('Alhamdulillah! Data pendaftaran Muallimah berhasil diperbarui!');
       } else {
         // Create new registration
         const { error: submitError } = await supabase
@@ -436,16 +453,20 @@ function MuallimahRegistrationContent() {
             submitted_at: new Date().toISOString(),
           });
 
-        if (submitError) throw submitError;
+        if (submitError) {
+          console.error('Submit error:', submitError);
+          toast.error('Gagal mengirim pendaftaran. Silakan coba lagi.');
+          throw submitError;
+        }
 
-        toast.success('Pendaftaran sebagai Muallimah berhasil dikirim!');
+        toast.success('Alhamdulillah! Pendaftaran sebagai Muallimah berhasil dikirim!');
       }
 
       router.push('/pendaftaran/success?program=muallimah');
 
     } catch (error: any) {
       console.error('Submit error:', error);
-      toast.error(error.message || 'Gagal mengirim pendaftaran');
+      // Toast already shown above, no need to show again
     } finally {
       setIsLoading(false);
     }
@@ -456,14 +477,14 @@ function MuallimahRegistrationContent() {
       {authLoading ? (
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
             <p className="text-gray-600">Memeriksa autentikasi...</p>
           </div>
         </div>
       ) : !isAuthenticated ? (
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
             <p className="text-gray-600">Mengalihkan ke halaman login...</p>
           </div>
         </div>
@@ -516,7 +537,7 @@ function MuallimahRegistrationContent() {
                   </li>
                 </ul>
 
-                <p className="font-medium text-gray-900">🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)</p>
+                <p className="font-medium text-gray-900">🎯 Target hafalan harian thalibah: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)</p>
                 <ul className="list-none pl-0 space-y-1 text-gray-700">
                   <li className="flex items-center gap-2">
                     <span className="text-green-600">✅</span>
@@ -614,7 +635,7 @@ function MuallimahRegistrationContent() {
                 </Alert>
               )}
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 Formulir Pendaftaran
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
@@ -700,26 +721,9 @@ function MuallimahRegistrationContent() {
                     Hafalan Al-Quran
                   </h3>
 
-                  <div className="space-y-1.5 sm:space-y-2">
-                    <Label className="text-xs sm:text-sm">Jumlah Hafalan Saat Ini *</Label>
-                    <Select value={formData.memorization_level} onValueChange={(value) => handleInputChange('memorization_level', value)}>
-                      <SelectTrigger className={`text-xs sm:text-sm py-2 sm:py-2.5 ${errors.memorization_level ? 'border-red-500' : ''}`}>
-                        <SelectValue placeholder="Pilih jumlah hafalan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {memorizationLevels.map(option => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.memorization_level && <p className="text-xs sm:text-sm text-red-500">{errors.memorization_level}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Juz yang Pernah Dihafal (Opsional)</Label>
-                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                  <div className="space-y-2 overflow-x-auto pb-2">
+                    <Label className="text-xs sm:text-sm whitespace-nowrap">Juz yang Pernah Dihafal (Opsional)</Label>
+                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 min-w-max">
                       {allJuzOptions.map((juz) => (
                         <label
                           key={juz.value}
@@ -750,9 +754,9 @@ function MuallimahRegistrationContent() {
                     <p className="text-xs text-gray-500">Pilih juz yang pernah dihafal</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Juz yang Pernah Dijikankan (Opsional)</Label>
-                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                  <div className="space-y-2 overflow-x-auto pb-2">
+                    <Label className="text-xs sm:text-sm whitespace-nowrap">Juz yang Pernah Diujikankan (Opsional)</Label>
+                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 min-w-max">
                       {allJuzOptions.map((juz) => (
                         <label
                           key={juz.value}
@@ -783,9 +787,9 @@ function MuallimahRegistrationContent() {
                     <p className="text-xs text-gray-500">Pilih juz yang pernah diujikan</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Juz yang Pernah Mendapat Sertifikat (Opsional)</Label>
-                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+                  <div className="space-y-2 overflow-x-auto pb-2">
+                    <Label className="text-xs sm:text-sm whitespace-nowrap">Juz yang Pernah Mendapat Sertifikat (Opsional)</Label>
+                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 min-w-max">
                       {allJuzOptions.map((juz) => (
                         <label
                           key={juz.value}
@@ -844,15 +848,52 @@ function MuallimahRegistrationContent() {
                     {errors.preferred_juz && <p className="text-sm text-red-500">{errors.preferred_juz}</p>}
                   </div>
 
+                  <div className="space-y-2">
+                    <Label>Jenis Kelas yang Ingin Dibuka *</Label>
+                    <p className="text-xs text-gray-500 mb-2">Pilih jenis kelas yang ukhti ingin ampu dalam satu jadwal</p>
+                    <div className="space-y-2">
+                      {classTypeOptions.map((type) => (
+                        <div key={type.value} className="flex items-center space-x-2 bg-white p-3 rounded border">
+                          <input
+                            type="radio"
+                            id={`class_type_${type.value}`}
+                            name="class_type"
+                            value={type.value}
+                            checked={formData.class_type === type.value}
+                            onChange={() => handleInputChange('class_type', type.value)}
+                            className="w-4 h-4 text-green-600 focus:ring-green-500"
+                          />
+                          <Label htmlFor={`class_type_${type.value}`} className="text-sm cursor-pointer flex-1">
+                            {type.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="preferred_max_thalibah">Jumlah Maksimal Thalibah per Kelas (Opsional)</Label>
+                    <Input
+                      id="preferred_max_thalibah"
+                      type="number"
+                      min={1}
+                      value={formData.preferred_max_thalibah || ''}
+                      onChange={(e) => handleInputChange('preferred_max_thalibah', e.target.value ? parseInt(e.target.value) : undefined)}
+                      placeholder="Contoh: 10"
+                      className="text-xs sm:text-sm py-2 sm:py-2.5"
+                    />
+                    <p className="text-xs text-gray-500">Kosongkan jika tidak ada batasan</p>
+                  </div>
+
                   {/* Schedule 1 */}
                   <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-medium text-gray-900">Jadwal 1 yang Dipilih *</h4>
 
                     <div className="space-y-2">
                       <Label>Pilih Hari *</Label>
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {dayOptions.map((day) => (
-                          <div key={day.value} className="flex items-center space-x-2 bg-white p-2 rounded border">
+                          <div key={day.value} className="flex items-center space-x-2 bg-white p-2 rounded border flex-shrink-0">
                             <input
                               type="radio"
                               id={`schedule1_day_${day.value}`}
@@ -862,7 +903,7 @@ function MuallimahRegistrationContent() {
                               onChange={() => handleInputChange('schedule1_day', day.value)}
                               className="w-4 h-4 text-green-600 focus:ring-green-500"
                             />
-                            <Label htmlFor={`schedule1_day_${day.value}`} className="text-sm cursor-pointer">
+                            <Label htmlFor={`schedule1_day_${day.value}`} className="text-sm cursor-pointer whitespace-nowrap">
                               {day.label}
                             </Label>
                           </div>
@@ -871,39 +912,42 @@ function MuallimahRegistrationContent() {
                       {errors.schedule1_day && <p className="text-sm text-red-500">{errors.schedule1_day}</p>}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Pilih Jam (pilih salah satu) *</Label>
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                        {timeSlotOptions.map((time) => (
-                          <div key={time.value} className="flex items-center space-x-2 bg-white p-2 rounded border">
-                            <input
-                              type="radio"
-                              id={`schedule1_time_${time.value}`}
-                              name="schedule1_time"
-                              value={time.value}
-                              checked={formData.schedule1_time === time.value}
-                              onChange={() => handleInputChange('schedule1_time', time.value)}
-                              className="w-4 h-4 text-green-600 focus:ring-green-500"
-                            />
-                            <Label htmlFor={`schedule1_time_${time.value}`} className="text-sm cursor-pointer">
-                              {time.label}
-                            </Label>
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="schedule1_time_start">Jam Mulai (WIB) *</Label>
+                        <Input
+                          id="schedule1_time_start"
+                          type="time"
+                          value={formData.schedule1_time_start}
+                          onChange={(e) => handleInputChange('schedule1_time_start', e.target.value)}
+                          className={errors.schedule1_time_start ? 'border-red-500' : ''}
+                        />
+                        {errors.schedule1_time_start && <p className="text-sm text-red-500">{errors.schedule1_time_start}</p>}
                       </div>
-                      {errors.schedule1_time && <p className="text-sm text-red-500">{errors.schedule1_time}</p>}
+                      <div className="space-y-2">
+                        <Label htmlFor="schedule1_time_end">Jam Selesai (WIB) *</Label>
+                        <Input
+                          id="schedule1_time_end"
+                          type="time"
+                          value={formData.schedule1_time_end}
+                          onChange={(e) => handleInputChange('schedule1_time_end', e.target.value)}
+                          className={errors.schedule1_time_end ? 'border-red-500' : ''}
+                        />
+                        {errors.schedule1_time_end && <p className="text-sm text-red-500">{errors.schedule1_time_end}</p>}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Schedule 2 */}
+                  {/* Schedule 2 - Optional */}
                   <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900">Jadwal 2 yang Dipilih *</h4>
+                    <h4 className="font-medium text-gray-900">Jadwal 2 (Opsional)</h4>
+                    <p className="text-xs text-gray-500">Isi jadwal cadangan jika ukhti memiliki preferensi waktu lain</p>
 
                     <div className="space-y-2">
-                      <Label>Pilih Hari *</Label>
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      <Label>Pilih Hari</Label>
+                      <div className="flex flex-wrap gap-2">
                         {dayOptions.map((day) => (
-                          <div key={day.value} className="flex items-center space-x-2 bg-white p-2 rounded border">
+                          <div key={day.value} className="flex items-center space-x-2 bg-white p-2 rounded border flex-shrink-0">
                             <input
                               type="radio"
                               id={`schedule2_day_${day.value}`}
@@ -913,40 +957,38 @@ function MuallimahRegistrationContent() {
                               onChange={() => handleInputChange('schedule2_day', day.value)}
                               className="w-4 h-4 text-green-600 focus:ring-green-500"
                             />
-                            <Label htmlFor={`schedule2_day_${day.value}`} className="text-sm cursor-pointer">
+                            <Label htmlFor={`schedule2_day_${day.value}`} className="text-sm cursor-pointer whitespace-nowrap">
                               {day.label}
                             </Label>
                           </div>
                         ))}
                       </div>
-                      {errors.schedule2_day && <p className="text-sm text-red-500">{errors.schedule2_day}</p>}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Pilih Jam (pilih salah satu) *</Label>
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                        {timeSlotOptions.map((time) => (
-                          <div key={time.value} className="flex items-center space-x-2 bg-white p-2 rounded border">
-                            <input
-                              type="radio"
-                              id={`schedule2_time_${time.value}`}
-                              name="schedule2_time"
-                              value={time.value}
-                              checked={formData.schedule2_time === time.value}
-                              onChange={() => handleInputChange('schedule2_time', time.value)}
-                              className="w-4 h-4 text-green-600 focus:ring-green-500"
-                            />
-                            <Label htmlFor={`schedule2_time_${time.value}`} className="text-sm cursor-pointer">
-                              {time.label}
-                            </Label>
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="schedule2_time_start">Jam Mulai (WIB)</Label>
+                        <Input
+                          id="schedule2_time_start"
+                          type="time"
+                          value={formData.schedule2_time_start}
+                          onChange={(e) => handleInputChange('schedule2_time_start', e.target.value)}
+                        />
                       </div>
-                      {errors.schedule2_time && <p className="text-sm text-red-500">{errors.schedule2_time}</p>}
+                      <div className="space-y-2">
+                        <Label htmlFor="schedule2_time_end">Jam Selesai (WIB)</Label>
+                        <Input
+                          id="schedule2_time_end"
+                          type="time"
+                          value={formData.schedule2_time_end}
+                          onChange={(e) => handleInputChange('schedule2_time_end', e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  {/* Kelas Berbayar */}
+                  <div className="space-y-4 p-4 bg-green-50 rounded-lg border border-green-200">
                     <h4 className="font-medium text-gray-900">Kelas Berbayar (Opsional)</h4>
 
                     <div className="space-y-2">
@@ -979,16 +1021,101 @@ function MuallimahRegistrationContent() {
                           {errors.paid_class_name && <p className="text-sm text-red-500">{errors.paid_class_name}</p>}
                         </div>
 
-                        <div className="space-y-2 pl-6">
-                          <Label htmlFor="paid_class_schedule">Jadwal Kelas *</Label>
-                          <Input
-                            id="paid_class_schedule"
-                            value={formData.paid_class_schedule}
-                            onChange={(e) => handleInputChange('paid_class_schedule', e.target.value)}
-                            placeholder="Contoh: Senin & Kamis, 19:00-21:00"
-                            className={errors.paid_class_schedule ? 'border-red-500' : ''}
-                          />
-                          {errors.paid_class_schedule && <p className="text-sm text-red-500">{errors.paid_class_schedule}</p>}
+                        {/* Jadwal 1 Kelas Berbayar */}
+                        <div className="space-y-3 pl-6">
+                          <Label>Jadwal 1 Kelas Berbayar *</Label>
+                          <div className="space-y-2">
+                            <p className="text-xs text-gray-500">Pilih Hari:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {dayOptions.map((day) => (
+                                <div key={`paid1_${day.value}`} className="flex items-center space-x-2 bg-white p-2 rounded border flex-shrink-0">
+                                  <input
+                                    type="radio"
+                                    id={`paid_schedule1_day_${day.value}`}
+                                    name="paid_class_schedule1_day"
+                                    value={day.value}
+                                    checked={formData.paid_class_schedule1_day === day.value}
+                                    onChange={() => handleInputChange('paid_class_schedule1_day', day.value)}
+                                    className="w-4 h-4 text-green-600 focus:ring-green-500"
+                                  />
+                                  <Label htmlFor={`paid_schedule1_day_${day.value}`} className="text-sm cursor-pointer whitespace-nowrap">
+                                    {day.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                            {errors.paid_class_schedule1_day && <p className="text-sm text-red-500">{errors.paid_class_schedule1_day}</p>}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="paid_class_schedule1_time_start" className="text-xs">Jam Mulai (WIB) *</Label>
+                              <Input
+                                id="paid_class_schedule1_time_start"
+                                type="time"
+                                value={formData.paid_class_schedule1_time_start}
+                                onChange={(e) => handleInputChange('paid_class_schedule1_time_start', e.target.value)}
+                                className={errors.paid_class_schedule1_time_start ? 'border-red-500' : ''}
+                              />
+                              {errors.paid_class_schedule1_time_start && <p className="text-xs text-red-500">{errors.paid_class_schedule1_time_start}</p>}
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="paid_class_schedule1_time_end" className="text-xs">Jam Selesai (WIB) *</Label>
+                              <Input
+                                id="paid_class_schedule1_time_end"
+                                type="time"
+                                value={formData.paid_class_schedule1_time_end}
+                                onChange={(e) => handleInputChange('paid_class_schedule1_time_end', e.target.value)}
+                                className={errors.paid_class_schedule1_time_end ? 'border-red-500' : ''}
+                              />
+                              {errors.paid_class_schedule1_time_end && <p className="text-xs text-red-500">{errors.paid_class_schedule1_time_end}</p>}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Jadwal 2 Kelas Berbayar - Optional */}
+                        <div className="space-y-3 pl-6">
+                          <Label>Jadwal 2 Kelas Berbayar (Opsional)</Label>
+                          <div className="space-y-2">
+                            <p className="text-xs text-gray-500">Pilih Hari:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {dayOptions.map((day) => (
+                                <div key={`paid2_${day.value}`} className="flex items-center space-x-2 bg-white p-2 rounded border flex-shrink-0">
+                                  <input
+                                    type="radio"
+                                    id={`paid_schedule2_day_${day.value}`}
+                                    name="paid_class_schedule2_day"
+                                    value={day.value}
+                                    checked={formData.paid_class_schedule2_day === day.value}
+                                    onChange={() => handleInputChange('paid_class_schedule2_day', day.value)}
+                                    className="w-4 h-4 text-green-600 focus:ring-green-500"
+                                  />
+                                  <Label htmlFor={`paid_schedule2_day_${day.value}`} className="text-sm cursor-pointer whitespace-nowrap">
+                                    {day.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <Label htmlFor="paid_class_schedule2_time_start" className="text-xs">Jam Mulai (WIB)</Label>
+                              <Input
+                                id="paid_class_schedule2_time_start"
+                                type="time"
+                                value={formData.paid_class_schedule2_time_start}
+                                onChange={(e) => handleInputChange('paid_class_schedule2_time_start', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor="paid_class_schedule2_time_end" className="text-xs">Jam Selesai (WIB)</Label>
+                              <Input
+                                id="paid_class_schedule2_time_end"
+                                type="time"
+                                value={formData.paid_class_schedule2_time_end}
+                                onChange={(e) => handleInputChange('paid_class_schedule2_time_end', e.target.value)}
+                              />
+                            </div>
+                          </div>
                         </div>
 
                         <div className="space-y-2 pl-6">
@@ -1080,7 +1207,7 @@ function MuallimahRegistrationContent() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-sm sm:text-base py-2.5 sm:py-3"
+                  className="w-full bg-green-700 hover:bg-green-800 text-white text-sm sm:text-base py-2.5 sm:py-3"
                 >
                   {isLoading
                     ? (isEditMode ? 'Memperbarui...' : 'Mengirim...')
@@ -1088,38 +1215,6 @@ function MuallimahRegistrationContent() {
                   }
                 </Button>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Program Benefits */}
-          <Card className="mt-6 sm:mt-8">
-            <CardHeader className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3">
-              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                Benefit Program Muallimah
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-purple-700">Sertifikasi & Pendidikan</h4>
-                  <ul className="space-y-1 text-gray-600">
-                    <li>• Sertifikasi Mu'allimah Al-Quran</li>
-                    <li>• Mastery metode pengajaran Quran</li>
-                    <li>• Kurikulum berbasis research</li>
-                    <li>• Beasiswa untuk peserta terbaik</li>
-                  </ul>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-purple-700">Karir & Pengembangan</h4>
-                  <ul className="space-y-1 text-gray-600">
-                    <li>• Praktik mengajar terbimbing</li>
-                    <li>• Peluang karir di berbagai lembaga</li>
-                    <li>• Networking dengan praktisi</li>
-                    <li>• Program pengabdian masyarakat</li>
-                  </ul>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
