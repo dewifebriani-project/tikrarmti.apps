@@ -160,6 +160,7 @@ export default function ThalibahBatch2Page() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'success_update' | 'error'>('idle')
+  const [submitError, setSubmitError] = useState<string>('')
   const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
 
   const totalSections = 4
@@ -317,11 +318,58 @@ export default function ThalibahBatch2Page() {
 
     setIsSubmitting(true)
     try {
-      // Prepare data for Tikrar API
+      // Helper function to convert date to ISO string with offset
+      const toISOWithOffset = (dateInput: string | Date | undefined): string => {
+        if (!dateInput) return new Date().toISOString()
+        const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+        // Ensure we get a proper ISO string with offset
+        return date.toISOString()
+      }
+
+      // User metadata type - using any to access Supabase auth metadata
+      const userData = user as any
+
+      // Calculate age from birth_date if available
+      let calculatedAge = 15 // default minimum age
+      const birthDateValue = userData?.user_metadata?.birth_date || userData?.user_metadata?.tanggal_lahir
+      if (birthDateValue) {
+        const birthDate = new Date(birthDateValue)
+        const today = new Date()
+        calculatedAge = today.getFullYear() - birthDate.getFullYear()
+        const monthDiff = today.getMonth() - birthDate.getMonth()
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--
+        }
+      }
+
+      // Get gender - convert from database format to schema format
+      const genderValue = userData?.user_metadata?.jenis_kelamin
+      const genderMapped = genderValue === 'Perempuan' ? 'P' : genderValue === 'Laki-laki' ? 'L' : 'P'
+
+      // Get phone number with proper format
+      let phoneValue = userData?.user_metadata?.whatsapp || userData?.user_metadata?.phone || ''
+      // Ensure phone starts with Indonesian format
+      if (phoneValue && !phoneValue.startsWith('+62') && !phoneValue.startsWith('62')) {
+        phoneValue = phoneValue.startsWith('0') ? '62' + phoneValue.slice(1) : '62' + phoneValue
+      }
+
+      // Prepare data for Tikrar API - include all required fields from schema
       const submissionData = {
         user_id: user.id,
         batch_id: activeBatch.id,
         program_id: activeBatch.id,
+        // Personal data (from user metadata) - required by schema
+        full_name: userData?.user_metadata?.full_name || userData?.user_metadata?.nama_lengkap || userData?.user_metadata?.name || user.full_name || '',
+        email: user.email || '',
+        phone: phoneValue,
+        telegram_phone: userData?.user_metadata?.telegram || '',
+        address: userData?.user_metadata?.alamat || '',
+        birth_place: userData?.user_metadata?.tempat_lahir || '',
+        birth_date: toISOWithOffset(birthDateValue),
+        age: calculatedAge,
+        gender: genderMapped,
+        education: userData?.user_metadata?.pendidikan || '',
+        work: userData?.user_metadata?.pekerjaan || '',
         // Section 1
         understands_commitment: formData.understands_commitment,
         tried_simulation: formData.tried_simulation,
@@ -342,7 +390,8 @@ export default function ThalibahBatch2Page() {
         time_commitment: formData.time_commitment,
         // Section 4
         understands_program: formData.understands_program,
-        questions: formData.questions
+        questions: formData.questions,
+        provider: userData?.app_metadata?.provider || userData?.app_metadata?.provider_name || 'email'
       }
 
       if (isEditMode && existingRegistrationId) {
@@ -397,8 +446,16 @@ export default function ThalibahBatch2Page() {
       }, 3000)
 
       setRedirectTimer(timer)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submit error:', error)
+      // Extract error message for display
+      let errorMessage = 'Terjadi kesalahan saat mengirim formulir'
+      if (error?.message) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      setSubmitError(errorMessage)
       setSubmitStatus('error')
     } finally {
       setIsSubmitting(false)
@@ -1176,7 +1233,18 @@ export default function ThalibahBatch2Page() {
           <Alert className="bg-red-50 border-red-200">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
-              Terjadi kesalahan saat mengirim formulir. Silakan coba lagi atau hubungi admin melalui WhatsApp 08567712914.
+              <div className="space-y-2">
+                <p className="font-semibold">Terjadi kesalahan saat mengirim formulir</p>
+                <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 08567712914.</p>
+                {submitError && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm underline">Lihat Detail Error</summary>
+                    <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto max-h-40">
+                      {submitError}
+                    </pre>
+                  </details>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
         )}
