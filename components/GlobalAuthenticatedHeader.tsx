@@ -161,7 +161,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
   ];
 
   return (
-    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 sticky top-0 z-[60] transition-all duration-300">
+    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 transition-all duration-300">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           {/* Left Section - Hamburger Menu & Breadcrumbs */}

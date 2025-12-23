@@ -50,9 +50,6 @@ export default function PendaftaranPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [pendaftaranTypes, setPendaftaranTypes] = useState<PendaftaranType[]>([]);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [pendingRegistration, setPendingRegistration] = useState<PendaftaranType | null>(null);
 
   // SWR hooks for data fetching
   const { batches, programs, loading, error, hasPrograms } = useBatchProgram();
@@ -303,21 +300,12 @@ export default function PendaftaranPage() {
 
   const handleRegistrationClick = (type: PendaftaranType) => {
     if (type.status === 'open' && !registrationStatus?.registered) {
-      // Show terms modal before allowing registration
-      setPendingRegistration(type);
-      setShowTermsModal(true);
-    }
-  };
-
-  const handleProceedToRegistration = () => {
-    if (agreedToTerms && pendingRegistration) {
-      setShowTermsModal(false);
-      // Check which program type and redirect accordingly
-      if (pendingRegistration.title.toLowerCase().includes('tikrar')) {
+      // Direct to registration page without showing terms modal
+      if (type.title.toLowerCase().includes('tikrar')) {
         router.push('/pendaftaran/tikrar-tahfidz');
-      } else if (pendingRegistration.title.toLowerCase().includes('muallimah')) {
+      } else if (type.title.toLowerCase().includes('muallimah')) {
         router.push('/pendaftaran/muallimah');
-      } else if (pendingRegistration.title.toLowerCase().includes('musyrifah')) {
+      } else if (type.title.toLowerCase().includes('musyrifah')) {
         router.push('/pendaftaran/musyrifah');
       } else {
         // Default to tikrar if not specified
@@ -360,122 +348,6 @@ export default function PendaftaranPage() {
             Pilih program yang sesuai dengan kebutuhan dan minat Ukhti
           </p>
         </div>
-
-  
-        {/* Terms and Conditions Modal */}
-        {showTermsModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 sm:p-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-2">Syarat dan Ketentuan</h2>
-                <p className="text-sm sm:text-base text-green-100">Markaz Tikrar Indonesia (MTI)</p>
-              </div>
-
-              {/* Modal Content - Scrollable */}
-              <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh] space-y-4">
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                  <p className="text-sm text-yellow-800">
-                    <strong>Penting:</strong> Silakan baca dengan seksama syarat dan ketentuan di bawah ini sebelum melanjutkan pendaftaran.
-                  </p>
-                </div>
-
-                {/* Quick Summary */}
-                <div className="space-y-3 text-sm text-gray-700">
-                  <h3 className="font-bold text-base text-green-900">Ringkasan Syarat dan Ketentuan:</h3>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-green-800">✅ Komitmen Anda:</h4>
-                    <ul className="list-disc list-inside space-y-1 pl-2">
-                      <li>Mengikuti program hingga selesai (13-16 pekan)</li>
-                      <li>Menyediakan waktu minimal 2 jam/hari untuk menghafal</li>
-                      <li>Melaksanakan tikrar 40x tanpa pengurangan</li>
-                      <li>Konsisten dalam setoran harian kepada pasangan</li>
-                      <li>Mendapat izin dari suami/wali yang bertanggung jawab</li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-red-800">⚠️ Larangan:</h4>
-                    <ul className="list-disc list-inside space-y-1 pl-2 text-red-700">
-                      <li>Keluar dari program tanpa udzur syar'i</li>
-                      <li>Mendzolimi waktu pasangan tikrar</li>
-                      <li>Nego-nego jumlah tikrar atau aturan program</li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-orange-800">🚫 Sanksi Blacklist:</h4>
-                    <p className="text-orange-700 pl-2">
-                      Thalibah yang keluar tanpa udzur syar'i akan masuk <strong>blacklist permanen</strong> dan tidak dapat mendaftar kembali di MTI.
-                    </p>
-                  </div>
-
-                  <div className="bg-green-50 p-3 rounded-lg mt-4">
-                    <p className="text-xs text-green-800">
-                      <strong>Catatan:</strong> Pendaftaran ini merupakan akad (perjanjian) yang akan dipertanggungjawabkan di hadapan Allah Ta'ala.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Full Terms Link */}
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800 mb-2">
-                    Untuk membaca syarat dan ketentuan lengkap:
-                  </p>
-                  <a
-                    href="/syarat-ketentuan"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 font-semibold underline text-sm"
-                  >
-                    Buka Syarat dan Ketentuan Lengkap (Tab Baru) →
-                  </a>
-                </div>
-
-                {/* Agreement Checkbox */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-                  <label className="flex items-start space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={agreedToTerms}
-                      onChange={(e) => setAgreedToTerms(e.target.checked)}
-                      className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer"
-                    />
-                    <span className="text-sm text-gray-700 flex-1">
-                      <strong>Bismillah,</strong> saya menyatakan telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang berlaku di Markaz Tikrar Indonesia. Saya berkomitmen untuk menjalankan seluruh kewajiban dengan penuh tanggung jawab lillahi ta'ala.
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="bg-gray-50 p-4 sm:p-6 flex flex-col sm:flex-row gap-3 sm:gap-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowTermsModal(false);
-                    setAgreedToTerms(false);
-                  }}
-                  className="flex-1"
-                >
-                  Batal
-                </Button>
-                <Button
-                  onClick={handleProceedToRegistration}
-                  disabled={!agreedToTerms}
-                  className={`flex-1 ${
-                    agreedToTerms
-                      ? 'bg-green-600 hover:bg-green-700 text-white'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  {agreedToTerms ? 'Lanjutkan Pendaftaran' : 'Centang Persetujuan Dulu'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Registration Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
