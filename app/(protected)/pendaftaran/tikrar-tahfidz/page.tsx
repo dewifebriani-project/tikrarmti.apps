@@ -454,6 +454,13 @@ export default function ThalibahBatch2Page() {
         errorMessage = error.message
       } else if (typeof error === 'string') {
         errorMessage = error
+      } else if (typeof error === 'object' && error !== null) {
+        // Try to stringify the error object
+        try {
+          errorMessage = JSON.stringify(error, null, 2)
+        } catch {
+          errorMessage = String(error)
+        }
       }
       setSubmitError(errorMessage)
       setSubmitStatus('error')
