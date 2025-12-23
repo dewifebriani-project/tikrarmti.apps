@@ -103,7 +103,8 @@
       "Bash(PORT=3011 HOST=0.0.0.0 npm run dev:*)",
       "Bash(type \"app\\\\\\(protected\\)\\\\layout.tsx\")",
       "Bash(type \"d:\\\\tikrarmti.apps\\\\app\\\\\\(protected\\)\\\\pendaftaran\\\\page.tsx\")",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(Surat An-Naba ' ayat 1-11 sebanyak 40X\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

@@ -600,7 +600,7 @@ export default function ThalibahBatch2Page() {
                 className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
               />
               <Label htmlFor="tried_simulation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
+                Alhamdulillah saya sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X
               </Label>
             </div>
           </div>
