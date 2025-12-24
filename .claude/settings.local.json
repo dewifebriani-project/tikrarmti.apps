@@ -104,7 +104,16 @@
       "Bash(type \"app\\\\\\(protected\\)\\\\layout.tsx\")",
       "Bash(type \"d:\\\\tikrarmti.apps\\\\app\\\\\\(protected\\)\\\\pendaftaran\\\\page.tsx\")",
       "Bash(psql:*)",
-      "Bash(Surat An-Naba ' ayat 1-11 sebanyak 40X\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(Surat An-Naba ' ayat 1-11 sebanyak 40X\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm run build)",
+      "Bash(bash:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(vercel logs:*)",
+      "Bash(npx vercel ls --token=$VERCEL_TOKEN)",
+      "Bash(npx vercel:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []
