@@ -81,6 +81,7 @@ export function useBatch(id?: string) {
 
 /**
  * Hook for fetching currently active batch
+ * First tries to get batch with status=open, falls back to latest Tikrar batch
  */
 export function useActiveBatch() {
   const { data, error, isLoading, mutate } = useSWR<Batch[]>(
@@ -93,9 +94,20 @@ export function useActiveBatch() {
     }
   )
 
+  // Fallback: if no open batch, fetch latest Tikrar batch
+  const { data: fallbackData, isLoading: fallbackLoading } = useSWR<Batch[]>(
+    (!data || data.length === 0) ? '/api/batch?search=Tikrar&limit=1' : null,
+    getFetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+      refreshInterval: 0,
+    }
+  )
+
   return {
-    activeBatch: data?.[0] || null,
-    isLoading,
+    activeBatch: data?.[0] || fallbackData?.[0] || null,
+    isLoading: isLoading || fallbackLoading,
     isError: !!error,
     error,
     mutate,

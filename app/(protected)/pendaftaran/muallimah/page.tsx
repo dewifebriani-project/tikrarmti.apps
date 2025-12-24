@@ -3,6 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveBatch } from '@/hooks/useBatches';
+import { useJuzOptions } from '@/hooks/useJuzOptions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +28,7 @@ type MuallimahFormData = {
   memorized_juz: string[];
   examined_juz: string[];
   certified_juz: string[];
-  preferred_juz: string;
+  preferred_juz: string[]; // Changed to array for checkbox selection from juz_options
   class_type: 'tashih_ujian' | 'tashih_only' | 'ujian_only';
   preferred_max_thalibah?: number;
   // Schedule 1: Day (single) and Time range (start-end)
@@ -69,8 +71,6 @@ const classTypeOptions = [
   { value: 'ujian_only', label: 'Kelas Ujian Saja' },
 ];
 
-const targetJuzOptions = ['1', '28', '29', '30'];
-
 // SPP percentage options
 const sppPercentageOptions = [
   { value: '100', label: '100% (Tanpa Musyrifah)' },
@@ -88,6 +88,8 @@ function MuallimahRegistrationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { activeBatch, isLoading: batchLoading } = useActiveBatch();
+  const { juzOptions, isLoading: juzOptionsLoading } = useJuzOptions();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -109,7 +111,7 @@ function MuallimahRegistrationContent() {
     memorized_juz: [],
     examined_juz: [],
     certified_juz: [],
-    preferred_juz: '',
+    preferred_juz: [], // Changed to empty array for checkboxes
     class_type: 'tashih_ujian',
     preferred_max_thalibah: undefined,
     schedule1_day: '',
@@ -139,13 +141,18 @@ function MuallimahRegistrationContent() {
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // Set batchId from URL parameter or activeBatch
   useEffect(() => {
-    const batch = searchParams.get('batch');
-    if (batch) {
-      setBatchId(batch);
-      fetchBatchInfo(batch);
+    const batchFromUrl = searchParams.get('batch');
+    if (batchFromUrl) {
+      setBatchId(batchFromUrl);
+      fetchBatchInfo(batchFromUrl);
+    } else if (activeBatch?.id && !batchId) {
+      // If no batch in URL, use the active batch from database
+      setBatchId(activeBatch.id);
+      setBatchInfo(activeBatch);
     }
-  }, [searchParams]);
+  }, [searchParams, activeBatch]);
 
   // Load user data from users table
   useEffect(() => {
@@ -200,7 +207,7 @@ function MuallimahRegistrationContent() {
           memorized_juz: data.memorized_juz ? data.memorized_juz.split(', ') : [],
           examined_juz: data.examined_juz ? data.examined_juz.split(', ') : [],
           certified_juz: data.certified_juz ? data.certified_juz.split(', ') : [],
-          preferred_juz: data.preferred_juz || '',
+          preferred_juz: data.preferred_juz ? (Array.isArray(data.preferred_juz) ? data.preferred_juz : data.preferred_juz.split(', ')) : [],
           class_type: data.class_type || 'tashih_ujian',
           preferred_max_thalibah: data.preferred_max_thalibah,
           schedule1_day: preferredSchedule?.day || '',
@@ -288,8 +295,8 @@ function MuallimahRegistrationContent() {
     if (!formData.quran_institution?.trim()) {
       newErrors.quran_institution = 'Lembaga hafal Quran harus diisi';
     }
-    if (!formData.preferred_juz) {
-      newErrors.preferred_juz = 'Juz yang bersedia diampu harus dipilih';
+    if (!formData.preferred_juz || formData.preferred_juz.length === 0) {
+      newErrors.preferred_juz = 'Juz yang bersedia diampu harus dipilih minimal satu';
     }
     if (!formData.schedule1_day) {
       newErrors.schedule1_day = 'Pilih hari untuk Jadwal 1';
@@ -399,7 +406,7 @@ function MuallimahRegistrationContent() {
         memorized_juz: formData.memorized_juz.length > 0 ? formData.memorized_juz.join(', ') : null,
         examined_juz: formData.examined_juz.length > 0 ? formData.examined_juz.join(', ') : null,
         certified_juz: formData.certified_juz.length > 0 ? formData.certified_juz.join(', ') : null,
-        preferred_juz: formData.preferred_juz,
+        preferred_juz: formData.preferred_juz.length > 0 ? formData.preferred_juz.join(', ') : '',
         class_type: formData.class_type,
         preferred_max_thalibah: formData.preferred_max_thalibah || null,
         teaching_experience: '', // Legacy field
@@ -486,6 +493,27 @@ function MuallimahRegistrationContent() {
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
             <p className="text-gray-600">Mengalihkan ke halaman login...</p>
+          </div>
+        </div>
+      ) : batchLoading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
+            <p className="text-gray-600">Memuat informasi batch...</p>
+          </div>
+        </div>
+      ) : !batchId ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center max-w-md">
+            <Alert className="mb-4">
+              <AlertDescription className="text-red-800">
+                <p className="font-semibold">Tidak ada batch aktif</p>
+                <p className="text-sm mt-2">Mohon maaf, saat ini tidak ada batch pendaftaran yang dibuka. Silakan hubungi admin untuk informasi lebih lanjut.</p>
+              </AlertDescription>
+            </Alert>
+            <Link href="/pendaftaran">
+              <Button variant="outline">Kembali ke Program</Button>
+            </Link>
           </div>
         </div>
       ) : (
@@ -830,21 +858,38 @@ function MuallimahRegistrationContent() {
                     Pilihan Juz & Jadwal
                   </h3>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-x-auto pb-2">
                     <Label>Juz yang Bersedia Diampu *</Label>
-                    <p className="text-xs text-gray-500 mb-2">Batch ini tersedia untuk Juz 1, 28, 29, 30</p>
-                    <Select value={formData.preferred_juz} onValueChange={(value) => handleInputChange('preferred_juz', value)}>
-                      <SelectTrigger className={errors.preferred_juz ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="Pilih juz yang ingin diampu" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {targetJuzOptions.map(juz => (
-                          <SelectItem key={juz} value={juz}>
-                            Juz {juz}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-xs text-gray-500 mb-2">Pilih juz dari {juzOptions.length > 0 ? 'tabel juz_options' : 'daftar'} yang ukhti bersedia diampu</p>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 min-w-max">
+                      {juzOptions.map((juz) => (
+                        <label
+                          key={juz.id}
+                          htmlFor={`preferred_juz_${juz.code}`}
+                          className={`flex flex-col items-center justify-center p-2 rounded-lg border-2 cursor-pointer transition-all ${
+                            formData.preferred_juz.includes(juz.code)
+                              ? 'bg-green-500 border-green-500 text-white'
+                              : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
+                          }`}
+                        >
+                          <span className="text-xs font-bold">{juz.code}</span>
+                          <span className="text-[10px]">{juz.name}</span>
+                          <input
+                            type="checkbox"
+                            id={`preferred_juz_${juz.code}`}
+                            className="hidden"
+                            checked={formData.preferred_juz.includes(juz.code)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                handleInputChange('preferred_juz', [...formData.preferred_juz, juz.code]);
+                              } else {
+                                handleInputChange('preferred_juz', formData.preferred_juz.filter((j) => j !== juz.code));
+                              }
+                            }}
+                          />
+                        </label>
+                      ))}
+                    </div>
                     {errors.preferred_juz && <p className="text-sm text-red-500">{errors.preferred_juz}</p>}
                   </div>
 
@@ -1183,6 +1228,13 @@ function MuallimahRegistrationContent() {
                       <li>Izin udzur ke musyrifah minimal 1 jam sebelum kelas</li>
                       <li>Apabila ada udzur, MTI tidak menuntut mengganti jadwal</li>
                       <li>Muallimah dengan 2 kelas gratis boleh buka kelas berbayar</li>
+                      <li><strong>Pembagian SPP untuk kelas berbayar:</strong>
+                        <ul className="pl-4 mt-1 space-y-1 list-disc text-gray-600">
+                          <li><strong>100%</strong> - Tanpa Musyrifah (muallimah mengelola kelas secara mandiri)</li>
+                          <li><strong>80%</strong> - Didampingi Musyrifah (ada musyrifah yang membantu mengelola kelas)</li>
+                          <li><strong>60%</strong> - Jika memiliki 1 kelas gratis di MTI (insentif khusus)</li>
+                        </ul>
+                      </li>
                       <li>Setelah kurikulum selesai, muallimah bebas melanjutkan/cuti/mundur</li>
                     </ul>
                   </div>
