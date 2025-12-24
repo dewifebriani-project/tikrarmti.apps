@@ -235,8 +235,10 @@ export async function POST(request: Request) {
   } catch (error) {
     logger.error('Unhandled error in submit registration API', {
       error: error as Error,
+      errorMessage: (error as Error).message,
+      errorStack: (error as Error).stack,
       ip: clientIP
     });
-    return ApiResponses.serverError('Internal server error');
+    return ApiResponses.serverError((error as Error).message || 'Internal server error');
   }
 }
