@@ -48,6 +48,7 @@ export default function LengkapiProfilePage() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
+  const [returnUrl, setReturnUrl] = useState<string | null>(null)
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -55,6 +56,16 @@ export default function LengkapiProfilePage() {
       router.push('/login?redirect=/lengkapi-profile')
     }
   }, [authLoading, isAuthenticated, router])
+
+  // Check if user came from a registration page and store return URL
+  useEffect(() => {
+    // Check URL params for return URL
+    const params = new URLSearchParams(window.location.search)
+    const returnTo = params.get('returnTo')
+    if (returnTo) {
+      setReturnUrl(returnTo)
+    }
+  }, [])
 
   // Load existing user profile if available
   useEffect(() => {
@@ -206,9 +217,14 @@ export default function LengkapiProfilePage() {
 
       setSubmitStatus('success')
 
-      // Redirect to dashboard after success
+      // Redirect after success
       setTimeout(() => {
-        router.push('/dashboard')
+        // If user came from a registration page, return there with section=1 to show data diri
+        if (returnUrl) {
+          router.push(returnUrl)
+        } else {
+          router.push('/dashboard')
+        }
       }, 2000)
 
     } catch (error) {
@@ -251,7 +267,7 @@ export default function LengkapiProfilePage() {
           <Alert className="mb-6 bg-green-50 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              Profil berhasil dilengkapi! Mengalihkan ke dashboard...
+              Profil berhasil dilengkapi! {returnUrl ? 'Mengalihkan kembali ke form pendaftaran...' : 'Mengalihkan ke dashboard...'}
             </AlertDescription>
           </Alert>
         )}

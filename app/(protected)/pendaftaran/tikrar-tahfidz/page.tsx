@@ -133,7 +133,7 @@ function TikrarRegistrationContent() {
     fetchUserData()
   }, [fetchUserData])
 
-  // Refetch user data when page regains visibility (user returns from lengkapi-profile)
+  // Refetch user data when page regains visibility or focus (user returns from lengkapi-profile)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authUser?.id && isAuthenticated) {
@@ -141,9 +141,21 @@ function TikrarRegistrationContent() {
       }
     }
 
+    const handleFocus = () => {
+      if (authUser?.id && isAuthenticated) {
+        fetchUserData()
+      }
+    }
+
+    // Listen to both visibilitychange and focus events
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [fetchUserData, authUser?.id, isAuthenticated])
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [authUser?.id, isAuthenticated, fetchUserData])
 
   // Fetch existing registration
   useEffect(() => {
@@ -554,7 +566,7 @@ function TikrarRegistrationContent() {
                       <p className="font-semibold mb-2">Profil Anda belum lengkap!</p>
                       <p className="mb-3">Silakan lengkapi data diri Anda terlebih dahulu sebelum mendaftar.</p>
                       <Button
-                        onClick={() => router.push('/lengkapi-profile')}
+                        onClick={() => router.push('/lengkapi-profile?returnTo=/pendaftaran/tikrar-tahfidz')}
                         className="bg-red-600 hover:bg-red-700"
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
