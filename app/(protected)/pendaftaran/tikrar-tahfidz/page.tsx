@@ -487,7 +487,10 @@ export default function ThalibahBatch2Page() {
 
         if (!response.ok) {
           const errorData = await response.json()
-          console.error('API Error Response:', JSON.stringify(errorData, null, 2))
+          // Log full response for debugging
+          console.error('API Error Response:', errorData)
+          console.error('API Error Response stringified:', JSON.stringify(errorData, null, 2))
+
           // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
           let errorMsg = 'Failed to submit registration'
           if (errorData.error) {
@@ -504,6 +507,10 @@ export default function ThalibahBatch2Page() {
             } else {
               errorMsg = JSON.stringify(errorData.error)
             }
+          } else if (errorData.message) {
+            errorMsg = errorData.message
+          } else {
+            errorMsg = JSON.stringify(errorData)
           }
           throw new Error(errorMsg)
         }
