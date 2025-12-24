@@ -123,16 +123,21 @@ function TikrarRegistrationContent() {
     }
 
     if (authUser?.id && isAuthenticated) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single()
-
-      if (data && !error) {
-        setUserData(data)
-        lastFetchTimeRef.current = now
-      } else {
+      try {
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const result = await response.json()
+          const data = result.data || result.user || result
+          if (data && !data.error) {
+            setUserData(data)
+            lastFetchTimeRef.current = now
+          } else {
+            console.error('Error fetching user data:', data.error || 'No data found')
+          }
+        } else {
+          console.error('Error fetching user data:', response.status, response.statusText)
+        }
+      } catch (error) {
         console.error('Error fetching user data:', error)
       }
     }
