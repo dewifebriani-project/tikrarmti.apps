@@ -380,6 +380,8 @@ export default function ThalibahBatch2Page() {
       let program = null
       let programError = null
 
+      console.log('🔍 Fetching program for batch:', activeBatch.id)
+
       // First attempt: Try to find 'open' program
       const { data: openProgram, error: openError } = await supabase
         .from('programs')
@@ -388,9 +390,13 @@ export default function ThalibahBatch2Page() {
         .eq('status', 'open')
         .maybeSingle()
 
+      console.log('📊 Open program query result:', { openProgram, openError })
+
       if (openProgram) {
         program = openProgram
+        console.log('✅ Found open program:', program)
       } else {
+        console.log('⚠️ No open program found, trying any program...')
         // Second attempt: Find any program for this batch (fallback)
         const { data: anyProgram, error: anyError } = await supabase
           .from('programs')
@@ -398,20 +404,28 @@ export default function ThalibahBatch2Page() {
           .eq('batch_id', activeBatch.id)
           .maybeSingle()
 
+        console.log('📊 Any program query result:', { anyProgram, anyError })
+
         if (anyProgram) {
           program = anyProgram
+          console.log('✅ Found program (fallback):', program)
         } else {
           programError = anyError || openError
+          console.log('❌ No program found at all:', programError)
         }
       }
 
       if (programError || !program) {
-        console.error('Program fetch error:', programError)
+        console.error('❌ Program fetch failed!')
         console.error('Batch ID:', activeBatch.id)
+        console.error('Error details:', programError)
+        console.error('Full activeBatch:', activeBatch)
         toast.error('Program untuk batch ini belum tersedia. Silakan hubungi admin.')
         setIsSubmitting(false)
         return
       }
+
+      console.log('🎯 Using program ID:', program.id)
 
       // Calculate age from birth_date
       const birthDateValue = userProfile?.tanggal_lahir || new Date().toISOString()
