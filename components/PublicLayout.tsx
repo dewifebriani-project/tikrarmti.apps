@@ -10,19 +10,21 @@ interface PublicLayoutProps {
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-main-background text-main">
+    <div className="h-screen flex flex-col bg-main-background text-main overflow-hidden">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50">
+      <div className="sticky top-0 z-50 flex-shrink-0">
         <Header />
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        {children}
-      </main>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto">
+        <main>
+          {children}
+        </main>
 
-      {/* Footer */}
-      <Footer />
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
 }
