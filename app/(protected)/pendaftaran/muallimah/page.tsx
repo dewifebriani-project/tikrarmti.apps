@@ -374,23 +374,26 @@ function MuallimahRegistrationContent() {
           }) : null,
         };
 
-        // Check if draft exists
-        const { data: existingDraft } = await supabase
+        // Check if draft or any existing registration exists
+        const { data: existingRecord } = await supabase
           .from('muallimah_registrations')
-          .select('id')
+          .select('id, status')
           .eq('user_id', user.id)
           .eq('batch_id', batchId)
-          .eq('status', 'draft')
           .maybeSingle();
 
-        if (existingDraft) {
-          // Update existing draft
-          await supabase
-            .from('muallimah_registrations')
-            .update(draftData)
-            .eq('id', existingDraft.id);
-        } else if (!existingRegistrationId) {
-          // Create new draft only if no pending/review registration exists
+        if (existingRecord) {
+          // Only update if status is draft, otherwise don't update submitted registrations
+          if (existingRecord.status === 'draft') {
+            await supabase
+              .from('muallimah_registrations')
+              .update(draftData)
+              .eq('id', existingRecord.id);
+            setLastSavedAt(new Date());
+          }
+          // If status is pending/review/approved/rejected, don't auto-save to avoid conflicts
+        } else {
+          // No existing record, create new draft
           await supabase
             .from('muallimah_registrations')
             .insert({
@@ -398,9 +401,8 @@ function MuallimahRegistrationContent() {
               status: 'draft',
               submitted_at: new Date().toISOString(),
             });
+          setLastSavedAt(new Date());
         }
-
-        setLastSavedAt(new Date());
       } catch (error) {
         console.error('Auto-save error:', error);
       } finally {
