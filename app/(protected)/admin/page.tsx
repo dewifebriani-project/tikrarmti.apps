@@ -46,6 +46,21 @@ interface Batch {
   duration_weeks?: number;
   status: string;
   created_at: string;
+
+  // Timeline phase dates for perjalanan-saya
+  selection_start_date?: string;
+  selection_end_date?: string;
+  selection_result_date?: string;
+  re_enrollment_date?: string;
+  opening_class_date?: string;
+  first_week_start_date?: string;
+  first_week_end_date?: string;
+  review_week_start_date?: string;
+  review_week_end_date?: string;
+  final_exam_start_date?: string;
+  final_exam_end_date?: string;
+  graduation_start_date?: string;
+  graduation_end_date?: string;
 }
 
 interface Program {
@@ -818,9 +833,25 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
     registration_start_date: batch?.registration_start_date?.split('T')[0] || '',
     registration_end_date: batch?.registration_end_date?.split('T')[0] || '',
     duration_weeks: batch?.duration_weeks || 0,
-    status: batch?.status || 'draft'
+    status: batch?.status || 'draft',
+
+    // Timeline phase dates
+    selection_start_date: batch?.selection_start_date?.split('T')[0] || '',
+    selection_end_date: batch?.selection_end_date?.split('T')[0] || '',
+    selection_result_date: batch?.selection_result_date?.split('T')[0] || '',
+    re_enrollment_date: batch?.re_enrollment_date?.split('T')[0] || '',
+    opening_class_date: batch?.opening_class_date?.split('T')[0] || '',
+    first_week_start_date: batch?.first_week_start_date?.split('T')[0] || '',
+    first_week_end_date: batch?.first_week_end_date?.split('T')[0] || '',
+    review_week_start_date: batch?.review_week_start_date?.split('T')[0] || '',
+    review_week_end_date: batch?.review_week_end_date?.split('T')[0] || '',
+    final_exam_start_date: batch?.final_exam_start_date?.split('T')[0] || '',
+    final_exam_end_date: batch?.final_exam_end_date?.split('T')[0] || '',
+    graduation_start_date: batch?.graduation_start_date?.split('T')[0] || '',
+    graduation_end_date: batch?.graduation_end_date?.split('T')[0] || '',
   });
   const [saving, setSaving] = useState(false);
+  const [showTimelineConfig, setShowTimelineConfig] = useState(false);
 
   // Function to calculate end date based on start date and duration
   const calculateEndDate = (startDate: string, weeks: number) => {
@@ -989,6 +1020,183 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
             />
           </div>
+        </div>
+
+        {/* Timeline Configuration Section */}
+        <div className="border-t border-gray-200 pt-4 mt-6">
+          <button
+            type="button"
+            onClick={() => setShowTimelineConfig(!showTimelineConfig)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <div className="flex items-center">
+              <svg className={`h-5 w-5 text-gray-500 transition-transform ${showTimelineConfig ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <h4 className="ml-2 text-base font-semibold text-gray-900">Timeline Configuration</h4>
+              <span className="ml-2 text-xs text-gray-500">(Optional - for Perjalanan Saya page)</span>
+            </div>
+          </button>
+
+          {showTimelineConfig && (
+            <div className="mt-4 space-y-6 pl-7">
+              {/* Selection Phase */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h5 className="text-sm font-semibold text-blue-900 mb-3">Selection Phase</h5>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Selection Start</label>
+                    <input
+                      type="date"
+                      value={formData.selection_start_date}
+                      onChange={(e) => setFormData({ ...formData, selection_start_date: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Selection End</label>
+                    <input
+                      type="date"
+                      value={formData.selection_end_date}
+                      onChange={(e) => setFormData({ ...formData, selection_end_date: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Result Announcement</label>
+                    <input
+                      type="date"
+                      value={formData.selection_result_date}
+                      onChange={(e) => setFormData({ ...formData, selection_result_date: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Re-enrollment & Opening */}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h5 className="text-sm font-semibold text-green-900 mb-3">Re-enrollment & Opening</h5>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Re-enrollment Date</label>
+                    <input
+                      type="date"
+                      value={formData.re_enrollment_date}
+                      onChange={(e) => setFormData({ ...formData, re_enrollment_date: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Opening Class Date</label>
+                    <input
+                      type="date"
+                      value={formData.opening_class_date}
+                      onChange={(e) => setFormData({ ...formData, opening_class_date: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Learning Weeks */}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h5 className="text-sm font-semibold text-purple-900 mb-3">Learning Weeks</h5>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">First Week Start (Pekan 1)</label>
+                      <input
+                        type="date"
+                        value={formData.first_week_start_date}
+                        onChange={(e) => setFormData({ ...formData, first_week_start_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">First Week End</label>
+                      <input
+                        type="date"
+                        value={formData.first_week_end_date}
+                        onChange={(e) => setFormData({ ...formData, first_week_end_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600 bg-white p-2 rounded border border-purple-200">
+                    <strong>Note:</strong> Pekan 2-11 will be auto-calculated from First Week End to Review Week Start
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Review Week Start (Pekan 12)</label>
+                      <input
+                        type="date"
+                        value={formData.review_week_start_date}
+                        onChange={(e) => setFormData({ ...formData, review_week_start_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Review Week End</label>
+                      <input
+                        type="date"
+                        value={formData.review_week_end_date}
+                        onChange={(e) => setFormData({ ...formData, review_week_end_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assessment & Completion */}
+              <div className="bg-amber-50 p-4 rounded-lg">
+                <h5 className="text-sm font-semibold text-amber-900 mb-3">Assessment & Completion</h5>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Final Exam Start (Pekan 13)</label>
+                      <input
+                        type="date"
+                        value={formData.final_exam_start_date}
+                        onChange={(e) => setFormData({ ...formData, final_exam_start_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Final Exam End</label>
+                      <input
+                        type="date"
+                        value={formData.final_exam_end_date}
+                        onChange={(e) => setFormData({ ...formData, final_exam_end_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Graduation Start (Pekan 14)</label>
+                      <input
+                        type="date"
+                        value={formData.graduation_start_date}
+                        onChange={(e) => setFormData({ ...formData, graduation_start_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Graduation End</label>
+                      <input
+                        type="date"
+                        value={formData.graduation_end_date}
+                        onChange={(e) => setFormData({ ...formData, graduation_end_date: e.target.value })}
+                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3">
