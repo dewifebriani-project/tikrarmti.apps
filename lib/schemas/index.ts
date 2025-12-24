@@ -244,7 +244,7 @@ export const pendaftaranSchemas = {
     }).optional(),
     has_permission: z.string().optional(),
     permission_name: z.string().optional(),
-    permission_phone: commonSchemas.phone.optional(),
+    permission_phone: z.string().optional(),
     ready_for_team: z.string().optional(),
     chosen_juz: z.string().optional(),
     understands_commitment: z.boolean().optional(),
