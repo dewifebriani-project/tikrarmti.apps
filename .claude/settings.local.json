@@ -116,7 +116,10 @@
       "Bash(npx ts-node:*)",
       "Bash(npx tsc --noEmit --skipLibCheck)",
       "Bash(if exist \"app\\\\\\(protected\\)\\\\pendaftaran\\\\tikrar-tahfidz\\\\page.tsx.new-broken\" del \"app\\\\\\(protected\\)\\\\pendaftaran\\\\tikrar-tahfidz\\\\page.tsx.new-broken\")",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: Fix tikrar-tahfidz form submission with direct Supabase client\n\n- Replace API endpoint approach with direct Supabase client operations\n- Follow muallimah form pattern for authentication and data submission\n- Use toast notifications instead of error state management\n- Update WhatsApp contact number to 0856-771-2914 \\(all occurrences\\)\n- Simplify handleSubmit function to directly insert/update database\n- Fix submit button visibility logic\n- Properly map form fields to database schema \\(wa_phone, domicile, timezone\\)\n\nThis fixes the 400 Bad Request error that was occurring due to foreign key\nconstraints and complex validation in the API endpoint.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Remove submitted_at field from tikrar-tahfidz insert\n\n- Remove submitted_at field that doesn''t exist in pendaftaran_tikrar_tahfidz table\n- submission_date is already included in submitData \\(line 428\\)\n- Fixes \"Could not find the 'submitted_at' column\" error\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

@@ -375,6 +375,21 @@ export default function ThalibahBatch2Page() {
         return
       }
 
+      // Fetch program associated with this batch
+      const { data: program, error: programError } = await supabase
+        .from('programs')
+        .select('id')
+        .eq('batch_id', activeBatch.id)
+        .eq('status', 'open')
+        .single()
+
+      if (programError || !program) {
+        console.error('Program fetch error:', programError)
+        toast.error('Program untuk batch ini belum tersedia. Silakan hubungi admin.')
+        setIsSubmitting(false)
+        return
+      }
+
       // Calculate age from birth_date
       const birthDateValue = userProfile?.tanggal_lahir || new Date().toISOString()
       const birthDate = new Date(birthDateValue)
@@ -391,7 +406,7 @@ export default function ThalibahBatch2Page() {
       const submitData = {
         user_id: authUser.id,
         batch_id: activeBatch.id,
-        program_id: activeBatch.id,
+        program_id: program.id,
         batch_name: activeBatch.name || 'Batch 2',
         // User data from users table
         full_name: userProfile?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
