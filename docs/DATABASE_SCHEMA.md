@@ -1,52 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
--- ============================================================================
--- SQL UPDATE STATEMENTS FOR MUALLIMAH REGISTRATION CHANGES
--- ============================================================================
--- Run these SQL statements to update the muallimah_registrations table
--- for the new form structure:
---
--- 1. Remove memorization_level field (no longer needed)
--- 2. Add class_type field for class type selection
--- 3. Add preferred_max_thalibah field for max students per class
--- 4. Update timezone to always use WIB as default
---
--- Execute with: psql -U postgres -d your_database -f muallimah_schema_update.sql
--- ============================================================================
-
--- Add new columns to muallimah_registrations table
-ALTER TABLE public.muallimah_registrations
-  ADD COLUMN IF NOT EXISTS class_type text CHECK (class_type = ANY (ARRAY['tashih_ujian'::text, 'tashih_only'::text, 'ujian_only'::text]));
-
-ALTER TABLE public.muallimah_registrations
-  ADD COLUMN IF NOT EXISTS preferred_max_thalibah integer;
-
--- Set default class_type for existing records
-UPDATE public.muallimah_registrations
-SET class_type = 'tashih_ujian'
-WHERE class_type IS NULL;
-
--- Make class_type nullable for now (optional, can be set to NOT NULL later)
--- ALTER TABLE public.muallimah_registrations
---   ALTER COLUMN class_type SET NOT NULL;
-
--- Note: memorization_level is kept for backward compatibility but no longer used in the form
--- Note: timezone already has 'WIB' as default, no changes needed
-
--- Paid class schedule format has changed from checkbox days (array) to single day (radio button)
--- The paid_class_interest JSONB field now stores:
--- {
---   name: string,
---   schedule1: { day: string, time_start: string, time_end: string } | null,
---   schedule2: { day: string, time_start: string, time_end: string } | null,
---   max_students: number | null,
---   spp_percentage: string | null,
---   additional_info: string | null
--- }
-
--- ============================================================================
-
 CREATE TABLE public.activity_logs (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   user_id uuid,
@@ -76,6 +30,19 @@ CREATE TABLE public.batches (
   price numeric DEFAULT 0,
   total_quota integer DEFAULT 100,
   program_type character varying DEFAULT NULL::character varying,
+  selection_start_date date,
+  selection_end_date date,
+  selection_result_date date,
+  re_enrollment_date date,
+  opening_class_date date,
+  first_week_start_date date,
+  first_week_end_date date,
+  review_week_start_date date,
+  review_week_end_date date,
+  final_exam_start_date date,
+  final_exam_end_date date,
+  graduation_start_date date,
+  graduation_end_date date,
   CONSTRAINT batches_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.error_logs (
@@ -193,6 +160,8 @@ CREATE TABLE public.muallimah_registrations (
   paid_class_interest text,
   understands_commitment boolean DEFAULT false,
   age integer,
+  class_type text CHECK (class_type = ANY (ARRAY['tashih_ujian'::text, 'tashih_only'::text, 'ujian_only'::text])),
+  preferred_max_thalibah integer,
   CONSTRAINT muallimah_registrations_pkey PRIMARY KEY (id),
   CONSTRAINT muallimah_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT muallimah_registrations_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
