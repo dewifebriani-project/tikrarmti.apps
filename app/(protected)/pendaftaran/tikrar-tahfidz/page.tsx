@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
-import { useMyRegistrations, useRegistrationMutations } from '@/hooks/useRegistrations'
+import { useMyRegistrations } from '@/hooks/useRegistrations'
 import { useJuzOptions } from '@/hooks/useJuzOptions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 interface FormData {
   // Section 1 - Komitmen & Pemahaman
@@ -51,9 +53,9 @@ export default function ThalibahBatch2Page() {
   const router = useRouter()
   const { user, isLoading, isAuthenticated, isUnauthenticated } = useAuth()
   const { activeBatch, isLoading: batchLoading } = useActiveBatch()
-  const { createRegistration, updateRegistration } = useRegistrationMutations()
   const { juzOptions, isLoading: juzLoading } = useJuzOptions()
   const { registrations, mutate: mutateRegistrations } = useMyRegistrations()
+  const supabase = createClient()
   const [isCreating, setIsCreating] = useState(false)
 
   const [isMounted, setIsMounted] = useState(false)
