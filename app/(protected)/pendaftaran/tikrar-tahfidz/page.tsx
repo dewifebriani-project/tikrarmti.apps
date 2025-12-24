@@ -360,66 +360,50 @@ export default function ThalibahBatch2Page() {
   const handleSubmit = async () => {
     if (!validateSection(currentSection)) return
     if (!user?.id || !activeBatch) {
-      setSubmitStatus('error')
+      toast.error('User atau batch tidak ditemukan')
       return
     }
 
     setIsSubmitting(true)
     try {
-      // Helper function to convert date to ISO string with offset
-      const toISOWithOffset = (dateInput: string | Date | undefined): string => {
-        if (!dateInput) return new Date().toISOString()
-        const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
-        // Ensure we get a proper ISO string with offset
-        return date.toISOString()
+      // Get authenticated user from Supabase
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser()
+
+      if (userError || !authUser) {
+        toast.error('Ukhti harus login terlebih dahulu')
+        router.push('/login')
+        return
       }
 
-      // Use userProfile data from users table, fallback to user metadata
-      const birthDateValue = userProfile?.tanggal_lahir || (user as any)?.user_metadata?.tanggal_lahir
+      // Calculate age from birth_date
+      const birthDateValue = userProfile?.tanggal_lahir || new Date().toISOString()
+      const birthDate = new Date(birthDateValue)
       const today = new Date()
-      let calculatedAge = 15 // default minimum age
-      if (birthDateValue) {
-        const birthDate = new Date(birthDateValue)
-        calculatedAge = today.getFullYear() - birthDate.getFullYear()
-        const monthDiff = today.getMonth() - birthDate.getMonth()
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          calculatedAge--
-        }
-        // Ensure age is at least 15
-        if (calculatedAge < 15) calculatedAge = 15
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--
       }
 
-      // Get phone number with proper format
-      let phoneValue = userProfile?.whatsapp || ''
-      // Ensure phone starts with Indonesian format
-      if (phoneValue && !phoneValue.startsWith('+62') && !phoneValue.startsWith('62')) {
-        phoneValue = phoneValue.startsWith('0') ? '62' + phoneValue.slice(1) : '62' + phoneValue
-      }
-
-      // For janda, don't send permission_phone (send empty string)
+      // Prepare submission data - matching pendaftaran_tikrar_tahfidz table schema
       const isJanda = formData.has_permission === 'janda'
-      const permissionPhoneValue = isJanda ? '' : formData.permission_phone
 
-      // Prepare data for Tikrar API - include all required fields from schema
-      // Data from users table takes priority over auth metadata
-      // IMPORTANT: Only send fields that exist in pendaftaran_tikrar_tahfidz table
-      const submissionData = {
-        user_id: user.id,
+      const submitData = {
+        user_id: authUser.id,
         batch_id: activeBatch.id,
         program_id: activeBatch.id,
-        // Personal data (from users table) - only fields that exist in DB
-        full_name: userProfile?.full_name || user.full_name || '',
-        email: user.email || '',
-        phone: phoneValue,
+        batch_name: activeBatch.name || 'Batch 2',
+        // User data from users table
+        full_name: userProfile?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
+        email: authUser.email || '',
+        wa_phone: userProfile?.whatsapp || authUser.phone || '',
         telegram_phone: userProfile?.telegram || '',
         address: userProfile?.alamat || '',
-        // birth_place is NOT in pendaftaran_tikrar_tahfidz table - removed
-        birth_date: toISOWithOffset(birthDateValue),
-        age: calculatedAge,
-        // gender is NOT in pendaftaran_tikrar_tahfidz table - removed
-        // education is NOT in pendaftaran_tikrar_tahfidz table - removed
-        // work is NOT in pendaftaran_tikrar_tahfidz table - removed
-        // Section 1
+        birth_date: birthDateValue,
+        age: age,
+        domicile: userProfile?.kota || '',
+        timezone: userProfile?.zona_waktu || 'WIB',
+        // Form data - Section 1
         understands_commitment: formData.understands_commitment,
         tried_simulation: formData.tried_simulation,
         no_negotiation: formData.no_negotiation,
@@ -428,7 +412,7 @@ export default function ThalibahBatch2Page() {
         // Section 2
         has_permission: formData.has_permission,
         permission_name: isJanda ? '' : formData.permission_name,
-        permission_phone: permissionPhoneValue,
+        permission_phone: isJanda ? '' : formData.permission_phone,
         chosen_juz: formData.chosen_juz,
         no_travel_plans: formData.no_travel_plans,
         motivation: formData.motivation,
@@ -439,120 +423,46 @@ export default function ThalibahBatch2Page() {
         time_commitment: formData.time_commitment,
         // Section 4
         understands_program: formData.understands_program,
-        questions: formData.questions,
-        provider: 'email'
+        questions: formData.questions || null,
+        // Status fields
+        status: 'pending',
+        selection_status: 'pending',
+        submission_date: new Date().toISOString(),
       }
-
-      // Debug: log submission data
-      console.log('Submitting registration data:', {
-        userProfile: userProfile,
-        has_permission_type: typeof formData.has_permission,
-        has_permission_value: formData.has_permission,
-        submissionDataKeys: Object.keys(submissionData),
-        submissionData: {
-          user_id: submissionData.user_id?.substring(0, 8) + '...',
-          batch_id: submissionData.batch_id,
-          program_id: submissionData.program_id,
-          phone: submissionData.phone,
-          address: submissionData.address,
-          birth_date: submissionData.birth_date,
-          age: submissionData.age,
-          has_permission: submissionData.has_permission
-        }
-      })
 
       if (isEditMode && existingRegistrationId) {
         // Update existing registration
-        const response = await fetch(`/api/pendaftaran/tikrar/${existingRegistrationId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(submissionData),
-        })
+        const { error: updateError } = await supabase
+          .from('pendaftaran_tikrar_tahfidz')
+          .update(submitData)
+          .eq('id', existingRegistrationId)
+          .eq('user_id', authUser.id)
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
-          let errorMsg = 'Failed to update registration'
-          if (errorData.error) {
-            if (typeof errorData.error === 'string') {
-              errorMsg = errorData.error
-            } else if (errorData.error.message) {
-              errorMsg = errorData.error.message
-              // Add validation issues if available
-              if (errorData.error.details?.issues) {
-                const issues = errorData.error.details.issues
-                const issueList = issues.map((i: any) => `${i.field}: ${i.message}`).join('\n')
-                errorMsg += '\n\n' + issueList
-              }
-            } else {
-              errorMsg = JSON.stringify(errorData.error)
-            }
-          }
-          throw new Error(errorMsg)
+        if (updateError) {
+          console.error('Update error:', updateError)
+          toast.error(`Gagal memperbarui data pendaftaran: ${updateError.message || 'Unknown error'}`)
+          throw updateError
         }
 
-        const result = await response.json()
-        console.log('Registration updated successfully:', result)
+        toast.success('Alhamdulillah! Data pendaftaran berhasil diperbarui!')
+        setSubmitStatus('success_update')
       } else {
         // Create new registration
-        const response = await fetch('/api/pendaftaran/submit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(submissionData),
-        })
+        const { error: submitError } = await supabase
+          .from('pendaftaran_tikrar_tahfidz')
+          .insert({
+            ...submitData,
+            submitted_at: new Date().toISOString(),
+          })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          // Log full response for debugging
-          console.error('API Error Response:', errorData)
-          console.error('API Error Response stringified:', JSON.stringify(errorData, null, 2))
-
-          // Check if error requires redirect to complete profile
-          if (errorData.error?.redirect) {
-            const redirectUrl = errorData.error.redirect
-            const errorMessage = errorData.error.message || 'Profil belum lengkap'
-
-            // Show error message briefly before redirect
-            setSubmitError(errorMessage)
-            setSubmitStatus('error')
-
-            // Redirect after 2 seconds
-            setTimeout(() => {
-              router.push(redirectUrl)
-            }, 2000)
-            return
-          }
-
-          // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
-          let errorMsg = 'Failed to submit registration'
-          if (errorData.error) {
-            if (typeof errorData.error === 'string') {
-              errorMsg = errorData.error
-            } else if (errorData.error.message) {
-              errorMsg = errorData.error.message
-              // Add validation issues if available
-              if (errorData.error.details?.issues) {
-                const issues = errorData.error.details.issues
-                const issueList = issues.map((i: any) => `${i.field}: ${i.message}`).join('\n')
-                errorMsg += '\n\n' + issueList
-              }
-            } else {
-              errorMsg = JSON.stringify(errorData.error)
-            }
-          } else if (errorData.message) {
-            errorMsg = errorData.message
-          } else {
-            errorMsg = JSON.stringify(errorData)
-          }
-          throw new Error(errorMsg)
+        if (submitError) {
+          console.error('Submit error:', submitError)
+          toast.error(`Gagal mengirim pendaftaran: ${submitError.message || 'Unknown error'}`)
+          throw submitError
         }
 
-        const result = await response.json()
-        console.log('Registration submitted successfully:', result)
+        toast.success('Alhamdulillah! Pendaftaran Tikrar Tahfidz berhasil dikirim!')
+        setSubmitStatus('success')
       }
 
       // Clear draft after successful submission
@@ -563,29 +473,18 @@ export default function ThalibahBatch2Page() {
       // Refresh registrations cache
       mutateRegistrations()
 
-      setSubmitStatus(isEditMode ? 'success_update' : 'success')
-
       // Redirect to dashboard after 3 seconds
       const timer = setTimeout(() => {
         router.push('/dashboard')
       }, 3000)
 
       setRedirectTimer(timer)
+
     } catch (error: any) {
       console.error('Submit error:', error)
-      // Extract error message for display
       let errorMessage = 'Terjadi kesalahan saat mengirim formulir'
       if (error?.message) {
         errorMessage = error.message
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      } else if (typeof error === 'object' && error !== null) {
-        // Try to stringify the error object
-        try {
-          errorMessage = JSON.stringify(error, null, 2)
-        } catch {
-          errorMessage = String(error)
-        }
       }
       setSubmitError(errorMessage)
       setSubmitStatus('error')
@@ -949,7 +848,7 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-2 sm:space-y-3">
           <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 0813-1365-0842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
+            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 0856-771-2914? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
           <div className="space-y-2 sm:space-y-3">
@@ -1378,7 +1277,7 @@ export default function ThalibahBatch2Page() {
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• <strong>Al-Qur'an Tikrar</strong> ➤ Jika belum memiliki, bisa dibeli di toko buku atau toko online (tautan tersedia di deskripsi grup pendaftaran)</li>
               <li>• <strong>Counter Manual (alat penghitung)</strong> ➤ Bisa dibeli di toko alat tulis atau toko online (tautan juga tersedia di deskripsi grup)</li>
-              <li>• Bagi yang mengalami kendala finansial, silakan hubungi Kak Mara di WA: 0813-1365-0842</li>
+              <li>• Bagi yang mengalami kendala finansial, silakan hubungi Kak Mara di WA: 0856-771-2914</li>
             </ul>
           </div>
 
@@ -1534,7 +1433,7 @@ export default function ThalibahBatch2Page() {
                     <AlertDescription className="text-red-800">
                       <div className="space-y-2">
                         <p className="font-semibold">Terjadi kesalahan saat mengirim formulir</p>
-                        <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 0813-1365-0842.</p>
+                        <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 0856-771-2914.</p>
                         {submitError && (
                           <details className="mt-2">
                             <summary className="cursor-pointer text-sm underline">Lihat Detail Error</summary>
@@ -1605,7 +1504,7 @@ export default function ThalibahBatch2Page() {
             </h3>
             <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-yellow-800">
               <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
-              <p>• Simpan nomor WhatsApp Kak Mara (0813-1365-0842) agar dapat di-add ke grup setelah lolos seleksi.</p>
+              <p>• Simpan nomor WhatsApp Kak Mara (0856-771-2914) agar dapat di-add ke grup setelah lolos seleksi.</p>
               <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
               <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
               <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
