@@ -450,10 +450,7 @@ export default function ThalibahBatch2Page() {
         // Create new registration
         const { error: submitError } = await supabase
           .from('pendaftaran_tikrar_tahfidz')
-          .insert({
-            ...submitData,
-            submitted_at: new Date().toISOString(),
-          })
+          .insert(submitData)
 
         if (submitError) {
           console.error('Submit error:', submitError)
