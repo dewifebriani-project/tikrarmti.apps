@@ -301,12 +301,19 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      logger.error('Error inserting registration', {
+      logger.error('=== TIKRAR SUBMIT ERROR DETAILS ===', {
         code: error.code,
         message: error.message,
         details: error.details,
         hint: error.hint,
-        ip: clientIP
+        table: error.table,
+        column: error.column,
+        constraint: error.constraint,
+        ip: clientIP,
+        fullError: JSON.stringify(error, null, 2)
+      });
+      logger.error('Submission data that failed:', {
+        submissionData: JSON.stringify(submissionData, null, 2)
       });
 
       // If it's a foreign key constraint error, provide more helpful message
