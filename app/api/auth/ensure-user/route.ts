@@ -45,7 +45,36 @@ export async function POST(request: Request) {
     const userMetadata = authUser.user.user_metadata || {}
     const userEmail = authUser.user.email
 
-    // Create user in users table
+    // Validate that user metadata has all required fields before creating user
+    // IMPORTANT: Users should go through proper registration flow via /auth/register
+    // This endpoint should NOT create users with incomplete data
+    const requiredMetadataFields = {
+      tanggal_lahir: userMetadata.tanggal_lahir,
+      tempat_lahir: userMetadata.tempat_lahir,
+      pekerjaan: userMetadata.pekerjaan,
+      alasan_daftar: userMetadata.alasan_daftar,
+      jenis_kelamin: userMetadata.jenis_kelamin,
+      negara: userMetadata.negara
+    }
+
+    const missingMetadata = Object.entries(requiredMetadataFields)
+      .filter(([_, value]) => !value)
+      .map(([field, _]) => field)
+
+    if (missingMetadata.length > 0) {
+      console.warn('Cannot create user - missing required metadata:', {
+        userId,
+        missingMetadata
+      })
+      return NextResponse.json({
+        success: false,
+        error: `User profile incomplete. Please complete registration first. Missing fields: ${missingMetadata.join(', ')}`,
+        code: 'INCOMPLETE_METADATA',
+        redirect: '/auth/register'
+      }, { status: 400 })
+    }
+
+    // Create user in users table with validated metadata
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
       .insert({
@@ -61,9 +90,10 @@ export async function POST(request: Request) {
         alamat: userMetadata.alamat,
         zona_waktu: userMetadata.zona_waktu || 'WIB',
         jenis_kelamin: userMetadata.jenis_kelamin,
+        tanggal_lahir: userMetadata.tanggal_lahir,
+        tempat_lahir: userMetadata.tempat_lahir,
         pekerjaan: userMetadata.pekerjaan,
         alasan_daftar: userMetadata.alasan_daftar,
-        provider: provider,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -74,7 +104,8 @@ export async function POST(request: Request) {
       console.error('Error creating user in users table:', insertError)
       return NextResponse.json({
         success: false,
-        error: insertError.message
+        error: insertError.message,
+        details: insertError.details
       }, { status: 500 })
     }
 

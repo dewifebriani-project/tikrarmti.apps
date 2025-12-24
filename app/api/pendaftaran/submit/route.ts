@@ -176,113 +176,85 @@ export async function POST(request: Request) {
       programId: filteredBody.program_id
     });
 
-    // CRITICAL: Always ensure user exists before submitting form
-    // Following architecture: Use Supabase auth as single truth, sync to users table
-    logger.debug('Ensuring user exists in database before submission');
+    // CRITICAL: User MUST already exist in users table with complete profile
+    // Following architecture: Users must register first via /auth/register before submitting program registration
+    logger.debug('Validating user exists and has complete profile');
 
     try {
-      // First check if user exists in users table
-      // Use maybeSingle() to avoid error when no rows returned
+      // Check if user exists in users table with all required fields
       const { data: existingUser, error: checkError } = await supabaseAdmin
         .from('users')
-        .select('id')
+        .select('id, full_name, negara, kota, alamat, whatsapp, zona_waktu, tanggal_lahir, tempat_lahir, pekerjaan, alasan_daftar, jenis_kelamin')
         .eq('id', filteredBody.user_id)
         .maybeSingle()
 
-      if (existingUser) {
-        logger.info('User already exists in users table', {
+      if (checkError) {
+        logger.error('Error checking user existence', {
+          error: checkError.message,
           userId: filteredBody.user_id.substring(0, 8) + '...'
         })
-      } else {
-        // User doesn't exist in users table, need to create from auth data
-        logger.info('User not in users table, creating from auth data', {
-          userId: filteredBody.user_id.substring(0, 8) + '...'
-        })
-
-        // Get user data from Supabase auth (single truth)
-        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(filteredBody.user_id)
-
-        if (authError || !authUser?.user) {
-          logger.error('Failed to get user from Supabase auth', {
-            error: authError?.message,
-            userId: filteredBody.user_id.substring(0, 8) + '...'
-          })
-          return ApiResponses.customValidationError([{
-            field: 'user',
-            message: 'User not found in authentication system. Please logout and login again.',
-            code: 'AUTH_USER_NOT_FOUND'
-          }])
-        }
-
-        const userMetadata = authUser.user.user_metadata || {}
-        const userEmail = authUser.user.email
-
-        // Create user in users table
-        const { error: insertError } = await supabaseAdmin
-          .from('users')
-          .insert({
-            id: filteredBody.user_id,
-            email: userEmail,
-            full_name: filteredBody.full_name || userMetadata.full_name || userEmail?.split('@')[0] || '',
-            role: userMetadata.role || 'calon_thalibah',
-            whatsapp: filteredBody.phone || userMetadata.whatsapp,
-            telegram: filteredBody.telegram_phone || userMetadata.telegram,
-            negara: userMetadata.negara,
-            provinsi: userMetadata.provinsi,
-            kota: filteredBody.domicile || userMetadata.kota,
-            alamat: filteredBody.address || userMetadata.alamat,
-            zona_waktu: userMetadata.zona_waktu || 'WIB',
-            jenis_kelamin: userMetadata.jenis_kelamin,
-            pekerjaan: userMetadata.pekerjaan,
-            alasan_daftar: userMetadata.alasan_daftar,
-            provider: filteredBody.provider || user.app_metadata?.provider || 'email',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-
-        if (insertError) {
-          logger.error('Failed to create user in users table', {
-            error: insertError.message,
-            code: insertError.code,
-            details: insertError.details,
-            hint: insertError.hint,
-            userId: filteredBody.user_id.substring(0, 8) + '...'
-          })
-          // Don't continue - return error to user
-          return ApiResponses.serverError(`Failed to create user record: ${insertError.message} (Code: ${insertError.code}). Please contact support.`)
-        }
-
-        logger.info('User created successfully in users table', {
-          userId: filteredBody.user_id.substring(0, 8) + '...'
-        })
+        return ApiResponses.serverError('Failed to verify user. Please try again.')
       }
-    } catch (ensureError) {
-      logger.error('Error ensuring user exists', {
-        error: ensureError as Error,
+
+      if (!existingUser) {
+        logger.warn('User not found in users table', {
+          userId: filteredBody.user_id.substring(0, 8) + '...',
+          ip: clientIP
+        })
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'Profil Anda belum lengkap. Silakan lengkapi profil terlebih dahulu.',
+            redirect: '/lengkapi-profile'
+          }
+        }, { status: 400 })
+      }
+
+      // Validate that user has all required fields (NOT NULL constraints)
+      const requiredFields = {
+        full_name: existingUser.full_name,
+        tanggal_lahir: existingUser.tanggal_lahir,
+        tempat_lahir: existingUser.tempat_lahir,
+        pekerjaan: existingUser.pekerjaan,
+        alasan_daftar: existingUser.alasan_daftar,
+        jenis_kelamin: existingUser.jenis_kelamin,
+        negara: existingUser.negara
+      }
+
+      const missingFields = Object.entries(requiredFields)
+        .filter(([_, value]) => !value)
+        .map(([field, _]) => field)
+
+      if (missingFields.length > 0) {
+        logger.warn('User profile incomplete - missing required fields', {
+          userId: filteredBody.user_id.substring(0, 8) + '...',
+          missingFields,
+          ip: clientIP
+        })
+        return NextResponse.json({
+          success: false,
+          error: {
+            code: 'INCOMPLETE_PROFILE',
+            message: `Profil Anda belum lengkap. Field yang masih kosong: ${missingFields.join(', ')}. Silakan lengkapi profil terlebih dahulu.`,
+            missingFields,
+            redirect: '/lengkapi-profile'
+          }
+        }, { status: 400 })
+      }
+
+      logger.info('User validation passed - profile is complete', {
+        userId: filteredBody.user_id.substring(0, 8) + '...'
+      })
+
+    } catch (validationError) {
+      logger.error('Error validating user', {
+        error: validationError as Error,
         ip: clientIP,
-        errorMessage: (ensureError as Error).message,
+        errorMessage: (validationError as Error).message,
         userId: filteredBody.user_id.substring(0, 8) + '...'
       })
-      // Don't continue - return error to user
-      return ApiResponses.serverError(`Failed to verify user: ${(ensureError as Error).message}. Please logout and login again.`)
-    }
-
-    // Final check: verify user exists before inserting registration
-    const { data: finalUserCheck } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('id', filteredBody.user_id)
-      .maybeSingle()
-
-    if (!finalUserCheck) {
-      logger.error('User still does not exist after ensure-user process', {
-        userId: filteredBody.user_id.substring(0, 8) + '...'
-      })
-      return ApiResponses.customValidationError([{
-        field: 'user',
-        message: 'User record could not be created. Please logout and login again, or contact support.',
-        code: 'USER_CREATION_FAILED'
-      }])
+      return ApiResponses.serverError(`Failed to validate user: ${(validationError as Error).message}. Please try again.`)
     }
 
     // Debug: Log data to be inserted

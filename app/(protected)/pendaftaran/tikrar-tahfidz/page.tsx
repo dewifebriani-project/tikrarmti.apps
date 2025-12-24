@@ -496,6 +496,22 @@ export default function ThalibahBatch2Page() {
           console.error('API Error Response:', errorData)
           console.error('API Error Response stringified:', JSON.stringify(errorData, null, 2))
 
+          // Check if error requires redirect to complete profile
+          if (errorData.error?.redirect) {
+            const redirectUrl = errorData.error.redirect
+            const errorMessage = errorData.error.message || 'Profil belum lengkap'
+
+            // Show error message briefly before redirect
+            setSubmitError(errorMessage)
+            setSubmitStatus('error')
+
+            // Redirect after 2 seconds
+            setTimeout(() => {
+              router.push(redirectUrl)
+            }, 2000)
+            return
+          }
+
           // Handle ApiResponses format: {success: false, error: {message, details: {issues: [...]}}}
           let errorMsg = 'Failed to submit registration'
           if (errorData.error) {
