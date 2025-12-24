@@ -52,6 +52,21 @@ export interface Batch {
   total_quota?: number;
   registered_count?: number;
   duration_weeks?: number;
+
+  // Timeline phase dates for perjalanan-saya
+  selection_start_date?: string;
+  selection_end_date?: string;
+  selection_result_date?: string;
+  re_enrollment_date?: string;
+  opening_class_date?: string;
+  first_week_start_date?: string;
+  first_week_end_date?: string;
+  review_week_start_date?: string;
+  review_week_end_date?: string;
+  final_exam_start_date?: string;
+  final_exam_end_date?: string;
+  graduation_start_date?: string;
+  graduation_end_date?: string;
 }
 
 export interface Program {
