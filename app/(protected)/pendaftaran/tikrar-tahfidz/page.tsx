@@ -374,10 +374,6 @@ export default function ThalibahBatch2Page() {
         if (calculatedAge < 15) calculatedAge = 15
       }
 
-      // Get gender - convert from database format to schema format
-      const genderValue = userProfile?.jenis_kelamin
-      const genderMapped = genderValue === 'Perempuan' ? 'P' : genderValue === 'Laki-laki' ? 'L' : 'P'
-
       // Get phone number with proper format
       let phoneValue = userProfile?.whatsapp || ''
       // Ensure phone starts with Indonesian format
@@ -391,22 +387,23 @@ export default function ThalibahBatch2Page() {
 
       // Prepare data for Tikrar API - include all required fields from schema
       // Data from users table takes priority over auth metadata
+      // IMPORTANT: Only send fields that exist in pendaftaran_tikrar_tahfidz table
       const submissionData = {
         user_id: user.id,
         batch_id: activeBatch.id,
         program_id: activeBatch.id,
-        // Personal data (from users table) - required by schema
+        // Personal data (from users table) - only fields that exist in DB
         full_name: userProfile?.full_name || user.full_name || '',
         email: user.email || '',
         phone: phoneValue,
         telegram_phone: userProfile?.telegram || '',
         address: userProfile?.alamat || '',
-        birth_place: userProfile?.tempat_lahir || '',
+        // birth_place is NOT in pendaftaran_tikrar_tahfidz table - removed
         birth_date: toISOWithOffset(birthDateValue),
         age: calculatedAge,
-        gender: genderMapped,
-        education: userProfile?.pendidikan || '',
-        work: userProfile?.pekerjaan || '',
+        // gender is NOT in pendaftaran_tikrar_tahfidz table - removed
+        // education is NOT in pendaftaran_tikrar_tahfidz table - removed
+        // work is NOT in pendaftaran_tikrar_tahfidz table - removed
         // Section 1
         understands_commitment: formData.understands_commitment,
         tried_simulation: formData.tried_simulation,
@@ -436,9 +433,11 @@ export default function ThalibahBatch2Page() {
         userProfile: userProfile,
         has_permission_type: typeof formData.has_permission,
         has_permission_value: formData.has_permission,
+        submissionDataKeys: Object.keys(submissionData),
         submissionData: {
-          ...submissionData,
-          // Log specific fields that might be empty
+          user_id: submissionData.user_id?.substring(0, 8) + '...',
+          batch_id: submissionData.batch_id,
+          program_id: submissionData.program_id,
           phone: submissionData.phone,
           address: submissionData.address,
           birth_date: submissionData.birth_date,

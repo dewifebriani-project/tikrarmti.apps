@@ -45,12 +45,28 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
+    // Debug: Log raw request body
+    logger.debug('Raw request body received', {
+      bodyKeys: Object.keys(body),
+      bodyPreview: {
+        user_id: body.user_id ? body.user_id.substring(0, 8) + '...' : undefined,
+        batch_id: body.batch_id,
+        program_id: body.program_id,
+        phone: body.phone,
+        gender: body.gender,
+        birth_date: body.birth_date,
+        has_permission: body.has_permission
+      }
+    });
+
     // Validate request body with Zod schema
-    const validation = pendaftaranSchemas.submit.safeParse(body);
+    // Use submitWithPhoneSupport because frontend sends 'phone' field, not 'wa_phone'
+    const validation = pendaftaranSchemas.submitWithPhoneSupport.safeParse(body);
     if (!validation.success) {
       logger.warn('Validation failed', {
         errors: validation.error.issues,
-        ip: clientIP
+        ip: clientIP,
+        receivedBody: body
       });
       return ApiResponses.validationError(validation.error.issues);
     }
@@ -127,18 +143,22 @@ export async function POST(request: Request) {
       chosen_juz: filteredBody.chosen_juz || '',
       no_travel_plans: filteredBody.no_travel_plans || false,
       motivation: filteredBody.motivation || '',
-      ready_for_team: filteredBody.ready_for_team || '',
+      // ready_for_team: validate against allowed enum values
+      ready_for_team: ((filteredBody.ready_for_team === 'ready' || filteredBody.ready_for_team === 'not_ready' ||
+                        filteredBody.ready_for_team === 'considering' || filteredBody.ready_for_team === 'infaq')
+                       ? filteredBody.ready_for_team : 'not_ready') as 'ready' | 'not_ready' | 'considering' | 'infaq',
       main_time_slot: filteredBody.main_time_slot || '',
       backup_time_slot: filteredBody.backup_time_slot || '',
       time_commitment: filteredBody.time_commitment || false,
       understands_program: filteredBody.understands_program || false,
-      // Optional fields
+      // Optional fields - map 'phone' from frontend to 'wa_phone' for database
+      email: filteredBody.email,
       full_name: filteredBody.full_name,
       address: filteredBody.address,
-      wa_phone: filteredBody.phone, // Map phone to wa_phone
+      wa_phone: filteredBody.phone || filteredBody.wa_phone || '', // Use phone from frontend, fallback to wa_phone
       telegram_phone: filteredBody.telegram_phone,
       birth_date: filteredBody.birth_date,
-      birth_place: filteredBody.birth_place,
+      // NOTE: birth_place is NOT in pendaftaran_tikrar_tahfidz table - removed
       age: filteredBody.age,
       domicile: userDomicile,
       timezone: userTimezone,
@@ -157,39 +177,128 @@ export async function POST(request: Request) {
     });
 
     // CRITICAL: Always ensure user exists before submitting form
+    // Following architecture: Use Supabase auth as single truth, sync to users table
     logger.debug('Ensuring user exists in database before submission');
 
     try {
-      const ensureResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/ensure-user`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: filteredBody.user_id,
-          email: filteredBody.email || '',
-          full_name: filteredBody.full_name || '',
-          provider: filteredBody.provider || 'unknown'
-        })
-      });
+      // First check if user exists in users table
+      // Use maybeSingle() to avoid error when no rows returned
+      const { data: existingUser, error: checkError } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('id', filteredBody.user_id)
+        .maybeSingle()
 
-      if (ensureResponse.ok) {
-        const ensureResult = await ensureResponse.json();
-        logger.debug('User ensure result', {
-          success: ensureResult.success || false
-        });
+      if (existingUser) {
+        logger.info('User already exists in users table', {
+          userId: filteredBody.user_id.substring(0, 8) + '...'
+        })
       } else {
-        logger.warn('Failed to ensure user exists', {
-          status: ensureResponse.status,
-          ip: clientIP
-        });
-        // Continue anyway - the insert will fail if user truly doesn't exist
+        // User doesn't exist in users table, need to create from auth data
+        logger.info('User not in users table, creating from auth data', {
+          userId: filteredBody.user_id.substring(0, 8) + '...'
+        })
+
+        // Get user data from Supabase auth (single truth)
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(filteredBody.user_id)
+
+        if (authError || !authUser?.user) {
+          logger.error('Failed to get user from Supabase auth', {
+            error: authError?.message,
+            userId: filteredBody.user_id.substring(0, 8) + '...'
+          })
+          return ApiResponses.customValidationError([{
+            field: 'user',
+            message: 'User not found in authentication system. Please logout and login again.',
+            code: 'AUTH_USER_NOT_FOUND'
+          }])
+        }
+
+        const userMetadata = authUser.user.user_metadata || {}
+        const userEmail = authUser.user.email
+
+        // Create user in users table
+        const { error: insertError } = await supabaseAdmin
+          .from('users')
+          .insert({
+            id: filteredBody.user_id,
+            email: userEmail,
+            full_name: filteredBody.full_name || userMetadata.full_name || userEmail?.split('@')[0] || '',
+            role: userMetadata.role || 'calon_thalibah',
+            whatsapp: filteredBody.phone || userMetadata.whatsapp,
+            telegram: filteredBody.telegram_phone || userMetadata.telegram,
+            negara: userMetadata.negara,
+            provinsi: userMetadata.provinsi,
+            kota: filteredBody.domicile || userMetadata.kota,
+            alamat: filteredBody.address || userMetadata.alamat,
+            zona_waktu: userMetadata.zona_waktu || 'WIB',
+            jenis_kelamin: userMetadata.jenis_kelamin,
+            pekerjaan: userMetadata.pekerjaan,
+            alasan_daftar: userMetadata.alasan_daftar,
+            provider: filteredBody.provider || user.app_metadata?.provider || 'email',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+
+        if (insertError) {
+          logger.error('Failed to create user in users table', {
+            error: insertError.message,
+            code: insertError.code,
+            details: insertError.details,
+            hint: insertError.hint,
+            userId: filteredBody.user_id.substring(0, 8) + '...'
+          })
+          // Don't continue - return error to user
+          return ApiResponses.serverError(`Failed to create user record: ${insertError.message} (Code: ${insertError.code}). Please contact support.`)
+        }
+
+        logger.info('User created successfully in users table', {
+          userId: filteredBody.user_id.substring(0, 8) + '...'
+        })
       }
     } catch (ensureError) {
-      logger.warn('Error ensuring user', {
+      logger.error('Error ensuring user exists', {
         error: ensureError as Error,
-        ip: clientIP
-      });
-      // Continue anyway - user might already exist
+        ip: clientIP,
+        errorMessage: (ensureError as Error).message,
+        userId: filteredBody.user_id.substring(0, 8) + '...'
+      })
+      // Don't continue - return error to user
+      return ApiResponses.serverError(`Failed to verify user: ${(ensureError as Error).message}. Please logout and login again.`)
     }
+
+    // Final check: verify user exists before inserting registration
+    const { data: finalUserCheck } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('id', filteredBody.user_id)
+      .maybeSingle()
+
+    if (!finalUserCheck) {
+      logger.error('User still does not exist after ensure-user process', {
+        userId: filteredBody.user_id.substring(0, 8) + '...'
+      })
+      return ApiResponses.customValidationError([{
+        field: 'user',
+        message: 'User record could not be created. Please logout and login again, or contact support.',
+        code: 'USER_CREATION_FAILED'
+      }])
+    }
+
+    // Debug: Log data to be inserted
+    logger.debug('Attempting database insert', {
+      table: 'pendaftaran_tikrar_tahfidz',
+      dataKeys: Object.keys(submissionData),
+      dataPreview: {
+        user_id: submissionData.user_id.substring(0, 8) + '...',
+        batch_id: submissionData.batch_id,
+        program_id: submissionData.program_id,
+        wa_phone: submissionData.wa_phone,
+        chosen_juz: submissionData.chosen_juz,
+        has_permission: submissionData.has_permission,
+        ready_for_team: submissionData.ready_for_team
+      }
+    });
 
     const { data: result, error } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')

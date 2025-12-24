@@ -217,47 +217,117 @@ export const registrationSchemas = {
 
 /**
  * Pendaftaran submission schemas
+ *
+ * IMPORTANT: This schema must match the database schema for pendaftaran_tikrar_tahfidz table
+ * Reference: docs/DATABASE_SCHEMA.md
+ *
+ * Fields NOT in database (DO NOT ADD to schema):
+ * - birth_place: Only exists in users table, NOT in pendaftaran_tikrar_tahfidz
+ * - gender: Only exists in users table (jenis_kelamin), NOT in pendaftaran_tikrar_tahfidz
+ * - education: NOT in pendaftaran_tikrar_tahfidz
+ * - work: NOT in pendaftaran_tikrar_tahfidz
+ * - emergency_contact: NOT in pendaftaran_tikrar_tahfidz
  */
 export const pendaftaranSchemas = {
-  // Submit registration form
+  // Submit registration form for Tikrar Tahfidz program
   submit: z.object({
+    // Required identifiers
     user_id: commonSchemas.uuid,
     batch_id: commonSchemas.uuid,
     program_id: commonSchemas.uuid,
-    full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),
-    email: commonSchemas.email,
-    phone: commonSchemas.phone,
+
+    // Personal data - from users table (optional because backend can fetch from users table)
+    full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter').optional(),
+    email: commonSchemas.email.optional(),
+    wa_phone: commonSchemas.phone.optional(),  // Changed from 'phone' to 'wa_phone' to match DB
     telegram_phone: commonSchemas.phone.optional(),
-    address: z.string().min(10, 'Alamat minimal 10 karakter'),
-    birth_place: z.string().optional(),
-    birth_date: z.string().datetime({ offset: true }),
-    age: z.number().int().min(15, 'Usia minimal 15 tahun'),
-    gender: z.enum(['L', 'P']),
-    education: z.string().optional(),
-    work: z.string().optional(),
-    motivation: z.string().min(10, 'Motivasi minimal 10 karakter'),
-    experience: z.string().optional(),
-    emergency_contact: z.object({
-      name: z.string().min(1, 'Nama kontak darurat harus diisi'),
-      phone: commonSchemas.phone,
-      relationship: z.string().min(1, 'Hubungan harus diisi'),
-    }).optional(),
-    has_permission: z.string().optional(),
-    permission_name: z.string().optional(),
-    permission_phone: z.string().optional(),
-    ready_for_team: z.string().optional(),
-    chosen_juz: z.string().optional(),
+    address: z.string().optional(),
+    // REMOVED: birth_place - NOT in pendaftaran_tikrar_tahfidz table
+    birth_date: z.string().datetime({ offset: true }).optional(),
+    age: z.number().int().min(15, 'Usia minimal 15 tahun').optional(),
+    domicile: z.string().optional(),
+    timezone: z.string().default('WIB'),
+
+    // Section 1 fields
     understands_commitment: z.boolean().optional(),
     tried_simulation: z.boolean().optional(),
     no_negotiation: z.boolean().optional(),
     has_telegram: z.boolean().optional(),
     saved_contact: z.boolean().optional(),
+
+    // Section 2 fields
+    has_permission: z.enum(['yes', 'janda', '']).optional(),
+    permission_name: z.string().optional(),
+    permission_phone: z.string().optional(),
+    chosen_juz: z.string().optional(),
     no_travel_plans: z.boolean().optional(),
+    motivation: z.string().min(10, 'Motivasi minimal 10 karakter').optional(),
+    ready_for_team: z.enum(['ready', 'not_ready', 'considering', 'infaq']).optional(),
+
+    // Section 3 fields
     main_time_slot: z.string().optional(),
     backup_time_slot: z.string().optional(),
     time_commitment: z.boolean().optional(),
+
+    // Section 4 fields
     understands_program: z.boolean().optional(),
     questions: z.string().optional(),
+
+    // Additional fields for backend use
+    provider: z.string().optional(),
+  }),
+
+  // Legacy schema for backward compatibility - accepts 'phone' field from frontend
+  submitWithPhoneSupport: z.object({
+    // Required identifiers
+    user_id: commonSchemas.uuid,
+    batch_id: commonSchemas.uuid,
+    program_id: commonSchemas.uuid,
+
+    // Personal data - accepts both 'phone' and 'wa_phone' for backward compatibility
+    full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter').optional(),
+    email: commonSchemas.email.optional(),
+    phone: commonSchemas.phone.optional(),  // Frontend sends 'phone'
+    wa_phone: commonSchemas.phone.optional(),  // Backend expects 'wa_phone'
+    telegram_phone: commonSchemas.phone.optional(),
+    address: z.string().optional(),
+    birth_date: z.string().datetime({ offset: true }).optional(),
+    age: z.number().int().min(15, 'Usia minimal 15 tahun').optional(),
+    domicile: z.string().optional(),
+    timezone: z.string().default('WIB'),
+
+    // Fields sent by frontend but NOT in database - we accept and strip them out
+    birth_place: z.string().optional(),  // NOT in pendaftaran_tikrar_tahfidz table
+    gender: z.enum(['L', 'P', 'Laki-laki', 'Perempuan']).optional(),  // NOT in pendaftaran_tikrar_tahfidz table
+    education: z.string().optional(),  // NOT in pendaftaran_tikrar_tahfidz table
+    work: z.string().optional(),  // NOT in pendaftaran_tikrar_tahfidz table
+
+    // Section 1 fields
+    understands_commitment: z.boolean().optional(),
+    tried_simulation: z.boolean().optional(),
+    no_negotiation: z.boolean().optional(),
+    has_telegram: z.boolean().optional(),
+    saved_contact: z.boolean().optional(),
+
+    // Section 2 fields
+    has_permission: z.enum(['yes', 'janda', '']).optional(),
+    permission_name: z.string().optional(),
+    permission_phone: z.string().optional(),
+    chosen_juz: z.string().optional(),
+    no_travel_plans: z.boolean().optional(),
+    motivation: z.string().min(10, 'Motivasi minimal 10 karakter').optional(),
+    ready_for_team: z.string().optional(),
+
+    // Section 3 fields
+    main_time_slot: z.string().optional(),
+    backup_time_slot: z.string().optional(),
+    time_commitment: z.boolean().optional(),
+
+    // Section 4 fields
+    understands_program: z.boolean().optional(),
+    questions: z.string().optional(),
+
+    // Additional fields
     provider: z.string().optional(),
   }),
 }

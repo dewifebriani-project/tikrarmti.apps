@@ -42,11 +42,12 @@ export async function middleware(request: NextRequest) {
   })
 
   // Skip middleware for static files and public routes
+  // IMPORTANT: API routes should skip middleware auth check - they handle auth themselves
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.includes('.') ||
-    pathname.startsWith('/api') && !pathname.startsWith('/api/auth/callback') ||
+    pathname.startsWith('/api') ||  // Skip ALL API routes - they handle their own auth
     publicRoutes.some(route => pathname.startsWith(route))
   ) {
     return response
