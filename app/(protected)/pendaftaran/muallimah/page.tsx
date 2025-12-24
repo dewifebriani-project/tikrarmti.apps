@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveBatch } from '@/hooks/useBatches';
@@ -17,6 +17,15 @@ import { Calendar, BookOpen, GraduationCap, Heart, Loader2, Info } from 'lucide-
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+
+// Simple debounce utility function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 type MuallimahFormData = {
   tajweed_institution: string;
@@ -94,6 +103,12 @@ function MuallimahRegistrationContent() {
   const [batchId, setBatchId] = useState<string>('');
   const [batchInfo, setBatchInfo] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+
+  // Refs for auto-focus to first empty field
+  const fieldRefs = useRef<Record<string, HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>>({});
 
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -166,6 +181,36 @@ function MuallimahRegistrationContent() {
     }
   }, [user, batchId]);
 
+  // Auto-focus to first empty field after data is loaded
+  useEffect(() => {
+    // Only auto-focus if not in edit mode and form is not submitted
+    if (!isEditMode && !isFormSubmitted && userData && batchId) {
+      // Order of fields to check and auto-focus
+      const fieldOrder = [
+        'tajweed_institution',
+        'quran_institution',
+        'schedule1_day',
+        'schedule1_time_start',
+        'schedule1_time_end',
+      ];
+
+      // Find first empty field and focus it
+      for (const field of fieldOrder) {
+        const value = formData[field as keyof MuallimahFormData];
+        if (!value || (typeof value === 'string' && !value.trim()) || (Array.isArray(value) && value.length === 0)) {
+          setTimeout(() => {
+            const ref = fieldRefs.current[field];
+            if (ref) {
+              ref.focus();
+              ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 500); // Delay to ensure DOM is ready
+          break;
+        }
+      }
+    }
+  }, [userData, batchId, isEditMode, isFormSubmitted]);
+
   const fetchMuallimahRegistration = async () => {
     try {
       const { data, error } = await supabase
@@ -179,11 +224,18 @@ function MuallimahRegistrationContent() {
 
       if (error) throw error;
 
-      if (data && (data.status === 'pending' || data.status === 'review')) {
-        // User has existing registration, populate form for editing
+      if (data) {
+        // User has existing registration
         setExistingRegistrationId(data.id);
-        setIsEditMode(true);
         setMuallimahRegistration(data);
+
+        if (data.status === 'approved' || data.status === 'rejected') {
+          // Form is submitted and processed, read-only mode
+          setIsFormSubmitted(true);
+        } else {
+          // For pending/review status, allow editing
+          setIsEditMode(true);
+        }
 
         // Parse JSON fields
         const preferredSchedule = typeof data.preferred_schedule === 'string'
@@ -282,7 +334,81 @@ function MuallimahRegistrationContent() {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    // Auto-save draft after field change (debounced)
+    autoSaveDraft();
   };
+
+  // Auto-save draft functionality
+  const autoSaveDraft = useCallback(
+    debounce(async () => {
+      if (!user || !batchId || isFormSubmitted) return;
+
+      try {
+        setAutoSaving(true);
+        const draftData = {
+          user_id: user.id,
+          batch_id: batchId,
+          // Save only form fields, not user data
+          tajweed_institution: formData.tajweed_institution || null,
+          quran_institution: formData.quran_institution || null,
+          memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
+          studied_matan_exegesis: formData.studied_matan_exegesis || null,
+          memorized_juz: formData.memorized_juz.length > 0 ? formData.memorized_juz.join(', ') : null,
+          examined_juz: formData.examined_juz.length > 0 ? formData.examined_juz.join(', ') : null,
+          certified_juz: formData.certified_juz.length > 0 ? formData.certified_juz.join(', ') : null,
+          preferred_juz: formData.preferred_juz.length > 0 ? formData.preferred_juz.join(', ') : null,
+          class_type: formData.class_type,
+          preferred_max_thalibah: formData.preferred_max_thalibah || null,
+          teaching_communities: formData.teaching_communities || null,
+          paid_class_interest: formData.wants_paid_class ? JSON.stringify({
+            name: formData.paid_class_name || null,
+            schedule1_day: formData.paid_class_schedule1_day || null,
+            schedule1_time_start: formData.paid_class_schedule1_time_start || null,
+            schedule1_time_end: formData.paid_class_schedule1_time_end || null,
+            schedule2_day: formData.paid_class_schedule2_day || null,
+            schedule2_time_start: formData.paid_class_schedule2_time_start || null,
+            schedule2_time_end: formData.paid_class_schedule2_time_end || null,
+            max_students: formData.paid_class_max_students || null,
+            spp_percentage: formData.paid_class_spp_percentage || null,
+            additional_info: formData.paid_class_interest || null,
+          }) : null,
+        };
+
+        // Check if draft exists
+        const { data: existingDraft } = await supabase
+          .from('muallimah_registrations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('batch_id', batchId)
+          .eq('status', 'draft')
+          .maybeSingle();
+
+        if (existingDraft) {
+          // Update existing draft
+          await supabase
+            .from('muallimah_registrations')
+            .update(draftData)
+            .eq('id', existingDraft.id);
+        } else if (!existingRegistrationId) {
+          // Create new draft only if no pending/review registration exists
+          await supabase
+            .from('muallimah_registrations')
+            .insert({
+              ...draftData,
+              status: 'draft',
+              submitted_at: new Date().toISOString(),
+            });
+        }
+
+        setLastSavedAt(new Date());
+      } catch (error) {
+        console.error('Auto-save error:', error);
+      } finally {
+        setAutoSaving(false);
+      }
+    }, 1000), // 1 second debounce
+    [formData, user, batchId, existingRegistrationId, isFormSubmitted]
+  );
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -653,7 +779,15 @@ function MuallimahRegistrationContent() {
           {/* Form */}
           <Card>
             <CardHeader className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3">
-              {isEditMode && (
+              {isFormSubmitted && (
+                <Alert className="bg-yellow-50 border-yellow-200 mb-4">
+                  <Info className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800 text-xs sm:text-sm">
+                    <strong>Pendaftaran Terkirim:</strong> Pendaftaran ukhti sudah dikirim dan sedang diproses. Status pendaftaran: <strong>{muallimahRegistration?.status}</strong>.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {isEditMode && !isFormSubmitted && (
                 <Alert className="bg-blue-50 border-blue-200 mb-4">
                   <Info className="h-4 w-4 text-blue-600" />
                   <AlertDescription className="text-blue-800 text-xs sm:text-sm">
@@ -661,12 +795,33 @@ function MuallimahRegistrationContent() {
                   </AlertDescription>
                 </Alert>
               )}
+              {/* Auto-save status */}
+              {!isFormSubmitted && (
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                  <span>
+                    {autoSaving ? (
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Menyimpan...
+                      </span>
+                    ) : lastSavedAt ? (
+                      <span>Tersimpan {lastSavedAt.toLocaleTimeString('id-ID')}</span>
+                    ) : (
+                      <span>Auto-save aktif</span>
+                    )}
+                  </span>
+                </div>
+              )}
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                 Formulir Pendaftaran
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
-                {isEditMode ? 'Edit data pendaftaran Muallimah' : 'Lengkapi formulir berikut untuk mendaftar sebagai Muallimah'}
+                {isFormSubmitted
+                  ? 'Pendaftaran terkirim - Formulir hanya bisa dilihat'
+                  : isEditMode
+                  ? 'Edit data pendaftaran Muallimah'
+                  : 'Lengkapi formulir berikut untuk mendaftar sebagai Muallimah'}
               </CardDescription>
             </CardHeader>
             <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
@@ -683,10 +838,12 @@ function MuallimahRegistrationContent() {
                     <Label htmlFor="tajweed_institution" className="text-xs sm:text-sm">Nama Lembaga Belajar Tajwid *</Label>
                     <Input
                       id="tajweed_institution"
+                      ref={(el) => { fieldRefs.current.tajweed_institution = el; }}
                       value={formData.tajweed_institution}
                       onChange={(e) => handleInputChange('tajweed_institution', e.target.value)}
                       placeholder="Contoh: Ma'had Tahfidz Al-Quran..."
-                      className={`text-xs sm:text-sm py-2 sm:py-2.5 ${errors.tajweed_institution ? 'border-red-500' : ''}`}
+                      disabled={isFormSubmitted}
+                      className={`text-xs sm:text-sm py-2 sm:py-2.5 ${errors.tajweed_institution ? 'border-red-500' : ''} ${isFormSubmitted ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     />
                     {errors.tajweed_institution && <p className="text-xs sm:text-sm text-red-500">{errors.tajweed_institution}</p>}
                   </div>
@@ -1254,16 +1411,28 @@ function MuallimahRegistrationContent() {
                 </div>
 
                 {/* Submit Button */}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-green-700 hover:bg-green-800 text-white text-sm sm:text-base py-2.5 sm:py-3"
-                >
-                  {isLoading
-                    ? (isEditMode ? 'Memperbarui...' : 'Mengirim...')
-                    : (isEditMode ? 'Update Pendaftaran' : 'Kirim Pendaftaran')
-                  }
-                </Button>
+                {!isFormSubmitted && (
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-green-700 hover:bg-green-800 text-white text-sm sm:text-base py-2.5 sm:py-3"
+                  >
+                    {isLoading
+                      ? (isEditMode ? 'Memperbarui...' : 'Mengirim...')
+                      : (isEditMode ? 'Update Pendaftaran' : 'Kirim Pendaftaran')
+                    }
+                  </Button>
+                )}
+                {isFormSubmitted && (
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">Pendaftaran sudah dikirim. Status: <strong>{muallimahRegistration?.status}</strong></p>
+                    <Link href="/pendaftaran">
+                      <Button variant="outline" className="text-sm">
+                        Kembali ke Program
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </form>
             </CardContent>
           </Card>
