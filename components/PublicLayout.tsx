@@ -11,8 +11,8 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
   return (
     <div className="h-screen flex flex-col bg-main-background text-main overflow-hidden">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-50 flex-shrink-0">
+      {/* Fixed Header - stays at top */}
+      <div className="flex-shrink-0 z-50">
         <Header />
       </div>
 
