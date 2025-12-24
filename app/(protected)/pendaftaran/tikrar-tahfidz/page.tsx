@@ -111,8 +111,17 @@ function TikrarRegistrationContent() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // Track last fetch time to prevent excessive calls
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+
   // Fetch user data function (extracted for reuse)
-  const fetchUserData = useCallback(async () => {
+  const fetchUserData = useCallback(async (force = false) => {
+    // Prevent fetching more than once per second unless forced
+    const now = Date.now()
+    if (!force && now - lastFetchTime < 1000) {
+      return
+    }
+
     if (authUser?.id && isAuthenticated) {
       const { data, error } = await supabase
         .from('users')
@@ -122,38 +131,51 @@ function TikrarRegistrationContent() {
 
       if (data && !error) {
         setUserData(data)
+        setLastFetchTime(now)
       } else {
         console.error('Error fetching user data:', error)
       }
     }
-  }, [authUser?.id, isAuthenticated])
+  }, [authUser?.id, isAuthenticated, lastFetchTime])
 
   // Fetch user data on mount and when auth changes
   useEffect(() => {
-    fetchUserData()
+    fetchUserData(true)
   }, [fetchUserData])
 
   // Refetch user data when page regains visibility or focus (user returns from lengkapi-profile)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && authUser?.id && isAuthenticated) {
-        fetchUserData()
+        // Add a small delay to ensure database is updated
+        setTimeout(() => fetchUserData(true), 500)
       }
     }
 
     const handleFocus = () => {
       if (authUser?.id && isAuthenticated) {
-        fetchUserData()
+        // Add a small delay to ensure database is updated
+        setTimeout(() => fetchUserData(true), 300)
       }
     }
 
-    // Listen to both visibilitychange and focus events
+    // Also add pageshow event for better mobile support (handles back/forward navigation)
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && authUser?.id && isAuthenticated) {
+        // Page was restored from back/forward cache
+        setTimeout(() => fetchUserData(true), 300)
+      }
+    }
+
+    // Listen to visibilitychange, focus, and pageshow events
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
+    window.addEventListener('pageshow', handlePageShow)
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('pageshow', handlePageShow)
     }
   }, [authUser?.id, isAuthenticated, fetchUserData])
 
