@@ -841,7 +841,7 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-2 sm:space-y-3">
           <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 08567712914? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
+            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 0813-1365-0842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
           <div className="space-y-2 sm:space-y-3">
@@ -1366,7 +1366,7 @@ export default function ThalibahBatch2Page() {
             <AlertDescription className="text-red-800">
               <div className="space-y-2">
                 <p className="font-semibold">Terjadi kesalahan saat mengirim formulir</p>
-                <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 08567712914.</p>
+                <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 0813-1365-0842.</p>
                 {submitError && (
                   <details className="mt-2">
                     <summary className="cursor-pointer text-sm underline">Lihat Detail Error</summary>
@@ -1492,7 +1492,7 @@ export default function ThalibahBatch2Page() {
             </h3>
             <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-yellow-800">
               <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
-              <p>• Simpan nomor WhatsApp Kak Mara (08567712914) agar dapat di-add ke grup setelah lolos seleksi.</p>
+              <p>• Simpan nomor WhatsApp Kak Mara (0813-1365-0842) agar dapat di-add ke grup setelah lolos seleksi.</p>
               <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
               <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
               <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
