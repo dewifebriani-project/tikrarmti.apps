@@ -288,7 +288,7 @@ export default function DashboardContent() {
                 <span className="text-sm">Tashih</span>
               </Button>
             </Link>
-            <Link href="/progress">
+            <Link href="/perjalanan-saya">
               <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
                 <Award className="h-4 w-4 mr-2 flex-shrink-0" />
                 <span className="text-sm">Progress</span>

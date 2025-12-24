@@ -51,7 +51,6 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
       '/perjalanan-saya': 'Perjalanan Saya',
       '/ujian': 'Ujian',
       '/alumni': 'Ruang Alumni',
-      '/progress': 'Progress Tahfidz',
       '/statistik': 'Statistik',
       '/tagihan-pembayaran': 'Tagihan & Pembayaran',
       '/donasi-dashboard': 'Donasi',
@@ -89,8 +88,6 @@ export default function AuthenticatedLayout({ children, title }: AuthenticatedLa
       breadcrumbs.push({ label: 'Ujian', href: '/ujian' });
     } else if (pathname === '/alumni') {
       breadcrumbs.push({ label: 'Ruang Alumni', href: '/alumni' });
-    } else if (pathname.startsWith('/progress')) {
-      breadcrumbs.push({ label: 'Progress', href: '/progress' });
     } else if (pathname.startsWith('/statistik')) {
       breadcrumbs.push({ label: 'Statistik', href: '/statistik' });
     } else if (pathname.startsWith('/tagihan-pembayaran')) {
