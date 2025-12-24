@@ -415,14 +415,32 @@ export default function ThalibahBatch2Page() {
         }
       }
 
+      // TEMPORARY WORKAROUND: If program fetch fails, try to fetch ANY program from database
       if (programError || !program) {
         console.error('❌ Program fetch failed!')
         console.error('Batch ID:', activeBatch.id)
         console.error('Error details:', programError)
         console.error('Full activeBatch:', activeBatch)
-        toast.error('Program untuk batch ini belum tersedia. Silakan hubungi admin.')
-        setIsSubmitting(false)
-        return
+
+        // Try to fetch any available program as last resort
+        console.log('🔄 Attempting fallback: fetching any available program...')
+        const { data: fallbackProgram, error: fallbackError } = await supabase
+          .from('programs')
+          .select('id, batch_id, name, status')
+          .limit(1)
+          .maybeSingle()
+
+        console.log('🆘 Fallback program query result:', { fallbackProgram, fallbackError })
+
+        if (fallbackProgram) {
+          program = fallbackProgram
+          console.warn('⚠️ Using fallback program:', fallbackProgram)
+          toast.warning(`Menggunakan program fallback: ${fallbackProgram.name}. Silakan hubungi admin jika ini bukan program yang tepat.`)
+        } else {
+          toast.error('Program untuk batch ini belum tersedia. Silakan hubungi admin.')
+          setIsSubmitting(false)
+          return
+        }
       }
 
       console.log('🎯 Using program ID:', program.id)
