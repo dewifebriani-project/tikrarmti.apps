@@ -111,25 +111,39 @@ function TikrarRegistrationContent() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (authUser?.id && isAuthenticated) {
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authUser.id)
-          .single()
+  // Fetch user data function (extracted for reuse)
+  const fetchUserData = useCallback(async () => {
+    if (authUser?.id && isAuthenticated) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single()
 
-        if (data && !error) {
-          setUserData(data)
-        } else {
-          console.error('Error fetching user data:', error)
-        }
+      if (data && !error) {
+        setUserData(data)
+      } else {
+        console.error('Error fetching user data:', error)
       }
     }
-    fetchUserData()
   }, [authUser?.id, isAuthenticated])
+
+  // Fetch user data on mount and when auth changes
+  useEffect(() => {
+    fetchUserData()
+  }, [fetchUserData])
+
+  // Refetch user data when page regains visibility (user returns from lengkapi-profile)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && authUser?.id && isAuthenticated) {
+        fetchUserData()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [fetchUserData, authUser?.id, isAuthenticated])
 
   // Fetch existing registration
   useEffect(() => {
