@@ -220,7 +220,8 @@ export async function POST(request: Request) {
         return ApiResponses.serverError('Database configuration error. The registration table does not exist.');
       }
 
-      return ApiResponses.serverError('Failed to submit registration');
+      // Return detailed error for debugging
+      return ApiResponses.serverError(`Database error: ${error.message} (Code: ${error.code})`);
     }
 
     logger.info('Registration submitted successfully', {
