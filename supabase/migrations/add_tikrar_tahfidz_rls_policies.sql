@@ -5,6 +5,7 @@ ALTER TABLE programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pendaftaran_tikrar_tahfidz ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if any
+DROP POLICY IF EXISTS "Authenticated users can view all programs" ON programs;
 DROP POLICY IF EXISTS "Authenticated users can view open programs" ON programs;
 DROP POLICY IF EXISTS "Admins can manage programs" ON programs;
 DROP POLICY IF EXISTS "Users can view their own tikrar registrations" ON pendaftaran_tikrar_tahfidz;
@@ -17,12 +18,12 @@ DROP POLICY IF EXISTS "Admins can update all tikrar registrations" ON pendaftara
 -- PROGRAMS TABLE POLICIES
 -- ============================================================================
 
--- Policy: Authenticated users can view open programs
-CREATE POLICY "Authenticated users can view open programs"
+-- Policy: Authenticated users can view all programs (needed for registration)
+CREATE POLICY "Authenticated users can view all programs"
 ON programs
 FOR SELECT
 TO authenticated
-USING (status = 'open' OR status = 'ongoing');
+USING (true);
 
 -- Policy: Admins can manage all programs
 CREATE POLICY "Admins can manage programs"

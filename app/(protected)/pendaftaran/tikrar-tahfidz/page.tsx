@@ -376,15 +376,38 @@ export default function ThalibahBatch2Page() {
       }
 
       // Fetch program associated with this batch
-      const { data: program, error: programError } = await supabase
+      // Try to find program with status 'open' first, fallback to any program for this batch
+      let program = null
+      let programError = null
+
+      // First attempt: Try to find 'open' program
+      const { data: openProgram, error: openError } = await supabase
         .from('programs')
         .select('id')
         .eq('batch_id', activeBatch.id)
         .eq('status', 'open')
-        .single()
+        .maybeSingle()
+
+      if (openProgram) {
+        program = openProgram
+      } else {
+        // Second attempt: Find any program for this batch (fallback)
+        const { data: anyProgram, error: anyError } = await supabase
+          .from('programs')
+          .select('id')
+          .eq('batch_id', activeBatch.id)
+          .maybeSingle()
+
+        if (anyProgram) {
+          program = anyProgram
+        } else {
+          programError = anyError || openError
+        }
+      }
 
       if (programError || !program) {
         console.error('Program fetch error:', programError)
+        console.error('Batch ID:', activeBatch.id)
         toast.error('Program untuk batch ini belum tersedia. Silakan hubungi admin.')
         setIsSubmitting(false)
         return
