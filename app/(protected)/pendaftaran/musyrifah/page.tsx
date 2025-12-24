@@ -338,7 +338,7 @@ function MusyrifahRegistrationContent() {
       if (submitError) throw submitError;
 
       toast.success('Pendaftaran sebagai Musyrifah berhasil dikirim!');
-      router.push('/pendaftaran/success?program=musyrifah');
+      router.push('/dashboard');
 
     } catch (error: any) {
       console.error('Submit error:', error);

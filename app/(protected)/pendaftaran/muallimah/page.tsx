@@ -608,7 +608,7 @@ function MuallimahRegistrationContent() {
         toast.success('Alhamdulillah! Pendaftaran sebagai Muallimah berhasil dikirim!');
       }
 
-      router.push('/pendaftaran/success?program=muallimah');
+      router.push('/dashboard');
 
     } catch (error: any) {
       console.error('Submit error:', error);
