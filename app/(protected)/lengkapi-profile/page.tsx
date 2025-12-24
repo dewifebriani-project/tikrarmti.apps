@@ -123,17 +123,17 @@ export default function LengkapiProfilePage() {
     if (!formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Nomor WhatsApp harus diisi'
     } else {
-      const phoneValidation = validatePhoneNumberFormat(formData.whatsapp, formData.negara)
-      if (!phoneValidation.isValid) {
-        newErrors.whatsapp = phoneValidation.error || 'Format nomor WhatsApp tidak valid'
+      const isValid = validatePhoneNumberFormat(formData.whatsapp, formData.negara)
+      if (!isValid) {
+        newErrors.whatsapp = 'Format nomor WhatsApp tidak valid'
       }
     }
 
     // Validate telegram if provided
     if (formData.telegram && formData.telegram.trim()) {
-      const telegramValidation = validatePhoneNumberFormat(formData.telegram, formData.negara)
-      if (!telegramValidation.isValid) {
-        newErrors.telegram = telegramValidation.error || 'Format nomor Telegram tidak valid'
+      const isValid = validatePhoneNumberFormat(formData.telegram, formData.negara)
+      if (!isValid) {
+        newErrors.telegram = 'Format nomor Telegram tidak valid'
       }
     }
 
@@ -367,8 +367,8 @@ export default function LengkapiProfilePage() {
                 </SelectTrigger>
                 <SelectContent>
                   {negaraList.map((negara) => (
-                    <SelectItem key={negara.code} value={negara.name}>
-                      {negara.name}
+                    <SelectItem key={negara} value={negara}>
+                      {negara}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -439,13 +439,15 @@ export default function LengkapiProfilePage() {
               <Label htmlFor="whatsapp">
                 Nomor WhatsApp <span className="text-red-500">*</span>
               </Label>
-              <PhoneInput
-                id="whatsapp"
-                value={formData.whatsapp}
-                onChange={(value) => handleInputChange('whatsapp', value)}
-                placeholder="Contoh: 081234567890"
-                className={errors.whatsapp ? 'border-red-500' : ''}
-              />
+              <div className={errors.whatsapp ? 'border border-red-500 rounded-md' : ''}>
+                <PhoneInput
+                  id="whatsapp"
+                  value={formData.whatsapp}
+                  onChange={(value) => handleInputChange('whatsapp', value)}
+                  placeholder="Contoh: 081234567890"
+                  error={errors.whatsapp}
+                />
+              </div>
               {errors.whatsapp && (
                 <p className="text-red-500 text-sm mt-1">{errors.whatsapp}</p>
               )}
@@ -456,13 +458,15 @@ export default function LengkapiProfilePage() {
               <Label htmlFor="telegram">
                 Nomor Telegram <span className="text-gray-400 text-sm">(Opsional)</span>
               </Label>
-              <PhoneInput
-                id="telegram"
-                value={formData.telegram}
-                onChange={(value) => handleInputChange('telegram', value)}
-                placeholder="Contoh: 081234567890"
-                className={errors.telegram ? 'border-red-500' : ''}
-              />
+              <div className={errors.telegram ? 'border border-red-500 rounded-md' : ''}>
+                <PhoneInput
+                  id="telegram"
+                  value={formData.telegram}
+                  onChange={(value) => handleInputChange('telegram', value)}
+                  placeholder="Contoh: 081234567890"
+                  error={errors.telegram}
+                />
+              </div>
               {errors.telegram && (
                 <p className="text-red-500 text-sm mt-1">{errors.telegram}</p>
               )}
