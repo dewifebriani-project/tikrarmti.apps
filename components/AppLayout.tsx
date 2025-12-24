@@ -22,7 +22,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
   const authRoutes = ['/login', '/register', '/auth/callback'];
 
   // Pendaftaran routes that need authentication
-  const pendaftaranRoutes = ['/pendaftaran'];
+  const pendaftaranRoutes = ['/pendaftaran', '/lengkapi-profile', '/lengkapi-profil'];
 
   // Authenticated routes with sidebar (dashboard and other app pages)
   const authenticatedRoutes = [

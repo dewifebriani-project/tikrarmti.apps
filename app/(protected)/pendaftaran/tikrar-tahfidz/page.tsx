@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react'
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
@@ -111,14 +111,14 @@ function TikrarRegistrationContent() {
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Track last fetch time to prevent excessive calls
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
+  // Track last fetch time to prevent excessive calls (using ref to avoid re-renders)
+  const lastFetchTimeRef = useRef<number>(0)
 
   // Fetch user data function (extracted for reuse)
   const fetchUserData = useCallback(async (force = false) => {
     // Prevent fetching more than once per second unless forced
     const now = Date.now()
-    if (!force && now - lastFetchTime < 1000) {
+    if (!force && now - lastFetchTimeRef.current < 1000) {
       return
     }
 
@@ -131,12 +131,12 @@ function TikrarRegistrationContent() {
 
       if (data && !error) {
         setUserData(data)
-        setLastFetchTime(now)
+        lastFetchTimeRef.current = now
       } else {
         console.error('Error fetching user data:', error)
       }
     }
-  }, [authUser?.id, isAuthenticated, lastFetchTime])
+  }, [authUser?.id, isAuthenticated])
 
   // Fetch user data on mount and when auth changes
   useEffect(() => {
