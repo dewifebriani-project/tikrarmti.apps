@@ -337,7 +337,7 @@ export default function ThalibahBatch2Page() {
   }
 
   const handlePrevious = () => {
-    if (currentSection > 0) {
+    if (currentSection > 1) {
       setCurrentSection(currentSection - 1)
     }
   }
@@ -677,7 +677,7 @@ export default function ThalibahBatch2Page() {
 
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-800 text-sm font-medium">
-              ✓ Data diri Anda sudah lengkap. Silakan lanjut ke section berikutnya untuk mengisi formulir pendaftaran.
+              Data diri Anda sudah lengkap. Silakan lanjut ke section berikutnya untuk mengisi formulir pendaftaran.
             </p>
           </div>
         </div>
