@@ -113,7 +113,8 @@
       "Bash(npx vercel:*)",
       "Bash(vercel ls:*)",
       "Bash(vercel inspect:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsc --noEmit --skipLibCheck)"
     ],
     "deny": [],
     "ask": []

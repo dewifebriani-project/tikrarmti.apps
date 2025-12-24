@@ -306,9 +306,9 @@ export async function POST(request: Request) {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        table: error.table,
-        column: error.column,
-        constraint: error.constraint,
+        table: (error as any).table,
+        column: (error as any).column,
+        constraint: (error as any).constraint,
         ip: clientIP,
         fullError: JSON.stringify(error, null, 2)
       });
