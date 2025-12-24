@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveBatch } from '@/hooks/useBatches';
-import { useJuzOptions } from '@/hooks/useJuzOptions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,7 +88,6 @@ function MuallimahRegistrationContent() {
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { activeBatch, isLoading: batchLoading } = useActiveBatch();
-  const { juzOptions, isLoading: juzOptionsLoading } = useJuzOptions();
   const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -860,30 +858,29 @@ function MuallimahRegistrationContent() {
 
                   <div className="space-y-2 overflow-x-auto pb-2">
                     <Label>Juz yang Bersedia Diampu *</Label>
-                    <p className="text-xs text-gray-500 mb-2">Pilih juz dari {juzOptions.length > 0 ? 'tabel juz_options' : 'daftar'} yang ukhti bersedia diampu</p>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 min-w-max">
-                      {juzOptions.map((juz) => (
+                    <p className="text-xs text-gray-500 mb-2">Pilih juz yang ukhti bersedia diampu (Batch 2: Juz 1, 28, 29, 30)</p>
+                    <div className="flex flex-wrap gap-3">
+                      {['1', '28', '29', '30'].map((juzNum) => (
                         <label
-                          key={juz.id}
-                          htmlFor={`preferred_juz_${juz.code}`}
-                          className={`flex flex-col items-center justify-center p-2 rounded-lg border-2 cursor-pointer transition-all ${
-                            formData.preferred_juz.includes(juz.code)
+                          key={juzNum}
+                          htmlFor={`preferred_juz_${juzNum}`}
+                          className={`flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 cursor-pointer transition-all ${
+                            formData.preferred_juz.includes(juzNum)
                               ? 'bg-green-500 border-green-500 text-white'
                               : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
                           }`}
                         >
-                          <span className="text-xs font-bold">{juz.code}</span>
-                          <span className="text-[10px]">{juz.name}</span>
+                          <span className="text-lg sm:text-xl font-bold">Juz {juzNum}</span>
                           <input
                             type="checkbox"
-                            id={`preferred_juz_${juz.code}`}
+                            id={`preferred_juz_${juzNum}`}
                             className="hidden"
-                            checked={formData.preferred_juz.includes(juz.code)}
+                            checked={formData.preferred_juz.includes(juzNum)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                handleInputChange('preferred_juz', [...formData.preferred_juz, juz.code]);
+                                handleInputChange('preferred_juz', [...formData.preferred_juz, juzNum]);
                               } else {
-                                handleInputChange('preferred_juz', formData.preferred_juz.filter((j) => j !== juz.code));
+                                handleInputChange('preferred_juz', formData.preferred_juz.filter((j) => j !== juzNum));
                               }
                             }}
                           />
