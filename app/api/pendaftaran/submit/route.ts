@@ -178,7 +178,10 @@ export async function POST(request: Request) {
 
     // CRITICAL: User MUST already exist in users table with complete profile
     // Following architecture: Users must register first via /auth/register before submitting program registration
-    logger.debug('Validating user exists and has complete profile');
+    logger.info('Validating user exists and has complete profile', {
+      userId: filteredBody.user_id.substring(0, 8) + '...',
+      ip: clientIP
+    });
 
     try {
       // Check if user exists in users table with all required fields
@@ -191,25 +194,44 @@ export async function POST(request: Request) {
       if (checkError) {
         logger.error('Error checking user existence', {
           error: checkError.message,
+          code: checkError.code,
+          details: checkError.details,
           userId: filteredBody.user_id.substring(0, 8) + '...'
         })
         return ApiResponses.serverError('Failed to verify user. Please try again.')
       }
 
       if (!existingUser) {
-        logger.warn('User not found in users table', {
+        logger.warn('User not found in users table - redirecting to complete profile', {
           userId: filteredBody.user_id.substring(0, 8) + '...',
-          ip: clientIP
+          ip: clientIP,
+          authEmail: user.email
         })
         return NextResponse.json({
           success: false,
           error: {
             code: 'USER_NOT_FOUND',
-            message: 'Profil Anda belum lengkap. Silakan lengkapi profil terlebih dahulu.',
-            redirect: '/lengkapi-profile'
+            message: 'Profil Anda belum terdaftar di database. Silakan lengkapi profil terlebih dahulu.',
+            redirect: '/lengkapi-profile',
+            details: {
+              userId: filteredBody.user_id.substring(0, 8) + '...',
+              email: user.email
+            }
           }
         }, { status: 400 })
       }
+
+      // Log user data for debugging
+      logger.info('User found in database', {
+        userId: existingUser.id.substring(0, 8) + '...',
+        hasFullName: !!existingUser.full_name,
+        hasTanggalLahir: !!existingUser.tanggal_lahir,
+        hasTempatLahir: !!existingUser.tempat_lahir,
+        hasPekerjaan: !!existingUser.pekerjaan,
+        hasAlasanDaftar: !!existingUser.alasan_daftar,
+        hasJenisKelamin: !!existingUser.jenis_kelamin,
+        hasNegara: !!existingUser.negara
+      })
 
       // Validate that user has all required fields (NOT NULL constraints)
       const requiredFields = {
