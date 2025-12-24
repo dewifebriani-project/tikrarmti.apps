@@ -3,50 +3,83 @@ import { createSupabaseAdmin } from './supabase'
 
 const supabaseAdmin = createSupabaseAdmin()
 
+/**
+ * PendaftaranData interface for pendaftaran_tikrar_tahfidz table
+ *
+ * IMPORTANT: This interface MUST match the database schema exactly.
+ * Reference: docs/DATABASE_SCHEMA.md lines 234-287
+ *
+ * Fields NOT in database (DO NOT ADD):
+ * - birth_place: Only exists in users table, NOT in pendaftaran_tikrar_tahfidz
+ * - gender: Only exists in users table (jenis_kelamin), NOT in pendaftaran_tikrar_tahfidz
+ * - education: NOT in pendaftaran_tikrar_tahfidz
+ * - work: NOT in pendaftaran_tikrar_tahfidz
+ * - emergency_contact: NOT in pendaftaran_tikrar_tahfidz
+ */
 export interface PendaftaranData {
+  // Required identifiers (NOT NULL in DB)
   user_id: string
   batch_id: string
   program_id: string
-  // Section 1 fields
+
+  // Section 1 fields (NOT NULL in DB with default false)
   understands_commitment: boolean
   tried_simulation: boolean
   no_negotiation: boolean
   has_telegram: boolean
   saved_contact: boolean
+
   // Section 2 fields
   has_permission: 'yes' | 'janda' | ''
   permission_name: string
   permission_phone: string
-  chosen_juz: string
+  chosen_juz: string // NOT NULL in DB
   no_travel_plans: boolean
   motivation: string
-  ready_for_team: string
-  // Section 3 fields (additional data not in users table)
-  full_name?: string // Optional - can be fetched from users table
-  address?: string // Optional - can be fetched from users.alamat
-  wa_phone?: string // Optional - can be fetched from users.whatsapp
-  telegram_phone?: string // Optional - can be fetched from users.telegram
-  birth_date?: string // Optional - can be fetched from users.tanggal_lahir
-  birth_place?: string // Optional - can be fetched from users.tempat_lahir
-  age?: number // Optional - can be calculated from users.tanggal_lahir
-  domicile?: string // Optional - can be fetched from users.kota
-  timezone?: string // Optional - can be fetched from users.zona_waktu
-  main_time_slot: string // Hanya untuk tikrar, tidak ada di users
-  backup_time_slot: string // Hanya untuk tikrar, tidak ada di users
-  time_commitment: boolean // Hanya untuk tikrar, tidak ada di users
+  ready_for_team: 'ready' | 'not_ready' | 'considering' | 'infaq'
+
+  // Section 3 fields (NOT NULL in DB)
+  main_time_slot: string
+  backup_time_slot: string
+  time_commitment: boolean
+
   // Section 4 fields
   understands_program: boolean
   questions?: string
-  // Batch info
-  batch_name?: string // Nama batch untuk referensi
+
+  // Personal data fields (from users table, nullable in DB)
+  email?: string
+  full_name?: string
+  address?: string
+  wa_phone?: string
+  telegram_phone?: string
+  birth_date?: string // NOTE: birth_place is NOT in this table!
+  age?: number
+  domicile?: string
+  timezone?: string
+
+  // Batch info (NOT NULL in DB)
+  batch_name: string
+
   // System fields
-  status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'completed'
-  selection_status?: 'pending' | 'approved' | 'rejected'
+  status?: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+  selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist'
   approved_by?: string
   approved_at?: string
   submission_date?: string
   created_at?: string
   updated_at?: string
+
+  // Optional fields for oral/written submission
+  oral_submission_url?: string
+  oral_submission_file_name?: string
+  oral_submitted_at?: string
+  written_quiz_answers?: Record<string, any>
+  written_quiz_score?: number
+  written_quiz_total_questions?: number
+  written_quiz_correct_answers?: number
+  written_submitted_at?: string
+  written_quiz_submitted_at?: string
 }
 
 export const submitPendaftaran = async (data: PendaftaranData): Promise<string> => {
