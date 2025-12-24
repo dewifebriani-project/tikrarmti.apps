@@ -48,7 +48,7 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
       created_at: '',
       updated_at: ''
     } as any}>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
         {/* Sidebar */}
         <DashboardSidebar
           isOpen={isSidebarOpen}
@@ -56,7 +56,7 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
         />
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col min-w-0 relative">
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           {/* Global Header - Sticky at top */}
           <div className="sticky top-0 z-50">
             <GlobalAuthenticatedHeader
@@ -67,7 +67,7 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 bg-gray-50 overflow-auto">
+          <div className="flex-1 overflow-y-auto bg-gray-50 pt-0">
             <main className="p-3 sm:p-4 lg:p-6">
               <div className="max-w-full">
                 {children}
