@@ -253,7 +253,7 @@ function MuallimahRegistrationContent() {
           quran_institution: data.quran_institution || '',
           teaching_communities: data.teaching_communities || '',
           memorized_tajweed_matan: data.memorized_tajweed_matan || '',
-          studied_matan_exegesis: data.studied_maten_exegesis || '',
+          studied_matan_exegesis: data.studied_matan_exegesis || '',
           memorized_juz: data.memorized_juz ? data.memorized_juz.split(', ') : [],
           examined_juz: data.examined_juz ? data.examined_juz.split(', ') : [],
           certified_juz: data.certified_juz ? data.certified_juz.split(', ') : [],
@@ -527,7 +527,7 @@ function MuallimahRegistrationContent() {
         quran_institution: formData.quran_institution,
         teaching_communities: formData.teaching_communities || null,
         memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
-        studied_maten_exegesis: formData.studied_matan_exegesis || null,
+        studied_matan_exegesis: formData.studied_matan_exegesis || null,
         memorized_juz: formData.memorized_juz.length > 0 ? formData.memorized_juz.join(', ') : null,
         examined_juz: formData.examined_juz.length > 0 ? formData.examined_juz.join(', ') : null,
         certified_juz: formData.certified_juz.length > 0 ? formData.certified_juz.join(', ') : null,
@@ -569,8 +569,15 @@ function MuallimahRegistrationContent() {
           .eq('user_id', authUser.id);
 
         if (updateError) {
-          console.error('Update error:', updateError);
-          toast.error('Gagal memperbarui data pendaftaran. Silakan coba lagi.');
+          console.error('=== UPDATE ERROR DETAILS ===');
+          console.error('Error message:', updateError.message);
+          console.error('Error details:', updateError.details);
+          console.error('Error hint:', updateError.hint);
+          console.error('Error code:', updateError.code);
+          console.error('Full error object:', JSON.stringify(updateError, null, 2));
+          console.error('Submit data being sent:', JSON.stringify(submitData, null, 2));
+          console.error('==========================');
+          toast.error(`Gagal memperbarui data pendaftaran: ${updateError.message || 'Unknown error'}`);
           throw updateError;
         }
 
@@ -586,8 +593,15 @@ function MuallimahRegistrationContent() {
           });
 
         if (submitError) {
-          console.error('Submit error:', submitError);
-          toast.error('Gagal mengirim pendaftaran. Silakan coba lagi.');
+          console.error('=== SUBMIT ERROR DETAILS ===');
+          console.error('Error message:', submitError.message);
+          console.error('Error details:', submitError.details);
+          console.error('Error hint:', submitError.hint);
+          console.error('Error code:', submitError.code);
+          console.error('Full error object:', JSON.stringify(submitError, null, 2));
+          console.error('Submit data being sent:', JSON.stringify(submitData, null, 2));
+          console.error('==========================');
+          toast.error(`Gagal mengirim pendaftaran: ${submitError.message || 'Unknown error'}`);
           throw submitError;
         }
 
