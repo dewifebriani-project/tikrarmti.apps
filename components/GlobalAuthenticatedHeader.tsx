@@ -181,7 +181,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
     <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 transition-all duration-300 sticky top-0 w-full">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
-          {/* Left Section - Hamburger Menu & Breadcrumbs */}
+          {/* Left Section - Hamburger Menu & Page Title */}
           <div className="flex items-center space-x-3 md:space-x-4 md:space-x-6 flex-1">
             {/* Hamburger Menu - Mobile/Tablet */}
             <div className="md:hidden">
@@ -208,44 +208,10 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
               </button>
             </div>
 
-            {/* Mobile Breadcrumbs - Hide "Beranda" on mobile */}
-            <nav className="flex md:hidden items-center space-x-1 text-xs overflow-hidden">
-              {isMounted && getBreadcrumbs().filter(crumb => crumb.label !== 'Beranda').slice(-2).map((crumb, index, arr) => (
-                <div key={crumb.href} className="flex items-center space-x-1">
-                  {index > 0 && (
-                    <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                  <span className={`truncate max-w-[120px] ${
-                    index === arr.length - 1 ? 'text-green-900 font-medium' : 'text-gray-600'
-                  }`}>
-                    {crumb.label}
-                  </span>
-                </div>
-              ))}
-            </nav>
-
-            {/* Breadcrumbs - Desktop */}
-            <nav className="hidden md:flex items-center space-x-2 text-sm">
-              {getBreadcrumbs().map((crumb, index) => (
-                <div key={crumb.href} className="flex items-center space-x-2">
-                  {index > 0 && (
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                  <Link
-                    href={crumb.href}
-                    className={`hover:text-green-700 transition-colors duration-200 font-medium ${
-                      index === getBreadcrumbs().length - 1 ? 'text-green-900' : 'text-gray-600'
-                    }`}
-                  >
-                    {crumb.label}
-                  </Link>
-                </div>
-              ))}
-            </nav>
+            {/* Page Title - Only show last breadcrumb (current page) */}
+            <h1 className="text-base md:text-lg font-semibold text-green-900 truncate">
+              {isMounted && getBreadcrumbs()[getBreadcrumbs().length - 1]?.label || getPageTitle()}
+            </h1>
           </div>
 
           {/* Center Section - Spacer */}

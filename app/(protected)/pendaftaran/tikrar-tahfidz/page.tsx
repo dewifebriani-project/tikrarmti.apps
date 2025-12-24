@@ -356,7 +356,7 @@ export default function ThalibahBatch2Page() {
   }, [currentSection, isMounted])
 
   const handleSubmit = async () => {
-    if (!validateSection(4)) return
+    if (!validateSection(currentSection)) return
     if (!user?.id || !activeBatch) {
       setSubmitStatus('error')
       return
@@ -1419,72 +1419,6 @@ export default function ThalibahBatch2Page() {
             className="text-sm"
           />
         </div>
-
-        {submitStatus === 'success' && (
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
-              <strong>Alhamdulillah!</strong> Formulir pendaftaran Ukhti telah berhasil dikirim. Tim kami akan menghubungi Ukhti melalui Telegram untuk proses seleksi selanjutnya.
-              <br /><br />
-              <strong>Jangan lupa:</strong> Persiapkan diri untuk tes bacaan Al-Qur'an dan simak informasi selanjutnya di Telegram.
-              <br /><br />
-              <div className="flex items-center space-x-2 mb-3">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                <span className="text-sm">Ukhti akan dialihkan ke dashboard otomatis...</span>
-              </div>
-              <Button
-                onClick={() => router.push('/dashboard')}
-                className="bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-              >
-                Pergi ke Dashboard Sekarang
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {submitStatus === 'success_update' && (
-          <Alert className="bg-blue-50 border-blue-200">
-            <CheckCircle className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              <strong>Alhamdulillah!</strong> Data pendaftaran Ukhti telah berhasil diperbarui.
-              <br /><br />
-              Perubahan data telah tersimpan. Tim kami akan menggunakan data terbaru untuk proses seleksi.
-              <br /><br />
-              <div className="flex items-center space-x-2 mb-3">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm">Ukhti akan dialihkan ke dashboard otomatis...</span>
-              </div>
-              <Button
-                onClick={() => router.push('/dashboard')}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                size="sm"
-              >
-                Pergi ke Dashboard Sekarang
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {submitStatus === 'error' && (
-          <Alert className="bg-red-50 border-red-200">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              <div className="space-y-2">
-                <p className="font-semibold">Terjadi kesalahan saat mengirim formulir</p>
-                <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 0813-1365-0842.</p>
-                {submitError && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer text-sm underline">Lihat Detail Error</summary>
-                    <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto max-h-40">
-                      {submitError}
-                    </pre>
-                  </details>
-                )}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
       </div>
     </div>
   )
@@ -1545,48 +1479,118 @@ export default function ThalibahBatch2Page() {
                 {currentSection === 3 && renderSection3()}
                 {currentSection === 4 && renderSection4()}
 
-                <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 pt-4 sm:pt-6 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentSection === 0 || isSubmitting}
-                    className="flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 text-sm sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 w-full sm:w-auto"
-                  >
-                    <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                    <span>Previous</span>
-                  </Button>
+                {/* Show submit status messages */}
+                {submitStatus === 'success' && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      <strong>Alhamdulillah!</strong> Formulir pendaftaran Ukhti telah berhasil dikirim. Tim kami akan menghubungi Ukhti melalui Telegram untuk proses seleksi selanjutnya.
+                      <br /><br />
+                      <strong>Jangan lupa:</strong> Persiapkan diri untuk tes bacaan Al-Qur'an dan simak informasi selanjutnya di Telegram.
+                      <br /><br />
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        <span className="text-sm">Ukhti akan dialihkan ke dashboard otomatis...</span>
+                      </div>
+                      <Button
+                        onClick={() => router.push('/dashboard')}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        size="sm"
+                      >
+                        Pergi ke Dashboard Sekarang
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-                  {currentSection < totalSections ? (
+                {submitStatus === 'success_update' && (
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <CheckCircle className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800">
+                      <strong>Alhamdulillah!</strong> Data pendaftaran Ukhti telah berhasil diperbarui.
+                      <br /><br />
+                      Perubahan data telah tersimpan. Tim kami akan menggunakan data terbaru untuk proses seleksi.
+                      <br /><br />
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm">Ukhti akan dialihkan ke dashboard otomatis...</span>
+                      </div>
+                      <Button
+                        onClick={() => router.push('/dashboard')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        size="sm"
+                      >
+                        Pergi ke Dashboard Sekarang
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {submitStatus === 'error' && (
+                  <Alert className="bg-red-50 border-red-200">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-red-800">
+                      <div className="space-y-2">
+                        <p className="font-semibold">Terjadi kesalahan saat mengirim formulir</p>
+                        <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 0813-1365-0842.</p>
+                        {submitError && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-sm underline">Lihat Detail Error</summary>
+                            <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto max-h-40">
+                              {submitError}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Hide navigation buttons on success */}
+                {submitStatus !== 'success' && submitStatus !== 'success_update' && (
+                  <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 pt-4 sm:pt-6 border-t">
                     <Button
                       type="button"
-                      onClick={handleNext}
-                      className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-sm sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 w-full sm:w-auto"
+                      variant="outline"
+                      onClick={handlePrevious}
+                      disabled={currentSection === 0 || isSubmitting}
+                      className="flex items-center justify-center space-x-2 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200 text-sm sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 w-full sm:w-auto"
                     >
-                      <span>Next</span>
-                      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span>Previous</span>
                     </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={handleSubmit}
-                      disabled={isSubmitting || submitStatus === 'success' || submitStatus === 'success_update'}
-                      className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-sm sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 w-full sm:w-auto"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                          <span>{isEditMode ? 'Updating...' : 'Submitting...'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{isEditMode ? 'Update Pendaftaran' : 'Submit Application'}</span>
-                          <Send className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
+
+                    {currentSection < totalSections - 1 ? (
+                      <Button
+                        type="button"
+                        onClick={handleNext}
+                        className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-sm sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 w-full sm:w-auto"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 text-sm sm:text-base py-2 sm:py-2.5 px-3 sm:px-4 w-full sm:w-auto"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
+                            <span>{isEditMode ? 'Updating...' : 'Submitting...'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{isEditMode ? 'Update Pendaftaran' : 'Submit Application'}</span>
+                            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </form>
             </CardContent>
           </Card>
