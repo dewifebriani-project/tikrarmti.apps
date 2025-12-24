@@ -387,14 +387,15 @@ function MuallimahRegistrationContent() {
         user_id: authUser.id,
         batch_id: batchId,
         // Data from users table (not in form)
-        full_name: userData?.full_name || authUser.user_metadata?.full_name || '',
-        birth_date: userData?.tanggal_lahir || null,
-        birth_place: userData?.tempat_lahir || '',
-        address: userData?.alamat || '',
-        whatsapp: userData?.whatsapp || '',
+        full_name: userData?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
+        birth_date: userData?.tanggal_lahir || new Date().toISOString(),
+        birth_place: userData?.tempat_lahir || '-',
+        address: userData?.alamat || '-',
+        whatsapp: userData?.whatsapp || authUser.phone || '-',
         email: authUser.email || '',
-        education: '', // Not in current schema
-        occupation: userData?.pekerjaan || '',
+        education: '-', // Not in current schema, provide default value
+        occupation: userData?.pekerjaan || '-',
+        memorization_level: '-', // Required by DB, provide default value
         // New fields from form
         tajweed_institution: formData.tajweed_institution,
         quran_institution: formData.quran_institution,
@@ -407,12 +408,12 @@ function MuallimahRegistrationContent() {
         preferred_juz: formData.preferred_juz.length > 0 ? formData.preferred_juz.join(', ') : '',
         class_type: formData.class_type,
         preferred_max_thalibah: formData.preferred_max_thalibah || null,
-        teaching_experience: '', // Legacy field
+        teaching_experience: '-', // Legacy field, required by DB
         teaching_years: null,
         teaching_institutions: null,
         // Store schedule as JSON string
         preferred_schedule: JSON.stringify(schedule1Formatted),
-        backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : null,
+        backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : JSON.stringify({ day: '', time_start: '', time_end: '' }), // Provide default for required field
         timezone: 'WIB',
         paid_class_interest: formData.wants_paid_class ? JSON.stringify({
           name: formData.paid_class_name || null,
