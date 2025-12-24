@@ -370,6 +370,8 @@ export default function ThalibahBatch2Page() {
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
           calculatedAge--
         }
+        // Ensure age is at least 15
+        if (calculatedAge < 15) calculatedAge = 15
       }
 
       // Get gender - convert from database format to schema format
@@ -382,6 +384,10 @@ export default function ThalibahBatch2Page() {
       if (phoneValue && !phoneValue.startsWith('+62') && !phoneValue.startsWith('62')) {
         phoneValue = phoneValue.startsWith('0') ? '62' + phoneValue.slice(1) : '62' + phoneValue
       }
+
+      // For janda, don't send permission_phone (send empty string)
+      const isJanda = formData.has_permission === 'janda'
+      const permissionPhoneValue = isJanda ? '' : formData.permission_phone
 
       // Prepare data for Tikrar API - include all required fields from schema
       // Data from users table takes priority over auth metadata
@@ -409,8 +415,8 @@ export default function ThalibahBatch2Page() {
         saved_contact: formData.saved_contact,
         // Section 2
         has_permission: formData.has_permission,
-        permission_name: formData.permission_name,
-        permission_phone: formData.permission_phone,
+        permission_name: isJanda ? '' : formData.permission_name,
+        permission_phone: permissionPhoneValue,
         chosen_juz: formData.chosen_juz,
         no_travel_plans: formData.no_travel_plans,
         motivation: formData.motivation,
