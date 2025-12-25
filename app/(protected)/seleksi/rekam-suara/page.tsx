@@ -1137,16 +1137,30 @@ export default function RekamSuaraPage() {
 
   // Clean up any existing permission dialogs on mount
   useEffect(() => {
-    const existingDialogs = document.querySelectorAll('[id^="prompt-"], [id^="allow-"], [id^="cancel-"]');
-    existingDialogs.forEach(el => el.remove());
+    // Defer DOM manipulation to avoid render-time side effects
+    const cleanupTimer = setTimeout(() => {
+      try {
+        const existingDialogs = document.querySelectorAll('[id^="prompt-"], [id^="allow-"], [id^="cancel-"]');
+        existingDialogs.forEach(el => el.remove());
+      } catch (error) {
+        console.warn('Failed to cleanup dialogs:', error);
+      }
+    }, 0);
+
+    return () => clearTimeout(cleanupTimer);
   }, []);
 
   // Handle authentication redirect
   useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('🔒 User not authenticated, redirecting to login...');
-      router.push('/login');
-    }
+    // Use setTimeout to avoid calling router.push during render
+    const redirectTimer = setTimeout(() => {
+      if (!authLoading && !user) {
+        console.log('🔒 User not authenticated, redirecting to login...');
+        router.push('/login');
+      }
+    }, 0);
+
+    return () => clearTimeout(redirectTimer);
   }, [authLoading, user, router]);
 
   // Show error if page failed to load
