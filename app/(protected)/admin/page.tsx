@@ -236,7 +236,15 @@ export default function AdminPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  // Initialize activeTab from localStorage or default to 'overview'
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('adminActiveTab');
+      return (savedTab as TabType) || 'overview';
+    }
+    return 'overview';
+  });
 
   // Only enable SWR hooks when user is authenticated and is admin
   const isAdmin: boolean = !authLoading && user?.role === 'admin';
@@ -272,6 +280,13 @@ export default function AdminPage() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
+
+  // Save activeTab to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('adminActiveTab', activeTab);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     console.log('=== Admin Page Auth Check ===');
