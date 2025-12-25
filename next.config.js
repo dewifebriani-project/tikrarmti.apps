@@ -188,7 +188,7 @@ const nextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block'
           },
-          // Content Security Policy - allow Google Fonts
+          // Content Security Policy - allow Google Fonts and blob for audio
           {
             key: 'Content-Security-Policy',
             value: [
@@ -197,6 +197,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
               "img-src 'self' data: https:",
+              "media-src 'self' blob: https://*.supabase.co",
               "connect-src 'self' https://*.supabase.co",
             ].join('; ')
           },

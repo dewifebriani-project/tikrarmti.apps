@@ -155,12 +155,11 @@ export default function RekamSuaraPage() {
       // Generate unique filename
       const timestamp = new Date().getTime();
       const fileName = `${user.id}_alfath29_${timestamp}.webm`;
-      const filePath = `selection-audios/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('selection-audios')
-        .upload(filePath, audioBlob, {
+        .upload(fileName, audioBlob, {
           contentType: 'audio/webm',
           upsert: false
         });
@@ -183,7 +182,7 @@ export default function RekamSuaraPage() {
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('selection-audios')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       // Update database
       const updateData = {
