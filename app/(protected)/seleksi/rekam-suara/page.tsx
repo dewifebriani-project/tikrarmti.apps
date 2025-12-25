@@ -211,17 +211,8 @@ export default function RekamSuaraPage() {
         submittedAt: new Date().toISOString()
       });
 
-      // Clear recording
-      setAudioBlob(null);
-      if (audioURL) {
-        URL.revokeObjectURL(audioURL);
-        setAudioURL(null);
-      }
-
-      // Redirect after success
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+      // Keep the audio available for playback after upload
+      // Don't clear audioBlob and audioURL so user can still play it
 
     } catch (err: any) {
       console.error('Upload error:', err);
@@ -311,18 +302,68 @@ export default function RekamSuaraPage() {
             </Alert>
           )}
 
-          {/* Success Alert */}
-          {uploadSuccess && (
+          {/* Success Alert with Audio Playback */}
+          {uploadSuccess && audioBlob && audioURL && (
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription>
-                Rekaman berhasil dikirim! Anda akan diarahkan ke dashboard...
+                <div className="space-y-4">
+                  <div>
+                    <strong className="text-green-800">Rekaman berhasil dikirim!</strong>
+                    <br />
+                    <span className="text-sm text-gray-600">
+                      Anda dapat mendengarkan rekaman Anda sebelum kembali ke dashboard.
+                    </span>
+                  </div>
+
+                  {/* Audio Player in Success State */}
+                  <div className="bg-white p-3 rounded border border-green-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Anda:</p>
+
+                    {/* Large Play/Pause Button */}
+                    <div className="flex justify-center mb-3">
+                      <Button
+                        onClick={togglePlayPause}
+                        size="lg"
+                        variant="outline"
+                        className="h-16 w-16 rounded-full p-0"
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-8 h-8" />
+                        ) : (
+                          <Play className="w-8 h-8 ml-1" />
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Audio Controls */}
+                    <audio
+                      ref={audioPlayerRef}
+                      src={audioURL}
+                      controls
+                      controlsList="nodownload"
+                      className="w-full"
+                      preload="auto"
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                      onEnded={() => setIsPlaying(false)}
+                    />
+                  </div>
+
+                  {/* Manual Return Button */}
+                  <Button
+                    onClick={() => router.push('/dashboard')}
+                    className="w-full bg-green-700 hover:bg-green-800"
+                  >
+                    Kembali ke Dashboard
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
 
           {/* Recording Controls */}
-          {!existingSubmission && (
+          {!existingSubmission && !uploadSuccess && (
             <div className="space-y-4">
               <div className="flex flex-col items-center space-y-4">
                 {/* Timer */}
