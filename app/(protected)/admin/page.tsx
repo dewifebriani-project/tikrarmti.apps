@@ -2053,24 +2053,24 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
         }
 
         // Pesan islami untuk mengajak daftar Tikrar Tahfidz Batch 2
-        const userName = user.full_name || user.nama_kunyah || 'Ukhti';
-        const message = `Assalamu'alaikum warahmatullahi wabarakatuh, ${userName}
+        const userName = user.full_name || user.nama_kunyah || '';
+        const message = `Assalamu'alaikum warahmatullahi wabarakatuh, Ukhti ${userName}
 
-Barakallahu fiikum atas minat dan semangat Ukhti untuk menghafal Al-Qur'an 🌙
+Barakallahu fiik atas minat dan semangat Ukhti untuk menghafal Al-Qur'an 🌙
 
-Kami dari Tikrar Menghafal Indonesia ingin mengingatkan bahwa *Program Tikrar Tahfidz Batch 2* akan segera dimulai, in syaa Allah.
+Kami dari Markaz Tikrar Indonesia ingin mengingatkan bahwa *Program Tikrar Tahfidz MTI Batch 2* akan segera dimulai, in syaa Allah.
 
 📖 "Dan sesungguhnya telah Kami mudahkan Al-Qur'an untuk peringatan, maka adakah orang yang mau mengambil pelajaran?" (QS. Al-Qamar: 17)
 
 Jika Ukhti belum mendaftar, kami mengajak Ukhti untuk segera bergabung dan meraih kesempatan mulia ini.
 
-Yuk, wujudkan impian menghafal Al-Qur'an bersama ribuan thalibah lainnya! 💚
+Yuk, wujudkan impian menghafal Al-Qur'an bersama thalibah lainnya! 💚
 
 Untuk informasi lebih lanjut dan pendaftaran, silakan kunjungi:
-🌐 https://tikrar-mti.vercel.app
+🌐 markaztikrar.id
 
-Jazakillahu khairan katsiran
-Tim Tikrar MTI`;
+Jazakillahu khairan
+Tim Markaz Tikrar Indonesia`;
 
         const encodedMessage = encodeURIComponent(message);
 
