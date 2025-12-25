@@ -143,6 +143,15 @@ export default function RekamSuaraPage() {
     setError(null);
 
     try {
+      // Check file size (max 10MB for Supabase free tier)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      const fileSizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
+
+      if (audioBlob.size > maxSize) {
+        setError(`Ukuran file terlalu besar (${fileSizeMB} MB). Maksimal 10 MB. Coba rekam dengan durasi lebih pendek.`);
+        return;
+      }
+
       // Generate unique filename
       const timestamp = new Date().getTime();
       const fileName = `${user.id}_alfath29_${timestamp}.webm`;
@@ -156,7 +165,20 @@ export default function RekamSuaraPage() {
           upsert: false
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+
+        // Provide specific error messages
+        if (uploadError.message?.includes('Payload too large')) {
+          throw new Error(`File terlalu besar (${fileSizeMB} MB). Maksimal 10 MB.`);
+        } else if (uploadError.message?.includes('not found')) {
+          throw new Error('Bucket storage tidak ditemukan. Hubungi administrator.');
+        } else if (uploadError.message?.includes('permission')) {
+          throw new Error('Tidak ada izin untuk upload. Hubungi administrator.');
+        } else {
+          throw new Error(`Error upload: ${uploadError.message}`);
+        }
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
@@ -176,7 +198,10 @@ export default function RekamSuaraPage() {
         .update(updateData)
         .eq('user_id', user.id);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Error menyimpan ke database: ${dbError.message}`);
+      }
 
       setUploadSuccess(true);
       setExistingSubmission({
@@ -197,9 +222,9 @@ export default function RekamSuaraPage() {
         router.push('/dashboard');
       }, 2000);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload error:', err);
-      setError('Gagal mengunggah rekaman. Silakan coba lagi.');
+      setError(err.message || 'Gagal mengunggah rekaman. Silakan coba lagi.');
     } finally {
       setIsUploading(false);
     }
@@ -310,11 +335,30 @@ export default function RekamSuaraPage() {
                 {/* Audio Preview */}
                 {audioBlob && audioURL && (
                   <div className="w-full space-y-4">
-                    <audio
-                      src={audioURL}
-                      controls
-                      className="w-full"
-                    />
+                    {/* File Size Info */}
+                    <div className="text-sm text-gray-600 text-center">
+                      Ukuran file: {(audioBlob.size / (1024 * 1024)).toFixed(2)} MB
+                      {audioBlob.size > 10 * 1024 * 1024 && (
+                        <span className="text-red-600 ml-2">(Terlalu besar! Max 10 MB)</span>
+                      )}
+                    </div>
+
+                    {/* Audio Player */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-700 mb-2 font-medium">Preview Rekaman:</p>
+                      <audio
+                        src={audioURL}
+                        controls
+                        controlsList="nodownload"
+                        className="w-full"
+                        preload="auto"
+                        style={{
+                          width: '100%',
+                          minHeight: '40px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
 
                     <div className="flex gap-2">
                       <Button
@@ -332,7 +376,7 @@ export default function RekamSuaraPage() {
                       </Button>
                       <Button
                         onClick={uploadAudio}
-                        disabled={isUploading}
+                        disabled={isUploading || (audioBlob.size > 10 * 1024 * 1024)}
                         className="flex-1"
                       >
                         {isUploading ? (
