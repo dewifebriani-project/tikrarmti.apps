@@ -106,43 +106,52 @@ export default function RekamSuaraPage() {
   useEffect(() => {
     if (!isClient) return;
 
-    const checkPermission = async () => {
-      try {
-        // Skip permission check on mobile/iOS as it's not well supported
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // Defer permission check to avoid render-time side effects
+    const permissionTimer = setTimeout(() => {
+      const checkPermission = async () => {
+        try {
+          // Skip permission check on mobile/iOS as it's not well supported
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-        if (!isMobile && !isIOS && navigator.permissions && navigator.permissions.query) {
-          const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          setMicPermission(result.state as 'prompt' | 'granted' | 'denied');
-
-          result.addEventListener('change', () => {
+          if (!isMobile && !isIOS && navigator.permissions && navigator.permissions.query) {
+            const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
             setMicPermission(result.state as 'prompt' | 'granted' | 'denied');
-          });
-        } else {
-          // On mobile, set permission to 'prompt' initially
-          // Will be updated when user actually tries to record
-          setMicPermission('prompt');
+
+            result.addEventListener('change', () => {
+              setMicPermission(result.state as 'prompt' | 'granted' | 'denied');
+            });
+          } else {
+            // On mobile, set permission to 'prompt' initially
+            // Will be updated when user actually tries to record
+            setMicPermission('prompt');
+          }
+        } catch (error) {
+          console.log('Permission API not supported (normal on mobile)');
+          setMicPermission('prompt'); // Assume prompt on mobile
         }
-      } catch (error) {
-        console.log('Permission API not supported (normal on mobile)');
-        setMicPermission('prompt'); // Assume prompt on mobile
+      };
+
+      checkPermission();
+
+      // On mobile, load devices without checking permission first
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        loadAudioDevices();
       }
-    };
+    }, 0);
 
-    checkPermission();
-
-    // On mobile, load devices without checking permission first
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      loadAudioDevices();
-    }
+    return () => clearTimeout(permissionTimer);
   }, [isClient]);
 
   // Reload devices when permission is granted
   useEffect(() => {
     if (micPermission === 'granted' && isClient) {
-      loadAudioDevices();
+      // Defer device loading to avoid render-time side effects
+      const deviceTimer = setTimeout(() => {
+        loadAudioDevices();
+      }, 0);
+      return () => clearTimeout(deviceTimer);
     }
   }, [micPermission, isClient]);
 
