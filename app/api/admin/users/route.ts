@@ -61,20 +61,16 @@ export async function GET(request: NextRequest) {
         `)
         .order('created_at', { ascending: false });
 
-      // Map the response to flatten current_batch (it comes as array)
-      if (!error && data) {
+      if (error) {
+        console.warn('Error fetching users with relationships:', error);
+        fetchError = error;
+      } else if (data) {
+        // Map the response to flatten current_batch (it comes as array from Supabase)
         users = data.map((user: any) => ({
           ...user,
           current_tikrar_batch: user.current_batch?.[0] || null,
           current_batch: undefined,
         }));
-      }
-
-      if (error) {
-        console.warn('Error fetching users with relationships:', error);
-        fetchError = error;
-      } else {
-        users = data;
         console.log(`Successfully fetched ${users?.length || 0} users with relationships`);
       }
     } catch (err: any) {
