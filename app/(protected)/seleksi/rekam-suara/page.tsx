@@ -232,17 +232,28 @@ export default function RekamSuaraPage() {
 
       console.log('[UPLOAD] Updating database with:', updateData);
 
-      const { error: dbError } = await (supabase
+      const { data: updateResult, error: dbError } = await (supabase
         .from('pendaftaran_tikrar_tahfidz') as any)
         .update(updateData)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select();
+
+      console.log('[UPLOAD] Database update result:', { updateResult, dbError });
 
       if (dbError) {
         console.error('[UPLOAD ERROR] Database error:', dbError);
+        // Show detailed error to user
+        setError(`Error menyimpan ke database: ${dbError.message} (${dbError.code || 'unknown'})`);
         throw new Error(`Error menyimpan ke database: ${dbError.message}`);
       }
 
-      console.log('[UPLOAD SUCCESS] Database updated successfully');
+      if (!updateResult || updateResult.length === 0) {
+        console.error('[UPLOAD ERROR] No rows updated! User may not have registration record.');
+        setError('Tidak dapat menyimpan rekaman. Anda belum memiliki data pendaftaran.');
+        throw new Error('No rows updated in database');
+      }
+
+      console.log('[UPLOAD SUCCESS] Database updated successfully:', updateResult);
 
       setUploadSuccess(true);
       setExistingSubmission({
