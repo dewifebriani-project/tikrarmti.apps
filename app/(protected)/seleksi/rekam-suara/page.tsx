@@ -274,22 +274,35 @@ export default function RekamSuaraPage() {
           </div>
 
           {/* Existing Submission Alert */}
-          {existingSubmission && (
+          {existingSubmission && !uploadSuccess && (
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription>
-                <strong>Rekaman sudah terkirim</strong>
-                <br />
-                Dikirim pada: {new Date(existingSubmission.submittedAt).toLocaleString('id-ID')}
-                <br />
-                <a
-                  href={existingSubmission.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-700 underline hover:text-green-800"
-                >
-                  Dengarkan rekaman Anda
-                </a>
+                <div className="space-y-3">
+                  <div>
+                    <strong className="text-green-800">Rekaman sudah terkirim</strong>
+                    <br />
+                    <span className="text-sm text-gray-600">
+                      Dikirim pada: {new Date(existingSubmission.submittedAt).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+
+                  {/* Audio Player for Existing Submission */}
+                  <div className="bg-white p-3 rounded border border-green-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Anda:</p>
+                    <audio
+                      src={existingSubmission.url}
+                      controls
+                      controlsList="nodownload"
+                      className="w-full"
+                      preload="auto"
+                    />
+                  </div>
+
+                  <p className="text-xs text-gray-600 italic">
+                    Anda sudah mengirimkan rekaman. Tidak bisa mengirim ulang.
+                  </p>
+                </div>
               </AlertDescription>
             </Alert>
           )}

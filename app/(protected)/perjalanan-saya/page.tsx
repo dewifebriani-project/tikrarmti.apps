@@ -42,13 +42,17 @@ export default function PerjalananSaya() {
 
     const hasActiveRegistration = registrations.some(reg => ['approved', 'pending'].includes(reg.status));
     const approvedRegistration = registrations.find(reg => reg.status === 'approved');
+    const registration = approvedRegistration || registrations[0];
 
     return {
       hasRegistered: hasActiveRegistration,
-      registration: approvedRegistration || registrations[0],
+      registration,
       hasActiveRegistration,
       pendingApproval: registrations.some(reg => reg.status === 'pending'),
       approved: !!approvedRegistration,
+      hasOralSubmission: !!(registration as any)?.oral_submission_url,
+      oralSubmissionUrl: (registration as any)?.oral_submission_url,
+      oralSubmittedAt: (registration as any)?.oral_submitted_at,
     };
   }, [user, registrations]);
 
@@ -542,27 +546,53 @@ export default function PerjalananSaya() {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                  {/* Card Rekam Suara - NOW ACTIVE */}
-                                  <Link href="/seleksi/rekam-suara">
-                                    <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                  {/* Card Rekam Suara - Conditional */}
+                                  {registrationStatus?.hasOralSubmission ? (
+                                    <Card className={`border-2 border-green-300 bg-green-50`}>
                                       <CardContent className="p-3 sm:p-4">
                                         <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center`}>
-                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                            </svg>
+                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                                           </div>
                                           <div className="flex-grow">
-                                            <h4 className="text-sm sm:text-base font-semibold text-red-900">Rekam Suara</h4>
-                                            <p className="text-xs text-red-700">Ujian lisan - Klik untuk mulai</p>
+                                            <h4 className="text-sm sm:text-base font-semibold text-green-900">Rekam Suara</h4>
+                                            <p className="text-xs text-green-700">Sudah terkirim</p>
                                           </div>
                                         </div>
-                                        <p className="text-xs text-red-800 font-medium">
-                                          Klik untuk merekam bacaan Al-Fath ayat 29
+                                        <p className="text-xs text-green-800 mb-2">
+                                          Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
                                         </p>
+                                        <audio
+                                          src={registrationStatus?.oralSubmissionUrl}
+                                          controls
+                                          controlsList="nodownload"
+                                          className="w-full"
+                                          style={{ height: '32px' }}
+                                        />
                                       </CardContent>
                                     </Card>
-                                  </Link>
+                                  ) : (
+                                    <Link href="/seleksi/rekam-suara">
+                                      <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                        <CardContent className="p-3 sm:p-4">
+                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center`}>
+                                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                              </svg>
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-sm sm:text-base font-semibold text-red-900">Rekam Suara</h4>
+                                              <p className="text-xs text-red-700">Ujian lisan - Klik untuk mulai</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-xs text-red-800 font-medium">
+                                            Klik untuk merekam bacaan Al-Fath ayat 29
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
+                                  )}
 
                                   {/* Card Pilihan Ganda - DISABLED */}
                                   <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
@@ -681,27 +711,53 @@ export default function PerjalananSaya() {
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-3">
-                                    {/* Card Rekam Suara - NOW ACTIVE */}
-                                    <Link href="/seleksi/rekam-suara">
-                                      <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                    {/* Card Rekam Suara - Conditional */}
+                                    {registrationStatus?.hasOralSubmission ? (
+                                      <Card className={`border-2 border-green-300 bg-green-50`}>
                                         <CardContent className="p-4">
                                           <div className="flex items-center space-x-3 mb-2">
-                                            <div className={`w-10 h-10 bg-red-100 rounded-full flex items-center justify-center`}>
-                                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                              </svg>
+                                            <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                              <CheckCircle className="w-5 h-5 text-green-600" />
                                             </div>
                                             <div className="flex-grow">
-                                              <h4 className="text-base font-semibold text-red-900">Rekam Suara</h4>
-                                              <p className="text-sm text-red-700">Ujian lisan - Klik untuk mulai</p>
+                                              <h4 className="text-base font-semibold text-green-900">Rekam Suara</h4>
+                                              <p className="text-sm text-green-700">Sudah terkirim</p>
                                             </div>
                                           </div>
-                                          <p className="text-sm text-red-800 font-medium">
-                                            Klik untuk merekam bacaan Al-Fath ayat 29
+                                          <p className="text-sm text-green-800 mb-2">
+                                            Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
                                           </p>
+                                          <audio
+                                            src={registrationStatus?.oralSubmissionUrl}
+                                            controls
+                                            controlsList="nodownload"
+                                            className="w-full"
+                                            style={{ height: '32px' }}
+                                          />
                                         </CardContent>
                                       </Card>
-                                    </Link>
+                                    ) : (
+                                      <Link href="/seleksi/rekam-suara">
+                                        <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-4">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                              <div className={`w-10 h-10 bg-red-100 rounded-full flex items-center justify-center`}>
+                                                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                </svg>
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-base font-semibold text-red-900">Rekam Suara</h4>
+                                                <p className="text-sm text-red-700">Ujian lisan - Klik untuk mulai</p>
+                                              </div>
+                                            </div>
+                                            <p className="text-sm text-red-800 font-medium">
+                                              Klik untuk merekam bacaan Al-Fath ayat 29
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
+                                    )}
 
                                     {/* Card Pilihan Ganda - DISABLED */}
                                     <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
