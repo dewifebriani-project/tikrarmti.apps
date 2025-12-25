@@ -63,17 +63,25 @@ export default function RekamSuaraPage() {
     };
   }, [audioUrl]);
 
-  // Timer for recording
+  // Timer for recording - DEFERRED to prevent React Error #310
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setRecordingTime(0);
-    }
-    return () => clearInterval(interval);
+    const timerCleanup = setTimeout(() => {
+      if (isRecording) {
+        interval = setInterval(() => {
+          setRecordingTime((prev) => prev + 1);
+        }, 1000);
+      } else {
+        setRecordingTime(0);
+      }
+    }, 0);
+
+    return () => {
+      clearTimeout(timerCleanup);
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [isRecording]);
 
   // Load available audio devices
