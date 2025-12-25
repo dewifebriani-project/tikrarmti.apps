@@ -171,6 +171,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Helper function to convert empty string to null for date fields
+    const toDateOrNull = (value: any) => {
+      if (value === '' || value === null || value === undefined) return null;
+      return value;
+    };
+
     // Insert or update batch
     const { data, error } = await supabaseAdmin
       .from('batches')
@@ -180,8 +186,8 @@ export async function POST(request: NextRequest) {
         description: body.description,
         start_date: body.start_date,
         end_date: body.end_date,
-        registration_start_date: body.registration_start_date,
-        registration_end_date: body.registration_end_date,
+        registration_start_date: toDateOrNull(body.registration_start_date),
+        registration_end_date: toDateOrNull(body.registration_end_date),
         status: body.status || 'draft',
         duration_weeks: body.duration_weeks || 13,
         program_type: body.program_type,
@@ -190,20 +196,20 @@ export async function POST(request: NextRequest) {
         is_free: body.is_free ?? true,
         price: body.price || 0,
 
-        // Timeline phase dates for perjalanan-saya
-        selection_start_date: body.selection_start_date,
-        selection_end_date: body.selection_end_date,
-        selection_result_date: body.selection_result_date,
-        re_enrollment_date: body.re_enrollment_date,
-        opening_class_date: body.opening_class_date,
-        first_week_start_date: body.first_week_start_date,
-        first_week_end_date: body.first_week_end_date,
-        review_week_start_date: body.review_week_start_date,
-        review_week_end_date: body.review_week_end_date,
-        final_exam_start_date: body.final_exam_start_date,
-        final_exam_end_date: body.final_exam_end_date,
-        graduation_start_date: body.graduation_start_date,
-        graduation_end_date: body.graduation_end_date,
+        // Timeline phase dates for perjalanan-saya (convert empty strings to null)
+        selection_start_date: toDateOrNull(body.selection_start_date),
+        selection_end_date: toDateOrNull(body.selection_end_date),
+        selection_result_date: toDateOrNull(body.selection_result_date),
+        re_enrollment_date: toDateOrNull(body.re_enrollment_date),
+        opening_class_date: toDateOrNull(body.opening_class_date),
+        first_week_start_date: toDateOrNull(body.first_week_start_date),
+        first_week_end_date: toDateOrNull(body.first_week_end_date),
+        review_week_start_date: toDateOrNull(body.review_week_start_date),
+        review_week_end_date: toDateOrNull(body.review_week_end_date),
+        final_exam_start_date: toDateOrNull(body.final_exam_start_date),
+        final_exam_end_date: toDateOrNull(body.final_exam_end_date),
+        graduation_start_date: toDateOrNull(body.graduation_start_date),
+        graduation_end_date: toDateOrNull(body.graduation_end_date),
       })
       .select()
       .single();
