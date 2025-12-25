@@ -29,6 +29,7 @@ export default function RekamSuaraPage() {
     fileName: string;
     submittedAt: string;
   } | null>(null);
+  const [hasRegistration, setHasRegistration] = useState<boolean | null>(null); // null = checking, true = has, false = no
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -39,7 +40,7 @@ export default function RekamSuaraPage() {
     setIsClient(true);
   }, []);
 
-  // Check for existing submission
+  // Check for existing submission AND registration
   useEffect(() => {
     if (!user?.id) return;
 
@@ -54,12 +55,16 @@ export default function RekamSuaraPage() {
 
         if (error) {
           console.error('[ERROR] Error fetching submission:', error);
+          setHasRegistration(false);
           return;
         }
 
         console.log('[DEBUG] Submission data from DB:', data);
 
         if (data) {
+          // User HAS registration record
+          setHasRegistration(true);
+
           const submissionData = data as {
             oral_submission_url: string | null;
             oral_submission_file_name: string | null;
@@ -77,10 +82,13 @@ export default function RekamSuaraPage() {
             console.log('[DEBUG] No existing submission URL found');
           }
         } else {
-          console.log('[DEBUG] No data returned from database');
+          // User does NOT have registration record
+          console.log('[DEBUG] No data returned from database - user has no registration');
+          setHasRegistration(false);
         }
       } catch (err) {
         console.error('[ERROR] Error checking submission:', err);
+        setHasRegistration(false);
       }
     };
 
@@ -326,6 +334,30 @@ export default function RekamSuaraPage() {
             </p>
           </div>
 
+          {/* No Registration Alert - User must register first */}
+          {hasRegistration === false && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-3">
+                  <div>
+                    <strong>Anda belum terdaftar</strong>
+                    <br />
+                    <span className="text-sm">
+                      Anda harus mengisi formulir pendaftaran Tikrar Tahfidz terlebih dahulu sebelum dapat mengikuti tes seleksi rekam suara.
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => router.push('/pendaftaran/tikrar-tahfidz')}
+                    className="w-full bg-red-700 hover:bg-red-800"
+                  >
+                    Isi Formulir Pendaftaran
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Existing Submission Alert */}
           {existingSubmission && !uploadSuccess && (
             <Alert className="bg-green-50 border-green-200">
@@ -436,8 +468,8 @@ export default function RekamSuaraPage() {
             </Alert>
           )}
 
-          {/* Recording Controls */}
-          {!existingSubmission && !uploadSuccess && (
+          {/* Recording Controls - Only show if user has registration */}
+          {!existingSubmission && !uploadSuccess && hasRegistration === true && (
             <div className="space-y-4">
               <div className="flex flex-col items-center space-y-4">
                 {/* Timer */}
