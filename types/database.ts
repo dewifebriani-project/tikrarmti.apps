@@ -102,16 +102,24 @@ export interface Halaqah {
 
 export interface Pendaftaran {
   id: string;
-  thalibah_id: string;
-  program_id: string;
+  thalibah_id?: string;
+  user_id?: string;
+  program_id?: string;
   batch_id: string;
-  registration_date: string;
+  registration_date?: string;
   status: PendaftaranStatus;
   notes?: string;
   approved_by?: string;
   approved_at?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  submitted_at?: string;
+  // Multi-role support fields
+  registration_type?: 'calon_thalibah' | 'muallimah' | 'musyrifah';
+  role?: 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'thalibah' | 'admin';
+  // Nested relations
+  program?: Program;
+  batch?: Batch;
 }
 
 export interface HalaqahMentor {
