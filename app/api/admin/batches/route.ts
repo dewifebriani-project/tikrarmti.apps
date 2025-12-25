@@ -177,45 +177,56 @@ export async function POST(request: NextRequest) {
       return value;
     };
 
+    // Prepare batch data
+    const batchData: any = {
+      name: body.name,
+      description: body.description || null,
+      start_date: body.start_date,
+      end_date: body.end_date,
+      registration_start_date: toDateOrNull(body.registration_start_date),
+      registration_end_date: toDateOrNull(body.registration_end_date),
+      status: body.status || 'draft',
+      duration_weeks: body.duration_weeks || 13,
+      program_type: body.program_type || null,
+      total_quota: body.total_quota || 100,
+      is_free: body.is_free ?? true,
+      price: body.price || 0,
+
+      // Timeline phase dates for perjalanan-saya (convert empty strings to null)
+      selection_start_date: toDateOrNull(body.selection_start_date),
+      selection_end_date: toDateOrNull(body.selection_end_date),
+      selection_result_date: toDateOrNull(body.selection_result_date),
+      re_enrollment_date: toDateOrNull(body.re_enrollment_date),
+      opening_class_date: toDateOrNull(body.opening_class_date),
+      first_week_start_date: toDateOrNull(body.first_week_start_date),
+      first_week_end_date: toDateOrNull(body.first_week_end_date),
+      review_week_start_date: toDateOrNull(body.review_week_start_date),
+      review_week_end_date: toDateOrNull(body.review_week_end_date),
+      final_exam_start_date: toDateOrNull(body.final_exam_start_date),
+      final_exam_end_date: toDateOrNull(body.final_exam_end_date),
+      graduation_start_date: toDateOrNull(body.graduation_start_date),
+      graduation_end_date: toDateOrNull(body.graduation_end_date),
+    };
+
+    // Only include id if updating existing batch
+    if (body.id) {
+      batchData.id = body.id;
+    } else {
+      // Only set registered_count for new batches
+      batchData.registered_count = 0;
+    }
+
     // Insert or update batch
     const { data, error } = await supabaseAdmin
       .from('batches')
-      .upsert({
-        id: body.id,
-        name: body.name,
-        description: body.description,
-        start_date: body.start_date,
-        end_date: body.end_date,
-        registration_start_date: toDateOrNull(body.registration_start_date),
-        registration_end_date: toDateOrNull(body.registration_end_date),
-        status: body.status || 'draft',
-        duration_weeks: body.duration_weeks || 13,
-        program_type: body.program_type,
-        total_quota: body.total_quota || 100,
-        registered_count: 0,
-        is_free: body.is_free ?? true,
-        price: body.price || 0,
-
-        // Timeline phase dates for perjalanan-saya (convert empty strings to null)
-        selection_start_date: toDateOrNull(body.selection_start_date),
-        selection_end_date: toDateOrNull(body.selection_end_date),
-        selection_result_date: toDateOrNull(body.selection_result_date),
-        re_enrollment_date: toDateOrNull(body.re_enrollment_date),
-        opening_class_date: toDateOrNull(body.opening_class_date),
-        first_week_start_date: toDateOrNull(body.first_week_start_date),
-        first_week_end_date: toDateOrNull(body.first_week_end_date),
-        review_week_start_date: toDateOrNull(body.review_week_start_date),
-        review_week_end_date: toDateOrNull(body.review_week_end_date),
-        final_exam_start_date: toDateOrNull(body.final_exam_start_date),
-        final_exam_end_date: toDateOrNull(body.final_exam_end_date),
-        graduation_start_date: toDateOrNull(body.graduation_start_date),
-        graduation_end_date: toDateOrNull(body.graduation_end_date),
-      })
+      .upsert(batchData)
       .select()
       .single();
 
     if (error) {
       console.error('Error upserting batch:', error);
+      console.error('Batch data being sent:', batchData);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
 
       // Audit log for failed operation
       await logAudit({
@@ -226,7 +237,10 @@ export async function POST(request: NextRequest) {
           batch_id: body.id,
           batch_name: body.name,
           error: error.message,
-          attempted_changes: body
+          error_details: error.details,
+          error_hint: error.hint,
+          error_code: error.code,
+          attempted_changes: batchData
         },
         ipAddress: getClientIp(request),
         userAgent: getUserAgent(request),
@@ -234,7 +248,12 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json(
-        { error: 'Failed to save batch', details: error.message },
+        {
+          error: 'Failed to save batch',
+          details: error.message,
+          hint: error.hint,
+          code: error.code
+        },
         { status: 500 }
       );
     }
