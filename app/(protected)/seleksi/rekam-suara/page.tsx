@@ -33,15 +33,19 @@ export default function RekamSuaraPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  // Set client-side flag
+  // Set client-side flag - DEFERRED to prevent Error #310
   useEffect(() => {
-    try {
-      setIsClient(true);
-      console.log('✅ Recording page mounted successfully');
-    } catch (error) {
-      console.error('❌ Error mounting recording page:', error);
-      setPageError('Gagal memuat halaman. Silakan refresh.');
-    }
+    const mountTimer = setTimeout(() => {
+      try {
+        setIsClient(true);
+        console.log('✅ Recording page mounted successfully');
+      } catch (error) {
+        console.error('❌ Error mounting recording page:', error);
+        setPageError('Gagal memuat halaman. Silakan refresh.');
+      }
+    }, 0);
+
+    return () => clearTimeout(mountTimer);
   }, []);
 
   // Cleanup audio URL and audio context on unmount
