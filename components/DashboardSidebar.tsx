@@ -18,8 +18,13 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
   const { logout } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
+  // Set mounted state after hydration - DEFERRED to prevent React Error #310
   useEffect(() => {
-    setIsMounted(true);
+    const mountTimer = setTimeout(() => {
+      setIsMounted(true);
+    }, 0);
+
+    return () => clearTimeout(mountTimer);
   }, []);
 
   // Role-based navigation items
