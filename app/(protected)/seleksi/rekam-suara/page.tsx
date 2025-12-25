@@ -47,16 +47,27 @@ export default function RekamSuaraPage() {
           .from('pendaftaran_tikrar_tahfidz')
           .select('oral_submission_url, oral_submission_file_name, oral_submitted_at')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching submission:', error);
+          return;
+        }
 
-        if (data?.oral_submission_url) {
-          setExistingSubmission({
-            url: data.oral_submission_url,
-            fileName: data.oral_submission_file_name || 'audio.webm',
-            submittedAt: data.oral_submitted_at || new Date().toISOString(),
-          });
+        if (data) {
+          const submissionData = data as {
+            oral_submission_url: string | null;
+            oral_submission_file_name: string | null;
+            oral_submitted_at: string | null;
+          };
+
+          if (submissionData.oral_submission_url) {
+            setExistingSubmission({
+              url: submissionData.oral_submission_url,
+              fileName: submissionData.oral_submission_file_name || 'audio.webm',
+              submittedAt: submissionData.oral_submitted_at || new Date().toISOString(),
+            });
+          }
         }
       } catch (err) {
         console.error('Error checking submission:', err);
@@ -153,14 +164,16 @@ export default function RekamSuaraPage() {
         .getPublicUrl(filePath);
 
       // Update database
-      const { error: dbError } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .update({
-          oral_submission_url: publicUrl,
-          oral_submission_file_name: fileName,
-          oral_submitted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+      const updateData = {
+        oral_submission_url: publicUrl,
+        oral_submission_file_name: fileName,
+        oral_submitted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: dbError } = await (supabase
+        .from('pendaftaran_tikrar_tahfidz') as any)
+        .update(updateData)
         .eq('user_id', user.id);
 
       if (dbError) throw dbError;
