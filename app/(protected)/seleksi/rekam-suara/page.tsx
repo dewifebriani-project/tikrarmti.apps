@@ -1211,8 +1211,8 @@ export default function RekamSuaraPage() {
   try {
     return (
       <>
-        {/* Mobile Debugging Console */}
-        <ErudaConsole enabled={true} />
+        {/* Mobile Debugging Console - TEMPORARILY DISABLED */}
+        {/* <ErudaConsole enabled={true} /> */}
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Permission Error Alert */}
