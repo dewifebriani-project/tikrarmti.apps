@@ -141,10 +141,29 @@ export default function RekamSuaraPage() {
   const uploadAudio = async () => {
     if (!audioBlob || !user?.id) return;
 
+    // CRITICAL: Check if user already submitted - prevent duplicate submissions
+    if (existingSubmission) {
+      setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
 
     try {
+      // Double-check in database before uploading
+      const { data: checkData } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('oral_submission_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (checkData && (checkData as any)?.oral_submission_url) {
+        setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
+        setIsUploading(false);
+        return;
+      }
+
       // Check file size (max 10MB for Supabase free tier)
       const maxSize = 10 * 1024 * 1024; // 10MB in bytes
       const fileSizeMB = (audioBlob.size / (1024 * 1024)).toFixed(2);
@@ -302,6 +321,14 @@ export default function RekamSuaraPage() {
                   <p className="text-xs text-gray-600 italic">
                     Anda sudah mengirimkan rekaman. Tidak bisa mengirim ulang.
                   </p>
+
+                  {/* Return Button */}
+                  <Button
+                    onClick={() => router.push('/perjalanan-saya')}
+                    className="w-full bg-green-700 hover:bg-green-800"
+                  >
+                    Kembali ke Perjalanan Saya
+                  </Button>
                 </div>
               </AlertDescription>
             </Alert>
@@ -471,7 +498,7 @@ export default function RekamSuaraPage() {
                       </Button>
                       <Button
                         onClick={uploadAudio}
-                        disabled={isUploading || (audioBlob.size > 10 * 1024 * 1024)}
+                        disabled={isUploading || (audioBlob.size > 10 * 1024 * 1024) || !!existingSubmission}
                         className="flex-1"
                       >
                         {isUploading ? (
