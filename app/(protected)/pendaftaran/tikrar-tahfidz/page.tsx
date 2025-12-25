@@ -915,7 +915,7 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-2 sm:space-y-3">
           <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 0856-771-2914? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
+            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 0813-1365-0842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
           <div className="space-y-2 sm:space-y-3">
@@ -1344,7 +1344,7 @@ export default function ThalibahBatch2Page() {
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• <strong>Al-Qur'an Tikrar</strong> ➤ Jika belum memiliki, bisa dibeli di toko buku atau toko online (tautan tersedia di deskripsi grup pendaftaran)</li>
               <li>• <strong>Counter Manual (alat penghitung)</strong> ➤ Bisa dibeli di toko alat tulis atau toko online (tautan juga tersedia di deskripsi grup)</li>
-              <li>• Bagi yang mengalami kendala finansial, silakan hubungi Kak Mara di WA: 0856-771-2914</li>
+              <li>• Bagi yang mengalami kendala finansial, silakan hubungi Kak Mara di WA: 0813-1365-0842</li>
             </ul>
           </div>
 
@@ -1571,7 +1571,7 @@ export default function ThalibahBatch2Page() {
             </h3>
             <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-yellow-800">
               <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
-              <p>• Simpan nomor WhatsApp Kak Mara (0856-771-2914) agar dapat di-add ke grup setelah lolos seleksi.</p>
+              <p>• Simpan nomor WhatsApp Kak Mara (0813-1365-0842) agar dapat di-add ke grup setelah lolos seleksi.</p>
               <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
               <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
               <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
