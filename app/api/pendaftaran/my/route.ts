@@ -15,8 +15,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const allRegistrations: any[] = []
+
     // Get user's tikrar registrations with program and batch details
-    const { data: registrations, error } = await supabase
+    const { data: tikrarRegistrations, error: tikrarError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
         *,
@@ -26,19 +28,79 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    // If table or column doesn't exist, return empty array gracefully
-    if (error) {
-      console.error('Error fetching registrations:', error)
-      // Return empty array instead of error - allows app to function
-      return NextResponse.json({
-        success: true,
-        data: [],
+    if (tikrarError) {
+      console.error('Error fetching tikrar registrations:', tikrarError)
+    } else if (tikrarRegistrations) {
+      // Add role type to each registration
+      tikrarRegistrations.forEach(reg => {
+        allRegistrations.push({
+          ...reg,
+          registration_type: 'calon_thalibah',
+          role: 'calon_thalibah'
+        })
       })
     }
 
+    // Get user's muallimah registrations
+    const { data: muallimahRegistrations, error: muallimahError } = await supabase
+      .from('muallimah_registrations')
+      .select(`
+        *,
+        batch:batches(*)
+      `)
+      .eq('user_id', user.id)
+      .order('submitted_at', { ascending: false })
+
+    if (muallimahError) {
+      console.error('Error fetching muallimah registrations:', muallimahError)
+    } else if (muallimahRegistrations) {
+      // Add role type to each registration
+      muallimahRegistrations.forEach(reg => {
+        allRegistrations.push({
+          ...reg,
+          registration_type: 'muallimah',
+          role: 'muallimah',
+          // Map submitted_at to created_at for consistency
+          created_at: reg.submitted_at
+        })
+      })
+    }
+
+    // Get user's musyrifah registrations
+    const { data: musyrifahRegistrations, error: musyrifahError } = await supabase
+      .from('musyrifah_registrations')
+      .select(`
+        *,
+        batch:batches(*)
+      `)
+      .eq('user_id', user.id)
+      .order('submitted_at', { ascending: false })
+
+    if (musyrifahError) {
+      console.error('Error fetching musyrifah registrations:', musyrifahError)
+    } else if (musyrifahRegistrations) {
+      // Add role type to each registration
+      musyrifahRegistrations.forEach(reg => {
+        allRegistrations.push({
+          ...reg,
+          registration_type: 'musyrifah',
+          role: 'musyrifah',
+          // Map submitted_at to created_at for consistency
+          created_at: reg.submitted_at
+        })
+      })
+    }
+
+    // Sort all registrations by created_at
+    allRegistrations.sort((a, b) => {
+      const dateA = new Date(a.created_at || a.submitted_at || 0)
+      const dateB = new Date(b.created_at || b.submitted_at || 0)
+      return dateB.getTime() - dateA.getTime()
+    })
+
     return NextResponse.json({
       success: true,
-      data: registrations || [],
+      data: allRegistrations,
     })
 
   } catch (error) {

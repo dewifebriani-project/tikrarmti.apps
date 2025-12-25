@@ -55,7 +55,7 @@ export default function PendaftaranPage() {
   const { batches, programs, loading, error, hasPrograms } = useBatchProgram();
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
 
-  // Calculate registration status from SWR data
+  // Calculate registration status from SWR data - per role
   const registrationStatus = useMemo(() => {
     if (!user || !registrations.length) return null;
 
@@ -64,7 +64,22 @@ export default function PendaftaranPage() {
       registrations: registrations,
       hasActiveRegistration: registrations.some(reg => ['approved', 'pending'].includes(reg.status)),
       pendingApproval: registrations.some(reg => reg.status === 'pending'),
-      approved: registrations.some(reg => reg.status === 'approved')
+      approved: registrations.some(reg => reg.status === 'approved'),
+      // Per-role registration status
+      byRole: {
+        calon_thalibah: registrations.some(reg =>
+          (reg.registration_type === 'calon_thalibah' || reg.role === 'calon_thalibah') &&
+          ['approved', 'pending'].includes(reg.status)
+        ),
+        muallimah: registrations.some(reg =>
+          (reg.registration_type === 'muallimah' || reg.role === 'muallimah') &&
+          ['approved', 'pending'].includes(reg.status)
+        ),
+        musyrifah: registrations.some(reg =>
+          (reg.registration_type === 'musyrifah' || reg.role === 'musyrifah') &&
+          ['approved', 'pending'].includes(reg.status)
+        ),
+      }
     };
   }, [user, registrations]);
 
@@ -298,8 +313,24 @@ export default function PendaftaranPage() {
     }
   };
 
+  // Helper function to determine role from program type
+  const getRoleFromType = (type: PendaftaranType): 'calon_thalibah' | 'muallimah' | 'musyrifah' => {
+    if (type.title.toLowerCase().includes('muallimah')) {
+      return 'muallimah';
+    } else if (type.title.toLowerCase().includes('musyrifah')) {
+      return 'musyrifah';
+    }
+    return 'calon_thalibah';
+  };
+
+  // Helper function to check if user is registered for a specific role
+  const isRegisteredForRole = (type: PendaftaranType): boolean => {
+    const role = getRoleFromType(type);
+    return !!(user && registrationStatus?.byRole?.[role]);
+  };
+
   const handleRegistrationClick = (type: PendaftaranType) => {
-    if (type.status === 'open' && !registrationStatus?.registered) {
+    if (type.status === 'open' && !isRegisteredForRole(type)) {
       // Direct to registration page without showing terms modal
       if (type.title.toLowerCase().includes('tikrar')) {
         router.push('/pendaftaran/tikrar-tahfidz');
@@ -435,19 +466,19 @@ export default function PendaftaranPage() {
                     {/* Action Button */}
                     <Button
                       onClick={() => handleRegistrationClick(type)}
-                      disabled={type.status !== 'open' || !!(user && registrationStatus?.registered)}
+                      disabled={type.status !== 'open' || isRegisteredForRole(type)}
                       className={`w-full flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg ${
-                        type.status === 'open' && !(user && registrationStatus?.registered)
+                        type.status === 'open' && !isRegisteredForRole(type)
                           ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
                           : 'bg-gray-100 text-gray-500 cursor-not-allowed'
                       }`}
                     >
-                      {type.status === 'open' && !(user && registrationStatus?.registered) ? (
+                      {type.status === 'open' && !isRegisteredForRole(type) ? (
                         <>
                           Daftar Sekarang
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </>
-                      ) : user && registrationStatus?.registered ? (
+                      ) : isRegisteredForRole(type) ? (
                         'Sudah Terdaftar'
                       ) : type.status === 'upcoming' ? (
                         'Pendaftaran Akan Dibuka'
