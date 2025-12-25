@@ -38,7 +38,7 @@ export default function RekamSuaraPage() {
     const mountTimer = setTimeout(() => {
       try {
         setIsClient(true);
-        console.log('✅ Recording page mounted successfully');
+        console.log('✅ Recording page mounted successfully (v2)');
       } catch (error) {
         console.error('❌ Error mounting recording page:', error);
         setPageError('Gagal memuat halaman. Silakan refresh.');
