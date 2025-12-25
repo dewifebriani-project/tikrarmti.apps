@@ -43,30 +43,8 @@ export async function GET(request: NextRequest) {
       const { data, error } = await supabaseAdmin
         .from('users')
         .select(`
-          id,
-          email,
-          full_name,
-          nama_kunyah,
-          phone,
-          role,
-          is_active,
-          created_at,
-          updated_at,
-          avatar_url,
-          provinsi,
-          kota,
-          alamat,
-          whatsapp,
-          telegram,
-          zona_waktu,
-          tanggal_lahir,
-          tempat_lahir,
-          pekerjaan,
-          alasan_daftar,
-          jenis_kelamin,
-          negara,
-          current_tikrar_batch_id,
-          current_tikrar_batch:batches!users_current_tikrar_batch_id_fkey(
+          *,
+          current_batch:batches!users_current_tikrar_batch_id_fkey(
             id,
             name,
             start_date,
@@ -82,6 +60,15 @@ export async function GET(request: NextRequest) {
           )
         `)
         .order('created_at', { ascending: false });
+
+      // Map the response to flatten current_batch (it comes as array)
+      if (!error && data) {
+        users = data.map((user: any) => ({
+          ...user,
+          current_tikrar_batch: user.current_batch?.[0] || null,
+          current_batch: undefined,
+        }));
+      }
 
       if (error) {
         console.warn('Error fetching users with relationships:', error);
