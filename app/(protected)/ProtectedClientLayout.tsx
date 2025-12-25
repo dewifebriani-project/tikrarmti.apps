@@ -33,9 +33,13 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
-  // Set mounted state after hydration
+  // Set mounted state after hydration - DEFERRED to prevent React Error #310
   useEffect(() => {
-    setIsMounted(true)
+    const mountTimer = setTimeout(() => {
+      setIsMounted(true)
+    }, 0)
+
+    return () => clearTimeout(mountTimer)
   }, [])
 
   // Close sidebar on mobile when route changes
