@@ -115,6 +115,14 @@ interface User {
   alasan_daftar?: string;
   jenis_kelamin?: string;
   negara?: string;
+  current_tikrar_batch_id?: string;
+  current_tikrar_batch?: {
+    id: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    status: string;
+  };
   tikrar_registrations?: Array<{
     id: string;
     batch_id: string;
@@ -2068,24 +2076,32 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
       sortable: true,
       filterable: true,
       render: (user) => {
-        if (!user.tikrar_registrations || user.tikrar_registrations.length === 0) {
+        // Prioritize current_tikrar_batch (dynamic, auto-updated)
+        const currentBatch = user.current_tikrar_batch;
+
+        if (!currentBatch && (!user.tikrar_registrations || user.tikrar_registrations.length === 0)) {
           return <span className="text-gray-400">-</span>;
         }
 
-        // Get the latest registration
-        const latestReg = user.tikrar_registrations[0];
+        // Use current batch or fallback to latest registration
+        const batchName = currentBatch?.name || user.tikrar_registrations?.[0]?.batch_name || '';
+        const batchStatus = currentBatch?.status || user.tikrar_registrations?.[0]?.batch?.status || '';
+        const selectionStatus = user.tikrar_registrations?.[0]?.selection_status || '';
 
         // Extract batch number for styling
-        const batchMatch = latestReg.batch_name?.match(/Batch (\d+)/i);
+        const batchMatch = batchName.match(/Batch (\d+)/i);
         const batchNum = batchMatch ? parseInt(batchMatch[1]) : 0;
 
-        // Determine color based on batch number
-        const getBatchColor = (num: number) => {
-          switch (num) {
-            case 2: return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 1: return 'bg-gray-100 text-gray-800 border-gray-200';
-            default: return 'bg-purple-100 text-purple-800 border-purple-200';
+        // Determine color based on batch status (dynamic - shows current active batch)
+        const getBatchColor = () => {
+          if (batchStatus === 'open') {
+            return 'bg-green-100 text-green-800 border-green-300';
+          } else if (batchStatus === 'ongoing') {
+            return 'bg-blue-100 text-blue-800 border-blue-300';
+          } else if (batchStatus === 'closed') {
+            return 'bg-gray-100 text-gray-600 border-gray-300';
           }
+          return 'bg-purple-100 text-purple-800 border-purple-300';
         };
 
         // Get status icon and color
@@ -2097,28 +2113,32 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
               return { icon: AlertCircle, color: 'text-yellow-600', bgColor: 'bg-yellow-50', label: 'Menunggu' };
             case 'not_selected':
               return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-50', label: 'Tidak Diterima' };
+            case 'approved':
+              return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', label: 'Disetujui' };
             default:
-              return { icon: AlertCircle, color: 'text-gray-600', bgColor: 'bg-gray-50', label: status };
+              return { icon: AlertCircle, color: 'text-gray-600', bgColor: 'bg-gray-50', label: status || '-' };
           }
         };
 
-        const statusInfo = getStatusInfo(latestReg.selection_status);
+        const statusInfo = getStatusInfo(selectionStatus);
         const StatusIcon = statusInfo.icon;
 
         return (
           <div className="flex flex-col gap-1.5">
-            <div className={`px-2.5 py-1 inline-flex items-center text-xs font-semibold rounded-full border ${getBatchColor(batchNum)}`}>
-              {latestReg.batch_name}
-              {batchNum === 2 && (
-                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-blue-500 text-white rounded-full">
-                  2
+            <div className={`px-2.5 py-1 inline-flex items-center text-xs font-semibold rounded-full border ${getBatchColor()}`}>
+              {batchName}
+              {currentBatch && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded-full" title="Batch aktif saat ini">
+                  ✓
                 </span>
               )}
             </div>
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
-              <StatusIcon className="w-3 h-3" />
-              {statusInfo.label}
-            </div>
+            {selectionStatus && (
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
+                <StatusIcon className="w-3 h-3" />
+                {statusInfo.label}
+              </div>
+            )}
           </div>
         );
       },

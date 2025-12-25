@@ -65,6 +65,14 @@ export async function GET(request: NextRequest) {
           alasan_daftar,
           jenis_kelamin,
           negara,
+          current_tikrar_batch_id,
+          current_tikrar_batch:batches!users_current_tikrar_batch_id_fkey(
+            id,
+            name,
+            start_date,
+            end_date,
+            status
+          ),
           tikrar_registrations:pendaftaran_tikrar_tahfidz!pendaftaran_tikrar_tahfidz_user_id_fkey(
             id,
             batch_id,
