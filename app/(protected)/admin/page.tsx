@@ -2086,7 +2086,11 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
         // Use current batch or fallback to latest registration
         const batchName = currentBatch?.name || user.tikrar_registrations?.[0]?.batch_name || '';
         const batchStatus = currentBatch?.status || user.tikrar_registrations?.[0]?.batch?.status || '';
+        const registrationStatus = user.tikrar_registrations?.[0]?.status || '';
         const selectionStatus = user.tikrar_registrations?.[0]?.selection_status || '';
+
+        // Prioritize registration status (approved/pending) over selection status
+        const displayStatus = registrationStatus || selectionStatus;
 
         // Extract batch number for styling
         const batchMatch = batchName.match(/Batch (\d+)/i);
@@ -2107,20 +2111,22 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
         // Get status icon and color
         const getStatusInfo = (status: string) => {
           switch (status) {
+            case 'approved':
+              return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', label: 'Disetujui' };
             case 'selected':
               return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', label: 'Diterima' };
             case 'pending':
               return { icon: AlertCircle, color: 'text-yellow-600', bgColor: 'bg-yellow-50', label: 'Menunggu' };
             case 'not_selected':
               return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-50', label: 'Tidak Diterima' };
-            case 'approved':
-              return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', label: 'Disetujui' };
+            case 'rejected':
+              return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-50', label: 'Ditolak' };
             default:
               return { icon: AlertCircle, color: 'text-gray-600', bgColor: 'bg-gray-50', label: status || '-' };
           }
         };
 
-        const statusInfo = getStatusInfo(selectionStatus);
+        const statusInfo = getStatusInfo(displayStatus);
         const StatusIcon = statusInfo.icon;
 
         return (
@@ -2133,7 +2139,7 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
                 </span>
               )}
             </div>
-            {selectionStatus && (
+            {displayStatus && (
               <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${statusInfo.bgColor} ${statusInfo.color}`}>
                 <StatusIcon className="w-3 h-3" />
                 {statusInfo.label}
