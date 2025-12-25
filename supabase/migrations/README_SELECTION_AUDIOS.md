@@ -1,6 +1,19 @@
 # Setup Storage Bucket untuk Rekam Suara Seleksi
 
-## Cara Setup di Supabase Dashboard
+## ⚠️ IMPORTANT: Jika Ada Error RLS Policy
+
+Jika masih error "new row violates row-level security policy" setelah run script pertama, gunakan script FIX:
+
+### LANGKAH FIX (Gunakan Ini Jika Error):
+1. Buka SQL Editor di Supabase Dashboard
+2. Copy isi file `fix_selection_audios_policies.sql`
+3. Run script tersebut
+4. Script akan:
+   - Hapus semua policies lama (termasuk duplikat)
+   - Buat policies baru yang benar
+   - Verify policies yang sudah dibuat
+
+## Cara Setup di Supabase Dashboard (Setup Awal)
 
 ### Langkah 1: Buka SQL Editor
 1. Login ke [Supabase Dashboard](https://supabase.com/dashboard)
