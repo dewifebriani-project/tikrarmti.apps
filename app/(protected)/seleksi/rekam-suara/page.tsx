@@ -888,15 +888,18 @@ export default function RekamSuaraPage() {
       console.log('📤 Client: Sending request to /api/seleksi/submit');
 
       // Enhanced mobile-specific upload configuration
+      // IMPORTANT: Do NOT set Content-Type for FormData - browser will set it automatically with boundary
       const uploadConfig: RequestInit = {
         method: 'POST',
         body: formData,
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
-          'User-Agent': navigator.userAgent,
+          // Remove User-Agent header as it's automatically set by browser
           'X-Mobile-Device': isMobile ? 'true' : 'false',
           'X-Platform': navigator.platform || 'unknown'
-        }
+        },
+        // Add credentials for cookies/session
+        credentials: 'include'
       };
 
       // Add timeout and retry configuration for mobile
@@ -937,8 +940,27 @@ export default function RekamSuaraPage() {
           duration: `${uploadDuration}ms`,
           isAborted: fetchError.name === 'AbortError',
           isMobile,
-          isTablet
+          isTablet,
+          errorName: fetchError.name,
+          errorMessage: fetchError.message
         });
+
+        // For mobile/tablet, try Base64 immediately on network failure
+        if ((isMobile || isTablet) && fetchError.name !== 'AbortError') {
+          console.log('🔄 Network error on mobile, trying Base64 upload immediately...');
+          try {
+            const base64Result = await tryBase64Upload(audioBlob, session.access_token, fileName);
+            console.log('✅ Base64 upload successful after network error:', base64Result);
+            setSubmitStatus('success');
+            setTimeout(() => {
+              router.push('/perjalanan-saya');
+            }, 2000);
+            return;
+          } catch (base64Error: any) {
+            console.error('❌ Base64 upload also failed after network error:', base64Error);
+            throw new Error(`Gagal mengirim rekaman. Network error: ${fetchError.message}. Base64 error: ${base64Error.message}`);
+          }
+        }
 
         if (fetchError.name === 'AbortError') {
           throw new Error(`Upload timeout. Koneksi terlalu lambat (${(uploadDuration/1000).toFixed(1)}s). Coba lagi dengan koneksi yang lebih stabil.`);
@@ -962,9 +984,9 @@ export default function RekamSuaraPage() {
         console.error('❌ Client: Submit error:', errorData);
         console.error('❌ Client: Response status:', response.status);
 
-        // Try alternative upload method for mobile
-        if ((isMobile || isTablet) && (response.status >= 400 && response.status < 500)) {
-          console.log('🔄 Trying alternative Base64 upload method for mobile/tablet...');
+        // ALWAYS try Base64 fallback for mobile/tablet if FormData failed
+        if (isMobile || isTablet) {
+          console.log('🔄 FormData failed on mobile, automatically trying Base64 fallback...');
           try {
             const base64Result = await tryBase64Upload(audioBlob, session.access_token, fileName);
             console.log('✅ Base64 upload successful:', base64Result);
@@ -976,23 +998,7 @@ export default function RekamSuaraPage() {
           } catch (base64Error: any) {
             console.error('❌ Base64 upload also failed:', base64Error);
             const base64ErrorMessage = base64Error?.message || 'Unknown Base64 error';
-            throw new Error(`Upload gagal. FormData error: ${errorData.error || response.status}. Base64 error: ${base64ErrorMessage}`);
-          }
-        }
-
-        // For network errors on mobile, try once more with Base64
-        if ((isMobile || isTablet) && (response.status === 0 || !response.ok)) {
-          console.log('🔄 Network error detected, trying Base64 as fallback...');
-          try {
-            const base64Result = await tryBase64Upload(audioBlob, session.access_token, fileName);
-            console.log('✅ Base64 fallback upload successful:', base64Result);
-            setSubmitStatus('success');
-            setTimeout(() => {
-              router.push('/perjalanan-saya');
-            }, 2000);
-            return;
-          } catch (base64Error: any) {
-            console.error('❌ Base64 fallback also failed:', base64Error);
+            throw new Error(`Upload gagal dengan kedua metode. FormData: ${errorData.error || response.status}. Base64: ${base64ErrorMessage}`);
           }
         }
 
@@ -1082,7 +1088,8 @@ export default function RekamSuaraPage() {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            credentials: 'include'
           });
 
           const result = await response.json();
