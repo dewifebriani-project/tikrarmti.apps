@@ -1134,6 +1134,13 @@ export default function RekamSuaraPage() {
     existingDialogs.forEach(el => el.remove());
   }, []);
 
+  // Handle authentication redirect
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [authLoading, user, router]);
+
   // Show loading state while checking authentication
   if (authLoading) {
     return (
@@ -1143,10 +1150,13 @@ export default function RekamSuaraPage() {
     );
   }
 
-  // Redirect if not authenticated
+  // Show loading while redirecting
   if (!user) {
-    router.push('/login');
-    return null;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
   }
 
   return (
