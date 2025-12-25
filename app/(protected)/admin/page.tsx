@@ -835,30 +835,40 @@ function BatchesTab({ batches, onRefresh }: { batches: Batch[], onRefresh: () =>
 
 // Batch Form Component
 function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose: () => void, onSuccess: () => void }) {
+  // Helper function to safely extract date from timestamp
+  const extractDate = (dateValue: string | null | undefined): string => {
+    if (!dateValue) return '';
+    try {
+      return dateValue.split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
   const [formData, setFormData] = useState({
     name: batch?.name || '',
     description: batch?.description || '',
     start_date: batch?.start_date || '',
     end_date: batch?.end_date || '',
-    registration_start_date: batch?.registration_start_date?.split('T')[0] || '',
-    registration_end_date: batch?.registration_end_date?.split('T')[0] || '',
+    registration_start_date: extractDate(batch?.registration_start_date),
+    registration_end_date: extractDate(batch?.registration_end_date),
     duration_weeks: batch?.duration_weeks || 0,
     status: batch?.status || 'draft',
 
     // Timeline phase dates
-    selection_start_date: batch?.selection_start_date?.split('T')[0] || '',
-    selection_end_date: batch?.selection_end_date?.split('T')[0] || '',
-    selection_result_date: batch?.selection_result_date?.split('T')[0] || '',
-    re_enrollment_date: batch?.re_enrollment_date?.split('T')[0] || '',
-    opening_class_date: batch?.opening_class_date?.split('T')[0] || '',
-    first_week_start_date: batch?.first_week_start_date?.split('T')[0] || '',
-    first_week_end_date: batch?.first_week_end_date?.split('T')[0] || '',
-    review_week_start_date: batch?.review_week_start_date?.split('T')[0] || '',
-    review_week_end_date: batch?.review_week_end_date?.split('T')[0] || '',
-    final_exam_start_date: batch?.final_exam_start_date?.split('T')[0] || '',
-    final_exam_end_date: batch?.final_exam_end_date?.split('T')[0] || '',
-    graduation_start_date: batch?.graduation_start_date?.split('T')[0] || '',
-    graduation_end_date: batch?.graduation_end_date?.split('T')[0] || '',
+    selection_start_date: extractDate(batch?.selection_start_date),
+    selection_end_date: extractDate(batch?.selection_end_date),
+    selection_result_date: extractDate(batch?.selection_result_date),
+    re_enrollment_date: extractDate(batch?.re_enrollment_date),
+    opening_class_date: extractDate(batch?.opening_class_date),
+    first_week_start_date: extractDate(batch?.first_week_start_date),
+    first_week_end_date: extractDate(batch?.first_week_end_date),
+    review_week_start_date: extractDate(batch?.review_week_start_date),
+    review_week_end_date: extractDate(batch?.review_week_end_date),
+    final_exam_start_date: extractDate(batch?.final_exam_start_date),
+    final_exam_end_date: extractDate(batch?.final_exam_end_date),
+    graduation_start_date: extractDate(batch?.graduation_start_date),
+    graduation_end_date: extractDate(batch?.graduation_end_date),
   });
   const [saving, setSaving] = useState(false);
   const [showTimelineConfig, setShowTimelineConfig] = useState(false);

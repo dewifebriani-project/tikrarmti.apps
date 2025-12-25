@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR, { useSWRConfig } from 'swr'
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { getFetcher } from '@/lib/swr/fetchers'
 import { supabase } from '@/lib/supabase-singleton'
 import { cacheConfig } from '@/lib/swr/config'
@@ -51,8 +51,9 @@ export function useAuth() {
     {
       revalidateOnMount: true,
       dedupingInterval: 5000, // 5 seconds cache
-      refreshInterval: 0, // Manual refresh only
-      revalidateOnFocus: false, // Don't auto-refresh on focus to reduce API calls
+      refreshInterval: 10 * 60 * 1000, // Auto-refresh every 10 minutes
+      revalidateOnFocus: true, // Auto-refresh when user returns to tab
+      revalidateOnReconnect: true, // Auto-refresh when internet reconnects
       onErrorRetry: (error) => {
         // Don't retry auth errors
         if (error?.status === 401) return false
@@ -76,6 +77,27 @@ export function useAuth() {
     } catch (error) {
       console.error('Auth refresh failed:', error)
       throw error
+    }
+  }, [mutate])
+
+  // Listen to Supabase auth state changes and auto-refresh
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event)
+
+      // Refresh user data when session changes
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await mutate()
+      }
+
+      // Clear data when signed out
+      if (event === 'SIGNED_OUT') {
+        await mutate(null, false)
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
     }
   }, [mutate])
 
