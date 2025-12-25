@@ -45,6 +45,7 @@ export default function RekamSuaraPage() {
 
     const checkExistingSubmission = async () => {
       try {
+        console.log('[DEBUG] Checking existing submission for user:', user.id);
         const { data, error } = await supabase
           .from('pendaftaran_tikrar_tahfidz')
           .select('oral_submission_url, oral_submission_file_name, oral_submitted_at')
@@ -52,9 +53,11 @@ export default function RekamSuaraPage() {
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching submission:', error);
+          console.error('[ERROR] Error fetching submission:', error);
           return;
         }
+
+        console.log('[DEBUG] Submission data from DB:', data);
 
         if (data) {
           const submissionData = data as {
@@ -64,15 +67,20 @@ export default function RekamSuaraPage() {
           };
 
           if (submissionData.oral_submission_url) {
+            console.log('[DEBUG] Found existing submission, setting state');
             setExistingSubmission({
               url: submissionData.oral_submission_url,
               fileName: submissionData.oral_submission_file_name || 'audio.webm',
               submittedAt: submissionData.oral_submitted_at || new Date().toISOString(),
             });
+          } else {
+            console.log('[DEBUG] No existing submission URL found');
           }
+        } else {
+          console.log('[DEBUG] No data returned from database');
         }
       } catch (err) {
-        console.error('Error checking submission:', err);
+        console.error('[ERROR] Error checking submission:', err);
       }
     };
 
@@ -141,8 +149,11 @@ export default function RekamSuaraPage() {
   const uploadAudio = async () => {
     if (!audioBlob || !user?.id) return;
 
+    console.log('[UPLOAD] Starting upload, existingSubmission:', existingSubmission);
+
     // CRITICAL: Check if user already submitted - prevent duplicate submissions
     if (existingSubmission) {
+      console.log('[UPLOAD BLOCKED] Existing submission found in state');
       setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
       return;
     }
@@ -152,17 +163,23 @@ export default function RekamSuaraPage() {
 
     try {
       // Double-check in database before uploading
-      const { data: checkData } = await supabase
+      console.log('[UPLOAD] Double-checking database for user:', user.id);
+      const { data: checkData, error: checkError } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select('oral_submission_url')
         .eq('user_id', user.id)
         .maybeSingle();
 
+      console.log('[UPLOAD] DB check result:', { checkData, checkError });
+
       if (checkData && (checkData as any)?.oral_submission_url) {
+        console.log('[UPLOAD BLOCKED] Existing submission found in database:', (checkData as any).oral_submission_url);
         setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
         setIsUploading(false);
         return;
       }
+
+      console.log('[UPLOAD] No existing submission, proceeding with upload...');
 
       // Check file size (max 10MB for Supabase free tier)
       const maxSize = 10 * 1024 * 1024; // 10MB in bytes
@@ -213,15 +230,19 @@ export default function RekamSuaraPage() {
         updated_at: new Date().toISOString()
       };
 
+      console.log('[UPLOAD] Updating database with:', updateData);
+
       const { error: dbError } = await (supabase
         .from('pendaftaran_tikrar_tahfidz') as any)
         .update(updateData)
         .eq('user_id', user.id);
 
       if (dbError) {
-        console.error('Database error:', dbError);
+        console.error('[UPLOAD ERROR] Database error:', dbError);
         throw new Error(`Error menyimpan ke database: ${dbError.message}`);
       }
+
+      console.log('[UPLOAD SUCCESS] Database updated successfully');
 
       setUploadSuccess(true);
       setExistingSubmission({
@@ -229,6 +250,8 @@ export default function RekamSuaraPage() {
         fileName,
         submittedAt: new Date().toISOString()
       });
+
+      console.log('[UPLOAD] Set existingSubmission state to:', { url: publicUrl, fileName });
 
       // Keep the audio available for playback after upload
       // Don't clear audioBlob and audioURL so user can still play it
