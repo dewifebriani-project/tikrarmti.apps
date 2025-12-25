@@ -20,10 +20,18 @@ export function createClient() {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, {
+              ...options,
+              maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
+            })
           )
         },
       },
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+      }
     }
   )
 }

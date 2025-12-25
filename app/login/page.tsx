@@ -197,9 +197,13 @@ function LoginPageContent() {
         // Wait for server to process
         await new Promise(resolve => setTimeout(resolve, 500));
 
+        // Check if there's a redirect URL from middleware
+        const redirectUrl = searchParams.get('redirect');
+        const targetUrl = redirectUrl && redirectUrl !== '/login' ? redirectUrl : '/dashboard';
+
         // Use window.location.href for full page reload to ensure
         // middleware picks up the session cookies correctly
-        window.location.href = '/dashboard';
+        window.location.href = targetUrl;
       }
     } catch (error: any) {
       console.error('Login error:', error);

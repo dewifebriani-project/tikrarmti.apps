@@ -78,9 +78,12 @@ export async function middleware(request: NextRequest) {
           return cookies
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
+          cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
-            response.cookies.set(name, value)
+            response.cookies.set(name, value, {
+              ...options,
+              maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
+            })
           })
         },
       },
@@ -102,7 +105,10 @@ export async function middleware(request: NextRequest) {
   // Redirect to login if user is not authenticated
   if (!user) {
     console.log('MIDDLEWARE - Redirecting to login, no user found')
-    return NextResponse.redirect(new URL('/login', request.url))
+    // Save the intended URL to redirect back after login
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
   }
 
   console.log('MIDDLEWARE - User authenticated, allowing access')
