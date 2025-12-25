@@ -11,7 +11,6 @@ import ErudaConsole from '@/components/ErudaConsole';
 
 // Force dynamic rendering to ensure fresh build
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default function RekamSuaraPage() {
   const router = useRouter();
