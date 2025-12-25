@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mic, MicOff, Upload, CheckCircle, AlertCircle, Play, Pause, RotateCcw } from 'lucide-react';
 import ErudaConsole from '@/components/ErudaConsole';
 
-// Force dynamic rendering to ensure fresh build
+// Force dynamic rendering to ensure fresh build - CACHE BUST v3
 export const dynamic = 'force-dynamic';
 
 export default function RekamSuaraPage() {
@@ -41,7 +41,7 @@ export default function RekamSuaraPage() {
     const mountTimer = setTimeout(() => {
       try {
         setIsClient(true);
-        console.log('✅ Recording page mounted successfully (v2)');
+        console.log('✅ Recording page mounted successfully (v3) - CACHE BUSTED');
       } catch (error) {
         console.error('❌ Error mounting recording page:', error);
         setPageError('Gagal memuat halaman. Silakan refresh.');
