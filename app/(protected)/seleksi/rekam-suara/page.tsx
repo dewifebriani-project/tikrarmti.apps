@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Mic, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Mic, Upload, CheckCircle, AlertCircle, Loader2, Play, Pause } from 'lucide-react';
 import { supabase } from '@/lib/supabase-singleton';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +23,7 @@ export default function RekamSuaraPage() {
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [existingSubmission, setExistingSubmission] = useState<{
     url: string;
     fileName: string;
@@ -31,6 +32,7 @@ export default function RekamSuaraPage() {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // Client-side mount
   useEffect(() => {
@@ -229,6 +231,18 @@ export default function RekamSuaraPage() {
     }
   };
 
+  const togglePlayPause = () => {
+    if (!audioPlayerRef.current) return;
+
+    if (isPlaying) {
+      audioPlayerRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioPlayerRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -343,14 +357,36 @@ export default function RekamSuaraPage() {
                     </div>
 
                     {/* Audio Player */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                       <p className="text-sm text-gray-700 mb-2 font-medium">Preview Rekaman:</p>
+
+                      {/* Large Play/Pause Button */}
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={togglePlayPause}
+                          size="lg"
+                          variant="outline"
+                          className="h-16 w-16 rounded-full p-0"
+                        >
+                          {isPlaying ? (
+                            <Pause className="w-8 h-8" />
+                          ) : (
+                            <Play className="w-8 h-8 ml-1" />
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Hidden Audio Element with Native Controls */}
                       <audio
+                        ref={audioPlayerRef}
                         src={audioURL}
                         controls
                         controlsList="nodownload"
                         className="w-full"
                         preload="auto"
+                        onPlay={() => setIsPlaying(true)}
+                        onPause={() => setIsPlaying(false)}
+                        onEnded={() => setIsPlaying(false)}
                         style={{
                           width: '100%',
                           minHeight: '40px',
@@ -362,6 +398,12 @@ export default function RekamSuaraPage() {
                     <div className="flex gap-2">
                       <Button
                         onClick={() => {
+                          // Stop audio if playing
+                          if (audioPlayerRef.current) {
+                            audioPlayerRef.current.pause();
+                            audioPlayerRef.current.currentTime = 0;
+                          }
+                          setIsPlaying(false);
                           setAudioBlob(null);
                           if (audioURL) {
                             URL.revokeObjectURL(audioURL);
