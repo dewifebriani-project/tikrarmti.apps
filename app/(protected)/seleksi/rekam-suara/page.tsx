@@ -11,8 +11,9 @@ import ErudaConsole from '@/components/ErudaConsole';
 
 export default function RekamSuaraPage() {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isError: authError } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -34,7 +35,13 @@ export default function RekamSuaraPage() {
 
   // Set client-side flag
   useEffect(() => {
-    setIsClient(true);
+    try {
+      setIsClient(true);
+      console.log('✅ Recording page mounted successfully');
+    } catch (error) {
+      console.error('❌ Error mounting recording page:', error);
+      setPageError('Gagal memuat halaman. Silakan refresh.');
+    }
   }, []);
 
   // Cleanup audio URL and audio context on unmount
@@ -1137,9 +1144,50 @@ export default function RekamSuaraPage() {
   // Handle authentication redirect
   useEffect(() => {
     if (!authLoading && !user) {
+      console.log('🔒 User not authenticated, redirecting to login...');
       router.push('/login');
     }
   }, [authLoading, user, router]);
+
+  // Show error if page failed to load
+  if (pageError) {
+    return (
+      <div className="flex h-screen items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
+              <h2 className="text-xl font-semibold text-gray-900">Terjadi Kesalahan</h2>
+              <p className="text-gray-600">{pageError}</p>
+              <Button onClick={() => window.location.reload()} className="w-full">
+                Refresh Halaman
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show auth error
+  if (authError) {
+    return (
+      <div className="flex h-screen items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
+              <h2 className="text-xl font-semibold text-gray-900">Autentikasi Gagal</h2>
+              <p className="text-gray-600">Terjadi kesalahan saat memuat data akun Anda.</p>
+              <Button onClick={() => router.push('/login')} className="w-full">
+                Kembali ke Login
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -1159,10 +1207,12 @@ export default function RekamSuaraPage() {
     );
   }
 
-  return (
-    <>
-      {/* Mobile Debugging Console */}
-      <ErudaConsole enabled={true} />
+  // Wrap entire render in try-catch for safety
+  try {
+    return (
+      <>
+        {/* Mobile Debugging Console */}
+        <ErudaConsole enabled={true} />
 
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Permission Error Alert */}
@@ -1570,5 +1620,41 @@ export default function RekamSuaraPage() {
         </div>
       </div>
     </>
-  );
+    );
+  } catch (error) {
+    console.error('❌ Fatal error rendering recording page:', error);
+    return (
+      <div className="flex h-screen items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
+              <h2 className="text-xl font-semibold text-gray-900">Oops! Terjadi Kesalahan</h2>
+              <p className="text-gray-600">
+                Maaf, halaman ini mengalami error. Silakan refresh halaman atau coba lagi nanti.
+              </p>
+              <div className="space-y-2">
+                <Button onClick={() => window.location.reload()} className="w-full">
+                  Refresh Halaman
+                </Button>
+                <Button onClick={() => router.push('/perjalanan-saya')} variant="outline" className="w-full">
+                  Kembali ke Perjalanan Saya
+                </Button>
+              </div>
+              {error instanceof Error && (
+                <details className="mt-4 text-left">
+                  <summary className="text-sm text-gray-500 cursor-pointer">Detail Error (untuk debugging)</summary>
+                  <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                    {error.message}
+                    {'\n\n'}
+                    {error.stack}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 }
