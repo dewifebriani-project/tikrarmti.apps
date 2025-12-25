@@ -2052,7 +2052,31 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
           phoneNumber = '62' + phoneNumber;
         }
 
-        const whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=Assalamu'alaikum%20warahmatullahi%20wabarakatuh%2C%20${encodeURIComponent(user.full_name || '')}%0A%0A`;
+        // Pesan islami untuk mengajak daftar Tikrar Tahfidz Batch 2
+        const userName = user.full_name || user.nama_kunyah || 'Ukhti';
+        const message = `Assalamu'alaikum warahmatullahi wabarakatuh, ${userName}
+
+Barakallahu fiikum atas minat dan semangat Ukhti untuk menghafal Al-Qur'an 🌙
+
+Kami dari Tikrar Menghafal Indonesia ingin mengingatkan bahwa *Program Tikrar Tahfidz Batch 2* akan segera dimulai, in syaa Allah.
+
+📖 "Dan sesungguhnya telah Kami mudahkan Al-Qur'an untuk peringatan, maka adakah orang yang mau mengambil pelajaran?" (QS. Al-Qamar: 17)
+
+Jika Ukhti belum mendaftar, kami mengajak Ukhti untuk segera bergabung dan meraih kesempatan mulia ini.
+
+Yuk, wujudkan impian menghafal Al-Qur'an bersama ribuan thalibah lainnya! 💚
+
+Untuk informasi lebih lanjut dan pendaftaran, silakan kunjungi:
+🌐 https://tikrar-mti.vercel.app
+
+Jazakillahu khairan katsiran
+Tim Tikrar MTI`;
+
+        const encodedMessage = encodeURIComponent(message);
+
+        // Auto-detect device: use wa.me for mobile/tablet, web.whatsapp.com for desktop
+        // wa.me akan otomatis redirect ke app di mobile, atau web.whatsapp.com di desktop
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
 
         return (
           <a
