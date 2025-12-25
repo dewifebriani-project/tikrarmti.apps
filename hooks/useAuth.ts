@@ -51,12 +51,15 @@ export function useAuth() {
     {
       revalidateOnMount: true,
       dedupingInterval: 5000, // 5 seconds cache
-      refreshInterval: 10 * 60 * 1000, // Auto-refresh every 10 minutes
+      refreshInterval: 0, // Disable auto-refresh (will use Supabase listener instead)
       revalidateOnFocus: true, // Auto-refresh when user returns to tab
       revalidateOnReconnect: true, // Auto-refresh when internet reconnects
-      onErrorRetry: (error) => {
-        // Don't retry auth errors
-        if (error?.status === 401) return false
+      shouldRetryOnError: false, // Don't retry on errors to prevent infinite loops
+      onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+        // Never retry auth errors
+        if (error?.status === 401) return
+        // Don't retry more than 3 times
+        if (retryCount >= 3) return
       },
       // Use server data as fallback to prevent flash
       fallbackData: serverUserData || null,
@@ -82,21 +85,40 @@ export function useAuth() {
 
   // Listen to Supabase auth state changes and auto-refresh
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event)
+    // Set up session refresh interval (every 5 minutes)
+    const refreshTimer = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const { error } = await supabase.auth.refreshSession()
+        if (!error) {
+          console.log('Session refreshed successfully')
+        }
+      }
+    }, 5 * 60 * 1000) // 5 minutes
 
-      // Refresh user data when session changes
+    // Listen to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, 'Session exists:', !!session)
+
+      // Refresh user data on sign in or token refresh
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('Refreshing user data due to auth event:', event)
         await mutate()
       }
 
-      // Clear data when signed out
+      // Clear data ONLY on explicit sign out
       if (event === 'SIGNED_OUT') {
+        console.log('User signed out, clearing data')
         await mutate(null, false)
+        // Redirect to login
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
       }
     })
 
     return () => {
+      clearInterval(refreshTimer)
       authListener.subscription.unsubscribe()
     }
   }, [mutate])
