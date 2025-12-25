@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: process.env.NODE_ENV === 'development',
   transpilePackages: ['lucide-react'],
   trailingSlash: false,
   poweredByHeader: false, // Remove powered by header for security
