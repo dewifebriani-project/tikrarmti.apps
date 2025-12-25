@@ -172,6 +172,21 @@ export async function POST(request: NextRequest) {
         registered_count: 0,
         is_free: body.is_free ?? true,
         price: body.price || 0,
+
+        // Timeline phase dates for perjalanan-saya
+        selection_start_date: body.selection_start_date,
+        selection_end_date: body.selection_end_date,
+        selection_result_date: body.selection_result_date,
+        re_enrollment_date: body.re_enrollment_date,
+        opening_class_date: body.opening_class_date,
+        first_week_start_date: body.first_week_start_date,
+        first_week_end_date: body.first_week_end_date,
+        review_week_start_date: body.review_week_start_date,
+        review_week_end_date: body.review_week_end_date,
+        final_exam_start_date: body.final_exam_start_date,
+        final_exam_end_date: body.final_exam_end_date,
+        graduation_start_date: body.graduation_start_date,
+        graduation_end_date: body.graduation_end_date,
       })
       .select()
       .single();

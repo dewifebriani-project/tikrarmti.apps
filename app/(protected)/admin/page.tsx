@@ -332,16 +332,18 @@ export default function AdminPage() {
         // Data is loaded automatically by useAdminTikrar hook
         console.log('Tikrar data handled by SWR');
       } else if (activeTab === 'batches') {
-        const { data, error } = await supabase
-          .from('batches')
-          .select('*')
-          .order('created_at', { ascending: false });
-        if (error) {
-          console.error('Error loading batches:', error);
-          toast.error('Error loading batches');
+        console.log('Fetching batches via API...');
+        const response = await fetch('/api/admin/batches');
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error loading batches:', errorData);
+          toast.error(errorData.error || 'Error loading batches');
+          setBatches([]);
+        } else {
+          const result = await response.json();
+          console.log(`Batches loaded: ${result.data?.length || 0} records`);
+          setBatches(result.data || []);
         }
-        console.log(`Batches loaded: ${data?.length || 0} records`);
-        setBatches(data || []);
       } else if (activeTab === 'programs') {
         const { data, error } = await supabase
           .from('programs')
@@ -904,22 +906,21 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
     setSaving(true);
 
     try {
-      let result: any;
-      if (batch) {
-        result = await (supabase as any)
-          .from('batches')
-          .update(formData)
-          .eq('id', batch.id);
-      } else {
-        result = await (supabase as any)
-          .from('batches')
-          .insert([formData]);
-      }
+      const response = await fetch('/api/admin/batches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      if (result.error) {
-        console.error('Error saving batch:', result.error);
-        alert('Failed to save batch: ' + result.error.message);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Error saving batch:', result);
+        alert('Failed to save batch: ' + (result.error || 'Unknown error'));
       } else {
+        toast.success(batch ? 'Batch updated successfully' : 'Batch created successfully');
         onSuccess();
       }
     } catch (error) {
