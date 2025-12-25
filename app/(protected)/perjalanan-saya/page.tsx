@@ -517,6 +517,17 @@ export default function PerjalananSaya() {
                                   {item.description}
                                 </p>
 
+                                {/* Debug log for selection tasks */}
+                                {(() => {
+                                  console.log('🔍 Selection Tasks Debug:', {
+                                    hasSelectionTasks: item.hasSelectionTasks,
+                                    registrationStatus: registrationStatus?.registration?.status,
+                                    userId: user?.id,
+                                    userRole: user?.role
+                                  });
+                                  return null;
+                                })()}
+
                                 {/* Information message for students */}
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
                                   <div className="flex items-start space-x-3">
