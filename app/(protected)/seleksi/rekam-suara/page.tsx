@@ -9,6 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mic, MicOff, Upload, CheckCircle, AlertCircle, Play, Pause, RotateCcw } from 'lucide-react';
 import ErudaConsole from '@/components/ErudaConsole';
 
+// Force dynamic rendering to ensure fresh build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function RekamSuaraPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isError: authError } = useAuth();
