@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { auditBatchOperation, getClientIp, getUserAgent, logAudit } from '@/lib/audit-log';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -99,6 +100,22 @@ export async function GET(request: NextRequest) {
         : null
     })) || [];
 
+    // Audit log for batch list access
+    await logAudit({
+      userId: user.id,
+      action: 'READ',
+      resource: 'batches',
+      details: {
+        count: enrichedData.length,
+        page,
+        limit,
+        status_filter: status || 'all'
+      },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+      level: 'INFO'
+    });
+
     return NextResponse.json({
       success: true,
       data: enrichedData,
@@ -193,11 +210,45 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error upserting batch:', error);
+
+      // Audit log for failed operation
+      await logAudit({
+        userId: user.id,
+        action: body.id ? 'UPDATE' : 'CREATE',
+        resource: 'batches',
+        details: {
+          batch_id: body.id,
+          batch_name: body.name,
+          error: error.message,
+          attempted_changes: body
+        },
+        ipAddress: getClientIp(request),
+        userAgent: getUserAgent(request),
+        level: 'ERROR'
+      });
+
       return NextResponse.json(
         { error: 'Failed to save batch', details: error.message },
         { status: 500 }
       );
     }
+
+    // Audit log for successful batch create/update
+    await auditBatchOperation(
+      user.id,
+      body.id ? 'UPDATE' : 'CREATE',
+      data.id,
+      data.name,
+      {
+        status: data.status,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        selection_start_date: data.selection_start_date,
+        selection_end_date: data.selection_end_date,
+        timeline_configured: !!(data.selection_start_date && data.selection_end_date)
+      },
+      request
+    );
 
     return NextResponse.json({
       success: true,

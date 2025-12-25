@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { logAudit, getClientIp, getUserAgent } from '@/lib/audit-log';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -100,6 +101,20 @@ export async function GET(request: NextRequest) {
       users = data;
       console.log(`Successfully fetched ${users?.length || 0} users (without relationships)`);
     }
+
+    // Audit log for users list access
+    await logAudit({
+      userId: user.id,
+      action: 'READ',
+      resource: 'users',
+      details: {
+        count: users?.length || 0,
+        with_relationships: !!users?.[0]?.current_tikrar_batch
+      },
+      ipAddress: getClientIp(request),
+      userAgent: getUserAgent(request),
+      level: 'INFO'
+    });
 
     return NextResponse.json({ users: users || [] });
   } catch (error: any) {
