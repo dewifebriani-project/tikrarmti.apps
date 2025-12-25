@@ -83,7 +83,7 @@ export function useAuth() {
     }
   }, [mutate])
 
-  // Listen to Supabase auth state changes and auto-refresh
+  // Listen to Supabase auth state changes and auto-refresh - DEFERRED to prevent React Error #310
   useEffect(() => {
     // Set up session refresh interval (every 5 minutes)
     const refreshTimer = setInterval(async () => {
@@ -100,21 +100,24 @@ export function useAuth() {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, 'Session exists:', !!session)
 
-      // Refresh user data on sign in or token refresh
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('Refreshing user data due to auth event:', event)
-        await mutate()
-      }
-
-      // Clear data ONLY on explicit sign out
-      if (event === 'SIGNED_OUT') {
-        console.log('User signed out, clearing data')
-        await mutate(null, false)
-        // Redirect to login
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+      // Defer all state updates to prevent React Error #310
+      setTimeout(async () => {
+        // Refresh user data on sign in or token refresh
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('Refreshing user data due to auth event:', event)
+          await mutate()
         }
-      }
+
+        // Clear data ONLY on explicit sign out
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing data')
+          await mutate(null, false)
+          // Redirect to login
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
+          }
+        }
+      }, 0)
     })
 
     return () => {
