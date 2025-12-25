@@ -6,9 +6,9 @@
 ALTER TABLE public.users
 ADD COLUMN IF NOT EXISTS current_tikrar_batch_id uuid;
 
--- Add foreign key constraint
+-- Add foreign key constraint (using Supabase naming convention)
 ALTER TABLE public.users
-ADD CONSTRAINT fk_users_current_tikrar_batch
+ADD CONSTRAINT users_current_tikrar_batch_id_fkey
 FOREIGN KEY (current_tikrar_batch_id)
 REFERENCES public.batches(id)
 ON DELETE SET NULL;
