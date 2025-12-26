@@ -40,6 +40,17 @@ export default function RekamSuaraPage() {
     setIsClient(true);
   }, []);
 
+  // Debug: Log user info on mount
+  useEffect(() => {
+    if (user) {
+      console.log('[DEBUG] User object:', {
+        id: user.id,
+        email: user.email,
+        full_object: user
+      });
+    }
+  }, [user]);
+
   // Check for existing submission AND registration
   useEffect(() => {
     if (!user?.id) return;
