@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Volume2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 interface OralAssessmentProps {
@@ -29,7 +29,7 @@ interface ErrorCounts {
 }
 
 const PASSING_SCORE = 70;
-const MAX_ERRORS_PER_CATEGORY = 10; // Max errors before score becomes 0
+const MAX_ERRORS_PER_CATEGORY = 10;
 
 export function OralAssessment({
   registrationId,
@@ -49,10 +49,6 @@ export function OralAssessment({
   const [notes, setNotes] = useState(currentAssessment?.oral_assessment_notes || '');
   const [saving, setSaving] = useState(false);
 
-  // Calculate score automatically
-  // Formula: Each category worth 20 points (100/5 categories)
-  // Score per category = 20 - (errors * 2)
-  // If errors >= 10, category score = 0
   const calculateScore = (): number => {
     const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat'] as const;
     const pointsPerCategory = 20;
@@ -61,14 +57,22 @@ export function OralAssessment({
     const totalScore = categories.reduce((total, category) => {
       const categoryErrors = errors[category];
       if (categoryErrors >= MAX_ERRORS_PER_CATEGORY) {
-        return total + 0; // Category score is 0 if too many errors
+        return total + 0;
       }
       const categoryScore = Math.max(0, pointsPerCategory - (categoryErrors * penaltyPerError));
       return total + categoryScore;
     }, 0);
 
-    return Math.round(totalScore * 100) / 100; // Round to 2 decimal places
+    return Math.round(totalScore * 100) / 100;
   };
+
+  const categories = [
+    { key: 'makhraj' as const, label: 'Makhraj Huruf', description: 'Kebenaran titik keluar huruf' },
+    { key: 'sifat' as const, label: 'Sifatul Huruf', description: 'Sifat-sifat huruf (jahr, hams, dll)' },
+    { key: 'mad' as const, label: 'Mad', description: 'Panjang mad (mad thobii, wajib, dll)' },
+    { key: 'ghunnah' as const, label: 'Ghunnah', description: 'Dengung pada huruf mim dan nun' },
+    { key: 'harakat' as const, label: 'Harakat', description: 'Tanda baca (fathah, kasrah, dhommah)' },
+  ];
 
   const score = calculateScore();
   const isPassing = score >= PASSING_SCORE;
@@ -112,17 +116,8 @@ export function OralAssessment({
     );
   }
 
-  const categories = [
-    { key: 'makhraj' as const, label: 'Makhraj Huruf', description: 'Kebenaran titik keluar huruf' },
-    { key: 'sifat' as const, label: 'Sifatul Huruf', description: 'Sifat-sifat huruf (jahr, hams, dll)' },
-    { key: 'mad' as const, label: 'Mad', description: "Panjang mad (mad thobi'i, wajib, dll)" },
-    { key: 'ghunnah' as const, label: 'Ghunnah', description: 'Dengung pada huruf mim dan nun' },
-    { key: 'harakat' as const, label: 'Harakat', description: 'Tanda baca (fathah, kasrah, dhommah)' },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Audio Player */}
       <div className="bg-green-50 p-4 rounded-lg">
         <div className="flex items-center gap-2 mb-3">
           <Volume2 className="w-5 h-5 text-green-700" />
@@ -136,7 +131,6 @@ export function OralAssessment({
         />
       </div>
 
-      {/* Assessment Form */}
       <div className="bg-white border rounded-lg p-6">
         <h4 className="font-semibold text-gray-900 mb-4">Penilaian Tajweed</h4>
 
@@ -166,7 +160,6 @@ export function OralAssessment({
           ))}
         </div>
 
-        {/* Score Display */}
         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -188,7 +181,7 @@ export function OralAssessment({
                   <XCircle className="w-6 h-6 text-red-600" />
                   <div>
                     <p className="text-sm font-semibold text-red-900">TIDAK LULUS</p>
-                    <p className="text-xs text-red-600">< {PASSING_SCORE}</p>
+                    <p className="text-xs text-red-600">&#60; {PASSING_SCORE}</p>
                   </div>
                 </>
               )}
@@ -205,7 +198,6 @@ export function OralAssessment({
           )}
         </div>
 
-        {/* Notes */}
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-900 mb-2">
             Catatan Penilaian (Opsional)
@@ -220,7 +212,6 @@ export function OralAssessment({
           />
         </div>
 
-        {/* Save Button */}
         {!readOnly && onSave && (
           <div className="mt-4">
             <button
@@ -234,7 +225,6 @@ export function OralAssessment({
         )}
       </div>
 
-      {/* Scoring Formula Info */}
       <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-900">
         <p className="font-semibold mb-2">Formula Penilaian:</p>
         <ul className="list-disc list-inside space-y-1 text-xs">

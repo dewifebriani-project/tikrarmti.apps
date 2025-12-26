@@ -2873,6 +2873,7 @@ interface TikrarTabProps {
 }
 
 function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: TikrarTabProps) {
+  const { user } = useAuth();
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -4135,7 +4136,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                           toast.success('Penilaian oral berhasil disimpan!');
 
                           // Refresh the data
-                          fetchTikrarApplications();
+                          onRefresh();
                           setShowReviewModal(false);
                         } catch (error: any) {
                           toast.error(error.message || 'Gagal menyimpan penilaian');
