@@ -628,12 +628,43 @@ export default function RekamSuaraPage() {
                   {/* Audio Player for Existing Submission */}
                   <div className="bg-white p-3 rounded border border-green-200">
                     <p className="text-sm font-medium text-gray-700 mb-2">Rekaman <em>Ukhti</em>:</p>
+
+                    {/* Large Play/Pause Button */}
+                    <div className="flex justify-center mb-3">
+                      <Button
+                        onClick={() => {
+                          const audio = document.getElementById('existing-audio') as HTMLAudioElement;
+                          if (audio) {
+                            if (audio.paused) {
+                              audio.play();
+                              setIsPlaying(true);
+                            } else {
+                              audio.pause();
+                              setIsPlaying(false);
+                            }
+                          }
+                        }}
+                        size="lg"
+                        variant="outline"
+                        className="h-16 w-16 rounded-full p-0"
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-8 h-8 text-green-900" />
+                        ) : (
+                          <Play className="w-8 h-8 text-green-900" />
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Hidden audio element */}
                     <audio
+                      id="existing-audio"
                       src={existingSubmission.url}
-                      controls
-                      controlsList="nodownload"
                       className="w-full"
                       preload="auto"
+                      onEnded={() => setIsPlaying(false)}
+                      onPause={() => setIsPlaying(false)}
+                      onPlay={() => setIsPlaying(true)}
                     />
                   </div>
 
@@ -836,9 +867,8 @@ export default function RekamSuaraPage() {
                           <p className="font-bold text-red-900 text-base">⚠️ PERHATIAN PENTING!</p>
                           <ul className="list-disc list-inside space-y-1 text-sm text-red-800">
                             <li><strong>Dengarkan rekaman <em>Ukhti</em> minimal 3 kali</strong> sebelum mengirim</li>
-                            <li><em>Ukhti</em> bisa menghapus dan merekam ulang <strong>SEBELUM</strong> dinilai admin</li>
-                            <li>Setelah dinilai admin, <strong>TIDAK BISA</strong> diubah lagi</li>
-                            <li>Pastikan bacaan sudah benar dan jelas</li>
+                            <li><strong>Pastikan bacaan sudah benar dan jelas</strong></li>
+                            <li>Periksa dengan teliti sebelum mengirimkan rekaman</li>
                           </ul>
                         </div>
                       </AlertDescription>
@@ -941,8 +971,8 @@ export default function RekamSuaraPage() {
                   <li>Bacakan QS. Al-Fath ayat 29 dengan tartil</li>
                   <li>Klik "Hentikan Rekaman" setelah selesai</li>
                   <li className="font-bold text-red-700">⚠️ Dengarkan hasil rekaman minimal 3 kali sebelum mengirim</li>
-                  <li className="font-bold text-red-700">⚠️ Kesempatan merekam hanya SATU KALI - tidak bisa diulang setelah dikirim</li>
-                  <li>Jika sudah yakin bacaan benar, klik "Kirim Rekaman"</li>
+                  <li className="font-bold text-red-700">⚠️ Pastikan <em>Ukhti</em> benar-benar yakin sebelum mengirim</li>
+                  <li>Setelah yakin bacaan sudah benar, klik "Kirim Rekaman"</li>
                   <li>Format yang didukung: WebM (kompatibel dengan semua perangkat)</li>
                 </ul>
               </div>
