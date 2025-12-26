@@ -28,10 +28,13 @@ export default function RekamSuaraPage() {
     url: string;
     fileName: string;
     submittedAt: string;
+    assessmentStatus?: string;
+    registrationId?: string;
   } | null>(null);
   const [hasRegistration, setHasRegistration] = useState<boolean | null>(null); // null = checking, true = has, false = no
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -140,9 +143,11 @@ export default function RekamSuaraPage() {
           setHasRegistration(true);
 
           const submissionData = data as {
+            id: string;
             oral_submission_url: string | null;
             oral_submission_file_name: string | null;
             oral_submitted_at: string | null;
+            oral_assessment_status?: string | null;
           };
 
           if (submissionData.oral_submission_url) {
@@ -151,6 +156,8 @@ export default function RekamSuaraPage() {
               url: submissionData.oral_submission_url,
               fileName: submissionData.oral_submission_file_name || 'audio.webm',
               submittedAt: submissionData.oral_submitted_at || new Date().toISOString(),
+              assessmentStatus: submissionData.oral_assessment_status || 'pending',
+              registrationId: submissionData.id,
             });
           } else {
             console.log('[DEBUG] No existing submission URL found');
@@ -438,10 +445,12 @@ export default function RekamSuaraPage() {
       setExistingSubmission({
         url: publicUrl,
         fileName,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        assessmentStatus: 'pending',
+        registrationId: registrationId,
       });
 
-      console.log('[UPLOAD] Set existingSubmission state to:', { url: publicUrl, fileName });
+      console.log('[UPLOAD] Set existingSubmission state to:', { url: publicUrl, fileName, registrationId });
 
       // Keep the audio available for playback after upload
       // Don't clear audioBlob and audioURL so user can still play it
@@ -452,6 +461,72 @@ export default function RekamSuaraPage() {
       setUploadProgress(0);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const deleteRecording = async () => {
+    if (!existingSubmission?.registrationId) return;
+
+    // Confirm deletion
+    if (!window.confirm('Apakah <em>Ukhti</em> yakin ingin menghapus rekaman ini? Setelah dihapus, <em>Ukhti</em> bisa merekam ulang.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      console.log('[DELETE] Starting delete process for registration:', existingSubmission.registrationId);
+
+      // Delete from storage first
+      if (existingSubmission.fileName) {
+        console.log('[DELETE] Deleting file from storage:', existingSubmission.fileName);
+        const { error: storageError } = await supabase.storage
+          .from('selection-audios')
+          .remove([existingSubmission.fileName]);
+
+        if (storageError) {
+          console.error('[DELETE] Storage deletion error:', storageError);
+          // Continue anyway - database update is more important
+        }
+      }
+
+      // Reset database fields via API
+      console.log('[DELETE] Resetting database fields');
+      const response = await fetch(`/api/pendaftaran/tikrar/${existingSubmission.registrationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          oral_submission_url: null,
+          oral_submission_file_name: null,
+          oral_submitted_at: null,
+          oral_assessment_status: 'not_submitted',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal menghapus rekaman dari database');
+      }
+
+      console.log('[DELETE] Successfully deleted recording');
+
+      // Clear state
+      setExistingSubmission(null);
+      setError(null);
+      setUploadSuccess(false);
+
+      // Show success message
+      alert('Rekaman berhasil dihapus. <em>Ukhti</em> sekarang bisa merekam ulang.');
+
+    } catch (err: any) {
+      console.error('[DELETE] Error:', err);
+      setError(err.message || 'Gagal menghapus rekaman. Silakan coba lagi.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -542,6 +617,12 @@ export default function RekamSuaraPage() {
                     <span className="text-sm text-gray-600">
                       Dikirim pada: {new Date(existingSubmission.submittedAt).toLocaleString('id-ID')}
                     </span>
+                    <br />
+                    <span className="text-xs text-gray-500">
+                      Status: {existingSubmission.assessmentStatus === 'pending' ? 'Menunggu penilaian' :
+                               existingSubmission.assessmentStatus === 'pass' ? 'Lulus' :
+                               existingSubmission.assessmentStatus === 'fail' ? 'Tidak lulus' : 'Belum dinilai'}
+                    </span>
                   </div>
 
                   {/* Audio Player for Existing Submission */}
@@ -556,17 +637,56 @@ export default function RekamSuaraPage() {
                     />
                   </div>
 
-                  <p className="text-xs text-gray-600 italic">
-                    <em>Ukhti</em> sudah mengirimkan rekaman. Tidak bisa mengirim ulang.
-                  </p>
+                  {/* Show different message based on assessment status */}
+                  {existingSubmission.assessmentStatus === 'pending' || existingSubmission.assessmentStatus === 'not_submitted' ? (
+                    <div className="space-y-3">
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <AlertCircle className="h-4 w-4 text-blue-600" />
+                        <AlertDescription>
+                          <p className="text-sm text-blue-800">
+                            <strong>Salah kirim?</strong> <em>Ukhti</em> bisa menghapus rekaman ini dan merekam ulang selama belum dinilai oleh admin.
+                          </p>
+                        </AlertDescription>
+                      </Alert>
 
-                  {/* Return Button */}
-                  <Button
-                    onClick={() => router.push('/perjalanan-saya')}
-                    className="w-full bg-green-700 hover:bg-green-800"
-                  >
-                    Kembali ke Perjalanan Saya
-                  </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={deleteRecording}
+                          disabled={isDeleting}
+                          variant="destructive"
+                          className="flex-1"
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Menghapus...
+                            </>
+                          ) : (
+                            'Hapus & Rekam Ulang'
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => router.push('/perjalanan-saya')}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Kembali
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-xs text-gray-600 italic">
+                        Rekaman sudah dinilai. Tidak bisa dihapus atau diubah.
+                      </p>
+                      <Button
+                        onClick={() => router.push('/perjalanan-saya')}
+                        className="w-full bg-green-700 hover:bg-green-800"
+                      >
+                        Kembali ke Perjalanan Saya
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </AlertDescription>
             </Alert>

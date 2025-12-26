@@ -104,6 +104,29 @@ export async function PUT(
       }, { status: 404 });
     }
 
+    // Check if trying to delete oral submission (null values)
+    const isDeletingOralSubmission = body.oral_submission_url === null &&
+                                      body.oral_submission_file_name === null &&
+                                      body.oral_submitted_at === null;
+
+    // Prevent deletion if already assessed (non-admin users only)
+    if (!isAdmin && isDeletingOralSubmission) {
+      const assessmentStatus = existingRegistration.oral_assessment_status;
+
+      // Allow deletion only if status is 'pending' or 'not_submitted'
+      if (assessmentStatus === 'pass' || assessmentStatus === 'fail') {
+        logger.warn('Attempted to delete assessed oral submission', {
+          registrationId: id,
+          userId: user.id,
+          assessmentStatus
+        });
+
+        return NextResponse.json({
+          error: 'Rekaman sudah dinilai oleh admin. Tidak bisa dihapus.'
+        }, { status: 403 });
+      }
+    }
+
     // Check if registration is already approved
     // Allow ONLY oral submission updates and oral assessment updates for approved registrations
     // Admin can always update
@@ -125,9 +148,10 @@ export async function PUT(
 
     // If oral submission update, only update oral fields
     if (isOralSubmissionUpdate) {
-      if (body.oral_submission_url) updateData.oral_submission_url = body.oral_submission_url;
-      if (body.oral_submission_file_name) updateData.oral_submission_file_name = body.oral_submission_file_name;
-      if (body.oral_submitted_at) updateData.oral_submitted_at = body.oral_submitted_at;
+      if (body.oral_submission_url !== undefined) updateData.oral_submission_url = body.oral_submission_url;
+      if (body.oral_submission_file_name !== undefined) updateData.oral_submission_file_name = body.oral_submission_file_name;
+      if (body.oral_submitted_at !== undefined) updateData.oral_submitted_at = body.oral_submitted_at;
+      if (body.oral_assessment_status !== undefined) updateData.oral_assessment_status = body.oral_assessment_status;
       updateData.updated_at = new Date().toISOString();
     } else if (isOralAssessmentUpdate) {
       // Admin updating oral assessment
