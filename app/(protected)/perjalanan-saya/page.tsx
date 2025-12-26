@@ -487,13 +487,21 @@ export default function PerjalananSaya() {
                                 <div className="flex items-start space-x-2">
                                   <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-gray-500" />
                                   <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                    Pendaftaran pada {registrationStatus.registration?.registration_date ? new Date(registrationStatus.registration.registration_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia'}.
+                                    Pendaftaran pada {(() => {
+                                      const regDate = registrationStatus.registration?.registration_date || registrationStatus.registration?.submitted_at || registrationStatus.registration?.created_at;
+                                      return regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia';
+                                    })()}.
                                   </p>
                                 </div>
                                 <div className="flex items-start space-x-2">
-                                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                                  <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                    Status: {registrationStatus.registration?.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration?.status === 'approved' ? 'Disetujui' : registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                                  <CheckCircle className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 ${registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-gray-500'}`} />
+                                  <p className={`text-xs sm:text-sm leading-relaxed ${
+                                    registrationStatus.registration?.status === 'approved' ? 'text-green-700 font-bold' :
+                                    registrationStatus.registration?.status === 'pending' ? 'text-yellow-700 font-semibold' :
+                                    registrationStatus.registration?.status === 'rejected' ? 'text-red-700 font-semibold' :
+                                    styles.textColor
+                                  }`}>
+                                    Status: {registrationStatus.registration?.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration?.status === 'approved' ? 'Disetujui ✓' : registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
                                   </p>
                                 </div>
                               </div>
@@ -663,13 +671,21 @@ export default function PerjalananSaya() {
                                   <div className="flex items-start space-x-2">
                                     <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
                                     <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                      Pendaftaran pada {registrationStatus.registration?.registration_date ? new Date(registrationStatus.registration.registration_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia'}.
+                                      Pendaftaran pada {(() => {
+                                        const regDate = registrationStatus.registration?.registration_date || registrationStatus.registration?.submitted_at || registrationStatus.registration?.created_at;
+                                        return regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia';
+                                      })()}.
                                     </p>
                                   </div>
                                   <div className="flex items-start space-x-2">
-                                    <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                                    <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                      Status: {registrationStatus.registration?.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration?.status === 'approved' ? 'Disetujui' : registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                                    <CheckCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-gray-500'}`} />
+                                    <p className={`text-sm leading-relaxed ${
+                                      registrationStatus.registration?.status === 'approved' ? 'text-green-700 font-bold' :
+                                      registrationStatus.registration?.status === 'pending' ? 'text-yellow-700 font-semibold' :
+                                      registrationStatus.registration?.status === 'rejected' ? 'text-red-700 font-semibold' :
+                                      styles.textColor
+                                    }`}>
+                                      Status: {registrationStatus.registration?.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration?.status === 'approved' ? 'Disetujui ✓' : registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
                                     </p>
                                   </div>
                                 </div>
