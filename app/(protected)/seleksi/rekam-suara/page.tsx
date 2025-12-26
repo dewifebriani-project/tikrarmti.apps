@@ -311,8 +311,27 @@ export default function RekamSuaraPage() {
 
       console.log('[UPLOAD] Updating database via API with:', updateData);
 
-      const updateResponse = await fetch('/api/pendaftaran/tikrar/' + user.id, {
-        method: 'PATCH',
+      // First get the registration ID (endpoint needs registration ID, not user ID)
+      const myRegistrationResponse = await fetch('/api/pendaftaran/my', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!myRegistrationResponse.ok) {
+        throw new Error('Gagal mendapatkan data pendaftaran');
+      }
+
+      const myRegistration = await myRegistrationResponse.json();
+      const registrationId = myRegistration.data?.[0]?.id || myRegistration.data?.id;
+
+      if (!registrationId) {
+        throw new Error('ID pendaftaran tidak ditemukan');
+      }
+
+      console.log('[UPLOAD] Using registration ID:', registrationId);
+
+      const updateResponse = await fetch('/api/pendaftaran/tikrar/' + registrationId, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
