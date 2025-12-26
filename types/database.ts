@@ -108,6 +108,7 @@ export interface Pendaftaran {
   user_id?: string;
   program_id?: string;
   batch_id: string;
+  batch_name?: string;
   registration_date?: string;
   status: PendaftaranStatus;
   notes?: string;
