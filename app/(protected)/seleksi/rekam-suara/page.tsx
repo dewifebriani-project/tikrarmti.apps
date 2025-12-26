@@ -68,6 +68,14 @@ export default function RekamSuaraPage() {
         console.log('[DEBUG] Querying with user.id:', user.id);
         console.log('[DEBUG] User email:', user.email);
 
+        // Check Supabase session
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[DEBUG] Supabase session:', {
+          hasSession: !!session,
+          userId: session?.user?.id,
+          email: session?.user?.email
+        });
+
         const { data, error } = await supabase
           .from('pendaftaran_tikrar_tahfidz')
           .select('oral_submission_url, oral_submission_file_name, oral_submitted_at')
