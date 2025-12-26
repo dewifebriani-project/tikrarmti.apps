@@ -24,6 +24,29 @@ function ResetPasswordPageContent() {
 
   const [sessionChecked, setSessionChecked] = useState(false);
 
+  // Password validation helpers
+  const validatePassword = (pwd: string) => {
+    const errors: string[] = [];
+
+    if (pwd.length < 8) {
+      errors.push('Minimal 8 karakter');
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      errors.push('Minimal 1 huruf besar');
+    }
+    if (!/[a-z]/.test(pwd)) {
+      errors.push('Minimal 1 huruf kecil');
+    }
+    if (!/[0-9]/.test(pwd)) {
+      errors.push('Minimal 1 angka');
+    }
+
+    return errors;
+  };
+
+  const passwordErrors = password ? validatePassword(password) : [];
+  const isPasswordValid = password && passwordErrors.length === 0;
+
   useEffect(() => {
     const checkSession = async () => {
       console.log('=== Reset Password Page ===');
@@ -65,8 +88,10 @@ function ResetPasswordPageContent() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter');
+    // Validate password strength
+    const validationErrors = validatePassword(password);
+    if (validationErrors.length > 0) {
+      setError('Password tidak memenuhi kriteria: ' + validationErrors.join(', '));
       setIsLoading(false);
       return;
     }
@@ -192,7 +217,7 @@ function ResetPasswordPageContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="mt-1 pr-12"
-                    placeholder="Minimal 6 karakter"
+                    placeholder="Masukkan password baru"
                     disabled={isLoading}
                     required
                   />
@@ -206,6 +231,39 @@ function ResetPasswordPageContent() {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </Button>
                 </div>
+
+                {/* Password Requirements */}
+                {password && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs font-medium text-gray-700 mb-1">Kriteria Password:</p>
+                    <div className="space-y-1">
+                      <div className={`flex items-center gap-2 text-xs ${password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center ${password.length >= 8 ? 'bg-green-100' : 'bg-gray-100'}`}>
+                          {password.length >= 8 ? '✓' : '○'}
+                        </span>
+                        <span>Minimal 8 karakter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center ${/[A-Z]/.test(password) ? 'bg-green-100' : 'bg-gray-100'}`}>
+                          {/[A-Z]/.test(password) ? '✓' : '○'}
+                        </span>
+                        <span>Minimal 1 huruf besar (A-Z)</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${/[a-z]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center ${/[a-z]/.test(password) ? 'bg-green-100' : 'bg-gray-100'}`}>
+                          {/[a-z]/.test(password) ? '✓' : '○'}
+                        </span>
+                        <span>Minimal 1 huruf kecil (a-z)</span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${/[0-9]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                        <span className={`w-4 h-4 rounded-full flex items-center justify-center ${/[0-9]/.test(password) ? 'bg-green-100' : 'bg-gray-100'}`}>
+                          {/[0-9]/.test(password) ? '✓' : '○'}
+                        </span>
+                        <span>Minimal 1 angka (0-9)</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -235,8 +293,8 @@ function ResetPasswordPageContent() {
 
               <Button
                 type="submit"
-                className="w-full bg-green-900 hover:bg-green-800"
-                disabled={isLoading}
+                className="w-full bg-green-900 hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || !isPasswordValid || !confirmPassword}
               >
                 {isLoading ? (
                   <div className="flex items-center">

@@ -24,8 +24,12 @@ const publicRoutes = [
   '/',
   '/login',
   '/register',
+  '/forgot-password',
+  '/reset-password',
   '/syarat-ketentuan',
   '/api/auth/callback',
+  '/auth/callback',
+  '/auth/confirm',
   '/favicon.ico',
 ]
 
