@@ -689,6 +689,42 @@ export default function AdminPage() {
 
 // Overview Tab Component
 function OverviewTab({ stats }: { stats: any }) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportContacts = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch('/api/admin/export-contacts', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to export contacts');
+        return;
+      }
+
+      // Get the CSV content
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mti-contacts-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('Contacts exported successfully! Import to Gmail: Contacts > Import > Select file');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export contacts');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const statCards = [
     { name: 'Total Users', value: stats.totalUsers, icon: Users, color: 'bg-blue-500' },
     { name: 'Total Batches', value: stats.totalBatches, icon: Calendar, color: 'bg-indigo-500' },
@@ -701,27 +737,51 @@ function OverviewTab({ stats }: { stats: any }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {statCards.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className={`flex-shrink-0 ${stat.color} rounded-md p-3`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                    <dd className="text-3xl font-bold text-gray-900">{stat.value}</dd>
-                  </dl>
+    <div className="space-y-6">
+      {/* Export Contacts Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleExportContacts}
+          disabled={isExporting}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-900 hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isExporting ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4 mr-2" />
+              Export Contacts to Gmail
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {statCards.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className={`flex-shrink-0 ${stat.color} rounded-md p-3`}>
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
+                      <dd className="text-3xl font-bold text-gray-900">{stat.value}</dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

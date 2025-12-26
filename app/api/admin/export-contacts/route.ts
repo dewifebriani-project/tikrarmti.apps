@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger-secure';
+
+// Helper function to calculate age from birth date
+function getYearFromBirthDate(birthDate: string | null): string {
+  if (!birthDate) return '';
+  try {
+    const date = new Date(birthDate);
+    const year = date.getFullYear();
+    // Return last 2 digits of year
+    return year.toString().slice(-2);
+  } catch {
+    return '';
+  }
+}
+
+// Helper function to format city name
+function formatCity(city: string | null): string {
+  if (!city) return '';
+  // Capitalize first letter of each word
+  return city
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+// Helper function to format contact name
+function formatContactName(fullName: string, birthDate: string | null, city: string | null): string {
+  const yearYY = getYearFromBirthDate(birthDate);
+  const formattedCity = formatCity(city);
+
+  let name = `MTI ${fullName}`;
+
+  if (yearYY) {
+    name += ` ${yearYY}`;
+  }
+
+  if (formattedCity) {
+    name += ` ${formattedCity}`;
+  }
+
+  return name;
+}
+
+// Helper function to normalize phone number (remove +, spaces, dashes)
+function normalizePhoneNumber(phone: string | null): string {
+  if (!phone) return '';
+  return phone.replace(/[\s\-\+]/g, '');
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Create Supabase client with service role
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Verify admin authentication
+    const authHeader = request.headers.get('cookie');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get current user from session
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || userData?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    }
+
+    logger.info('Admin exporting contacts', { adminId: user.id });
+
+    // Fetch all users with phone numbers
+    const { data: users, error: fetchError } = await supabase
+      .from('users')
+      .select(`
+        id,
+        full_name,
+        email,
+        whatsapp,
+        telegram,
+        tanggal_lahir,
+        kota
+      `)
+      .not('whatsapp', 'is', null)
+      .order('full_name', { ascending: true });
+
+    if (fetchError) {
+      logger.error('Error fetching users for contact export', { error: fetchError });
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    }
+
+    if (!users || users.length === 0) {
+      return NextResponse.json({ error: 'No users with phone numbers found' }, { status: 404 });
+    }
+
+    // Build CSV content compatible with Google Contacts
+    // Gmail CSV format: Name,Given Name,Additional Name,Family Name,Yomi Name,Given Name Yomi,Additional Name Yomi,Family Name Yomi,Name Prefix,Name Suffix,Initials,Nickname,Short Name,Maiden Name,Birthday,Gender,Location,Billing Information,Directory Server,Mileage,Occupation,Hobby,Sensitivity,Priority,Subject,Notes,Language,Photo,Group Membership,Phone 1 - Type,Phone 1 - Value
+
+    const csvHeaders = [
+      'Name',
+      'Given Name',
+      'Family Name',
+      'Email 1 - Type',
+      'Email 1 - Value',
+      'Phone 1 - Type',
+      'Phone 1 - Value',
+      'Phone 2 - Type',
+      'Phone 2 - Value',
+      'Organization 1 - Name',
+      'Notes'
+    ];
+
+    const csvRows: string[] = [csvHeaders.join(',')];
+    const processedPhones = new Set<string>();
+    let duplicateCount = 0;
+
+    for (const user of users) {
+      // Normalize phone number to check for duplicates
+      const normalizedWhatsApp = normalizePhoneNumber(user.whatsapp);
+      const normalizedTelegram = normalizePhoneNumber(user.telegram);
+
+      // Skip if WhatsApp number already processed
+      if (normalizedWhatsApp && processedPhones.has(normalizedWhatsApp)) {
+        duplicateCount++;
+        continue;
+      }
+
+      // Format contact name
+      const contactName = formatContactName(
+        user.full_name || 'Unknown',
+        user.tanggal_lahir,
+        user.kota
+      );
+
+      // Escape CSV fields (handle commas and quotes)
+      const escapeCsvField = (field: string | null): string => {
+        if (!field) return '';
+        const str = field.toString();
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      // Build CSV row
+      const row = [
+        escapeCsvField(contactName), // Name
+        escapeCsvField(user.full_name), // Given Name
+        escapeCsvField(''), // Family Name
+        'Work', // Email 1 - Type
+        escapeCsvField(user.email), // Email 1 - Value
+        'Mobile', // Phone 1 - Type
+        escapeCsvField(user.whatsapp), // Phone 1 - Value
+        user.telegram ? 'Other' : '', // Phone 2 - Type
+        escapeCsvField(user.telegram || ''), // Phone 2 - Value
+        'Markaz Tikrar Indonesia', // Organization 1 - Name
+        escapeCsvField(`ID: ${user.id}`) // Notes
+      ];
+
+      csvRows.push(row.join(','));
+
+      // Mark phone as processed
+      if (normalizedWhatsApp) {
+        processedPhones.add(normalizedWhatsApp);
+      }
+      if (normalizedTelegram) {
+        processedPhones.add(normalizedTelegram);
+      }
+    }
+
+    const csvContent = csvRows.join('\n');
+
+    logger.info('Contacts exported successfully', {
+      adminId: user.id,
+      totalUsers: users.length,
+      exportedContacts: csvRows.length - 1,
+      duplicatesSkipped: duplicateCount
+    });
+
+    // Return CSV file
+    return new NextResponse(csvContent, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="mti-contacts-${new Date().toISOString().split('T')[0]}.csv"`,
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+  } catch (error) {
+    logger.error('Error in export contacts', { error: error as Error });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
