@@ -193,7 +193,7 @@ export default function RekamSuaraPage() {
 
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Browser Anda tidak mendukung perekaman audio. Gunakan browser Chrome, Firefox, atau Safari terbaru.');
+        setError('Browser *Ukhti* tidak mendukung perekaman audio. Gunakan browser Chrome, Firefox, atau Safari terbaru.');
         return;
       }
 
@@ -247,15 +247,15 @@ export default function RekamSuaraPage() {
       // Specific error handling
       if (err.name === 'NotAllowedError') {
         setPermissionDenied(true);
-        setError('Akses mikrofon ditolak. Silakan izinkan akses mikrofon di pengaturan browser Anda.');
+        setError('Akses mikrofon ditolak. Silakan izinkan akses mikrofon di pengaturan browser *Ukhti*.');
       } else if (err.name === 'NotFoundError') {
-        setError('Mikrofon tidak ditemukan. Pastikan perangkat Anda memiliki mikrofon.');
+        setError('Mikrofon tidak ditemukan. Pastikan perangkat *Ukhti* memiliki mikrofon.');
       } else if (err.name === 'NotReadableError') {
         setError('Mikrofon sedang digunakan oleh aplikasi lain. Tutup aplikasi yang menggunakan mikrofon dan coba lagi.');
       } else if (err.name === 'OverconstrainedError') {
         setError('Mikrofon tidak mendukung pengaturan yang diminta. Gunakan perangkat lain.');
       } else {
-        setError('Tidak dapat mengakses mikrofon. Pastikan Anda memberikan izin akses mikrofon dan tidak ada overlay/aplikasi mengambang yang aktif.');
+        setError('Tidak dapat mengakses mikrofon. Pastikan *Ukhti* memberikan izin akses mikrofon dan tidak ada overlay/aplikasi mengambang yang aktif.');
       }
     }
   };
@@ -275,7 +275,7 @@ export default function RekamSuaraPage() {
     // CRITICAL: Check if user already submitted - prevent duplicate submissions
     if (existingSubmission) {
       console.log('[UPLOAD BLOCKED] Existing submission found in state');
-      setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
+      setError('*Ukhti* sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
       return;
     }
 
@@ -299,7 +299,7 @@ export default function RekamSuaraPage() {
 
         if (checkData?.oral_submission_url) {
           console.log('[UPLOAD BLOCKED] Existing submission found in database:', checkData.oral_submission_url);
-          setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
+          setError('*Ukhti* sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
           setIsUploading(false);
           return;
         }
@@ -368,7 +368,7 @@ export default function RekamSuaraPage() {
         } else if (uploadError.message?.includes('permission')) {
           throw new Error('Tidak ada izin untuk upload. Hubungi administrator.');
         } else {
-          throw new Error(`Gagal upload setelah ${maxAttempts} percobaan. Periksa koneksi internet Anda dan coba lagi.`);
+          throw new Error(`Gagal upload setelah ${maxAttempts} percobaan. Periksa koneksi internet *Ukhti* dan coba lagi.`);
         }
       }
 
@@ -406,7 +406,7 @@ export default function RekamSuaraPage() {
       const registrationId = tikrarReg?.id;
 
       if (!registrationId) {
-        throw new Error('ID pendaftaran tidak ditemukan. Pastikan Anda sudah mengisi formulir pendaftaran Tikrar Tahfidz.');
+        throw new Error('ID pendaftaran tidak ditemukan. Pastikan *Ukhti* sudah mengisi formulir pendaftaran Tikrar Tahfidz.');
       }
 
       console.log('[UPLOAD] Using registration ID:', registrationId);
@@ -513,10 +513,10 @@ export default function RekamSuaraPage() {
               <AlertDescription>
                 <div className="space-y-3">
                   <div>
-                    <strong>Anda belum terdaftar</strong>
+                    <strong><em>Ukhti</em> belum terdaftar</strong>
                     <br />
                     <span className="text-sm">
-                      Anda harus mengisi formulir pendaftaran Tikrar Tahfidz terlebih dahulu sebelum dapat mengikuti tes seleksi rekam suara.
+                      <em>Ukhti</em> harus mengisi formulir pendaftaran Tikrar Tahfidz terlebih dahulu sebelum dapat mengikuti tes seleksi rekam suara.
                     </span>
                   </div>
                   <Button
@@ -546,7 +546,7 @@ export default function RekamSuaraPage() {
 
                   {/* Audio Player for Existing Submission */}
                   <div className="bg-white p-3 rounded border border-green-200">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Anda:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman <em>Ukhti</em>:</p>
                     <audio
                       src={existingSubmission.url}
                       controls
@@ -557,7 +557,7 @@ export default function RekamSuaraPage() {
                   </div>
 
                   <p className="text-xs text-gray-600 italic">
-                    Anda sudah mengirimkan rekaman. Tidak bisa mengirim ulang.
+                    <em>Ukhti</em> sudah mengirimkan rekaman. Tidak bisa mengirim ulang.
                   </p>
 
                   {/* Return Button */}
@@ -631,13 +631,13 @@ export default function RekamSuaraPage() {
                     <strong className="text-green-800">Rekaman berhasil dikirim!</strong>
                     <br />
                     <span className="text-sm text-gray-600">
-                      Anda dapat mendengarkan rekaman Anda sebelum kembali ke dashboard.
+                      <em>Ukhti</em> dapat mendengarkan rekaman <em>Ukhti</em> sebelum kembali ke dashboard.
                     </span>
                   </div>
 
                   {/* Audio Player in Success State */}
                   <div className="bg-white p-3 rounded border border-green-200">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman Anda:</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Rekaman <em>Ukhti</em>:</p>
 
                     {/* Large Play/Pause Button */}
                     <div className="flex justify-center mb-3">
@@ -715,7 +715,7 @@ export default function RekamSuaraPage() {
                         <div className="space-y-2">
                           <p className="font-bold text-red-900 text-base">⚠️ PERHATIAN PENTING!</p>
                           <ul className="list-disc list-inside space-y-1 text-sm text-red-800">
-                            <li><strong>Dengarkan rekaman Anda minimal 3 kali</strong> sebelum mengirim</li>
+                            <li><strong>Dengarkan rekaman <em>Ukhti</em> minimal 3 kali</strong> sebelum mengirim</li>
                             <li><strong>Kesempatan merekam hanya SATU KALI</strong></li>
                             <li>Setelah dikirim, <strong>TIDAK BISA</strong> merekam ulang</li>
                             <li>Pastikan bacaan sudah benar dan jelas</li>

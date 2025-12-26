@@ -10,7 +10,7 @@ function ConfirmEmailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('Mengkonfirmasi email Anda...');
+  const [message, setMessage] = useState('Mengkonfirmasi email <em>Ukhti</em>...');
   const [email, setEmail] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -69,7 +69,7 @@ function ConfirmEmailPageContent() {
 
         if (response.ok) {
           setStatus('success');
-          setMessage('🎉 Email berhasil dikonfirmasi! Akun Anda sekarang aktif.');
+          setMessage('🎉 Email berhasil dikonfirmasi! Akun <em>Ukhti</em> sekarang aktif.');
           setIsRedirecting(true);
 
           // Auto-redirect to login after 2 seconds

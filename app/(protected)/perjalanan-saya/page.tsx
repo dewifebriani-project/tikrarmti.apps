@@ -539,7 +539,7 @@ export default function PerjalananSaya() {
                                     <div>
                                       <h4 className="text-sm font-semibold text-green-800 mb-1">Fitur Seleksi Sudah Dibuka!</h4>
                                       <p className="text-xs text-green-700">
-                                        Silakan klik card di bawah untuk mengerjakan ujian seleksi. Pastikan Anda sudah menyiapkan diri dengan baik.
+                                        Silakan klik card di bawah untuk mengerjakan ujian seleksi. Pastikan <em>Ukhti</em> sudah menyiapkan diri dengan baik.
                                       </p>
                                     </div>
                                   </div>
@@ -704,7 +704,7 @@ export default function PerjalananSaya() {
                                       <div>
                                         <h4 className="text-sm font-semibold text-green-800 mb-1">Fitur Seleksi Sudah Dibuka!</h4>
                                         <p className="text-xs text-green-700">
-                                          Silakan klik card di bawah untuk mengerjakan ujian seleksi. Pastikan Anda sudah menyiapkan diri dengan baik.
+                                          Silakan klik card di bawah untuk mengerjakan ujian seleksi. Pastikan <em>Ukhti</em> sudah menyiapkan diri dengan baik.
                                         </p>
                                       </div>
                                     </div>

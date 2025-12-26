@@ -211,7 +211,7 @@ export async function POST(request: Request) {
           success: false,
           error: {
             code: 'USER_NOT_FOUND',
-            message: 'Profil Anda belum terdaftar di database. Silakan lengkapi profil terlebih dahulu.',
+            message: 'Profil *Ukhti* belum terdaftar di database. Silakan lengkapi profil terlebih dahulu.',
             redirect: '/lengkapi-profile',
             details: {
               userId: filteredBody.user_id.substring(0, 8) + '...',
@@ -258,7 +258,7 @@ export async function POST(request: Request) {
           success: false,
           error: {
             code: 'INCOMPLETE_PROFILE',
-            message: `Profil Anda belum lengkap. Field yang masih kosong: ${missingFields.join(', ')}. Silakan lengkapi profil terlebih dahulu.`,
+            message: `Profil *Ukhti* belum lengkap. Field yang masih kosong: ${missingFields.join(', ')}. Silakan lengkapi profil terlebih dahulu.`,
             missingFields,
             redirect: '/lengkapi-profile'
           }

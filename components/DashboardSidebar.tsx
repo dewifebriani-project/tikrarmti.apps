@@ -269,7 +269,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
                 e.stopPropagation();
 
                 // Show confirmation dialog
-                if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                if (!window.confirm('Apakah <em>Ukhti</em> yakin ingin keluar?')) {
                   return;
                 }
 

@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
 
     const responseMessage = existingUser
       ? 'Profil berhasil diperbarui'
-      : `🎉 Pendaftaran berhasil! Anda sudah dapat login menggunakan email dan password yang telah didaftarkan.`;
+      : `🎉 Pendaftaran berhasil! *Ukhti* sudah dapat login menggunakan email dan password yang telah didaftarkan.`;
 
     logger.auth('Registration completed', newUser.id, {
       email: body.email,

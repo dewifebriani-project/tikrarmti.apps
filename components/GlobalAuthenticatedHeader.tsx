@@ -71,7 +71,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
       });
 
       // Tampilkan notifikasi dan arahkan ke login
-      alert('Cache telah dibersihkan! Anda akan diarahkan ke halaman login.');
+      alert('Cache telah dibersihkan! <em>Ukhti</em> akan diarahkan ke halaman login.');
       window.location.href = '/login';
     }
   };
@@ -407,7 +407,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
 
                         // Show confirmation dialog AFTER showing loading state (non-blocking)
                         setTimeout(() => {
-                          if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                          if (!window.confirm('Apakah <em>Ukhti</em> yakin ingin keluar?')) {
                             console.log('BUTTON: User cancelled logout');
                             // Reset button state
                             buttonElement.disabled = false;
@@ -465,7 +465,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
 
                   // Show confirmation dialog AFTER showing loading state
                   setTimeout(() => {
-                    if (!window.confirm('Apakah Anda yakin ingin keluar?')) {
+                    if (!window.confirm('Apakah <em>Ukhti</em> yakin ingin keluar?')) {
                       // Reset button state
                       buttonElement.disabled = false;
                       buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span>Keluar</span></div>';

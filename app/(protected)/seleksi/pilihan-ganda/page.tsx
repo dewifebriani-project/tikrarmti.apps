@@ -469,7 +469,7 @@ export default function PilihanGandaPage() {
               <Alert className="bg-green-50 border-green-200">
                 <CheckCircle className="h-5 w-5 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  <strong>Berhasil!</strong> Jawaban Anda telah dikirim. Anda akan dialihkan ke halaman perjalanan...
+                  <strong>Berhasil!</strong> Jawaban <em>Ukhti</em> telah dikirim. <em>Ukhti</em> akan dialihkan ke halaman perjalanan...
                 </AlertDescription>
               </Alert>
             )}

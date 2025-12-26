@@ -36,9 +36,9 @@ export default function ForgotPasswordPage() {
       });
 
       if (error) {
-        setError('Terjadi kesalahan. Silakan periksa email Anda dan coba lagi.');
+        setError('Terjadi kesalahan. Silakan periksa email <em>Ukhti</em> dan coba lagi.');
       } else {
-        setMessage('Link reset password telah dikirim ke email Anda. Silakan periksa inbox dan folder spam.');
+        setMessage('Link reset password telah dikirim ke email <em>Ukhti</em>. Silakan periksa inbox dan folder spam.');
         setEmail(''); // Clear form
       }
     } catch (error: any) {
@@ -73,7 +73,7 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">Lupa Password</h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Masukkan email Anda untuk menerima link reset password
+            Masukkan email <em>Ukhti</em> untuk menerima link reset password
           </p>
         </div>
 

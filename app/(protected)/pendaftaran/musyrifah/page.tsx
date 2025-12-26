@@ -301,7 +301,7 @@ function MusyrifahRegistrationContent() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        toast.error('Anda harus login terlebih dahulu');
+        toast.error('<em>Ukhti</em> harus login terlebih dahulu');
         router.push('/login');
         return;
       }
@@ -630,7 +630,7 @@ function MusyrifahRegistrationContent() {
                     id="motivation"
                     value={formData.motivation}
                     onChange={(e) => handleInputChange('motivation', e.target.value)}
-                    placeholder="Ceritakan motivasi Anda ingin menjadi musyrifah di MTI"
+                    placeholder="Ceritakan motivasi <em>Ukhti</em> ingin menjadi musyrifah di MTI"
                     rows={4}
                   />
                 </div>
@@ -641,7 +641,7 @@ function MusyrifahRegistrationContent() {
                     id="leadership_philosophy"
                     value={formData.leadership_philosophy}
                     onChange={(e) => handleInputChange('leadership_philosophy', e.target.value)}
-                    placeholder="Bagikan pandangan Anda tentang kepemimpinan yang efektif"
+                    placeholder="Bagikan pandangan <em>Ukhti</em> tentang kepemimpinan yang efektif"
                     rows={4}
                   />
                 </div>
@@ -802,7 +802,7 @@ function MusyrifahRegistrationContent() {
                 Formulir Pendaftaran Musyrifah
               </CardTitle>
               <CardDescription>
-                {currentStep === 1 && "Lengkapi informasi personal Anda"}
+                {currentStep === 1 && "Lengkapi informasi personal <em>Ukhti</em>"}
                 {currentStep === 2 && "Pengalaman leadership dan kemampuan manajemen"}
                 {currentStep === 3 && "Preferensi jadwal dan ketersediaan"}
                 {currentStep === 4 && "Informasi tambahan dan pernyataan komitmen"}

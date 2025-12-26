@@ -150,7 +150,7 @@ export default function LengkapiProfilePage() {
 
     // Agreement checkbox
     if (!formData.setujuSyarat) {
-      newErrors.setujuSyarat = 'Anda harus menyetujui syarat dan ketentuan'
+      newErrors.setujuSyarat = '<em>Ukhti</em> harus menyetujui syarat dan ketentuan'
     }
 
     setErrors(newErrors)
@@ -256,10 +256,10 @@ export default function LengkapiProfilePage() {
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Lengkapi Profil Anda
+            Lengkapi Profil <em>Ukhti</em>
           </h1>
           <p className="text-gray-600">
-            Silakan lengkapi data profil Anda untuk melanjutkan
+            Silakan lengkapi data profil <em>Ukhti</em> untuk melanjutkan
           </p>
         </div>
 
@@ -539,7 +539,7 @@ export default function LengkapiProfilePage() {
                 id="alasanDaftar"
                 value={formData.alasanDaftar}
                 onChange={(e) => handleInputChange('alasanDaftar', e.target.value)}
-                placeholder="Ceritakan alasan Anda mendaftar"
+                placeholder="Ceritakan alasan <em>Ukhti</em> mendaftar"
                 className={errors.alasanDaftar ? 'border-red-500' : ''}
               />
               {errors.alasanDaftar && (

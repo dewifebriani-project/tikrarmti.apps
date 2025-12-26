@@ -161,7 +161,7 @@ function ResetPasswordPageContent() {
                 <CheckCircle className="w-6 h-6 text-green-600" />
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Password Berhasil Diubah!</h2>
-              <p className="text-gray-600">Anda akan dialihkan ke halaman login...</p>
+              <p className="text-gray-600"><em>Ukhti</em> akan dialihkan ke halaman login...</p>
             </div>
           </CardContent>
         </Card>
@@ -194,7 +194,7 @@ function ResetPasswordPageContent() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">Reset Password</h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Masukkan password baru Anda
+            Masukkan password baru <em>Ukhti</em>
           </p>
         </div>
 

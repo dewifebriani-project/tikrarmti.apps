@@ -573,8 +573,8 @@ export default function ThalibahBatch2Page() {
         <Alert className="bg-red-50 border-red-200">
           <AlertCircle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800">
-            <p className="font-semibold mb-2">Profil Anda belum lengkap!</p>
-            <p className="mb-3">Silakan lengkapi data diri Anda terlebih dahulu sebelum mendaftar.</p>
+            <p className="font-semibold mb-2">Profil <em>Ukhti</em> belum lengkap!</p>
+            <p className="mb-3">Silakan lengkapi data diri <em>Ukhti</em> terlebih dahulu sebelum mendaftar.</p>
             <Button
               onClick={() => router.push('/lengkapi-profile?returnTo=/pendaftaran/tikrar-tahfidz')}
               className="bg-red-600 hover:bg-red-700"
@@ -645,7 +645,7 @@ export default function ThalibahBatch2Page() {
 
           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-800 text-sm font-medium">
-              Data diri Anda sudah lengkap. Silakan lanjut ke section berikutnya untuk mengisi formulir pendaftaran.
+              Data diri <em>Ukhti</em> sudah lengkap. Silakan lanjut ke section berikutnya untuk mengisi formulir pendaftaran.
             </p>
           </div>
         </div>

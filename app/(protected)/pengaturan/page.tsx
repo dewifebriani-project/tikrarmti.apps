@@ -19,7 +19,7 @@ export default function PengaturanPage() {
             <div className="border-b border-gray-200 pb-4">
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Akun</h2>
               <p className="text-sm text-gray-600">
-                Kelola informasi akun dan preferensi Anda
+                Kelola informasi akun dan preferensi <em>Ukhti</em>
               </p>
             </div>
 
@@ -40,7 +40,7 @@ export default function PengaturanPage() {
             <div className="space-y-4">
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="font-medium text-gray-900 mb-2">Notifikasi</h3>
-                <p className="text-sm text-gray-500">Atur preferensi notifikasi Anda</p>
+                <p className="text-sm text-gray-500">Atur preferensi notifikasi <em>Ukhti</em></p>
                 <span className="inline-block mt-2 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
                   Segera hadir
                 </span>

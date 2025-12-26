@@ -73,7 +73,7 @@ function LoginPageContent() {
             Registrasi Berhasil!
           </p>
           <p className="text-base">
-            ✅ Akun Anda telah aktif. <strong>Silakan login</strong> dengan email dan password yang telah Anda daftarkan.
+            ✅ Akun <em>Ukhti</em> telah aktif. <strong>Silakan login</strong> dengan email dan password yang telah <em>Ukhti</em> daftarkan.
           </p>
           <p className="text-sm text-gray-600">
             Tidak perlu konfirmasi email. Akun langsung dapat digunakan.
@@ -90,7 +90,7 @@ function LoginPageContent() {
             Password Berhasil Direset!
           </p>
           <p className="text-base">
-            ✅ Password Anda telah diperbarui. <strong>Silakan login</strong> dengan password baru Anda.
+            ✅ Password <em>Ukhti</em> telah diperbarui. <strong>Silakan login</strong> dengan password baru <em>Ukhti</em>.
           </p>
         </div>
       );
@@ -153,7 +153,7 @@ function LoginPageContent() {
         if (error.message === 'Invalid login credentials') {
           errorMessage = 'Email atau password salah. Silakan periksa kembali.';
         } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox Anda.';
+          errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox <em>Ukhti</em>.';
         }
 
         throw new Error(errorMessage);

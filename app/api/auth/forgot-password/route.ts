@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Jika email terdaftar, Anda akan menerima link reset password'
+      message: 'Jika email terdaftar, *Ukhti* akan menerima link reset password'
     });
 
   } catch (error) {
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Always return success to prevent email enumeration
     return NextResponse.json({
       success: true,
-      message: 'Jika email terdaftar, Anda akan menerima link reset password'
+      message: 'Jika email terdaftar, *Ukhti* akan menerima link reset password'
     });
   }
 }
