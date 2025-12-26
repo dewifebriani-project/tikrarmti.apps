@@ -836,8 +836,8 @@ export default function RekamSuaraPage() {
                           <p className="font-bold text-red-900 text-base">⚠️ PERHATIAN PENTING!</p>
                           <ul className="list-disc list-inside space-y-1 text-sm text-red-800">
                             <li><strong>Dengarkan rekaman <em>Ukhti</em> minimal 3 kali</strong> sebelum mengirim</li>
-                            <li><strong>Kesempatan merekam hanya SATU KALI</strong></li>
-                            <li>Setelah dikirim, <strong>TIDAK BISA</strong> merekam ulang</li>
+                            <li><em>Ukhti</em> bisa menghapus dan merekam ulang <strong>SEBELUM</strong> dinilai admin</li>
+                            <li>Setelah dinilai admin, <strong>TIDAK BISA</strong> diubah lagi</li>
                             <li>Pastikan bacaan sudah benar dan jelas</li>
                           </ul>
                         </div>
