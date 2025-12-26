@@ -35,9 +35,33 @@ export default function RekamSuaraPage() {
   const chunksRef = useRef<Blob[]>([]);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  // Client-side mount
+  // Client-side mount and sync Supabase session
   useEffect(() => {
     setIsClient(true);
+
+    // Sync session from server to Supabase client
+    const syncSession = async () => {
+      try {
+        console.log('[DEBUG] Syncing Supabase session from server...');
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          console.log('[DEBUG] No client session, refreshing from server...');
+          // Force refresh session
+          await supabase.auth.refreshSession();
+
+          const { data: { session: newSession } } = await supabase.auth.getSession();
+          console.log('[DEBUG] Session after refresh:', {
+            hasSession: !!newSession,
+            userId: newSession?.user?.id
+          });
+        }
+      } catch (error) {
+        console.error('[ERROR] Session sync failed:', error);
+      }
+    };
+
+    syncSession();
   }, []);
 
   // Debug: Log user info on mount
@@ -68,19 +92,26 @@ export default function RekamSuaraPage() {
         console.log('[DEBUG] Querying with user.id:', user.id);
         console.log('[DEBUG] User email:', user.email);
 
-        // Check Supabase session
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('[DEBUG] Supabase session:', {
-          hasSession: !!session,
-          userId: session?.user?.id,
-          email: session?.user?.email
+        // Use API route instead of direct Supabase client to avoid session issues
+        console.log('[DEBUG] Fetching via API route...');
+        const response = await fetch(`/api/pendaftaran/my`, {
+          method: 'GET',
+          credentials: 'include',
         });
 
-        const { data, error } = await supabase
-          .from('pendaftaran_tikrar_tahfidz')
-          .select('oral_submission_url, oral_submission_file_name, oral_submitted_at')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        console.log('[DEBUG] API response status:', response.status);
+
+        if (!response.ok) {
+          console.error('[ERROR] API error:', response.status, response.statusText);
+          setHasRegistration(false);
+          return;
+        }
+
+        const result = await response.json();
+        console.log('[DEBUG] API result:', result);
+
+        const data = result.data || result;
+        const error = result.error;
 
         console.log('[DEBUG] Query completed');
         console.log('[DEBUG] Error:', error);
