@@ -30,6 +30,8 @@ export default function RekamSuaraPage() {
     submittedAt: string;
   } | null>(null);
   const [hasRegistration, setHasRegistration] = useState<boolean | null>(null); // null = checking, true = has, false = no
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -110,12 +112,13 @@ export default function RekamSuaraPage() {
         const result = await response.json();
         console.log('[DEBUG] API result:', result);
 
-        const data = result.data || result;
+        const dataArray = result.data || [];
         const error = result.error;
 
         console.log('[DEBUG] Query completed');
         console.log('[DEBUG] Error:', error);
-        console.log('[DEBUG] Data:', data);
+        console.log('[DEBUG] Data array:', dataArray);
+        console.log('[DEBUG] Data array length:', dataArray.length);
 
         if (error) {
           console.error('[ERROR] Error fetching submission:', {
@@ -128,7 +131,9 @@ export default function RekamSuaraPage() {
           return;
         }
 
-        console.log('[DEBUG] Submission data from DB:', data);
+        // FIX: API returns an array, get first element for tikrar registration
+        const data = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'calon_thalibah') : null;
+        console.log('[DEBUG] Filtered tikrar registration:', data);
 
         if (data) {
           // User HAS registration record
@@ -184,10 +189,36 @@ export default function RekamSuaraPage() {
   const startRecording = async () => {
     try {
       setError(null);
+      setPermissionDenied(false);
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError('Browser Anda tidak mendukung perekaman audio. Gunakan browser Chrome, Firefox, atau Safari terbaru.');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
+      // Detect supported MIME type (prioritize common formats)
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
+        'audio/mpeg'
+      ];
+
+      let selectedMimeType = 'audio/webm';
+      for (const mimeType of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+          selectedMimeType = mimeType;
+          console.log('[RECORDING] Using MIME type:', selectedMimeType);
+          break;
+        }
+      }
+
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: selectedMimeType
       });
 
       mediaRecorderRef.current = mediaRecorder;
@@ -200,7 +231,7 @@ export default function RekamSuaraPage() {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: selectedMimeType });
         setAudioBlob(blob);
         setAudioURL(URL.createObjectURL(blob));
 
@@ -210,9 +241,22 @@ export default function RekamSuaraPage() {
 
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error starting recording:', err);
-      setError('Tidak dapat mengakses mikrofon. Pastikan Anda memberikan izin akses mikrofon.');
+
+      // Specific error handling
+      if (err.name === 'NotAllowedError') {
+        setPermissionDenied(true);
+        setError('Akses mikrofon ditolak. Silakan izinkan akses mikrofon di pengaturan browser Anda.');
+      } else if (err.name === 'NotFoundError') {
+        setError('Mikrofon tidak ditemukan. Pastikan perangkat Anda memiliki mikrofon.');
+      } else if (err.name === 'NotReadableError') {
+        setError('Mikrofon sedang digunakan oleh aplikasi lain. Tutup aplikasi yang menggunakan mikrofon dan coba lagi.');
+      } else if (err.name === 'OverconstrainedError') {
+        setError('Mikrofon tidak mendukung pengaturan yang diminta. Gunakan perangkat lain.');
+      } else {
+        setError('Tidak dapat mengakses mikrofon. Pastikan Anda memberikan izin akses mikrofon dan tidak ada overlay/aplikasi mengambang yang aktif.');
+      }
     }
   };
 
@@ -248,7 +292,9 @@ export default function RekamSuaraPage() {
 
       if (checkResponse.ok) {
         const checkResult = await checkResponse.json();
-        const checkData = checkResult.data?.[0] || checkResult.data;
+        // FIX: API returns array, filter for tikrar registration
+        const dataArray = checkResult.data || [];
+        const checkData = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'calon_thalibah') : null;
         console.log('[UPLOAD] DB check result:', checkData);
 
         if (checkData?.oral_submission_url) {
@@ -270,20 +316,49 @@ export default function RekamSuaraPage() {
         return;
       }
 
-      // Generate unique filename
+      // Generate unique filename - use audio/* to support all formats
       const timestamp = new Date().getTime();
-      const fileName = `${user.id}_alfath29_${timestamp}.webm`;
+      const fileExtension = audioBlob.type.split('/')[1].split(';')[0]; // Extract extension from MIME type
+      const fileName = `${user.id}_alfath29_${timestamp}.${fileExtension}`;
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('selection-audios')
-        .upload(fileName, audioBlob, {
-          contentType: 'audio/webm',
-          upsert: false
-        });
+      console.log('[UPLOAD] Starting storage upload:', { fileName, size: audioBlob.size, type: audioBlob.type });
+      setUploadProgress(10);
+
+      // Upload to Supabase Storage with retry
+      let uploadError = null;
+      let uploadAttempts = 0;
+      const maxAttempts = 3;
+
+      while (uploadAttempts < maxAttempts) {
+        uploadAttempts++;
+        console.log(`[UPLOAD] Attempt ${uploadAttempts}/${maxAttempts}`);
+        setUploadProgress(10 + (uploadAttempts * 15));
+
+        const { error } = await supabase.storage
+          .from('selection-audios')
+          .upload(fileName, audioBlob, {
+            contentType: audioBlob.type,
+            upsert: false
+          });
+
+        if (!error) {
+          uploadError = null;
+          break;
+        }
+
+        uploadError = error;
+        console.error(`[UPLOAD] Attempt ${uploadAttempts} failed:`, error);
+
+        if (uploadAttempts < maxAttempts) {
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * uploadAttempts));
+        }
+      }
+
+      setUploadProgress(60);
 
       if (uploadError) {
-        console.error('Upload error details:', uploadError);
+        console.error('Upload error details after retries:', uploadError);
 
         // Provide specific error messages
         if (uploadError.message?.includes('Payload too large')) {
@@ -293,9 +368,11 @@ export default function RekamSuaraPage() {
         } else if (uploadError.message?.includes('permission')) {
           throw new Error('Tidak ada izin untuk upload. Hubungi administrator.');
         } else {
-          throw new Error(`Error upload: ${uploadError.message}`);
+          throw new Error(`Gagal upload setelah ${maxAttempts} percobaan. Periksa koneksi internet Anda dan coba lagi.`);
         }
       }
+
+      setUploadProgress(70);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
@@ -310,6 +387,7 @@ export default function RekamSuaraPage() {
       };
 
       console.log('[UPLOAD] Updating database via API with:', updateData);
+      setUploadProgress(80);
 
       // First get the registration ID (endpoint needs registration ID, not user ID)
       const myRegistrationResponse = await fetch('/api/pendaftaran/my', {
@@ -322,13 +400,17 @@ export default function RekamSuaraPage() {
       }
 
       const myRegistration = await myRegistrationResponse.json();
-      const registrationId = myRegistration.data?.[0]?.id || myRegistration.data?.id;
+      // FIX: API returns array, filter for tikrar registration
+      const dataArray = myRegistration.data || [];
+      const tikrarReg = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'calon_thalibah') : null;
+      const registrationId = tikrarReg?.id;
 
       if (!registrationId) {
-        throw new Error('ID pendaftaran tidak ditemukan');
+        throw new Error('ID pendaftaran tidak ditemukan. Pastikan Anda sudah mengisi formulir pendaftaran Tikrar Tahfidz.');
       }
 
       console.log('[UPLOAD] Using registration ID:', registrationId);
+      setUploadProgress(90);
 
       const updateResponse = await fetch('/api/pendaftaran/tikrar/' + registrationId, {
         method: 'PUT',
@@ -351,6 +433,7 @@ export default function RekamSuaraPage() {
       const updateResult = await updateResponse.json();
       console.log('[UPLOAD SUCCESS] Database updated successfully:', updateResult);
 
+      setUploadProgress(100);
       setUploadSuccess(true);
       setExistingSubmission({
         url: publicUrl,
@@ -366,6 +449,7 @@ export default function RekamSuaraPage() {
     } catch (err: any) {
       console.error('Upload error:', err);
       setError(err.message || 'Gagal mengunggah rekaman. Silakan coba lagi.');
+      setUploadProgress(0);
     } finally {
       setIsUploading(false);
     }
@@ -492,7 +576,48 @@ export default function RekamSuaraPage() {
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p>{error}</p>
+
+                  {/* Overlay Permission Help */}
+                  {permissionDenied && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded text-sm">
+                      <p className="font-semibold mb-2">Cara mengatasi masalah izin mikrofon:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                        <li><strong>Tutup aplikasi overlay:</strong> Tutup aplikasi seperti Messenger bubble, floating apps, atau screen recorder</li>
+                        <li><strong>Izinkan di browser:</strong> Klik ikon gembok di address bar → Izinkan Mikrofon</li>
+                        <li><strong>Periksa pengaturan HP:</strong> Settings → Apps → Browser → Permissions → Microphone → Allow</li>
+                        <li><strong>Refresh halaman</strong> setelah memberikan izin</li>
+                        <li><strong>Gunakan browser Chrome</strong> jika masalah berlanjut</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Upload Progress */}
+          {isUploading && uploadProgress > 0 && (
+            <Alert className="bg-blue-50 border-blue-200">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="text-blue-800 font-medium">Mengunggah rekaman... {uploadProgress}%</p>
+                  <div className="w-full bg-blue-200 rounded-full h-2.5">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-blue-600">
+                    {uploadProgress < 60 && 'Mengunggah file ke server...'}
+                    {uploadProgress >= 60 && uploadProgress < 90 && 'Menyimpan data ke database...'}
+                    {uploadProgress >= 90 && 'Menyelesaikan...'}
+                  </p>
+                </div>
+              </AlertDescription>
             </Alert>
           )}
 
