@@ -708,6 +708,22 @@ export default function RekamSuaraPage() {
                 {/* Audio Preview */}
                 {audioBlob && audioURL && (
                   <div className="w-full space-y-4">
+                    {/* CRITICAL WARNING - Listen 3 Times Before Submit */}
+                    <Alert className="bg-red-50 border-2 border-red-500">
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                      <AlertDescription>
+                        <div className="space-y-2">
+                          <p className="font-bold text-red-900 text-base">⚠️ PERHATIAN PENTING!</p>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-red-800">
+                            <li><strong>Dengarkan rekaman Anda minimal 3 kali</strong> sebelum mengirim</li>
+                            <li><strong>Kesempatan merekam hanya SATU KALI</strong></li>
+                            <li>Setelah dikirim, <strong>TIDAK BISA</strong> merekam ulang</li>
+                            <li>Pastikan bacaan sudah benar dan jelas</li>
+                          </ul>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+
                     {/* File Size Info */}
                     <div className="text-sm text-gray-600 text-center">
                       Ukuran file: {(audioBlob.size / (1024 * 1024)).toFixed(2)} MB
@@ -804,8 +820,9 @@ export default function RekamSuaraPage() {
                   <li>Klik "Mulai Merekam" dan izinkan akses mikrofon</li>
                   <li>Bacakan QS. Al-Fath ayat 29 dengan tartil</li>
                   <li>Klik "Hentikan Rekaman" setelah selesai</li>
-                  <li>Dengarkan hasil rekaman Anda</li>
-                  <li>Jika sudah sesuai, klik "Kirim Rekaman"</li>
+                  <li className="font-bold text-red-700">⚠️ Dengarkan hasil rekaman minimal 3 kali sebelum mengirim</li>
+                  <li className="font-bold text-red-700">⚠️ Kesempatan merekam hanya SATU KALI - tidak bisa diulang setelah dikirim</li>
+                  <li>Jika sudah yakin bacaan benar, klik "Kirim Rekaman"</li>
                   <li>Format yang didukung: WebM (kompatibel dengan semua perangkat)</li>
                 </ul>
               </div>

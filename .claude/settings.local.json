@@ -122,7 +122,9 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Remove submitted_at field from tikrar-tahfidz insert\n\n- Remove submitted_at field that doesn''t exist in pendaftaran_tikrar_tahfidz table\n- submission_date is already included in submitData \\(line 428\\)\n- Fixes \"Could not find the 'submitted_at' column\" error\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(wc:*)",
       "Bash(tail:*)",
-      "Bash(diff:*)"
+      "Bash(diff:*)",
+      "Bash(git -C \"d:\\\\tikrarmti.apps\" log --oneline -10)",
+      "Bash(xargs ls:*)"
     ],
     "deny": [],
     "ask": []
