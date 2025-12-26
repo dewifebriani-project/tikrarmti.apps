@@ -48,6 +48,8 @@ export function OralAssessment({
 
   const [notes, setNotes] = useState(currentAssessment?.oral_assessment_notes || '');
   const [saving, setSaving] = useState(false);
+  const [manualScore, setManualScore] = useState<number | null>(currentAssessment?.oral_total_score || null);
+  const [useManualScore, setUseManualScore] = useState<boolean>(false);
 
   const calculateScore = (): number => {
     const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat'] as const;
@@ -67,16 +69,17 @@ export function OralAssessment({
   };
 
   const categories = [
-    { key: 'makhraj' as const, label: 'Makhraj Huruf', description: 'Kebenaran titik keluar huruf' },
-    { key: 'sifat' as const, label: 'Sifatul Huruf', description: 'Sifat-sifat huruf (jahr, hams, dll)' },
-    { key: 'mad' as const, label: 'Mad', description: 'Panjang mad (mad thobii, wajib, dll)' },
-    { key: 'ghunnah' as const, label: 'Ghunnah', description: 'Dengung pada huruf mim dan nun' },
-    { key: 'harakat' as const, label: 'Harakat', description: 'Tanda baca (fathah, kasrah, dhommah)' },
+    { key: 'makhraj' as const, label: 'Makhraj', shortLabel: 'Makhraj', description: 'Titik keluar huruf' },
+    { key: 'sifat' as const, label: 'Sifat', shortLabel: 'Sifat', description: 'Sifat huruf' },
+    { key: 'mad' as const, label: 'Mad', shortLabel: 'Mad', description: 'Panjang mad' },
+    { key: 'ghunnah' as const, label: 'Ghunnah', shortLabel: 'Ghunnah', description: 'Dengung' },
+    { key: 'harakat' as const, label: 'Harakat', shortLabel: 'Harakat', description: 'Tanda baca' },
   ];
 
-  const score = calculateScore();
-  const isPassing = score >= PASSING_SCORE;
-  const assessmentStatus = score >= PASSING_SCORE ? 'pass' : 'fail';
+  const calculatedScore = calculateScore();
+  const finalScore = useManualScore ? (manualScore || 0) : calculatedScore;
+  const isPassing = finalScore >= PASSING_SCORE;
+  const assessmentStatus = finalScore >= PASSING_SCORE ? 'pass' : 'fail';
 
   const handleErrorChange = (category: keyof ErrorCounts, value: number) => {
     setErrors(prev => ({
@@ -96,7 +99,7 @@ export function OralAssessment({
         oral_mad_errors: errors.mad,
         oral_ghunnah_errors: errors.ghunnah,
         oral_harakat_errors: errors.harakat,
-        oral_total_score: score,
+        oral_total_score: finalScore,
         oral_assessment_status: assessmentStatus,
         oral_assessment_notes: notes,
       });
@@ -132,46 +135,40 @@ export function OralAssessment({
       </div>
 
       <div className="bg-white border rounded-lg p-6">
-        <h4 className="font-semibold text-gray-900 mb-4">Penilaian Tajweed</h4>
+        <h4 className="font-semibold text-gray-900 mb-4">Penilaian Tajweed - Klik kategori yang salah</h4>
 
-        <div className="space-y-6">
+        {/* Compact Grid Layout - All categories visible at once */}
+        <div className="grid grid-cols-1 gap-4 mb-6">
           {categories.map(category => (
-            <div key={category.key} className="pb-4 border-b last:border-b-0">
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-900">
-                  {category.label}
-                </label>
-                <p className="text-xs text-gray-500 mt-0.5">{category.description}</p>
-              </div>
+            <div key={category.key} className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-start justify-between gap-4">
+                {/* Category Name */}
+                <div className="flex-shrink-0 w-24">
+                  <p className="text-sm font-semibold text-gray-900">{category.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{category.description}</p>
+                </div>
 
-              <div className="space-y-2">
-                <span className="text-xs text-gray-600 font-medium">Jumlah kesalahan:</span>
-                <div className="flex items-center gap-3 flex-wrap">
+                {/* Error Count Buttons - Compact inline */}
+                <div className="flex items-center gap-2 flex-wrap">
                   {[0, 1, 2, 3, 4, 5].map((errorCount) => (
-                    <label
+                    <button
                       key={errorCount}
-                      className={`flex items-center justify-center min-w-[48px] px-3 py-2 border-2 rounded-lg cursor-pointer transition-all ${
+                      type="button"
+                      onClick={() => handleErrorChange(category.key, errorCount)}
+                      disabled={readOnly}
+                      className={`w-10 h-10 flex items-center justify-center border-2 rounded-md font-medium transition-all ${
                         errors[category.key] === errorCount
-                          ? 'border-green-600 bg-green-50 text-green-900 font-semibold'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-green-400 hover:bg-green-50'
-                      } ${readOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                          ? 'border-green-600 bg-green-600 text-white shadow-md'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-green-500 hover:bg-green-50'
+                      } ${readOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                     >
-                      <input
-                        type="radio"
-                        name={`error-${category.key}`}
-                        value={errorCount}
-                        checked={errors[category.key] === errorCount}
-                        onChange={() => handleErrorChange(category.key, errorCount)}
-                        disabled={readOnly}
-                        className="sr-only"
-                      />
-                      <span className="text-sm">{errorCount}</span>
-                    </label>
+                      {errorCount}
+                    </button>
                   ))}
-                  {errors[category.key] >= MAX_ERRORS_PER_CATEGORY && (
-                    <div className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">
-                      Kategori ini: 0 poin
-                    </div>
+                  {errors[category.key] >= 5 && (
+                    <span className="ml-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded font-medium">
+                      0 poin
+                    </span>
                   )}
                 </div>
               </div>
@@ -179,42 +176,110 @@ export function OralAssessment({
           ))}
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Nilai</p>
-              <p className="text-3xl font-bold text-gray-900">{score.toFixed(2)}</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {isPassing ? (
-                <>
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                  <div>
-                    <p className="text-sm font-semibold text-green-900">LULUS</p>
-                    <p className="text-xs text-green-600">≥ {PASSING_SCORE}</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-6 h-6 text-red-600" />
-                  <div>
-                    <p className="text-sm font-semibold text-red-900">TIDAK LULUS</p>
-                    <p className="text-xs text-red-600">&#60; {PASSING_SCORE}</p>
-                  </div>
-                </>
+        {/* Score Display and Manual Override */}
+        <div className="mt-6 space-y-4">
+          {/* Calculated Score */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-600 font-medium">Nilai Otomatis (dari hitungan kesalahan)</p>
+                <p className="text-2xl font-bold text-blue-900">{calculatedScore.toFixed(2)}</p>
+              </div>
+              {!useManualScore && (
+                <div className="flex items-center gap-2">
+                  {calculatedScore >= PASSING_SCORE ? (
+                    <CheckCircle className="w-6 h-6 text-green-600" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  )}
+                </div>
               )}
             </div>
           </div>
 
-          {!isPassing && (
-            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
-              <p className="text-sm text-yellow-800">
-                <strong>Himbauan:</strong> Peserta akan diminta mendaftar ulang pada batch berikutnya
-                dan dihimbau untuk mengikuti Kelas Tashih Umum untuk memperbaiki bacaan.
-              </p>
+          {/* Manual Override Option */}
+          {!readOnly && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useManualScore}
+                  onChange={(e) => {
+                    setUseManualScore(e.target.checked);
+                    if (!e.target.checked) {
+                      setManualScore(null);
+                    }
+                  }}
+                  className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-yellow-900">Atur Nilai Manual (Override)</p>
+                  <p className="text-xs text-yellow-700 mt-0.5">
+                    Centang untuk mengatur nilai final secara manual. Gunakan prerogatif ini untuk penyesuaian khusus.
+                  </p>
+                </div>
+              </label>
+
+              {useManualScore && (
+                <div className="mt-3 flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700">Nilai Final:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={manualScore || ''}
+                    onChange={(e) => setManualScore(parseFloat(e.target.value) || 0)}
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-md text-center font-bold focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  />
+                  <span className="text-xs text-gray-500">(0-100)</span>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Final Score Display */}
+          <div className={`p-4 rounded-lg ${isPassing ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium" style={{ color: isPassing ? '#065f46' : '#991b1b' }}>
+                  Nilai Final {useManualScore && '(Manual Override)'}
+                </p>
+                <p className="text-3xl font-bold" style={{ color: isPassing ? '#047857' : '#dc2626' }}>
+                  {finalScore.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isPassing ? (
+                  <>
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                    <div>
+                      <p className="text-lg font-bold text-green-900">LULUS</p>
+                      <p className="text-xs text-green-600">≥ {PASSING_SCORE}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-8 h-8 text-red-600" />
+                    <div>
+                      <p className="text-lg font-bold text-red-900">TIDAK LULUS</p>
+                      <p className="text-xs text-red-600">&#60; {PASSING_SCORE}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {!isPassing && (
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-sm text-yellow-800">
+                  <strong>Himbauan:</strong> Peserta akan diminta mendaftar ulang pada batch berikutnya
+                  dan dihimbau untuk mengikuti Kelas Tashih Umum untuk memperbaiki bacaan.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-4">
@@ -244,14 +309,8 @@ export function OralAssessment({
         )}
       </div>
 
-      <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-900">
-        <p className="font-semibold mb-2">Formula Penilaian:</p>
-        <ul className="list-disc list-inside space-y-1 text-xs">
-          <li>Setiap kategori bernilai 20 poin (Total: 100 poin)</li>
-          <li>Setiap kesalahan mengurangi 2 poin dari kategori tersebut</li>
-          <li>Maksimal 10 kesalahan per kategori (jika ≥10, kategori = 0 poin)</li>
-          <li>Nilai kelulusan: ≥ {PASSING_SCORE}</li>
-        </ul>
+      <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-900">
+        <p className="font-semibold mb-1">Formula: 5 kategori × 20 poin | 1 kesalahan = -2 poin | ≥5 kesalahan = 0 poin | Lulus ≥{PASSING_SCORE}</p>
       </div>
     </div>
   );
