@@ -134,27 +134,46 @@ export function OralAssessment({
       <div className="bg-white border rounded-lg p-6">
         <h4 className="font-semibold text-gray-900 mb-4">Penilaian Tajweed</h4>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {categories.map(category => (
-            <div key={category.key} className="flex items-center justify-between py-3 border-b">
-              <div className="flex-1">
+            <div key={category.key} className="pb-4 border-b last:border-b-0">
+              <div className="mb-3">
                 <label className="block text-sm font-medium text-gray-900">
                   {category.label}
                 </label>
                 <p className="text-xs text-gray-500 mt-0.5">{category.description}</p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Jumlah kesalahan:</span>
-                <input
-                  type="number"
-                  min="0"
-                  max={MAX_ERRORS_PER_CATEGORY}
-                  value={errors[category.key]}
-                  onChange={(e) => handleErrorChange(category.key, parseInt(e.target.value) || 0)}
-                  disabled={readOnly}
-                  className="w-20 px-3 py-2 border border-gray-300 rounded-md text-center focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
-                />
+              <div className="space-y-2">
+                <span className="text-xs text-gray-600 font-medium">Jumlah kesalahan:</span>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {[0, 1, 2, 3, 4, 5].map((errorCount) => (
+                    <label
+                      key={errorCount}
+                      className={`flex items-center justify-center min-w-[48px] px-3 py-2 border-2 rounded-lg cursor-pointer transition-all ${
+                        errors[category.key] === errorCount
+                          ? 'border-green-600 bg-green-50 text-green-900 font-semibold'
+                          : 'border-gray-300 bg-white text-gray-700 hover:border-green-400 hover:bg-green-50'
+                      } ${readOnly ? 'cursor-not-allowed opacity-60' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name={`error-${category.key}`}
+                        value={errorCount}
+                        checked={errors[category.key] === errorCount}
+                        onChange={() => handleErrorChange(category.key, errorCount)}
+                        disabled={readOnly}
+                        className="sr-only"
+                      />
+                      <span className="text-sm">{errorCount}</span>
+                    </label>
+                  ))}
+                  {errors[category.key] >= MAX_ERRORS_PER_CATEGORY && (
+                    <div className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs rounded font-medium">
+                      Kategori ini: 0 poin
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
