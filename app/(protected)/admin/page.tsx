@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase-singleton';
 import { useAuth } from '@/hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
+import { OralAssessment } from '@/components/OralAssessment';
 import {
   Users,
   Calendar,
@@ -224,6 +225,18 @@ interface TikrarTahfidz {
   approved_at?: string;
   oral_submitted_at?: string;
   written_submitted_at?: string;
+  oral_submission_url?: string | null;
+  oral_submission_file_name?: string | null;
+  oral_makhraj_errors?: number;
+  oral_sifat_errors?: number;
+  oral_mad_errors?: number;
+  oral_ghunnah_errors?: number;
+  oral_harakat_errors?: number;
+  oral_total_score?: number;
+  oral_assessment_status?: string;
+  oral_assessed_by?: string;
+  oral_assessed_at?: string;
+  oral_assessment_notes?: string;
   user?: User;
   batch?: { name: string };
   program?: { name: string };
@@ -4095,6 +4108,59 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                     </div>
                   )}
                 </div>
+
+                {/* Oral Assessment Section */}
+                {reviewData.oral_submission_url && (
+                  <div className="mb-6">
+                    <OralAssessment
+                      registrationId={reviewData.id}
+                      oralSubmissionUrl={reviewData.oral_submission_url}
+                      currentAssessment={reviewData}
+                      onSave={async (assessmentData) => {
+                        try {
+                          const response = await fetch(`/api/pendaftaran/tikrar/${reviewData.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                              ...assessmentData,
+                              oral_assessed_by: user?.id,
+                              oral_assessed_at: new Date().toISOString(),
+                            }),
+                          });
+
+                          if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.error || 'Failed to save assessment');
+                          }
+
+                          // Update selection_status based on assessment result
+                          const selectionStatus = assessmentData.oral_assessment_status === 'pass'
+                            ? 'approved'
+                            : 'rejected';
+
+                          await fetch(`/api/pendaftaran/tikrar/${reviewData.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                              selection_status: selectionStatus,
+                            }),
+                          });
+
+                          toast.success('Penilaian oral berhasil disimpan!');
+
+                          // Refresh the data
+                          fetchTikrarApplications();
+                          setShowReviewModal(false);
+                        } catch (error: any) {
+                          toast.error(error.message || 'Gagal menyimpan penilaian');
+                          throw error;
+                        }
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Application Status */}
                 <div className="bg-gray-50 rounded-lg p-6">
