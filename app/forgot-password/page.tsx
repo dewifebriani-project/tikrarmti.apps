@@ -31,14 +31,28 @@ export default function ForgotPasswordPage() {
     }
 
     try {
+      // Check if email exists in public.users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email.toLowerCase())
+        .single();
+
+      if (userError || !userData) {
+        setError(`Email "${email}" tidak terdaftar di sistem MTI. Silakan periksa kembali atau daftar sebagai anggota baru.`);
+        setIsLoading(false);
+        return;
+      }
+
+      // Email exists, proceed with password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback`,
       });
 
       if (error) {
-        setError('Terjadi kesalahan. Silakan periksa email <em>Ukhti</em> dan coba lagi.');
+        setError('Terjadi kesalahan saat mengirim email. Silakan coba lagi.');
       } else {
-        setMessage('Link reset password telah dikirim ke email <em>Ukhti</em>. Silakan periksa inbox dan folder spam.');
+        setMessage('Link reset password telah dikirim ke email Ukhti. Silakan periksa inbox dan folder spam.');
         setEmail(''); // Clear form
       }
     } catch (error: any) {
@@ -73,7 +87,7 @@ export default function ForgotPasswordPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-green-900 mb-2">Lupa Password</h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Masukkan email <em>Ukhti</em> untuk menerima link reset password
+            Masukkan email Ukhti untuk menerima link reset password
           </p>
         </div>
 

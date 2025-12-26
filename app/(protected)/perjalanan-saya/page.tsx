@@ -411,9 +411,15 @@ export default function PerjalananSaya() {
         {registrationStatus?.hasRegistered && (
           <Card className="bg-green-50 border-green-200">
             <CardHeader className="pb-3 sm:pb-6">
-              <CardTitle className="flex items-center space-x-2 text-green-900 text-lg sm:text-xl">
-                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                <span>Status Pendaftaran</span>
+              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+                <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                  registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-green-900'
+                }`} />
+                <span className={
+                  registrationStatus.registration?.status === 'approved'
+                    ? 'text-green-600 font-bold'
+                    : 'text-green-900'
+                }>Status Pendaftaran</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -422,36 +428,10 @@ export default function PerjalananSaya() {
                   <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
                   <p className="font-medium text-sm sm:text-base">{user?.full_name || 'User'}</p>
                 </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Status</p>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    registrationStatus.registration?.status === 'approved'
-                      ? 'bg-green-100 text-green-800'
-                      : registrationStatus.registration?.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : registrationStatus.registration?.status === 'rejected'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {registrationStatus.registration?.status === 'pending' ? 'Menunggu Konfirmasi' :
-                     registrationStatus.registration?.status === 'approved' ? 'Disetujui' :
-                     registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Tanggal Pendaftaran</p>
-                  <p className="font-medium text-sm sm:text-base">
-                    {registrationStatus.registration?.registration_date ? new Date(registrationStatus.registration.registration_date).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    }) : 'Tanggal tidak tersedia'}
-                  </p>
-                </div>
-                {registrationStatus.registration?.batch_id && (
+                {registrationStatus.registration?.batch_name && (
                   <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Batch ID</p>
-                    <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.batch_id}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Batch</p>
+                    <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.batch_name}</p>
                   </div>
                 )}
               </div>
