@@ -3151,43 +3151,63 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       sortable: false,
       filterable: true,
       render: (t) => {
-        // Check if application is complete and ready for approval
-        const isComplete =
-          t.understands_commitment &&
-          t.tried_simulation &&
-          t.no_negotiation &&
-          t.has_telegram &&
-          t.saved_contact &&
-          t.has_permission &&
-          t.permission_name &&
-          t.permission_phone &&
-          t.chosen_juz &&
-          t.no_travel_plans &&
-          t.time_commitment &&
-          t.understands_program &&
-          t.full_name &&
-          t.address &&
-          t.wa_phone &&
-          t.birth_date &&
-          t.domicile &&
-          t.main_time_slot &&
-          t.backup_time_slot;
+        // Check each field and collect missing ones
+        const missingFields: string[] = [];
+
+        if (!t.understands_commitment) missingFields.push('Memahami komitmen');
+        if (!t.tried_simulation) missingFields.push('Mencoba simulasi');
+        if (!t.no_negotiation) missingFields.push('Tidak ada negosiasi');
+        if (!t.has_telegram) missingFields.push('Punya Telegram');
+        if (!t.saved_contact) missingFields.push('Simpan kontak');
+        if (!t.has_permission) missingFields.push('Punya izin');
+        if (!t.permission_name) missingFields.push('Nama pemberi izin');
+        if (!t.permission_phone) missingFields.push('No. HP pemberi izin');
+        if (!t.chosen_juz) missingFields.push('Juz yang dipilih');
+        if (!t.no_travel_plans) missingFields.push('Tidak ada rencana bepergian');
+        if (!t.time_commitment) missingFields.push('Komitmen waktu');
+        if (!t.understands_program) missingFields.push('Memahami program');
+        if (!t.full_name) missingFields.push('Nama lengkap');
+        if (!t.address) missingFields.push('Alamat');
+        if (!t.wa_phone) missingFields.push('No. WhatsApp');
+        if (!t.birth_date) missingFields.push('Tanggal lahir');
+        if (!t.domicile) missingFields.push('Domisili');
+        if (!t.main_time_slot) missingFields.push('Waktu setoran utama');
+        if (!t.backup_time_slot) missingFields.push('Waktu setoran cadangan');
+
+        const isComplete = missingFields.length === 0;
 
         return (
           <div className="flex justify-center">
             {isComplete ? (
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1 cursor-help"
+                title="Semua field wajib sudah lengkap"
+              >
                 <svg className="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span className="text-xs text-green-600 font-medium">Yes</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1">
+              <div
+                className="flex items-center gap-1 cursor-help group relative"
+                title={`Field yang belum lengkap:\n${missingFields.join('\n')}`}
+              >
                 <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
                 <span className="text-xs text-red-400 font-medium">No</span>
+
+                {/* Tooltip */}
+                <div className="invisible group-hover:visible absolute z-50 left-0 top-6 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                  <div className="font-semibold mb-2">Field yang belum lengkap ({missingFields.length}):</div>
+                  <ul className="list-disc list-inside space-y-1">
+                    {missingFields.map((field, idx) => (
+                      <li key={idx}>{field}</li>
+                    ))}
+                  </ul>
+                  <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
+                </div>
               </div>
             )}
           </div>
