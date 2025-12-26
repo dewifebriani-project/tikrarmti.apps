@@ -60,7 +60,9 @@ export async function PUT(
     // Verify that the user_id in the request matches the authenticated user
     // Skip this check for oral submission updates (they don't need user_id in body)
     // Skip this check for admin users
-    const isOralSubmissionUpdate = body.oral_submission_url || body.oral_submission_file_name || body.oral_submitted_at;
+    const isOralSubmissionUpdate = body.oral_submission_url !== undefined ||
+                                    body.oral_submission_file_name !== undefined ||
+                                    body.oral_submitted_at !== undefined;
     const isOralAssessmentUpdate = body.oral_makhraj_errors !== undefined || body.oral_sifat_errors !== undefined ||
                                     body.oral_mad_errors !== undefined || body.oral_ghunnah_errors !== undefined ||
                                     body.oral_harakat_errors !== undefined || body.oral_itmamul_harakat_errors !== undefined ||
