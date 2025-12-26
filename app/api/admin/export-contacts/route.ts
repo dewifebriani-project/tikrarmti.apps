@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger-secure';
+
+const supabaseAdmin = createSupabaseAdmin();
 
 // Helper function to calculate age from birth date
 function getYearFromBirthDate(birthDate: string | null): string {
@@ -51,40 +54,39 @@ function normalizePhoneNumber(phone: string | null): string {
 
 export async function GET(request: NextRequest) {
   try {
-    // Create Supabase client with service role
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Use Supabase SSR client to get session
+    const supabase = createServerClient();
 
-    // Verify admin authentication
-    const authHeader = request.headers.get('cookie');
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get current user from session
+    // Get user session
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.error('Auth error:', authError);
+      return NextResponse.json({
+        error: 'Unauthorized - Invalid session. Please login again.',
+        needsLogin: true
+      }, { status: 401 });
     }
 
-    // Check if user is admin
-    const { data: userData, error: userError } = await supabase
+    // Check if user is admin using admin client
+    const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (userError || userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    if (userError || !userData || userData.role !== 'admin') {
+      console.error('Admin check failed:', userError, userData);
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
     }
 
     logger.info('Admin exporting contacts', { adminId: user.id });
 
-    // Fetch all users with phone numbers
-    const { data: users, error: fetchError } = await supabase
+    // Fetch all users with phone numbers using admin client
+    const { data: users, error: fetchError } = await supabaseAdmin
       .from('users')
       .select(`
         id,
