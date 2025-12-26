@@ -239,21 +239,24 @@ export default function RekamSuaraPage() {
     setError(null);
 
     try {
-      // Double-check in database before uploading
+      // Double-check in database before uploading (via API route)
       console.log('[UPLOAD] Double-checking database for user:', user.id);
-      const { data: checkData, error: checkError } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select('oral_submission_url')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const checkResponse = await fetch('/api/pendaftaran/my', {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-      console.log('[UPLOAD] DB check result:', { checkData, checkError });
+      if (checkResponse.ok) {
+        const checkResult = await checkResponse.json();
+        const checkData = checkResult.data?.[0] || checkResult.data;
+        console.log('[UPLOAD] DB check result:', checkData);
 
-      if (checkData && (checkData as any)?.oral_submission_url) {
-        console.log('[UPLOAD BLOCKED] Existing submission found in database:', (checkData as any).oral_submission_url);
-        setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
-        setIsUploading(false);
-        return;
+        if (checkData?.oral_submission_url) {
+          console.log('[UPLOAD BLOCKED] Existing submission found in database:', checkData.oral_submission_url);
+          setError('Anda sudah mengirimkan rekaman sebelumnya. Tidak dapat mengirim lagi.');
+          setIsUploading(false);
+          return;
+        }
       }
 
       console.log('[UPLOAD] No existing submission, proceeding with upload...');
@@ -299,37 +302,34 @@ export default function RekamSuaraPage() {
         .from('selection-audios')
         .getPublicUrl(fileName);
 
-      // Update database
+      // Update database via API route (to use server-side session)
       const updateData = {
         oral_submission_url: publicUrl,
         oral_submission_file_name: fileName,
         oral_submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       };
 
-      console.log('[UPLOAD] Updating database with:', updateData);
+      console.log('[UPLOAD] Updating database via API with:', updateData);
 
-      const { data: updateResult, error: dbError } = await (supabase
-        .from('pendaftaran_tikrar_tahfidz') as any)
-        .update(updateData)
-        .eq('user_id', user.id)
-        .select();
+      const updateResponse = await fetch('/api/pendaftaran/tikrar/' + user.id, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
 
-      console.log('[UPLOAD] Database update result:', { updateResult, dbError });
+      console.log('[UPLOAD] API update response status:', updateResponse.status);
 
-      if (dbError) {
-        console.error('[UPLOAD ERROR] Database error:', dbError);
-        // Show detailed error to user
-        setError(`Error menyimpan ke database: ${dbError.message} (${dbError.code || 'unknown'})`);
-        throw new Error(`Error menyimpan ke database: ${dbError.message}`);
+      if (!updateResponse.ok) {
+        const errorData = await updateResponse.json();
+        console.error('[UPLOAD ERROR] API error:', errorData);
+        setError(`Error menyimpan ke database: ${errorData.error || 'Unknown error'}`);
+        throw new Error(`Error menyimpan ke database: ${errorData.error || 'Unknown error'}`);
       }
 
-      if (!updateResult || updateResult.length === 0) {
-        console.error('[UPLOAD ERROR] No rows updated! User may not have registration record.');
-        setError('Tidak dapat menyimpan rekaman. Anda belum memiliki data pendaftaran.');
-        throw new Error('No rows updated in database');
-      }
-
+      const updateResult = await updateResponse.json();
       console.log('[UPLOAD SUCCESS] Database updated successfully:', updateResult);
 
       setUploadSuccess(true);
