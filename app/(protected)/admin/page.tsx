@@ -689,42 +689,6 @@ export default function AdminPage() {
 
 // Overview Tab Component
 function OverviewTab({ stats }: { stats: any }) {
-  const [isExporting, setIsExporting] = useState(false);
-
-  const handleExportContacts = async () => {
-    setIsExporting(true);
-    try {
-      const response = await fetch('/api/admin/export-contacts', {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to export contacts');
-        return;
-      }
-
-      // Get the CSV content
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mti-contacts-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('Contacts exported successfully! Import to Gmail: Contacts > Import > Select file');
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export contacts');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const statCards = [
     { name: 'Total Users', value: stats.totalUsers, icon: Users, color: 'bg-blue-500' },
     { name: 'Total Batches', value: stats.totalBatches, icon: Calendar, color: 'bg-indigo-500' },
@@ -738,27 +702,6 @@ function OverviewTab({ stats }: { stats: any }) {
 
   return (
     <div className="space-y-6">
-      {/* Export Contacts Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleExportContacts}
-          disabled={isExporting}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-900 hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isExporting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Exporting...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
-              Export Contacts to Gmail
-            </>
-          )}
-        </button>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {statCards.map((stat) => {
@@ -2061,6 +2004,46 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportContacts = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch('/api/admin/export-contacts', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to export contacts');
+        return;
+      }
+
+      // Get the CSV content
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mti-contacts-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success('CSV downloaded! Click "Open Gmail Import" button to import contacts.');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export contacts');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleOpenGmailImport = () => {
+    window.open('https://contacts.google.com/u/0/?hl=id&tf=cm', '_blank');
+    toast.success('Gmail Contacts opened. Click "Import" then select your downloaded CSV file.');
+  };
 
   const columns: Column<User>[] = [
     {
@@ -2440,6 +2423,32 @@ Tim Markaz Tikrar Indonesia`;
           >
             <Download className="w-5 h-5 mr-2" />
             Download Excel
+          </button>
+          <button
+            onClick={handleExportContacts}
+            disabled={isExporting}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5 mr-2" />
+                Export to Gmail
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleOpenGmailImport}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
+            </svg>
+            Open Gmail Import
           </button>
           <button
             onClick={() => {
