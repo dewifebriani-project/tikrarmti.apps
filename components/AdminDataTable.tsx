@@ -10,6 +10,10 @@ export interface Column<T> {
   filterable?: boolean;
   render?: (row: T) => React.ReactNode;
   width?: string;
+  // Custom sort function (a, b, direction) => number
+  sortFn?: (a: T, b: T, direction: 'asc' | 'desc') => number;
+  // Custom filter function (row, filterValue) => boolean
+  filterFn?: (row: T, filterValue: string) => boolean;
 }
 
 export interface DataTableProps<T> {
@@ -99,7 +103,16 @@ export function AdminDataTable<T extends Record<string, any>>({
     // Apply column filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value) {
+        // Find column config
+        const column = columns.find(col => col.key === key);
+
         result = result.filter((row) => {
+          // Use custom filter function if provided
+          if (column?.filterFn) {
+            return column.filterFn(row, value);
+          }
+
+          // Default filter behavior
           const rowValue = row[key];
           if (rowValue == null) return false;
           return String(rowValue).toLowerCase().includes(value.toLowerCase());
@@ -114,7 +127,16 @@ export function AdminDataTable<T extends Record<string, any>>({
   const sortedData = useMemo(() => {
     if (!sortColumn || !sortDirection) return filteredData;
 
+    // Find column config
+    const column = columns.find(col => col.key === sortColumn);
+
     return [...filteredData].sort((a, b) => {
+      // Use custom sort function if provided
+      if (column?.sortFn) {
+        return column.sortFn(a, b, sortDirection);
+      }
+
+      // Default sort behavior
       const aValue = a[sortColumn];
       const bValue = b[sortColumn];
 
@@ -132,7 +154,7 @@ export function AdminDataTable<T extends Record<string, any>>({
 
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [filteredData, sortColumn, sortDirection]);
+  }, [filteredData, sortColumn, sortDirection, columns]);
 
   // Paginate data
   const paginatedData = useMemo(() => {

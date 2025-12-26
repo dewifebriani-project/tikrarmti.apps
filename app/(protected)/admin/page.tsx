@@ -3297,6 +3297,42 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       label: 'Oral Score',
       sortable: true,
       filterable: true,
+      // Custom sort function for proper ordering: Not submitted -> Pending -> Scores (low to high)
+      sortFn: (a, b, direction) => {
+        // Helper to get sort value: 0 = Not submitted, 1 = Pending, 2+ = Score value + 2
+        const getSortValue = (t: TikrarTahfidz) => {
+          if (!t.oral_submission_url) return 0; // Not submitted
+          if (t.oral_total_score === null || t.oral_total_score === undefined) return 1; // Pending
+          return t.oral_total_score + 2; // Score (add 2 to put after pending)
+        };
+
+        const aVal = getSortValue(a);
+        const bVal = getSortValue(b);
+
+        return direction === 'asc' ? aVal - bVal : bVal - aVal;
+      },
+      // Custom filter to match status
+      filterFn: (row, filterValue) => {
+        const value = filterValue.toLowerCase();
+
+        // Not submitted
+        if (!row.oral_submission_url) {
+          return value.includes('not') || value.includes('submit');
+        }
+
+        // Pending
+        if (row.oral_total_score === null || row.oral_total_score === undefined) {
+          return value.includes('pend');
+        }
+
+        // Score exists
+        const isPassing = row.oral_total_score >= 70;
+        if (value.includes('pass')) return isPassing;
+        if (value.includes('fail')) return !isPassing;
+
+        // Match score number
+        return String(row.oral_total_score).includes(value);
+      },
       render: (t) => {
         if (!t.oral_submission_url) {
           return <span className="text-xs text-gray-400">Not submitted</span>;
