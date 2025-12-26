@@ -53,6 +53,8 @@ export default function PerjalananSaya() {
       hasOralSubmission: !!(registration as any)?.oral_submission_url,
       oralSubmissionUrl: (registration as any)?.oral_submission_url,
       oralSubmittedAt: (registration as any)?.oral_submitted_at,
+      oralAssessmentStatus: (registration as any)?.oral_assessment_status || 'pending',
+      registrationId: (registration as any)?.id,
     };
   }, [user, registrations]);
 
@@ -546,31 +548,31 @@ export default function PerjalananSaya() {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                  {/* Card Rekam Suara - Conditional */}
+                                  {/* Card Rekam Suara - Always clickable */}
                                   {registrationStatus?.hasOralSubmission ? (
-                                    <Card className={`border-2 border-green-300 bg-green-50`}>
-                                      <CardContent className="p-3 sm:p-4">
-                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                    <Link href="/seleksi/rekam-suara">
+                                      <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                        <CardContent className="p-3 sm:p-4">
+                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-sm sm:text-base font-semibold text-green-900">Rekam Suara</h4>
+                                              <p className="text-xs text-green-700">Sudah terkirim - Klik untuk lihat</p>
+                                            </div>
                                           </div>
-                                          <div className="flex-grow">
-                                            <h4 className="text-sm sm:text-base font-semibold text-green-900">Rekam Suara</h4>
-                                            <p className="text-xs text-green-700">Sudah terkirim</p>
-                                          </div>
-                                        </div>
-                                        <p className="text-xs text-green-800 mb-2">
-                                          Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                        </p>
-                                        <audio
-                                          src={registrationStatus?.oralSubmissionUrl}
-                                          controls
-                                          controlsList="nodownload"
-                                          className="w-full"
-                                          style={{ height: '32px' }}
-                                        />
-                                      </CardContent>
-                                    </Card>
+                                          <p className="text-xs text-green-800 mb-2">
+                                            Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                          </p>
+                                          <p className="text-xs text-gray-600 italic">
+                                            Status: {registrationStatus?.oralAssessmentStatus === 'pending' ? 'Menunggu penilaian' :
+                                                     registrationStatus?.oralAssessmentStatus === 'pass' ? 'Lulus' :
+                                                     registrationStatus?.oralAssessmentStatus === 'fail' ? 'Tidak lulus' : 'Belum dinilai'}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
                                   ) : (
                                     <Link href="/seleksi/rekam-suara">
                                       <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
@@ -711,31 +713,31 @@ export default function PerjalananSaya() {
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-3">
-                                    {/* Card Rekam Suara - Conditional */}
+                                    {/* Card Rekam Suara - Always clickable */}
                                     {registrationStatus?.hasOralSubmission ? (
-                                      <Card className={`border-2 border-green-300 bg-green-50`}>
-                                        <CardContent className="p-4">
-                                          <div className="flex items-center space-x-3 mb-2">
-                                            <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                              <CheckCircle className="w-5 h-5 text-green-600" />
+                                      <Link href="/seleksi/rekam-suara">
+                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-4">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                              <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-base font-semibold text-green-900">Rekam Suara</h4>
+                                                <p className="text-sm text-green-700">Sudah terkirim - Klik untuk lihat</p>
+                                              </div>
                                             </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-base font-semibold text-green-900">Rekam Suara</h4>
-                                              <p className="text-sm text-green-700">Sudah terkirim</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-sm text-green-800 mb-2">
-                                            Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                          </p>
-                                          <audio
-                                            src={registrationStatus?.oralSubmissionUrl}
-                                            controls
-                                            controlsList="nodownload"
-                                            className="w-full"
-                                            style={{ height: '32px' }}
-                                          />
-                                        </CardContent>
-                                      </Card>
+                                            <p className="text-sm text-green-800 mb-2">
+                                              Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                            </p>
+                                            <p className="text-xs text-gray-600 italic">
+                                              Status: {registrationStatus?.oralAssessmentStatus === 'pending' ? 'Menunggu penilaian' :
+                                                       registrationStatus?.oralAssessmentStatus === 'pass' ? 'Lulus' :
+                                                       registrationStatus?.oralAssessmentStatus === 'fail' ? 'Tidak lulus' : 'Belum dinilai'}
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
                                     ) : (
                                       <Link href="/seleksi/rekam-suara">
                                         <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
