@@ -27,10 +27,34 @@ function LoginPageContent() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Set isClient flag after mount to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
+
+    // Load saved credentials if "Remember Me" was checked
+    const savedEmail = localStorage.getItem('tikrar_remember_email');
+    const savedPassword = localStorage.getItem('tikrar_remember_password');
+    const wasRemembered = localStorage.getItem('tikrar_remember_me') === 'true';
+
+    if (wasRemembered && savedEmail && savedPassword) {
+      // Decrypt/decode the saved password (simple base64 for now)
+      try {
+        const decodedPassword = atob(savedPassword);
+        setFormData({
+          email: savedEmail,
+          password: decodedPassword
+        });
+        setRememberMe(true);
+      } catch (err) {
+        console.error('Failed to load saved credentials:', err);
+        // Clear invalid saved data
+        localStorage.removeItem('tikrar_remember_email');
+        localStorage.removeItem('tikrar_remember_password');
+        localStorage.removeItem('tikrar_remember_me');
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -136,6 +160,20 @@ function LoginPageContent() {
       }
 
       if (data.user && data.session) {
+        // Save credentials if Remember Me is checked
+        if (rememberMe) {
+          // Encrypt/encode password with base64 (simple encoding for now)
+          const encodedPassword = btoa(formData.password);
+          localStorage.setItem('tikrar_remember_email', formData.email);
+          localStorage.setItem('tikrar_remember_password', encodedPassword);
+          localStorage.setItem('tikrar_remember_me', 'true');
+        } else {
+          // Clear saved credentials if Remember Me is not checked
+          localStorage.removeItem('tikrar_remember_email');
+          localStorage.removeItem('tikrar_remember_password');
+          localStorage.removeItem('tikrar_remember_me');
+        }
+
         // Show success notification
         setNotificationMessage('Login berhasil! Mengarahkan ke dashboard...');
         setNotificationType('success');
@@ -333,6 +371,27 @@ function LoginPageContent() {
                 </div>
               </div>
 
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 text-green-900 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                    disabled={isLoading}
+                  />
+                  <span className="text-sm text-gray-700 select-none">Ingatkan saya</span>
+                </label>
+
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-green-900 hover:text-green-700 hover:underline transition-colors"
+                >
+                  Lupa password?
+                </Link>
+              </div>
+
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -350,18 +409,8 @@ function LoginPageContent() {
               </Button>
             </form>
 
-            {/* Forgot Password Link */}
-            <div className="text-center mb-4">
-              <Link
-                href="/forgot-password"
-                className="text-sm text-gray-500 hover:text-green-600 transition-colors"
-              >
-                Lupa password?
-              </Link>
-            </div>
-
             {/* Register Link */}
-            <div className="text-center">
+            <div className="text-center mt-6">
               <p className="text-gray-600 mb-2 text-sm sm:text-base">
                 Belum terdaftar di sistem MTI?
               </p>
