@@ -48,11 +48,25 @@ export async function PUT(
 
     const body = await request.json();
 
+    // Check if user is admin
+    const { data: userData, error: userDataError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = userData?.role === 'admin';
+
     // Verify that the user_id in the request matches the authenticated user
     // Skip this check for oral submission updates (they don't need user_id in body)
+    // Skip this check for admin users
     const isOralSubmissionUpdate = body.oral_submission_url || body.oral_submission_file_name || body.oral_submitted_at;
+    const isOralAssessmentUpdate = body.oral_makhraj_errors !== undefined || body.oral_sifat_errors !== undefined ||
+                                    body.oral_mad_errors !== undefined || body.oral_ghunnah_errors !== undefined ||
+                                    body.oral_harakat_errors !== undefined || body.oral_total_score !== undefined ||
+                                    body.oral_assessment_status !== undefined || body.oral_assessment_notes !== undefined;
 
-    if (!isOralSubmissionUpdate && body.user_id !== user.id) {
+    if (!isAdmin && !isOralSubmissionUpdate && body.user_id !== user.id) {
       logger.warn('User ID mismatch in registration update', {
         requestUserId: body.user_id,
         sessionUserId: user.id,
@@ -64,13 +78,18 @@ export async function PUT(
       }, { status: 401 });
     }
 
-    // First, check if the registration exists and belongs to the user
-    const { data: existingRegistration, error: fetchError } = await supabaseAdmin
+    // First, check if the registration exists
+    // For regular users, also check if it belongs to them
+    let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single();
+      .eq('id', id);
+
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data: existingRegistration, error: fetchError } = await query.single();
 
     if (fetchError || !existingRegistration) {
       logger.warn('Registration not found or access denied', {
@@ -85,10 +104,10 @@ export async function PUT(
     }
 
     // Check if registration is already approved
-    // Allow ONLY oral submission updates for approved registrations
-    // (isOralSubmissionUpdate already declared above)
+    // Allow ONLY oral submission updates and oral assessment updates for approved registrations
+    // Admin can always update
 
-    if (existingRegistration.status === 'approved' && !isOralSubmissionUpdate) {
+    if (!isAdmin && existingRegistration.status === 'approved' && !isOralSubmissionUpdate && !isOralAssessmentUpdate) {
       logger.warn('Attempted to update approved registration (non-oral fields)', {
         registrationId: id,
         userId: user.id,
@@ -108,6 +127,20 @@ export async function PUT(
       if (body.oral_submission_url) updateData.oral_submission_url = body.oral_submission_url;
       if (body.oral_submission_file_name) updateData.oral_submission_file_name = body.oral_submission_file_name;
       if (body.oral_submitted_at) updateData.oral_submitted_at = body.oral_submitted_at;
+      updateData.updated_at = new Date().toISOString();
+    } else if (isOralAssessmentUpdate) {
+      // Admin updating oral assessment
+      if (body.oral_makhraj_errors !== undefined) updateData.oral_makhraj_errors = body.oral_makhraj_errors;
+      if (body.oral_sifat_errors !== undefined) updateData.oral_sifat_errors = body.oral_sifat_errors;
+      if (body.oral_mad_errors !== undefined) updateData.oral_mad_errors = body.oral_mad_errors;
+      if (body.oral_ghunnah_errors !== undefined) updateData.oral_ghunnah_errors = body.oral_ghunnah_errors;
+      if (body.oral_harakat_errors !== undefined) updateData.oral_harakat_errors = body.oral_harakat_errors;
+      if (body.oral_total_score !== undefined) updateData.oral_total_score = body.oral_total_score;
+      if (body.oral_assessment_status !== undefined) updateData.oral_assessment_status = body.oral_assessment_status;
+      if (body.oral_assessed_by !== undefined) updateData.oral_assessed_by = body.oral_assessed_by;
+      if (body.oral_assessed_at !== undefined) updateData.oral_assessed_at = body.oral_assessed_at;
+      if (body.oral_assessment_notes !== undefined) updateData.oral_assessment_notes = body.oral_assessment_notes;
+      if (body.selection_status !== undefined) updateData.selection_status = body.selection_status;
       updateData.updated_at = new Date().toISOString();
     } else {
       // Regular registration update (only for non-approved registrations)
@@ -132,13 +165,17 @@ export async function PUT(
     }
 
     // Perform the update
-    const { data: result, error } = await supabaseAdmin
+    let updateQuery = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .update(updateData)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+      .eq('id', id);
+
+    // For regular users, also verify user_id
+    if (!isAdmin) {
+      updateQuery = updateQuery.eq('user_id', user.id);
+    }
+
+    const { data: result, error } = await updateQuery.select().single();
 
     if (error) {
       logger.error('Error updating registration', {
