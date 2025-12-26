@@ -42,30 +42,49 @@ export default function RekamSuaraPage() {
 
   // Debug: Log user info on mount
   useEffect(() => {
+    console.log('[DEBUG] ===== REKAM SUARA PAGE MOUNTED =====');
     if (user) {
       console.log('[DEBUG] User object:', {
         id: user.id,
         email: user.email,
         full_object: user
       });
+    } else {
+      console.log('[DEBUG] No user yet');
     }
   }, [user]);
 
   // Check for existing submission AND registration
   useEffect(() => {
-    if (!user?.id) return;
+    console.log('[DEBUG] Registration check effect triggered, user?.id:', user?.id);
+    if (!user?.id) {
+      console.log('[DEBUG] Skipping registration check - no user.id');
+      return;
+    }
 
     const checkExistingSubmission = async () => {
       try {
-        console.log('[DEBUG] Checking existing submission for user:', user.id);
+        console.log('[DEBUG] ========== START REGISTRATION CHECK ==========');
+        console.log('[DEBUG] Querying with user.id:', user.id);
+        console.log('[DEBUG] User email:', user.email);
+
         const { data, error } = await supabase
           .from('pendaftaran_tikrar_tahfidz')
           .select('oral_submission_url, oral_submission_file_name, oral_submitted_at')
           .eq('user_id', user.id)
           .maybeSingle();
 
+        console.log('[DEBUG] Query completed');
+        console.log('[DEBUG] Error:', error);
+        console.log('[DEBUG] Data:', data);
+
         if (error) {
-          console.error('[ERROR] Error fetching submission:', error);
+          console.error('[ERROR] Error fetching submission:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
           setHasRegistration(false);
           return;
         }
