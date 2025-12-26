@@ -104,7 +104,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
       '/statistik': 'Statistik',
       '/tagihan-pembayaran': 'Tagihan & Pembayaran',
       '/donasi-dashboard': 'Donasi',
-      '/lengkapi-profil': 'Edit Profil',
+      '/lengkapi-profile': 'Edit Profil',
       '/pengaturan': 'Pengaturan',
       '/admin': 'Admin Dashboard',
     };
@@ -150,8 +150,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
       breadcrumbs.push({ label: 'Tagihan & Pembayaran', href: '/tagihan-pembayaran' });
     } else if (pathname.startsWith('/donasi-dashboard')) {
       breadcrumbs.push({ label: 'Donasi', href: '/donasi-dashboard' });
-    } else if (pathname.startsWith('/lengkapi-profil')) {
-      breadcrumbs.push({ label: 'Edit Profil', href: '/lengkapi-profil' });
+    } else if (pathname.startsWith('/lengkapi-profile')) {
+      breadcrumbs.push({ label: 'Edit Profil', href: '/lengkapi-profile' });
     } else if (pathname.startsWith('/pengaturan')) {
       breadcrumbs.push({ label: 'Pengaturan', href: '/pengaturan' });
     } else if (pathname.startsWith('/admin')) {
@@ -369,7 +369,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                     </Link>
 
                     <Link
-                      href="/lengkapi-profil"
+                      href="/lengkapi-profile"
                       className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200 w-full"
                     >
                       <User className="w-4 h-4" />

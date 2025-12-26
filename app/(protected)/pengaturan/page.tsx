@@ -29,7 +29,7 @@ export default function PengaturanPage() {
                 Untuk saat ini, Ukhti dapat mengubah informasi profil di halaman Lengkapi Profil.
               </p>
               <button
-                onClick={() => router.push('/lengkapi-profil')}
+                onClick={() => router.push('/lengkapi-profile')}
                 className="mt-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
                 Pergi ke Lengkapi Profil

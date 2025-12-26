@@ -13,7 +13,7 @@ const protectedRoutes = [
   '/tagihan-pembayaran',
   '/tashih',
   '/ujian',
-  '/lengkapi-profil',
+  '/lengkapi-profile',
   '/pengaturan',
   '/seleksi',
   '/admin',
