@@ -3053,6 +3053,17 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       const result = await response.json();
 
       if (result.success) {
+        console.log('[DEBUG] Review data loaded:', result.data);
+        console.log('[DEBUG] oral_submission_url:', result.data.oral_submission_url);
+        console.log('[DEBUG] oral assessment fields:', {
+          oral_makhraj_errors: result.data.oral_makhraj_errors,
+          oral_sifat_errors: result.data.oral_sifat_errors,
+          oral_mad_errors: result.data.oral_mad_errors,
+          oral_ghunnah_errors: result.data.oral_ghunnah_errors,
+          oral_harakat_errors: result.data.oral_harakat_errors,
+          oral_total_score: result.data.oral_total_score,
+          oral_assessment_status: result.data.oral_assessment_status,
+        });
         setReviewData(result.data);
         setShowReviewModal(true);
       } else {
