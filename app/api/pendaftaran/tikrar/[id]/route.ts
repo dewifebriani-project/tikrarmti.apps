@@ -49,7 +49,10 @@ export async function PUT(
     const body = await request.json();
 
     // Verify that the user_id in the request matches the authenticated user
-    if (body.user_id !== user.id) {
+    // Skip this check for oral submission updates (they don't need user_id in body)
+    const isOralSubmissionUpdate = body.oral_submission_url || body.oral_submission_file_name || body.oral_submitted_at;
+
+    if (!isOralSubmissionUpdate && body.user_id !== user.id) {
       logger.warn('User ID mismatch in registration update', {
         requestUserId: body.user_id,
         sessionUserId: user.id,
@@ -83,7 +86,7 @@ export async function PUT(
 
     // Check if registration is already approved
     // Allow ONLY oral submission updates for approved registrations
-    const isOralSubmissionUpdate = body.oral_submission_url || body.oral_submission_file_name || body.oral_submitted_at;
+    // (isOralSubmissionUpdate already declared above)
 
     if (existingRegistration.status === 'approved' && !isOralSubmissionUpdate) {
       logger.warn('Attempted to update approved registration (non-oral fields)', {
