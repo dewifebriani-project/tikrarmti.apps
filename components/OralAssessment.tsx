@@ -115,7 +115,7 @@ export function OralAssessment({
   const categories = [
     { key: 'makhraj' as const, label: 'Makhraj Huruf', description: 'Kebenaran titik keluar huruf' },
     { key: 'sifat' as const, label: 'Sifatul Huruf', description: 'Sifat-sifat huruf (jahr, hams, dll)' },
-    { key: 'mad' as const, label: 'Mad', description: 'Panjang mad (mad thobi\'i, wajib, dll)' },
+    { key: 'mad' as const, label: 'Mad', description: "Panjang mad (mad thobi'i, wajib, dll)" },
     { key: 'ghunnah' as const, label: 'Ghunnah', description: 'Dengung pada huruf mim dan nun' },
     { key: 'harakat' as const, label: 'Harakat', description: 'Tanda baca (fathah, kasrah, dhommah)' },
   ];
