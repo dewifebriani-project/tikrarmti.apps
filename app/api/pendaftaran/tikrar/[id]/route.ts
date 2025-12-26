@@ -81,11 +81,15 @@ export async function PUT(
       }, { status: 404 });
     }
 
-    // Check if registration is already approved - don't allow updates to approved registrations
-    if (existingRegistration.status === 'approved') {
-      logger.warn('Attempted to update approved registration', {
+    // Check if registration is already approved
+    // Allow ONLY oral submission updates for approved registrations
+    const isOralSubmissionUpdate = body.oral_submission_url || body.oral_submission_file_name || body.oral_submitted_at;
+
+    if (existingRegistration.status === 'approved' && !isOralSubmissionUpdate) {
+      logger.warn('Attempted to update approved registration (non-oral fields)', {
         registrationId: id,
-        userId: user.id
+        userId: user.id,
+        fields: Object.keys(body)
       });
 
       return NextResponse.json({
@@ -94,26 +98,35 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: any = {
-      understands_commitment: body.understands_commitment ?? false,
-      tried_simulation: body.tried_simulation ?? false,
-      no_negotiation: body.no_negotiation ?? false,
-      has_telegram: body.has_telegram ?? false,
-      saved_contact: body.saved_contact ?? false,
-      has_permission: body.has_permission || '',
-      permission_name: body.permission_name || '',
-      permission_phone: body.permission_phone || '',
-      chosen_juz: body.chosen_juz || '',
-      no_travel_plans: body.no_travel_plans ?? false,
-      motivation: body.motivation || '',
-      ready_for_team: body.ready_for_team || '',
-      main_time_slot: body.main_time_slot || '',
-      backup_time_slot: body.backup_time_slot || '',
-      time_commitment: body.time_commitment ?? false,
-      understands_program: body.understands_program ?? false,
-      questions: body.questions || '',
-      updated_at: new Date().toISOString()
-    };
+    const updateData: any = {};
+
+    // If oral submission update, only update oral fields
+    if (isOralSubmissionUpdate) {
+      if (body.oral_submission_url) updateData.oral_submission_url = body.oral_submission_url;
+      if (body.oral_submission_file_name) updateData.oral_submission_file_name = body.oral_submission_file_name;
+      if (body.oral_submitted_at) updateData.oral_submitted_at = body.oral_submitted_at;
+      updateData.updated_at = new Date().toISOString();
+    } else {
+      // Regular registration update (only for non-approved registrations)
+      updateData.understands_commitment = body.understands_commitment ?? false;
+      updateData.tried_simulation = body.tried_simulation ?? false;
+      updateData.no_negotiation = body.no_negotiation ?? false;
+      updateData.has_telegram = body.has_telegram ?? false;
+      updateData.saved_contact = body.saved_contact ?? false;
+      updateData.has_permission = body.has_permission || '';
+      updateData.permission_name = body.permission_name || '';
+      updateData.permission_phone = body.permission_phone || '';
+      updateData.chosen_juz = body.chosen_juz || '';
+      updateData.no_travel_plans = body.no_travel_plans ?? false;
+      updateData.motivation = body.motivation || '';
+      updateData.ready_for_team = body.ready_for_team || '';
+      updateData.main_time_slot = body.main_time_slot || '';
+      updateData.backup_time_slot = body.backup_time_slot || '';
+      updateData.time_commitment = body.time_commitment ?? false;
+      updateData.understands_program = body.understands_program ?? false;
+      updateData.questions = body.questions || '';
+      updateData.updated_at = new Date().toISOString();
+    }
 
     // Perform the update
     const { data: result, error } = await supabaseAdmin
