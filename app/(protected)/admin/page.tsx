@@ -4051,63 +4051,36 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                   </div>
                 )}
 
-                {/* Test Results Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  {/* Oral Test */}
-                  {reviewData.oral_submission_url && (
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="h-5 w-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
-                        Voice Recording
-                      </h4>
-                      <div className="space-y-3">
-                        <audio controls className="w-full">
-                          <source src={reviewData.oral_submission_url} type="audio/webm" />
-                          <source src={reviewData.oral_submission_url} type="audio/mp4" />
-                          <source src={reviewData.oral_submission_url} type="audio/mp3" />
-                          Your browser does not support the audio element.
-                        </audio>
-                        <div className="text-xs text-gray-500">
-                          <p>Submitted: {reviewData.oral_submitted_at ? new Date(reviewData.oral_submitted_at).toLocaleString('id-ID') : '-'}</p>
-                          <p>File: {reviewData.oral_submission_file_name || '-'}</p>
-                        </div>
+                {/* Written Test Results Section */}
+                {reviewData.written_quiz_answers && (
+                  <div className="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <svg className="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      Written Test Results
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <p className="text-3xl font-bold text-indigo-600">
+                          {reviewData.written_quiz_score || 0}%
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {reviewData.written_quiz_correct_answers || 0} / {reviewData.written_quiz_total_questions || 0} Correct
+                        </p>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full"
+                          style={{ width: `${reviewData.written_quiz_score || 0}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        <p>Submitted: {reviewData.written_quiz_submitted_at ? new Date(reviewData.written_quiz_submitted_at).toLocaleString('id-ID') : '-'}</p>
                       </div>
                     </div>
-                  )}
-
-                  {/* Written Test */}
-                  {reviewData.written_quiz_answers && (
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="h-5 w-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                        Written Test Results
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="text-center">
-                          <p className="text-3xl font-bold text-indigo-600">
-                            {reviewData.written_quiz_score || 0}%
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {reviewData.written_quiz_correct_answers || 0} / {reviewData.written_quiz_total_questions || 0} Correct
-                          </p>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-indigo-600 h-2 rounded-full"
-                            style={{ width: `${reviewData.written_quiz_score || 0}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          <p>Submitted: {reviewData.written_quiz_submitted_at ? new Date(reviewData.written_quiz_submitted_at).toLocaleString('id-ID') : '-'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Oral Assessment Section */}
                 {reviewData.oral_submission_url && (
