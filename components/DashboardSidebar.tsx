@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { X, BookOpen, GraduationCap, Users, LogOut } from 'lucide-react';
+import { X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 
@@ -17,14 +17,31 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
   const pathname = usePathname();
   const { logout } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Set mounted state after hydration - DEFERRED to prevent React Error #310
   useEffect(() => {
     const mountTimer = setTimeout(() => {
       setIsMounted(true);
+      setIsMobile(window.innerWidth < 768);
     }, 0);
 
-    return () => clearTimeout(mountTimer);
+    // Listen to window resize
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Auto-collapse on mobile
+      if (window.innerWidth < 768) {
+        setIsCollapsed(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      clearTimeout(mountTimer);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // Role-based navigation items
@@ -134,56 +151,91 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
 
       {/* Sidebar - Ensure consistent className between server and client */}
       <aside className={`
-        fixed md:sticky inset-y-0 md:top-0 left-0 z-50 md:z-20 w-64 sm:w-72 bg-white shadow-lg border-r border-green-900/20
-        transform transition-transform duration-300 ease-in-out md:h-screen
+        fixed md:sticky inset-y-0 md:top-0 left-0 z-50 md:z-20 bg-white shadow-lg border-r border-green-900/20
+        transform transition-all duration-300 ease-in-out md:h-screen
         ${isMounted && isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        ${isCollapsed ? 'w-20' : 'w-64 sm:w-72'}
       `}>
         <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="flex items-center justify-between h-16 border-b border-green-900/20 px-3 flex-shrink-0">
-          <Link href="/" className="flex items-center space-x-2 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10">
-              <Image
-                  src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
-                  alt="Tikrar MTI"
-                  width={40}
-                  height={40}
-                  className="object-contain w-full h-full"
-                  sizes="40px"
-                  priority
-                  unoptimized
-                />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm sm:text-base font-bold text-green-900 leading-tight truncate">Tikrar MTI Apps</span>
-            </div>
-          </Link>
+          {!isCollapsed ? (
+            <Link href="/" className="flex items-center space-x-2 min-w-0">
+              <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10">
+                <Image
+                    src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
+                    alt="Tikrar MTI"
+                    width={40}
+                    height={40}
+                    className="object-contain w-full h-full"
+                    sizes="40px"
+                    priority
+                    unoptimized
+                  />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm sm:text-base font-bold text-green-900 leading-tight truncate">Tikrar MTI Apps</span>
+              </div>
+            </Link>
+          ) : (
+            <Link href="/" className="flex items-center justify-center w-full">
+              <div className="flex-shrink-0 w-10 h-10">
+                <Image
+                    src="https://github.com/dewifebriani-project/File-Public/blob/main/Markaz%20Tikrar%20Indonesia.jpg?raw=true"
+                    alt="Tikrar MTI"
+                    width={40}
+                    height={40}
+                    className="object-contain w-full h-full"
+                    sizes="40px"
+                    priority
+                    unoptimized
+                  />
+              </div>
+            </Link>
+          )}
 
-          {/* Close button for mobile/tablet */}
+          {/* Close button for mobile, Collapse button for desktop/tablet */}
           <button
-            onClick={onClose}
-            className="md:hidden p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
+            onClick={() => {
+              if (isMobile) {
+                onClose?.();
+              } else {
+                setIsCollapsed(!isCollapsed);
+              }
+            }}
+            className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200"
+            title={isMobile ? 'Close menu' : (isCollapsed ? 'Expand sidebar' : 'Collapse sidebar')}
           >
-            <X className="w-5 h-5 text-green-900" />
+            {isMobile ? (
+              <X className="w-5 h-5 text-green-900" />
+            ) : isCollapsed ? (
+              <ChevronRight className="w-5 h-5 text-green-900" />
+            ) : (
+              <ChevronLeft className="w-5 h-5 text-green-900" />
+            )}
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/20 scrollbar-track-transparent -webkit-overflow-scrolling:touch">
+        <nav className={`flex-1 py-4 sm:py-6 space-y-1 sm:space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-green-900/20 scrollbar-track-transparent -webkit-overflow-scrolling:touch ${isCollapsed ? 'px-2' : 'px-3 sm:px-4'}`}>
           {navItems.map((item) => {
             return (
               <div key={item.href} className="relative">
                 <Link
                   href={item.href}
                   className={`
-                    flex items-center px-3 py-3 sm:px-3 sm:py-2 rounded-lg text-sm sm:text-sm font-medium transition-all duration-300 hover:scale-105 relative min-w-0 touch-manipulation
+                    flex items-center rounded-lg text-sm sm:text-sm font-medium transition-all duration-300 relative min-w-0 touch-manipulation group
+                    ${isCollapsed ? 'justify-center px-2 py-3 hover:scale-110' : 'px-3 py-3 sm:px-3 sm:py-2 hover:scale-105'}
                     ${isActive(item.href)
                       ? 'bg-gradient-to-r from-green-900 to-green-800 text-white shadow-md'
                       : 'text-gray-700 hover:bg-green-50 hover:text-green-900'
                     }
                   `}
+                  title={isCollapsed ? item.label : ''}
                 >
-                  <div className={`mr-3 sm:mr-3 w-5 h-5 sm:w-5 sm:h-5 flex items-center justify-center rounded-full flex-shrink-0 ${
+                  <div className={`w-5 h-5 sm:w-5 sm:h-5 flex items-center justify-center rounded-full flex-shrink-0 ${
+                    isCollapsed ? '' : 'mr-3 sm:mr-3'
+                  } ${
                     isActive(item.href)
                       ? 'bg-yellow-400/20'
                       : 'bg-green-100'
@@ -196,15 +248,21 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
                       {item.icon}
                     </div>
                   </div>
-                  <span className="flex-1 truncate">{item.label}</span>
+                  {!isCollapsed && <span className="flex-1 truncate">{item.label}</span>}
 
+                  {/* Tooltip for collapsed state */}
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
+                      {item.label}
+                    </div>
+                  )}
                   </Link>
               </div>
             );
           })}
 
           {/* Logout Button */}
-          <div className="px-3 sm:px-4 py-3 sm:py-4 border-t border-green-900/20">
+          <div className={`py-3 sm:py-4 border-t border-green-900/20 ${isCollapsed ? 'px-2' : 'px-3 sm:px-4'}`}>
             <button
               onClick={async (e) => {
                 e.preventDefault();
@@ -218,7 +276,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
                 // Show loading state
                 const buttonElement = e.currentTarget;
                 buttonElement.disabled = true;
-                buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
+                buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>' + (isCollapsed ? '' : '<span>Keluar...</span>') + '</div>';
 
                 // Perform logout - the logout function will handle the redirect
                 await logout();
@@ -226,10 +284,12 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
               type="button"
               aria-label="Keluar dari akun"
               title="Keluar"
-              className="flex items-center justify-center sm:justify-start w-full px-4 py-4 sm:px-3 sm:py-2.5 rounded-lg text-base sm:text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`flex items-center w-full rounded-lg text-base sm:text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 active:bg-red-100 active:text-red-800 transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 touch-manipulation min-h-[48px] sm:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed ${
+                isCollapsed ? 'justify-center px-2 py-3' : 'justify-center sm:justify-start px-4 py-4 sm:px-3 sm:py-2.5'
+              }`}
             >
-              <LogOut className="w-6 h-6 sm:w-5 sm:h-5 mr-3 flex-shrink-0" />
-              <span>Keluar</span>
+              <LogOut className={`w-6 h-6 sm:w-5 sm:h-5 flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`} />
+              {!isCollapsed && <span>Keluar</span>}
             </button>
           </div>
         </nav>
