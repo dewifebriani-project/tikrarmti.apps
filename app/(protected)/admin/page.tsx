@@ -3273,6 +3273,31 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
       ),
     },
     {
+      key: 'oral_total_score',
+      label: 'Oral Score',
+      sortable: true,
+      filterable: true,
+      render: (t) => {
+        if (!t.oral_submission_url) {
+          return <span className="text-xs text-gray-400">Not submitted</span>;
+        }
+        if (t.oral_total_score === null || t.oral_total_score === undefined) {
+          return <span className="text-xs text-yellow-600 font-medium">Pending</span>;
+        }
+        const isPassing = t.oral_total_score >= 70;
+        return (
+          <div className="flex items-center gap-1">
+            <span className={`text-sm font-bold ${isPassing ? 'text-green-600' : 'text-red-600'}`}>
+              {t.oral_total_score.toFixed(0)}
+            </span>
+            <span className={`px-1.5 py-0.5 text-xs font-semibold rounded ${isPassing ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {isPassing ? 'PASS' : 'FAIL'}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       key: 'submission_date',
       label: 'Submission Date',
       sortable: true,
