@@ -3831,19 +3831,26 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
         onConfirm={async () => {
           try {
             if (selectedApplication) {
-              const { error } = await supabase
-                .from('pendaftaran_tikrar_tahfidz')
-                .delete()
-                .eq('id', selectedApplication.id);
+              const response = await fetch(`/api/pendaftaran/tikrar/${selectedApplication.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+              });
 
-              if (error) throw error;
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete application');
+              }
+
               toast.success('Application deleted successfully');
             }
             setShowDeleteModal(false);
             setSelectedApplication(null);
             onRefresh();
           } catch (error: any) {
-            toast.error(error.message);
+            toast.error(error.message || 'Failed to delete application');
           }
         }}
         title="Delete Application"

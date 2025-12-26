@@ -213,3 +213,84 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+
+  try {
+    const { id } = await params;
+
+    const supabase = createServerClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({
+        error: 'Unauthorized - Invalid session. Please login again.',
+        needsLogin: true
+      }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: userData, error: userDataError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || userData.role !== 'admin') {
+      return NextResponse.json({
+        error: 'Forbidden - Admin access required'
+      }, { status: 403 });
+    }
+
+    logger.info('Starting tikrar registration deletion', {
+      ip: clientIP,
+      endpoint: `/api/pendaftaran/tikrar/${id}`,
+      userId: user.id,
+      registrationId: id
+    });
+
+    // Delete the registration
+    const { error: deleteError } = await supabaseAdmin
+      .from('pendaftaran_tikrar_tahfidz')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      logger.error('Error deleting registration', {
+        code: deleteError.code,
+        message: deleteError.message,
+        details: deleteError.details,
+        ip: clientIP,
+        registrationId: id
+      });
+
+      return NextResponse.json({
+        error: 'Failed to delete registration'
+      }, { status: 500 });
+    }
+
+    logger.info('Registration deleted successfully', {
+      registrationId: id,
+      ip: clientIP
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Registration deleted successfully'
+    }, { status: 200 });
+
+  } catch (error) {
+    logger.error('Unhandled error in delete tikrar registration API', {
+      error: error as Error,
+      ip: clientIP
+    });
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
