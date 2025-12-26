@@ -63,8 +63,9 @@ export async function PUT(
     const isOralSubmissionUpdate = body.oral_submission_url || body.oral_submission_file_name || body.oral_submitted_at;
     const isOralAssessmentUpdate = body.oral_makhraj_errors !== undefined || body.oral_sifat_errors !== undefined ||
                                     body.oral_mad_errors !== undefined || body.oral_ghunnah_errors !== undefined ||
-                                    body.oral_harakat_errors !== undefined || body.oral_total_score !== undefined ||
-                                    body.oral_assessment_status !== undefined || body.oral_assessment_notes !== undefined;
+                                    body.oral_harakat_errors !== undefined || body.oral_itmamul_harakat_errors !== undefined ||
+                                    body.oral_total_score !== undefined || body.oral_assessment_status !== undefined ||
+                                    body.oral_assessment_notes !== undefined;
 
     if (!isAdmin && !isOralSubmissionUpdate && body.user_id !== user.id) {
       logger.warn('User ID mismatch in registration update', {

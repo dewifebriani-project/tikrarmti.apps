@@ -8,6 +8,7 @@ ADD COLUMN IF NOT EXISTS oral_sifat_errors INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS oral_mad_errors INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS oral_ghunnah_errors INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS oral_harakat_errors INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS oral_itmamul_harakat_errors INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS oral_total_score DECIMAL(5,2) DEFAULT NULL,
 ADD COLUMN IF NOT EXISTS oral_assessment_status VARCHAR(20) DEFAULT 'pending',
 ADD COLUMN IF NOT EXISTS oral_assessed_by UUID REFERENCES users(id),
@@ -37,6 +38,7 @@ COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_sifat_errors IS 'Number
 COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_mad_errors IS 'Number of mad errors in oral submission';
 COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_ghunnah_errors IS 'Number of ghunnah errors in oral submission';
 COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_harakat_errors IS 'Number of harakat errors in oral submission';
+COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_itmamul_harakat_errors IS 'Number of itmamul harakat errors in oral submission';
 COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_total_score IS 'Calculated total score (0-100). Pass if >= 70';
 COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_assessment_status IS 'Status: pending, pass, fail, not_submitted';
 
@@ -44,6 +46,6 @@ COMMENT ON COLUMN public.pendaftaran_tikrar_tahfidz.oral_assessment_status IS 'S
 DO $$
 BEGIN
   RAISE NOTICE '✅ Oral assessment columns added successfully';
-  RAISE NOTICE 'Columns: oral_makhraj_errors, oral_sifat_errors, oral_mad_errors, oral_ghunnah_errors, oral_harakat_errors';
+  RAISE NOTICE 'Columns: oral_makhraj_errors, oral_sifat_errors, oral_mad_errors, oral_ghunnah_errors, oral_harakat_errors, oral_itmamul_harakat_errors';
   RAISE NOTICE 'Columns: oral_total_score, oral_assessment_status, oral_assessed_by, oral_assessed_at, oral_assessment_notes';
 END $$;

@@ -12,6 +12,7 @@ interface OralAssessmentProps {
     oral_mad_errors?: number;
     oral_ghunnah_errors?: number;
     oral_harakat_errors?: number;
+    oral_itmamul_harakat_errors?: number;
     oral_total_score?: number;
     oral_assessment_status?: string;
     oral_assessment_notes?: string;
@@ -26,6 +27,7 @@ interface ErrorCounts {
   mad: number;
   ghunnah: number;
   harakat: number;
+  itmamul_harakat: number;
 }
 
 const PASSING_SCORE = 70;
@@ -44,6 +46,7 @@ export function OralAssessment({
     mad: currentAssessment?.oral_mad_errors || 0,
     ghunnah: currentAssessment?.oral_ghunnah_errors || 0,
     harakat: currentAssessment?.oral_harakat_errors || 0,
+    itmamul_harakat: currentAssessment?.oral_itmamul_harakat_errors || 0,
   });
 
   const [notes, setNotes] = useState(currentAssessment?.oral_assessment_notes || '');
@@ -52,13 +55,13 @@ export function OralAssessment({
   const [useManualScore, setUseManualScore] = useState<boolean>(false);
 
   const calculateScore = (): number => {
-    const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat'] as const;
-    const pointsPerCategory = 20;
-    const penaltyPerError = 2;
+    const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat', 'itmamul_harakat'] as const;
+    const pointsPerCategory = 100 / 6; // ~16.67 per category
+    const penaltyPerError = pointsPerCategory / 5; // Max 5 errors = 0 points
 
     const totalScore = categories.reduce((total, category) => {
       const categoryErrors = errors[category];
-      if (categoryErrors >= MAX_ERRORS_PER_CATEGORY) {
+      if (categoryErrors >= 5) {
         return total + 0;
       }
       const categoryScore = Math.max(0, pointsPerCategory - (categoryErrors * penaltyPerError));
@@ -74,6 +77,7 @@ export function OralAssessment({
     { key: 'mad' as const, label: 'Mad', shortLabel: 'Mad', description: 'Panjang mad' },
     { key: 'ghunnah' as const, label: 'Ghunnah', shortLabel: 'Ghunnah', description: 'Dengung' },
     { key: 'harakat' as const, label: 'Harakat', shortLabel: 'Harakat', description: 'Tanda baca' },
+    { key: 'itmamul_harakat' as const, label: 'Itmamul Harakat', shortLabel: 'Itmam', description: 'Kesempurnaan harakat' },
   ];
 
   const calculatedScore = calculateScore();
@@ -99,6 +103,7 @@ export function OralAssessment({
         oral_mad_errors: errors.mad,
         oral_ghunnah_errors: errors.ghunnah,
         oral_harakat_errors: errors.harakat,
+        oral_itmamul_harakat_errors: errors.itmamul_harakat,
         oral_total_score: finalScore,
         oral_assessment_status: assessmentStatus,
         oral_assessment_notes: notes,
@@ -310,7 +315,7 @@ export function OralAssessment({
       </div>
 
       <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-900">
-        <p className="font-semibold mb-1">Formula: 5 kategori × 20 poin | 1 kesalahan = -2 poin | ≥5 kesalahan = 0 poin | Lulus ≥{PASSING_SCORE}</p>
+        <p className="font-semibold mb-1">Formula: 6 kategori × 16.67 poin | 1 kesalahan = -3.33 poin | ≥5 kesalahan = 0 poin | Lulus ≥{PASSING_SCORE}</p>
       </div>
     </div>
   );
