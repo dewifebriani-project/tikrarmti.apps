@@ -546,10 +546,10 @@ export default function RekamSuaraPage() {
 
                   {/* Manual Return Button */}
                   <Button
-                    onClick={() => router.push('/dashboard')}
+                    onClick={() => router.push('/perjalanan-saya')}
                     className="w-full bg-green-700 hover:bg-green-800"
                   >
-                    Kembali ke Dashboard
+                    Kembali ke Perjalanan Saya
                   </Button>
                 </div>
               </AlertDescription>
@@ -689,11 +689,11 @@ export default function RekamSuaraPage() {
 
           {/* Back Button */}
           <Button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/perjalanan-saya')}
             variant="outline"
             className="w-full"
           >
-            Kembali ke Dashboard
+            Kembali ke Perjalanan Saya
           </Button>
         </CardContent>
       </Card>
