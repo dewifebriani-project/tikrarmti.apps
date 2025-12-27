@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, X, AlertCircle, CheckCircle, Download, ClipboardPaste, Info } from 'lucide-react';
+import { FileUp, X, AlertCircle, CheckCircle, Download, ClipboardPaste, Info, FileSpreadsheet } from 'lucide-react';
 import { JuzNumber } from '@/types/exam';
 
 interface AdminExamImportProps {
@@ -10,7 +10,7 @@ interface AdminExamImportProps {
   onImportSuccess: () => void;
 }
 
-type ImportMode = 'json' | 'paste';
+type ImportMode = 'json' | 'paste' | 'excel';
 
 interface ImportQuestion {
   section_number: number;
@@ -81,45 +81,121 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.json')) {
-      toast.error('Please select a JSON file');
+    // Handle JSON file
+    if (file.name.endsWith('.json')) {
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text) as ImportData;
+
+        // Validate structure
+        if (!data.juz_number || ![28, 29, 30].includes(data.juz_number)) {
+          toast.error('Invalid juz_number. Must be 28, 29, or 30');
+          return;
+        }
+
+        if (!data.sections || !Array.isArray(data.sections)) {
+          toast.error('Invalid format: sections array required');
+          return;
+        }
+
+        // Count total questions
+        const totalQuestions = data.sections.reduce((sum, section) => {
+          return sum + (section.questions?.length || 0);
+        }, 0);
+
+        if (totalQuestions === 0) {
+          toast.error('No questions found in file');
+          return;
+        }
+
+        setSelectedFile(file);
+        setPreview(data);
+        toast.success(`File loaded: ${totalQuestions} questions for Juz ${data.juz_number}`);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        toast.error('Invalid JSON file format');
+        setSelectedFile(null);
+        setPreview(null);
+      }
       return;
     }
 
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text) as ImportData;
+    // Handle Excel/CSV file
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
+      try {
+        setParsing(true);
 
-      // Validate structure
-      if (!data.juz_number || ![28, 29, 30].includes(data.juz_number)) {
-        toast.error('Invalid juz_number. Must be 28, 29, or 30');
-        return;
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('juz_number', selectedJuz.toString());
+
+        const response = await fetch('/api/exam/parse-excel', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.data) {
+          setPreview(result.data);
+          setSelectedFile(file);
+          toast.success(`Parsed ${result.data.sections.reduce((sum: number, s: any) => sum + s.questions.length, 0)} questions!`);
+        } else {
+          toast.error(result.error || 'Failed to parse Excel file');
+        }
+      } catch (error) {
+        console.error('Error parsing Excel:', error);
+        toast.error('Failed to parse Excel file');
+      } finally {
+        setParsing(false);
       }
-
-      if (!data.sections || !Array.isArray(data.sections)) {
-        toast.error('Invalid format: sections array required');
-        return;
-      }
-
-      // Count total questions
-      const totalQuestions = data.sections.reduce((sum, section) => {
-        return sum + (section.questions?.length || 0);
-      }, 0);
-
-      if (totalQuestions === 0) {
-        toast.error('No questions found in file');
-        return;
-      }
-
-      setSelectedFile(file);
-      setPreview(data);
-      toast.success(`File loaded: ${totalQuestions} questions for Juz ${data.juz_number}`);
-    } catch (error) {
-      console.error('Error parsing JSON:', error);
-      toast.error('Invalid JSON file format');
-      setSelectedFile(null);
-      setPreview(null);
+      return;
     }
+
+    toast.error('Please select a JSON, Excel (.xlsx, .xls), or CSV file');
+  };
+
+  const downloadExcelTemplate = (juzNumber: JuzNumber) => {
+    // Create Excel workbook with template
+    const XLSX = require('xlsx');
+
+    const templateData = [
+      // Header
+      ['Section', 'Section Title', 'Question Number', 'Question Text', 'Question Type', 'Option 1', 'Option 2', 'Option 3', 'Option 4', 'Correct Answer (1-4)', 'Points'],
+      // Example questions
+      [2, 'Tebak Nama Surat', 1, 'ٱلنَّجْمُ ٱلثَّاقِبُ\n\nAyat ini terletak pada surat', 'multiple_choice', 'Ath-Thariq', 'Al-Ghasiyah', 'Al-Buruj', 'An-Naba', '1', 1],
+      [2, 'Tebak Nama Surat', 2, 'وَٱلسَّمَآءِ وَٱلطَّارِقِ\n\nAyat ini terletak pada surat', 'multiple_choice', 'At-Tariq', 'Al-Inshiqaq', 'Al-Mutaffifin', 'Al-Infitar', '1', 1],
+      [3, 'Tebak Ayat', 1, 'وَٱلسَّمَآءِ وَٱلطَّارِقِ\n\nAyat ini terdapat pada ayat ke-', 'multiple_choice', '1', '2', '3', '4', '1', 1],
+      [4, 'Sambung Surat', 1, 'سَبِّحِ ٱسْمَ رَبِّكَ ٱلْأَعْلَى\n\nSurat selanjutnya adalah', 'multiple_choice', 'Al-Ghashiyah', 'Al-A\'la', 'At-Tariq', 'Al-Buruj', '2', 1],
+      [5, 'Tebak Awal Ayat', 1, 'Surat An-Naba\' ayat 38 dimulai dengan', 'multiple_choice', 'رَبِّ السَّمَاوَاتِ وَالْأَرْضِ', 'يَوْمَ يَقُومُ الرُّوحُ', 'وَالنَّازِعَاتِ غَرْقًا', 'عَمَّ يَتَسَاءَلُونَ', '1', 1],
+      [6, 'Ayat Mutasyabihat', 1, 'Ayat yang mirip antara surat', 'multiple_choice', 'Option A', 'Option B', 'Option C', 'Option D', '1', 1],
+      [7, 'Pengenalan Surat', 1, 'Surat ini diturunkan di Mekkah dan memiliki 40 ayat', 'multiple_choice', 'Option A', 'Option B', 'Option C', 'Option D', '1', 1],
+      [8, 'Tebak Halaman', 1, 'Halaman berapa ayat ini terdapat?', 'multiple_choice', 'Halaman 585', 'Halaman 586', 'Halaman 587', 'Halaman 588', '1', 1],
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 8 },  // Section
+      { wch: 20 }, // Section Title
+      { wch: 16 }, // Question Number
+      { wch: 50 }, // Question Text
+      { wch: 16 }, // Question Type
+      { wch: 30 }, // Option 1
+      { wch: 30 }, // Option 2
+      { wch: 30 }, // Option 3
+      { wch: 30 }, // Option 4
+      { wch: 20 }, // Correct Answer
+      { wch: 8 },  // Points
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions');
+
+    // Download
+    XLSX.writeFile(workbook, `exam_import_template_juz${juzNumber}.xlsx`);
+    toast.success(`Excel template for Juz ${juzNumber} downloaded`);
   };
 
   const handleImport = async () => {
@@ -282,6 +358,23 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
             </button>
             <button
               onClick={() => {
+                setMode('excel');
+                setPreview(null);
+                setSelectedFile(null);
+              }}
+              className={`px-4 py-2 font-medium border-b-2 transition ${
+                mode === 'excel'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4" />
+                Upload Excel/CSV
+              </div>
+            </button>
+            <button
+              onClick={() => {
                 setMode('json');
                 setPreview(null);
                 setPastedText('');
@@ -381,6 +474,120 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                   </>
                 )}
               </button>
+            </>
+          )}
+
+          {/* Excel Mode */}
+          {mode === 'excel' && (
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-900">
+                      <strong>Section 1 (Ketentuan Ikhtibar)</strong> sudah default untuk SEMUA juz dan tidak perlu di-import.
+                      Pastikan file Excel tidak mengandung section 1.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-medium text-green-900 mb-2">Cara Mudah - Upload Excel/CSV</h3>
+                    <ol className="text-sm text-green-800 space-y-1 list-decimal list-inside">
+                      <li>Download template Excel terlebih dahulu</li>
+                      <li>Isi soal-soal di file Excel sesuai format</li>
+                      <li>Pilih Juz number</li>
+                      <li>Upload file Excel (.xlsx, .xls) atau CSV</li>
+                      <li>Review hasil preview</li>
+                      <li>Klik "Import Questions"</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Juz Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Juz Number
+                </label>
+                <select
+                  value={selectedJuz}
+                  onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={28}>Juz 28</option>
+                  <option value={29}>Juz 29</option>
+                  <option value={30}>Juz 30</option>
+                </select>
+              </div>
+
+              {/* Template Download */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-medium text-blue-900 mb-2">Download Template Excel</h3>
+                    <p className="text-sm text-blue-800 mb-3">
+                      Download template untuk melihat format yang benar:
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => downloadExcelTemplate(28)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Juz 28
+                      </button>
+                      <button
+                        onClick={() => downloadExcelTemplate(29)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Juz 29
+                      </button>
+                      <button
+                        onClick={() => downloadExcelTemplate(30)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Juz 30
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Excel/CSV File
+                </label>
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-center"
+                  >
+                    <FileSpreadsheet className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600 font-medium">
+                      {selectedFile ? selectedFile.name : 'Click to select Excel/CSV file'}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Supports .xlsx, .xls, .csv format
+                    </p>
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
