@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, X, AlertCircle, CheckCircle, Download, ClipboardPaste } from 'lucide-react';
+import { FileUp, X, AlertCircle, CheckCircle, Download, ClipboardPaste, Info } from 'lucide-react';
 import { JuzNumber } from '@/types/exam';
 
 interface AdminExamImportProps {
@@ -183,24 +183,6 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
       total_questions: 100,
       sections: [
         {
-          section_number: 1,
-          section_title: "Ketentuan Ikhtibar",
-          questions: [
-            {
-              question_number: 1,
-              question_text: "Bismillah saya siap dan paham semua ketentuan di atas",
-              question_type: "introduction",
-              options: [
-                {
-                  text: "Bismillah saya siap dan paham semua ketentuan di atas",
-                  isCorrect: true
-                }
-              ],
-              points: 0
-            }
-          ]
-        },
-        {
           section_number: 2,
           section_title: "Tebak Nama Surat",
           questions: [
@@ -217,9 +199,39 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
               points: 1
             }
           ]
+        },
+        {
+          section_number: 3,
+          section_title: "Tebak Ayat",
+          questions: []
+        },
+        {
+          section_number: 4,
+          section_title: "Sambung Surat",
+          questions: []
+        },
+        {
+          section_number: 5,
+          section_title: "Tebak Awal Ayat",
+          questions: []
+        },
+        {
+          section_number: 6,
+          section_title: "Ayat Mutasyabihat",
+          questions: []
+        },
+        {
+          section_number: 7,
+          section_title: "Pengenalan Surat",
+          questions: []
+        },
+        {
+          section_number: 8,
+          section_title: "Tebak Halaman",
+          questions: []
         }
       ],
-      import_instructions: `Template untuk Juz ${juzNumber}. Lengkapi semua soal sesuai format ini.`
+      import_instructions: `Template untuk Juz ${juzNumber}. Section 1 (Ketentuan Ikhtibar) sudah default dan tidak perlu di-import.`
     };
 
     const dataStr = JSON.stringify(template, null, 2);
@@ -290,6 +302,18 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
           {/* Paste Mode */}
           {mode === 'paste' && (
             <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-900">
+                      <strong>Section 1 (Ketentuan Ikhtibar)</strong> sudah default untuk SEMUA juz dan tidak perlu di-import.
+                      Parser akan otomatis skip section ini.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
@@ -364,41 +388,53 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
           {mode === 'json' && (
             <>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-medium text-blue-900 mb-2">Need a template?</h3>
-                <p className="text-sm text-blue-800 mb-3">
-                  Download a template file to see the correct JSON format:
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => downloadTemplate(28)}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Juz 28
-                  </button>
-                  <button
-                    onClick={() => downloadTemplate(29)}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Juz 29
-                  </button>
-                  <button
-                    onClick={() => downloadTemplate(30)}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Juz 30
-                  </button>
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-blue-900">
+                      <strong>Section 1 (Ketentuan Ikhtibar)</strong> sudah default untuk SEMUA juz dan tidak perlu di-import.
+                      Pastikan file JSON tidak mengandung section 1.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* File Upload */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-medium text-blue-900 mb-2">Need a template?</h3>
+                    <p className="text-sm text-blue-800 mb-3">
+                      Download a template file to see the correct JSON format:
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => downloadTemplate(28)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Juz 28
+                      </button>
+                      <button
+                        onClick={() => downloadTemplate(29)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Juz 29
+                      </button>
+                      <button
+                        onClick={() => downloadTemplate(30)}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Juz 30
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* File Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select JSON File

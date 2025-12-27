@@ -77,11 +77,17 @@ function parseGoogleFormText(text: string, juz_number: JuzNumber) {
     }
   }
 
-  // Parse each section
+  // Parse each section (skip section 1 - it's default for all juz)
   const sections: any[] = [];
 
   for (let sIdx = 0; sIdx < sectionStarts.length; sIdx++) {
     const sectionStart = sectionStarts[sIdx];
+
+    // Skip section 1 (Ketentuan Ikhtibar) - it's default for all juz
+    if (sectionStart.number === 1) {
+      continue;
+    }
+
     const sectionEnd = sIdx < sectionStarts.length - 1 ? sectionStarts[sIdx + 1].line : allLines.length;
 
     const sectionLines = allLines.slice(sectionStart.line + 1, sectionEnd);
