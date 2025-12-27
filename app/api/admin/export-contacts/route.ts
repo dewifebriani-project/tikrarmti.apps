@@ -142,20 +142,18 @@ export async function GET(request: NextRequest) {
     };
 
     for (const user of users) {
-      // Format contact name with Proper Case
-      const contactName = formatContactName(
+      // Format contact name with Proper Case (MTI Dewi Febriani 95 Jakarta)
+      const fullContactName = formatContactName(
         user.full_name || 'Unknown',
         user.tanggal_lahir,
         user.kota
       );
 
-      // Format Given Name with Proper Case
-      const givenName = toProperCase(user.full_name || 'Unknown');
-
       // Build CSV row
+      // Gmail uses "Given Name" as the primary display name, so put the full formatted name there
       const row = [
-        escapeCsvField(contactName), // Name (MTI <Name> <Year> <City>)
-        escapeCsvField(givenName), // Given Name (Proper Case)
+        escapeCsvField(fullContactName), // Name - for display
+        escapeCsvField(fullContactName), // Given Name - THIS is what Gmail uses as contact name
         escapeCsvField(''), // Family Name
         'Work', // Email 1 - Type
         escapeCsvField(user.email), // Email 1 - Value
