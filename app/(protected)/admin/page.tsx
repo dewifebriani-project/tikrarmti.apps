@@ -39,7 +39,7 @@ import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdm
 import { AdminExamQuestions } from '@/components/AdminExamQuestions';
 import { AdminExamImport } from '@/components/AdminExamImport';
 import { AdminAddQuestion } from '@/components/AdminAddQuestion';
-import { AdminOrphanedUsers } from '@/components/AdminOrphanedUsers';
+import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
 
 interface Batch {
   id: string;
