@@ -2043,10 +2043,29 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<'all' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'thalibah' | 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
 
-  // Filter users by role
-  const thalibahUsers = users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah');
+  // Filter users by role based on actual registrations, not just user.role
+  // Thalibah: has tikrar registration with approved/passed status (sudah daftar ulang)
+  const thalibahUsers = users.filter(u => {
+    const hasTikrar = u.tikrar_registrations && u.tikrar_registrations.length > 0;
+    if (!hasTikrar) return false;
+    // Check if any registration is approved (daftar ulang done)
+    return u.tikrar_registrations!.some(reg =>
+      reg.status === 'approved' || reg.selection_status === 'passed'
+    );
+  });
+
+  // Calon Thalibah: has tikrar registration but still pending (belum daftar ulang)
+  const calonThalibahUsers = users.filter(u => {
+    const hasTikrar = u.tikrar_registrations && u.tikrar_registrations.length > 0;
+    if (!hasTikrar) return false;
+    // Check if registration is still pending
+    return u.tikrar_registrations!.every(reg =>
+      reg.status === 'pending' || (reg.selection_status !== 'passed')
+    );
+  });
+
   const muallimahUsers = users.filter(u => u.role === 'ustadzah'); // ustadzah = muallimah
   const musyrifahUsers = users.filter(u => u.role === 'musyrifah');
 
@@ -2055,6 +2074,8 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
     switch (activeSubTab) {
       case 'thalibah':
         return thalibahUsers;
+      case 'calon_thalibah':
+        return calonThalibahUsers;
       case 'muallimah':
         return muallimahUsers;
       case 'musyrifah':
@@ -2505,6 +2526,16 @@ Tim Markaz Tikrar Indonesia`;
             Thalibah ({thalibahUsers.length})
           </button>
           <button
+            onClick={() => setActiveSubTab('calon_thalibah')}
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeSubTab === 'calon_thalibah'
+                ? 'border-green-900 text-green-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Calon Thalibah ({calonThalibahUsers.length})
+          </button>
+          <button
             onClick={() => setActiveSubTab('muallimah')}
             className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeSubTab === 'muallimah'
@@ -2538,7 +2569,7 @@ Tim Markaz Tikrar Indonesia`;
       </div>
 
       {/* All Users Tab Content */}
-      {(activeSubTab === 'all' || activeSubTab === 'thalibah' || activeSubTab === 'muallimah' || activeSubTab === 'musyrifah') && (
+      {(activeSubTab === 'all' || activeSubTab === 'thalibah' || activeSubTab === 'calon_thalibah' || activeSubTab === 'muallimah' || activeSubTab === 'musyrifah') && (
         <>
           <div className="flex justify-end gap-3">
             <button
