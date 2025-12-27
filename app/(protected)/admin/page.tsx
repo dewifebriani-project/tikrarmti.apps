@@ -2043,7 +2043,30 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<'all' | 'orphaned'>('all');
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
+
+  // Filter users by role
+  const thalibahUsers = users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah');
+  const muallimahUsers = users.filter(u => u.role === 'ustadzah'); // ustadzah = muallimah
+  const musyrifahUsers = users.filter(u => u.role === 'musyrifah');
+
+  // Get filtered users based on active sub-tab
+  const getFilteredUsers = () => {
+    switch (activeSubTab) {
+      case 'thalibah':
+        return thalibahUsers;
+      case 'muallimah':
+        return muallimahUsers;
+      case 'musyrifah':
+        return musyrifahUsers;
+      case 'orphaned':
+        return []; // Handled separately by AdminOrphanedUsers component
+      default:
+        return users;
+    }
+  };
+
+  const filteredUsers = getFilteredUsers();
 
   const handleExportContacts = async () => {
     setIsExporting(true);
@@ -2460,10 +2483,10 @@ Tim Markaz Tikrar Indonesia`;
 
       {/* Sub-tabs */}
       <div className="border-b border-gray-200">
-        <nav className="flex -mb-px space-x-8">
+        <nav className="flex -mb-px space-x-4 overflow-x-auto">
           <button
             onClick={() => setActiveSubTab('all')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeSubTab === 'all'
                 ? 'border-green-900 text-green-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -2472,8 +2495,38 @@ Tim Markaz Tikrar Indonesia`;
             All Users ({users.length})
           </button>
           <button
+            onClick={() => setActiveSubTab('thalibah')}
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeSubTab === 'thalibah'
+                ? 'border-green-900 text-green-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Thalibah ({thalibahUsers.length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('muallimah')}
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeSubTab === 'muallimah'
+                ? 'border-green-900 text-green-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Muallimah ({muallimahUsers.length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('musyrifah')}
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeSubTab === 'musyrifah'
+                ? 'border-green-900 text-green-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Musyrifah ({musyrifahUsers.length})
+          </button>
+          <button
             onClick={() => setActiveSubTab('orphaned')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeSubTab === 'orphaned'
                 ? 'border-green-900 text-green-900'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -2485,7 +2538,7 @@ Tim Markaz Tikrar Indonesia`;
       </div>
 
       {/* All Users Tab Content */}
-      {activeSubTab === 'all' && (
+      {(activeSubTab === 'all' || activeSubTab === 'thalibah' || activeSubTab === 'muallimah' || activeSubTab === 'musyrifah') && (
         <>
           <div className="flex justify-end gap-3">
             <button
@@ -2533,7 +2586,8 @@ Tim Markaz Tikrar Indonesia`;
             </button>
           </div>
 
-          {/* Statistics Dashboard */}
+          {/* Statistics Dashboard - Only show on "All Users" tab */}
+      {activeSubTab === 'all' && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Total Users Card */}
         <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-md hover:shadow-lg transition-shadow">
@@ -2594,8 +2648,10 @@ Tim Markaz Tikrar Indonesia`;
           </div>
         </div>
       </div>
+      )}
 
-      {/* Role Distribution Cards */}
+      {/* Role Distribution Cards - Only show on "All Users" tab */}
+      {activeSubTab === 'all' && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Admin Role Card */}
         <div className="bg-white rounded-lg border border-purple-200 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -2613,7 +2669,7 @@ Tim Markaz Tikrar Indonesia`;
         {/* Ustadzah Role Card */}
         <div className="bg-white rounded-lg border border-blue-200 p-4 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-blue-800">Ustadzah</h3>
+            <h3 className="text-sm font-semibold text-blue-800">Muallimah</h3>
             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
               {users.filter(u => u.role === 'ustadzah').length}
             </span>
@@ -2641,17 +2697,18 @@ Tim Markaz Tikrar Indonesia`;
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-semibold text-yellow-800">Thalibah</h3>
             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-              {users.filter(u => u.role === 'thalibah').length}
+              {users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length}
             </span>
           </div>
           <p className="text-xs text-gray-600">
-            {users.length > 0 ? Math.round((users.filter(u => u.role === 'thalibah').length / users.length) * 100) : 0}% of all users
+            {users.length > 0 ? Math.round((users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length / users.length) * 100) : 0}% of all users
           </p>
         </div>
       </div>
+      )}
 
       <AdminDataTable
-        data={users}
+        data={filteredUsers}
         columns={columns}
         onEdit={handleEdit}
         onDelete={handleDelete}
