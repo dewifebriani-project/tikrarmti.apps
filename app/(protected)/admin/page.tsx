@@ -39,6 +39,7 @@ import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdm
 import { AdminExamQuestions } from '@/components/AdminExamQuestions';
 import { AdminExamImport } from '@/components/AdminExamImport';
 import { AdminAddQuestion } from '@/components/AdminAddQuestion';
+import { AdminOrphanedUsers } from '@/components/AdminOrphanedUsers';
 
 interface Batch {
   id: string;
@@ -2042,6 +2043,7 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'orphaned'>('all');
 
   const handleExportContacts = async () => {
     setIsExporting(true);
@@ -2454,54 +2456,84 @@ Tim Markaz Tikrar Indonesia`;
             Total {users.length} users
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleDownloadUsers}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Download Excel
-          </button>
-          <button
-            onClick={handleExportContacts}
-            disabled={isExporting}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isExporting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Exporting...
-              </>
-            ) : (
-              <>
-                <Download className="w-5 h-5 mr-2" />
-                Export to Gmail
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleOpenGmailImport}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
-            </svg>
-            Open Gmail Import
-          </button>
-          <button
-            onClick={() => {
-              setSelectedUser(null);
-              setShowModal(true);
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add User
-          </button>
-        </div>
       </div>
 
-      {/* Statistics Dashboard */}
+      {/* Sub-tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="flex -mb-px space-x-8">
+          <button
+            onClick={() => setActiveSubTab('all')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeSubTab === 'all'
+                ? 'border-green-900 text-green-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            All Users ({users.length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('orphaned')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeSubTab === 'orphaned'
+                ? 'border-green-900 text-green-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Orphaned Users
+          </button>
+        </nav>
+      </div>
+
+      {/* All Users Tab Content */}
+      {activeSubTab === 'all' && (
+        <>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={handleDownloadUsers}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              Download Excel
+            </button>
+            <button
+              onClick={handleExportContacts}
+              disabled={isExporting}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isExporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5 mr-2" />
+                  Export to Gmail
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleOpenGmailImport}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
+              </svg>
+              Open Gmail Import
+            </button>
+            <button
+              onClick={() => {
+                setSelectedUser(null);
+                setShowModal(true);
+              }}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Add User
+            </button>
+          </div>
+
+          {/* Statistics Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Total Users Card */}
         <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-md hover:shadow-lg transition-shadow">
@@ -2663,6 +2695,15 @@ Tim Markaz Tikrar Indonesia`;
           }}
           userId={selectedUser.id}
         />
+      )}
+        </>
+      )}
+
+      {/* Orphaned Users Tab Content */}
+      {activeSubTab === 'orphaned' && (
+        <div className="mt-6">
+          <AdminOrphanedUsers />
+        </div>
       )}
     </div>
   );
