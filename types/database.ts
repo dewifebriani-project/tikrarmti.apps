@@ -120,6 +120,11 @@ export interface Pendaftaran {
   // Multi-role support fields
   registration_type?: 'calon_thalibah' | 'muallimah' | 'musyrifah';
   role?: 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'thalibah' | 'admin';
+  // Re-enrollment tracking fields
+  re_enrollment_completed?: boolean;
+  re_enrollment_completed_at?: string;
+  re_enrollment_confirmed_by?: string;
+  selection_status?: 'pending' | 'passed' | 'failed';
   // Nested relations
   program?: Program;
   batch?: Batch;
