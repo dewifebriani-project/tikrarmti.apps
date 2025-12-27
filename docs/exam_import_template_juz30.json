@@ -1,0 +1,72 @@
+{
+  "juz_number": 30,
+  "juz_name": "Juz 30 (An-Naba' - An-Naas)",
+  "total_questions": 100,
+  "sections": [
+    {
+      "section_number": 1,
+      "section_title": "Ketentuan Ikhtibar",
+      "questions": [
+        {
+          "question_number": 1,
+          "question_text": "Bismillah saya siap dan paham semua ketentuan di atas",
+          "question_type": "introduction",
+          "options": [
+            {
+              "text": "Bismillah saya siap dan paham semua ketentuan di atas",
+              "isCorrect": true
+            }
+          ],
+          "points": 0
+        }
+      ]
+    },
+    {
+      "section_number": 2,
+      "section_title": "Tebak Nama Surat",
+      "questions": [
+        {
+          "question_number": 1,
+          "question_text": "ٱلنَّجْمُ ٱلثَّاقِبُ\n\nAyat ini terletak pada surat",
+          "question_type": "multiple_choice",
+          "options": [
+            {
+              "text": "Ath-Thariq",
+              "isCorrect": true
+            },
+            {
+              "text": "Al-Ghasiyah",
+              "isCorrect": false
+            },
+            {
+              "text": "Al-Buruj",
+              "isCorrect": false
+            }
+          ],
+          "points": 1
+        },
+        {
+          "question_number": 2,
+          "question_text": "وَأَذِنَتْ لِرَبِّهَا وَحُقَّتْ\n\nAyat ini terletak pada surat",
+          "question_type": "multiple_choice",
+          "options": [
+            {
+              "text": "Al-Insyiqaq",
+              "isCorrect": true
+            },
+            {
+              "text": "Al-Infithar",
+              "isCorrect": false
+            },
+            {
+              "text": "At-Takwir",
+              "isCorrect": false
+            }
+          ],
+          "points": 1
+        }
+      ]
+    }
+  ],
+  "import_instructions": "Untuk import soal lengkap, gunakan admin panel > Exam Management > Bulk Import. Copy struktur JSON ini dan isi semua soal sesuai dengan format yang ada."
+}

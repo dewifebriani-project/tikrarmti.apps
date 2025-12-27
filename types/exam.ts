@@ -1,0 +1,206 @@
+// Exam System Types for MTI Tikrar Tahfidz
+// Ujian Pilihan Ganda Juz 28, 29, 30
+
+export type JuzNumber = 28 | 29 | 30;
+
+export type QuestionType = 'multiple_choice' | 'introduction';
+
+export type ExamStatus = 'not_started' | 'in_progress' | 'completed';
+
+export type AttemptStatus = 'in_progress' | 'submitted' | 'graded';
+
+export type FlagType = 'wrong_answer' | 'typo' | 'unclear' | 'other';
+
+export type FlagStatus = 'pending' | 'reviewing' | 'fixed' | 'rejected' | 'invalid';
+
+// Multiple choice option
+export interface ExamOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+// Exam Question (from database)
+export interface ExamQuestion {
+  id: string;
+  juz_number: JuzNumber;
+  section_number: number;
+  section_title: string;
+  question_number: number;
+  question_text: string;
+  question_type: QuestionType;
+  options?: ExamOption[]; // JSONB array
+  correct_answer?: string;
+  points: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+// User's answer to a question
+export interface ExamAnswer {
+  questionId: string;
+  answer: string;
+  isCorrect?: boolean; // Computed after submission
+  flagged?: boolean; // If user flagged this question
+}
+
+// Exam Attempt (User submission)
+export interface ExamAttempt {
+  id: string;
+  user_id: string;
+  registration_id: string;
+  juz_number: JuzNumber;
+  started_at: string;
+  submitted_at?: string;
+  answers?: ExamAnswer[]; // JSONB array
+  total_questions: number;
+  correct_answers: number;
+  score: number; // 0-100
+  status: AttemptStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+// Question Flag (Report from thalibah)
+export interface ExamQuestionFlag {
+  id: string;
+  question_id: string;
+  user_id: string;
+  attempt_id?: string;
+  flag_type: FlagType;
+  flag_message?: string;
+  status: FlagStatus;
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Extended ExamQuestion with flag info for admin
+export interface ExamQuestionWithFlags extends ExamQuestion {
+  flags?: ExamQuestionFlag[];
+  flag_count?: number;
+}
+
+// Section structure for organizing questions
+export interface ExamSection {
+  section_number: number;
+  section_title: string;
+  description?: string;
+  questions: ExamQuestion[];
+}
+
+// Complete exam structure
+export interface ExamStructure {
+  juz_number: JuzNumber;
+  total_questions: number;
+  sections: ExamSection[];
+}
+
+// Exam session state (for frontend)
+export interface ExamSessionState {
+  attemptId?: string;
+  juzNumber: JuzNumber;
+  currentSection: number;
+  currentQuestion: number;
+  answers: Map<string, string>; // questionId -> answer
+  flaggedQuestions: Set<string>; // questionId set
+  startedAt: Date;
+  timeElapsed: number; // seconds
+}
+
+// Exam result summary
+export interface ExamResult {
+  attempt: ExamAttempt;
+  sections: {
+    section_number: number;
+    section_title: string;
+    total_questions: number;
+    correct_answers: number;
+    percentage: number;
+  }[];
+  overall_percentage: number;
+  passed: boolean; // Based on passing criteria
+}
+
+// API Response types
+export interface ExamQuestionsResponse {
+  data: ExamQuestion[];
+  total: number;
+  juz_number: JuzNumber;
+}
+
+export interface ExamAttemptResponse {
+  data: ExamAttempt;
+  message?: string;
+}
+
+export interface ExamSubmitRequest {
+  attemptId: string;
+  answers: ExamAnswer[];
+  flaggedQuestions?: {
+    questionId: string;
+    flagType: FlagType;
+    message?: string;
+  }[];
+}
+
+export interface ExamSubmitResponse {
+  attempt: ExamAttempt;
+  result: ExamResult;
+  message: string;
+}
+
+// Admin types
+export interface AdminExamStats {
+  total_questions: number;
+  active_questions: number;
+  total_attempts: number;
+  completed_attempts: number;
+  average_score: number;
+  pending_flags: number;
+}
+
+export interface AdminQuestionEditForm {
+  juz_number: JuzNumber;
+  section_number: number;
+  section_title: string;
+  question_number: number;
+  question_text: string;
+  question_type: QuestionType;
+  options: ExamOption[];
+  points: number;
+  is_active: boolean;
+}
+
+// Exam eligibility checker
+export interface ExamEligibility {
+  isEligible: boolean;
+  requiredJuz: JuzNumber | null;
+  reason?: string;
+  hasCompleted: boolean;
+  attemptId?: string;
+  score?: number;
+}
+
+// Form types
+export interface ExamFlagForm {
+  questionId: string;
+  flagType: FlagType;
+  message?: string;
+}
+
+// Exam navigation
+export interface ExamNavigation {
+  currentSection: number;
+  currentQuestion: number;
+  totalSections: number;
+  totalQuestions: number;
+  canGoBack: boolean;
+  canGoNext: boolean;
+  canSubmit: boolean;
+  answeredQuestions: number;
+  unansweredQuestions: number;
+}
