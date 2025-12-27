@@ -27,7 +27,8 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
-  X
+  X,
+  HelpCircle
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
@@ -35,6 +36,8 @@ import { AdminDeleteModal } from '@/components/AdminDeleteModal';
 import { UserDetailModal } from '@/components/UserDetailModal';
 import AdminApprovalModal from '@/components/AdminApprovalModalFixed';
 import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdminData';
+import { AdminExamQuestions } from '@/components/AdminExamQuestions';
+import { AdminExamImport } from '@/components/AdminExamImport';
 
 interface Batch {
   id: string;
@@ -242,7 +245,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'halaqah-mentors' | 'halaqah-students' | 'pendaftaran' | 'presensi' | 'tikrar' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'halaqah-mentors' | 'halaqah-students' | 'pendaftaran' | 'presensi' | 'tikrar' | 'exam-questions' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -293,6 +296,9 @@ export default function AdminPage() {
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
+
+  // Exam import modal state
+  const [showExamImportModal, setShowExamImportModal] = useState(false);
 
   // Save activeTab to localStorage whenever it changes
   useEffect(() => {
@@ -501,6 +507,7 @@ export default function AdminPage() {
     { id: 'pendaftaran' as TabType, name: 'Pendaftaran', icon: ClipboardList },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
+    { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText }
   ];
 
@@ -681,8 +688,24 @@ export default function AdminPage() {
             />
           )
         )}
+        {activeTab === 'exam-questions' && (
+          <AdminExamQuestions
+            onImportClick={() => setShowExamImportModal(true)}
+          />
+        )}
         {activeTab === 'reports' && <ReportsTab />}
       </div>
+
+      {/* Exam Import Modal */}
+      {showExamImportModal && (
+        <AdminExamImport
+          onClose={() => setShowExamImportModal(false)}
+          onImportSuccess={() => {
+            setShowExamImportModal(false);
+            // Trigger refresh of exam questions if needed
+          }}
+        />
+      )}
     </>
   );
 }

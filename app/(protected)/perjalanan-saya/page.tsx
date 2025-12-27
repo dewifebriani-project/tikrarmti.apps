@@ -55,6 +55,10 @@ export default function PerjalananSaya() {
       oralSubmittedAt: (registration as any)?.oral_submitted_at,
       oralAssessmentStatus: (registration as any)?.oral_assessment_status || 'pending',
       registrationId: (registration as any)?.id,
+      chosenJuz: (registration as any)?.chosen_juz,
+      examStatus: (registration as any)?.exam_status,
+      examScore: (registration as any)?.exam_score,
+      examSubmittedAt: (registration as any)?.exam_submitted_at,
     };
   }, [user, registrations]);
 
@@ -584,25 +588,69 @@ export default function PerjalananSaya() {
                                     </Link>
                                   )}
 
-                                  {/* Card Pilihan Ganda - DISABLED */}
-                                  <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
-                                    <CardContent className="p-3 sm:p-4">
-                                      <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center`}>
-                                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                          </svg>
+                                  {/* Card Pilihan Ganda - Active if oral submission completed */}
+                                  {registrationStatus?.hasOralSubmission && registrationStatus?.examStatus === 'completed' ? (
+                                    <Link href="/exam/results?attemptId=latest">
+                                      <Card className={`border-2 border-green-500 bg-green-50 hover:bg-green-100 cursor-pointer transition`}>
+                                        <CardContent className="p-3 sm:p-4">
+                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-full flex items-center justify-center`}>
+                                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-sm sm:text-base font-semibold text-green-900">Pilihan Ganda</h4>
+                                              <p className="text-xs text-green-700">Ujian tulisan - Selesai</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-xs text-green-700">
+                                            Score: {registrationStatus?.examScore}% | Dikirim: {registrationStatus?.examSubmittedAt ? new Date(registrationStatus.examSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
+                                  ) : registrationStatus?.hasOralSubmission && registrationStatus?.chosenJuz && !['30A', '30B'].some(juz => registrationStatus.chosenJuz?.includes(juz)) ? (
+                                    <Link href="/exam">
+                                      <Card className={`border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 cursor-pointer transition`}>
+                                        <CardContent className="p-3 sm:p-4">
+                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full flex items-center justify-center`}>
+                                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                              </svg>
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-sm sm:text-base font-semibold text-blue-900">Pilihan Ganda</h4>
+                                              <p className="text-xs text-blue-700">Ujian tulisan - Klik untuk mulai</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-xs text-blue-700">
+                                            100 soal multiple choice
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
+                                  ) : (
+                                    <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
+                                      <CardContent className="p-3 sm:p-4">
+                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center`}>
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                          </div>
+                                          <div className="flex-grow">
+                                            <h4 className="text-sm sm:text-base font-semibold text-gray-600">Pilihan Ganda</h4>
+                                            <p className="text-xs text-gray-500">Ujian tulisan</p>
+                                          </div>
                                         </div>
-                                        <div className="flex-grow">
-                                          <h4 className="text-sm sm:text-base font-semibold text-gray-600">Pilihan Ganda</h4>
-                                          <p className="text-xs text-gray-500">Ujian tulisan</p>
-                                        </div>
-                                      </div>
-                                      <p className="text-xs text-gray-600">
-                                        Soal belum tersedia
-                                      </p>
-                                    </CardContent>
-                                  </Card>
+                                        <p className="text-xs text-gray-600">
+                                          {!registrationStatus?.hasOralSubmission ? 'Selesaikan rekam suara terlebih dahulu' :
+                                           registrationStatus?.chosenJuz && ['30A', '30B'].some(juz => registrationStatus.chosenJuz?.includes(juz)) ? 'Tidak perlu ujian untuk Juz 30' :
+                                           'Menunggu'}
+                                        </p>
+                                      </CardContent>
+                                    </Card>
+                                  )}
                                 </div>
                               </div>
                             ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
@@ -757,25 +805,72 @@ export default function PerjalananSaya() {
                                       </Link>
                                     )}
 
-                                    {/* Card Pilihan Ganda - DISABLED */}
-                                    <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
-                                      <CardContent className="p-4">
-                                        <div className="flex items-center space-x-3 mb-2">
-                                          <div className={`w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center`}>
-                                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
+                                    {/* Card Pilihan Ganda - Active if oral submission completed */}
+                                    {registrationStatus?.hasOralSubmission && registrationStatus?.examStatus === 'completed' ? (
+                                      <Link href="/exam/results?attemptId=latest">
+                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-4">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                              <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-base font-semibold text-green-900">Pilihan Ganda</h4>
+                                                <p className="text-sm text-green-700">Ujian tulisan - Selesai</p>
+                                              </div>
+                                            </div>
+                                            <p className="text-sm text-green-800">
+                                              Score: {registrationStatus?.examScore}%
+                                            </p>
+                                            <p className="text-xs text-gray-600 italic">
+                                              Dikirim: {registrationStatus?.examSubmittedAt ? new Date(registrationStatus.examSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
+                                    ) : registrationStatus?.hasOralSubmission && registrationStatus?.chosenJuz && !['30A', '30B'].some(juz => registrationStatus.chosenJuz?.includes(juz)) ? (
+                                      <Link href="/exam">
+                                        <Card className={`border-2 border-blue-300 bg-white hover:bg-blue-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-4">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                              <div className={`w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center`}>
+                                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-base font-semibold text-blue-900">Pilihan Ganda</h4>
+                                                <p className="text-sm text-blue-700">Ujian tulisan - Klik untuk mulai</p>
+                                              </div>
+                                            </div>
+                                            <p className="text-sm text-blue-800">
+                                              100 soal multiple choice
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
+                                    ) : (
+                                      <Card className={`border-2 border-gray-300 bg-gray-100 opacity-60 cursor-not-allowed`}>
+                                        <CardContent className="p-4">
+                                          <div className="flex items-center space-x-3 mb-2">
+                                            <div className={`w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center`}>
+                                              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                              </svg>
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-base font-semibold text-gray-600">Pilihan Ganda</h4>
+                                              <p className="text-sm text-gray-500">Ujian tulisan</p>
+                                            </div>
                                           </div>
-                                          <div className="flex-grow">
-                                            <h4 className="text-base font-semibold text-gray-600">Pilihan Ganda</h4>
-                                            <p className="text-sm text-gray-500">Ujian tulisan</p>
-                                          </div>
-                                        </div>
-                                        <p className="text-sm text-gray-600">
-                                          Soal belum tersedia
-                                        </p>
-                                      </CardContent>
-                                    </Card>
+                                          <p className="text-sm text-gray-600">
+                                            {!registrationStatus?.hasOralSubmission ? 'Selesaikan rekam suara terlebih dahulu' :
+                                             registrationStatus?.chosenJuz && ['30A', '30B'].some(juz => registrationStatus.chosenJuz?.includes(juz)) ? 'Tidak perlu ujian untuk Juz 30' :
+                                             'Menunggu'}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    )}
                                   </div>
                                 </div>
                               ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
