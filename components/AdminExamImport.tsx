@@ -123,8 +123,8 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
   };
 
   const handleImport = async () => {
-    if (!selectedFile || !preview) {
-      toast.error('Please select a file first');
+    if (!preview) {
+      toast.error(mode === 'paste' ? 'Please paste and parse text first' : 'Please select a file first');
       return;
     }
 
