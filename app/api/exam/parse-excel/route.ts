@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse Excel data
-    const parsed = parseExcelData(rawData, juz_number);
+    const parsed = parseExcelData(rawData, juz_number as JuzNumber);
 
     if (!parsed || parsed.sections.length === 0) {
       return NextResponse.json({ error: 'Failed to parse Excel. Please check format.' }, { status: 400 });
