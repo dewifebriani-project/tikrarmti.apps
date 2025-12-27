@@ -43,11 +43,16 @@ export async function POST(request: NextRequest) {
         .eq('juz_number', juz_number);
 
       if (deleteError) {
-        logger.error('Error deleting existing questions', { error: deleteError });
-        return NextResponse.json({ error: 'Failed to delete existing questions' }, { status: 500 });
+        // If table doesn't exist yet, that's okay - just continue
+        if (deleteError.code === 'PGRST116' || deleteError.message?.includes('relation') || deleteError.message?.includes('does not exist')) {
+          logger.info('exam_questions table does not exist yet, will create during import');
+        } else {
+          logger.error('Error deleting existing questions', { error: deleteError });
+          return NextResponse.json({ error: 'Failed to delete existing questions' }, { status: 500 });
+        }
+      } else {
+        logger.info('Deleted existing questions for bulk import', { juzNumber: juz_number, adminId: user.id });
       }
-
-      logger.info('Deleted existing questions for bulk import', { juzNumber: juz_number, adminId: user.id });
     }
 
     // Prepare questions for insert
@@ -83,8 +88,8 @@ export async function POST(request: NextRequest) {
         .select();
 
       if (insertError) {
-        logger.error('Error inserting question batch', { error: insertError });
-        errors.push(insertError);
+        logger.error('Error inserting question batch', { error: insertError, batch });
+        errors.push({ error: insertError, batchSize: batch.length });
       } else {
         totalInserted += insertedQuestions?.length || 0;
       }
