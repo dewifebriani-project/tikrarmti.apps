@@ -284,7 +284,22 @@ export async function POST(request: NextRequest) {
         });
 
         // Clean up auth user if profile update fails
-        await (supabaseAdmin as any).auth.admin.deleteUser(authUser.id);
+        try {
+          const { error: deleteError } = await (supabaseAdmin as any).auth.admin.deleteUser(authUser.id);
+          if (deleteError) {
+            logger.error('Failed to cleanup auth user after profile update failed', {
+              userId: authUser.id,
+              email: body.email,
+              deleteError
+            });
+          }
+        } catch (cleanupError) {
+          logger.error('Exception during auth user cleanup', {
+            userId: authUser.id,
+            email: body.email,
+            cleanupError
+          });
+        }
         return ApiResponses.serverError('Gagal memperbarui data pengguna');
       }
 
@@ -326,7 +341,29 @@ export async function POST(request: NextRequest) {
         });
 
         // Clean up auth user if profile insert fails
-        await (supabaseAdmin as any).auth.admin.deleteUser(authUser.id);
+        try {
+          const { error: deleteError } = await (supabaseAdmin as any).auth.admin.deleteUser(authUser.id);
+          if (deleteError) {
+            logger.error('Failed to cleanup auth user after profile insert failed', {
+              userId: authUser.id,
+              email: body.email,
+              deleteError
+            });
+            // Log the orphaned user for later cleanup
+            logger.warn('ORPHANED USER CREATED', {
+              userId: authUser.id,
+              email: body.email,
+              reason: 'Profile insert failed and cleanup failed',
+              action: 'Manual cleanup required via /api/admin/check-orphaned-users'
+            });
+          }
+        } catch (cleanupError) {
+          logger.error('Exception during auth user cleanup', {
+            userId: authUser.id,
+            email: body.email,
+            cleanupError
+          });
+        }
         return ApiResponses.serverError('Gagal mendaftarkan pengguna baru');
       }
 
