@@ -47,11 +47,21 @@ export async function GET(request: NextRequest) {
 
     if (fetchError) {
       logger.error('Error fetching exam questions', { error: fetchError });
-      return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 });
+
+      // If table doesn't exist yet, return empty array instead of error
+      if (fetchError.code === 'PGRST116' || fetchError.message?.includes('relation') || fetchError.message?.includes('does not exist')) {
+        logger.info('exam_questions table does not exist yet, returning empty array');
+        return NextResponse.json({
+          data: [],
+          total: 0
+        });
+      }
+
+      return NextResponse.json({ error: 'Failed to fetch questions', details: fetchError.message }, { status: 500 });
     }
 
     return NextResponse.json({
-      data: questions,
+      data: questions || [],
       total: questions?.length || 0
     });
 
