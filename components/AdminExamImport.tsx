@@ -40,6 +40,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
   const [preview, setPreview] = useState<ImportData | null>(null);
   const [pastedText, setPastedText] = useState('');
   const [selectedJuz, setSelectedJuz] = useState<JuzNumber>(30);
+  const [showDetailedPreview, setShowDetailedPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleParsePaste = async () => {
@@ -429,29 +430,76 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
 
           {/* Preview - shown for both modes */}
           {preview && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-medium text-green-900 mb-2">File Preview</h3>
-                  <div className="space-y-1 text-sm text-green-800">
-                    <p><strong>Juz Number:</strong> {preview.juz_number}</p>
-                    <p><strong>Total Sections:</strong> {preview.sections.length}</p>
-                    <p><strong>Total Questions:</strong> {preview.sections.reduce((sum, s) => sum + s.questions.length, 0)}</p>
-                    <div className="mt-2">
-                      <p className="font-medium mb-1">Sections:</p>
-                      <ul className="list-disc list-inside space-y-1 pl-2">
-                        {preview.sections.map((section) => (
-                          <li key={section.section_number}>
-                            Section {section.section_number}: {section.section_title} ({section.questions.length} questions)
-                          </li>
-                        ))}
-                      </ul>
+            <>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-medium text-green-900 mb-2">Preview Summary</h3>
+                    <div className="space-y-1 text-sm text-green-800">
+                      <p><strong>Juz Number:</strong> {preview.juz_number}</p>
+                      <p><strong>Total Sections:</strong> {preview.sections.length}</p>
+                      <p><strong>Total Questions:</strong> {preview.sections.reduce((sum, s) => sum + s.questions.length, 0)}</p>
+                      <div className="mt-2">
+                        <p className="font-medium mb-1">Sections:</p>
+                        <ul className="list-disc list-inside space-y-1 pl-2">
+                          {preview.sections.map((section, idx) => (
+                            <li key={`${section.section_number}-${idx}`}>
+                              Section {section.section_number}: {section.section_title} ({section.questions.length} questions)
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <button
+                        onClick={() => setShowDetailedPreview(!showDetailedPreview)}
+                        className="mt-3 text-sm text-green-700 hover:text-green-900 font-medium underline"
+                      >
+                        {showDetailedPreview ? 'Hide' : 'Show'} Detailed Preview (All Questions)
+                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* Detailed Preview */}
+              {showDetailedPreview && (
+                <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <h3 className="font-semibold text-gray-900 mb-4">Detailed Question Preview</h3>
+                  {preview.sections.map((section, sIdx) => (
+                    <div key={`detail-${section.section_number}-${sIdx}`} className="mb-6 last:mb-0">
+                      <h4 className="font-medium text-gray-800 bg-gray-100 px-3 py-2 rounded mb-3">
+                        Section {section.section_number}: {section.section_title} ({section.questions.length} questions)
+                      </h4>
+                      <div className="space-y-4 pl-4">
+                        {section.questions.map((q: any, qIdx: number) => (
+                          <div key={`q-${qIdx}`} className="border-l-2 border-blue-300 pl-3">
+                            <p className="text-sm font-medium text-gray-700 mb-1">
+                              Question {q.question_number}:
+                            </p>
+                            <p className="text-sm text-gray-600 whitespace-pre-wrap mb-2">
+                              {q.question_text.substring(0, 150)}
+                              {q.question_text.length > 150 && '...'}
+                            </p>
+                            {q.options && q.options.length > 0 && (
+                              <div className="text-xs text-gray-500 space-y-1">
+                                {q.options.map((opt: any, optIdx: number) => (
+                                  <div key={optIdx} className="flex items-center gap-2">
+                                    <span className={opt.isCorrect ? 'text-green-600 font-medium' : ''}>
+                                      {String.fromCharCode(65 + optIdx)}. {opt.text}
+                                      {opt.isCorrect && ' ✓'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {/* Options */}
@@ -483,7 +531,7 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
           </button>
           <button
             onClick={handleImport}
-            disabled={!selectedFile || importing}
+            disabled={!preview || importing}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {importing ? (

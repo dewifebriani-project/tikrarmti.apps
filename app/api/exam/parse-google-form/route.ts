@@ -1,5 +1,5 @@
 // API Route: /api/exam/parse-google-form
-// Parse Google Form text into structured exam questions using pattern matching
+// Parse Google Form text into structured exam questions using smart pattern matching
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
@@ -47,15 +47,10 @@ export async function POST(request: NextRequest) {
 }
 
 function parseGoogleFormText(text: string, juz_number: JuzNumber) {
-  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  // Split into lines and clean
+  const allLines = text.split('\n').map(line => line.trim());
 
-  const sections: any[] = [];
-  let currentSection: any = null;
-  let currentQuestion: any = null;
-  let currentOptions: any[] = [];
-  let questionCounter = 0;
-
-  // Common section titles
+  // Section titles mapping
   const sectionTitles: Record<string, number> = {
     'Ketentuan Ikhtibar': 1,
     'Tebak Nama Surat': 2,
@@ -67,83 +62,42 @@ function parseGoogleFormText(text: string, juz_number: JuzNumber) {
     'Tebak Halaman': 8,
   };
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  // Find section boundaries
+  const sectionStarts: Array<{ line: number; title: string; number: number }> = [];
 
-    // Check if this is a section title
-    const matchedSection = Object.keys(sectionTitles).find(title =>
-      line.includes(title) || line.toLowerCase().includes(title.toLowerCase())
-    );
+  for (let i = 0; i < allLines.length; i++) {
+    const line = allLines[i];
 
-    if (matchedSection) {
-      // Save previous question if exists
-      if (currentQuestion && currentOptions.length > 0) {
-        currentQuestion.options = currentOptions;
-        currentSection.questions.push(currentQuestion);
-        currentOptions = [];
-      }
-
-      // Start new section
-      currentSection = {
-        section_number: sectionTitles[matchedSection],
-        section_title: matchedSection,
-        questions: []
-      };
-      sections.push(currentSection);
-      questionCounter = 0;
-      continue;
-    }
-
-    // Check if this line looks like a question (contains Arabic or question mark or starts with number)
-    const isArabic = /[\u0600-\u06FF]/.test(line);
-    const isQuestion = line.includes('?') || line.endsWith('surat') || isArabic;
-
-    // Check if line is an option (short text, not Arabic, not question)
-    const isOption = !isArabic && !line.includes('?') && line.length < 100 && line.length > 2;
-
-    if (currentSection) {
-      if (isQuestion) {
-        // Save previous question if exists
-        if (currentQuestion && currentOptions.length > 0) {
-          currentQuestion.options = currentOptions;
-          currentSection.questions.push(currentQuestion);
-        }
-
-        // Start new question
-        questionCounter++;
-        currentQuestion = {
-          question_number: questionCounter,
-          question_text: line,
-          question_type: currentSection.section_number === 1 ? 'introduction' : 'multiple_choice',
-          points: currentSection.section_number === 1 ? 0 : 1
-        };
-        currentOptions = [];
-
-        // For introduction section, add the option immediately
-        if (currentSection.section_number === 1) {
-          currentQuestion.options = [{ text: line, isCorrect: true }];
-          currentSection.questions.push(currentQuestion);
-          currentQuestion = null;
-        }
-
-      } else if (isOption && currentQuestion) {
-        // Add as option
-        // First option is assumed correct (adjust if needed)
-        currentOptions.push({
-          text: line,
-          isCorrect: currentOptions.length === 0
-        });
-      } else if (isArabic && currentQuestion) {
-        // Append Arabic text to current question
-        currentQuestion.question_text += '\n' + line;
+    // Match pattern like "1. Ketentuan Ikhtibar" or just "Ketentuan Ikhtibar"
+    for (const [title, number] of Object.entries(sectionTitles)) {
+      if (line.includes(title)) {
+        sectionStarts.push({ line: i, title, number });
+        break;
       }
     }
   }
 
-  // Save last question
-  if (currentQuestion && currentOptions.length > 0) {
-    currentQuestion.options = currentOptions;
-    currentSection.questions.push(currentQuestion);
+  // Parse each section
+  const sections: any[] = [];
+
+  for (let sIdx = 0; sIdx < sectionStarts.length; sIdx++) {
+    const sectionStart = sectionStarts[sIdx];
+    const sectionEnd = sIdx < sectionStarts.length - 1 ? sectionStarts[sIdx + 1].line : allLines.length;
+
+    const sectionLines = allLines.slice(sectionStart.line + 1, sectionEnd);
+
+    // Parse questions in this section
+    const questions = parseSectionQuestions(
+      sectionLines,
+      sectionStart.title,
+      sectionStart.number
+    );
+
+    sections.push({
+      section_number: sectionStart.number,
+      section_title: sectionStart.title,
+      questions
+    });
   }
 
   return {
@@ -152,4 +106,124 @@ function parseGoogleFormText(text: string, juz_number: JuzNumber) {
     total_questions: sections.reduce((sum, s) => sum + s.questions.length, 0),
     sections
   };
+}
+
+function parseSectionQuestions(lines: string[], sectionTitle: string, sectionNumber: number) {
+  const questions: any[] = [];
+  let i = 0;
+  let questionNumber = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Skip empty lines
+    if (!line || line.length < 2) {
+      i++;
+      continue;
+    }
+
+    // Check if this line contains Arabic or looks like a question
+    const hasArabic = /[\u0600-\u06FF]/.test(line);
+    const isLongLine = line.length > 50;
+    const hasQuestionIndicator = line.includes('?') ||
+                                   line.toLowerCase().includes('surat') ||
+                                   line.toLowerCase().includes('ayat') ||
+                                   line.toLowerCase().includes('halaman');
+
+    if (hasArabic || isLongLine || hasQuestionIndicator) {
+      // This is a question
+      questionNumber++;
+      let questionText = line;
+      i++;
+
+      // Collect multi-line question text (especially Arabic)
+      while (i < lines.length) {
+        const nextLine = lines[i];
+        if (!nextLine || nextLine.length < 2) {
+          i++;
+          continue;
+        }
+
+        const nextHasArabic = /[\u0600-\u06FF]/.test(nextLine);
+        const nextIsLongLine = nextLine.length > 50;
+
+        // If next line has Arabic or is part of question, append it
+        if (nextHasArabic && !nextLine.match(/^[A-Z]/)) {
+          questionText += '\n' + nextLine;
+          i++;
+        } else if (nextIsLongLine && nextLine.includes('surat')) {
+          questionText += '\n' + nextLine;
+          i++;
+        } else {
+          break;
+        }
+      }
+
+      // Now collect options (for multiple choice questions)
+      const options: Array<{ text: string; isCorrect: boolean }> = [];
+
+      if (sectionNumber === 1) {
+        // Introduction section - just use the question text as the only option
+        questions.push({
+          question_number: questionNumber,
+          question_text: questionText,
+          question_type: 'introduction',
+          options: [{ text: questionText, isCorrect: true }],
+          points: 0
+        });
+      } else {
+        // Multiple choice - collect 4 options
+        while (i < lines.length && options.length < 4) {
+          const optLine = lines[i];
+
+          if (!optLine || optLine.length < 2) {
+            i++;
+            continue;
+          }
+
+          const optHasArabic = /[\u0600-\u06FF]/.test(optLine);
+          const optIsShort = optLine.length < 80;
+          const optLooksLikeOption = !optLine.includes('?') &&
+                                      !optLine.toLowerCase().includes('bismillah') &&
+                                      optIsShort;
+
+          // Stop if we hit another question or section
+          if (optHasArabic || optLine.length > 100) {
+            break;
+          }
+
+          if (optLooksLikeOption) {
+            // Add this as an option
+            // First option is marked as correct by default (you can change this)
+            options.push({
+              text: optLine,
+              isCorrect: options.length === 0
+            });
+            i++;
+          } else {
+            break;
+          }
+        }
+
+        // Only add question if we have at least 2 options
+        if (options.length >= 2) {
+          questions.push({
+            question_number: questionNumber,
+            question_text: questionText,
+            question_type: 'multiple_choice',
+            options,
+            points: 1
+          });
+        } else {
+          // Not enough options, skip this question
+          questionNumber--;
+        }
+      }
+    } else {
+      // Not a question, skip
+      i++;
+    }
+  }
+
+  return questions;
 }
