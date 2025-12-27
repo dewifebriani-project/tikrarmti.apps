@@ -2041,9 +2041,9 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   };
 
   const handleOpenGmailImport = () => {
-    // Open Gmail Contacts import modal directly
-    window.open('https://contacts.google.com/u/0/importcsv', '_blank');
-    toast.success('Gmail import page opened. Select your downloaded CSV file to import contacts.');
+    // Open Gmail Contacts page
+    window.open('https://contacts.google.com/u/0/', '_blank');
+    toast.success('Gmail Contacts opened. Click the Import icon to import your downloaded CSV file.');
   };
 
   const columns: Column<User>[] = [
