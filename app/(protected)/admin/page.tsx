@@ -38,6 +38,7 @@ import AdminApprovalModal from '@/components/AdminApprovalModalFixed';
 import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdminData';
 import { AdminExamQuestions } from '@/components/AdminExamQuestions';
 import { AdminExamImport } from '@/components/AdminExamImport';
+import { AdminAddQuestion } from '@/components/AdminAddQuestion';
 
 interface Batch {
   id: string;
@@ -297,8 +298,9 @@ export default function AdminPage() {
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
 
-  // Exam import modal state
+  // Exam modal states
   const [showExamImportModal, setShowExamImportModal] = useState(false);
+  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
 
   // Save activeTab to localStorage whenever it changes
   useEffect(() => {
@@ -691,6 +693,7 @@ export default function AdminPage() {
         {activeTab === 'exam-questions' && (
           <AdminExamQuestions
             onImportClick={() => setShowExamImportModal(true)}
+            onAddManualClick={() => setShowAddQuestionModal(true)}
           />
         )}
         {activeTab === 'reports' && <ReportsTab />}
@@ -702,6 +705,17 @@ export default function AdminPage() {
           onClose={() => setShowExamImportModal(false)}
           onImportSuccess={() => {
             setShowExamImportModal(false);
+            // Trigger refresh of exam questions if needed
+          }}
+        />
+      )}
+
+      {/* Add Question Modal */}
+      {showAddQuestionModal && (
+        <AdminAddQuestion
+          onClose={() => setShowAddQuestionModal(false)}
+          onSuccess={() => {
+            setShowAddQuestionModal(false);
             // Trigger refresh of exam questions if needed
           }}
         />

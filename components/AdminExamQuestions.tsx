@@ -7,9 +7,10 @@ import { JuzNumber, ExamQuestion } from '@/types/exam';
 
 interface AdminExamQuestionsProps {
   onImportClick: () => void;
+  onAddManualClick: () => void;
 }
 
-export function AdminExamQuestions({ onImportClick }: AdminExamQuestionsProps) {
+export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExamQuestionsProps) {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJuz, setSelectedJuz] = useState<JuzNumber | 'all'>('all');
@@ -110,6 +111,13 @@ export function AdminExamQuestions({ onImportClick }: AdminExamQuestionsProps) {
           >
             <Download className="w-4 h-4" />
             Export JSON
+          </button>
+          <button
+            onClick={onAddManualClick}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Manual
           </button>
           <button
             onClick={onImportClick}

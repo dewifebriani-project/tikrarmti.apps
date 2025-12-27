@@ -2,13 +2,15 @@
 
 import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, X, AlertCircle, CheckCircle, Download } from 'lucide-react';
+import { FileUp, X, AlertCircle, CheckCircle, Download, ClipboardPaste } from 'lucide-react';
 import { JuzNumber } from '@/types/exam';
 
 interface AdminExamImportProps {
   onClose: () => void;
   onImportSuccess: () => void;
 }
+
+type ImportMode = 'json' | 'paste';
 
 interface ImportQuestion {
   section_number: number;
@@ -30,11 +32,49 @@ interface ImportData {
 }
 
 export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportProps) {
+  const [mode, setMode] = useState<ImportMode>('paste');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [replaceExisting, setReplaceExisting] = useState(true);
   const [preview, setPreview] = useState<ImportData | null>(null);
+  const [pastedText, setPastedText] = useState('');
+  const [selectedJuz, setSelectedJuz] = useState<JuzNumber>(30);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleParsePaste = async () => {
+    if (!pastedText.trim()) {
+      toast.error('Please paste some text first');
+      return;
+    }
+
+    try {
+      setParsing(true);
+
+      const response = await fetch('/api/exam/parse-google-form', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: pastedText,
+          juz_number: selectedJuz,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        setPreview(result.data);
+        toast.success(`Parsed ${result.data.sections.reduce((sum: number, s: any) => sum + s.questions.length, 0)} questions!`);
+      } else {
+        toast.error(result.error || 'Failed to parse text');
+      }
+    } catch (error) {
+      console.error('Error parsing paste:', error);
+      toast.error('Failed to parse text');
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -208,8 +248,121 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
 
         {/* Content */}
         <div className="p-6 space-y-6">
-          {/* Download Templates */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          {/* Mode Selector */}
+          <div className="flex gap-2 border-b border-gray-200">
+            <button
+              onClick={() => {
+                setMode('paste');
+                setPreview(null);
+                setSelectedFile(null);
+              }}
+              className={`px-4 py-2 font-medium border-b-2 transition ${
+                mode === 'paste'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardPaste className="w-4 h-4" />
+                Paste from Google Form
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setMode('json');
+                setPreview(null);
+                setPastedText('');
+              }}
+              className={`px-4 py-2 font-medium border-b-2 transition ${
+                mode === 'json'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileUp className="w-4 h-4" />
+                Upload JSON
+              </div>
+            </button>
+          </div>
+
+          {/* Paste Mode */}
+          {mode === 'paste' && (
+            <>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-medium text-green-900 mb-2">Cara Mudah - Paste dari Google Form</h3>
+                    <ol className="text-sm text-green-800 space-y-1 list-decimal list-inside">
+                      <li>Buka Google Form yang berisi soal ujian</li>
+                      <li>Copy semua soal (Ctrl+A, Ctrl+C)</li>
+                      <li>Paste di kotak dibawah</li>
+                      <li>Pilih Juz number</li>
+                      <li>Klik "Parse & Preview" - AI akan otomatis konversi</li>
+                      <li>Review hasil, lalu klik "Import"</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {/* Juz Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Juz Number
+                </label>
+                <select
+                  value={selectedJuz}
+                  onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value={28}>Juz 28</option>
+                  <option value={29}>Juz 29</option>
+                  <option value={30}>Juz 30</option>
+                </select>
+              </div>
+
+              {/* Paste Area */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Paste Google Form Text Here
+                </label>
+                <textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Paste soal dari Google Form disini...&#10;&#10;Contoh format:&#10;1. Ketentuan Ikhtibar&#10;Bismillah saya siap...&#10;&#10;2. Tebak Nama Surat&#10;ٱلنَّجْمُ ٱلثَّاقِبُ&#10;Ayat ini terletak pada surat&#10;Ath-Thariq&#10;Al-Ghasiyah&#10;..."
+                  className="w-full h-64 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {pastedText.length} characters
+                </p>
+              </div>
+
+              {/* Parse Button */}
+              <button
+                onClick={handleParsePaste}
+                disabled={!pastedText.trim() || parsing}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {parsing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Parsing dengan AI...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardPaste className="w-5 h-5" />
+                    Parse & Preview
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* JSON Mode */}
+          {mode === 'json' && (
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
               <div className="flex-1">
@@ -271,8 +424,10 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
               </button>
             </div>
           </div>
+            </>
+          )}
 
-          {/* Preview */}
+          {/* Preview - shown for both modes */}
           {preview && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
