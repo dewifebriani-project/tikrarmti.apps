@@ -61,10 +61,34 @@ export async function GET(request: NextRequest) {
 
     const pendaftaranUserIds = new Set(pendaftaranUsers?.map(p => p.user_id) || []);
 
+    // Get all user IDs from muallimah_registrations
+    const { data: muallimahUsers, error: muallimahError } = await supabaseAdmin
+      .from('muallimah_registrations')
+      .select('user_id');
+
+    if (muallimahError) {
+      logger.error('Error fetching muallimah users', { error: muallimahError });
+      return NextResponse.json({ error: 'Failed to fetch muallimah users' }, { status: 500 });
+    }
+
+    const muallimahUserIds = new Set(muallimahUsers?.map(m => m.user_id) || []);
+
+    // Get all user IDs from musyrifah_registrations
+    const { data: musyrifahUsers, error: musyrifahError } = await supabaseAdmin
+      .from('musyrifah_registrations')
+      .select('user_id');
+
+    if (musyrifahError) {
+      logger.error('Error fetching musyrifah users', { error: musyrifahError });
+      return NextResponse.json({ error: 'Failed to fetch musyrifah users' }, { status: 500 });
+    }
+
+    const musyrifahUserIds = new Set(musyrifahUsers?.map(m => m.user_id) || []);
+
     // Find orphaned users
     const orphanedAuth = []; // In auth but not in users table
-    const orphanedPendaftaran = []; // In users but no pendaftaran
-    const completeUsers = []; // Have both auth and pendaftaran
+    const orphanedPendaftaran = []; // In users but no pendaftaran (any type)
+    const completeUsers = []; // Have both auth and at least one pendaftaran
 
     for (const authUser of users) {
       const userId = authUser.id;
@@ -76,8 +100,11 @@ export async function GET(request: NextRequest) {
 
       // Check if in users table
       const inUsersTable = dbUserIds.has(userId);
-      // Check if in pendaftaran table
-      const inPendaftaran = pendaftaranUserIds.has(userId);
+      // Check if in ANY pendaftaran table (tikrar, muallimah, or musyrifah)
+      const inTikrar = pendaftaranUserIds.has(userId);
+      const inMuallimah = muallimahUserIds.has(userId);
+      const inMusyrifah = musyrifahUserIds.has(userId);
+      const hasAnyPendaftaran = inTikrar || inMuallimah || inMusyrifah;
 
       if (!inUsersTable) {
         orphanedAuth.push({
@@ -89,7 +116,13 @@ export async function GET(request: NextRequest) {
           metadata,
           issue: 'NOT_IN_USERS_TABLE'
         });
-      } else if (!inPendaftaran) {
+      } else if (!hasAnyPendaftaran) {
+        // Track which registrations they have
+        const registrationTypes = [];
+        if (inTikrar) registrationTypes.push('tikrar');
+        if (inMuallimah) registrationTypes.push('muallimah');
+        if (inMusyrifah) registrationTypes.push('musyrifah');
+
         orphanedPendaftaran.push({
           id: userId,
           email,
@@ -97,14 +130,20 @@ export async function GET(request: NextRequest) {
           last_sign_in_at: lastSignIn,
           email_confirmed_at: confirmedAt,
           metadata,
-          issue: 'NOT_IN_PENDAFTARAN_TABLE'
+          issue: 'NO_PENDAFTARAN',
+          registration_types: registrationTypes
         });
       } else {
         completeUsers.push({
           id: userId,
           email,
           created_at: createdAt,
-          last_sign_in_at: lastSignIn
+          last_sign_in_at: lastSignIn,
+          registration_types: {
+            tikrar: inTikrar,
+            muallimah: inMuallimah,
+            musyrifah: inMusyrifah
+          }
         });
       }
     }

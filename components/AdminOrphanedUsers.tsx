@@ -22,6 +22,7 @@ interface OrphanedPendaftaranUser {
   email_confirmed_at: string | null;
   metadata: any;
   issue: string;
+  registration_types?: string[];
 }
 
 interface CheckResult {
@@ -253,10 +254,10 @@ export default function AdminOrphanedUsers() {
         <div className="px-6 py-4 border-b">
           <h3 className="text-lg font-semibold text-yellow-600 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5" />
-            Users Without Pendaftaran
+            Users Without Any Registration
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            These users have accounts but haven't completed pendaftaran tikrar tahfidz
+            These users have accounts but haven't registered for any program (Tikrar Tahfidz, Muallimah, or Musyrifah)
           </p>
         </div>
 
@@ -273,7 +274,7 @@ export default function AdminOrphanedUsers() {
               {data?.orphaned_pendaftaran.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
-                    No users without pendaftaran found
+                    No users without registrations found
                   </td>
                 </tr>
               ) : (
