@@ -2041,8 +2041,9 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   };
 
   const handleOpenGmailImport = () => {
-    window.open('https://contacts.google.com/u/0/?hl=id&tf=cm', '_blank');
-    toast.success('Gmail Contacts opened. Click "Import" then select your downloaded CSV file.');
+    // Open Gmail Contacts import modal directly
+    window.open('https://contacts.google.com/u/0/importcsv', '_blank');
+    toast.success('Gmail import page opened. Select your downloaded CSV file to import contacts.');
   };
 
   const columns: Column<User>[] = [
@@ -2413,7 +2414,7 @@ Tim Markaz Tikrar Indonesia`;
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Users Management</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Total {users.length} users • Click "Download Excel" to export all data
+            Total {users.length} users
           </p>
         </div>
         <div className="flex gap-3">

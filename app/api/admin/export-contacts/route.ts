@@ -18,22 +18,25 @@ function getYearFromBirthDate(birthDate: string | null): string {
   }
 }
 
-// Helper function to format city name
-function formatCity(city: string | null): string {
-  if (!city) return '';
-  // Capitalize first letter of each word
-  return city
+// Helper function to format text to Proper Case (capitalize first letter of each word)
+function toProperCase(text: string | null): string {
+  if (!text) return '';
+  return text
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .map(word => {
+      if (!word) return '';
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
     .join(' ');
 }
 
 // Helper function to format contact name
 function formatContactName(fullName: string, birthDate: string | null, city: string | null): string {
   const yearYY = getYearFromBirthDate(birthDate);
-  const formattedCity = formatCity(city);
+  const formattedCity = toProperCase(city);
+  const formattedName = toProperCase(fullName);
 
-  let name = `MTI ${fullName}`;
+  let name = `MTI ${formattedName}`;
 
   if (yearYY) {
     name += ` ${yearYY}`;
@@ -127,41 +130,32 @@ export async function GET(request: NextRequest) {
     ];
 
     const csvRows: string[] = [csvHeaders.join(',')];
-    const processedPhones = new Set<string>();
-    let duplicateCount = 0;
+
+    // Escape CSV fields (handle commas and quotes)
+    const escapeCsvField = (field: string | null): string => {
+      if (!field) return '';
+      const str = field.toString();
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
 
     for (const user of users) {
-      // Normalize phone number to check for duplicates
-      const normalizedWhatsApp = normalizePhoneNumber(user.whatsapp);
-      const normalizedTelegram = normalizePhoneNumber(user.telegram);
-
-      // Skip if WhatsApp number already processed
-      if (normalizedWhatsApp && processedPhones.has(normalizedWhatsApp)) {
-        duplicateCount++;
-        continue;
-      }
-
-      // Format contact name
+      // Format contact name with Proper Case
       const contactName = formatContactName(
         user.full_name || 'Unknown',
         user.tanggal_lahir,
         user.kota
       );
 
-      // Escape CSV fields (handle commas and quotes)
-      const escapeCsvField = (field: string | null): string => {
-        if (!field) return '';
-        const str = field.toString();
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      };
+      // Format Given Name with Proper Case
+      const givenName = toProperCase(user.full_name || 'Unknown');
 
       // Build CSV row
       const row = [
-        escapeCsvField(contactName), // Name
-        escapeCsvField(user.full_name), // Given Name
+        escapeCsvField(contactName), // Name (MTI <Name> <Year> <City>)
+        escapeCsvField(givenName), // Given Name (Proper Case)
         escapeCsvField(''), // Family Name
         'Work', // Email 1 - Type
         escapeCsvField(user.email), // Email 1 - Value
@@ -174,14 +168,6 @@ export async function GET(request: NextRequest) {
       ];
 
       csvRows.push(row.join(','));
-
-      // Mark phone as processed
-      if (normalizedWhatsApp) {
-        processedPhones.add(normalizedWhatsApp);
-      }
-      if (normalizedTelegram) {
-        processedPhones.add(normalizedTelegram);
-      }
     }
 
     const csvContent = csvRows.join('\n');
@@ -189,8 +175,7 @@ export async function GET(request: NextRequest) {
     logger.info('Contacts exported successfully', {
       adminId: user.id,
       totalUsers: users.length,
-      exportedContacts: csvRows.length - 1,
-      duplicatesSkipped: duplicateCount
+      exportedContacts: csvRows.length - 1
     });
 
     // Return CSV file
