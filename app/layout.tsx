@@ -6,6 +6,7 @@ import GlobalErrorHandler from '@/components/GlobalErrorHandler'
 import ErrorHandlers from '@/components/ErrorHandlers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from 'sonner'
+import { AutoReloadProvider } from '@/components/AutoReloadProvider'
 
 export const metadata: Metadata = {
   title: 'Tikrar MTI Apps | Aplikasi Tahfidz dari Markaz Tikrar Indonesia',
@@ -49,6 +50,7 @@ export default function RootLayout({
           <ErrorHandlers>
             <GlobalErrorHandler />
             <SWRProvider>
+              <AutoReloadProvider />
               <AppLayout>
                 {children}
               </AppLayout>
