@@ -33,8 +33,11 @@ export default function DashboardContent() {
   } : { registered: false }
 
   // Calculate stats with fallback
+  // Total target hari = 13 pekan × 4 hari per pekan = 52 hari target
+  const totalHariTarget = 13 * 4; // 52 hari total target
+
   const displayStats = {
-    totalHariTarget: stats?.totalHariTarget || activeBatch?.duration_weeks || 13,
+    totalHariTarget: totalHariTarget,
     hariAktual: stats?.hariAktual || 0,
     persentaseProgress: stats?.persentaseProgress || 0
   }
