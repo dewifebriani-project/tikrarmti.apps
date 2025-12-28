@@ -462,15 +462,9 @@ export default function PerjalananSaya() {
           <Card className="bg-green-50 border-green-200">
             <CardHeader className="pb-3 sm:pb-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                  <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                    registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-green-900'
-                  }`} />
-                  <span className={
-                    registrationStatus.registration?.status === 'approved'
-                      ? 'text-green-600 font-bold'
-                      : 'text-green-900'
-                  }>Status Pendaftaran</span>
+                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl text-green-900">
+                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-900" />
+                  <span>Status Pendaftaran</span>
                 </CardTitle>
                 {registrationStatus.registration?.status === 'pending' && (
                   <Button
