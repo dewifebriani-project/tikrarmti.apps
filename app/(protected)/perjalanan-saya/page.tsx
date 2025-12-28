@@ -7,8 +7,10 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
+import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
+import { Pendaftaran } from '@/types/database';
 
 interface TimelineItem {
   id: number;
@@ -25,9 +27,27 @@ interface TimelineItemWithStatus extends TimelineItem {
   status: 'completed' | 'current' | 'future';
 }
 
+// Extended type for tikrar registration with all fields from pendaftaran_tikrar_tahfidz table
+interface TikrarRegistration extends Pendaftaran {
+  chosen_juz?: string;
+  main_time_slot?: string;
+  backup_time_slot?: string;
+  full_name?: string;
+  wa_phone?: string;
+  address?: string;
+  motivation?: string;
+  oral_submission_url?: string;
+  oral_submitted_at?: string;
+  oral_assessment_status?: string;
+  exam_status?: string;
+  exam_score?: number;
+  exam_submitted_at?: string;
+}
+
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // SWR hooks for data fetching
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
@@ -42,7 +62,7 @@ export default function PerjalananSaya() {
 
     const hasActiveRegistration = registrations.some(reg => ['approved', 'pending'].includes(reg.status));
     const approvedRegistration = registrations.find(reg => reg.status === 'approved');
-    const registration = approvedRegistration || registrations[0];
+    const registration = (approvedRegistration || registrations[0]) as TikrarRegistration;
 
     return {
       hasRegistered: hasActiveRegistration,
@@ -50,15 +70,15 @@ export default function PerjalananSaya() {
       hasActiveRegistration,
       pendingApproval: registrations.some(reg => reg.status === 'pending'),
       approved: !!approvedRegistration,
-      hasOralSubmission: !!(registration as any)?.oral_submission_url,
-      oralSubmissionUrl: (registration as any)?.oral_submission_url,
-      oralSubmittedAt: (registration as any)?.oral_submitted_at,
-      oralAssessmentStatus: (registration as any)?.oral_assessment_status || 'pending',
-      registrationId: (registration as any)?.id,
-      chosenJuz: (registration as any)?.chosen_juz,
-      examStatus: (registration as any)?.exam_status,
-      examScore: (registration as any)?.exam_score,
-      examSubmittedAt: (registration as any)?.exam_submitted_at,
+      hasOralSubmission: !!registration?.oral_submission_url,
+      oralSubmissionUrl: registration?.oral_submission_url,
+      oralSubmittedAt: registration?.oral_submitted_at,
+      oralAssessmentStatus: registration?.oral_assessment_status || 'pending',
+      registrationId: registration?.id,
+      chosenJuz: registration?.chosen_juz,
+      examStatus: registration?.exam_status,
+      examScore: registration?.exam_score,
+      examSubmittedAt: registration?.exam_submitted_at,
     };
   }, [user, registrations]);
 
@@ -67,6 +87,32 @@ export default function PerjalananSaya() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Helper functions for display
+  const getJuzLabel = (juzValue: string) => {
+    const juzLabels: Record<string, string> = {
+      '30A': 'Juz 30A (halaman 1-20)',
+      '30B': 'Juz 30B (halaman 21-40)',
+      '28': 'Juz 28',
+      '29': 'Juz 29',
+    };
+    return juzLabels[juzValue] || juzValue;
+  };
+
+  const getTimeSlotLabel = (slotValue: string) => {
+    const slotLabels: Record<string, string> = {
+      'pagi': 'Pagi (06:00 - 12:00)',
+      'siang': 'Siang (12:00 - 15:00)',
+      'sore': 'Sore (15:00 - 18:00)',
+      'malam': 'Malam (18:00 - 21:00)',
+    };
+    return slotLabels[slotValue] || slotValue;
+  };
+
+  const handleEditSuccess = () => {
+    // Trigger SWR revalidation to refresh data
+    window.location.reload();
+  };
 
   // Function to parse Indonesian date string
   const parseIndonesianDate = (dateStr: string): Date => {
@@ -415,29 +461,151 @@ export default function PerjalananSaya() {
         {registrationStatus?.hasRegistered && (
           <Card className="bg-green-50 border-green-200">
             <CardHeader className="pb-3 sm:pb-6">
-              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                  registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-green-900'
-                }`} />
-                <span className={
-                  registrationStatus.registration?.status === 'approved'
-                    ? 'text-green-600 font-bold'
-                    : 'text-green-900'
-                }>Status Pendaftaran</span>
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
+                  <CheckCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                    registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-green-900'
+                  }`} />
+                  <span className={
+                    registrationStatus.registration?.status === 'approved'
+                      ? 'text-green-600 font-bold'
+                      : 'text-green-900'
+                  }>Status Pendaftaran</span>
+                </CardTitle>
+                {registrationStatus.registration?.status === 'pending' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    <span className="hidden xs:inline">Edit</span>
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
-                  <p className="font-medium text-sm sm:text-base">{user?.full_name || 'User'}</p>
-                </div>
-                {registrationStatus.registration?.batch_name && (
+              <div className="space-y-3 sm:space-y-4">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Batch</p>
-                    <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.batch_name}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
+                    <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.full_name || user?.full_name || 'User'}</p>
                   </div>
+                  {registrationStatus.registration?.batch_name && (
+                    <div>
+                      <p className="text-xs sm:text-sm text-gray-600">Batch</p>
+                      <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.batch_name}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Registration Details */}
+                {registrationStatus.registration && (
+                  <>
+                    {/* Juz Selection */}
+                    {registrationStatus.registration.chosen_juz && (
+                      <div className="bg-white rounded-lg p-3 border border-green-200">
+                        <div className="flex items-start space-x-2">
+                          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs sm:text-sm text-gray-600">Juz yang Dipilih</p>
+                            <p className="font-medium text-sm sm:text-base text-green-800">
+                              {getJuzLabel(registrationStatus.registration.chosen_juz)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Time Slots */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {registrationStatus.registration.main_time_slot && (
+                        <div className="bg-white rounded-lg p-3 border border-green-200">
+                          <div className="flex items-start space-x-2">
+                            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs sm:text-sm text-gray-600">Jadwal Utama</p>
+                              <p className="font-medium text-sm sm:text-base text-green-800">
+                                {getTimeSlotLabel(registrationStatus.registration.main_time_slot)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {registrationStatus.registration.backup_time_slot && (
+                        <div className="bg-white rounded-lg p-3 border border-green-200">
+                          <div className="flex items-start space-x-2">
+                            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs sm:text-sm text-gray-600">Jadwal Cadangan</p>
+                              <p className="font-medium text-sm sm:text-base text-green-800">
+                                {getTimeSlotLabel(registrationStatus.registration.backup_time_slot)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact Info */}
+                    {(registrationStatus.registration.wa_phone || registrationStatus.registration.address) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {registrationStatus.registration.wa_phone && (
+                          <div className="bg-white rounded-lg p-3 border border-green-200">
+                            <div className="flex items-start space-x-2">
+                              <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs sm:text-sm text-gray-600">WhatsApp</p>
+                                <p className="font-medium text-sm sm:text-base text-green-800">
+                                  {registrationStatus.registration.wa_phone}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {registrationStatus.registration.address && (
+                          <div className="bg-white rounded-lg p-3 border border-green-200">
+                            <div className="flex items-start space-x-2">
+                              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs sm:text-sm text-gray-600">Alamat</p>
+                                <p className="font-medium text-sm sm:text-base text-green-800">
+                                  {registrationStatus.registration.address}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
+
+                {/* Status Badge */}
+                <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
+                  registrationStatus.registration?.status === 'approved'
+                    ? 'bg-green-100 text-green-800'
+                    : registrationStatus.registration?.status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : registrationStatus.registration?.status === 'rejected'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full mr-2 ${
+                    registrationStatus.registration?.status === 'approved'
+                      ? 'bg-green-600'
+                      : registrationStatus.registration?.status === 'pending'
+                      ? 'bg-yellow-600 animate-pulse'
+                      : registrationStatus.registration?.status === 'rejected'
+                      ? 'bg-red-600'
+                      : 'bg-gray-600'
+                  }`}></span>
+                  {registrationStatus.registration?.status === 'pending' ? 'Menunggu Persetujuan' :
+                   registrationStatus.registration?.status === 'approved' ? 'Disetujui' :
+                   registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -929,6 +1097,25 @@ export default function PerjalananSaya() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Edit Registration Modal */}
+        {registrationStatus?.registration && (
+          <EditTikrarRegistrationModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSuccess={handleEditSuccess}
+            registration={{
+              id: registrationStatus.registration.id || registrationStatus.registrationId || '',
+              chosen_juz: registrationStatus.registration.chosen_juz || '',
+              main_time_slot: registrationStatus.registration.main_time_slot || '',
+              backup_time_slot: registrationStatus.registration.backup_time_slot || '',
+              full_name: registrationStatus.registration.full_name || user?.full_name,
+              wa_phone: registrationStatus.registration.wa_phone,
+              address: registrationStatus.registration.address,
+              motivation: registrationStatus.registration.motivation,
+            }}
+          />
         )}
       </div>
     );

@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 
 /**
  * Hook untuk auto-reload aplikasi saat ada update baru
- * Mengecek versi build setiap beberapa menit dan reload otomatis
+ * Hanya mengecek versi build SEKALI di awal saat aplikasi dimuat
+ * Jika versi berbeda dengan yang tersimpan di localStorage, reload akan dilakukan
  */
 export function useAutoReload() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
@@ -66,26 +67,14 @@ export function useAutoReload() {
     }
   }, [])
 
-  // Setup interval untuk cek update secara berkala
+  // Setup: Hanya cek update sekali di awal saat aplikasi dimuat
   useEffect(() => {
-    // Cek pertama kali
+    // Cek pertama kali saja saat aplikasi dimuat
     checkForUpdates()
 
-    // Cek setiap 5 menit
-    const interval = setInterval(() => {
-      checkForUpdates()
-    }, 5 * 60 * 1000) // 5 menit
-
-    // Cek juga saat tab mendapatkan fokus (user kembali ke aplikasi)
-    const handleFocus = () => {
-      checkForUpdates()
-    }
-
-    window.addEventListener('focus', handleFocus)
-
+    // Tidak ada interval atau focus check - hanya sekali di awal
     return () => {
-      clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
+      // Cleanup jika diperlukan
     }
   }, [checkForUpdates])
 
