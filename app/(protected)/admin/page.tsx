@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase-singleton';
+import { createSupabaseAdmin } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
 import { OralAssessment } from '@/components/OralAssessment';
@@ -135,10 +136,21 @@ interface User {
     batch_name: string;
     status: string;
     selection_status: string;
+    re_enrollment_completed?: boolean;
     batch?: {
       name: string;
       status: string;
     };
+  }>;
+  muallimah_registrations?: Array<{
+    id: string;
+    batch_id: string;
+    status: string;
+  }>;
+  musyrifah_registrations?: Array<{
+    id: string;
+    batch_id: string;
+    status: string;
   }>;
 }
 
@@ -2043,35 +2055,58 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<'all' | 'thalibah' | 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
 
-  // Filter users by role based on actual registrations, not just user.role
-  // Thalibah: has tikrar registration with approved/passed status (sudah daftar ulang)
+  // Filter users by role based on actual registrations, supporting multi-role
+  // A user can appear in multiple tabs if they have multiple roles/registrations
+
+  // Admin: role='admin'
+  const adminUsers = users.filter(u => u.role === 'admin');
+
+  // Thalibah: has tikrar registration with re_enrollment_completed=true (sudah daftar ulang)
   const thalibahUsers = users.filter(u => {
     const hasTikrar = u.tikrar_registrations && u.tikrar_registrations.length > 0;
     if (!hasTikrar) return false;
-    // Check if any registration is approved (daftar ulang done)
-    return u.tikrar_registrations!.some(reg =>
-      reg.status === 'approved' || reg.selection_status === 'passed'
+    // Check if user has at least one re-enrolled registration
+    const hasReEnrolled = u.tikrar_registrations!.some(reg =>
+      reg.re_enrollment_completed === true
     );
+    // Exclude if ALL registrations are not re-enrolled (those are calon thalibah)
+    const allNotReEnrolled = u.tikrar_registrations!.every(reg =>
+      reg.re_enrollment_completed !== true
+    );
+    return hasReEnrolled && !allNotReEnrolled;
   });
 
-  // Calon Thalibah: has tikrar registration but still pending (belum daftar ulang)
+  // Calon Thalibah: has tikrar registration but ALL registrations have re_enrollment_completed=false (belum daftar ulang)
   const calonThalibahUsers = users.filter(u => {
     const hasTikrar = u.tikrar_registrations && u.tikrar_registrations.length > 0;
     if (!hasTikrar) return false;
-    // Check if registration is still pending
+    // Must have tikrar registration and NONE are re-enrolled
     return u.tikrar_registrations!.every(reg =>
-      reg.status === 'pending' || (reg.selection_status !== 'passed')
+      reg.re_enrollment_completed !== true
     );
   });
 
-  const muallimahUsers = users.filter(u => u.role === 'ustadzah'); // ustadzah = muallimah
-  const musyrifahUsers = users.filter(u => u.role === 'musyrifah');
+  // Muallimah: has muallimah_registration OR role='ustadzah'
+  const muallimahUsers = users.filter(u => {
+    const hasMuallimahRegistration = u.muallimah_registrations && u.muallimah_registrations.length > 0;
+    const isUstadzahRole = u.role === 'ustadzah';
+    return hasMuallimahRegistration || isUstadzahRole;
+  });
+
+  // Musyrifah: has musyrifah_registration OR role='musyrifah'
+  const musyrifahUsers = users.filter(u => {
+    const hasMusyrifahRegistration = u.musyrifah_registrations && u.musyrifah_registrations.length > 0;
+    const isMusyrifahRole = u.role === 'musyrifah';
+    return hasMusyrifahRegistration || isMusyrifahRole;
+  });
 
   // Get filtered users based on active sub-tab
   const getFilteredUsers = () => {
     switch (activeSubTab) {
+      case 'admin':
+        return adminUsers;
       case 'thalibah':
         return thalibahUsers;
       case 'calon_thalibah':
@@ -2385,9 +2420,11 @@ Tim Markaz Tikrar Indonesia`;
 
   const handleSubmit = async (data: Record<string, any>) => {
     try {
+      const supabaseAdmin = createSupabaseAdmin();
+
       if (selectedUser) {
-        // Update existing user
-        const { error } = await (supabase as any)
+        // Update existing user using admin client to bypass RLS
+        const { error } = await supabaseAdmin
           .from('users')
           .update(data)
           .eq('id', selectedUser.id);
@@ -2395,8 +2432,8 @@ Tim Markaz Tikrar Indonesia`;
         if (error) throw error;
         toast.success('User updated successfully');
       } else {
-        // Create new user
-        const { error } = await (supabase as any)
+        // Create new user using admin client to bypass RLS
+        const { error } = await supabaseAdmin
           .from('users')
           .insert([data]);
 
@@ -2516,6 +2553,16 @@ Tim Markaz Tikrar Indonesia`;
             All Users ({users.length})
           </button>
           <button
+            onClick={() => setActiveSubTab('admin')}
+            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
+              activeSubTab === 'admin'
+                ? 'border-purple-900 text-purple-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Admin ({adminUsers.length})
+          </button>
+          <button
             onClick={() => setActiveSubTab('thalibah')}
             className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeSubTab === 'thalibah'
@@ -2569,7 +2616,7 @@ Tim Markaz Tikrar Indonesia`;
       </div>
 
       {/* All Users Tab Content */}
-      {(activeSubTab === 'all' || activeSubTab === 'thalibah' || activeSubTab === 'calon_thalibah' || activeSubTab === 'muallimah' || activeSubTab === 'musyrifah') && (
+      {(activeSubTab === 'all' || activeSubTab === 'admin' || activeSubTab === 'thalibah' || activeSubTab === 'calon_thalibah' || activeSubTab === 'muallimah' || activeSubTab === 'musyrifah') && (
         <>
           <div className="flex justify-end gap-3">
             <button

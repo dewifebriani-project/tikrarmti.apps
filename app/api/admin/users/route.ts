@@ -57,7 +57,18 @@ export async function GET(request: NextRequest) {
             batch_id,
             batch_name,
             status,
-            selection_status
+            selection_status,
+            re_enrollment_completed
+          ),
+          muallimah_registrations:muallimah_registrations!muallimah_registrations_user_id_fkey(
+            id,
+            batch_id,
+            status
+          ),
+          musyrifah_registrations:musyrifah_registrations!musyrifah_registrations_user_id_fkey(
+            id,
+            batch_id,
+            status
           )
         `)
         .order('created_at', { ascending: false });
