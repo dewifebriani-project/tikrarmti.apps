@@ -104,13 +104,23 @@ export default function PerjalananSaya() {
   };
 
   const getTimeSlotLabel = (slotValue: string) => {
+    // Nilai di database disimpan sebagai "06-09", "18-21", dll
     const slotLabels: Record<string, string> = {
+      '04-06': '04-06 WIB',
+      '06-09': '06-09 WIB',
+      '09-12': '09-12 WIB',
+      '12-15': '12-15 WIB',
+      '15-18': '15-18 WIB',
+      '18-21': '18-21 WIB',
+      '21-24': '21-24 WIB',
+      // Legacy values untuk compatibility
       'pagi': '06-09 WIB',
       'siang': '12-15 WIB',
       'sore': '15-18 WIB',
       'malam': '18-21 WIB',
     };
-    return slotLabels[slotValue] || slotValue;
+
+    return slotLabels[slotValue] || `${slotValue} WIB`;
   };
 
   const handleEditSuccess = () => {
@@ -342,6 +352,12 @@ export default function PerjalananSaya() {
     });
   }, [isClient, registrationStatus]);
 
+  // Check if edit button should be shown (before "Mendaftar Ulang" / item id 4 is completed)
+  const canEditRegistration = useMemo(() => {
+    const reEnrollmentItem = timelineData.find(item => item.id === 4); // Mendaftar Ulang
+    return reEnrollmentItem?.status !== 'completed';
+  }, [timelineData]);
+
   const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
       case 'completed':
@@ -470,9 +486,8 @@ export default function PerjalananSaya() {
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-900" />
                   <span>Status Pendaftaran</span>
                 </CardTitle>
-                {/* Tombol Edit muncul untuk status pending, dan juga approved sebelum tahap "Mendaftar Ulang" */}
-                {(registrationStatus.registration?.status === 'pending' ||
-                  (registrationStatus.registration?.status === 'approved' && !registrationStatus.registration?.re_enrollment_completed)) && (
+                {/* Tombol Edit muncul sampai sebelum tahap "Mendaftar Ulang" selesai */}
+                {canEditRegistration && registrationStatus?.registration && (
                   <Button
                     size="sm"
                     variant="outline"
