@@ -355,42 +355,61 @@ export default function RekamSuaraPage() {
         return;
       }
 
-      // Determine which device to use
+      // Determine which device to use and ensure we have fresh device list
       let deviceIdToUse = selectedDeviceId;
 
-      // If no devices enumerated yet, this is the first time requesting permission
-      // First request permission and enumerate devices
-      if (audioDevices.length === 0) {
-        console.log('[RECORDING] No devices found, requesting permission first...');
-        try {
-          // Request permission with a quick stream
-          const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Always refresh device list when starting recording to ensure we have current devices
+      console.log('[RECORDING] Refreshing device list before recording...');
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
 
-          // Stop the permission stream immediately
+        console.log('[RECORDING] Current available devices:', audioInputs.map(d => d.label || d.deviceId));
+
+        // Check if permission is granted (devices will have labels)
+        const hasPermission = audioInputs.some(d => d.label !== '');
+
+        if (!hasPermission) {
+          console.log('[RECORDING] No permission yet, requesting...');
+          // Request permission first
+          const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           permissionStream.getTracks().forEach(track => track.stop());
 
-          // Now enumerate devices with permission
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const audioInputs = devices.filter(device => device.kind === 'audioinput');
+          // Re-enumerate after permission granted
+          const devicesAfterPerm = await navigator.mediaDevices.enumerateDevices();
+          const audioInputsAfterPerm = devicesAfterPerm.filter(device => device.kind === 'audioinput');
 
-          console.log('[RECORDING] After permission, found devices:', audioInputs.map(d => d.label || d.deviceId));
+          console.log('[RECORDING] After permission, devices:', audioInputsAfterPerm.map(d => d.label || d.deviceId));
 
+          setAudioDevices(audioInputsAfterPerm);
+
+          if (audioInputsAfterPerm.length > 0) {
+            deviceIdToUse = audioInputsAfterPerm[0].deviceId;
+            setSelectedDeviceId(deviceIdToUse);
+          }
+        } else {
+          // Permission already granted, update device list
           setAudioDevices(audioInputs);
 
-          if (audioInputs.length > 0) {
-            // Use the first device directly, don't rely on async state update
+          // Verify selected device still exists, otherwise use first available
+          if (deviceIdToUse && !audioInputs.some(d => d.deviceId === deviceIdToUse)) {
+            console.log('[RECORDING] Selected device no longer available, using first device');
+            deviceIdToUse = audioInputs[0].deviceId;
+            setSelectedDeviceId(deviceIdToUse);
+          } else if (!deviceIdToUse && audioInputs.length > 0) {
             deviceIdToUse = audioInputs[0].deviceId;
             setSelectedDeviceId(deviceIdToUse);
           }
-        } catch (permErr) {
-          console.error('[RECORDING] Permission request failed:', permErr);
-          // Continue anyway - will fail at getUserMedia below with better error
         }
+      } catch (enumErr) {
+        console.error('[RECORDING] Error enumerating devices:', enumErr);
+        // Continue anyway - getUserMedia will fail with proper error
       }
 
-      // Use selected device if available, otherwise use default
+      // Use selected device if available and valid, otherwise use default
+      // IMPORTANT: Use 'ideal' instead of 'exact' to avoid OverconstrainedError
       const audioConstraints = deviceIdToUse
-        ? { audio: { deviceId: { exact: deviceIdToUse } } }
+        ? { audio: { deviceId: { ideal: deviceIdToUse } } }
         : { audio: true };
 
       console.log('[RECORDING] Starting recording with constraints:', audioConstraints);
