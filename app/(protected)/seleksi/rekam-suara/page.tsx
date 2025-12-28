@@ -17,6 +17,7 @@ export default function RekamSuaraPage() {
 
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isStreamActive, setIsStreamActive] = useState(false); // Track if stream is actually active
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -413,8 +414,24 @@ export default function RekamSuaraPage() {
         : { audio: true };
 
       console.log('[RECORDING] Starting recording with constraints:', audioConstraints);
+
+      // Get stream - this is where permission is actually requested
       const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+
+      // Verify stream has audio tracks
+      if (!stream.getAudioTracks() || stream.getAudioTracks().length === 0) {
+        throw new Error('Tidak ada track audio yang ditemukan dalam stream. Pastikan mikrofon berfungsi.');
+      }
+
+      // Check if audio track is enabled
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack.enabled) {
+        throw new Error('Track audio tidak diaktifkan. Pastikan izin mikrofon diberikan.');
+      }
+
+      console.log('[RECORDING] Stream obtained successfully, audio track:', audioTrack.label || 'unnamed');
       streamRef.current = stream;
+      setIsStreamActive(true);
 
       // Detect supported MIME type (prioritize common formats)
       const mimeTypes = [
@@ -504,6 +521,8 @@ export default function RekamSuaraPage() {
       }
 
       // Clean up on error
+      setIsStreamActive(false);
+      setIsRecording(false);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
@@ -529,6 +548,7 @@ export default function RekamSuaraPage() {
     }
 
     setIsRecording(false);
+    setIsStreamActive(false);
   };
 
   const uploadAudio = async () => {
@@ -1150,28 +1170,45 @@ export default function RekamSuaraPage() {
                   </Alert>
                 )}
 
-                {/* Timer */}
-                {isRecording && (
-                  <div className="space-y-2">
-                    <div className="text-3xl font-mono text-red-600 animate-pulse">
-                      {formatTime(recordingTime)}
+                {/* Timer - Show only when actually recording with active stream */}
+                {isStreamActive && isRecording && (
+                  <div className="space-y-4 w-full">
+                    {/* Recording Indicator */}
+                    <div className="bg-red-50 border-2 border-red-500 rounded-lg p-4 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+                        <span className="font-bold text-red-700">SEDANG MEREKAM</span>
+                      </div>
+                      <div className="text-4xl font-mono text-red-600 animate-pulse">
+                        {formatTime(recordingTime)}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-2">
+                        Estimasi: {(estimatedSize / (1024 * 1024)).toFixed(1)} MB / 10 MB
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      Estimasi: {(estimatedSize / (1024 * 1024)).toFixed(1)} MB / 10 MB
-                    </div>
+
+                    {/* Stop Recording Button */}
+                    <Button
+                      onClick={stopRecording}
+                      size="lg"
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      <Mic className="w-5 h-5 mr-2" />
+                      Hentikan Rekaman
+                    </Button>
                   </div>
                 )}
 
-                {/* Record Button */}
-                {!audioBlob && (
+                {/* Loading/Requesting Permission State */}
+                {(!isStreamActive && !audioBlob) && (
                   <Button
-                    onClick={isRecording ? stopRecording : startRecording}
+                    onClick={startRecording}
                     size="lg"
-                    variant={isRecording ? "destructive" : "default"}
-                    className="w-full sm:w-auto"
+                    className="w-full bg-green-600 hover:bg-green-700"
                   >
                     <Mic className="w-5 h-5 mr-2" />
-                    {isRecording ? 'Hentikan Rekaman' : 'Mulai Merekam'}
+                    Mulai Merekam
                   </Button>
                 )}
 
