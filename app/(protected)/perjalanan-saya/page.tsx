@@ -486,8 +486,8 @@ export default function PerjalananSaya() {
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-900" />
                   <span>Status Pendaftaran</span>
                 </CardTitle>
-                {/* Tombol Edit muncul sampai sebelum tahap "Mendaftar Ulang" selesai */}
-                {canEditRegistration && registrationStatus?.registration && (
+                {/* Tombol Edit selalu muncul untuk sementara */}
+                {registrationStatus?.registration && (
                   <Button
                     size="sm"
                     variant="outline"
