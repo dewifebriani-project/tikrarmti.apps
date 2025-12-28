@@ -470,7 +470,9 @@ export default function PerjalananSaya() {
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-900" />
                   <span>Status Pendaftaran</span>
                 </CardTitle>
-                {registrationStatus.registration?.status === 'pending' && (
+                {/* Tombol Edit muncul untuk status pending, dan juga approved sebelum tahap "Mendaftar Ulang" */}
+                {(registrationStatus.registration?.status === 'pending' ||
+                  (registrationStatus.registration?.status === 'approved' && !registrationStatus.registration?.re_enrollment_completed)) && (
                   <Button
                     size="sm"
                     variant="outline"
