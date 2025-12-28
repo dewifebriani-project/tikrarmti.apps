@@ -34,13 +34,13 @@ interface JuzOption {
 }
 
 const TIME_SLOT_OPTIONS = [
-  { value: '04-06', label: '04.00 - 06.00 WIB' },
-  { value: '06-09', label: '06.00 - 09.00 WIB' },
-  { value: '09-12', label: '09.00 - 12.00 WIB' },
-  { value: '12-15', label: '12.00 - 15.00 WIB' },
-  { value: '15-18', label: '15.00 - 18.00 WIB' },
-  { value: '18-21', label: '18.00 - 21.00 WIB' },
-  { value: '21-24', label: '21.00 - 24.00 WIB' },
+  { value: '04-06', label: '04.00 - 06.00 WIB/WITA/WIT' },
+  { value: '06-09', label: '06.00 - 09.00 WIB/WITA/WIT' },
+  { value: '09-12', label: '09.00 - 12.00 WIB/WITA/WIT' },
+  { value: '12-15', label: '12.00 - 15.00 WIB/WITA/WIT' },
+  { value: '15-18', label: '15.00 - 18.00 WIB/WITA/WIT' },
+  { value: '18-21', label: '18.00 - 21.00 WIB/WITA/WIT' },
+  { value: '21-24', label: '21.00 - 24.00 WIB/WITA/WIT' },
 ];
 
 export function EditTikrarRegistrationModal({
