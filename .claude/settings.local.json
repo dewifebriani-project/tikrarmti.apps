@@ -150,7 +150,13 @@
       "Bash(git -C \"d:\\\\tikrarmti.apps\" commit -m \"$\\(cat <<''EOF''\nfix: Improve Google Form parser and add detailed preview\n\nParser Improvements:\n- Rewrite parser with better section boundary detection\n- Improved question/option detection logic\n- Better handling of multi-line Arabic text\n- More robust section title matching\n- Fix duplicate sections issue\n- Better handling of long questions vs options\n- Should now capture all 100 questions correctly\n\nImport UI Fixes:\n- Fix import button disabled state \\(was checking selectedFile instead of preview\\)\n- Now works for both paste mode and JSON mode\n- Button enables when preview is available\n\nPreview Enhancements:\n- Add \"Show Detailed Preview\" button\n- Preview shows all questions with:\n  * Question text \\(first 150 chars\\)\n  * All options \\(A, B, C, D\\)\n  * Correct answer marked with ✓\n- Scrollable preview \\(max-height with overflow\\)\n- Collapsible to keep UI clean\n- Shows section-by-section breakdown\n\nParsing Logic:\n1. Find all section boundaries first\n2. Parse each section independently\n3. Detect questions by: Arabic text OR long lines OR question keywords\n4. Collect 4 options per question\n5. Skip questions with < 2 options\n6. Handle \"Ketentuan Ikhtibar\" as introduction type\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(npx tsx:*)",
       "Bash(node scripts/generate-build-info:*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(npx eslint:*)",
+      "Bash(tr:*)",
+      "Bash(fold:*)",
+      "Bash(awk:*)",
+      "Bash(python3:*)",
+      "Bash(xxd:*)"
     ],
     "deny": [],
     "ask": []

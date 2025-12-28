@@ -441,6 +441,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
           )}
         </>
       )}
+    </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
