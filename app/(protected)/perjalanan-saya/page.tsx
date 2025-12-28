@@ -101,10 +101,10 @@ export default function PerjalananSaya() {
 
   const getTimeSlotLabel = (slotValue: string) => {
     const slotLabels: Record<string, string> = {
-      'pagi': 'Pagi (06:00 - 12:00)',
-      'siang': 'Siang (12:00 - 15:00)',
-      'sore': 'Sore (15:00 - 18:00)',
-      'malam': 'Malam (18:00 - 21:00)',
+      'pagi': '06-09 WIB',
+      'siang': '12-15 WIB',
+      'sore': '15-18 WIB',
+      'malam': '18-21 WIB',
     };
     return slotLabels[slotValue] || slotValue;
   };
