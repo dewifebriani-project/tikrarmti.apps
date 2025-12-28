@@ -23,6 +23,19 @@ const SECTION_OPTIONS = [
   { value: 7, label: '7 - Tebak Halaman' },
 ];
 
+interface JuzOption {
+  id: string;
+  code: string;
+  name: string;
+  juz_number: number;
+  part: string;
+  start_page: number;
+  end_page: number;
+  total_pages: number;
+  is_active: boolean;
+  sort_order: number;
+}
+
 export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess }: AdminExamQuestionsProps) {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,20 +47,33 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [juzOptions, setJuzOptions] = useState<JuzOption[]>([]);
 
   // AI Generate states
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiForm, setAiForm] = useState({
-    juz_number: 30 as JuzNumber,
+    juz_code: '30A',
     section_number: 1,
     question_count: 5,
-    question_types: [] as string[],
   });
 
   useEffect(() => {
     loadQuestions();
+    loadJuzOptions();
   }, [selectedJuz, selectedSection]);
+
+  const loadJuzOptions = async () => {
+    try {
+      const response = await fetch('/api/juz');
+      const result = await response.json();
+      if (response.ok) {
+        setJuzOptions(result.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading juz options:', error);
+    }
+  };
 
   // Reset page when filters change
   useEffect(() => {
@@ -153,10 +179,9 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
         setShowAIModal(false);
         // Reset form
         setAiForm({
-          juz_number: 30,
+          juz_code: '30A',
           section_number: 1,
           question_count: 5,
-          question_types: [],
         });
         if (onSuccess) onSuccess();
       } else {
@@ -170,32 +195,11 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
     }
   };
 
-  const handleQuestionTypeToggle = (value: string) => {
-    setAiForm(prev => ({
-      ...prev,
-      question_types: prev.question_types.includes(value)
-        ? prev.question_types.filter(t => t !== value)
-        : [...prev.question_types, value],
-    }));
-  };
-
   // Pagination
   const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedQuestions = questions.slice(startIndex, endIndex);
-
-  const exportToJSON = () => {
-    const dataStr = JSON.stringify(questions, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `exam_questions_juz${selectedJuz}_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success('Questions exported to JSON');
-  };
 
   const sections = selectedJuz !== 'all'
     ? Array.from(new Set(questions.map(q => q.section_number))).sort()
@@ -245,14 +249,6 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
           </p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={exportToJSON}
-            disabled={questions.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <Download className="w-4 h-4" />
-            Export JSON
-          </button>
           <button
             onClick={() => setShowAIModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
@@ -601,17 +597,19 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
               {/* Juz Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Juz Number *
+                  Pilihan Juz *
                 </label>
                 <select
-                  value={aiForm.juz_number}
-                  onChange={(e) => setAiForm({ ...aiForm, juz_number: parseInt(e.target.value) as JuzNumber })}
+                  value={aiForm.juz_code}
+                  onChange={(e) => setAiForm({ ...aiForm, juz_code: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   required
                 >
-                  <option value={28}>Juz 28</option>
-                  <option value={29}>Juz 29</option>
-                  <option value={30}>Juz 30</option>
+                  {juzOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.name} (halaman {option.start_page} - {option.end_page})
+                    </option>
+                  ))}
                 </select>
               </div>
 

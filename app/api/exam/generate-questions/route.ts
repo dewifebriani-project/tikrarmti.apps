@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { JuzNumber } from '@/types/exam';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const QUESTION_TYPE_CONFIG: Record<number, { name: string; description: string }> = {
   1: { name: 'Tebak Nama Surat', description: 'Pertanyaan tentang nama-nama surat dalam juz' },
@@ -15,12 +15,13 @@ const QUESTION_TYPE_CONFIG: Record<number, { name: string; description: string }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { juz_number, section_number, question_count } = body;
+    const { juz_code, section_number, question_count } = body;
 
-    // Validate inputs
-    if (![28, 29, 30].includes(juz_number)) {
+    // Validate juz_code format (e.g., "30A", "28B")
+    const juzCodePattern = /^[0-9]+[AB]$/;
+    if (!juz_code || !juzCodePattern.test(juz_code)) {
       return NextResponse.json(
-        { error: 'Invalid juz_number. Must be 28, 29, or 30.' },
+        { error: 'Invalid juz_code. Must be in format like 30A, 28B, etc.' },
         { status: 400 }
       );
     }
@@ -39,12 +40,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current max question number for this juz and section
+    // Get juz info from database
     const supabase = createClient();
+    const { data: juzData } = await supabase
+      .from('juz_options')
+      .select('*')
+      .eq('code', juz_code)
+      .single();
+
+    if (!juzData) {
+      return NextResponse.json(
+        { error: 'Invalid juz_code. Juz option not found in database.' },
+        { status: 400 }
+      );
+    }
+
+    // Get current max question number for this juz and section
     const { data: existingQuestions } = await supabase
       .from('exam_questions')
       .select('question_number')
-      .eq('juz_number', juz_number)
+      .eq('juz_number', juzData.juz_number)
       .eq('section_number', section_number)
       .order('question_number', { ascending: false })
       .limit(1);
@@ -53,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Generate prompt for AI
     const questionTypeInfo = QUESTION_TYPE_CONFIG[section_number];
-    const prompt = `Buat ${question_count} soal pilihan ganda tentang ${questionTypeInfo.name} (${questionTypeInfo.description}) untuk Juz ${juz_number}.
+    const prompt = `Buat ${question_count} soal pilihan ganda tentang ${questionTypeInfo.name} (${questionTypeInfo.description}) untuk ${juzData.name} (${juzData.name}, halaman ${juzData.start_page}-${juzData.end_page}).
 
 Format output HARUS JSON array dengan struktur:
 [
@@ -73,14 +88,14 @@ Format output HARUS JSON array dengan struktur:
 PENTING:
 - Jawaban yang benar harus ditandai dengan "is_correct": true
 - Hanya satu jawaban yang benar untuk setiap soal
-- Pastikan soal sesuai dengan konteks Juz ${juz_number}
+- Pastikan soal sesuai dengan konteks ${juzData.name}
 - Berikan soal yang bervariasi dan tidak monoton
 - Bahasa: Indonesia
 
 Output HANYA JSON array tanpa teks lain.`;
 
-    // Call AI API (using OpenAI or similar)
-    const aiResponse = await callAIAPI(prompt);
+    // Call Google Generative AI API
+    const aiResponse = await callGenerativeAI(prompt);
 
     if (!aiResponse || !Array.isArray(aiResponse)) {
       return NextResponse.json(
@@ -91,12 +106,10 @@ Output HANYA JSON array tanpa teks lain.`;
 
     // Prepare questions for database insertion
     const questionsToInsert = aiResponse.map((q: any, index: number) => {
-      const sectionTitle = questionTypeInfo.name;
-
       return {
-        juz_number,
+        juz_number: juzData.juz_number,
         section_number,
-        section_title: sectionTitle,
+        section_title: questionTypeInfo.name,
         question_number: nextQuestionNumber + index,
         question_text: q.question_text,
         question_type: q.question_type || 'multiple_choice',
@@ -137,61 +150,35 @@ Output HANYA JSON array tanpa teks lain.`;
   }
 }
 
-// Function to call AI API
-async function callAIAPI(prompt: string): Promise<any> {
-  // Check if OpenAI API key is configured
-  const apiKey = process.env.OPENAI_API_KEY;
+// Function to call Google Generative AI API
+async function callGenerativeAI(prompt: string): Promise<any> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
 
   if (!apiKey) {
-    throw new Error('OpenAI API key is not configured');
+    throw new Error('Google AI API key is not configured');
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert Islamic education assistant who creates high-quality multiple-choice questions about Quran memorization. Always respond with valid JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 4000,
-    }),
-  });
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', errorText);
-    throw new Error(`AI API error: ${response.status}`);
-  }
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const text = response.text();
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-
-  if (!content) {
+  if (!text) {
     throw new Error('Empty response from AI');
   }
 
   // Parse JSON response
   try {
     // Try to extract JSON from the response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
-    return JSON.parse(content);
+    return JSON.parse(text);
   } catch (parseError) {
-    console.error('Failed to parse AI response:', content);
+    console.error('Failed to parse AI response:', text);
     throw new Error('Failed to parse AI response as JSON');
   }
 }
