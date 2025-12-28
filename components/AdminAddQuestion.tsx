@@ -14,6 +14,7 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
   const [juzNumber, setJuzNumber] = useState<JuzNumber>(30);
   const [sectionNumber, setSectionNumber] = useState(1);
   const [sectionTitle, setSectionTitle] = useState('Tebak Nama Surat');
+  const [questionNumber, setQuestionNumber] = useState(1);
   const [questionText, setQuestionText] = useState('');
   const [options, setOptions] = useState([
     { text: '', isCorrect: true },
@@ -99,10 +100,12 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
           juz_number: juzNumber,
           section_number: sectionNumber,
           section_title: sectionTitle,
+          question_number: questionNumber,
           question_text: questionText,
           question_type: 'multiple_choice',
           options: options.filter(opt => opt.text.trim()),
           points,
+          is_active: true,
         }),
       });
 
@@ -172,6 +175,20 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Question Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nomor Soal *
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={questionNumber}
+              onChange={(e) => setQuestionNumber(parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
           {/* Question Text */}
