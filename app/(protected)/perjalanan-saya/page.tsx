@@ -352,11 +352,11 @@ export default function PerjalananSaya() {
     });
   }, [isClient, registrationStatus]);
 
-  // Check if edit button should be shown (before "Mendaftar Ulang" / item id 4 is completed)
+  // Check if edit button should be shown (before re_enrollment_completed is true)
   const canEditRegistration = useMemo(() => {
-    const reEnrollmentItem = timelineData.find(item => item.id === 4); // Mendaftar Ulang
-    return reEnrollmentItem?.status !== 'completed';
-  }, [timelineData]);
+    // Edit allowed if re_enrollment_completed is not true (false, null, or undefined)
+    return registrationStatus?.registration?.re_enrollment_completed !== true;
+  }, [registrationStatus]);
 
   const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
