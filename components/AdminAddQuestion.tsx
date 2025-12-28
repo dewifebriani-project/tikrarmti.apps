@@ -13,10 +13,8 @@ interface AdminAddQuestionProps {
 export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) {
   const [juzNumber, setJuzNumber] = useState<JuzNumber>(30);
   const [sectionNumber, setSectionNumber] = useState(1);
-  const [sectionTitle, setSectionTitle] = useState('Ketentuan Ikhtibar');
-  const [questionNumber, setQuestionNumber] = useState(1);
+  const [sectionTitle, setSectionTitle] = useState('Tebak Nama Surat');
   const [questionText, setQuestionText] = useState('');
-  const [questionType, setQuestionType] = useState<'multiple_choice' | 'introduction'>('multiple_choice');
   const [options, setOptions] = useState([
     { text: '', isCorrect: true },
     { text: '', isCorrect: false },
@@ -27,15 +25,14 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
   const [saving, setSaving] = useState(false);
 
   const sectionOptions = [
-    { number: 1, title: 'Ketentuan Ikhtibar' },
-    { number: 2, title: 'Tebak Nama Surat' },
-    { number: 3, title: 'Tebak Ayat' },
-    { number: 4, title: 'Sambung Surat' },
-    { number: 5, title: 'Tebak Awal Ayat' },
-    { number: 6, title: 'Ayat Mutasyabihat' },
-    { number: 7, title: 'Pengenalan Surat' },
-    { number: 8, title: 'Tebak Halaman' },
-    { number: 9, title: 'Lainnya' },
+    { number: 1, title: 'Tebak Nama Surat' },
+    { number: 2, title: 'Tebak Ayat' },
+    { number: 3, title: 'Sambung Surat' },
+    { number: 4, title: 'Tebak Awal Ayat' },
+    { number: 5, title: 'Ayat Mutasyabihat' },
+    { number: 6, title: 'Pengenalan Surat' },
+    { number: 7, title: 'Tebak Halaman' },
+    { number: 8, title: 'Lainnya' },
   ];
 
   const handleSectionChange = (value: string) => {
@@ -44,8 +41,6 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
     const section = sectionOptions.find(s => s.number === num);
     if (section) {
       setSectionTitle(section.title);
-      setQuestionType(num === 1 ? 'introduction' : 'multiple_choice');
-      setPoints(num === 1 ? 0 : 1);
     }
   };
 
@@ -82,18 +77,16 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
       return;
     }
 
-    if (questionType === 'multiple_choice') {
-      const filledOptions = options.filter(opt => opt.text.trim());
-      if (filledOptions.length < 2) {
-        toast.error('Minimal 2 opsi jawaban harus diisi');
-        return;
-      }
+    const filledOptions = options.filter(opt => opt.text.trim());
+    if (filledOptions.length < 2) {
+      toast.error('Minimal 2 opsi jawaban harus diisi');
+      return;
+    }
 
-      const hasCorrect = filledOptions.some(opt => opt.isCorrect);
-      if (!hasCorrect) {
-        toast.error('Pilih jawaban yang benar');
-        return;
-      }
+    const hasCorrect = filledOptions.some(opt => opt.isCorrect);
+    if (!hasCorrect) {
+      toast.error('Pilih jawaban yang benar');
+      return;
     }
 
     try {
@@ -106,12 +99,9 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
           juz_number: juzNumber,
           section_number: sectionNumber,
           section_title: sectionTitle,
-          question_number: questionNumber,
           question_text: questionText,
-          question_type: questionType,
-          options: questionType === 'introduction'
-            ? [{ text: questionText, isCorrect: true }]
-            : options.filter(opt => opt.text.trim()),
+          question_type: 'multiple_choice',
+          options: options.filter(opt => opt.text.trim()),
           points,
         }),
       });
@@ -184,20 +174,6 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
             </div>
           </div>
 
-          {/* Question Number */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Question Number *
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={questionNumber}
-              onChange={(e) => setQuestionNumber(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
           {/* Question Text */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -212,82 +188,53 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
             />
           </div>
 
-          {/* Question Type */}
+          {/* Options */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipe Soal
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  checked={questionType === 'multiple_choice'}
-                  onChange={() => setQuestionType('multiple_choice')}
-                  className="mr-2"
-                />
-                <span>Multiple Choice</span>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Pilihan Jawaban *
               </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  checked={questionType === 'introduction'}
-                  onChange={() => setQuestionType('introduction')}
-                  className="mr-2"
-                />
-                <span>Introduction</span>
-              </label>
+              <button
+                onClick={addOption}
+                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4" />
+                Tambah Opsi
+              </button>
             </div>
+            <div className="space-y-3">
+              {options.map((option, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="correct-answer"
+                    checked={option.isCorrect}
+                    onChange={() => handleCorrectChange(index)}
+                    className="flex-shrink-0"
+                    title="Pilih sebagai jawaban benar"
+                  />
+                  <input
+                    type="text"
+                    value={option.text}
+                    onChange={(e) => handleOptionChange(index, e.target.value)}
+                    placeholder={`Opsi ${index + 1}`}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  {options.length > 2 && (
+                    <button
+                      onClick={() => removeOption(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Klik radio button untuk menandai jawaban yang benar
+            </p>
           </div>
-
-          {/* Options for Multiple Choice */}
-          {questionType === 'multiple_choice' && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Pilihan Jawaban *
-                </label>
-                <button
-                  onClick={addOption}
-                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Tambah Opsi
-                </button>
-              </div>
-              <div className="space-y-3">
-                {options.map((option, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct-answer"
-                      checked={option.isCorrect}
-                      onChange={() => handleCorrectChange(index)}
-                      className="flex-shrink-0"
-                      title="Pilih sebagai jawaban benar"
-                    />
-                    <input
-                      type="text"
-                      value={option.text}
-                      onChange={(e) => handleOptionChange(index, e.target.value)}
-                      placeholder={`Opsi ${index + 1}`}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                    {options.length > 2 && (
-                      <button
-                        onClick={() => removeOption(index)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Klik radio button untuk menandai jawaban yang benar
-              </p>
-            </div>
-          )}
 
           {/* Points */}
           <div>
