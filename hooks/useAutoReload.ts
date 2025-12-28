@@ -78,16 +78,6 @@ export function useAutoReload() {
     }
   }, [checkForUpdates])
 
-  // Listen untuk service worker update
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[Auto Reload] Service Worker changed, reloading...')
-        window.location.reload()
-      })
-    }
-  }, [])
-
   return {
     updateAvailable,
     isChecking,

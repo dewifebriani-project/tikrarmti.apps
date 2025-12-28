@@ -6,48 +6,29 @@ import { useAutoReload } from '@/hooks/useAutoReload'
 /**
  * Provider untuk mengaktifkan auto-reload mechanism
  * Tempatkan di root layout atau main app component
+ *
+ * Service worker disabled due to caching issues with build.json
+ * Auto-reload now works by comparing build versions directly
  */
 export function AutoReloadProvider() {
-  const { updateAvailable, isChecking } = useAutoReload()
+  const { updateAvailable } = useAutoReload()
 
+  // Unregister any existing service workers to prevent caching issues
   useEffect(() => {
-    // Register service worker
     if ('serviceWorker' in navigator && typeof window !== 'undefined') {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('[SW] Service Worker registered:', registration.scope)
-
-          // Cek update dari service worker
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[SW] New content is available')
-                  // Update available, reload will be triggered
-                }
-              })
-            }
-          })
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          console.log('[AutoReload] Unregistering service worker to prevent cache issues:', registration.scope)
+          registration.unregister()
         })
-        .catch((error) => {
-          console.error('[SW] Service Worker registration failed:', error)
-        })
+      })
     }
   }, [])
 
-  // Tampilkan notifikasi jika ada update
+  // Log when update is detected (for debugging)
   useEffect(() => {
     if (updateAvailable) {
-      console.log('[Auto Reload] Update detected, reloading in 3 seconds...')
-
-      // Opsional: Tampilkan toast/snackbar
-      // if (toast) {
-      //   toast.info('Versi baru tersedia! Memuat ulang aplikasi...', {
-      //     duration: 3000,
-      //   })
-      // }
+      console.log('[AutoReload] New version detected, reloading in 3 seconds...')
     }
   }, [updateAvailable])
 
