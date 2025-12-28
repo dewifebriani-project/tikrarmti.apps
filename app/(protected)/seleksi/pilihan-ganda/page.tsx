@@ -8,7 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, AlertCircle, Clock, FileText } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, FileText, Lock } from 'lucide-react';
+
+// Page is locked for testing
+const PAGE_LOCKED = true;
+const LOCK_MESSAGE = 'Halaman ujian pilihan ganda sedang dalam tahap uji coba. Silakan coba lagi nanti.';
 
 interface QuizQuestion {
   id: number;
@@ -278,6 +282,33 @@ export default function PilihanGandaPage() {
   if (!user) {
     router.push('/login');
     return null;
+  }
+
+  // Show lock screen if page is locked for testing
+  if (PAGE_LOCKED) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="max-w-md w-full bg-white shadow-lg">
+          <CardContent className="p-8 text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Lock className="w-8 h-8 text-yellow-600" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Ujian Dikunci</h1>
+              <p className="text-gray-600">{LOCK_MESSAGE}</p>
+            </div>
+            <Button
+              onClick={() => router.push('/perjalanan-saya')}
+              className="w-full"
+            >
+              Kembali ke Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
