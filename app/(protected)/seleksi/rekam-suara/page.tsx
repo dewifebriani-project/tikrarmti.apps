@@ -37,6 +37,9 @@ export default function RekamSuaraPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [estimatedSize, setEstimatedSize] = useState<number>(0);
   const [storageWarning, setStorageWarning] = useState<boolean>(false);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [isEnumeratingDevices, setIsEnumeratingDevices] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -203,6 +206,86 @@ export default function RekamSuaraPage() {
     checkExistingSubmission();
   }, [user?.id]);
 
+  // Enumerate audio devices and request microphone permission on mount
+  useEffect(() => {
+    const getAudioDevices = async () => {
+      // Check if browser supports mediaDevices
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.log('[AUDIO DEVICES] Browser does not support mediaDevices');
+        return;
+      }
+
+      setIsEnumeratingDevices(true);
+
+      try {
+        // First, request permission to access microphone
+        // This is required to get device labels
+        console.log('[AUDIO DEVICES] Requesting microphone permission...');
+        const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Stop the permission stream immediately after getting permission
+        permissionStream.getTracks().forEach(track => track.stop());
+
+        // Now enumerate devices
+        console.log('[AUDIO DEVICES] Enumerating audio input devices...');
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+
+        console.log('[AUDIO DEVICES] Found audio input devices:', audioInputs.map(d => ({
+          id: d.deviceId,
+          label: d.label || `Microphone ${audioInputs.indexOf(d) + 1}`,
+          groupId: d.groupId
+        })));
+
+        setAudioDevices(audioInputs);
+
+        // Select the first device by default (usually the default microphone)
+        if (audioInputs.length > 0) {
+          setSelectedDeviceId(audioInputs[0].deviceId);
+          console.log('[AUDIO DEVICES] Selected device:', audioInputs[0].label || audioInputs[0].deviceId);
+        }
+
+        // Listen for device changes (e.g., headphones plugged in/out)
+        navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+
+      } catch (err) {
+        console.error('[AUDIO DEVICES] Error getting audio devices:', err);
+        // Don't show error to user yet - they might not need to record immediately
+        // Permission will be requested again when they click "Mulai Merekam"
+      } finally {
+        setIsEnumeratingDevices(false);
+      }
+    };
+
+    const handleDeviceChange = async () => {
+      console.log('[AUDIO DEVICES] Device change detected, re-enumerating...');
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+        setAudioDevices(audioInputs);
+
+        // Update selected device if it still exists, otherwise select first
+        if (audioInputs.length > 0) {
+          const selectedStillExists = audioInputs.some(d => d.deviceId === selectedDeviceId);
+          if (!selectedStillExists) {
+            setSelectedDeviceId(audioInputs[0].deviceId);
+          }
+        }
+      } catch (err) {
+        console.error('[AUDIO DEVICES] Error re-enumerating devices:', err);
+      }
+    };
+
+    getAudioDevices();
+
+    // Cleanup event listener
+    return () => {
+      if (navigator.mediaDevices) {
+        navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      }
+    };
+  }, []); // Run once on mount
+
   // Recording timer with size estimation
   useEffect(() => {
     if (isRecording) {
@@ -271,7 +354,13 @@ export default function RekamSuaraPage() {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Use selected device if available, otherwise use default
+      const audioConstraints = selectedDeviceId
+        ? { audio: { deviceId: { exact: selectedDeviceId } } }
+        : { audio: true };
+
+      console.log('[RECORDING] Starting recording with constraints:', audioConstraints);
+      const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
       streamRef.current = stream;
 
       // Detect supported MIME type (prioritize common formats)
@@ -951,6 +1040,47 @@ export default function RekamSuaraPage() {
           {!existingSubmission && !uploadSuccess && hasRegistration === true && (
             <div className="space-y-4">
               <div className="flex flex-col items-center space-y-4">
+                {/* Microphone Selection */}
+                {audioDevices.length > 0 && (
+                  <div className="w-full space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Pilih Mikrofon:
+                    </label>
+                    <select
+                      value={selectedDeviceId}
+                      onChange={(e) => setSelectedDeviceId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      disabled={isRecording || isUploading}
+                    >
+                      {audioDevices.map((device) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Microphone ${audioDevices.indexOf(device) + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500">
+                      Pilih mikrofon yang ingin digunakan untuk merekam
+                    </p>
+                  </div>
+                )}
+
+                {/* Microphone Permission Request - Show if no devices found */}
+                {audioDevices.length === 0 && !isEnumeratingDevices && (
+                  <Alert className="bg-yellow-50 border-yellow-200">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p className="text-sm text-yellow-800">
+                          <strong>Izin mikrofon diperlukan</strong>
+                        </p>
+                        <p className="text-xs text-yellow-700">
+                          Klik tombol "Mulai Merekam" di bawah untuk mengizinkan akses mikrofon.
+                        </p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Storage Warning */}
                 {storageWarning && (
                   <Alert variant="destructive" className="animate-pulse">
@@ -1103,7 +1233,8 @@ export default function RekamSuaraPage() {
               <div className="bg-blue-50 p-4 rounded-lg text-sm space-y-2">
                 <p className="font-semibold text-blue-900">Petunjuk:</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-800">
-                  <li>Klik "Mulai Merekam" dan izinkan akses mikrofon</li>
+                  <li>Pilih mikrofon yang akan digunakan dari dropdown di atas</li>
+                  <li>Klik "Mulai Merekam" dan izinkan akses mikrofon jika diminta</li>
                   <li>Bacakan QS. Al-Fath ayat 29 dengan tartil</li>
                   <li>Klik "Hentikan Rekaman" setelah selesai</li>
                   <li className="font-bold text-red-700">⚠️ Dengarkan hasil rekaman minimal 3 kali sebelum mengirim</li>
