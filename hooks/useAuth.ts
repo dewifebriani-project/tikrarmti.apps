@@ -129,26 +129,21 @@ export function useAuth() {
   // Enhanced logout function
   const logout = useCallback(async () => {
     try {
-      // Call logout API
-      const response = await fetch('/api/auth/logout', {
+      // Clear SWR cache immediately for instant UI feedback
+      mutate(null, false)
+
+      // Call logout API and Supabase signOut in parallel (non-blocking)
+      fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-      });
+      }).catch(err => console.warn('Logout API call failed:', err))
 
-      if (!response.ok) {
-        throw new Error('Failed to log out');
-      }
+      supabase.auth.signOut().catch(err => console.warn('Supabase signOut failed:', err))
 
-      // Sign out from Supabase client
-      await supabase.auth.signOut()
-
-      // Clear SWR cache for auth data
-      mutate(null, false)
-
-      // Force redirect to login page
+      // Redirect immediately without waiting for API responses
       window.location.href = '/login'
     } catch (error) {
       console.error('Logout failed:', error)
