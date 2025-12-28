@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X, Sparkles, Loader2 } from 'lucide-react';
 import { JuzNumber, ExamQuestion, AdminQuestionEditForm } from '@/types/exam';
 
 interface AdminExamQuestionsProps {
@@ -12,6 +12,16 @@ interface AdminExamQuestionsProps {
 }
 
 const ITEMS_PER_PAGE = 20;
+
+const SECTION_OPTIONS = [
+  { value: 1, label: '1 - Tebak Nama Surat' },
+  { value: 2, label: '2 - Tebak Ayat' },
+  { value: 3, label: '3 - Sambung Surat' },
+  { value: 4, label: '4 - Tebak Awal Ayat' },
+  { value: 5, label: '5 - Ayat Mutasyabihat' },
+  { value: 6, label: '6 - Pengenalan Surat' },
+  { value: 7, label: '7 - Tebak Halaman' },
+];
 
 export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess }: AdminExamQuestionsProps) {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -24,6 +34,16 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // AI Generate states
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiForm, setAiForm] = useState({
+    juz_number: 30 as JuzNumber,
+    section_number: 1,
+    question_count: 5,
+    question_types: [] as string[],
+  });
 
   useEffect(() => {
     loadQuestions();
@@ -114,6 +134,51 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
     }
   };
 
+  const handleAIGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAiGenerating(true);
+
+    try {
+      const response = await fetch('/api/exam/generate-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiForm),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(`Successfully generated ${result.data?.length || 0} questions`);
+        loadQuestions();
+        setShowAIModal(false);
+        // Reset form
+        setAiForm({
+          juz_number: 30,
+          section_number: 1,
+          question_count: 5,
+          question_types: [],
+        });
+        if (onSuccess) onSuccess();
+      } else {
+        toast.error(result.error || 'Failed to generate questions');
+      }
+    } catch (error) {
+      console.error('Error generating questions:', error);
+      toast.error('Failed to generate questions');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleQuestionTypeToggle = (value: string) => {
+    setAiForm(prev => ({
+      ...prev,
+      question_types: prev.question_types.includes(value)
+        ? prev.question_types.filter(t => t !== value)
+        : [...prev.question_types, value],
+    }));
+  };
+
   // Pagination
   const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -187,6 +252,13 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
           >
             <Download className="w-4 h-4" />
             Export JSON
+          </button>
+          <button
+            onClick={() => setShowAIModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+          >
+            <Sparkles className="w-4 h-4" />
+            AI Generate
           </button>
           <button
             onClick={onAddManualClick}
@@ -502,6 +574,130 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
               }}
               isSaving={isSaving}
             />
+          </div>
+        </div>
+      )}
+
+      {/* AI Generate Questions Modal */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                AI Generate Questions
+              </h2>
+              <button
+                onClick={() => setShowAIModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleAIGenerate} className="p-6 space-y-4">
+              {/* Juz Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Juz Number *
+                </label>
+                <select
+                  value={aiForm.juz_number}
+                  onChange={(e) => setAiForm({ ...aiForm, juz_number: parseInt(e.target.value) as JuzNumber })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  required
+                >
+                  <option value={28}>Juz 28</option>
+                  <option value={29}>Juz 29</option>
+                  <option value={30}>Juz 30</option>
+                </select>
+              </div>
+
+              {/* Section Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Question Type / Section *
+                </label>
+                <select
+                  value={aiForm.section_number}
+                  onChange={(e) => setAiForm({ ...aiForm, section_number: parseInt(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  required
+                >
+                  {SECTION_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Question Count */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Questions *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={aiForm.question_count}
+                  onChange={(e) => setAiForm({ ...aiForm, question_count: parseInt(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Generate 1-20 questions at a time
+                </p>
+              </div>
+
+              {/* Info */}
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <p className="text-xs text-purple-800">
+                  <strong>Info:</strong> AI akan generate soal-soal ujian sesuai dengan tipe yang dipilih.
+                  Soal akan disimpan otomatis ke database setelah generate selesai.
+                </p>
+              </div>
+
+              {/* Warning */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-xs text-yellow-800">
+                  <strong>Catatan:</strong> Proses generate mungkin memerlukan waktu beberapa detik.
+                  Pastikan koneksi internet stabil.
+                </p>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setShowAIModal(false)}
+                  disabled={aiGenerating}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={aiGenerating}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {aiGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Generate Questions
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
