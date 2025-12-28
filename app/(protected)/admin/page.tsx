@@ -259,7 +259,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'halaqah-mentors' | 'halaqah-students' | 'pendaftaran' | 'presensi' | 'tikrar' | 'exam-questions' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'halaqah-mentors' | 'halaqah-students' | 'pendaftaran' | 'presensi' | 'tikrar' | 'muallimah' | 'exam-questions' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -309,6 +309,7 @@ export default function AdminPage() {
   const [halaqahStudents, setHalaqahStudents] = useState<HalaqahStudent[]>([]);
   const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
+  const [muallimah, setMuallimah] = useState<any[]>([]);
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
 
   // Exam modal states
@@ -501,6 +502,18 @@ export default function AdminPage() {
           console.error('Unexpected error loading presensi:', err);
           setPresensi([]);
         }
+      } else if (activeTab === 'muallimah') {
+        const response = await fetch('/api/admin/muallimah?skipCount=true');
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error loading muallimah:', errorData);
+          toast.error(errorData.error || 'Error loading muallimah');
+          setMuallimah([]);
+        } else {
+          const result = await response.json();
+          console.log(`Muallimah loaded: ${result.data?.length || 0} records`);
+          setMuallimah(result.data || []);
+        }
       }
     } catch (error) {
       console.error('Error in loadData:', error);
@@ -522,6 +535,7 @@ export default function AdminPage() {
     { id: 'pendaftaran' as TabType, name: 'Pendaftaran', icon: ClipboardList },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
+    { id: 'muallimah' as TabType, name: 'Muallimah', icon: Users },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText }
   ];
@@ -702,6 +716,15 @@ export default function AdminPage() {
               onRefresh={() => mutateTikrar()}
             />
           )
+        )}
+        {activeTab === 'muallimah' && (
+          <MuallimahTab
+            muallimah={muallimah}
+            batches={batches}
+            selectedBatchFilter={selectedBatchFilter}
+            onBatchFilterChange={setSelectedBatchFilter}
+            onRefresh={loadData}
+          />
         )}
         {activeTab === 'exam-questions' && (
           <AdminExamQuestions
@@ -4632,6 +4655,305 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Back
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Muallimah Tab Component
+interface MuallimahTabProps {
+  muallimah: any[];
+  batches: Batch[];
+  selectedBatchFilter: string;
+  onBatchFilterChange: (batchId: string) => void;
+  onRefresh: () => void;
+}
+
+function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterChange, onRefresh }: MuallimahTabProps) {
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showUnapproveModal, setShowUnapproveModal] = useState(false);
+  const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
+  const [unapproveReason, setUnapproveReason] = useState('');
+
+  // Filter muallimah by batch_id
+  const filteredMuallimah = selectedBatchFilter === 'all'
+    ? muallimah
+    : muallimah.filter(m => m.batch_id === selectedBatchFilter);
+
+  // Calculate statistics
+  const stats = {
+    total: filteredMuallimah.length,
+    pending: filteredMuallimah.filter(m => m.status === 'pending').length,
+    review: filteredMuallimah.filter(m => m.status === 'review').length,
+    approved: filteredMuallimah.filter(m => m.status === 'approved').length,
+    rejected: filteredMuallimah.filter(m => m.status === 'rejected').length,
+    waitlist: filteredMuallimah.filter(m => m.status === 'waitlist').length,
+  };
+
+  // Handle approve
+  const handleApprove = async (registration: any) => {
+    try {
+      const response = await fetch('/api/admin/muallimah/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: registration.id }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to approve registration');
+      }
+
+      toast.success('Muallimah registration approved successfully');
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error approving registration:', error);
+      toast.error(error.message || 'Failed to approve registration');
+    }
+  };
+
+  // Handle unapprove
+  const handleUnapprove = (registration: any) => {
+    setSelectedRegistration(registration);
+    setShowUnapproveModal(true);
+  };
+
+  // Confirm unapprove
+  const confirmUnapprove = async () => {
+    if (!selectedRegistration) return;
+
+    try {
+      const response = await fetch('/api/admin/muallimah/unapprove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedRegistration.id,
+          review_notes: unapproveReason.trim() || 'Approval cancelled'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to unapprove registration');
+      }
+
+      toast.success('Registration unapproved successfully');
+      setShowUnapproveModal(false);
+      setUnapproveReason('');
+      setSelectedRegistration(null);
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error unapproving registration:', error);
+      toast.error(error.message || 'Failed to unapprove registration');
+    }
+  };
+
+  // Get status badge color
+  const getStatusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      review: 'bg-blue-100 text-blue-800',
+      approved: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+      waitlist: 'bg-gray-100 text-gray-800',
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Batch Filter */}
+      <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+        <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+        <select
+          value={selectedBatchFilter}
+          onChange={(e) => onBatchFilterChange(e.target.value)}
+          className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+        >
+          <option value="all">All Batches ({muallimah.length})</option>
+          {batches.map((batch) => (
+            <option key={batch.id} value={batch.id}>
+              {batch.name} ({muallimah.filter(m => m.batch_id === batch.id).length})
+            </option>
+          ))}
+        </select>
+        {selectedBatchFilter !== 'all' && (
+          <span className="text-sm text-gray-500">
+            Showing {filteredMuallimah.length} of {muallimah.length} registrations
+          </span>
+        )}
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
+          <p className="text-blue-100 text-xs font-medium">Total</p>
+          <p className="text-2xl font-bold">{stats.total}</p>
+        </div>
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-4 text-white">
+          <p className="text-yellow-100 text-xs font-medium">Pending</p>
+          <p className="text-2xl font-bold">{stats.pending}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg shadow-lg p-4 text-white">
+          <p className="text-blue-100 text-xs font-medium">In Review</p>
+          <p className="text-2xl font-bold">{stats.review}</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white">
+          <p className="text-green-100 text-xs font-medium">Approved</p>
+          <p className="text-2xl font-bold">{stats.approved}</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white">
+          <p className="text-red-100 text-xs font-medium">Rejected</p>
+          <p className="text-2xl font-bold">{stats.rejected}</p>
+        </div>
+        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg shadow-lg p-4 text-white">
+          <p className="text-gray-100 text-xs font-medium">Waitlist</p>
+          <p className="text-2xl font-bold">{stats.waitlist}</p>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preferred Juz</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredMuallimah.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                    <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-sm">No muallimah registrations found</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredMuallimah.map((m) => (
+                  <tr key={m.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{m.full_name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{m.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{m.batch?.name || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{m.preferred_juz || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{m.preferred_schedule || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(m.status)}`}>
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(m.submitted_at).toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        {m.status === 'pending' || m.status === 'review' ? (
+                          <button
+                            onClick={() => handleApprove(m)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Approve
+                          </button>
+                        ) : m.status === 'approved' ? (
+                          <button
+                            onClick={() => handleUnapprove(m)}
+                            className="text-orange-600 hover:text-orange-900"
+                          >
+                            Unapprove
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Unapprove Modal */}
+      {showUnapproveModal && selectedRegistration && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowUnapproveModal(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Unapprove Muallimah Registration
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to unapprove the registration for "{selectedRegistration.full_name}"?
+                      </p>
+                      <div className="mt-4">
+                        <label htmlFor="unapprove-reason" className="block text-sm font-medium text-gray-700 mb-2">
+                          Reason (Optional)
+                        </label>
+                        <textarea
+                          id="unapprove-reason"
+                          rows={3}
+                          value={unapproveReason}
+                          onChange={(e) => setUnapproveReason(e.target.value)}
+                          className="shadow-sm focus:ring-orange-500 focus:border-orange-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                          placeholder="Enter reason for unapproval..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={confirmUnapprove}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Unapprove
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUnapproveModal(false);
+                    setUnapproveReason('');
+                    setSelectedRegistration(null);
+                  }}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
