@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { X, Loader2 } from 'lucide-react';
 
@@ -20,12 +20,18 @@ interface EditTikrarRegistrationProps {
   };
 }
 
-const JUZ_OPTIONS = [
-  { value: '30A', label: 'Juz 30A (halaman 1-20)' },
-  { value: '30B', label: 'Juz 30B (halaman 21-40)' },
-  { value: '28', label: 'Juz 28' },
-  { value: '29', label: 'Juz 29' },
-];
+interface JuzOption {
+  id: string;
+  code: string;
+  name: string;
+  juz_number: number;
+  part: string;
+  start_page: number;
+  end_page: number;
+  total_pages: number;
+  is_active: boolean;
+  sort_order: number;
+}
 
 const TIME_SLOT_OPTIONS = [
   { value: '04-06', label: '04.00 - 06.00 WIB' },
@@ -43,12 +49,46 @@ export function EditTikrarRegistrationModal({
   onSuccess,
   registration
 }: EditTikrarRegistrationProps) {
+  const [juzOptions, setJuzOptions] = useState<JuzOption[]>([]);
+  const [isLoadingJuz, setIsLoadingJuz] = useState(false);
   const [formData, setFormData] = useState({
     chosen_juz: registration.chosen_juz,
     main_time_slot: registration.main_time_slot,
     backup_time_slot: registration.backup_time_slot,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch juz options from database when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchJuzOptions();
+      // Reset form data with current registration values
+      setFormData({
+        chosen_juz: registration.chosen_juz,
+        main_time_slot: registration.main_time_slot,
+        backup_time_slot: registration.backup_time_slot,
+      });
+    }
+  }, [isOpen, registration]);
+
+  const fetchJuzOptions = async () => {
+    setIsLoadingJuz(true);
+    try {
+      const response = await fetch('/api/juz');
+      const result = await response.json();
+
+      if (response.ok) {
+        setJuzOptions(result.data || []);
+      } else {
+        toast.error('Gagal memuat opsi juz');
+      }
+    } catch (error) {
+      console.error('Error fetching juz options:', error);
+      toast.error('Gagal memuat opsi juz');
+    } finally {
+      setIsLoadingJuz(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -111,18 +151,25 @@ export function EditTikrarRegistrationModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Pilihan Juz *
             </label>
-            <select
-              value={formData.chosen_juz}
-              onChange={(e) => setFormData({ ...formData, chosen_juz: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              {JUZ_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {isLoadingJuz ? (
+              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+              </div>
+            ) : (
+              <select
+                value={formData.chosen_juz}
+                onChange={(e) => setFormData({ ...formData, chosen_juz: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Pilih juz</option>
+                {juzOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.name} (halaman {option.start_page} - {option.end_page})
+                  </option>
+                ))}
+              </select>
+            )}
             <p className="mt-1 text-xs text-gray-500">
               Pilihan juz dapat diubah hingga batas waktu yang ditentukan
             </p>

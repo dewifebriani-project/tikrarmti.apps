@@ -131,10 +131,16 @@ export async function PUT(
 
     // Check if registration is already approved
     // Allow ONLY oral submission updates and oral assessment updates for approved registrations
+    // Also ALLOW updating chosen_juz, main_time_slot, backup_time_slot for approved registrations
     // Admin can always update
 
-    if (!isAdmin && existingRegistration.status === 'approved' && !isOralSubmissionUpdate && !isOralAssessmentUpdate) {
-      logger.warn('Attempted to update approved registration (non-oral fields)', {
+    // Check if this is a schedule/juz update (allowed even for approved registrations)
+    const isScheduleUpdate = body.chosen_juz !== undefined ||
+                             body.main_time_slot !== undefined ||
+                             body.backup_time_slot !== undefined;
+
+    if (!isAdmin && existingRegistration.status === 'approved' && !isOralSubmissionUpdate && !isOralAssessmentUpdate && !isScheduleUpdate) {
+      logger.warn('Attempted to update approved registration (non-allowed fields)', {
         registrationId: id,
         userId: user.id,
         fields: Object.keys(body)
@@ -168,6 +174,12 @@ export async function PUT(
       if (body.oral_assessed_at !== undefined) updateData.oral_assessed_at = body.oral_assessed_at;
       if (body.oral_assessment_notes !== undefined) updateData.oral_assessment_notes = body.oral_assessment_notes;
       if (body.selection_status !== undefined) updateData.selection_status = body.selection_status;
+      updateData.updated_at = new Date().toISOString();
+    } else if (isScheduleUpdate) {
+      // Schedule/juz update (allowed even for approved registrations)
+      if (body.chosen_juz !== undefined) updateData.chosen_juz = body.chosen_juz;
+      if (body.main_time_slot !== undefined) updateData.main_time_slot = body.main_time_slot;
+      if (body.backup_time_slot !== undefined) updateData.backup_time_slot = body.backup_time_slot;
       updateData.updated_at = new Date().toISOString();
     } else {
       // Regular registration update (only for non-approved registrations)
