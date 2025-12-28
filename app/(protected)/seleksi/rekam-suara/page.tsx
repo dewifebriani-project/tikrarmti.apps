@@ -206,11 +206,12 @@ export default function RekamSuaraPage() {
     checkExistingSubmission();
   }, [user?.id]);
 
-  // Enumerate audio devices and request microphone permission on mount
+  // Enumerate audio devices (check if permission already granted)
+  // Permission will be requested when user clicks "Mulai Merekam"
   useEffect(() => {
     const getAudioDevices = async () => {
       // Check if browser supports mediaDevices
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
         console.log('[AUDIO DEVICES] Browser does not support mediaDevices');
         return;
       }
@@ -218,16 +219,8 @@ export default function RekamSuaraPage() {
       setIsEnumeratingDevices(true);
 
       try {
-        // First, request permission to access microphone
-        // This is required to get device labels
-        console.log('[AUDIO DEVICES] Requesting microphone permission...');
-        const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        // Stop the permission stream immediately after getting permission
-        permissionStream.getTracks().forEach(track => track.stop());
-
-        // Now enumerate devices
-        console.log('[AUDIO DEVICES] Enumerating audio input devices...');
+        // Try to enumerate devices WITHOUT requesting permission yet
+        console.log('[AUDIO DEVICES] Enumerating devices (no permission request)...');
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter(device => device.kind === 'audioinput');
 
@@ -237,21 +230,25 @@ export default function RekamSuaraPage() {
           groupId: d.groupId
         })));
 
-        setAudioDevices(audioInputs);
+        // Check if we already have permission (devices will have labels if permission granted)
+        const hasPermission = audioInputs.some(d => d.label !== '');
 
-        // Select the first device by default (usually the default microphone)
-        if (audioInputs.length > 0) {
-          setSelectedDeviceId(audioInputs[0].deviceId);
-          console.log('[AUDIO DEVICES] Selected device:', audioInputs[0].label || audioInputs[0].deviceId);
+        if (hasPermission) {
+          setAudioDevices(audioInputs);
+          if (audioInputs.length > 0) {
+            setSelectedDeviceId(audioInputs[0].deviceId);
+            console.log('[AUDIO DEVICES] Permission already granted, selected device:', audioInputs[0].label || audioInputs[0].deviceId);
+          }
+        } else {
+          console.log('[AUDIO DEVICES] No permission yet, will request when user clicks record');
+          // Don't set audioDevices - show "click to allow" message instead
         }
 
         // Listen for device changes (e.g., headphones plugged in/out)
         navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
 
       } catch (err) {
-        console.error('[AUDIO DEVICES] Error getting audio devices:', err);
-        // Don't show error to user yet - they might not need to record immediately
-        // Permission will be requested again when they click "Mulai Merekam"
+        console.error('[AUDIO DEVICES] Error enumerating devices:', err);
       } finally {
         setIsEnumeratingDevices(false);
       }
@@ -262,13 +259,17 @@ export default function RekamSuaraPage() {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        setAudioDevices(audioInputs);
+        const hasPermission = audioInputs.some(d => d.label !== '');
 
-        // Update selected device if it still exists, otherwise select first
-        if (audioInputs.length > 0) {
-          const selectedStillExists = audioInputs.some(d => d.deviceId === selectedDeviceId);
-          if (!selectedStillExists) {
-            setSelectedDeviceId(audioInputs[0].deviceId);
+        if (hasPermission) {
+          setAudioDevices(audioInputs);
+
+          // Update selected device if it still exists, otherwise select first
+          if (audioInputs.length > 0) {
+            const selectedStillExists = audioInputs.some(d => d.deviceId === selectedDeviceId);
+            if (!selectedStillExists) {
+              setSelectedDeviceId(audioInputs[0].deviceId);
+            }
           }
         }
       } catch (err) {
@@ -352,6 +353,34 @@ export default function RekamSuaraPage() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setError('Browser *Ukhti* tidak mendukung perekaman audio. Gunakan browser Chrome, Firefox, atau Safari terbaru.');
         return;
+      }
+
+      // If no devices enumerated yet, this is the first time requesting permission
+      // First request permission and enumerate devices
+      if (audioDevices.length === 0) {
+        console.log('[RECORDING] No devices found, requesting permission first...');
+        try {
+          // Request permission with a quick stream
+          const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+          // Stop the permission stream immediately
+          permissionStream.getTracks().forEach(track => track.stop());
+
+          // Now enumerate devices with permission
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const audioInputs = devices.filter(device => device.kind === 'audioinput');
+
+          console.log('[RECORDING] After permission, found devices:', audioInputs.map(d => d.label || d.deviceId));
+
+          setAudioDevices(audioInputs);
+
+          if (audioInputs.length > 0) {
+            setSelectedDeviceId(audioInputs[0].deviceId);
+          }
+        } catch (permErr) {
+          console.error('[RECORDING] Permission request failed:', permErr);
+          // Continue anyway - will fail at getUserMedia below with better error
+        }
       }
 
       // Use selected device if available, otherwise use default
