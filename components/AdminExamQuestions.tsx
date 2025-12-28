@@ -2,26 +2,36 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download } from 'lucide-react';
-import { JuzNumber, ExamQuestion } from '@/types/exam';
+import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { JuzNumber, ExamQuestion, AdminQuestionEditForm } from '@/types/exam';
 
 interface AdminExamQuestionsProps {
   onImportClick: () => void;
   onAddManualClick: () => void;
+  onSuccess?: () => void;
 }
 
-export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExamQuestionsProps) {
+const ITEMS_PER_PAGE = 20;
+
+export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess }: AdminExamQuestionsProps) {
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedJuz, setSelectedJuz] = useState<JuzNumber | 'all'>('all');
   const [selectedSection, setSelectedSection] = useState<number | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<ExamQuestion | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadQuestions();
+  }, [selectedJuz, selectedSection]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
   }, [selectedJuz, selectedSection]);
 
   const loadQuestions = async () => {
@@ -66,6 +76,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
         loadQuestions();
         setShowDeleteModal(false);
         setDeletingQuestionId(null);
+        if (onSuccess) onSuccess();
       } else {
         toast.error(result.error || 'Failed to delete question');
       }
@@ -74,6 +85,40 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
       toast.error('Failed to delete question');
     }
   };
+
+  const handleUpdate = async (formData: AdminQuestionEditForm) => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/exam/questions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, id: editingQuestion?.id }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success('Question updated successfully');
+        loadQuestions();
+        setShowEditModal(false);
+        setEditingQuestion(null);
+        if (onSuccess) onSuccess();
+      } else {
+        toast.error(result.error || 'Failed to update question');
+      }
+    } catch (error) {
+      console.error('Error updating question:', error);
+      toast.error('Failed to update question');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedQuestions = questions.slice(startIndex, endIndex);
 
   const exportToJSON = () => {
     const dataStr = JSON.stringify(questions, null, 2);
@@ -91,7 +136,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
     ? Array.from(new Set(questions.map(q => q.section_number))).sort()
     : [];
 
-  const filteredQuestions = questions;
+  // Use paginated questions for display
 
   // Calculate statistics per juz and section
   const getStatistics = () => {
@@ -245,7 +290,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
               Total Questions
             </label>
             <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 font-semibold">
-              {filteredQuestions.length} questions
+              {questions.length} questions
             </div>
           </div>
         </div>
@@ -258,7 +303,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading questions...</p>
           </div>
-        ) : filteredQuestions.length === 0 ? (
+        ) : questions.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-600 mb-4">No questions found</p>
             <button
@@ -270,38 +315,39 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Juz
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Section
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Q#
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Question
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Options
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Points
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredQuestions.map((question) => (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Juz
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Section
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Q#
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Question
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Options
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Points
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedQuestions.map((question) => (
                   <tr key={question.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       {question.juz_number}
@@ -365,8 +411,36 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                Showing {startIndex + 1} to {Math.min(endIndex, questions.length)} of {questions.length} questions
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
@@ -398,6 +472,242 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick }: AdminExa
           </div>
         </div>
       )}
+
+      {/* Edit Question Modal */}
+      {showEditModal && editingQuestion && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Question</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingQuestion(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <EditQuestionForm
+              question={editingQuestion}
+              onSave={handleUpdate}
+              onCancel={() => {
+                setShowEditModal(false);
+                setEditingQuestion(null);
+              }}
+              isSaving={isSaving}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Edit Question Form Component
+function EditQuestionForm({
+  question,
+  onSave,
+  onCancel,
+  isSaving
+}: {
+  question: ExamQuestion;
+  onSave: (data: AdminQuestionEditForm) => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}) {
+  const [formData, setFormData] = useState<AdminQuestionEditForm>({
+    juz_number: question.juz_number,
+    section_number: question.section_number,
+    section_title: question.section_title || '',
+    question_number: question.question_number,
+    question_text: question.question_text,
+    question_type: question.question_type || 'multiple_choice',
+    options: question.options || [],
+    points: question.points || 1,
+    is_active: question.is_active !== false,
+  });
+
+  const handleOptionChange = (index: number, field: 'text' | 'isCorrect', value: string | boolean) => {
+    const newOptions = [...formData.options];
+    newOptions[index] = { ...newOptions[index], [field]: value };
+    setFormData({ ...formData, options: newOptions });
+  };
+
+  const addOption = () => {
+    setFormData({
+      ...formData,
+      options: [...formData.options, { text: '', isCorrect: false }]
+    });
+  };
+
+  const removeOption = (index: number) => {
+    const newOptions = formData.options.filter((_, i) => i !== index);
+    setFormData({ ...formData, options: newOptions });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Juz Number</label>
+          <input
+            type="number"
+            value={formData.juz_number}
+            onChange={(e) => setFormData({ ...formData, juz_number: parseInt(e.target.value) as JuzNumber })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Section Number</label>
+          <input
+            type="number"
+            value={formData.section_number}
+            onChange={(e) => setFormData({ ...formData, section_number: parseInt(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
+        <input
+          type="text"
+          value={formData.section_title}
+          onChange={(e) => setFormData({ ...formData, section_title: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Question Number</label>
+        <input
+          type="number"
+          value={formData.question_number}
+          onChange={(e) => setFormData({ ...formData, question_number: parseInt(e.target.value) })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Question Text</label>
+        <textarea
+          value={formData.question_text}
+          onChange={(e) => setFormData({ ...formData, question_text: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          rows={3}
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
+        <select
+          value={formData.question_type}
+          onChange={(e) => setFormData({ ...formData, question_type: e.target.value as any })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+        >
+          <option value="multiple_choice">Multiple Choice</option>
+          <option value="introduction">Introduction</option>
+        </select>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">Options</label>
+          <button
+            type="button"
+            onClick={addOption}
+            className="text-sm text-blue-600 hover:text-blue-700"
+          >
+            + Add Option
+          </button>
+        </div>
+        <div className="space-y-2">
+          {formData.options.map((option, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={option.isCorrect}
+                onChange={(e) => handleOptionChange(index, 'isCorrect', e.target.checked)}
+                className="w-4 h-4 text-green-600"
+              />
+              <input
+                type="text"
+                value={option.text}
+                onChange={(e) => handleOptionChange(index, 'text', e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                placeholder="Option text"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => removeOption(index)}
+                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                disabled={formData.options.length <= 1}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">Check the box next to the correct answer</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Points</label>
+          <input
+            type="number"
+            value={formData.points}
+            onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            min="1"
+            required
+          />
+        </div>
+        <div className="flex items-center">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <span className="text-sm font-medium text-gray-700">Active</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </form>
   );
 }
