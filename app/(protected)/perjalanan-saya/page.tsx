@@ -486,18 +486,6 @@ export default function PerjalananSaya() {
                   <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-900" />
                   <span>Status Pendaftaran</span>
                 </CardTitle>
-                {/* Tombol Edit selalu muncul untuk sementara */}
-                {registrationStatus?.registration && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-green-300 text-green-700 hover:bg-green-100"
-                    onClick={() => setIsEditModalOpen(true)}
-                  >
-                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span className="hidden xs:inline">Edit</span>
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -598,29 +586,41 @@ export default function PerjalananSaya() {
                   </>
                 )}
 
-                {/* Status Badge */}
-                <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
-                  registrationStatus.registration?.status === 'approved'
-                    ? 'bg-green-100 text-green-800'
-                    : registrationStatus.registration?.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : registrationStatus.registration?.status === 'rejected'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full mr-2 ${
+                {/* Status Badge / Edit Button */}
+                {registrationStatus.registration?.re_enrollment_completed !== true ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                    onClick={() => setIsEditModalOpen(true)}
+                  >
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    <span className="text-xs sm:text-sm">Edit Pendaftaran</span>
+                  </Button>
+                ) : (
+                  <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
                     registrationStatus.registration?.status === 'approved'
-                      ? 'bg-green-600'
+                      ? 'bg-green-100 text-green-800'
                       : registrationStatus.registration?.status === 'pending'
-                      ? 'bg-yellow-600 animate-pulse'
+                      ? 'bg-yellow-100 text-yellow-800'
                       : registrationStatus.registration?.status === 'rejected'
-                      ? 'bg-red-600'
-                      : 'bg-gray-600'
-                  }`}></span>
-                  {registrationStatus.registration?.status === 'pending' ? 'Menunggu Persetujuan' :
-                   registrationStatus.registration?.status === 'approved' ? 'Disetujui' :
-                   registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                </div>
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full mr-2 ${
+                      registrationStatus.registration?.status === 'approved'
+                        ? 'bg-green-600'
+                        : registrationStatus.registration?.status === 'pending'
+                        ? 'bg-yellow-600 animate-pulse'
+                        : registrationStatus.registration?.status === 'rejected'
+                        ? 'bg-red-600'
+                        : 'bg-gray-600'
+                    }`}></span>
+                    {registrationStatus.registration?.status === 'pending' ? 'Menunggu Persetujuan' :
+                     registrationStatus.registration?.status === 'approved' ? 'Disetujui' :
+                     registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
