@@ -35,10 +35,14 @@ export default function RekamSuaraPage() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [estimatedSize, setEstimatedSize] = useState<number>(0);
+  const [storageWarning, setStorageWarning] = useState<boolean>(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Client-side mount and sync Supabase session
   useEffect(() => {
@@ -67,6 +71,29 @@ export default function RekamSuaraPage() {
     };
 
     syncSession();
+
+    // Cleanup on unmount - stop recording and release resources
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (err) {
+          console.error('[CLEANUP] Error stopping recorder on unmount:', err);
+        }
+      }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+        });
+        streamRef.current = null;
+      }
+
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    };
   }, []);
 
   // Debug: Log user info on mount
@@ -176,27 +203,67 @@ export default function RekamSuaraPage() {
     checkExistingSubmission();
   }, [user?.id]);
 
-  // Recording timer
+  // Recording timer with size estimation
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-
     if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((prev) => {
+          const newTime = prev + 1;
+
+          // Estimate file size (roughly: 1 second ~ 12KB for webm audio)
+          const estimatedBytes = newTime * 12000;
+          setEstimatedSize(estimatedBytes);
+
+          // Warning at 80% capacity (8MB)
+          if (estimatedBytes >= 8 * 1024 * 1024 && !storageWarning) {
+            setStorageWarning(true);
+
+            // Browser notification if permitted
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification('Peringatan Rekam Suara', {
+                body: 'Rekaman hampir mencapai batas kapasitas (8MB). Segera hentikan rekaman.',
+                icon: '/favicon.ico',
+              });
+            }
+          }
+
+          // Auto-stop at max time (approximately 13 minutes = 10MB)
+          const MAX_RECORDING_TIME = 13 * 60; // 13 minutes in seconds
+          if (newTime >= MAX_RECORDING_TIME) {
+            stopRecording();
+            setError('Waktu rekaman maksimal (13 menit) tercapai. Rekaman dihentikan otomatis.');
+          }
+
+          return newTime;
+        });
       }, 1000);
     } else {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
       setRecordingTime(0);
+      setEstimatedSize(0);
+      setStorageWarning(false);
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
     };
-  }, [isRecording]);
+  }, [isRecording, storageWarning]);
 
   const startRecording = async () => {
     try {
       setError(null);
       setPermissionDenied(false);
+      setStorageWarning(false);
+
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
 
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -205,6 +272,7 @@ export default function RekamSuaraPage() {
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
       // Detect supported MIME type (prioritize common formats)
       const mimeTypes = [
@@ -234,6 +302,16 @@ export default function RekamSuaraPage() {
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
+
+          // Check size during recording
+          const currentSize = chunksRef.current.reduce((acc, chunk) => acc + chunk.size, 0);
+          setEstimatedSize(currentSize);
+
+          if (currentSize >= 10 * 1024 * 1024) {
+            // Auto-stop if exceeds 10MB
+            mediaRecorder.stop();
+            setError('Ukuran rekaman melebihi 10MB. Rekaman dihentikan otomatis.');
+          }
         }
       };
 
@@ -243,11 +321,29 @@ export default function RekamSuaraPage() {
         setAudioURL(URL.createObjectURL(blob));
 
         // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
       };
 
-      mediaRecorder.start();
+      // Check for possible recording errors
+      mediaRecorder.onerror = (event) => {
+        console.error('[RECORDING] MediaRecorder error:', event);
+        setError('Terjadi kesalahan saat merekam. Silakan coba lagi.');
+        setIsRecording(false);
+      };
+
+      mediaRecorder.start(1000); // Collect data every 1 second
       setIsRecording(true);
+
+      // Notify user that recording started
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Rekaman Dimulai', {
+          body: 'Tekan tombol "Hentikan Rekaman" setelah selesai membaca QS. Al-Fath ayat 29.',
+          icon: '/favicon.ico',
+        });
+      }
     } catch (err: any) {
       console.error('Error starting recording:', err);
 
@@ -264,14 +360,33 @@ export default function RekamSuaraPage() {
       } else {
         setError('Tidak dapat mengakses mikrofon. Pastikan *Ukhti* memberikan izin akses mikrofon dan tidak ada overlay/aplikasi mengambang yang aktif.');
       }
+
+      // Clean up on error
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.error('[RECORDING] Error stopping recorder:', err);
+      }
     }
+
+    // Clean up stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+
+    setIsRecording(false);
   };
 
   const uploadAudio = async () => {
@@ -836,10 +951,31 @@ export default function RekamSuaraPage() {
           {!existingSubmission && !uploadSuccess && hasRegistration === true && (
             <div className="space-y-4">
               <div className="flex flex-col items-center space-y-4">
+                {/* Storage Warning */}
+                {storageWarning && (
+                  <Alert variant="destructive" className="animate-pulse">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="space-y-1">
+                        <p className="font-bold">⚠️ Peringatan Kapasitas!</p>
+                        <p className="text-sm">
+                          Estimasi ukuran: {(estimatedSize / (1024 * 1024)).toFixed(1)} MB / 10 MB
+                        </p>
+                        <p className="text-xs">Segera hentikan rekaman untuk menghindari kehilangan data.</p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Timer */}
                 {isRecording && (
-                  <div className="text-3xl font-mono text-red-600 animate-pulse">
-                    {formatTime(recordingTime)}
+                  <div className="space-y-2">
+                    <div className="text-3xl font-mono text-red-600 animate-pulse">
+                      {formatTime(recordingTime)}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Estimasi: {(estimatedSize / (1024 * 1024)).toFixed(1)} MB / 10 MB
+                    </div>
                   </div>
                 )}
 
