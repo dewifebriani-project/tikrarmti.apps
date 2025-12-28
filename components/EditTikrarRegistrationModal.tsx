@@ -33,16 +33,6 @@ interface JuzOption {
   sort_order: number;
 }
 
-const TIME_SLOT_OPTIONS = [
-  { value: '04-06', label: '04.00 - 06.00 WIB/WITA/WIT' },
-  { value: '06-09', label: '06.00 - 09.00 WIB/WITA/WIT' },
-  { value: '09-12', label: '09.00 - 12.00 WIB/WITA/WIT' },
-  { value: '12-15', label: '12.00 - 15.00 WIB/WITA/WIT' },
-  { value: '15-18', label: '15.00 - 18.00 WIB/WITA/WIT' },
-  { value: '18-21', label: '18.00 - 21.00 WIB/WITA/WIT' },
-  { value: '21-24', label: '21.00 - 24.00 WIB/WITA/WIT' },
-];
-
 export function EditTikrarRegistrationModal({
   isOpen,
   onClose,
@@ -147,9 +137,9 @@ export function EditTikrarRegistrationModal({
           </div>
 
           {/* Pilihan Juz */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Pilihan Juz *
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Pilihan juz yang akan dihafalkan <span className="text-red-500">*</span>
             </label>
             {isLoadingJuz ? (
               <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
@@ -165,20 +155,17 @@ export function EditTikrarRegistrationModal({
                 <option value="">Pilih juz</option>
                 {juzOptions.map((option) => (
                   <option key={option.code} value={option.code}>
-                    {option.name} (halaman {option.start_page} - {option.end_page})
+                    {option.name}
                   </option>
                 ))}
               </select>
             )}
-            <p className="mt-1 text-xs text-gray-500">
-              Pilihan juz dapat diubah hingga batas waktu yang ditentukan
-            </p>
           </div>
 
           {/* Jadwal Utama */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Jadwal Utama *
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Pilih waktu utama untuk jadwal setoran dengan pasangan
             </label>
             <select
               value={formData.main_time_slot}
@@ -186,19 +173,21 @@ export function EditTikrarRegistrationModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required
             >
-              <option value="">Pilih jadwal utama</option>
-              {TIME_SLOT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              <option value="">Pilih waktu utama</option>
+              <option value="04-06">04.00 - 06.00 WIB/WITA/WIT</option>
+              <option value="06-09">06.00 - 09.00 WIB/WITA/WIT</option>
+              <option value="09-12">09.00 - 12.00 WIB/WITA/WIT</option>
+              <option value="12-15">12.00 - 15.00 WIB/WITA/WIT</option>
+              <option value="15-18">15.00 - 18.00 WIB/WITA/WIT</option>
+              <option value="18-21">18.00 - 21.00 WIB/WITA/WIT</option>
+              <option value="21-24">21.00 - 24.00 WIB/WITA/WIT</option>
             </select>
           </div>
 
           {/* Jadwal Cadangan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Jadwal Cadangan *
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Pilih waktu cadangan untuk jadwal setoran dengan pasangan
             </label>
             <select
               value={formData.backup_time_slot}
@@ -206,16 +195,15 @@ export function EditTikrarRegistrationModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required
             >
-              <option value="">Pilih jadwal cadangan</option>
-              {TIME_SLOT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
+              <option value="">Pilih waktu cadangan</option>
+              <option value="04-06">04.00 - 06.00 WIB/WITA/WIT</option>
+              <option value="06-09">06.00 - 09.00 WIB/WITA/WIT</option>
+              <option value="09-12">09.00 - 12.00 WIB/WITA/WIT</option>
+              <option value="12-15">12.00 - 15.00 WIB/WITA/WIT</option>
+              <option value="15-18">15.00 - 18.00 WIB/WITA/WIT</option>
+              <option value="18-21">18.00 - 21.00 WIB/WITA/WIT</option>
+              <option value="21-24">21.00 - 24.00 WIB/WITA/WIT</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">
-              Pilih jadwal yang berbeda dari jadwal utama
-            </p>
           </div>
 
           {/* Warning */}
