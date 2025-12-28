@@ -99,6 +99,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Auto-generate question_number if not provided
+    // Get the highest question_number for this juz/section combination
+    let nextQuestionNumber = body.question_number;
+    if (!nextQuestionNumber) {
+      const { data: lastQuestion } = await supabaseAdmin
+        .from('exam_questions')
+        .select('question_number')
+        .eq('juz_number', body.juz_number)
+        .eq('section_number', body.section_number)
+        .order('question_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      nextQuestionNumber = lastQuestion ? (lastQuestion.question_number || 0) + 1 : 1;
+    }
+
     // Insert question
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
@@ -106,7 +122,7 @@ export async function POST(request: NextRequest) {
         juz_number: body.juz_number,
         section_number: body.section_number,
         section_title: body.section_title,
-        question_number: body.question_number,
+        question_number: nextQuestionNumber,
         question_text: body.question_text,
         question_type: body.question_type,
         options: body.options,
