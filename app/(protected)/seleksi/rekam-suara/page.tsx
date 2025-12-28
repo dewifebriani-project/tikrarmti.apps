@@ -355,6 +355,9 @@ export default function RekamSuaraPage() {
         return;
       }
 
+      // Determine which device to use
+      let deviceIdToUse = selectedDeviceId;
+
       // If no devices enumerated yet, this is the first time requesting permission
       // First request permission and enumerate devices
       if (audioDevices.length === 0) {
@@ -375,7 +378,9 @@ export default function RekamSuaraPage() {
           setAudioDevices(audioInputs);
 
           if (audioInputs.length > 0) {
-            setSelectedDeviceId(audioInputs[0].deviceId);
+            // Use the first device directly, don't rely on async state update
+            deviceIdToUse = audioInputs[0].deviceId;
+            setSelectedDeviceId(deviceIdToUse);
           }
         } catch (permErr) {
           console.error('[RECORDING] Permission request failed:', permErr);
@@ -384,8 +389,8 @@ export default function RekamSuaraPage() {
       }
 
       // Use selected device if available, otherwise use default
-      const audioConstraints = selectedDeviceId
-        ? { audio: { deviceId: { exact: selectedDeviceId } } }
+      const audioConstraints = deviceIdToUse
+        ? { audio: { deviceId: { exact: deviceIdToUse } } }
         : { audio: true };
 
       console.log('[RECORDING] Starting recording with constraints:', audioConstraints);
