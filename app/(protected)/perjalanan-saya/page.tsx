@@ -93,10 +93,14 @@ export default function PerjalananSaya() {
     const juzLabels: Record<string, string> = {
       '30A': 'Juz 30A (halaman 1-20)',
       '30B': 'Juz 30B (halaman 21-40)',
+      '28A': 'Juz 28A (halaman 1-10)',
+      '28B': 'Juz 28B (halaman 11-20)',
       '28': 'Juz 28',
       '29': 'Juz 29',
+      '29A': 'Juz 29A (halaman 1-10)',
+      '29B': 'Juz 29B (halaman 11-20)',
     };
-    return juzLabels[juzValue] || juzValue;
+    return juzLabels[juzValue] || `Juz ${juzValue}`;
   };
 
   const getTimeSlotLabel = (slotValue: string) => {
