@@ -167,8 +167,7 @@ export async function POST(request: NextRequest) {
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
       .insert(insertData)
-      .select()
-      .single();
+      .select();
 
     if (insertError) {
       logger.error('Insert failed', {
@@ -184,10 +183,17 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    logger.info('Question created successfully', { id: newQuestion.id });
+    if (!newQuestion || newQuestion.length === 0) {
+      logger.error('Insert returned no data');
+      return NextResponse.json({
+        error: 'Failed to create question - no data returned'
+      }, { status: 500 });
+    }
+
+    logger.info('Question created successfully', { id: newQuestion[0].id });
 
     return NextResponse.json({
-      data: newQuestion,
+      data: newQuestion[0],
       message: 'Question created successfully'
     }, { status: 201 });
 

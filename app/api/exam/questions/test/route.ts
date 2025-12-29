@@ -34,8 +34,7 @@ export async function POST(request: NextRequest) {
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
       .insert(testData)
-      .select()
-      .single();
+      .select();
 
     if (insertError) {
       return NextResponse.json({
@@ -48,16 +47,22 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    if (!newQuestion || newQuestion.length === 0) {
+      return NextResponse.json({
+        error: 'Insert returned no data'
+      }, { status: 500 });
+    }
+
     // Delete the test record
     await supabaseAdmin
       .from('exam_questions')
       .delete()
-      .eq('id', newQuestion.id);
+      .eq('id', newQuestion[0].id);
 
     return NextResponse.json({
       success: true,
       message: 'Test insert successful',
-      test_record: newQuestion
+      test_record: newQuestion[0]
     });
 
   } catch (error: any) {
