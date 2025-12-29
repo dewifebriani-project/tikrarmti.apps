@@ -47,14 +47,24 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (batchError || !batch) {
+      logger.error('Batch not found', { batchError, registrationId: registration.id, batchId: registration.batch_id });
       return NextResponse.json({
         error: 'Batch not found',
         details: 'Batch pendaftaran tidak ditemukan'
       }, { status: 404 });
     }
 
+    logger.info('Batch info', {
+      batchId: batch.id,
+      batchName: batch.name,
+      batchStatus: batch.status,
+      selectionStart: batch.selection_start_date,
+      selectionEnd: batch.selection_end_date
+    });
+
     // Check if batch is open
     if (batch.status !== 'open') {
+      logger.warn('Batch not open', { batchStatus: batch.status });
       return NextResponse.json({
         error: 'Exam not available',
         details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
@@ -65,6 +75,12 @@ export async function POST(request: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    logger.info('Date check', {
+      today: today.toISOString(),
+      selectionStart: batch.selection_start_date,
+      selectionEnd: batch.selection_end_date
+    });
+
     if (batch.selection_start_date && batch.selection_end_date) {
       const startDate = new Date(batch.selection_start_date);
       startDate.setHours(0, 0, 0, 0);
@@ -72,11 +88,25 @@ export async function POST(request: NextRequest) {
       const endDate = new Date(batch.selection_end_date);
       endDate.setHours(23, 59, 59, 999);
 
+      logger.info('Date comparison', {
+        today: today.getTime(),
+        startDate: startDate.getTime(),
+        endDate: endDate.getTime(),
+        todayBeforeStart: today < startDate,
+        todayAfterEnd: today > endDate
+      });
+
       if (today < startDate || today > endDate) {
         const formatDate = (date: Date) => date.toLocaleDateString('id-ID', {
           day: 'numeric',
           month: 'long',
           year: 'numeric'
+        });
+
+        logger.warn('Exam period closed', {
+          today: today.toDateString(),
+          startDate: startDate.toDateString(),
+          endDate: endDate.toDateString()
         });
 
         return NextResponse.json({
@@ -87,7 +117,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if exam is already completed
+    logger.info('Exam status check', { examStatus: registration.exam_status });
     if (registration.exam_status === 'completed') {
+      logger.warn('Exam already completed', { userId: user.id });
       return NextResponse.json({
         error: 'Exam already completed',
         details: 'Ukhti sudah menyelesaikan ujian ini'
