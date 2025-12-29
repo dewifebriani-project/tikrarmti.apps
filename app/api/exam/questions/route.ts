@@ -219,7 +219,9 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json({
         error: 'Failed to create question',
-        details: insertError.message
+        details: insertError.message,
+        code: insertError.code,
+        fullError: insertError
       }, { status: 500 });
     }
 
