@@ -72,34 +72,48 @@ export async function POST(request: NextRequest) {
         .eq('is_active', true);
     }
 
+    // Prepare insert data - only include created_by if it exists in users table
+    const insertData: any = {
+      name: body.name,
+      description: body.description || null,
+      duration_minutes: body.duration_minutes,
+      start_time: body.start_time || null,
+      end_time: body.end_time || null,
+      max_attempts: body.max_attempts || null,
+      shuffle_questions: body.shuffle_questions,
+      randomize_order: body.randomize_order,
+      show_questions_all: body.show_questions_all,
+      questions_per_attempt: body.questions_per_attempt || null,
+      passing_score: body.passing_score,
+      auto_grade: body.auto_grade,
+      allow_review: body.allow_review,
+      show_results: body.show_results,
+      auto_submit_on_timeout: body.auto_submit_on_timeout,
+      is_active: body.is_active,
+    };
+
+    // Only add created_by if the user exists in users table
+    const { data: userExists } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (userExists) {
+      insertData.created_by = user.id;
+    }
+
     const { data: configuration, error } = await supabaseAdmin
       .from('exam_configurations')
-      .insert({
-        name: body.name,
-        description: body.description,
-        duration_minutes: body.duration_minutes,
-        start_time: body.start_time,
-        end_time: body.end_time,
-        max_attempts: body.max_attempts,
-        shuffle_questions: body.shuffle_questions,
-        randomize_order: body.randomize_order,
-        show_questions_all: body.show_questions_all,
-        questions_per_attempt: body.questions_per_attempt,
-        passing_score: body.passing_score,
-        auto_grade: body.auto_grade,
-        allow_review: body.allow_review,
-        show_results: body.show_results,
-        auto_submit_on_timeout: body.auto_submit_on_timeout,
-        is_active: body.is_active,
-        created_by: user.id
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) {
-      logger.error('Error creating exam configuration', { error });
+      logger.error('Error creating exam configuration', { error, details: error.message });
       return NextResponse.json({
-        error: 'Failed to create configuration'
+        error: 'Failed to create configuration',
+        details: error.message
       }, { status: 500 });
     }
 
@@ -115,7 +129,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error in POST /api/exam/configurations', { error: error as Error });
     return NextResponse.json({
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: (error as Error).message
     }, { status: 500 });
   }
 }
