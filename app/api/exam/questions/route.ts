@@ -92,10 +92,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    const body: AdminQuestionEditForm = await request.json();
+    const body: AdminQuestionEditForm & { juz_code?: string } = await request.json();
+
+    // If juz_code is provided, get juz_number from juz table
+    let juzNumber = body.juz_number;
+    if (body.juz_code && !body.juz_number) {
+      const { data: juzData } = await supabaseAdmin
+        .from('juz')
+        .select('juz_number')
+        .eq('code', body.juz_code)
+        .single();
+
+      if (juzData) {
+        juzNumber = juzData.juz_number;
+      }
+    }
 
     // Validate required fields
-    if (!body.juz_number || !body.section_number || !body.question_text) {
+    if (!juzNumber || !body.section_number || !body.question_text) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -106,7 +120,7 @@ export async function POST(request: NextRequest) {
       const { data: lastQuestion } = await supabaseAdmin
         .from('exam_questions')
         .select('question_number')
-        .eq('juz_number', body.juz_number)
+        .eq('juz_number', juzNumber)
         .eq('section_number', body.section_number)
         .order('question_number', { ascending: false })
         .limit(1)
@@ -119,7 +133,8 @@ export async function POST(request: NextRequest) {
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
       .insert({
-        juz_number: body.juz_number,
+        juz_code: body.juz_code,
+        juz_number: juzNumber,
         section_number: body.section_number,
         section_title: body.section_title,
         question_number: nextQuestionNumber,
