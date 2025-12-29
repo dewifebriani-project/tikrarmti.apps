@@ -810,7 +810,7 @@ export default function PerjalananSaya() {
                                             </div>
                                           </div>
                                           <p className="text-xs text-purple-800 font-medium">
-                                            Ujian pilihan ganda tentang Al-Qur'an - {user?.role === 'admin' ? '(Mode Admin)' : ''}
+                                            Ujian pilihan ganda tentang Al-Qur'an
                                           </p>
                                         </CardContent>
                                       </Card>
@@ -1009,7 +1009,7 @@ export default function PerjalananSaya() {
                                               </div>
                                             </div>
                                             <p className="text-sm text-purple-800 font-medium">
-                                              Ujian pilihan ganda tentang Al-Qur'an - {user?.role === 'admin' ? '(Mode Admin)' : ''}
+                                              Ujian pilihan ganda tentang Al-Qur'an
                                             </p>
                                           </CardContent>
                                         </Card>
