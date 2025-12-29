@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, AlertCircle, Clock, FileText, Loader2, Flag, X, Send } from 'lucide-react';
 
@@ -23,6 +22,15 @@ interface ExamQuestion {
   points: number;
 }
 
+interface ExamConfig {
+  durationMinutes: number;
+  maxAttempts: number | null;
+  passingScore: number;
+  autoSubmitOnTimeout: boolean;
+  allowReview: boolean;
+  showResults: boolean;
+}
+
 interface UserAnswer {
   questionId: string;
   answer: string;
@@ -36,13 +44,15 @@ export default function PilihanGandaPage() {
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [noExamRequired, setNoExamRequired] = useState(false);
+  const [examConfig, setExamConfig] = useState<ExamConfig | null>(null);
 
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(30 * 60); // Default 30 minutes
   const [quizStarted, setQuizStarted] = useState(false);
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
 
   // Flag modal state
   const [showFlagModal, setShowFlagModal] = useState(false);
@@ -64,7 +74,7 @@ export default function PilihanGandaPage() {
     }
   }, [isClient, user]);
 
-  // Timer countdown
+  // Timer countdown with auto-submit
   useEffect(() => {
     if (!isClient) return;
 
@@ -73,10 +83,12 @@ export default function PilihanGandaPage() {
         setTimeLeft(timeLeft - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && quizStarted) {
-      handleSubmit();
+    } else if (timeLeft === 0 && quizStarted && !autoSubmitted) {
+      // Auto-submit when time runs out
+      setAutoSubmitted(true);
+      handleSubmit(true);
     }
-  }, [timeLeft, quizStarted, isClient]);
+  }, [timeLeft, quizStarted, isClient, autoSubmitted]);
 
   const fetchQuestions = async () => {
     setLoadingQuestions(true);
@@ -98,6 +110,12 @@ export default function PilihanGandaPage() {
 
       const result = await response.json();
       setQuestions(result.data || []);
+
+      // Set exam configuration
+      if (result.config) {
+        setExamConfig(result.config);
+        setTimeLeft(result.config.durationMinutes * 60);
+      }
     } catch (error) {
       console.error('Error fetching questions:', error);
       setQuestionsError('Gagal memuat soal. Silakan coba lagi.');
@@ -131,10 +149,14 @@ export default function PilihanGandaPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (Object.keys(answers).length < questions.length) {
-      alert('Silakan jawab semua pertanyaan terlebih dahulu');
-      return;
+  const handleSubmit = async (isAutoSubmit = false) => {
+    // Soal tidak wajib diisi, hanya beri peringatan
+    if (!isAutoSubmit && Object.keys(answers).length < questions.length) {
+      const unanswered = questions.length - Object.keys(answers).length;
+      const confirmSubmit = confirm(
+        `${unanswered} soal belum diisi. Apakah ukhti yakin ingin submit?`
+      );
+      if (!confirmSubmit) return;
     }
 
     setIsSubmitting(true);
@@ -144,7 +166,7 @@ export default function PilihanGandaPage() {
       // Convert answers to array format
       const answersArray: UserAnswer[] = questions.map(q => ({
         questionId: q.id,
-        answer: answers[q.id] || ''
+        answer: answers[q.id] || '' // Allow empty answers
       }));
 
       const response = await fetch('/api/exam/attempts', {
@@ -167,6 +189,19 @@ export default function PilihanGandaPage() {
       console.log('Submission result:', result);
 
       setSubmitStatus('success');
+
+      // Show results if configured
+      if (examConfig?.showResults !== false) {
+        const passed = result.score >= (examConfig?.passingScore || 70);
+        setTimeout(() => {
+          alert(
+            `Ujian selesai!\n\nSkor ukhti: ${result.score}/100\n` +
+            `${passed ? 'Alhamdulillah! Ukhti LULUS.' : 'Mohon maaf, ukhti belum lulus.'}\n\n` +
+            `Jawaban benar: ${result.correctAnswers}/${result.totalQuestions}`
+          );
+        }, 500);
+      }
+
       setTimeout(() => {
         router.push('/perjalanan-saya');
       }, 3000);
@@ -241,6 +276,11 @@ export default function PilihanGandaPage() {
   const progressPercentage = questions.length > 0
     ? ((Object.keys(answers).length) / questions.length) * 100
     : 0;
+
+  // Check if question is answered
+  const isQuestionAnswered = (questionId: string) => {
+    return answers[questionId] !== undefined && answers[questionId] !== '';
+  };
 
   // Prevent hydration mismatch
   if (!isClient) {
@@ -370,9 +410,10 @@ export default function PilihanGandaPage() {
                   <strong>Informasi Ujian:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>Jumlah soal: {questions.length} pertanyaan</li>
-                    <li>Waktu: 30 menit</li>
-                    <li>Setiap soal memiliki pilihan jawaban</li>
-                    <li>Pastikan menjawab semua soal sebelum submit</li>
+                    <li>Waktu: {examConfig ? `${examConfig.durationMinutes} menit` : '30 menit'}</li>
+                    <li>Nilai lulus: {examConfig ? `${examConfig.passingScore}/100` : '70/100'}</li>
+                    <li>Soal tidak wajib diisi semua</li>
+                    {examConfig?.maxAttempts && <li>Maksimal percobaan: {examConfig.maxAttempts}x</li>}
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -383,8 +424,9 @@ export default function PilihanGandaPage() {
                   <li>Baca setiap pertanyaan dengan teliti</li>
                   <li>Pilih salah satu jawaban yang paling tepat</li>
                   <li>Gunakan tombol "Sebelumnya" dan "Selanjutnya" untuk navigasi</li>
-                  <li>Pastikan semua soal terjawab sebelum submit</li>
+                  <li>Soal yang tidak diisi akan dianggap salah</li>
                   <li>Klik "Submit Jawaban" jika sudah selesai</li>
+                  <li>Waktu habis = otomatis submit</li>
                 </ol>
               </div>
 
@@ -404,13 +446,15 @@ export default function PilihanGandaPage() {
           /* Quiz Screen */
           <>
             {/* Timer and Progress Bar */}
-            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <Card className={`bg-gradient-to-r from-blue-50 to-indigo-50 border-2 ${
+              timeLeft < 300 ? 'border-red-300 bg-red-50' : 'border-blue-200'
+            }`}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                    <span className="font-semibold text-blue-900">
-                      Sisa Waktu: {formatTime(timeLeft)}
+                    <Clock className={`w-5 h-5 ${timeLeft < 300 ? 'text-red-600' : 'text-blue-600'}`} />
+                    <span className={`font-semibold ${timeLeft < 300 ? 'text-red-900' : 'text-blue-900'}`}>
+                      {timeLeft < 300 ? 'Waktu Hampir Habis! ' : ''}Sisa Waktu: {formatTime(timeLeft)}
                     </span>
                   </div>
                   <div className="text-sm text-blue-700">
@@ -450,7 +494,7 @@ export default function PilihanGandaPage() {
                     disabled={flaggedQuestions.has(questions[currentQuestion].id)}
                   >
                     <Flag className="w-4 h-4 mr-1" />
-                    {flaggedQuestions.has(questions[currentQuestion].id) ? 'Sudah Diflag' : 'Lapor Soal'}
+                    {flaggedQuestions.has(questions[currentQuestion].id) ? 'Diflag' : 'Lapor'}
                   </Button>
                 </div>
               </CardHeader>
@@ -461,28 +505,39 @@ export default function PilihanGandaPage() {
                   </p>
                 </div>
 
-                <RadioGroup
-                  value={answers[questions[currentQuestion].id] || ''}
-                  onValueChange={(value) => handleAnswerChange(questions[currentQuestion].id, value)}
-                >
-                  <div className="space-y-3">
-                    {questions[currentQuestion].options.map((option, index) => (
+                {/* Options with custom radio style like tikrar-tahfidz */}
+                <div className="space-y-3">
+                  {questions[currentQuestion].options.map((option, index) => {
+                    const isSelected = answers[questions[currentQuestion].id] === option.text;
+                    return (
                       <div
                         key={index}
-                        className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all cursor-pointer ${
-                          answers[questions[currentQuestion].id] === option.text
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                        onClick={() => handleAnswerChange(questions[currentQuestion].id, option.text)}
+                        className={`flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg transition-all duration-200 cursor-pointer ${
+                          isSelected
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
                         }`}
                       >
-                        <RadioGroupItem value={option.text} id={`option-${index}`} />
-                        <Label htmlFor={`option-${index}`} className="flex-grow cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`question-${questions[currentQuestion].id}`}
+                          id={`option-${index}`}
+                          value={option.text}
+                          checked={isSelected}
+                          onChange={() => handleAnswerChange(questions[currentQuestion].id, option.text)}
+                          className="mt-1"
+                        />
+                        <Label
+                          htmlFor={`option-${index}`}
+                          className="flex-grow cursor-pointer text-gray-700"
+                        >
                           {option.text}
                         </Label>
                       </div>
-                    ))}
-                  </div>
-                </RadioGroup>
+                    );
+                  })}
+                </div>
 
                 {/* Navigation Buttons */}
                 <div className="flex justify-between pt-4">
@@ -503,7 +558,7 @@ export default function PilihanGandaPage() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={handleSubmit}
+                      onClick={() => handleSubmit(false)}
                       disabled={isSubmitting || submitStatus === 'success'}
                       className="bg-green-600 hover:bg-green-700"
                     >
@@ -533,21 +588,35 @@ export default function PilihanGandaPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                  {questions.map((question, index) => (
-                    <button
-                      key={question.id}
-                      onClick={() => setCurrentQuestion(index)}
-                      className={`w-10 h-10 rounded-lg font-medium transition-all ${
-                        currentQuestion === index
-                          ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                          : answers[question.id] !== undefined
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
+                  {questions.map((question, index) => {
+                    const isAnswered = isQuestionAnswered(question.id);
+                    return (
+                      <button
+                        key={question.id}
+                        onClick={() => setCurrentQuestion(index)}
+                        title={isAnswered ? 'Sudah diisi' : 'Belum diisi'}
+                        className={`w-10 h-10 rounded-lg font-medium transition-all ${
+                          currentQuestion === index
+                            ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                            : isAnswered
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                      >
+                        {index + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-center gap-6 mt-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-green-100 border border-green-500 rounded"></div>
+                    <span className="text-gray-600">Sudah diisi</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-red-100 border border-red-500 rounded"></div>
+                    <span className="text-gray-600">Belum diisi</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -567,6 +636,15 @@ export default function PilihanGandaPage() {
                 <AlertCircle className="h-5 w-5 text-red-600" />
                 <AlertDescription className="text-red-800">
                   <strong>Terjadi kesalahan</strong> Gagal mengirim jawaban. Silakan coba lagi.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {autoSubmitted && (
+              <Alert className="bg-yellow-50 border-yellow-200">
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+                <AlertDescription className="text-yellow-800">
+                  <strong>Waktu Habis!</strong> Jawaban <em>ukhti</em> otomatis dikirim karena waktu ujian sudah habis.
                 </AlertDescription>
               </Alert>
             )}

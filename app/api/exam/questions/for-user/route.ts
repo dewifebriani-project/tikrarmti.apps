@@ -4,6 +4,16 @@ import { createSupabaseAdmin } from '@/lib/supabase';
 
 const supabaseAdmin = createSupabaseAdmin();
 
+// Helper function to shuffle array
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // GET: Fetch exam questions for user based on their chosen_juz
 // Logic:
 // - Juz 28A or 28B -> Exam Juz 29
@@ -68,12 +78,50 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Get exam configuration
+    const { data: config, error: configError } = await supabaseAdmin
+      .from('exam_configurations')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (configError || !config) {
+      console.error('Error fetching exam config:', configError);
+      // Use default config if not found
+    }
+
+    // Check if user has reached max attempts
+    if (config && config.max_attempts) {
+      const { data: existingAttempts, error: attemptsError } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('registration_id', registration.id);
+
+      if (!attemptsError && existingAttempts && existingAttempts.length >= config.max_attempts) {
+        return NextResponse.json({
+          error: 'Max attempts reached',
+          details: `Ukhti sudah mencoba ${config.max_attempts} kali. Tidak bisa mencoba lagi.`,
+          maxAttempts: config.max_attempts
+        }, { status: 400 });
+      }
+    }
+
     // Fetch active questions for the required juz
-    const { data: questions, error: questionsError } = await supabaseAdmin
+    let questionsQuery = supabaseAdmin
       .from('exam_questions')
       .select('*')
       .eq('juz_number', requiredJuzNumber)
-      .eq('is_active', true)
+      .eq('is_active', true);
+
+    // Limit questions if specified in config
+    if (config?.questions_per_attempt) {
+      questionsQuery = questionsQuery.limit(config.questions_per_attempt);
+    }
+
+    const { data: questions, error: questionsError } = await questionsQuery
       .order('section_number', { ascending: true })
       .order('question_number', { ascending: true });
 
@@ -92,12 +140,34 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
+    // Shuffle questions if configured
+    let processedQuestions = questions;
+    if (config?.shuffle_questions) {
+      processedQuestions = shuffleArray(questions);
+    }
+
+    // Shuffle options within each question if configured
+    if (config?.randomize_order) {
+      processedQuestions = processedQuestions.map(q => ({
+        ...q,
+        options: shuffleArray(q.options || [])
+      }));
+    }
+
     return NextResponse.json({
-      data: questions,
-      total: questions.length,
+      data: processedQuestions,
+      total: processedQuestions.length,
       examJuzNumber: requiredJuzNumber,
       registrationId: registration.id,
-      existingAttemptId: registration.exam_attempt_id
+      existingAttemptId: registration.exam_attempt_id,
+      config: config ? {
+        durationMinutes: config.duration_minutes,
+        maxAttempts: config.max_attempts,
+        passingScore: config.passing_score,
+        autoSubmitOnTimeout: config.auto_submit_on_timeout,
+        allowReview: config.allow_review,
+        showResults: config.show_results
+      } : null
     });
 
   } catch (error) {
