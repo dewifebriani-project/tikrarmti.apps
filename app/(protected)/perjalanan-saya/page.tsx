@@ -771,8 +771,30 @@ export default function PerjalananSaya() {
                                     </Link>
                                   )}
 
-                                  {/* Card Pilihan Ganda - Admin only for testing */}
-                                  {user?.role === 'admin' ? (
+                                  {/* Card Pilihan Ganda - Available for all users during selection period */}
+                                  {registrationStatus?.examStatus === 'submitted' ? (
+                                    <Link href="/seleksi/pilihan-ganda">
+                                      <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                        <CardContent className="p-3 sm:p-4">
+                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-sm sm:text-base font-semibold text-green-900">Pilihan Ganda</h4>
+                                              <p className="text-xs text-green-700">Sudah dikerjakan - Klik untuk lihat</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-xs text-green-800 mb-2">
+                                            Nilai: {registrationStatus?.examScore ?? '-'}/100
+                                          </p>
+                                          <p className="text-xs text-gray-600 italic">
+                                            Dikirim: {registrationStatus?.examSubmittedAt ? new Date(registrationStatus.examSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
+                                  ) : (
                                     <Link href="/seleksi/pilihan-ganda">
                                       <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
                                         <CardContent className="p-3 sm:p-4">
@@ -784,34 +806,15 @@ export default function PerjalananSaya() {
                                             </div>
                                             <div className="flex-grow">
                                               <h4 className="text-sm sm:text-base font-semibold text-purple-900">Pilihan Ganda</h4>
-                                              <p className="text-xs text-purple-700">Ujian tulisan - Klik untuk mulai (Admin)</p>
+                                              <p className="text-xs text-purple-700">Ujian tulisan - Klik untuk mulai</p>
                                             </div>
                                           </div>
                                           <p className="text-xs text-purple-800 font-medium">
-                                            Ujian pilihan ganda tentang Al-Qur'an - Mode Admin
+                                            Ujian pilihan ganda tentang Al-Qur'an - {user?.role === 'admin' ? '(Mode Admin)' : ''}
                                           </p>
                                         </CardContent>
                                       </Card>
                                     </Link>
-                                  ) : (
-                                    <Card className={`border-2 border-yellow-300 bg-yellow-50 opacity-80 cursor-not-allowed`}>
-                                      <CardContent className="p-3 sm:p-4">
-                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-yellow-200 rounded-full flex items-center justify-center`}>
-                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                            </svg>
-                                          </div>
-                                          <div className="flex-grow">
-                                            <h4 className="text-sm sm:text-base font-semibold text-yellow-800">Pilihan Ganda</h4>
-                                            <p className="text-xs text-yellow-700">Ujian tulisan - Sedang dalam pengembangan</p>
-                                          </div>
-                                        </div>
-                                        <p className="text-xs text-yellow-800">
-                                          Fitur ini sedang dalam tahap uji coba. Silakan coba lagi nanti.
-                                        </p>
-                                      </CardContent>
-                                    </Card>
                                   )}
                                 </div>
                               </div>
@@ -967,8 +970,30 @@ export default function PerjalananSaya() {
                                       </Link>
                                     )}
 
-                                    {/* Card Pilihan Ganda - Admin only for testing */}
-                                    {user?.role === 'admin' ? (
+                                    {/* Card Pilihan Ganda - Available for all users during selection period */}
+                                    {registrationStatus?.examStatus === 'submitted' ? (
+                                      <Link href="/seleksi/pilihan-ganda">
+                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-4">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                              <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-base font-semibold text-green-900">Pilihan Ganda</h4>
+                                                <p className="text-sm text-green-700">Sudah dikerjakan - Klik untuk lihat</p>
+                                              </div>
+                                            </div>
+                                            <p className="text-sm text-green-800 mb-2">
+                                              Nilai: {registrationStatus?.examScore ?? '-'}/100
+                                            </p>
+                                            <p className="text-sm text-gray-600 italic">
+                                              Dikirim: {registrationStatus?.examSubmittedAt ? new Date(registrationStatus.examSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
+                                    ) : (
                                       <Link href="/seleksi/pilihan-ganda">
                                         <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
                                           <CardContent className="p-4">
@@ -980,34 +1005,15 @@ export default function PerjalananSaya() {
                                               </div>
                                               <div className="flex-grow">
                                                 <h4 className="text-base font-semibold text-purple-900">Pilihan Ganda</h4>
-                                                <p className="text-sm text-purple-700">Ujian tulisan - Klik untuk mulai (Admin)</p>
+                                                <p className="text-sm text-purple-700">Ujian tulisan - Klik untuk mulai</p>
                                               </div>
                                             </div>
                                             <p className="text-sm text-purple-800 font-medium">
-                                              Ujian pilihan ganda tentang Al-Qur'an - Mode Admin
+                                              Ujian pilihan ganda tentang Al-Qur'an - {user?.role === 'admin' ? '(Mode Admin)' : ''}
                                             </p>
                                           </CardContent>
                                         </Card>
                                       </Link>
-                                    ) : (
-                                      <Card className={`border-2 border-yellow-300 bg-yellow-50 opacity-80 cursor-not-allowed`}>
-                                        <CardContent className="p-4">
-                                          <div className="flex items-center space-x-3 mb-2">
-                                            <div className={`w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center`}>
-                                              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                              </svg>
-                                            </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-base font-semibold text-yellow-800">Pilihan Ganda</h4>
-                                              <p className="text-sm text-yellow-700">Ujian tulisan - Sedang dalam pengembangan</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-sm text-yellow-800">
-                                            Fitur ini sedang dalam tahap uji coba. Silakan coba lagi nanti.
-                                          </p>
-                                        </CardContent>
-                                      </Card>
                                     )}
                                   </div>
                                 </div>
