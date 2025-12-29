@@ -95,7 +95,9 @@ export async function POST(request: NextRequest) {
 
     logger.info('POST /api/exam/questions - Raw body', {
       bodyKeys: Object.keys(body),
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      juz_code: body.juz_code,
+      juz_code_type: typeof body.juz_code
     });
 
     // Get juz_number from juz_code if provided
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
     // Prepare insert data - match exact schema from migration
     const insertData: Record<string, any> = {
       juz_number: juzNumber,
+      juz_code: body.juz_code || null,
       section_number: body.section_number,
       section_title: body.section_title || 'Umum',
       question_number: nextQuestionNumber,
@@ -155,14 +158,12 @@ export async function POST(request: NextRequest) {
       created_by: user.id
     };
 
-    // Only add juz_code if it exists in the table (to avoid errors)
-    // This is a temporary fix until the juz_code column is properly added
-    // insertData.juz_code = body.juz_code || null;
-
     logger.info('Inserting exam question', {
       juz_number: insertData.juz_number,
+      juz_code: insertData.juz_code,
       section_number: insertData.section_number,
       question_number: insertData.question_number,
+      options_count: Array.isArray(insertData.options) ? insertData.options.length : 0,
       data: JSON.stringify(insertData)
     });
 
