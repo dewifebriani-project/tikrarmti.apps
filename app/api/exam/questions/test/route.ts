@@ -15,9 +15,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Test: Try to insert a simple record
+    // Test: Try to insert a simple record with juz_code
     const testData = {
       juz_number: 30,
+      juz_code: '30A',
       section_number: 1,
       section_title: 'Test',
       question_number: 999,
