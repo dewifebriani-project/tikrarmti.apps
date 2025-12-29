@@ -377,7 +377,10 @@ export function AdminDataTable<T extends Record<string, any>>({
                           <div className="flex items-center justify-end gap-2">
                             {onView && (
                               <button
-                                onClick={() => onView(row)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onView(row);
+                                }}
                                 className="text-blue-600 hover:text-blue-900"
                                 title="View"
                               >
@@ -386,7 +389,10 @@ export function AdminDataTable<T extends Record<string, any>>({
                             )}
                             {onEdit && (
                               <button
-                                onClick={() => onEdit(row)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEdit(row);
+                                }}
                                 className="text-green-600 hover:text-green-900"
                                 title="Edit"
                               >
@@ -395,7 +401,10 @@ export function AdminDataTable<T extends Record<string, any>>({
                             )}
                             {onDelete && (
                               <button
-                                onClick={() => onDelete(row)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDelete(row);
+                                }}
                                 className="text-red-600 hover:text-red-900"
                                 title="Delete"
                               >

@@ -157,7 +157,8 @@
       "Bash(awk:*)",
       "Bash(python3:*)",
       "Bash(xxd:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(vercel list:*)"
     ],
     "deny": [],
     "ask": []
