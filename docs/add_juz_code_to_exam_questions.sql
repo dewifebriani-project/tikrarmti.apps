@@ -4,17 +4,13 @@
 -- a question belongs to, while keeping juz_number for queries
 -- ============================================
 
--- Add juz_code column (nullable for now, will be populated)
+-- Drop existing foreign key if it exists (to fix issues)
+ALTER TABLE public.exam_questions
+DROP CONSTRAINT IF EXISTS exam_questions_juz_code_fkey;
+
+-- Add juz_code column (nullable)
 ALTER TABLE public.exam_questions
 ADD COLUMN IF NOT EXISTS juz_code text;
-
--- Add foreign key constraint to juz_options
-ALTER TABLE public.exam_questions
-ADD CONSTRAINT exam_questions_juz_code_fkey
-FOREIGN KEY (juz_code)
-REFERENCES public.juz_options(code)
-ON DELETE SET NULL
-ON UPDATE CASCADE;
 
 -- Add index for juz_code queries
 CREATE INDEX IF NOT EXISTS idx_exam_questions_juz_code
@@ -28,7 +24,7 @@ COMMENT ON COLUMN public.exam_questions.juz_code IS 'Reference to juz_options.co
 -- This maps existing juz_number to appropriate juz codes
 -- ============================================
 
--- For Juz 30 questions, default to 30A (you may want to adjust this)
+-- For Juz 30 questions, default to 30A
 UPDATE public.exam_questions
 SET juz_code = '30A'
 WHERE juz_number = 30 AND juz_code IS NULL;
@@ -42,7 +38,3 @@ WHERE juz_number = 29 AND juz_code IS NULL;
 UPDATE public.exam_questions
 SET juz_code = '28A'
 WHERE juz_number = 28 AND juz_code IS NULL;
-
--- Optionally, make juz_code required after all data is populated
--- Uncomment this line after verifying all records have juz_code set
--- ALTER TABLE public.exam_questions ALTER COLUMN juz_code SET NOT NULL;

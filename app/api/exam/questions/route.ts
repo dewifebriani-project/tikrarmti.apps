@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Prepare insert data - match exact schema from migration
     const insertData: Record<string, any> = {
       juz_number: juzNumber,
-      juz_code: body.juz_code || null, // Store the juz_code for reference
+      juz_code: body.juz_code || null,
       section_number: body.section_number,
       section_title: body.section_title || 'Umum',
       question_number: nextQuestionNumber,
