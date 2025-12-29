@@ -1,4 +1,5 @@
 import { createSupabaseAdmin } from './supabase';
+import { NextRequest } from 'next/server';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -66,8 +67,9 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
 
 /**
  * Helper to get client IP from request headers
+ * Supports both NextRequest and Request types
  */
-export function getClientIp(request: Request): string | null {
+export function getClientIp(request: Request | NextRequest): string | null {
   // Try different headers in order of preference
   const headers = [
     'x-forwarded-for',
@@ -90,8 +92,9 @@ export function getClientIp(request: Request): string | null {
 
 /**
  * Helper to get user agent from request
+ * Supports both NextRequest and Request types
  */
-export function getUserAgent(request: Request): string | null {
+export function getUserAgent(request: Request | NextRequest): string | null {
   return request.headers.get('user-agent');
 }
 
@@ -104,7 +107,7 @@ export async function auditBatchOperation(
   batchId: string,
   batchName: string,
   changes: Record<string, any>,
-  request: Request
+  request: Request | NextRequest
 ) {
   await logAudit({
     userId,
@@ -130,7 +133,7 @@ export async function auditUserOperation(
   targetUserId: string,
   targetUserEmail: string,
   changes: Record<string, any>,
-  request: Request
+  request: Request | NextRequest
 ) {
   await logAudit({
     userId,
@@ -156,7 +159,7 @@ export async function auditTikrarOperation(
   registrationId: string,
   applicantEmail: string,
   changes: Record<string, any>,
-  request: Request
+  request: Request | NextRequest
 ) {
   await logAudit({
     userId,
@@ -181,7 +184,7 @@ export async function auditExport(
   resource: string,
   count: number,
   filters: Record<string, any>,
-  request: Request
+  request: Request | NextRequest
 ) {
   await logAudit({
     userId,
