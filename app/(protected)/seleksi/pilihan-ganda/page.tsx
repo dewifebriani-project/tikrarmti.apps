@@ -169,6 +169,8 @@ export default function PilihanGandaPage() {
         answer: answers[q.id] || '' // Allow empty answers
       }));
 
+      console.log('Submitting exam with', answersArray.length, 'answers');
+
       const response = await fetch('/api/exam/attempts', {
         method: 'POST',
         headers: {
@@ -179,37 +181,40 @@ export default function PilihanGandaPage() {
         }),
       });
 
+      const responseData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.log('API Response status:', response.status, 'data:', responseData);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Submit error:', errorData);
-        const errorMessage = errorData.details || errorData.error || 'Gagal mengirim jawaban';
+        console.error('Submit error:', responseData);
+        const errorMessage = responseData.details || responseData.error || 'Gagal mengirim jawaban';
+        // Show error in a more prominent way
+        alert(`❌ Error: ${errorMessage}\n\nStatus: ${response.status}`);
         throw new Error(errorMessage);
       }
 
-      const result = await response.json();
+      const result = responseData;
       console.log('Submission result:', result);
 
       setSubmitStatus('success');
 
-      // Show results if configured
-      if (examConfig?.showResults !== false) {
-        const passed = result.score >= (examConfig?.passingScore || 70);
-        setTimeout(() => {
-          alert(
-            `Ujian selesai!\n\nSkor ukhti: ${result.score}/100\n` +
-            `${passed ? 'Alhamdulillah! Ukhti LULUS.' : 'Mohon maaf, ukhti belum lulus.'}\n\n` +
-            `Jawaban benar: ${result.correctAnswers}/${result.totalQuestions}`
-          );
-        }, 500);
-      }
+      // Show results immediately with alert
+      const passed = result.score >= (examConfig?.passingScore || 70);
+      alert(
+        `✅ Ujian Berhasil Dikirim!\n\n` +
+        `Skor ukhti: ${result.score}/100\n` +
+        `Jawaban benar: ${result.correctAnswers}/${result.totalQuestions}\n\n` +
+        `${passed ? '🎉 Alhamdulillah! Ukhti LULUS.' : 'Mohon maaf, ukhti belum lulus.'}\n\n` +
+        `Halaman akan dialihkan...`
+      );
 
+      // Redirect after showing the alert
       setTimeout(() => {
         router.push('/perjalanan-saya');
-      }, 3000);
+      }, 1000);
     } catch (error: any) {
       console.error('Error submitting quiz:', error);
       setSubmitStatus('error');
-      alert(error.message || 'Gagal mengirim jawaban');
+      // Error already shown in alert above
     } finally {
       setIsSubmitting(false);
     }
