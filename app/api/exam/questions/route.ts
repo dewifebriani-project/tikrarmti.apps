@@ -94,6 +94,20 @@ export async function POST(request: NextRequest) {
 
     const body: AdminQuestionEditForm & { juz_code?: string } = await request.json();
 
+    // Log the received body for debugging
+    logger.info('Received exam question data', {
+      juz_code: body.juz_code,
+      juz_number: body.juz_number,
+      section_number: body.section_number,
+      section_title: body.section_title,
+      question_type: body.question_type,
+      points: body.points,
+      is_active: body.is_active,
+      has_options: !!body.options,
+      options_count: body.options?.length,
+      question_text_length: body.question_text?.length
+    });
+
     // If juz_code is provided, get juz_number from juz table
     let juzNumber = body.juz_number;
     if (body.juz_code) {
@@ -144,22 +158,50 @@ export async function POST(request: NextRequest) {
       nextQuestionNumber = lastQuestion && lastQuestion.length > 0 ? (lastQuestion[0].question_number || 0) + 1 : 1;
     }
 
+    // Find correct answer
+    let correctAnswer = '';
+    if (body.options && Array.isArray(body.options)) {
+      const correctOption = body.options.find((opt: any) => opt.isCorrect === true);
+      correctAnswer = correctOption?.text || '';
+    }
+
+    logger.info('Preparing to insert question', {
+      juz_number: juzNumber,
+      section_number: body.section_number,
+      question_number: nextQuestionNumber,
+      correct_answer: correctAnswer,
+      options_count: body.options?.length
+    });
+
+    // Prepare insert data
+    const insertData: any = {
+      juz_number: juzNumber,
+      section_number: body.section_number,
+      question_number: nextQuestionNumber,
+      question_text: body.question_text,
+      question_type: body.question_type || 'multiple_choice',
+      points: body.points || 1,
+      is_active: body.is_active !== false,
+      created_by: user.id
+    };
+
+    // Only add optional fields if they exist
+    if (body.section_title) {
+      insertData.section_title = body.section_title;
+    }
+    if (body.options && Array.isArray(body.options)) {
+      insertData.options = body.options;
+    }
+    if (correctAnswer) {
+      insertData.correct_answer = correctAnswer;
+    }
+
+    logger.info('Insert data prepared', { insertData });
+
     // Insert question
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
-      .insert({
-        juz_number: juzNumber,
-        section_number: body.section_number,
-        section_title: body.section_title,
-        question_number: nextQuestionNumber,
-        question_text: body.question_text,
-        question_type: body.question_type,
-        options: body.options,
-        correct_answer: body.options.find((opt: any) => opt.isCorrect)?.text || '',
-        points: body.points || 1,
-        is_active: body.is_active !== false,
-        created_by: user.id
-      })
+      .insert(insertData)
       .select();
 
     if (insertError) {
