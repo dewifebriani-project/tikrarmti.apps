@@ -156,7 +156,8 @@
       "Bash(fold:*)",
       "Bash(awk:*)",
       "Bash(python3:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []

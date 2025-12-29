@@ -51,12 +51,6 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
     }
   };
 
-  // Get juz number from juz code for submission
-  const getJuzNumberFromCode = (code: string): JuzNumber => {
-    const juz = juzOptions.find(j => j.code === code);
-    return (juz?.juz_number || 30) as JuzNumber;
-  };
-
   // Find juz code for current juz number
   const [juzCode, setJuzCode] = useState<string>('');
 
@@ -157,7 +151,6 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           juz_code: juzCode,
-          juz_number: getJuzNumberFromCode(juzCode),
           section_number: sectionNumber,
           section_title: sectionTitle,
           question_text: questionText,
