@@ -158,6 +158,25 @@ export async function POST(request: NextRequest) {
     // Create or update exam attempt
     let attemptId = registration.exam_attempt_id;
 
+    // Verify if the existing attempt actually exists
+    if (attemptId) {
+      const { data: existingAttempt, error: checkError } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('id')
+        .eq('id', attemptId)
+        .single();
+
+      if (checkError || !existingAttempt) {
+        // Attempt doesn't exist, clear the reference and create new
+        logger.warn('Existing exam attempt not found, clearing reference', { attemptId });
+        await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .update({ exam_attempt_id: null })
+          .eq('id', registration.id);
+        attemptId = null;
+      }
+    }
+
     if (attemptId) {
       // Update existing attempt
       const { error: updateError } = await supabaseAdmin
@@ -176,7 +195,8 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         logger.error('Error updating exam attempt', { error: updateError });
         return NextResponse.json({
-          error: 'Failed to update attempt'
+          error: 'Failed to update attempt',
+          details: updateError.message
         }, { status: 500 });
       }
     } else {
@@ -200,7 +220,8 @@ export async function POST(request: NextRequest) {
       if (createError || !newAttempt) {
         logger.error('Error creating exam attempt', { error: createError });
         return NextResponse.json({
-          error: 'Failed to create attempt'
+          error: 'Failed to create attempt',
+          details: createError?.message || 'Unknown error'
         }, { status: 500 });
       }
 
