@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, AlertCircle, Clock, FileText, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, FileText, Loader2, Flag, X, Send } from 'lucide-react';
 
 interface ExamQuestion {
   id: string;
@@ -43,6 +43,14 @@ export default function PilihanGandaPage() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
   const [quizStarted, setQuizStarted] = useState(false);
+
+  // Flag modal state
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [flagType, setFlagType] = useState('');
+  const [flagMessage, setFlagMessage] = useState('');
+  const [submittingFlag, setSubmittingFlag] = useState(false);
+  const [flagSuccess, setFlagSuccess] = useState(false);
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
 
   // Set client-side flag
   useEffect(() => {
@@ -175,6 +183,61 @@ export default function PilihanGandaPage() {
     setQuizStarted(true);
   };
 
+  const openFlagModal = () => {
+    setShowFlagModal(true);
+    setFlagType('');
+    setFlagMessage('');
+    setFlagSuccess(false);
+  };
+
+  const closeFlagModal = () => {
+    setShowFlagModal(false);
+    setFlagType('');
+    setFlagMessage('');
+    setFlagSuccess(false);
+  };
+
+  const handleFlagSubmit = async () => {
+    if (!flagType) {
+      alert('Silakan pilih jenis flag');
+      return;
+    }
+
+    setSubmittingFlag(true);
+
+    try {
+      const response = await fetch('/api/exam/flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionId: questions[currentQuestion].id,
+          flagType,
+          flagMessage
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Gagal mengirim flag');
+      }
+
+      const result = await response.json();
+      console.log('Flag result:', result);
+
+      setFlagSuccess(true);
+      setFlaggedQuestions(prev => new Set(prev).add(questions[currentQuestion].id));
+
+      setTimeout(() => {
+        closeFlagModal();
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error submitting flag:', error);
+      alert(error.message || 'Gagal mengirim flag');
+    } finally {
+      setSubmittingFlag(false);
+    }
+  };
+
   const progressPercentage = questions.length > 0
     ? ((Object.keys(answers).length) / questions.length) * 100
     : 0;
@@ -274,7 +337,7 @@ export default function PilihanGandaPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Soal Belum Tersedia</h1>
               <p className="text-gray-600">
-                Soal ujian untuk juz yang Anda pilih belum tersedia. Silakan hubungi admin.
+                Maaf <em>ukhti</em>, soal ujian untuk juz yang <em>ukhti</em> pilih belum tersedia. Silakan hubungi admin.
               </p>
             </div>
             <Button
@@ -371,9 +434,25 @@ export default function PilihanGandaPage() {
             {/* Question Card */}
             <Card className="bg-white shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg">
-                  {questions[currentQuestion].section_title} - Soal {questions[currentQuestion].question_number}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">
+                    {questions[currentQuestion].section_title} - Soal {questions[currentQuestion].question_number}
+                  </CardTitle>
+                  <Button
+                    onClick={openFlagModal}
+                    variant="ghost"
+                    size="sm"
+                    className={`${
+                      flaggedQuestions.has(questions[currentQuestion].id)
+                        ? 'text-orange-600 bg-orange-50 hover:bg-orange-100'
+                        : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'
+                    }`}
+                    disabled={flaggedQuestions.has(questions[currentQuestion].id)}
+                  >
+                    <Flag className="w-4 h-4 mr-1" />
+                    {flaggedQuestions.has(questions[currentQuestion].id) ? 'Sudah Diflag' : 'Lapor Soal'}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -490,6 +569,105 @@ export default function PilihanGandaPage() {
                   <strong>Terjadi kesalahan</strong> Gagal mengirim jawaban. Silakan coba lagi.
                 </AlertDescription>
               </Alert>
+            )}
+
+            {/* Flag Modal */}
+            {showFlagModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <Card className="max-w-md w-full">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Flag className="w-5 h-5 text-orange-600" />
+                        Lapor Kesalahan Soal
+                      </CardTitle>
+                      <Button
+                        onClick={closeFlagModal}
+                        variant="ghost"
+                        size="sm"
+                        disabled={submittingFlag || flagSuccess}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {flagSuccess ? (
+                      <Alert className="bg-green-50 border-green-200">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <AlertDescription className="text-green-800">
+                          <strong>Terima kasih ukhti!</strong> Laporan berhasil dikirim.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-600">
+                          Jika <em>ukhti</em> menemukan kesalahan pada soal, silakan laporkan kepada kami.
+                        </p>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Jenis Kesalahan *
+                          </label>
+                          <select
+                            value={flagType}
+                            onChange={(e) => setFlagType(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            disabled={submittingFlag}
+                          >
+                            <option value="">Pilih jenis kesalahan</option>
+                            <option value="wrong_answer">Jawaban salah</option>
+                            <option value="typo">Typo (kesalahan ketik)</option>
+                            <option value="unclear">Soal tidak jelas</option>
+                            <option value="other">Lainnya</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Keterangan Tambahan
+                          </label>
+                          <textarea
+                            value={flagMessage}
+                            onChange={(e) => setFlagMessage(e.target.value)}
+                            rows={3}
+                            placeholder="Jelaskan lebih lanjut tentang kesalahan yang ditemukan..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            disabled={submittingFlag}
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <Button
+                            onClick={closeFlagModal}
+                            variant="outline"
+                            disabled={submittingFlag}
+                          >
+                            Batal
+                          </Button>
+                          <Button
+                            onClick={handleFlagSubmit}
+                            disabled={submittingFlag || !flagType}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            {submittingFlag ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Mengirim...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 mr-2" />
+                                Kirim Laporan
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             )}
           </>
         )}
