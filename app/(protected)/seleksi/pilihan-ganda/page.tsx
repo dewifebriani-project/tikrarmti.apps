@@ -182,7 +182,8 @@ export default function PilihanGandaPage() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Submit error:', errorData);
-        throw new Error(errorData.error || 'Gagal mengirim jawaban');
+        const errorMessage = errorData.details || errorData.error || 'Gagal mengirim jawaban';
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();

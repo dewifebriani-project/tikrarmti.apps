@@ -23,10 +23,10 @@ export async function POST(request: NextRequest) {
       answersCount: Array.isArray(body.answers) ? body.answers.length : 0
     });
 
-    // Get user's registration
+    // Get user's registration with batch info
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, chosen_juz, exam_status, exam_attempt_id')
+      .select('id, chosen_juz, exam_status, exam_attempt_id, batch_id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -34,14 +34,63 @@ export async function POST(request: NextRequest) {
 
     if (registrationError || !registration) {
       return NextResponse.json({
-        error: 'No registration found'
+        error: 'No registration found',
+        details: 'Silakan daftar tikrar terlebih dahulu'
       }, { status: 404 });
+    }
+
+    // Get batch to check selection dates and status
+    const { data: batch, error: batchError } = await supabaseAdmin
+      .from('batches')
+      .select('id, name, status, selection_start_date, selection_end_date')
+      .eq('id', registration.batch_id)
+      .single();
+
+    if (batchError || !batch) {
+      return NextResponse.json({
+        error: 'Batch not found',
+        details: 'Batch pendaftaran tidak ditemukan'
+      }, { status: 404 });
+    }
+
+    // Check if batch is open
+    if (batch.status !== 'open') {
+      return NextResponse.json({
+        error: 'Exam not available',
+        details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
+      }, { status: 400 });
+    }
+
+    // Check if today is within selection period
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (batch.selection_start_date && batch.selection_end_date) {
+      const startDate = new Date(batch.selection_start_date);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(batch.selection_end_date);
+      endDate.setHours(23, 59, 59, 999);
+
+      if (today < startDate || today > endDate) {
+        const formatDate = (date: Date) => date.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+
+        return NextResponse.json({
+          error: 'Exam period closed',
+          details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}`
+        }, { status: 400 });
+      }
     }
 
     // Check if exam is already completed
     if (registration.exam_status === 'completed') {
       return NextResponse.json({
-        error: 'Exam already completed'
+        error: 'Exam already completed',
+        details: 'Ukhti sudah menyelesaikan ujian ini'
       }, { status: 400 });
     }
 
@@ -57,13 +106,15 @@ export async function POST(request: NextRequest) {
       examJuzNumber = 30;
     } else if (chosenJuz?.startsWith('30')) {
       return NextResponse.json({
-        error: 'No exam required for Juz 30'
+        error: 'No exam required for Juz 30',
+        details: 'Tidak ada ujian untuk juz 30'
       }, { status: 400 });
     }
 
     if (!examJuzNumber) {
       return NextResponse.json({
-        error: 'Invalid chosen_juz'
+        error: 'Invalid chosen_juz',
+        details: `chosen_juz "${chosenJuz}" tidak valid`
       }, { status: 400 });
     }
 
