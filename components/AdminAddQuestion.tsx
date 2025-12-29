@@ -127,6 +127,11 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
 
   const handleSave = async () => {
     // Validation
+    if (!juzCode) {
+      toast.error('Silakan pilih juz terlebih dahulu');
+      return;
+    }
+
     if (!questionText.trim()) {
       toast.error('Question text is required');
       return;
@@ -170,7 +175,7 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
         onSuccess();
         onClose();
       } else {
-        toast.error(result.error || 'Failed to add question');
+        toast.error(result.error || result.details || 'Failed to add question');
       }
     } catch (error) {
       console.error('Error saving question:', error);
