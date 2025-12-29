@@ -20,6 +20,7 @@ function shuffleArray<T>(array: T[]): T[] {
 // - Juz 29A or 29B -> Exam Juz 30
 // - Juz 1A or 1B -> Exam Juz 30
 // - Juz 30A or 30B -> No exam (return empty)
+// - Only available during selection dates of active open batch
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient();
@@ -29,10 +30,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's registration with chosen_juz
+    // Get user's registration with chosen_juz and batch
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, chosen_juz, exam_status, exam_attempt_id')
+      .select('id, chosen_juz, exam_status, exam_attempt_id, batch_id, program_id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -43,6 +44,58 @@ export async function GET(request: NextRequest) {
         error: 'No registration found',
         details: 'Silakan daftar tikrar terlebih dahulu'
       }, { status: 404 });
+    }
+
+    // Get batch to check selection dates and status
+    const { data: batch, error: batchError } = await supabaseAdmin
+      .from('batches')
+      .select('id, name, status, selection_start_date, selection_end_date')
+      .eq('id', registration.batch_id)
+      .single();
+
+    if (batchError || !batch) {
+      return NextResponse.json({
+        error: 'Batch not found',
+        details: 'Batch pendaftaran tidak ditemukan'
+      }, { status: 404 });
+    }
+
+    // Check if batch is open
+    if (batch.status !== 'open') {
+      return NextResponse.json({
+        error: 'Exam not available',
+        details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
+      }, { status: 400 });
+    }
+
+    // Check if today is within selection period
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (batch.selection_start_date && batch.selection_end_date) {
+      const startDate = new Date(batch.selection_start_date);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(batch.selection_end_date);
+      endDate.setHours(23, 59, 59, 999);
+
+      if (today < startDate || today > endDate) {
+        const formatDate = (date: Date) => date.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+
+        return NextResponse.json({
+          error: 'Exam period closed',
+          details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}`
+        }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({
+        error: 'Selection dates not set',
+        details: 'Tanggal seleksi belum ditentukan untuk batch ini. Silakan hubungi admin.'
+      }, { status: 400 });
     }
 
     // Determine required exam juz based on chosen_juz
