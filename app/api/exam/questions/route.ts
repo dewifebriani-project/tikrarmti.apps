@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     const insertData: Record<string, any> = {
       juz_number: juzNumber,
       section_number: body.section_number,
-      section_title: body.section_title || '',
+      section_title: body.section_title || 'Umum',
       question_number: nextQuestionNumber,
       question_text: body.question_text,
       question_type: body.question_type || 'multiple_choice',
