@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X, Sparkles, Loader2 } from 'lucide-react';
+import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X, Sparkles, Loader2, ArrowUpDown, Search } from 'lucide-react';
 import { JuzNumber, ExamQuestion, AdminQuestionEditForm } from '@/types/exam';
 
 interface AdminExamQuestionsProps {
@@ -22,6 +22,9 @@ const SECTION_OPTIONS = [
   { value: 6, label: '6 - Pengenalan Surat' },
   { value: 7, label: '7 - Tebak Halaman' },
 ];
+
+type SortField = 'juz_number' | 'section_number' | 'question_number' | 'created_at' | 'updated_at';
+type SortOrder = 'asc' | 'desc';
 
 interface JuzOption {
   id: string;
@@ -48,6 +51,11 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [juzOptions, setJuzOptions] = useState<JuzOption[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [filterType, setFilterType] = useState<'all' | 'multiple_choice' | 'introduction'>('all');
+  const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
 
   // AI Generate states
   const [showAIModal, setShowAIModal] = useState(false);
@@ -61,7 +69,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   useEffect(() => {
     loadQuestions();
     loadJuzOptions();
-  }, [selectedJuz, selectedSection]);
+  }, [selectedJuz, selectedSection, sortField, sortOrder, searchQuery, filterType, filterActive]);
 
   // Set default juz_code when juzOptions are loaded
   useEffect(() => {
@@ -85,26 +93,67 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedJuz, selectedSection]);
+  }, [selectedJuz, selectedSection, searchQuery, filterType, filterActive]);
 
   const loadQuestions = async () => {
     try {
       setLoading(true);
-      let url = '/api/exam/questions?active=true';
+      let url = '/api/exam/questions';
+
+      const params = new URLSearchParams();
+      params.append('active', 'true');
 
       if (selectedJuz !== 'all') {
-        url += `&juz=${selectedJuz}`;
+        params.append('juz', selectedJuz.toString());
       }
 
       if (selectedSection !== 'all') {
-        url += `&section=${selectedSection}`;
+        params.append('section', selectedSection.toString());
       }
 
-      const response = await fetch(url);
+      const response = await fetch(`${url}?${params.toString()}`);
       const result = await response.json();
 
       if (response.ok) {
-        setQuestions(result.data || []);
+        let filteredQuestions = result.data || [];
+
+        // Apply search filter
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          filteredQuestions = filteredQuestions.filter((q: ExamQuestion) =>
+            q.question_text.toLowerCase().includes(query) ||
+            q.section_title?.toLowerCase().includes(query) ||
+            q.options?.some((opt: any) => opt.text.toLowerCase().includes(query))
+          );
+        }
+
+        // Apply type filter
+        if (filterType !== 'all') {
+          filteredQuestions = filteredQuestions.filter((q: ExamQuestion) => q.question_type === filterType);
+        }
+
+        // Apply active filter
+        if (filterActive === 'active') {
+          filteredQuestions = filteredQuestions.filter((q: ExamQuestion) => q.is_active !== false);
+        } else if (filterActive === 'inactive') {
+          filteredQuestions = filteredQuestions.filter((q: ExamQuestion) => q.is_active === false);
+        }
+
+        // Apply sorting
+        filteredQuestions = [...filteredQuestions].sort((a: any, b: any) => {
+          let aVal = a[sortField];
+          let bVal = b[sortField];
+
+          // Handle null values
+          if (aVal === null || aVal === undefined) return sortOrder === 'asc' ? 1 : -1;
+          if (bVal === null || bVal === undefined) return sortOrder === 'asc' ? -1 : 1;
+
+          if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+          if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
+
+        setQuestions(filteredQuestions);
       } else {
         toast.error(result.error || 'Failed to load questions');
       }
@@ -113,6 +162,15 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
       toast.error('Failed to load questions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
     }
   };
 
@@ -319,12 +377,28 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
 
       {/* Filters */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center gap-4">
-          <Filter className="w-5 h-5 text-gray-400" />
-
-          <div className="flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          {/* Search */}
+          <div className="lg:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pilihan Juz
+              Search
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search question text..."
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Juz Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Juz
             </label>
             <select
               value={selectedJuz}
@@ -334,7 +408,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">Semua Juz</option>
+              <option value="all">All Juz</option>
               {juzOptions.map((option) => (
                 <option key={option.code} value={option.juz_number}>
                   {option.name}
@@ -343,7 +417,8 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
             </select>
           </div>
 
-          <div className="flex-1">
+          {/* Section Filter */}
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Section
             </label>
@@ -362,19 +437,64 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
             </select>
           </div>
 
-          <div className="flex-1">
+          {/* Type Filter */}
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Total Questions
+              Type
             </label>
-            <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 font-semibold">
-              {questions.length} questions
-            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Types</option>
+              <option value="multiple_choice">Multiple Choice</option>
+              <option value="introduction">Introduction</option>
+            </select>
           </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={filterActive}
+              onChange={(e) => setFilterActive(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Result count */}
+        <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+          <span className="text-sm text-gray-600">
+            Showing <span className="font-semibold text-gray-900">{questions.length}</span> questions
+          </span>
+          {(searchQuery || filterType !== 'all' || filterActive !== 'all' || selectedJuz !== 'all' || selectedSection !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setFilterType('all');
+                setFilterActive('all');
+                setSelectedJuz('all');
+                setSelectedSection('all');
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <X className="w-3 h-3" />
+              Clear all filters
+            </button>
+          )}
         </div>
       </div>
 
       {/* Questions List */}
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
         {loading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -395,78 +515,124 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
           <>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Juz
+                    <th
+                      onClick={() => handleSort('juz_number')}
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition select-none"
+                    >
+                      <div className="flex items-center gap-1">
+                        Juz
+                        {sortField === 'juz_number' && (
+                          <span className="text-blue-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                        {sortField !== 'juz_number' && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Section
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Q#
+                    <th
+                      onClick={() => handleSort('question_number')}
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition select-none"
+                    >
+                      <div className="flex items-center gap-1">
+                        Q#
+                        {sortField === 'question_number' && (
+                          <span className="text-blue-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                        {sortField !== 'question_number' && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
+                      </div>
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Question
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Type
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Options
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Points
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      onClick={() => handleSort('created_at')}
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200 transition select-none"
+                    >
+                      <div className="flex items-center gap-1">
+                        Created
+                        {sortField === 'created_at' && (
+                          <span className="text-blue-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                        {sortField !== 'created_at' && <ArrowUpDown className="w-3 h-3 text-gray-400" />}
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {paginatedQuestions.map((question) => (
-                  <tr key={question.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {question.juz_number}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="max-w-xs">
-                        <div className="font-medium text-gray-900">{question.section_number}</div>
-                        <div className="text-xs text-gray-500 truncate">{question.section_title}</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                      {question.question_number}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      <div className="max-w-md truncate" title={question.question_text}>
-                        {question.question_text.substring(0, 100)}
-                        {question.question_text.length > 100 && '...'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        question.question_type === 'multiple_choice'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {question.question_type === 'multiple_choice' ? 'MC' : 'Intro'}
+                  {paginatedQuestions.map((question, idx) => (
+                  <tr key={question.id} className={`hover:bg-blue-50/50 transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                        Juz {question.juz_number}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                      {question.options?.length || 0}
+                    <td className="px-4 py-3">
+                      <div className="text-sm">
+                        <span className="font-medium text-gray-900">Sec {question.section_number}</span>
+                        <div className="text-xs text-gray-500 truncate max-w-[120px]" title={question.section_title}>
+                          {question.section_title}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                      {question.points}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
+                        {question.question_number}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 py-3">
+                      <div className="max-w-md text-sm text-gray-700 line-clamp-2" title={question.question_text}>
+                        {question.question_text}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                        question.question_type === 'multiple_choice'
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {question.question_type === 'multiple_choice' ? 'Multiple Choice' : 'Introduction'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        {question.options?.length || 0} options
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-violet-100 text-violet-800">
+                        {question.points} pts
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+                      {new Date(question.created_at).toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
                             setEditingQuestion(question);
                             setShowEditModal(true);
                           }}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
                           title="Edit question"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -476,7 +642,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
                             setDeletingQuestionId(question.id);
                             setShowDeleteModal(true);
                           }}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
                           title="Delete question"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -491,25 +657,49 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50/50 rounded-b-lg">
               <div className="text-sm text-gray-600">
-                Showing {startIndex + 1} to {Math.min(endIndex, questions.length)} of {questions.length} questions
+                Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to <span className="font-semibold text-gray-900">{Math.min(endIndex, questions.length)}</span> of <span className="font-semibold text-gray-900">{questions.length}</span> questions
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
-                </span>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`min-w-[2.5rem] px-2 py-1 text-sm font-medium rounded-lg transition ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-gray-300 hover:bg-gray-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
