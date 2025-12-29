@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.exam_configurations (
   -- Scoring settings
   passing_score integer DEFAULT 70, -- Minimum score to pass (0-100)
   auto_grade boolean DEFAULT true, -- Automatically grade exam
+  score_calculation_mode text DEFAULT 'highest', -- 'highest' or 'average' - how to calculate final score from multiple attempts
 
   -- Behavior settings
   allow_review boolean DEFAULT false, -- Allow reviewing answers after submit
@@ -52,6 +53,7 @@ COMMENT ON COLUMN public.exam_configurations.duration_minutes IS 'Exam duration 
 COMMENT ON COLUMN public.exam_configurations.max_attempts IS 'Maximum allowed attempts (null = unlimited)';
 COMMENT ON COLUMN public.exam_configurations.shuffle_questions IS 'Randomize question order for each attempt';
 COMMENT ON COLUMN public.exam_configurations.passing_score IS 'Minimum score (0-100) to pass the exam';
+COMMENT ON COLUMN public.exam_configurations.score_calculation_mode IS 'How to calculate final score: "highest" (take best score) or "average" (take average of all attempts)';
 
 -- ============================================
 -- Add configuration_id to exam_attempts
@@ -125,6 +127,7 @@ INSERT INTO public.exam_configurations (
   randomize_order,
   passing_score,
   auto_grade,
+  score_calculation_mode,
   allow_review,
   show_results,
   auto_submit_on_timeout,
@@ -138,6 +141,7 @@ INSERT INTO public.exam_configurations (
   false,
   70,
   true,
+  'highest',
   false,
   true,
   true,

@@ -237,6 +237,10 @@ export function AdminExamSettings({ onSuccess }: AdminExamSettingsProps) {
                         value={config.auto_grade ? 'Yes' : 'No'}
                       />
                       <SettingItem
+                        label="Score Mode"
+                        value={config.score_calculation_mode === 'highest' ? 'Highest' : 'Average'}
+                      />
+                      <SettingItem
                         label="Auto Submit"
                         value={config.auto_submit_on_timeout ? 'Yes' : 'No'}
                       />
@@ -412,6 +416,7 @@ function ConfigForm({
     questions_per_attempt: config?.questions_per_attempt,
     passing_score: config?.passing_score || 70,
     auto_grade: config?.auto_grade ?? true,
+    score_calculation_mode: config?.score_calculation_mode || 'highest',
     allow_review: config?.allow_review ?? false,
     show_results: config?.show_results ?? true,
     auto_submit_on_timeout: config?.auto_submit_on_timeout ?? true,
@@ -624,6 +629,20 @@ function ConfigForm({
             />
             <span className="text-sm font-medium text-gray-700">Allow reviewing answers after submit</span>
           </label>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Score Calculation Mode (if max_attempts > 1)
+            </label>
+            <select
+              value={formData.score_calculation_mode}
+              onChange={(e) => setFormData({ ...formData, score_calculation_mode: e.target.value as 'highest' | 'average' })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="highest">Highest Score (ambil nilai tertinggi)</option>
+              <option value="average">Average Score (ambil rata-rata)</option>
+            </select>
+          </div>
 
           <label className="flex items-center gap-2">
             <input

@@ -220,6 +220,7 @@ export interface ExamConfiguration {
   questions_per_attempt?: number;
   passing_score: number;
   auto_grade: boolean;
+  score_calculation_mode: 'highest' | 'average';
   allow_review: boolean;
   show_results: boolean;
   auto_submit_on_timeout: boolean;
@@ -242,6 +243,7 @@ export interface ExamConfigurationForm {
   questions_per_attempt?: number;
   passing_score: number;
   auto_grade: boolean;
+  score_calculation_mode: 'highest' | 'average';
   allow_review: boolean;
   show_results: boolean;
   auto_submit_on_timeout: boolean;

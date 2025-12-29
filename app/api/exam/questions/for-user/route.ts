@@ -45,14 +45,6 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if exam is already completed
-    if (registration.exam_status === 'completed') {
-      return NextResponse.json({
-        error: 'Exam already completed',
-        details: 'Ujian sudah dikerjakan'
-      }, { status: 400 });
-    }
-
     // Determine required exam juz based on chosen_juz
     const chosenJuz = registration.chosen_juz;
     let requiredJuzNumber: number | null = null;
@@ -93,14 +85,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has reached max attempts
+    // Only count submitted attempts, not in-progress ones
     if (config && config.max_attempts) {
       const { data: existingAttempts, error: attemptsError } = await supabaseAdmin
         .from('exam_attempts')
-        .select('id')
+        .select('id, status')
         .eq('user_id', user.id)
-        .eq('registration_id', registration.id);
+        .eq('registration_id', registration.id)
+        .eq('status', 'submitted');
 
-      if (!attemptsError && existingAttempts && existingAttempts.length >= config.max_attempts) {
+      const submittedCount = existingAttempts?.length || 0;
+
+      if (!attemptsError && submittedCount >= config.max_attempts) {
         return NextResponse.json({
           error: 'Max attempts reached',
           details: `Ukhti sudah mencoba ${config.max_attempts} kali. Tidak bisa mencoba lagi.`,
