@@ -139,10 +139,9 @@ export async function POST(request: NextRequest) {
         .eq('juz_number', juzNumber)
         .eq('section_number', body.section_number)
         .order('question_number', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      nextQuestionNumber = lastQuestion ? (lastQuestion.question_number || 0) + 1 : 1;
+      nextQuestionNumber = lastQuestion && lastQuestion.length > 0 ? (lastQuestion[0].question_number || 0) + 1 : 1;
     }
 
     // Insert question
