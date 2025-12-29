@@ -986,6 +986,7 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
   };
 
   const [formData, setFormData] = useState({
+    id: batch?.id,
     name: batch?.name || '',
     description: batch?.description || '',
     start_date: batch?.start_date || '',
