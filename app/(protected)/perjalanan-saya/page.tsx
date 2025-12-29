@@ -771,25 +771,48 @@ export default function PerjalananSaya() {
                                     </Link>
                                   )}
 
-                                  {/* Card Pilihan Ganda - Disabled for testing */}
-                                  <Card className={`border-2 border-yellow-300 bg-yellow-50 opacity-80 cursor-not-allowed`}>
-                                    <CardContent className="p-3 sm:p-4">
-                                      <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-yellow-200 rounded-full flex items-center justify-center`}>
-                                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                          </svg>
+                                  {/* Card Pilihan Ganda - Admin only for testing */}
+                                  {user?.role === 'admin' ? (
+                                    <Link href="/seleksi/pilihan-ganda">
+                                      <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                        <CardContent className="p-3 sm:p-4">
+                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-purple-200 rounded-full flex items-center justify-center`}>
+                                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                              </svg>
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-sm sm:text-base font-semibold text-purple-900">Pilihan Ganda</h4>
+                                              <p className="text-xs text-purple-700">Ujian tulisan - Klik untuk mulai (Admin)</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-xs text-purple-800 font-medium">
+                                            Ujian pilihan ganda tentang Al-Qur'an - Mode Admin
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </Link>
+                                  ) : (
+                                    <Card className={`border-2 border-yellow-300 bg-yellow-50 opacity-80 cursor-not-allowed`}>
+                                      <CardContent className="p-3 sm:p-4">
+                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-yellow-200 rounded-full flex items-center justify-center`}>
+                                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                          </div>
+                                          <div className="flex-grow">
+                                            <h4 className="text-sm sm:text-base font-semibold text-yellow-800">Pilihan Ganda</h4>
+                                            <p className="text-xs text-yellow-700">Ujian tulisan - Sedang dalam pengembangan</p>
+                                          </div>
                                         </div>
-                                        <div className="flex-grow">
-                                          <h4 className="text-sm sm:text-base font-semibold text-yellow-800">Pilihan Ganda</h4>
-                                          <p className="text-xs text-yellow-700">Ujian tulisan - Sedang dalam pengembangan</p>
-                                        </div>
-                                      </div>
-                                      <p className="text-xs text-yellow-800">
-                                        Fitur ini sedang dalam tahap uji coba. Silakan coba lagi nanti.
-                                      </p>
-                                    </CardContent>
-                                  </Card>
+                                        <p className="text-xs text-yellow-800">
+                                          Fitur ini sedang dalam tahap uji coba. Silakan coba lagi nanti.
+                                        </p>
+                                      </CardContent>
+                                    </Card>
+                                  )}
                                 </div>
                               </div>
                             ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
@@ -944,25 +967,48 @@ export default function PerjalananSaya() {
                                       </Link>
                                     )}
 
-                                    {/* Card Pilihan Ganda - Disabled for testing */}
-                                    <Card className={`border-2 border-yellow-300 bg-yellow-50 opacity-80 cursor-not-allowed`}>
-                                      <CardContent className="p-4">
-                                        <div className="flex items-center space-x-3 mb-2">
-                                          <div className={`w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center`}>
-                                            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                            </svg>
+                                    {/* Card Pilihan Ganda - Admin only for testing */}
+                                    {user?.role === 'admin' ? (
+                                      <Link href="/seleksi/pilihan-ganda">
+                                        <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-4">
+                                            <div className="flex items-center space-x-3 mb-2">
+                                              <div className={`w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center`}>
+                                                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                                </svg>
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-base font-semibold text-purple-900">Pilihan Ganda</h4>
+                                                <p className="text-sm text-purple-700">Ujian tulisan - Klik untuk mulai (Admin)</p>
+                                              </div>
+                                            </div>
+                                            <p className="text-sm text-purple-800 font-medium">
+                                              Ujian pilihan ganda tentang Al-Qur'an - Mode Admin
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
+                                    ) : (
+                                      <Card className={`border-2 border-yellow-300 bg-yellow-50 opacity-80 cursor-not-allowed`}>
+                                        <CardContent className="p-4">
+                                          <div className="flex items-center space-x-3 mb-2">
+                                            <div className={`w-10 h-10 bg-yellow-200 rounded-full flex items-center justify-center`}>
+                                              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                              </svg>
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-base font-semibold text-yellow-800">Pilihan Ganda</h4>
+                                              <p className="text-sm text-yellow-700">Ujian tulisan - Sedang dalam pengembangan</p>
+                                            </div>
                                           </div>
-                                          <div className="flex-grow">
-                                            <h4 className="text-base font-semibold text-yellow-800">Pilihan Ganda</h4>
-                                            <p className="text-sm text-yellow-700">Ujian tulisan - Sedang dalam pengembangan</p>
-                                          </div>
-                                        </div>
-                                        <p className="text-sm text-yellow-800">
-                                          Fitur ini sedang dalam tahap uji coba. Silakan coba lagi nanti.
-                                        </p>
-                                      </CardContent>
-                                    </Card>
+                                          <p className="text-sm text-yellow-800">
+                                            Fitur ini sedang dalam tahap uji coba. Silakan coba lagi nanti.
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    )}
                                   </div>
                                 </div>
                               ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (

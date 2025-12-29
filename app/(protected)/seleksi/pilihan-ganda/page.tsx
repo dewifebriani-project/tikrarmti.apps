@@ -10,9 +10,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, AlertCircle, Clock, FileText, Lock } from 'lucide-react';
 
-// Page is locked for testing
-const PAGE_LOCKED = true;
-const LOCK_MESSAGE = 'Halaman ujian pilihan ganda sedang dalam tahap uji coba. Silakan coba lagi nanti.';
+// Page is locked for non-admin users (testing mode)
+const ADMIN_ONLY_PAGE = true;
+const LOCK_MESSAGE = 'Halaman ujian pilihan ganda sedang dalam tahap uji coba. Hanya admin yang dapat mengakses halaman ini.';
 
 interface QuizQuestion {
   id: number;
@@ -284,8 +284,8 @@ export default function PilihanGandaPage() {
     return null;
   }
 
-  // Show lock screen if page is locked for testing
-  if (PAGE_LOCKED) {
+  // Show lock screen if page is admin-only and user is not admin
+  if (ADMIN_ONLY_PAGE && user?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="max-w-md w-full bg-white shadow-lg">
