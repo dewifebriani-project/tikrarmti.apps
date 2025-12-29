@@ -143,7 +143,6 @@ export async function POST(request: NextRequest) {
     // Prepare insert data - match exact schema from migration
     const insertData: Record<string, any> = {
       juz_number: juzNumber,
-      juz_code: body.juz_code || null,
       section_number: body.section_number,
       section_title: body.section_title || 'Umum',
       question_number: nextQuestionNumber,
@@ -155,6 +154,10 @@ export async function POST(request: NextRequest) {
       is_active: body.is_active !== false,
       created_by: user.id
     };
+
+    // Only add juz_code if it exists in the table (to avoid errors)
+    // This is a temporary fix until the juz_code column is properly added
+    // insertData.juz_code = body.juz_code || null;
 
     logger.info('Inserting exam question', {
       juz_number: insertData.juz_number,
