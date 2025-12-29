@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     let juzNumber = body.juz_number;
     if (body.juz_code) {
       const { data: juzData, error: juzError } = await supabaseAdmin
-        .from('juz')
+        .from('juz_options')
         .select('juz_number')
         .eq('code', body.juz_code)
         .single();
@@ -149,7 +149,6 @@ export async function POST(request: NextRequest) {
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
       .insert({
-        juz_code: body.juz_code,
         juz_number: juzNumber,
         section_number: body.section_number,
         section_title: body.section_title,
@@ -157,7 +156,7 @@ export async function POST(request: NextRequest) {
         question_text: body.question_text,
         question_type: body.question_type,
         options: body.options,
-        correct_answer: body.options.find(opt => opt.isCorrect)?.text || '',
+        correct_answer: body.options.find((opt: any) => opt.isCorrect)?.text || '',
         points: body.points || 1,
         is_active: body.is_active !== false,
         created_by: user.id
