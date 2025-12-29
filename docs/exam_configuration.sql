@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.exam_configurations (
   created_by uuid,
 
   CONSTRAINT exam_configurations_pkey PRIMARY KEY (id),
-  CONSTRAINT exam_configurations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
+  CONSTRAINT exam_configurations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL
 );
 
 -- Create indexes
@@ -132,13 +132,14 @@ INSERT INTO public.exam_configurations (
 ) VALUES (
   'Default Exam Configuration',
   'Konfigurasi default untuk ujian pilihan ganda',
-  30, -- 30 minutes
-  1, -- 1 attempt
-  false, -- Don't shuffle by default
-  false, -- Don't randomize options
-  70, -- 70 to pass
-  true, -- Auto grade
-  false, -- Don't allow review
-  true, -- Show results
-  true -- Auto submit on timeout
+  30,
+  1,
+  false,
+  false,
+  70,
+  true,
+  false,
+  true,
+  true,
+  true
 ) ON CONFLICT DO NOTHING;
