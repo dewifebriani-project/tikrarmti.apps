@@ -204,3 +204,46 @@ export interface ExamNavigation {
   answeredQuestions: number;
   unansweredQuestions: number;
 }
+
+// Exam Configuration
+export interface ExamConfiguration {
+  id: string;
+  name: string;
+  description?: string;
+  duration_minutes: number;
+  start_time?: string;
+  end_time?: string;
+  max_attempts?: number;
+  shuffle_questions: boolean;
+  randomize_order: boolean;
+  show_questions_all: boolean;
+  questions_per_attempt?: number;
+  passing_score: number;
+  auto_grade: boolean;
+  allow_review: boolean;
+  show_results: boolean;
+  auto_submit_on_timeout: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+}
+
+export interface ExamConfigurationForm {
+  name: string;
+  description?: string;
+  duration_minutes: number;
+  start_time?: string;
+  end_time?: string;
+  max_attempts?: number;
+  shuffle_questions: boolean;
+  randomize_order: boolean;
+  show_questions_all: boolean;
+  questions_per_attempt?: number;
+  passing_score: number;
+  auto_grade: boolean;
+  allow_review: boolean;
+  show_results: boolean;
+  auto_submit_on_timeout: boolean;
+  is_active: boolean;
+}

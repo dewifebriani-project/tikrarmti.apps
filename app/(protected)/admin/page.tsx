@@ -40,6 +40,7 @@ import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdm
 import { AdminExamQuestions } from '@/components/AdminExamQuestions';
 import { AdminExamImport } from '@/components/AdminExamImport';
 import { AdminAddQuestion } from '@/components/AdminAddQuestion';
+import { AdminExamSettings } from '@/components/AdminExamSettings';
 import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
 
 interface Batch {
@@ -315,6 +316,7 @@ export default function AdminPage() {
   // Exam modal states
   const [showExamImportModal, setShowExamImportModal] = useState(false);
   const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [activeExamSubTab, setActiveExamSubTab] = useState<'questions' | 'settings'>('questions');
 
   // Save activeTab to localStorage whenever it changes
   useEffect(() => {
@@ -727,10 +729,44 @@ export default function AdminPage() {
           />
         )}
         {activeTab === 'exam-questions' && (
-          <AdminExamQuestions
-            onImportClick={() => setShowExamImportModal(true)}
-            onAddManualClick={() => setShowAddQuestionModal(true)}
-          />
+          <div className="space-y-6">
+            {/* Exam Sub-tabs */}
+            <div className="border-b border-gray-200">
+              <nav className="flex gap-6">
+                <button
+                  onClick={() => setActiveExamSubTab('questions')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeExamSubTab === 'questions'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Questions
+                </button>
+                <button
+                  onClick={() => setActiveExamSubTab('settings')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeExamSubTab === 'settings'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Settings
+                </button>
+              </nav>
+            </div>
+
+            {/* Sub-tab Content */}
+            {activeExamSubTab === 'questions' && (
+              <AdminExamQuestions
+                onImportClick={() => setShowExamImportModal(true)}
+                onAddManualClick={() => setShowAddQuestionModal(true)}
+              />
+            )}
+            {activeExamSubTab === 'settings' && (
+              <AdminExamSettings />
+            )}
+          </div>
         )}
         {activeTab === 'reports' && <ReportsTab />}
       </div>

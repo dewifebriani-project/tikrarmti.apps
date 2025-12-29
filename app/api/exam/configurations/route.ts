@@ -1,0 +1,267 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
+import { logger } from '@/lib/logger-secure';
+
+const supabaseAdmin = createSupabaseAdmin();
+
+// GET: Fetch all exam configurations
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const activeOnly = searchParams.get('active') === 'true';
+
+    let query = supabaseAdmin
+      .from('exam_configurations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (activeOnly) {
+      query = query.eq('is_active', true);
+    }
+
+    const { data: configurations, error } = await query;
+
+    if (error) {
+      logger.error('Error fetching exam configurations', { error });
+      return NextResponse.json({
+        error: 'Failed to fetch configurations'
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      data: configurations || [],
+      total: configurations?.length || 0
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/exam/configurations', { error: error as Error });
+    return NextResponse.json({
+      error: 'Internal server error'
+    }, { status: 500 });
+  }
+}
+
+// POST: Create new exam configuration
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userProfile || userProfile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const body = await request.json();
+
+    // If this is set as active, deactivate all other configurations
+    if (body.is_active) {
+      await supabaseAdmin
+        .from('exam_configurations')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('is_active', true);
+    }
+
+    const { data: configuration, error } = await supabaseAdmin
+      .from('exam_configurations')
+      .insert({
+        name: body.name,
+        description: body.description,
+        duration_minutes: body.duration_minutes,
+        start_time: body.start_time,
+        end_time: body.end_time,
+        max_attempts: body.max_attempts,
+        shuffle_questions: body.shuffle_questions,
+        randomize_order: body.randomize_order,
+        show_questions_all: body.show_questions_all,
+        questions_per_attempt: body.questions_per_attempt,
+        passing_score: body.passing_score,
+        auto_grade: body.auto_grade,
+        allow_review: body.allow_review,
+        show_results: body.show_results,
+        auto_submit_on_timeout: body.auto_submit_on_timeout,
+        is_active: body.is_active,
+        created_by: user.id
+      })
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Error creating exam configuration', { error });
+      return NextResponse.json({
+        error: 'Failed to create configuration'
+      }, { status: 500 });
+    }
+
+    logger.info('Exam configuration created', {
+      configId: configuration.id,
+      userId: user.id
+    });
+
+    return NextResponse.json({
+      data: configuration,
+      message: 'Configuration created successfully'
+    }, { status: 201 });
+  } catch (error) {
+    logger.error('Error in POST /api/exam/configurations', { error: error as Error });
+    return NextResponse.json({
+      error: 'Internal server error'
+    }, { status: 500 });
+  }
+}
+
+// PUT: Update exam configuration
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userProfile || userProfile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json({
+        error: 'Configuration ID is required'
+      }, { status: 400 });
+    }
+
+    // If this is set as active, deactivate all other configurations
+    if (body.is_active) {
+      await supabaseAdmin
+        .from('exam_configurations')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('is_active', true)
+        .neq('id', id);
+    }
+
+    const { data: configuration, error } = await supabaseAdmin
+      .from('exam_configurations')
+      .update({
+        name: body.name,
+        description: body.description,
+        duration_minutes: body.duration_minutes,
+        start_time: body.start_time,
+        end_time: body.end_time,
+        max_attempts: body.max_attempts,
+        shuffle_questions: body.shuffle_questions,
+        randomize_order: body.randomize_order,
+        show_questions_all: body.show_questions_all,
+        questions_per_attempt: body.questions_per_attempt,
+        passing_score: body.passing_score,
+        auto_grade: body.auto_grade,
+        allow_review: body.allow_review,
+        show_results: body.show_results,
+        auto_submit_on_timeout: body.auto_submit_on_timeout,
+        is_active: body.is_active,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Error updating exam configuration', { error });
+      return NextResponse.json({
+        error: 'Failed to update configuration'
+      }, { status: 500 });
+    }
+
+    logger.info('Exam configuration updated', {
+      configId: id,
+      userId: user.id
+    });
+
+    return NextResponse.json({
+      data: configuration,
+      message: 'Configuration updated successfully'
+    });
+  } catch (error) {
+    logger.error('Error in PUT /api/exam/configurations', { error: error as Error });
+    return NextResponse.json({
+      error: 'Internal server error'
+    }, { status: 500 });
+  }
+}
+
+// DELETE: Delete exam configuration
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userProfile || userProfile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({
+        error: 'Configuration ID is required'
+      }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('exam_configurations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      logger.error('Error deleting exam configuration', { error });
+      return NextResponse.json({
+        error: 'Failed to delete configuration'
+      }, { status: 500 });
+    }
+
+    logger.info('Exam configuration deleted', {
+      configId: id,
+      userId: user.id
+    });
+
+    return NextResponse.json({
+      message: 'Configuration deleted successfully'
+    });
+  } catch (error) {
+    logger.error('Error in DELETE /api/exam/configurations', { error: error as Error });
+    return NextResponse.json({
+      error: 'Internal server error'
+    }, { status: 500 });
+  }
+}
