@@ -1,9 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Loader2 } from 'lucide-react';
 import { JuzNumber } from '@/types/exam';
+
+interface JuzOption {
+  id: string;
+  code: string;
+  name: string;
+  juz_number: number;
+  part: string;
+  start_page: number;
+  end_page: number;
+  total_pages: number;
+  is_active: boolean;
+  sort_order: number;
+}
 
 interface AdminAddQuestionProps {
   onClose: () => void;
@@ -11,7 +24,49 @@ interface AdminAddQuestionProps {
 }
 
 export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) {
-  const [juzNumber, setJuzNumber] = useState<JuzNumber>(30);
+  const [juzOptions, setJuzOptions] = useState<JuzOption[]>([]);
+  const [isLoadingJuz, setIsLoadingJuz] = useState(false);
+
+  // Fetch juz options from database when modal opens
+  useEffect(() => {
+    fetchJuzOptions();
+  }, []);
+
+  const fetchJuzOptions = async () => {
+    setIsLoadingJuz(true);
+    try {
+      const response = await fetch('/api/juz');
+      const result = await response.json();
+
+      if (response.ok) {
+        setJuzOptions(result.data || []);
+      } else {
+        toast.error('Gagal memuat opsi juz');
+      }
+    } catch (error) {
+      console.error('Error fetching juz options:', error);
+      toast.error('Gagal memuat opsi juz');
+    } finally {
+      setIsLoadingJuz(false);
+    }
+  };
+
+  // Get juz number from juz code for submission
+  const getJuzNumberFromCode = (code: string): JuzNumber => {
+    const juz = juzOptions.find(j => j.code === code);
+    return (juz?.juz_number || 30) as JuzNumber;
+  };
+
+  // Find juz code for current juz number
+  const [juzCode, setJuzCode] = useState<string>('');
+
+  // Set default juzCode when juzOptions are loaded
+  useEffect(() => {
+    if (juzOptions.length > 0 && !juzCode) {
+      setJuzCode(juzOptions[0].code);
+    }
+  }, [juzOptions]);
+
   const [sectionNumber, setSectionNumber] = useState(1);
   const [sectionTitle, setSectionTitle] = useState('Tebak Nama Surat');
   const [questionText, setQuestionText] = useState('');
@@ -96,7 +151,8 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          juz_number: juzNumber,
+          juz_code: juzCode,
+          juz_number: getJuzNumberFromCode(juzCode),
           section_number: sectionNumber,
           section_title: sectionTitle,
           question_text: questionText,
@@ -144,17 +200,26 @@ export function AdminAddQuestion({ onClose, onSuccess }: AdminAddQuestionProps) 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Juz Number *
+                Pilihan Juz *
               </label>
-              <select
-                value={juzNumber}
-                onChange={(e) => setJuzNumber(parseInt(e.target.value) as JuzNumber)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value={28}>Juz 28</option>
-                <option value={29}>Juz 29</option>
-                <option value={30}>Juz 30</option>
-              </select>
+              {isLoadingJuz ? (
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                </div>
+              ) : (
+                <select
+                  value={juzCode}
+                  onChange={(e) => setJuzCode(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Pilih juz</option>
+                  {juzOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>

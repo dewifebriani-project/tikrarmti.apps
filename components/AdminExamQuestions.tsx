@@ -53,7 +53,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiForm, setAiForm] = useState({
-    juz_code: '30A',
+    juz_code: '',
     section_number: 1,
     question_count: 5,
   });
@@ -62,6 +62,13 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
     loadQuestions();
     loadJuzOptions();
   }, [selectedJuz, selectedSection]);
+
+  // Set default juz_code when juzOptions are loaded
+  useEffect(() => {
+    if (juzOptions.length > 0 && !aiForm.juz_code) {
+      setAiForm(prev => ({ ...prev, juz_code: juzOptions[0].code }));
+    }
+  }, [juzOptions]);
 
   const loadJuzOptions = async () => {
     try {
@@ -177,9 +184,9 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
         toast.success(`Successfully generated ${result.data?.length || 0} questions`);
         loadQuestions();
         setShowAIModal(false);
-        // Reset form
+        // Reset form to first available juz
         setAiForm({
-          juz_code: '30A',
+          juz_code: juzOptions.length > 0 ? juzOptions[0].code : '',
           section_number: 1,
           question_count: 5,
         });
@@ -317,20 +324,22 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
 
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Juz Number
+              Pilihan Juz
             </label>
             <select
               value={selectedJuz}
               onChange={(e) => {
-                setSelectedJuz(e.target.value as JuzNumber | 'all');
+                setSelectedJuz(e.target.value === 'all' ? 'all' : parseInt(e.target.value) as JuzNumber);
                 setSelectedSection('all');
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">All Juz</option>
-              <option value={28}>Juz 28</option>
-              <option value={29}>Juz 29</option>
-              <option value={30}>Juz 30</option>
+              <option value="all">Semua Juz</option>
+              {juzOptions.map((option) => (
+                <option key={option.code} value={option.juz_number}>
+                  {option.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -599,18 +608,25 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Pilihan Juz *
                 </label>
-                <select
-                  value={aiForm.juz_code}
-                  onChange={(e) => setAiForm({ ...aiForm, juz_code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  required
-                >
-                  {juzOptions.map((option) => (
-                    <option key={option.code} value={option.code}>
-                      {option.name} (halaman {option.start_page} - {option.end_page})
-                    </option>
-                  ))}
-                </select>
+                {juzOptions.length === 0 ? (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                  </div>
+                ) : (
+                  <select
+                    value={aiForm.juz_code}
+                    onChange={(e) => setAiForm({ ...aiForm, juz_code: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    required
+                  >
+                    <option value="">Pilih juz</option>
+                    {juzOptions.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.name} (halaman {option.start_page} - {option.end_page})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Section Selection */}
