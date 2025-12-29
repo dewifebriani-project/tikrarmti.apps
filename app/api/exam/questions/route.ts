@@ -105,17 +105,28 @@ export async function POST(request: NextRequest) {
 
       if (juzError) {
         logger.error('Error fetching juz data', { juz_code: body.juz_code, error: juzError });
-        return NextResponse.json({ error: 'Invalid juz_code' }, { status: 400 });
+        return NextResponse.json({ error: 'Invalid juz_code', details: juzError.message }, { status: 400 });
       }
 
-      if (juzData) {
-        juzNumber = juzData.juz_number;
+      if (!juzData) {
+        logger.error('Juz not found', { juz_code: body.juz_code });
+        return NextResponse.json({ error: 'Juz not found', details: `juz_code ${body.juz_code} does not exist` }, { status: 400 });
       }
+
+      juzNumber = juzData.juz_number;
     }
 
     // Validate required fields
     if (!juzNumber || !body.section_number || !body.question_text) {
-      return NextResponse.json({ error: 'Missing required fields', details: { juzNumber, section_number: body.section_number, has_question_text: !!body.question_text } }, { status: 400 });
+      return NextResponse.json({
+        error: 'Missing required fields',
+        details: {
+          juz_number: juzNumber,
+          juz_code: body.juz_code,
+          section_number: body.section_number,
+          has_question_text: !!body.question_text
+        }
+      }, { status: 400 });
     }
 
     // Auto-generate question_number if not provided
