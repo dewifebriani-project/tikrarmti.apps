@@ -96,12 +96,17 @@ export async function POST(request: NextRequest) {
 
     // If juz_code is provided, get juz_number from juz table
     let juzNumber = body.juz_number;
-    if (body.juz_code && !body.juz_number) {
-      const { data: juzData } = await supabaseAdmin
+    if (body.juz_code) {
+      const { data: juzData, error: juzError } = await supabaseAdmin
         .from('juz')
         .select('juz_number')
         .eq('code', body.juz_code)
         .single();
+
+      if (juzError) {
+        logger.error('Error fetching juz data', { juz_code: body.juz_code, error: juzError });
+        return NextResponse.json({ error: 'Invalid juz_code' }, { status: 400 });
+      }
 
       if (juzData) {
         juzNumber = juzData.juz_number;
@@ -110,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!juzNumber || !body.section_number || !body.question_text) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields', details: { juzNumber, section_number: body.section_number, has_question_text: !!body.question_text } }, { status: 400 });
     }
 
     // Auto-generate question_number if not provided
@@ -150,8 +155,22 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError) {
-      logger.error('Error creating exam question', { error: insertError });
-      return NextResponse.json({ error: 'Failed to create question' }, { status: 500 });
+      logger.error('Error creating exam question', {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        body: {
+          juz_code: body.juz_code,
+          juz_number: juzNumber,
+          section_number: body.section_number,
+          question_text: body.question_text?.substring(0, 50)
+        }
+      });
+      return NextResponse.json({
+        error: 'Failed to create question',
+        details: insertError.message
+      }, { status: 500 });
     }
 
     logger.info('Exam question created', { questionId: newQuestion.id, adminId: user.id });
@@ -162,8 +181,15 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    logger.error('Error in POST /api/exam/questions', { error: error as Error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logger.error('Error in POST /api/exam/questions', {
+      error: error as Error,
+      message: (error as Error).message,
+      stack: (error as Error).stack
+    });
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: (error as Error).message
+    }, { status: 500 });
   }
 }
 
