@@ -632,7 +632,7 @@ function ConfigForm({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Score Calculation Mode (if max_attempts > 1)
+              Score Calculation Mode (if max_attempts &gt; 1)
             </label>
             <select
               value={formData.score_calculation_mode}
