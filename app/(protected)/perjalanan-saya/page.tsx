@@ -200,9 +200,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 3,
-      date: '29 Desember 2025',
-      day: 'Senin',
-      hijriDate: '4 Rajab 1446',
+      date: '30 Desember 2025',
+      day: 'Selasa',
+      hijriDate: '5 Rajab 1446',
       title: 'Lulus Seleksi',
       description: 'Pengumuman hasil seleksi.',
       icon: (
@@ -213,9 +213,9 @@ export default function PerjalananSaya() {
     },
     {
       id: 4,
-      date: '30 Desember 2025',
-      day: 'Selasa',
-      hijriDate: '5 Rajab 1446',
+      date: '31 Desember 2025',
+      day: 'Rabu',
+      hijriDate: '6 Rajab 1446',
       title: 'Mendaftar Ulang',
       description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
       icon: (
