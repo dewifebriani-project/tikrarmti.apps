@@ -160,8 +160,7 @@ export async function POST(request: NextRequest) {
         is_active: body.is_active !== false,
         created_by: user.id
       })
-      .select()
-      .single();
+      .select();
 
     if (insertError) {
       logger.error('Error creating exam question', {
@@ -182,10 +181,20 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    logger.info('Exam question created', { questionId: newQuestion.id, adminId: user.id });
+    const insertedQuestion = newQuestion && newQuestion.length > 0 ? newQuestion[0] : null;
+
+    if (!insertedQuestion) {
+      logger.error('No data returned after insert', { body: { juz_number: juzNumber, section_number: body.section_number } });
+      return NextResponse.json({
+        error: 'Failed to create question',
+        details: 'No data returned after insert'
+      }, { status: 500 });
+    }
+
+    logger.info('Exam question created', { questionId: insertedQuestion.id, adminId: user.id });
 
     return NextResponse.json({
-      data: newQuestion,
+      data: insertedQuestion,
       message: 'Question created successfully'
     }, { status: 201 });
 
