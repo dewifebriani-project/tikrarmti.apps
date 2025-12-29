@@ -14,6 +14,17 @@ CREATE TABLE public.activity_logs (
   CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
   CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.audit_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  action character varying NOT NULL,
+  entity_type character varying,
+  entity_id uuid,
+  details jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.batches (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
@@ -56,6 +67,62 @@ CREATE TABLE public.error_logs (
   resolved_by uuid,
   CONSTRAINT error_logs_pkey PRIMARY KEY (id),
   CONSTRAINT error_logs_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES auth.users(id)
+);
+CREATE TABLE public.exam_attempts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  registration_id uuid NOT NULL,
+  juz_number integer NOT NULL CHECK (juz_number = ANY (ARRAY[28, 29, 30])),
+  started_at timestamp with time zone DEFAULT now(),
+  submitted_at timestamp with time zone,
+  answers jsonb,
+  total_questions integer NOT NULL DEFAULT 100,
+  correct_answers integer DEFAULT 0,
+  score integer DEFAULT 0,
+  status text DEFAULT 'in_progress'::text CHECK (status = ANY (ARRAY['in_progress'::text, 'submitted'::text, 'graded'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT exam_attempts_pkey PRIMARY KEY (id),
+  CONSTRAINT exam_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT exam_attempts_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.pendaftaran_tikrar_tahfidz(id)
+);
+CREATE TABLE public.exam_question_flags (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  question_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  attempt_id uuid,
+  flag_type text NOT NULL CHECK (flag_type = ANY (ARRAY['wrong_answer'::text, 'typo'::text, 'unclear'::text, 'other'::text])),
+  flag_message text,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'reviewing'::text, 'fixed'::text, 'rejected'::text, 'invalid'::text])),
+  admin_notes text,
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT exam_question_flags_pkey PRIMARY KEY (id),
+  CONSTRAINT exam_question_flags_question_id_fkey FOREIGN KEY (question_id) REFERENCES public.exam_questions(id),
+  CONSTRAINT exam_question_flags_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT exam_question_flags_attempt_id_fkey FOREIGN KEY (attempt_id) REFERENCES public.exam_attempts(id),
+  CONSTRAINT exam_question_flags_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.exam_questions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  juz_number integer NOT NULL,
+  section_number integer NOT NULL CHECK (section_number >= 1 AND section_number <= 9),
+  section_title text NOT NULL,
+  question_number integer NOT NULL,
+  question_text text NOT NULL,
+  question_type text NOT NULL CHECK (question_type = ANY (ARRAY['multiple_choice'::text, 'introduction'::text])),
+  options jsonb,
+  correct_answer text,
+  points integer DEFAULT 1,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  juz_code text,
+  CONSTRAINT exam_questions_pkey PRIMARY KEY (id),
+  CONSTRAINT exam_questions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.halaqah (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -248,11 +315,33 @@ CREATE TABLE public.pendaftaran_tikrar_tahfidz (
   written_quiz_correct_answers integer,
   written_submitted_at timestamp with time zone,
   written_quiz_submitted_at timestamp with time zone,
+  oral_makhraj_errors integer DEFAULT 0,
+  oral_sifat_errors integer DEFAULT 0,
+  oral_mad_errors integer DEFAULT 0,
+  oral_ghunnah_errors integer DEFAULT 0,
+  oral_harakat_errors integer DEFAULT 0,
+  oral_total_score numeric DEFAULT NULL::numeric,
+  oral_assessment_status character varying DEFAULT 'pending'::character varying CHECK (oral_assessment_status::text = ANY (ARRAY['pending'::character varying, 'pass'::character varying, 'fail'::character varying, 'not_submitted'::character varying]::text[])),
+  oral_assessed_by uuid,
+  oral_assessed_at timestamp with time zone,
+  oral_assessment_notes text,
+  oral_itmamul_harakat_errors integer DEFAULT 0,
+  exam_juz_number integer,
+  exam_attempt_id uuid,
+  exam_score integer,
+  exam_submitted_at timestamp with time zone,
+  exam_status text DEFAULT 'not_started'::text CHECK (exam_status = ANY (ARRAY['not_started'::text, 'in_progress'::text, 'completed'::text])),
+  re_enrollment_completed boolean DEFAULT false,
+  re_enrollment_completed_at timestamp with time zone,
+  re_enrollment_confirmed_by uuid,
   CONSTRAINT pendaftaran_tikrar_tahfidz_pkey PRIMARY KEY (id),
   CONSTRAINT pendaftaran_tikrar_tahfidz_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
   CONSTRAINT pendaftaran_tikrar_tahfidz_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
   CONSTRAINT pendaftaran_tikrar_tahfidz_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.programs(id),
-  CONSTRAINT pendaftaran_tikrar_tahfidz_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT pendaftaran_tikrar_tahfidz_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT pendaftaran_tikrar_tahfidz_oral_assessed_by_fkey FOREIGN KEY (oral_assessed_by) REFERENCES public.users(id),
+  CONSTRAINT pendaftaran_tikrar_tahfidz_exam_attempt_fkey FOREIGN KEY (exam_attempt_id) REFERENCES public.exam_attempts(id),
+  CONSTRAINT pendaftaran_tikrar_tahfidz_re_enrollment_confirmed_by_fkey FOREIGN KEY (re_enrollment_confirmed_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.presensi (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -305,5 +394,9 @@ CREATE TABLE public.users (
   jenis_kelamin character varying NOT NULL CHECK ((jenis_kelamin::text = ANY (ARRAY['Perempuan'::character varying::text, 'Laki-laki'::character varying::text])) OR jenis_kelamin IS NULL),
   negara character varying NOT NULL,
   nama_kunyah text,
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+  roles ARRAY CHECK (roles <@ ARRAY['admin'::text, 'calon_thalibah'::text, 'thalibah'::text, 'muallimah'::text, 'musyrifah'::text, 'pengurus'::text]),
+  current_tikrar_batch_id uuid,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_users_current_tikrar_batch FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id),
+  CONSTRAINT users_current_tikrar_batch_id_fkey FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id)
 );
