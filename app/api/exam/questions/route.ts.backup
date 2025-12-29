@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger-secure';
+import { JuzNumber, ExamQuestion, AdminQuestionEditForm } from '@/types/exam';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -91,14 +92,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body: AdminQuestionEditForm & { juz_code?: string } = await request.json();
 
-    logger.info('POST /api/exam/questions - Raw body', {
-      bodyKeys: Object.keys(body),
-      body: JSON.stringify(body)
+    // Log the received body for debugging
+    logger.info('Received exam question data', {
+      juz_code: body.juz_code,
+      juz_number: body.juz_number,
+      section_number: body.section_number,
+      section_title: body.section_title,
+      question_type: body.question_type,
+      points: body.points,
+      is_active: body.is_active,
+      has_options: !!body.options,
+      options_count: body.options?.length,
+      question_text_length: body.question_text?.length
     });
 
-    // Get juz_number from juz_code if provided
+    // If juz_code is provided, get juz_number from juz table
     let juzNumber = body.juz_number;
     if (body.juz_code) {
       const { data: juzData, error: juzError } = await supabaseAdmin
@@ -107,9 +117,14 @@ export async function POST(request: NextRequest) {
         .eq('code', body.juz_code)
         .single();
 
-      if (juzError || !juzData) {
-        logger.error('Invalid juz_code', { juz_code: body.juz_code, error: juzError });
-        return NextResponse.json({ error: 'Invalid juz_code', details: juzError?.message }, { status: 400 });
+      if (juzError) {
+        logger.error('Error fetching juz data', { juz_code: body.juz_code, error: juzError });
+        return NextResponse.json({ error: 'Invalid juz_code', details: juzError.message }, { status: 400 });
+      }
+
+      if (!juzData) {
+        logger.error('Juz not found', { juz_code: body.juz_code });
+        return NextResponse.json({ error: 'Juz not found', details: `juz_code ${body.juz_code} does not exist` }, { status: 400 });
       }
 
       juzNumber = juzData.juz_number;
@@ -119,74 +134,111 @@ export async function POST(request: NextRequest) {
     if (!juzNumber || !body.section_number || !body.question_text) {
       return NextResponse.json({
         error: 'Missing required fields',
-        required: { juz_number: juzNumber, section_number: body.section_number, question_text: !!body.question_text }
+        details: {
+          juz_number: juzNumber,
+          juz_code: body.juz_code,
+          section_number: body.section_number,
+          has_question_text: !!body.question_text
+        }
       }, { status: 400 });
     }
 
-    // Get next question_number
-    const { data: lastQuestion } = await supabaseAdmin
-      .from('exam_questions')
-      .select('question_number')
-      .eq('juz_number', juzNumber)
-      .eq('section_number', body.section_number)
-      .order('question_number', { ascending: false })
-      .limit(1);
+    // Auto-generate question_number if not provided
+    // Get the highest question_number for this juz/section combination
+    let nextQuestionNumber = body.question_number;
+    if (!nextQuestionNumber) {
+      const { data: lastQuestion } = await supabaseAdmin
+        .from('exam_questions')
+        .select('question_number')
+        .eq('juz_number', juzNumber)
+        .eq('section_number', body.section_number)
+        .order('question_number', { ascending: false })
+        .limit(1);
 
-    const nextQuestionNumber = lastQuestion && lastQuestion.length > 0
-      ? (lastQuestion[0].question_number || 0) + 1
-      : 1;
+      nextQuestionNumber = lastQuestion && lastQuestion.length > 0 ? (lastQuestion[0].question_number || 0) + 1 : 1;
+    }
 
-    // Find correct answer from options
-    const correctOption = body.options?.find((opt: any) => opt.isCorrect === true);
-    const correctAnswer = correctOption?.text || '';
+    // Find correct answer
+    let correctAnswer = '';
+    if (body.options && Array.isArray(body.options)) {
+      const correctOption = body.options.find((opt: any) => opt.isCorrect === true);
+      correctAnswer = correctOption?.text || '';
+    }
 
-    // Prepare insert data - match exact schema from migration
-    const insertData: Record<string, any> = {
+    logger.info('Preparing to insert question', {
       juz_number: juzNumber,
       section_number: body.section_number,
-      section_title: body.section_title || '',
+      question_number: nextQuestionNumber,
+      correct_answer: correctAnswer,
+      options_count: body.options?.length
+    });
+
+    // Prepare insert data
+    const insertData: any = {
+      juz_number: juzNumber,
+      section_number: body.section_number,
       question_number: nextQuestionNumber,
       question_text: body.question_text,
       question_type: body.question_type || 'multiple_choice',
-      options: body.options || [],
-      correct_answer: correctAnswer,
       points: body.points || 1,
       is_active: body.is_active !== false,
       created_by: user.id
     };
 
-    logger.info('Inserting exam question', {
-      juz_number: insertData.juz_number,
-      section_number: insertData.section_number,
-      question_number: insertData.question_number,
-      data: JSON.stringify(insertData)
-    });
+    // Only add optional fields if they exist
+    if (body.section_title) {
+      insertData.section_title = body.section_title;
+    }
+    if (body.options && Array.isArray(body.options)) {
+      insertData.options = body.options;
+    }
+    if (correctAnswer) {
+      insertData.correct_answer = correctAnswer;
+    }
 
-    // Insert with admin client to bypass RLS
+    logger.info('Insert data prepared', { insertData });
+
+    // Insert question
     const { data: newQuestion, error: insertError } = await supabaseAdmin
       .from('exam_questions')
       .insert(insertData)
-      .select()
-      .single();
+      .select();
 
     if (insertError) {
-      logger.error('Insert failed', {
+      logger.error('Error creating exam question', {
         code: insertError.code,
         message: insertError.message,
         details: insertError.details,
-        hint: insertError.hint
+        hint: insertError.hint,
+        body: {
+          juz_code: body.juz_code,
+          juz_number: juzNumber,
+          section_number: body.section_number,
+          question_text: body.question_text?.substring(0, 50)
+        }
       });
       return NextResponse.json({
         error: 'Failed to create question',
         details: insertError.message,
-        code: insertError.code
+        code: insertError.code,
+        fullError: insertError
       }, { status: 500 });
     }
 
-    logger.info('Question created successfully', { id: newQuestion.id });
+    const insertedQuestion = newQuestion && newQuestion.length > 0 ? newQuestion[0] : null;
+
+    if (!insertedQuestion) {
+      logger.error('No data returned after insert', { body: { juz_number: juzNumber, section_number: body.section_number } });
+      return NextResponse.json({
+        error: 'Failed to create question',
+        details: 'No data returned after insert'
+      }, { status: 500 });
+    }
+
+    logger.info('Exam question created', { questionId: insertedQuestion.id, adminId: user.id });
 
     return NextResponse.json({
-      data: newQuestion,
+      data: insertedQuestion,
       message: 'Question created successfully'
     }, { status: 201 });
 
