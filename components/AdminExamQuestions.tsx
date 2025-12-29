@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X, Sparkles, Loader2, ArrowUpDown, Search } from 'lucide-react';
-import { JuzNumber, ExamQuestion, AdminQuestionEditForm } from '@/types/exam';
+import { FileUp, Plus, Edit2, Trash2, Eye, Filter, Download, ChevronLeft, ChevronRight, X, Sparkles, Loader2, ArrowUpDown, Search, BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
+import { JuzNumber, ExamQuestion, AdminQuestionEditForm, QuestionAnalytics } from '@/types/exam';
 
 interface AdminExamQuestionsProps {
   onImportClick: () => void;
@@ -56,6 +56,16 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [filterType, setFilterType] = useState<'all' | 'multiple_choice' | 'introduction'>('all');
   const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Preview state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewQuestion, setPreviewQuestion] = useState<ExamQuestion | null>(null);
+
+  // Analytics state
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analytics, setAnalytics] = useState<QuestionAnalytics[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsSummary, setAnalyticsSummary] = useState<any>(null);
 
   // AI Generate states
   const [showAIModal, setShowAIModal] = useState(false);
@@ -171,6 +181,31 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
     } else {
       setSortField(field);
       setSortOrder('asc');
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    setShowAnalytics(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedJuz !== 'all') params.append('juz', selectedJuz.toString());
+      if (selectedSection !== 'all') params.append('section', selectedSection.toString());
+
+      const response = await fetch(`/api/exam/questions/analytics?${params.toString()}`);
+      const result = await response.json();
+
+      if (response.ok) {
+        setAnalytics(result.data || []);
+        setAnalyticsSummary(result.summary);
+      } else {
+        toast.error(result.error || 'Failed to load analytics');
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      toast.error('Failed to load analytics');
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -314,6 +349,13 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={loadAnalytics}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Analytics
+          </button>
           <button
             onClick={() => setShowAIModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
@@ -578,7 +620,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
                   <tr key={question.id} className={`hover:bg-blue-50/50 transition ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                        Juz {question.juz_number}
+                        {question.juz_code || `Juz ${question.juz_number}`}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -627,6 +669,16 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            setPreviewQuestion(question);
+                            setShowPreviewModal(true);
+                          }}
+                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                          title="Preview question"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => {
                             setEditingQuestion(question);
@@ -903,6 +955,218 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Question Modal */}
+      {showPreviewModal && previewQuestion && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-gray-600" />
+                Question Preview
+              </h2>
+              <button
+                onClick={() => {
+                  setShowPreviewModal(false);
+                  setPreviewQuestion(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Metadata */}
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
+                  {previewQuestion.juz_code || `Juz ${previewQuestion.juz_number}`}
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  Sec {previewQuestion.section_number}
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  Q#{previewQuestion.question_number}
+                </span>
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                  {previewQuestion.points} pts
+                </span>
+              </div>
+
+              {/* Question Text */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Question:</h4>
+                <p className="text-gray-900">{previewQuestion.question_text}</p>
+              </div>
+
+              {/* Options */}
+              {previewQuestion.options && previewQuestion.options.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">Options:</h4>
+                  <div className="space-y-2">
+                    {previewQuestion.options.map((option, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex items-center gap-3 p-3 rounded-lg border ${
+                          option.isCorrect
+                            ? 'bg-green-50 border-green-300'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          option.isCorrect ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-700'
+                        }`}>
+                          {String.fromCharCode(65 + idx)}
+                        </div>
+                        <span className={`flex-1 ${option.isCorrect ? 'text-green-900 font-medium' : 'text-gray-700'}`}>
+                          {option.text}
+                        </span>
+                        {option.isCorrect && (
+                          <span className="text-xs font-semibold text-green-700 bg-green-200 px-2 py-1 rounded">
+                            Correct Answer
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Section Info */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-1">Section:</h4>
+                <p className="text-blue-800">{previewQuestion.section_title}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Analytics Modal */}
+      {showAnalytics && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+                Question Analytics
+              </h2>
+              <button
+                onClick={() => setShowAnalytics(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                </div>
+              ) : analyticsSummary ? (
+                <div className="space-y-6">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                      <div className="text-sm text-blue-700 font-medium">Total Questions</div>
+                      <div className="text-2xl font-bold text-blue-900">{analyticsSummary.totalQuestions}</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+                      <div className="text-sm text-green-700 font-medium">Overall Correct Rate</div>
+                      <div className="text-2xl font-bold text-green-900">{analyticsSummary.overallCorrectRate.toFixed(1)}%</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-4 border border-emerald-200">
+                      <div className="text-sm text-emerald-700 font-medium">Easy Questions</div>
+                      <div className="text-2xl font-bold text-emerald-900">{analyticsSummary.easyQuestions}</div>
+                    </div>
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border border-red-200">
+                      <div className="text-sm text-red-700 font-medium">Hard Questions</div>
+                      <div className="text-2xl font-bold text-red-900">{analyticsSummary.hardQuestions}</div>
+                    </div>
+                  </div>
+
+                  {/* Questions Table */}
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Question</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Attempts</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Correct %</th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase">Difficulty</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Most Wrong Answer</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {analytics.map((q) => (
+                          <tr key={q.questionId} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="max-w-sm">
+                                <p className="text-sm text-gray-900 line-clamp-2">{q.question.question_text}</p>
+                                <div className="flex gap-1 mt-1">
+                                  <span className="text-xs text-gray-500">{q.question.juz_code || `Juz ${q.question.juz_number}`}</span>
+                                  <span className="text-xs text-gray-500">•</span>
+                                  <span className="text-xs text-gray-500">Q{q.question.question_number}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm text-gray-700">{q.totalAttempts}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                q.correctRate >= 70
+                                  ? 'bg-green-100 text-green-800'
+                                  : q.correctRate >= 40
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {q.correctRate.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                q.difficulty === 'easy'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : q.difficulty === 'medium'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {q.difficulty}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {q.optionStats
+                                .filter((opt) => !opt.isCorrect && opt.timesChosen > 0)
+                                .sort((a, b) => b.timesChosen - a.timesChosen)[0]?.optionText || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Empty State */}
+                  {analytics.length === 0 && (
+                    <div className="text-center py-12">
+                      <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No analytics data available yet.</p>
+                      <p className="text-sm text-gray-500 mt-1">Analytics will be available once users have submitted exam attempts.</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">Failed to load analytics.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

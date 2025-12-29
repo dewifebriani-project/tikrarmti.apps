@@ -23,6 +23,7 @@ export interface ExamOption {
 export interface ExamQuestion {
   id: string;
   juz_number: JuzNumber;
+  juz_code?: string;
   section_number: number;
   section_title: string;
   question_number: number;
@@ -248,4 +249,34 @@ export interface ExamConfigurationForm {
   show_results: boolean;
   auto_submit_on_timeout: boolean;
   is_active: boolean;
+}
+
+// Question Analytics
+export interface QuestionAnalytics {
+  questionId: string;
+  question: ExamQuestion;
+  totalAttempts: number;
+  correctAnswers: number;
+  incorrectAnswers: number;
+  correctRate: number; // percentage
+  avgTimeToAnswer?: number; // seconds
+  optionStats: {
+    optionText: string;
+    timesChosen: number;
+    percentage: number;
+    isCorrect: boolean;
+  }[];
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface QuestionAnalyticsResponse {
+  data: QuestionAnalytics[];
+  summary: {
+    totalQuestions: number;
+    totalAttempts: number;
+    overallCorrectRate: number;
+    easyQuestions: number;
+    mediumQuestions: number;
+    hardQuestions: number;
+  };
 }
