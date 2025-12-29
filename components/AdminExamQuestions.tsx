@@ -572,6 +572,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
             {/* Form */}
             <EditQuestionForm
               question={editingQuestion}
+              juzOptions={juzOptions}
               onSave={handleUpdate}
               onCancel={() => {
                 setShowEditModal(false);
@@ -722,15 +723,23 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
 // Edit Question Form Component
 function EditQuestionForm({
   question,
+  juzOptions,
   onSave,
   onCancel,
   isSaving
 }: {
   question: ExamQuestion;
+  juzOptions: JuzOption[];
   onSave: (data: AdminQuestionEditForm) => void;
   onCancel: () => void;
   isSaving: boolean;
 }) {
+  // Find juz code from juz number for the current question
+  const getCurrentJuzCode = () => {
+    const juzOption = juzOptions.find(opt => opt.juz_number === question.juz_number);
+    return juzOption?.code || '';
+  };
+
   const [formData, setFormData] = useState<AdminQuestionEditForm>({
     juz_number: question.juz_number,
     section_number: question.section_number,
@@ -742,6 +751,36 @@ function EditQuestionForm({
     points: question.points || 1,
     is_active: question.is_active !== false,
   });
+
+  const [juzCode, setJuzCode] = useState(getCurrentJuzCode());
+
+  const handleJuzChange = (newJuzCode: string) => {
+    setJuzCode(newJuzCode);
+    const selectedJuz = juzOptions.find(opt => opt.code === newJuzCode);
+    if (selectedJuz) {
+      setFormData({ ...formData, juz_number: selectedJuz.juz_number as JuzNumber });
+    }
+  };
+
+  const sectionOptions = [
+    { number: 1, title: 'Tebak Nama Surat' },
+    { number: 2, title: 'Tebak Ayat' },
+    { number: 3, title: 'Sambung Surat' },
+    { number: 4, title: 'Tebak Awal Ayat' },
+    { number: 5, title: 'Ayat Mutasyabihat' },
+    { number: 6, title: 'Pengenalan Surat' },
+    { number: 7, title: 'Tebak Halaman' },
+    { number: 8, title: 'Lainnya' },
+  ];
+
+  const handleSectionChange = (value: string) => {
+    const num = parseInt(value);
+    setFormData({ ...formData, section_number: num });
+    const section = sectionOptions.find(s => s.number === num);
+    if (section) {
+      setFormData(prev => ({ ...prev, section_title: section.title }));
+    }
+  };
 
   const handleOptionChange = (index: number, field: 'text' | 'isCorrect', value: string | boolean) => {
     const newOptions = [...formData.options];
@@ -770,35 +809,36 @@ function EditQuestionForm({
     <form onSubmit={handleSubmit} className="p-6 space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Juz Number</label>
-          <input
-            type="number"
-            value={formData.juz_number}
-            onChange={(e) => setFormData({ ...formData, juz_number: parseInt(e.target.value) as JuzNumber })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          <label className="block text-sm font-medium text-gray-700 mb-1">Pilihan Juz *</label>
+          <select
+            value={juzCode}
+            onChange={(e) => handleJuzChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             required
-          />
+          >
+            <option value="">Pilih juz</option>
+            {juzOptions.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Section Number</label>
-          <input
-            type="number"
+          <label className="block text-sm font-medium text-gray-700 mb-1">Section *</label>
+          <select
             value={formData.section_number}
-            onChange={(e) => setFormData({ ...formData, section_number: parseInt(e.target.value) })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            onChange={(e) => handleSectionChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             required
-          />
+          >
+            {sectionOptions.map(section => (
+              <option key={section.number} value={section.number}>
+                {section.number}. {section.title}
+              </option>
+            ))}
+          </select>
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Section Title</label>
-        <input
-          type="text"
-          value={formData.section_title}
-          onChange={(e) => setFormData({ ...formData, section_title: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-        />
       </div>
 
       <div>
