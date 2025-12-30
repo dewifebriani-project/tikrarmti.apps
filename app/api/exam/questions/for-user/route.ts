@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
 
       if (!attemptsError && submittedCount >= config.max_attempts) {
         return NextResponse.json({
-          error: 'Max attempts reached',
+          error: 'Kesempatan Ujian Habis',
           details: `Mohon maaf ukhti, kesempatan ujian telah habis (${config.max_attempts}x percobaan). Tetap semangat dan terus berikhtiar, Allah Maha Mengetahui yang terbaik untuk hamba-Nya.`,
           maxAttempts: config.max_attempts
         }, { status: 400 });
