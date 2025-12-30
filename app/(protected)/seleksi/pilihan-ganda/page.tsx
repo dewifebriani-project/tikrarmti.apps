@@ -78,6 +78,30 @@ export default function PilihanGandaPage() {
     }
   }, [isClient, user]);
 
+  // Auto-start quiz if user has existing draft
+  useEffect(() => {
+    if (questions.length > 0 && user) {
+      checkAndAutoStart();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
+  }, [questions.length, user]);
+
+  const checkAndAutoStart = async () => {
+    try {
+      const response = await fetch('/api/exam/attempts');
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.attempt && data.attempt.status === 'draft') {
+          // Auto-start quiz if user has existing draft
+          setQuizStarted(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking draft status:', error);
+    }
+  };
+
   // Load draft answers on mount (after questions are loaded)
   useEffect(() => {
     if (questions.length > 0 && quizStarted) {
