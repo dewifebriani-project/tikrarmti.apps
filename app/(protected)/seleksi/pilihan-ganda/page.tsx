@@ -471,12 +471,12 @@ export default function PilihanGandaPage() {
         <Card className="max-w-md w-full bg-white shadow-lg">
           <CardContent className="p-8 text-center space-y-6">
             <div className="flex justify-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-yellow-600" />
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Error</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Mohon Maaf Ukhti</h1>
               <p className="text-gray-600">{questionsError}</p>
             </div>
             <Button
