@@ -151,7 +151,7 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
 
       timeline.push({
         id: '3',
-        title: 'Lulus Seleksi',
+        title: 'Pengumuman Hasil Seleksi',
         date: batch.selection_result_date,
         status: hasPassed && status !== 'locked' ? 'completed' : status,
         type: 'milestone',

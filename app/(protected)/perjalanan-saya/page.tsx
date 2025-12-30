@@ -205,7 +205,7 @@ export default function PerjalananSaya() {
       date: '30 Desember 2025',
       day: 'Selasa',
       hijriDate: '5 Rajab 1446',
-      title: 'Lulus Seleksi',
+      title: 'Pengumuman Hasil Seleksi',
       description: 'Pengumuman hasil seleksi.',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
