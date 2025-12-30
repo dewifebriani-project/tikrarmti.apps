@@ -375,10 +375,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      logger.error('Failed to parse request body', { error: parseError as Error });
+      return NextResponse.json({
+        error: 'Invalid JSON',
+        details: 'Request body must be valid JSON'
+      }, { status: 400 });
+    }
 
     logger.info('PUT /api/exam/attempts (autosave)', {
       userId: user.id,
+      bodyKeys: Object.keys(body),
       hasAnswers: !!body.answers,
       answersCount: Array.isArray(body.answers) ? body.answers.length : 0
     });
@@ -501,9 +511,10 @@ export async function PUT(request: NextRequest) {
         .eq('id', attemptId);
 
       if (updateError) {
-        logger.error('Error updating draft', { error: updateError });
+        logger.error('Error updating draft', { error: updateError, attemptId });
         return NextResponse.json({
-          error: 'Failed to save draft'
+          error: 'Failed to save draft',
+          details: updateError.message
         }, { status: 500 });
       }
     } else {
@@ -524,9 +535,10 @@ export async function PUT(request: NextRequest) {
         .single();
 
       if (createError || !newAttempt) {
-        logger.error('Error creating draft', { error: createError });
+        logger.error('Error creating draft', { error: createError, userId: user.id, registrationId: registration.id });
         return NextResponse.json({
-          error: 'Failed to save draft'
+          error: 'Failed to save draft',
+          details: createError?.message || 'Unknown error'
         }, { status: 500 });
       }
 
