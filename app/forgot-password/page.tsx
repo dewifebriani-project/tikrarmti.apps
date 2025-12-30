@@ -32,13 +32,21 @@ export default function ForgotPasswordPage() {
 
     try {
       // Check if email exists in public.users table
+      // Use maybeSingle() instead of single() to avoid 406 error when no rows found
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('email')
         .eq('email', email.toLowerCase())
-        .single();
+        .maybeSingle();
 
-      if (userError || !userData) {
+      if (userError) {
+        console.error('Error checking email:', userError);
+        setError('Terjadi kesalahan saat memeriksa email. Silakan coba lagi.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!userData) {
         setError(`Email "${email}" tidak terdaftar di sistem MTI. Silakan periksa kembali atau daftar sebagai anggota baru.`);
         setIsLoading(false);
         return;
