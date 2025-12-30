@@ -7,7 +7,7 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
@@ -123,6 +123,9 @@ export default function PerjalananSaya() {
     };
     return juzLabels[juzValue] || `Juz ${juzValue}`;
   };
+
+  // Check if user chose Juz 30 (no exam required)
+  const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
 
   const getTimeSlotLabel = (slotValue: string) => {
     // Nilai di database disimpan sebagai "06-09", "18-21", dll
@@ -794,7 +797,25 @@ export default function PerjalananSaya() {
                                   )}
 
                                   {/* Card Pilihan Ganda - Available for all users during selection period */}
-                                  {registrationStatus?.examStatus === 'submitted' ? (
+                                  {isJuz30 ? (
+                                    // Juz 30 - No exam required
+                                    <Card className={`border-2 border-gray-300 bg-gray-50`}>
+                                      <CardContent className="p-3 sm:p-4">
+                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center`}>
+                                            <Info className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                                          </div>
+                                          <div className="flex-grow">
+                                            <h4 className="text-sm sm:text-base font-semibold text-gray-900">Pilihan Ganda</h4>
+                                            <p className="text-xs text-gray-700">Tidak wajib ujian</p>
+                                          </div>
+                                        </div>
+                                        <p className="text-xs text-gray-600 font-medium">
+                                          Untuk Juz 30, hanya diperlukan rekaman suara
+                                        </p>
+                                      </CardContent>
+                                    </Card>
+                                  ) : registrationStatus?.examStatus === 'submitted' ? (
                                     <Link href="/seleksi/pilihan-ganda">
                                       <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
                                         <CardContent className="p-3 sm:p-4">
@@ -1085,7 +1106,25 @@ export default function PerjalananSaya() {
                                     )}
 
                                     {/* Card Pilihan Ganda - Available for all users during selection period */}
-                                    {registrationStatus?.examStatus === 'submitted' ? (
+                                    {isJuz30 ? (
+                                      // Juz 30 - No exam required
+                                      <Card className={`border-2 border-gray-300 bg-gray-50`}>
+                                        <CardContent className="p-4">
+                                          <div className="flex items-center space-x-3 mb-2">
+                                            <div className={`w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center`}>
+                                              <Info className="w-5 h-5 text-gray-600" />
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-base font-semibold text-gray-900">Pilihan Ganda</h4>
+                                              <p className="text-sm text-gray-700">Tidak wajib ujian</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-sm text-gray-600 font-medium">
+                                            Untuk Juz 30, hanya diperlukan rekaman suara
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    ) : registrationStatus?.examStatus === 'submitted' ? (
                                       <Link href="/seleksi/pilihan-ganda">
                                         <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
                                           <CardContent className="p-4">
