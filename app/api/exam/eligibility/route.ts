@@ -82,15 +82,50 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to check eligibility' }, { status: 500 });
     }
 
-    if (attempts && attempts.length > 0) {
+    // Get exam configuration
+    const { data: config, error: configError } = await supabaseAdmin
+      .from('exam_configurations')
+      .select('max_attempts')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const maxAttempts = config?.max_attempts || null;
+
+    // Count submitted attempts
+    const submittedCount = attempts?.length || 0;
+    const attemptsRemaining = maxAttempts !== null ? maxAttempts - submittedCount : null;
+
+    // Check if max attempts reached
+    if (maxAttempts !== null && submittedCount >= maxAttempts) {
       const attempt = attempts[0];
       const eligibility: ExamEligibility = {
         isEligible: false,
         requiredJuz,
-        reason: `Exam already completed with score ${attempt.score}%`,
+        reason: `Kesempatan ujian telah habis (${maxAttempts}x percobaan). Tetap semangat!`,
         hasCompleted: true,
         attemptId: attempt.id,
-        score: attempt.score
+        score: attempt.score,
+        maxAttempts,
+        attemptsUsed: submittedCount,
+        attemptsRemaining: 0
+      };
+      return NextResponse.json({ data: eligibility });
+    }
+
+    if (attempts && attempts.length > 0) {
+      const attempt = attempts[0];
+      const eligibility: ExamEligibility = {
+        isEligible: true,
+        requiredJuz,
+        reason: `Exam already completed with score ${attempt.score}%, but attempts remaining.`,
+        hasCompleted: true,
+        attemptId: attempt.id,
+        score: attempt.score,
+        maxAttempts,
+        attemptsUsed: submittedCount,
+        attemptsRemaining
       };
       return NextResponse.json({ data: eligibility });
     }
@@ -99,7 +134,10 @@ export async function GET(request: NextRequest) {
     const eligibility: ExamEligibility = {
       isEligible: true,
       requiredJuz,
-      hasCompleted: false
+      hasCompleted: false,
+      maxAttempts,
+      attemptsUsed: submittedCount,
+      attemptsRemaining
     };
 
     return NextResponse.json({ data: eligibility });

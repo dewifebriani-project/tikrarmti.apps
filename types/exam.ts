@@ -184,6 +184,9 @@ export interface ExamEligibility {
   hasCompleted: boolean;
   attemptId?: string;
   score?: number;
+  maxAttempts?: number | null;
+  attemptsUsed?: number;
+  attemptsRemaining?: number | null;
 }
 
 // Form types

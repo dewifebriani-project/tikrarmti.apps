@@ -7,10 +7,11 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
+import { ExamEligibility } from '@/types/exam';
 
 interface TimelineItem {
   id: number;
@@ -49,11 +50,29 @@ export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
 
   // SWR hooks for data fetching
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
+
+  // Fetch exam eligibility
+  useEffect(() => {
+    const fetchExamEligibility = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const res = await fetch('/api/exam/eligibility');
+        if (res.ok) {
+          const data = await res.json();
+          setExamEligibility(data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch exam eligibility:', error);
+      }
+    };
+    fetchExamEligibility();
+  }, [isAuthenticated]);
 
   // Calculate registration status from SWR data
   const registrationStatus = useMemo(() => {
@@ -797,6 +816,24 @@ export default function PerjalananSaya() {
                                         </CardContent>
                                       </Card>
                                     </Link>
+                                  ) : examEligibility?.attemptsRemaining === 0 ? (
+                                    // Max attempts reached - disabled card
+                                    <Card className={`border-2 border-red-300 bg-red-50 cursor-not-allowed opacity-70`}>
+                                      <CardContent className="p-3 sm:p-4">
+                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center`}>
+                                            <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                                          </div>
+                                          <div className="flex-grow">
+                                            <h4 className="text-sm sm:text-base font-semibold text-red-900">Pilihan Ganda</h4>
+                                            <p className="text-xs text-red-700">Kesempatan ujian habis</p>
+                                          </div>
+                                        </div>
+                                        <p className="text-xs text-red-800 font-medium">
+                                          Telah digunakan {examEligibility.attemptsUsed}/{examEligibility.maxAttempts}x percobaan
+                                        </p>
+                                      </CardContent>
+                                    </Card>
                                   ) : (
                                     <Link href="/seleksi/pilihan-ganda">
                                       <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
@@ -1070,6 +1107,24 @@ export default function PerjalananSaya() {
                                           </CardContent>
                                         </Card>
                                       </Link>
+                                    ) : examEligibility?.attemptsRemaining === 0 ? (
+                                      // Max attempts reached - disabled card
+                                      <Card className={`border-2 border-red-300 bg-red-50 cursor-not-allowed opacity-70`}>
+                                        <CardContent className="p-4">
+                                          <div className="flex items-center space-x-3 mb-2">
+                                            <div className={`w-10 h-10 bg-red-100 rounded-full flex items-center justify-center`}>
+                                              <Ban className="w-5 h-5 text-red-600" />
+                                            </div>
+                                            <div className="flex-grow">
+                                              <h4 className="text-base font-semibold text-red-900">Pilihan Ganda</h4>
+                                              <p className="text-sm text-red-700">Kesempatan ujian habis</p>
+                                            </div>
+                                          </div>
+                                          <p className="text-sm text-red-800 font-medium">
+                                            Telah digunakan {examEligibility.attemptsUsed}/{examEligibility.maxAttempts}x percobaan
+                                          </p>
+                                        </CardContent>
+                                      </Card>
                                     ) : (
                                       <Link href="/seleksi/pilihan-ganda">
                                         <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
