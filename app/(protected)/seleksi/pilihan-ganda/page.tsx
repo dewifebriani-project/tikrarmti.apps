@@ -88,6 +88,8 @@ export default function PilihanGandaPage() {
   }, [questions.length, quizStarted]);
 
   // Autosave when answers change (debounced)
+  // TEMPORARILY DISABLED - Comment out to re-enable
+  /*
   useEffect(() => {
     if (!quizStarted || Object.keys(answers).length === 0) return;
 
@@ -99,6 +101,7 @@ export default function PilihanGandaPage() {
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, quizStarted]);
+  */
 
   // Timer countdown with auto-submit
   useEffect(() => {
@@ -209,8 +212,9 @@ export default function PilihanGandaPage() {
           setAutosaveStatus('idle');
         }, 2000);
       } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Autosave failed:', response.status, errorData);
         setAutosaveStatus('error');
-        console.error('Autosave failed:', response.status);
       }
     } catch (error) {
       console.error('Autosave error:', error);
@@ -528,7 +532,7 @@ export default function PilihanGandaPage() {
                   <li>Soal yang tidak diisi akan dianggap salah</li>
                   <li>Klik "Submit Jawaban" jika sudah selesai</li>
                   <li>Waktu habis = otomatis submit</li>
-                  <li>Jangan lupa berdoa dan mengucapkan <em>Alhamdulillah</em> setelah selesai</li>
+                  <li>Jangan lupa mengucapkan <em>Alhamdulillah</em> setelah selesai</li>
                 </ol>
               </div>
 
