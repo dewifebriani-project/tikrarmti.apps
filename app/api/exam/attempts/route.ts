@@ -383,6 +383,14 @@ export async function PUT(request: NextRequest) {
       answersCount: Array.isArray(body.answers) ? body.answers.length : 0
     });
 
+    // Validate request body
+    if (!body.answers || !Array.isArray(body.answers)) {
+      return NextResponse.json({
+        error: 'Invalid request',
+        details: 'answers array is required'
+      }, { status: 400 });
+    }
+
     // Get user's registration
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
