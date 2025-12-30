@@ -42,6 +42,25 @@ function AuthCallbackContent() {
 
         // Check for authorization code (PKCE flow)
         const code = searchParams.get('code');
+        const type = searchParams.get('type');
+
+        // Check if this is a password recovery flow (without code, just type=recovery)
+        if (type === 'recovery' && !code) {
+          console.log('Password recovery flow detected (query params), redirecting to reset-password...');
+          // For password recovery, Supabase will handle the session via hash fragment or redirect
+          // The user should already have a session set by Supabase
+          // Try to get session and redirect to reset-password
+          const { data: sessionData } = await supabase.auth.getSession();
+
+          if (sessionData.session) {
+            console.log('Session exists, redirecting to reset-password...');
+            window.location.replace('/reset-password');
+            return;
+          } else {
+            // No session yet - wait for hash fragment processing below
+            console.log('No session yet, will process hash fragment...');
+          }
+        }
 
         if (code) {
           console.log('Found authorization code, exchanging for session...');
@@ -141,8 +160,8 @@ function AuthCallbackContent() {
           });
 
           // Check if this is a password recovery link
-          // Recovery links have type=recovery OR no code (since PKCE doesn't use hash)
-          if (accessToken && (type === 'recovery' || !code)) {
+          // Recovery links have type=recovery in hash fragment
+          if (type === 'recovery' && accessToken) {
             console.log('Password recovery detected (type=' + type + '), setting session and redirecting...');
 
             // First set the session
