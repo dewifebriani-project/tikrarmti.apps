@@ -27,9 +27,18 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    // Log environment for debugging
+    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+    logger.info('Password reset attempt', {
+      email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
+      redirectUrl,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL,
+      nodeEnv: process.env.NODE_ENV
+    });
+
     // Generate password reset link
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      redirectTo: redirectUrl,
     });
 
     if (error) {
