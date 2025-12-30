@@ -521,12 +521,14 @@ export default function PilihanGandaPage() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-gray-900">Petunjuk Pengerjaan:</h3>
                 <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                  <li>Bacalah <strong>basmalah</strong> dan <strong>doa</strong> sebelum memulai ujian</li>
                   <li>Baca setiap pertanyaan dengan teliti</li>
                   <li>Pilih salah satu jawaban yang paling tepat</li>
                   <li>Gunakan tombol "Sebelumnya" dan "Selanjutnya" untuk navigasi</li>
                   <li>Soal yang tidak diisi akan dianggap salah</li>
                   <li>Klik "Submit Jawaban" jika sudah selesai</li>
                   <li>Waktu habis = otomatis submit</li>
+                  <li>Jangan lupa berdoa dan mengucapkan <em>Alhamdulillah</em> setelah selesai</li>
                 </ol>
               </div>
 
