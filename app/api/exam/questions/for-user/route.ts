@@ -69,26 +69,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if today is within selection period
+    // Use date-only comparison to avoid timezone issues
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
     if (batch.selection_start_date && batch.selection_end_date) {
-      const startDate = new Date(batch.selection_start_date);
-      startDate.setHours(0, 0, 0, 0);
+      // Parse dates as YYYY-MM-DD and convert to comparable numbers
+      const startDateStr = batch.selection_start_date.substring(0, 10);
+      const endDateStr = batch.selection_end_date.substring(0, 10);
 
-      const endDate = new Date(batch.selection_end_date);
-      endDate.setHours(23, 59, 59, 999);
+      const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
+      const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
 
-      if (today < startDate || today > endDate) {
-        const formatDate = (date: Date) => date.toLocaleDateString('id-ID', {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        });
+      if (todayDateOnly < startDateNum || todayDateOnly > endDateNum) {
+        const formatDate = (dateStr: string) => {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+        };
 
         return NextResponse.json({
           error: 'Exam period closed',
-          details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}`
+          details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDateStr)} sampai ${formatDate(endDateStr)}`
         }, { status: 400 });
       }
     } else {
