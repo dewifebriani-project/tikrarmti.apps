@@ -3,16 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Mail } from "lucide-react";
-import { supabase } from '@/lib/supabase-singleton';
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,38 +28,25 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      // Check if email exists in public.users table
-      // Use maybeSingle() instead of single() to avoid 406 error when no rows found
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
-
-      if (userError) {
-        console.error('Error checking email:', userError);
-        setError('Terjadi kesalahan saat memeriksa email. Silakan coba lagi.');
-        setIsLoading(false);
-        return;
-      }
-
-      if (!userData) {
-        setError(`Email "${email}" tidak terdaftar di sistem MTI. Silakan periksa kembali atau daftar sebagai anggota baru.`);
-        setIsLoading(false);
-        return;
-      }
-
-      // Email exists, proceed with password reset
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
+      // Use the API endpoint that handles password reset through Supabase Auth
+      // This is the single source of truth - users are in auth.users, not necessarily in public.users
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        setError('Terjadi kesalahan saat mengirim email. Silakan coba lagi.');
-      } else {
-        setMessage('Link reset password telah dikirim ke email Ukhti. Silakan periksa inbox dan folder spam.');
-        setEmail(''); // Clear form
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Terjadi kesalahan. Silakan coba lagi.');
+        setIsLoading(false);
+        return;
       }
+
+      // Always show success message (API prevents email enumeration)
+      setMessage('Link reset password telah dikirim ke email Ukhti. Silakan periksa inbox dan folder spam.');
+      setEmail(''); // Clear form
     } catch (error: any) {
       setError(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
     } finally {
