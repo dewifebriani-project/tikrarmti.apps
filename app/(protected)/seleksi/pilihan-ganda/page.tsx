@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, AlertCircle, Clock, FileText, Loader2, Flag, X, Send } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, FileText, Loader2, Flag, X, Send, Save } from 'lucide-react';
 
 interface ExamQuestion {
   id: string;
@@ -62,6 +62,10 @@ export default function PilihanGandaPage() {
   const [flagSuccess, setFlagSuccess] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
 
+  // Autosave state
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
+
   // Set client-side flag
   useEffect(() => {
     setIsClient(true);
@@ -73,6 +77,28 @@ export default function PilihanGandaPage() {
       fetchQuestions();
     }
   }, [isClient, user]);
+
+  // Load draft answers on mount (after questions are loaded)
+  useEffect(() => {
+    if (questions.length > 0 && quizStarted) {
+      loadDraftAnswers();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions.length, quizStarted]);
+
+  // Autosave when answers change (debounced)
+  useEffect(() => {
+    if (!quizStarted || Object.keys(answers).length === 0) return;
+
+    const timeoutId = setTimeout(() => {
+      saveDraft();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 2000); // Save 2 seconds after last change
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, quizStarted]);
 
   // Timer countdown with auto-submit
   useEffect(() => {
@@ -121,6 +147,74 @@ export default function PilihanGandaPage() {
       setQuestionsError('Gagal memuat soal. Silakan coba lagi.');
     } finally {
       setLoadingQuestions(false);
+    }
+  };
+
+  const loadDraftAnswers = async () => {
+    try {
+      const response = await fetch('/api/exam/attempts');
+
+      if (!response.ok) {
+        console.log('No draft to load');
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.attempt && data.attempt.status === 'draft') {
+        // Load draft answers
+        const draftAnswers: Record<string, string> = {};
+        data.attempt.answers?.forEach((a: any) => {
+          if (a.answer) {
+            draftAnswers[a.questionId] = a.answer;
+          }
+        });
+        setAnswers(draftAnswers);
+        setLastSavedTime(new Date(data.attempt.updated_at));
+        console.log('Loaded', Object.keys(draftAnswers).length, 'draft answers');
+      }
+    } catch (error) {
+      console.error('Error loading draft:', error);
+    }
+  };
+
+  const saveDraft = async () => {
+    if (Object.keys(answers).length === 0) return;
+
+    setAutosaveStatus('saving');
+
+    try {
+      // Convert answers to array format
+      const answersArray: UserAnswer[] = questions.map(q => ({
+        questionId: q.id,
+        answer: answers[q.id] || ''
+      })).filter(a => a.answer !== '');
+
+      const response = await fetch('/api/exam/attempts', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          answers: answersArray,
+        }),
+      });
+
+      if (response.ok) {
+        setAutosaveStatus('saved');
+        setLastSavedTime(new Date());
+
+        // Reset status after 2 seconds
+        setTimeout(() => {
+          setAutosaveStatus('idle');
+        }, 2000);
+      } else {
+        setAutosaveStatus('error');
+        console.error('Autosave failed:', response.status);
+      }
+    } catch (error) {
+      console.error('Autosave error:', error);
+      setAutosaveStatus('error');
     }
   };
 
@@ -463,8 +557,37 @@ export default function PilihanGandaPage() {
                       {timeLeft < 300 ? 'Waktu Hampir Habis! ' : ''}Sisa Waktu: {formatTime(timeLeft)}
                     </span>
                   </div>
-                  <div className="text-sm text-blue-700">
-                    Soal {currentQuestion + 1} dari {questions.length}
+                  <div className="flex items-center gap-4">
+                    {/* Autosave indicator */}
+                    {autosaveStatus !== 'idle' && (
+                      <div className={`flex items-center gap-1 text-xs ${
+                        autosaveStatus === 'saving' ? 'text-blue-600' :
+                        autosaveStatus === 'saved' ? 'text-green-600' :
+                        'text-red-600'
+                      }`}>
+                        {autosaveStatus === 'saving' && (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>Menyimpan...</span>
+                          </>
+                        )}
+                        {autosaveStatus === 'saved' && (
+                          <>
+                            <Save className="w-3 h-3" />
+                            <span>Tersimpan</span>
+                          </>
+                        )}
+                        {autosaveStatus === 'error' && (
+                          <>
+                            <AlertCircle className="w-3 h-3" />
+                            <span>Gagal menyimpan</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <div className="text-sm text-blue-700">
+                      Soal {currentQuestion + 1} dari {questions.length}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -474,9 +597,16 @@ export default function PilihanGandaPage() {
                       style={{ width: `${progressPercentage}%` }}
                     ></div>
                   </div>
-                  <p className="text-xs text-blue-600 mt-1">
-                    {Object.keys(answers).length} dari {questions.length} soal terjawab ({Math.round(progressPercentage)}%)
-                  </p>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-blue-600">
+                      {Object.keys(answers).length} dari {questions.length} soal terjawab ({Math.round(progressPercentage)}%)
+                    </p>
+                    {lastSavedTime && (
+                      <p className="text-xs text-gray-500">
+                        Terakhir: {lastSavedTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

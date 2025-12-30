@@ -364,3 +364,190 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+// PUT: Save draft answers (autosave)
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+
+    logger.info('PUT /api/exam/attempts (autosave)', {
+      userId: user.id,
+      hasAnswers: !!body.answers,
+      answersCount: Array.isArray(body.answers) ? body.answers.length : 0
+    });
+
+    // Get user's registration
+    const { data: registration, error: registrationError } = await supabaseAdmin
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('id, chosen_juz, exam_status, exam_attempt_id, batch_id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (registrationError || !registration) {
+      return NextResponse.json({
+        error: 'No registration found'
+      }, { status: 404 });
+    }
+
+    // Check if exam is already completed
+    if (registration.exam_status === 'completed') {
+      return NextResponse.json({
+        error: 'Exam already completed',
+        details: 'Ukhti sudah menyelesaikan ujian ini'
+      }, { status: 400 });
+    }
+
+    // Determine exam juz number from chosen_juz
+    const chosenJuz = registration.chosen_juz;
+    let examJuzNumber: number | null = null;
+
+    if (chosenJuz?.startsWith('28')) {
+      examJuzNumber = 29;
+    } else if (chosenJuz?.startsWith('29')) {
+      examJuzNumber = 30;
+    } else if (chosenJuz?.startsWith('1')) {
+      examJuzNumber = 30;
+    } else if (chosenJuz?.startsWith('30')) {
+      return NextResponse.json({
+        error: 'No exam required for Juz 30'
+      }, { status: 400 });
+    }
+
+    if (!examJuzNumber) {
+      return NextResponse.json({
+        error: 'Invalid chosen_juz'
+      }, { status: 400 });
+    }
+
+    // Fetch questions to validate answers
+    const { data: questions, error: questionsError } = await supabaseAdmin
+      .from('exam_questions')
+      .select('id')
+      .eq('juz_number', examJuzNumber)
+      .eq('is_active', true);
+
+    if (questionsError || !questions) {
+      return NextResponse.json({
+        error: 'Failed to fetch questions'
+      }, { status: 500 });
+    }
+
+    // Validate answers
+    const questionIds = new Set(questions.map(q => q.id));
+    const validAnswers = body.answers.filter((a: any) =>
+      questionIds.has(a.questionId) && a.answer !== undefined && a.answer !== ''
+    );
+
+    // Prepare answers for storage (without grading for draft)
+    const draftAnswers = validAnswers.map((a: any) => ({
+      questionId: a.questionId,
+      answer: a.answer,
+      isCorrect: null // Not graded in draft mode
+    }));
+
+    let attemptId = registration.exam_attempt_id;
+
+    if (attemptId) {
+      // Verify if the existing attempt actually exists
+      const { data: existingAttempt, error: checkError } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('id, status')
+        .eq('id', attemptId)
+        .single();
+
+      if (checkError || !existingAttempt) {
+        // Attempt doesn't exist, clear the reference
+        logger.warn('Existing exam attempt not found, clearing reference', { attemptId });
+        await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .update({ exam_attempt_id: null })
+          .eq('id', registration.id);
+        attemptId = null;
+      } else if (existingAttempt.status === 'submitted') {
+        // Don't overwrite submitted attempts
+        return NextResponse.json({
+          error: 'Exam already submitted',
+          details: 'Ujian sudah dikirim dan tidak dapat diubah'
+        }, { status: 400 });
+      }
+    }
+
+    if (attemptId) {
+      // Update existing draft
+      const { error: updateError } = await supabaseAdmin
+        .from('exam_attempts')
+        .update({
+          answers: draftAnswers,
+          total_questions: questions.length,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', attemptId);
+
+      if (updateError) {
+        logger.error('Error updating draft', { error: updateError });
+        return NextResponse.json({
+          error: 'Failed to save draft'
+        }, { status: 500 });
+      }
+    } else {
+      // Create new draft
+      const { data: newAttempt, error: createError } = await supabaseAdmin
+        .from('exam_attempts')
+        .insert({
+          user_id: user.id,
+          registration_id: registration.id,
+          juz_number: examJuzNumber,
+          answers: draftAnswers,
+          total_questions: questions.length,
+          correct_answers: 0,
+          score: 0,
+          status: 'draft'
+        })
+        .select()
+        .single();
+
+      if (createError || !newAttempt) {
+        logger.error('Error creating draft', { error: createError });
+        return NextResponse.json({
+          error: 'Failed to save draft'
+        }, { status: 500 });
+      }
+
+      attemptId = newAttempt.id;
+
+      // Update registration with attempt ID
+      await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .update({ exam_attempt_id: attemptId })
+        .eq('id', registration.id);
+    }
+
+    logger.info('Draft saved successfully', {
+      userId: user.id,
+      attemptId,
+      answersCount: draftAnswers.length
+    });
+
+    return NextResponse.json({
+      message: 'Draft saved',
+      attemptId,
+      answersCount: draftAnswers.length
+    });
+
+  } catch (error) {
+    logger.error('Error in PUT /api/exam/attempts', { error: error as Error });
+    return NextResponse.json({
+      error: 'Internal server error',
+      details: (error as Error).message
+    }, { status: 500 });
+  }
+}
