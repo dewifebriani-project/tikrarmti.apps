@@ -816,27 +816,29 @@ export default function PerjalananSaya() {
                                       </CardContent>
                                     </Card>
                                   ) : registrationStatus?.examStatus === 'submitted' ? (
-                                    <Link href="/seleksi/pilihan-ganda">
-                                      <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                        <CardContent className="p-3 sm:p-4">
-                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                    <>
+                                      <Link href="/seleksi/pilihan-ganda/review">
+                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
+                                          <CardContent className="p-3 sm:p-4">
+                                            <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
+                                              <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
+                                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                                              </div>
+                                              <div className="flex-grow">
+                                                <h4 className="text-sm sm:text-base font-semibold text-green-900">Pilihan Ganda</h4>
+                                                <p className="text-xs text-green-700">Sudah dikerjakan - Klik untuk lihat hasil</p>
+                                              </div>
                                             </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-sm sm:text-base font-semibold text-green-900">Pilihan Ganda</h4>
-                                              <p className="text-xs text-green-700">Sudah dikerjakan - Klik untuk lihat</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-xs text-green-800 mb-2">
-                                            Nilai: {registrationStatus?.examScore ?? '-'}/100
-                                          </p>
-                                          <p className="text-xs text-gray-600 italic">
-                                            Dikirim: {registrationStatus?.examSubmittedAt ? new Date(registrationStatus.examSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    </Link>
+                                            <p className="text-xs text-green-800 mb-2">
+                                              Nilai: {registrationStatus?.examScore ?? '-'}/100
+                                            </p>
+                                            <p className="text-xs text-gray-600 italic">
+                                              Dikirim: {registrationStatus?.examSubmittedAt ? new Date(registrationStatus.examSubmittedAt).toLocaleDateString('id-ID') : '-'}
+                                            </p>
+                                          </CardContent>
+                                        </Card>
+                                      </Link>
+                                    </>
                                   ) : examEligibility?.attemptsRemaining === 0 ? (
                                     // Max attempts reached - disabled card
                                     <Card className={`border-2 border-red-300 bg-red-50 cursor-not-allowed opacity-70`}>
