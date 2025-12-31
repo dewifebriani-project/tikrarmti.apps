@@ -12,6 +12,8 @@ import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
+import { useBatchTimeline } from '@/hooks/useBatchTimeline';
+import { formatFullDateIndo, formatDateIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
 
 interface TimelineItem {
   id: number;
@@ -56,6 +58,20 @@ export default function PerjalananSaya() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
+
+  // Get batch_id from registration
+  const batchId = useMemo(() => {
+    if (registrations.length > 0) {
+      return registrations[0]?.batch_id || null;
+    }
+    return null;
+  }, [registrations]);
+
+  // Fetch batch timeline data
+  const { batch, timeline: batchTimeline } = useBatchTimeline(batchId, {
+    registrationStatus: registrations[0]?.status === 'completed' ? 'approved' : registrations[0]?.status as any,
+    selectionStatus: registrations[0]?.selection_status
+  });
 
   // Fetch exam eligibility
   useEffect(() => {
@@ -194,141 +210,131 @@ export default function PerjalananSaya() {
     return new Date(year, month, day);
   };
 
-  const baseTimelineData: TimelineItem[] = [
-    {
-      id: 1,
-      date: '1 - 14 Desember 2025',
-      day: 'Senin - Ahad',
-      hijriDate: '6 - 19 Jumadil Akhir 1446',
-      title: 'Mendaftar Program',
-      description: 'Pendaftaran awal program tahfidz',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
-    },
-    {
-      id: 2,
-      date: '15 - 28 Desember 2025',
-      day: 'Senin - Ahad',
-      hijriDate: '20 Jumadil Akhir - 3 Rajab 1446',
-      title: 'Seleksi',
-      description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-      ),
-      hasSelectionTasks: true
-    },
-    {
-      id: 3,
-      date: '30 Desember 2025',
-      day: 'Selasa',
-      hijriDate: '5 Rajab 1446',
-      title: 'Pengumuman Hasil Seleksi',
-      description: 'Pengumuman hasil seleksi.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      hasSelectionTasks: false
-    },
-    {
-      id: 4,
-      date: '31 Desember 2025',
-      day: 'Rabu',
-      hijriDate: '6 Rajab 1446',
-      title: 'Mendaftar Ulang',
-      description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 5,
-      date: '5 Januari 2026',
-      day: 'Sabtu',
-      hijriDate: '7 Rajab 1446',
-      title: 'Kelas Perdana Gabungan',
-      description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 6,
-      date: 'Pekan 1 (05-11 Jan 2026)',
-      day: 'Senin - Ahad',
-      hijriDate: '7 - 13 Rajab 1446',
-      title: 'Proses pembelajaran (tashih)',
-      description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      )
-    },
-    {
-      id: 7,
-      date: 'Pekan 2 - 11 (12 Jan - 22 Mar 2026)',
-      day: 'Senin - Ahad',
-      hijriDate: '14 Rajab - 25 Ramadhan 1446',
-      title: 'Proses pembelajaran',
-      description: 'Sedang berada dalam tahapan intensifikasi hafalan dan rutinitas harian.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 8,
-      date: 'Pekan 12 (23 - 29 Mar 2026)',
-      day: 'Senin - Ahad',
-      hijriDate: '26 Ramadhan - 3 Syawal 1446',
-      title: 'Pekan muraja\'ah',
-      description: 'Muraja\'ah hafalan juz target.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-      )
-    },
-    {
-      id: 9,
-      date: 'Pekan 13 (30 Mar - 5 Apr 2026)',
-      day: 'Senin - Ahad',
-      hijriDate: '4 - 10 Syawal 1446',
-      title: 'Ujian Akhir',
-      description: 'Ujian komprehensif hafalan juz target.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-      )
-    },
-    {
-      id: 10,
-      date: 'Pekan 14 (6 - 12 Apr 2026)',
-      day: 'Senin - Ahad',
-      hijriDate: '11 - 17 Syawal 1446',
-      title: 'Wisuda & Kelulusan',
-      description: 'Penyerahan sertifikat kelulusan (syahadah) program tahfidz.',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-        </svg>
-      )
+  // Create timeline data from batch timeline or fallback to hardcoded data
+  const baseTimelineData: TimelineItem[] = useMemo(() => {
+    // If we have batch timeline data, use it
+    if (batch && batchTimeline.length > 0) {
+      return batchTimeline.map((item, index) => {
+        // Format dates dynamically
+        const formattedDate = formatFullDateIndo(item.date);
+
+        return {
+          id: index + 1,
+          date: item.dateRange || item.date,
+          day: formattedDate.day,
+          hijriDate: formattedDate.hijriDate,
+          title: item.title,
+          description: item.description || '',
+          icon: getIconForType(item.type),
+          hasSelectionTasks: item.type === 'selection'
+        };
+      });
     }
-  ];
+
+    // Fallback to hardcoded data if no batch data
+    return [
+      {
+        id: 1,
+        date: batch?.registration_start_date && batch?.registration_end_date
+          ? `${formatDateIndo(batch.registration_start_date)} - ${formatDateIndo(batch.registration_end_date)}`
+          : '1 - 14 Desember 2025',
+        day: 'Senin - Ahad',
+        hijriDate: batch?.registration_start_date ? toHijri(batch.registration_start_date) : '6 - 19 Jumadil Akhir 1446',
+        title: 'Mendaftar Program',
+        description: 'Pendaftaran awal program tahfidz',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        )
+      },
+      {
+        id: 2,
+        date: batch?.selection_start_date && batch?.selection_end_date
+          ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date)}`
+          : '15 - 28 Desember 2025',
+        day: 'Senin - Ahad',
+        hijriDate: batch?.selection_start_date ? toHijri(batch.selection_start_date) : '20 Jumadil Akhir - 3 Rajab 1446',
+        title: 'Seleksi',
+        description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        ),
+        hasSelectionTasks: true
+      },
+      {
+        id: 3,
+        date: batch?.selection_result_date
+          ? formatDateIndo(batch.selection_result_date)
+          : '30 Desember 2025',
+        day: batch?.selection_result_date
+          ? getDayNameIndo(batch.selection_result_date)
+          : 'Selasa',
+        hijriDate: batch?.selection_result_date
+          ? toHijri(batch.selection_result_date)
+          : '5 Rajab 1446',
+        title: 'Pengumuman Hasil Seleksi',
+        description: 'Pengumuman hasil seleksi.',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        hasSelectionTasks: false
+      },
+      {
+        id: 4,
+        date: batch?.re_enrollment_date
+          ? formatDateIndo(batch.re_enrollment_date)
+          : '31 Desember 2025',
+        day: batch?.re_enrollment_date
+          ? getDayNameIndo(batch.re_enrollment_date)
+          : 'Rabu',
+        hijriDate: batch?.re_enrollment_date
+          ? toHijri(batch.re_enrollment_date)
+          : '6 Rajab 1446',
+        title: 'Mendaftar Ulang',
+        description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )
+      },
+      {
+        id: 5,
+        date: batch?.opening_class_date
+          ? formatDateIndo(batch.opening_class_date)
+          : '5 Januari 2026',
+        day: batch?.opening_class_date
+          ? getDayNameIndo(batch.opening_class_date)
+          : 'Sabtu',
+        hijriDate: batch?.opening_class_date
+          ? toHijri(batch.opening_class_date)
+          : '7 Rajab 1446',
+        title: 'Kelas Perdana Gabungan',
+        description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        )
+      }
+    ];
+  }, [batch, batchTimeline]);
+
+  // Helper to get icon based on type
+  const getIconForType = (type: string) => {
+    // Return default icon for now
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+  };
 
   // Calculate timeline status dynamically based on current date and registration status
   const timelineData = useMemo((): TimelineItemWithStatus[] => {
