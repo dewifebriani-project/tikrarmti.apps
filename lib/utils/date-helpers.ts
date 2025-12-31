@@ -1,14 +1,33 @@
 /**
  * Date utility functions for Indonesian and Hijri calendar
+ * All dates are converted to WIB (UTC+7) timezone
  */
 
 /**
- * Format date to Indonesian locale
+ * Convert ISO date string to Date object in WIB timezone
+ * @param dateString - ISO date string (assumed to be in UTC or local)
+ * @returns Date object adjusted to WIB (UTC+7)
+ */
+function toWIBDate(dateString: string): Date {
+  const date = new Date(dateString);
+
+  // Get UTC timestamp
+  const utcTimestamp = date.getTime();
+
+  // Convert to WIB (UTC+7)
+  const wibOffset = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+  const wibTimestamp = utcTimestamp + wibOffset;
+
+  return new Date(wibTimestamp);
+}
+
+/**
+ * Format date to Indonesian locale (WIB timezone)
  * @param dateString - ISO date string
  * @returns Formatted date (e.g., "31 Desember 2025")
  */
 export function formatDateIndo(dateString: string): string {
-  const date = new Date(dateString);
+  const date = toWIBDate(dateString);
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -22,12 +41,12 @@ export function formatDateIndo(dateString: string): string {
 }
 
 /**
- * Format date to Indonesian locale with day name
+ * Format date to Indonesian locale with day name (WIB timezone)
  * @param dateString - ISO date string
  * @returns Formatted date (e.g., "Rabu, 31 Desember 2025")
  */
 export function formatDateWithDayIndo(dateString: string): string {
-  const date = new Date(dateString);
+  const date = toWIBDate(dateString);
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -43,12 +62,12 @@ export function formatDateWithDayIndo(dateString: string): string {
 }
 
 /**
- * Get day name in Indonesian
+ * Get day name in Indonesian (WIB timezone)
  * @param dateString - ISO date string
  * @returns Day name (e.g., "Rabu")
  */
 export function getDayNameIndo(dateString: string): string {
-  const date = new Date(dateString);
+  const date = toWIBDate(dateString);
   const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   return days[date.getDay()];
 }
@@ -60,7 +79,7 @@ export function getDayNameIndo(dateString: string): string {
  * @returns Hijri date string (e.g., "6 Rajab 1446")
  */
 export function toHijri(dateString: string): string {
-  const date = new Date(dateString);
+  const date = toWIBDate(dateString);
 
   // Reference: January 1, 2024 = 19 Rajab 1445
   // Hijri epoch: July 16, 622 CE (Julian calendar)
@@ -119,7 +138,7 @@ export function toHijri(dateString: string): string {
 }
 
 /**
- * Format date range to Indonesian
+ * Format date range to Indonesian (WIB timezone)
  * @param startDate - Start date ISO string
  * @param endDate - End date ISO string
  * @returns Formatted range (e.g., "31 Desember 2025 - 5 Januari 2026")
@@ -129,7 +148,7 @@ export function formatDateRangeIndo(startDate: string, endDate: string): string 
 }
 
 /**
- * Format date with full details: day name, date, and hijri date
+ * Format date with full details: day name, date, and hijri date (WIB timezone)
  * @param dateString - ISO date string
  * @returns Formatted date (e.g., "Rabu, 31 Desember 2025\n6 Rajab 1446")
  */
