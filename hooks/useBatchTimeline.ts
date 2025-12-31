@@ -33,9 +33,23 @@ interface UseBatchTimelineOptions {
   selectionStatus?: 'pending' | 'passed' | 'failed';
 }
 
+// Custom fetcher for batch API - returns batch directly (not wrapped)
+const batchFetcher = async (url: string): Promise<Batch> => {
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch batch: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
 export function useBatchTimeline(batchId: string | null, options?: UseBatchTimelineOptions) {
   const { data, error, isLoading } = useSWR<Batch>(
     batchId ? `/api/batches/${batchId}` : null,
+    batchFetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
