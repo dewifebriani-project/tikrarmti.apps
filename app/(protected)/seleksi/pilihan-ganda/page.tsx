@@ -111,22 +111,6 @@ export default function PilihanGandaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions.length, quizStarted]);
 
-  // Autosave when answers change (debounced)
-  // TEMPORARILY DISABLED - Comment out to re-enable
-  /*
-  useEffect(() => {
-    if (!quizStarted || Object.keys(answers).length === 0) return;
-
-    const timeoutId = setTimeout(() => {
-      saveDraft();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, 2000); // Save 2 seconds after last change
-
-    return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers, quizStarted]);
-  */
-
   // Timer countdown with auto-submit
   useEffect(() => {
     if (!isClient) return;
@@ -197,6 +181,16 @@ export default function PilihanGandaPage() {
           }
         });
         setAnswers(draftAnswers);
+
+        // Restore last viewed question
+        if (data.attempt.current_question_index !== undefined &&
+            data.attempt.current_question_index !== null &&
+            data.attempt.current_question_index >= 0 &&
+            data.attempt.current_question_index < questions.length) {
+          setCurrentQuestion(data.attempt.current_question_index);
+          console.log('Restored current question:', data.attempt.current_question_index);
+        }
+
         setLastSavedTime(new Date(data.attempt.updated_at));
         console.log('Loaded', Object.keys(draftAnswers).length, 'draft answers');
       }
@@ -206,8 +200,7 @@ export default function PilihanGandaPage() {
   };
 
   const saveDraft = async () => {
-    if (Object.keys(answers).length === 0) return;
-
+    // Always save, even if no answers yet - to save currentQuestion
     setAutosaveStatus('saving');
 
     try {
@@ -224,6 +217,7 @@ export default function PilihanGandaPage() {
         },
         body: JSON.stringify({
           answers: answersArray,
+          current_question_index: currentQuestion,
         }),
       });
 
@@ -245,6 +239,19 @@ export default function PilihanGandaPage() {
       setAutosaveStatus('error');
     }
   };
+
+  // Autosave when answers or currentQuestion changes (debounced)
+  useEffect(() => {
+    if (!quizStarted) return;
+
+    const timeoutId = setTimeout(() => {
+      saveDraft();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 2000); // Save 2 seconds after last change
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, currentQuestion, quizStarted]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

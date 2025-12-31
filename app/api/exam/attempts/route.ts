@@ -401,6 +401,9 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Extract current_question_index from body if provided
+    const currentQuestionIndex = body.current_question_index !== undefined ? body.current_question_index : null;
+
     // Get user's registration
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
@@ -506,6 +509,7 @@ export async function PUT(request: NextRequest) {
         .update({
           answers: draftAnswers,
           total_questions: questions.length,
+          current_question_index: currentQuestionIndex,
           updated_at: new Date().toISOString()
         })
         .eq('id', attemptId);
@@ -529,7 +533,8 @@ export async function PUT(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: 0,
           score: 0,
-          status: 'draft'
+          status: 'draft',
+          current_question_index: currentQuestionIndex
         })
         .select()
         .single();
