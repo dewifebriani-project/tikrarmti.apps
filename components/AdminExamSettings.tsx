@@ -5,6 +5,40 @@ import { toast } from 'react-hot-toast';
 import { Plus, Edit2, Trash2, Clock, Shuffle, CheckCircle, XCircle, Save, Loader2 } from 'lucide-react';
 import { ExamConfiguration, ExamConfigurationForm } from '@/types/exam';
 
+// Helper function to format datetime in WIB (UTC+7)
+function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  // Format: 30/12/2025, 19:00 (WIB)
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${day}/${month}/${year}, ${hours}:${minutes} (WIB)`;
+}
+
+// Helper function to convert datetime-local input value to ISO string
+// datetime-local gives us "2025-12-30T19:00" which is in local timezone
+// We need to convert it to ISO string for storage
+function toLocalISOString(dateString: string): string {
+  // Create date object from the input value (which is in local timezone)
+  const date = new Date(dateString);
+  return date.toISOString();
+}
+
+// Helper function to convert ISO string to datetime-local input value
+function fromLocalISOString(isoString: string): string {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  // Get the local date and time components
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 interface AdminExamSettingsProps {
   onSuccess?: () => void;
 }
@@ -253,13 +287,13 @@ export function AdminExamSettings({ onSuccess }: AdminExamSettingsProps) {
                       {config.start_time && (
                         <SettingItem
                           label="Start Time"
-                          value={new Date(config.start_time).toLocaleString()}
+                          value={formatDateTime(config.start_time)}
                         />
                       )}
                       {config.end_time && (
                         <SettingItem
                           label="End Time"
-                          value={new Date(config.end_time).toLocaleString()}
+                          value={formatDateTime(config.end_time)}
                         />
                       )}
                     </div>
@@ -500,26 +534,42 @@ function ConfigForm({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Time
+              Start Time (WIB)
             </label>
             <input
               type="datetime-local"
-              value={formData.start_time ? formData.start_time.slice(0, 16) : ''}
-              onChange={(e) => setFormData({ ...formData, start_time: e.target.value || undefined })}
+              value={formData.start_time ? fromLocalISOString(formData.start_time) : ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                start_time: e.target.value ? toLocalISOString(e.target.value) : undefined
+              })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            {formData.start_time && (
+              <p className="text-xs text-gray-500 mt-1">
+                {formatDateTime(formData.start_time)}
+              </p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Time
+              End Time (WIB)
             </label>
             <input
               type="datetime-local"
-              value={formData.end_time ? formData.end_time.slice(0, 16) : ''}
-              onChange={(e) => setFormData({ ...formData, end_time: e.target.value || undefined })}
+              value={formData.end_time ? fromLocalISOString(formData.end_time) : ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                end_time: e.target.value ? toLocalISOString(e.target.value) : undefined
+              })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            {formData.end_time && (
+              <p className="text-xs text-gray-500 mt-1">
+                {formatDateTime(formData.end_time)}
+              </p>
+            )}
           </div>
         </div>
       </div>

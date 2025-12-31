@@ -163,19 +163,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch active questions for the required juz
-    let questionsQuery = supabaseAdmin
+    // Fetch ALL active questions for the required juz (we'll limit after shuffle if needed)
+    const { data: questions, error: questionsError } = await supabaseAdmin
       .from('exam_questions')
       .select('*')
       .eq('juz_number', requiredJuzNumber)
-      .eq('is_active', true);
-
-    // Limit questions if specified in config
-    if (config?.questions_per_attempt) {
-      questionsQuery = questionsQuery.limit(config.questions_per_attempt);
-    }
-
-    const { data: questions, error: questionsError } = await questionsQuery
+      .eq('is_active', true)
       .order('section_number', { ascending: true })
       .order('question_number', { ascending: true });
 
@@ -194,10 +187,15 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Shuffle questions if configured
+    // Shuffle questions if configured (BEFORE limiting)
     let processedQuestions = questions;
     if (config?.shuffle_questions) {
       processedQuestions = shuffleArray(questions);
+    }
+
+    // Limit questions if specified in config (AFTER shuffle)
+    if (config?.questions_per_attempt && config.questions_per_attempt < processedQuestions.length) {
+      processedQuestions = processedQuestions.slice(0, config.questions_per_attempt);
     }
 
     // Shuffle options within each question if configured
