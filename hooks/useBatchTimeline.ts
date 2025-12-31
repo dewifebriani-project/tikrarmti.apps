@@ -1,5 +1,6 @@
 import useSWR from 'swr';
 import { Batch } from '@/types/database';
+import { formatDateIndo, formatDateRangeIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
 
 export type TimelineStatus = 'completed' | 'current' | 'future' | 'locked';
 export type TimelineType = 'registration' | 'selection' | 'milestone' | 'learning' | 'assessment' | 'completion';
@@ -18,6 +19,7 @@ export interface TimelineItem {
   title: string;
   date: string;
   dateRange?: string;
+  day?: string;
   hijriDate?: string;
   status: TimelineStatus;
   type: TimelineType;

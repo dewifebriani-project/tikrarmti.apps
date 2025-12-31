@@ -47,7 +47,8 @@ export async function GET(
       }, { status: 404 });
     }
 
-    return NextResponse.json({ batch });
+    // Return batch directly, not wrapped in { batch: ... }
+    return NextResponse.json(batch);
 
   } catch (error) {
     logger.error('Error in GET /api/batches/[id]', { error: error as Error });
