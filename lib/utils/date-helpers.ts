@@ -4,21 +4,31 @@
  */
 
 /**
- * Convert ISO date string to Date object in WIB timezone
- * @param dateString - ISO date string (assumed to be in UTC or local)
- * @returns Date object adjusted to WIB (UTC+7)
+ * Convert ISO date string to Date object for display purposes
+ * @param dateString - ISO date string (from database DATE or TIMESTAMP column)
+ * @returns Date object for formatting
+ *
+ * Note:
+ * - For DATE type (e.g., "2026-01-01"): PostgreSQL stores just the date without time/timezone
+ *   We want to display this date as-is, regardless of timezone
+ * - For TIMESTAMP WITH TIME ZONE: The value includes timezone info
+ *
+ * This function creates a Date object representing midnight local time on the given date,
+ * ensuring the date displays correctly (e.g., "2026-01-01" → "1 Januari 2026", not "31 Desember 2025")
  */
 function toWIBDate(dateString: string): Date {
+  // Parse the date string to get year, month, day
+  // dateString could be "2026-01-01" or "2026-01-01T00:00:00Z"
   const date = new Date(dateString);
 
-  // Get UTC timestamp
-  const utcTimestamp = date.getTime();
+  // Use UTC components to get the actual date from the database
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
 
-  // Convert to WIB (UTC+7)
-  const wibOffset = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
-  const wibTimestamp = utcTimestamp + wibOffset;
-
-  return new Date(wibTimestamp);
+  // Create a new Date object representing midnight local time on that date
+  // This ensures that when we call getDate(), getMonth(), etc., we get the correct values
+  return new Date(year, month, day);
 }
 
 /**
