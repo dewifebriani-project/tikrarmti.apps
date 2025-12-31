@@ -53,24 +53,53 @@ export default function PerjalananSaya() {
   const [isClient, setIsClient] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
+  const [hasSessionError, setHasSessionError] = useState(false);
 
   // SWR hooks for data fetching
-  const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
+  const { registrations, isLoading: registrationsLoading, error: registrationsError } = useMyRegistrations();
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
 
-  // Get batch_id from registration
+  // Handle session expired error
+  useEffect(() => {
+    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
+      setHasSessionError(true);
+      // Redirect to login after a short delay
+      const timer = setTimeout(() => {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [registrationsError]);
+
+  // Don't render if session expired
+  if (hasSessionError) {
+    return (
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Sesi Berakhir</h3>
+            <p className="text-yellow-700 mb-4">Mohon login kembali untuk melanjutkan.</p>
+            <p className="text-sm text-yellow-600">Mengalihkan ke halaman login...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Get batch_id from registration - safely handle undefined registrations
   const batchId = useMemo(() => {
-    if (registrations.length > 0) {
+    if (registrations && registrations.length > 0) {
       return registrations[0]?.batch_id || null;
     }
     return null;
   }, [registrations]);
 
-  // Fetch batch timeline data
+  // Fetch batch timeline data - safely handle undefined registrations
   const { batch, timeline: batchTimeline } = useBatchTimeline(batchId, {
-    registrationStatus: registrations[0]?.status === 'completed' ? 'approved' : registrations[0]?.status as any,
-    selectionStatus: registrations[0]?.selection_status
+    registrationStatus: registrations && registrations[0]?.status === 'completed' ? 'approved' : registrations?.[0]?.status as any,
+    selectionStatus: registrations?.[0]?.selection_status
   });
 
   // Fetch exam eligibility
@@ -90,9 +119,9 @@ export default function PerjalananSaya() {
     fetchExamEligibility();
   }, [isAuthenticated]);
 
-  // Calculate registration status from SWR data
+  // Calculate registration status from SWR data - safely handle undefined registrations
   const registrationStatus = useMemo(() => {
-    if (!user || !registrations.length) {
+    if (!user || !registrations || registrations.length === 0) {
       return { hasRegistered: false };
     }
 

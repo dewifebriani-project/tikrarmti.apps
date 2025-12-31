@@ -33,9 +33,17 @@ export const swrConfig: SWRConfiguration = {
 
   // Retry Configuration
   errorRetryCount: 3, // Maksimal 3x retry
-  shouldRetryOnError: (error: ApiError) => {
+  shouldRetryOnError: (error: any) => {
+    // Jangan retry untuk session expired atau auth errors
+    if (error.code === 'SESSION_EXPIRED' || error.status === 401) {
+      return false
+    }
     // Jangan retry untuk error client (4xx)
-    if (error.error?.code && error.error.code.startsWith('4')) {
+    if (error.code && String(error.code).startsWith('4')) {
+      return false
+    }
+    // Jangan retry untuk error client (4xx) from old format
+    if (error.error?.code && String(error.error?.code).startsWith('4')) {
       return false
     }
     // Retry untuk server errors (5xx) dan network errors
@@ -46,13 +54,30 @@ export const swrConfig: SWRConfiguration = {
   loadingTimeout: 3000, // 3 detik timeout untuk loading
 
   // Error handler global
-  onError: (error: ApiError, key: string) => {
+  onError: (error: any, key: string) => {
     console.error('[SWR Error]', {
       key,
-      error: error.error?.message || 'Unknown error',
-      code: error.error?.code,
+      error: error.message || 'Unknown error',
+      code: error.code,
       timestamp: new Date().toISOString(),
     })
+
+    // Handle session expired - redirect to login
+    if (error.code === 'SESSION_EXPIRED' || error.status === 401) {
+      // Only redirect if we're on client side
+      if (typeof window !== 'undefined') {
+        // Prevent infinite redirect loops
+        const currentPath = window.location.pathname;
+        if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register')) {
+          console.log('[SWR] Session expired, redirecting to login...');
+          // Store current path for redirect after login
+          sessionStorage.setItem('redirectAfterLogin', currentPath);
+          // Redirect to login
+          window.location.href = '/login?session=expired';
+        }
+      }
+      return;
+    }
 
     // Log error untuk monitoring (bisa integrate dengan Sentry, etc)
     if (process.env.NODE_ENV === 'production') {

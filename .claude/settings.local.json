@@ -158,7 +158,13 @@
       "Bash(python3:*)",
       "Bash(xxd:*)",
       "Bash(git fetch:*)",
-      "Bash(vercel list:*)"
+      "Bash(vercel list:*)",
+      "Bash(npx supabase db remote dump:*)",
+      "Bash(python:*)",
+      "Bash(npx supabase db remote execute:*)",
+      "Bash(npx supabase --help)",
+      "Bash(npx supabase migration:*)",
+      "Bash(npx dotenv-cli:*)"
     ],
     "deny": [],
     "ask": []

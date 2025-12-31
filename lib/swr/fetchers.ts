@@ -86,13 +86,23 @@ export async function fetcher<T>(url: string, config?: FetchConfig): Promise<T> 
     credentials: 'include',
   })
 
+  // Handle 401 Unauthorized - session expired
+  if (response.status === 401) {
+    // Trigger redirect to login by throwing a special error
+    const error = new Error('Session expired')
+    ;(error as any).code = 'SESSION_EXPIRED'
+    ;(error as any).status = 401
+    throw error
+  }
+
   if (!response.ok) {
-    const errorData: ApiError = await response.json()
+    const errorData: ApiError = await response.json().catch(() => ({ error: { message: 'An error occurred' } }))
     // Create proper Error object with message
     const error = new Error(errorData.error?.message || 'An error occurred')
     // Attach additional error properties
     ;(error as any).code = errorData.error?.code
     ;(error as any).details = errorData.error?.details
+    ;(error as any).status = response.status
     throw error
   }
 
