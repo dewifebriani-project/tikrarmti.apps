@@ -249,26 +249,174 @@ export default function PerjalananSaya() {
     );
   };
 
-  // Create timeline data from batch timeline or fallback to hardcoded data
+  // Create timeline data from batch or fallback to hardcoded data
   const baseTimelineData: TimelineItem[] = useMemo(() => {
-    // If we have batch timeline data, use it
-    if (batch && batchTimeline && batchTimeline.length > 0) {
-      return batchTimeline.map((item, index) => {
-        // Format dates dynamically - safely handle missing date
-        const dateStr = item.date || batch.registration_start_date || '2025-01-01';
-        const formattedDate = formatFullDateIndo(dateStr);
+    // If we have batch data, use it to create timeline
+    if (batch && batch.re_enrollment_date) {
+      // Helper to format date range
+      const formatDateRange = (start: string | null | undefined, end: string | null | undefined): string => {
+        if (!start || !end) return '';
+        return `${formatDateIndo(start)} - ${formatDateIndo(end)}`;
+      };
 
-        return {
-          id: index + 1,
-          date: item.dateRange || item.date || dateStr,
-          day: formattedDate.day,
-          hijriDate: formattedDate.hijriDate,
-          title: item.title || 'Tahapan',
-          description: item.description || '',
-          icon: getIconForType(item.type),
-          hasSelectionTasks: item.type === 'selection'
-        };
+      const items: TimelineItem[] = [];
+
+      // 1. Registration
+      if (batch.registration_start_date && batch.registration_end_date) {
+        items.push({
+          id: 1,
+          date: formatDateRange(batch.registration_start_date, batch.registration_end_date),
+          day: 'Senin - Ahad',
+          hijriDate: batch.registration_start_date ? toHijri(batch.registration_start_date) : '6 - 19 Jumadil Akhir 1446',
+          title: 'Mendaftar Program',
+          description: 'Pendaftaran awal program tahfidz',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )
+        });
+      }
+
+      // 2. Selection
+      if (batch.selection_start_date && batch.selection_end_date) {
+        items.push({
+          id: 2,
+          date: formatDateRange(batch.selection_start_date, batch.selection_end_date),
+          day: 'Senin - Ahad',
+          hijriDate: batch.selection_start_date ? toHijri(batch.selection_start_date) : '20 Jumadil Akhir - 3 Rajab 1446',
+          title: 'Seleksi',
+          description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          ),
+          hasSelectionTasks: true
+        });
+      }
+
+      // 3. Selection Result
+      if (batch.selection_result_date) {
+        items.push({
+          id: 3,
+          date: formatDateIndo(batch.selection_result_date),
+          day: getDayNameIndo(batch.selection_result_date),
+          hijriDate: toHijri(batch.selection_result_date),
+          title: 'Pengumuman Hasil Seleksi',
+          description: 'Pengumuman hasil seleksi.',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ),
+          hasSelectionTasks: false
+        });
+      }
+
+      // 4. Re-enrollment
+      items.push({
+        id: 4,
+        date: formatDateIndo(batch.re_enrollment_date),
+        day: getDayNameIndo(batch.re_enrollment_date),
+        hijriDate: toHijri(batch.re_enrollment_date),
+        title: 'Mendaftar Ulang',
+        description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )
       });
+
+      // 5. Opening Class
+      if (batch.opening_class_date) {
+        items.push({
+          id: 5,
+          date: formatDateIndo(batch.opening_class_date),
+          day: getDayNameIndo(batch.opening_class_date),
+          hijriDate: toHijri(batch.opening_class_date),
+          title: 'Kelas Perdana Gabungan',
+          description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )
+        });
+      }
+
+      // 6. First Week (Tashih)
+      if (batch.first_week_start_date && batch.first_week_end_date) {
+        items.push({
+          id: 6,
+          date: `Pekan 1 (${formatDateRange(batch.first_week_start_date, batch.first_week_end_date)})`,
+          day: getDayNameIndo(batch.first_week_start_date),
+          hijriDate: toHijri(batch.first_week_start_date),
+          title: 'Pekan 1 - Tashih',
+          description: 'Minggu pertama pembelajaran - Tashih',
+          icon: getIconForType('learning')
+        });
+      }
+
+      // 7. Main Learning (Weeks 2-11)
+      if (batch.first_week_end_date && batch.review_week_start_date) {
+        const week2Start = new Date(batch.first_week_end_date);
+        week2Start.setDate(week2Start.getDate() + 1);
+        const week11End = new Date(batch.review_week_start_date);
+        week11End.setDate(week11End.getDate() - 1);
+        items.push({
+          id: 7,
+          date: `Pekan 2-11 (${formatDateIndo(week2Start.toISOString().split('T')[0])} - ${formatDateIndo(week11End.toISOString().split('T')[0])})`,
+          day: getDayNameIndo(batch.first_week_end_date),
+          hijriDate: toHijri(batch.first_week_end_date),
+          title: 'Pekan 2-11 - Pembelajaran',
+          description: '10 minggu pembelajaran inti - Hafalan & Muraja\'ah',
+          icon: getIconForType('learning')
+        });
+      }
+
+      // 8. Review Week
+      if (batch.review_week_start_date && batch.review_week_end_date) {
+        items.push({
+          id: 8,
+          date: `Pekan 12 (${formatDateRange(batch.review_week_start_date, batch.review_week_end_date)})`,
+          day: getDayNameIndo(batch.review_week_start_date),
+          hijriDate: toHijri(batch.review_week_start_date),
+          title: 'Pekan 12 - Muraja\'ah',
+          description: 'Minggu pengulangan dan persiapan ujian',
+          icon: getIconForType('learning')
+        });
+      }
+
+      // 9. Final Exam
+      if (batch.final_exam_start_date && batch.final_exam_end_date) {
+        items.push({
+          id: 9,
+          date: `Pekan 13 (${formatDateRange(batch.final_exam_start_date, batch.final_exam_end_date)})`,
+          day: getDayNameIndo(batch.final_exam_start_date),
+          hijriDate: toHijri(batch.final_exam_start_date),
+          title: 'Pekan 13 - Ujian Akhir',
+          description: 'Ujian akhir tahfidz',
+          icon: getIconForType('assessment')
+        });
+      }
+
+      // 10. Graduation
+      if (batch.graduation_start_date && batch.graduation_end_date) {
+        items.push({
+          id: 10,
+          date: `Pekan 14 (${formatDateRange(batch.graduation_start_date, batch.graduation_end_date)})`,
+          day: getDayNameIndo(batch.graduation_start_date),
+          hijriDate: toHijri(batch.graduation_start_date),
+          title: 'Pekan 14 - Wisuda',
+          description: 'Wisuda dan pemberian sertifikat',
+          icon: getIconForType('completion')
+        });
+      }
+
+      return items;
     }
 
     // Fallback to hardcoded data if no batch data
