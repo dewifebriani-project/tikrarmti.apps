@@ -239,6 +239,16 @@ export default function PerjalananSaya() {
     return new Date(year, month, day);
   };
 
+  // Helper to get icon based on type - define BEFORE useMemo to avoid circular dependency
+  const getIconForType = (type: string) => {
+    // Return default icon for now
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+  };
+
   // Create timeline data from batch timeline or fallback to hardcoded data
   const baseTimelineData: TimelineItem[] = useMemo(() => {
     // If we have batch timeline data, use it
@@ -354,17 +364,7 @@ export default function PerjalananSaya() {
         )
       }
     ];
-  }, [batch, batchTimeline]);
-
-  // Helper to get icon based on type
-  const getIconForType = (type: string) => {
-    // Return default icon for now
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    );
-  };
+  }, [batch, batchTimeline, getIconForType]);
 
   // Calculate timeline status dynamically based on current date and registration status
   const timelineData = useMemo((): TimelineItemWithStatus[] => {
