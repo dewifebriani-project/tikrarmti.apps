@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update status back to pending
+    console.log('[Muallimah Unapprove] Attempting to unapprove registration:', {
+      registrationId: id,
+      reviewedBy: publicUser.id,
+      reviewerEmail: user.email
+    });
+
     const { data, error } = await supabaseAdmin
       .from('muallimah_registrations')
       .update({
@@ -44,9 +50,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error unapproving muallimah registration:', error);
+      console.error('[Muallimah Unapprove] Database error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       return NextResponse.json(
-        { error: 'Failed to unapprove registration', details: error.message },
+        { error: 'Failed to unapprove registration', details: error.message, code: error.code },
         { status: 500 }
       );
     }
