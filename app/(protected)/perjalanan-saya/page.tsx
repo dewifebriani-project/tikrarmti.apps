@@ -97,10 +97,31 @@ export default function PerjalananSaya() {
   }, [registrations]);
 
   // Fetch batch timeline data - safely handle undefined registrations
-  const { batch, timeline: batchTimeline } = useBatchTimeline(batchId, {
+  const { batch, timeline: batchTimeline, isLoading: batchLoading } = useBatchTimeline(batchId, {
     registrationStatus: registrations && registrations[0]?.status === 'completed' ? 'approved' : registrations?.[0]?.status as any,
     selectionStatus: registrations?.[0]?.selection_status
   });
+
+  // Debug log for batch data
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[PerjalananSaya Page] Batch data:', {
+        batchId,
+        batchLoading,
+        hasBatch: !!batch,
+        batchDates: batch ? {
+          registration_start: batch.registration_start_date,
+          registration_end: batch.registration_end_date,
+          selection_start: batch.selection_start_date,
+          selection_end: batch.selection_end_date,
+          selection_result: batch.selection_result_date,
+          re_enrollment: batch.re_enrollment_date,
+          opening_class: batch.opening_class_date,
+        } : null,
+        willUseDynamic: !!(batch && (batch.registration_start_date || batch.re_enrollment_date || batch.opening_class_date))
+      });
+    }
+  }, [batch, batchId, batchLoading]);
 
   // Fetch exam eligibility
   useEffect(() => {
@@ -251,8 +272,8 @@ export default function PerjalananSaya() {
 
   // Create timeline data from batch or fallback to hardcoded data
   const baseTimelineData: TimelineItem[] = useMemo(() => {
-    // If we have batch data, use it to create timeline
-    if (batch && batch.re_enrollment_date) {
+    // If we have batch data with any timeline dates, use it to create timeline
+    if (batch && (batch.registration_start_date || batch.re_enrollment_date || batch.opening_class_date)) {
       // Helper to format date range
       const formatDateRange = (start: string | null | undefined, end: string | null | undefined): string => {
         if (!start || !end) return '';
@@ -315,19 +336,21 @@ export default function PerjalananSaya() {
       }
 
       // 4. Re-enrollment
-      items.push({
-        id: 4,
-        date: formatDateIndo(batch.re_enrollment_date),
-        day: getDayNameIndo(batch.re_enrollment_date),
-        hijriDate: toHijri(batch.re_enrollment_date),
-        title: 'Mendaftar Ulang',
-        description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )
-      });
+      if (batch.re_enrollment_date) {
+        items.push({
+          id: 4,
+          date: formatDateIndo(batch.re_enrollment_date),
+          day: getDayNameIndo(batch.re_enrollment_date),
+          hijriDate: toHijri(batch.re_enrollment_date),
+          title: 'Mendaftar Ulang',
+          description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
+          icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        });
+      }
 
       // 5. Opening Class
       if (batch.opening_class_date) {
@@ -512,7 +535,7 @@ export default function PerjalananSaya() {
         )
       }
     ];
-  }, [batch, batchTimeline, getIconForType]);
+  }, [batch, getIconForType]);
 
   // Calculate timeline status dynamically based on current date and registration status
   const timelineData = useMemo((): TimelineItemWithStatus[] => {

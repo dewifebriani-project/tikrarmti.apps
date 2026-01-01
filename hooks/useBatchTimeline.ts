@@ -50,8 +50,10 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
     batchId ? `/api/batches/${batchId}` : null,
     batchFetcher,
     {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      revalidateIfStale: true,
+      dedupingInterval: 1000,
     }
   );
 
