@@ -70,29 +70,28 @@ export async function PATCH(
 
     const body = await request.json();
 
-    const { data, error } = await supabaseAdmin
+    // Remove updated_at from body if it exists (table doesn't have this column)
+    const { updated_at, ...updateData } = body;
+
+    const { error } = await supabaseAdmin
       .from('muallimah_registrations')
       .update({
-        ...body,
-        reviewed_by: publicUser.id,
-        updated_at: new Date().toISOString()
+        ...updateData,
+        reviewed_by: publicUser.id
       })
-      .eq('id', params.id)
-      .select()
-      .single();
+      .eq('id', params.id);
 
     if (error) {
       console.error('Error updating muallimah registration:', error);
       return NextResponse.json(
-        { error: 'Failed to update registration' },
+        { error: 'Failed to update registration', details: error.message },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Muallimah registration updated successfully',
-      data
+      message: 'Muallimah registration updated successfully'
     });
 
   } catch (error) {

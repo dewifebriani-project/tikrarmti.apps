@@ -38,16 +38,14 @@ export async function POST(request: NextRequest) {
       reviewerEmail: user.email
     });
 
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from('muallimah_registrations')
       .update({
         status: 'pending',
         reviewed_by: publicUser.id,
         review_notes: body.review_notes || null
       })
-      .eq('id', id)
-      .select()
-      .single();
+      .eq('id', id);
 
     if (error) {
       console.error('[Muallimah Unapprove] Database error:', {
@@ -64,8 +62,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Muallimah registration unapproved successfully',
-      data
+      message: 'Muallimah registration unapproved successfully'
     });
 
   } catch (error) {
