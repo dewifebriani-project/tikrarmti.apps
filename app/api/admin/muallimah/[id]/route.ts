@@ -57,13 +57,24 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get the public.user record for foreign key reference
+    const { data: publicUser, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !publicUser) {
+      return NextResponse.json({ error: 'User not found in public.users table' }, { status: 400 });
+    }
+
     const body = await request.json();
 
     const { data, error } = await supabaseAdmin
       .from('muallimah_registrations')
       .update({
         ...body,
-        reviewed_by: user.id,
+        reviewed_by: publicUser.id,
         updated_at: new Date().toISOString()
       })
       .eq('id', params.id)

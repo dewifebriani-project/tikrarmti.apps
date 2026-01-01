@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Check if user is admin
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('role')
+      .select('id, role')
       .eq('id', user.id)
       .single();
 
@@ -39,11 +39,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update pendaftaran_tikrar_tahfidz table status
+    // Use userData.id which is from public.users table for the foreign key
     const { data: updatedData, error: updateError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .update({
         status: status,
-        approved_by: approvedBy || user.id,
+        approved_by: approvedBy || userData.id,
         approved_at: new Date().toISOString()
       })
       .eq('id', id)

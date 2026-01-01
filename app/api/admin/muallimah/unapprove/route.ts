@@ -13,6 +13,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get the public.user record (which has the same id as auth.users.id)
+    const { data: publicUser, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (userError || !publicUser) {
+      return NextResponse.json({ error: 'User not found in public.users table' }, { status: 400 });
+    }
+
     const body = await request.json();
     const { id } = body;
 
@@ -25,7 +36,7 @@ export async function POST(request: NextRequest) {
       .from('muallimah_registrations')
       .update({
         status: 'pending',
-        reviewed_by: user.id,
+        reviewed_by: publicUser.id,
         review_notes: body.review_notes || null
       })
       .eq('id', id)

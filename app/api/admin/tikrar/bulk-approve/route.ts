@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Check if user is admin using admin client
     const { data: userData, error: dbError } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('id, role')
       .eq('id', user.id)
       .single();
 
@@ -68,11 +68,11 @@ export async function POST(request: NextRequest) {
 
     if (action === 'approve') {
       updateData.status = 'approved';
-      updateData.approved_by = user.id;
+      updateData.approved_by = userData.id;
       updateData.approved_at = now;
     } else if (action === 'reject') {
       updateData.status = 'rejected';
-      updateData.approved_by = user.id;
+      updateData.approved_by = userData.id;
       updateData.approved_at = now;
       if (actualReason) {
         updateData.rejection_reason = actualReason;

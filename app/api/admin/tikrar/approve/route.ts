@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Check if user is admin using admin client
     const { data: userData, error: dbError } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('id, role')
       .eq('id', user.id)
       .single();
 
@@ -47,11 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the tikrar application using admin client (bypasses RLS)
+    // Use userData.id which is from public.users table for the foreign key
     const { error, data } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .update({
         ...updateData,
-        approved_by: user.id
+        approved_by: userData.id
       })
       .eq('id', id)
       .select();
