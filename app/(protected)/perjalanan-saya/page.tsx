@@ -442,99 +442,8 @@ export default function PerjalananSaya() {
       return items;
     }
 
-    // Fallback to hardcoded data if no batch data
-    return [
-      {
-        id: 1,
-        date: batch?.registration_start_date && batch?.registration_end_date
-          ? `${formatDateIndo(batch.registration_start_date)} - ${formatDateIndo(batch.registration_end_date)}`
-          : '1 - 14 Desember 2025',
-        day: 'Senin - Ahad',
-        hijriDate: batch?.registration_start_date ? toHijri(batch.registration_start_date) : '6 - 19 Jumadil Akhir 1446',
-        title: 'Mendaftar Program',
-        description: 'Pendaftaran awal program tahfidz',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        )
-      },
-      {
-        id: 2,
-        date: batch?.selection_start_date && batch?.selection_end_date
-          ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date)}`
-          : '15 - 28 Desember 2025',
-        day: 'Senin - Ahad',
-        hijriDate: batch?.selection_start_date ? toHijri(batch.selection_start_date) : '20 Jumadil Akhir - 3 Rajab 1446',
-        title: 'Seleksi',
-        description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-        ),
-        hasSelectionTasks: true
-      },
-      {
-        id: 3,
-        date: batch?.selection_result_date
-          ? formatDateIndo(batch.selection_result_date)
-          : '30 Desember 2025',
-        day: batch?.selection_result_date
-          ? getDayNameIndo(batch.selection_result_date)
-          : 'Selasa',
-        hijriDate: batch?.selection_result_date
-          ? toHijri(batch.selection_result_date)
-          : '5 Rajab 1446',
-        title: 'Pengumuman Hasil Seleksi',
-        description: 'Pengumuman hasil seleksi.',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
-        hasSelectionTasks: false
-      },
-      {
-        id: 4,
-        date: batch?.re_enrollment_date
-          ? formatDateIndo(batch.re_enrollment_date)
-          : '31 Desember 2025',
-        day: batch?.re_enrollment_date
-          ? getDayNameIndo(batch.re_enrollment_date)
-          : 'Rabu',
-        hijriDate: batch?.re_enrollment_date
-          ? toHijri(batch.re_enrollment_date)
-          : '6 Rajab 1446',
-        title: 'Mendaftar Ulang',
-        description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )
-      },
-      {
-        id: 5,
-        date: batch?.opening_class_date
-          ? formatDateIndo(batch.opening_class_date)
-          : '5 Januari 2026',
-        day: batch?.opening_class_date
-          ? getDayNameIndo(batch.opening_class_date)
-          : 'Sabtu',
-        hijriDate: batch?.opening_class_date
-          ? toHijri(batch.opening_class_date)
-          : '7 Rajab 1446',
-        title: 'Kelas Perdana Gabungan',
-        description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
-        icon: (
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        )
-      }
-    ];
+    // No batch data - return empty array
+    return [];
   }, [batch, getIconForType]);
 
   // Calculate timeline status dynamically based on current date and registration status
@@ -582,7 +491,7 @@ export default function PerjalananSaya() {
         status
       };
     });
-  }, [isClient, registrationStatus]);
+  }, [isClient, registrationStatus, baseTimelineData]);
 
   // Check if edit button should be shown (before re_enrollment_completed is true)
   const canEditRegistration = useMemo(() => {
