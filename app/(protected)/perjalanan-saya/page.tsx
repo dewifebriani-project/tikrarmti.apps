@@ -242,17 +242,18 @@ export default function PerjalananSaya() {
   // Create timeline data from batch timeline or fallback to hardcoded data
   const baseTimelineData: TimelineItem[] = useMemo(() => {
     // If we have batch timeline data, use it
-    if (batch && batchTimeline.length > 0) {
+    if (batch && batchTimeline && batchTimeline.length > 0) {
       return batchTimeline.map((item, index) => {
-        // Format dates dynamically
-        const formattedDate = formatFullDateIndo(item.date);
+        // Format dates dynamically - safely handle missing date
+        const dateStr = item.date || batch.registration_start_date || '2025-01-01';
+        const formattedDate = formatFullDateIndo(dateStr);
 
         return {
           id: index + 1,
-          date: item.dateRange || item.date,
+          date: item.dateRange || item.date || dateStr,
           day: formattedDate.day,
           hijriDate: formattedDate.hijriDate,
-          title: item.title,
+          title: item.title || 'Tahapan',
           description: item.description || '',
           icon: getIconForType(item.type),
           hasSelectionTasks: item.type === 'selection'
