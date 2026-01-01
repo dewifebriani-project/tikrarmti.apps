@@ -391,12 +391,34 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
     return timeline;
   };
 
+  const timeline = generateTimeline(data);
+
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('[useBatchTimeline]', {
+      batchId,
+      hasData: !!data,
+      error,
+      isLoading,
+      timelineLength: timeline.length,
+      batch: data ? {
+        name: data.name,
+        re_enrollment_date: data.re_enrollment_date,
+        opening_class_date: data.opening_class_date,
+        first_week_start_date: data.first_week_start_date,
+        review_week_start_date: data.review_week_start_date,
+        final_exam_start_date: data.final_exam_start_date,
+        graduation_start_date: data.graduation_start_date,
+      } : null
+    });
+  }
+
   return {
     batch: data,
-    timeline: generateTimeline(data),
+    timeline,
     isLoading,
     error,
-    isEmpty: !data || generateTimeline(data).length === 0
+    isEmpty: !data || timeline.length === 0
   };
 }
 
