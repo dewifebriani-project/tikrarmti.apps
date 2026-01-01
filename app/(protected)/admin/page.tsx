@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase-singleton';
+import { createClient } from '@/lib/supabase/client';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
@@ -260,11 +260,12 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'halaqah-mentors' | 'halaqah-students' | 'pendaftaran' | 'presensi' | 'tikrar' | 'muallimah' | 'exam-questions' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'presensi' | 'tikrar' | 'exam-questions' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
 
@@ -277,7 +278,9 @@ export default function AdminPage() {
     return 'overview';
   });
 
-  // Only enable SWR hooks when user is authenticated and is admin
+  // SECURITY NOTE: This is for UI conditional rendering ONLY.
+  // Actual authorization is enforced server-side via RLS policies.
+  // Even if client-side check is bypassed, RLS will block unauthorized access.
   const isAdmin: boolean = !authLoading && user?.role === 'admin';
 
   // SWR hooks for data fetching - only enabled when admin is authenticated
@@ -305,10 +308,6 @@ export default function AdminPage() {
   // Data states (kept for compatibility with other tabs)
   const [batches, setBatches] = useState<Batch[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
-  const [halaqahMentors, setHalaqahMentors] = useState<HalaqahMentor[]>([]);
-  const [halaqahStudents, setHalaqahStudents] = useState<HalaqahStudent[]>([]);
-  const [pendaftaran, setPendaftaran] = useState<Pendaftaran[]>([]);
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [muallimah, setMuallimah] = useState<any[]>([]);
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
@@ -373,13 +372,10 @@ export default function AdminPage() {
     try {
       console.log('=== Starting data load for tab:', activeTab, '===', new Date().toISOString());
 
-      // Overview, Users, and Tikrar tabs are now handled by SWR hooks - no need to fetch here
+      // Overview, Users, and Tikrar tabs have partial data handled by SWR hooks
       if (activeTab === 'overview') {
         // Data is loaded automatically by useAdminStats hook
         console.log('Overview stats handled by SWR');
-      } else if (activeTab === 'users') {
-        // Data is loaded automatically by useAdminUsers hook
-        console.log('Users data handled by SWR');
       } else if (activeTab === 'tikrar') {
         // Data is loaded automatically by useAdminTikrar hook
         console.log('Tikrar data handled by SWR');
@@ -407,76 +403,6 @@ export default function AdminPage() {
         }
         console.log(`Programs loaded: ${data?.length || 0} records`);
         setPrograms(data || []);
-      } else if (activeTab === 'halaqah') {
-        const { data, error } = await supabase
-          .from('halaqah')
-          .select('*, program:programs(name, batch_id)')
-          .order('created_at', { ascending: false });
-        if (error) {
-          console.error('Error loading halaqah:', error);
-          toast.error('Error loading halaqah');
-        }
-        console.log(`Halaqah loaded: ${data?.length || 0} records`);
-        setHalaqahs(data || []);
-      } else if (activeTab === 'halaqah-mentors') {
-        try {
-          const { data, error } = await supabase
-            .from('halaqah_mentors')
-            .select('*, halaqah:halaqah(name), mentor:users(full_name, email, role)')
-            .order('assigned_at', { ascending: false });
-          if (error) {
-            console.error('Error loading halaqah mentors:', error);
-            // Check if table doesn't exist or other errors
-            if (error.code === 'PGRST116') {
-              console.log('Table halaqah_mentors does not exist yet');
-              setHalaqahMentors([]);
-            } else if (error.message && error.message.includes('relationship')) {
-              console.log('Foreign key relationship issue for halaqah_mentors');
-              setHalaqahMentors([]);
-            } else {
-              console.error('Database error:', error.message);
-              setHalaqahMentors([]);
-            }
-          } else {
-            setHalaqahMentors(data || []);
-          }
-        } catch (err: any) {
-          console.error('Unexpected error loading halaqah mentors:', err);
-          setHalaqahMentors([]);
-        }
-      } else if (activeTab === 'halaqah-students') {
-        try {
-          const { data, error } = await supabase
-            .from('halaqah_students')
-            .select('*, halaqah:halaqah(name), thalibah:users(full_name, email)')
-            .order('assigned_at', { ascending: false });
-          if (error) {
-            console.error('Error loading halaqah students:', error, 'Details:', JSON.stringify(error, null, 2));
-            // Check if table doesn't exist or other errors
-            if (error.code === 'PGRST116') {
-              console.log('Table halaqah_students does not exist yet');
-              setHalaqahStudents([]);
-            } else if (error.message && error.message.includes('relationship')) {
-              console.log('Foreign key relationship issue for halaqah_students');
-              setHalaqahStudents([]);
-            } else {
-              console.error('Database error:', error.message);
-              setHalaqahStudents([]);
-            }
-          } else {
-            setHalaqahStudents(data || []);
-          }
-        } catch (err: any) {
-          console.error('Unexpected error loading halaqah students:', err);
-          setHalaqahStudents([]);
-        }
-      } else if (activeTab === 'pendaftaran') {
-        const { data, error } = await supabase
-          .from('pendaftaran')
-          .select('*, thalibah:users!pendaftaran_thalibah_id_fkey(full_name, email), program:programs(name), batch:batches(name)')
-          .order('registration_date', { ascending: false });
-        if (error) console.error('Error loading pendaftaran:', error);
-        setPendaftaran(data || []);
       } else if (activeTab === 'presensi') {
         try {
           const { data, error } = await supabase
@@ -504,7 +430,18 @@ export default function AdminPage() {
           console.error('Unexpected error loading presensi:', err);
           setPresensi([]);
         }
-      } else if (activeTab === 'muallimah') {
+      } else if (activeTab === 'users') {
+        // Load batches first (needed for muallimah filter)
+        if (batches.length === 0) {
+          const batchResponse = await fetch('/api/admin/batches');
+          if (batchResponse.ok) {
+            const batchResult = await batchResponse.json();
+            console.log(`Batches loaded: ${batchResult.data?.length || 0} records`);
+            setBatches(batchResult.data || []);
+          }
+        }
+
+        // Load muallimah data when users tab is active
         const response = await fetch('/api/admin/muallimah?skipCount=true');
         if (!response.ok) {
           const errorData = await response.json();
@@ -531,13 +468,8 @@ export default function AdminPage() {
     { id: 'users' as TabType, name: 'Users', icon: Users },
     { id: 'batches' as TabType, name: 'Batches', icon: Calendar },
     { id: 'programs' as TabType, name: 'Programs', icon: BookOpen },
-    { id: 'halaqah' as TabType, name: 'Halaqah', icon: GraduationCap },
-    { id: 'halaqah-mentors' as TabType, name: 'Halaqah Mentors', icon: UserCheck },
-    { id: 'halaqah-students' as TabType, name: 'Halaqah Students', icon: UserPlus },
-    { id: 'pendaftaran' as TabType, name: 'Pendaftaran', icon: ClipboardList },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
-    { id: 'muallimah' as TabType, name: 'Muallimah', icon: Users },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText }
   ];
@@ -655,33 +587,21 @@ export default function AdminPage() {
               </div>
             </div>
           ) : (
-            <UsersTab users={swrUsers} onRefresh={() => mutateUsers()} />
+            <UsersTab
+              users={swrUsers}
+              muallimah={muallimah}
+              batches={batches}
+              selectedBatchFilter={selectedBatchFilter}
+              onBatchFilterChange={setSelectedBatchFilter}
+              onRefresh={loadData}
+              onUsersRefresh={() => mutateUsers()}
+            />
           )
         )}
         {activeTab === 'batches' && <BatchesTab batches={batches} onRefresh={loadData} />}
         {activeTab === 'programs' && (
           <ProgramsTab
             programs={programs}
-            batches={batches}
-            selectedBatchFilter={selectedBatchFilter}
-            onBatchFilterChange={setSelectedBatchFilter}
-            onRefresh={loadData}
-          />
-        )}
-        {activeTab === 'halaqah' && (
-          <HalaqahTab
-            halaqahs={halaqahs}
-            batches={batches}
-            selectedBatchFilter={selectedBatchFilter}
-            onBatchFilterChange={setSelectedBatchFilter}
-            onRefresh={loadData}
-          />
-        )}
-        {activeTab === 'halaqah-mentors' && <HalaqahMentorsTab mentors={halaqahMentors} onRefresh={loadData} />}
-        {activeTab === 'halaqah-students' && <HalaqahStudentsTab students={halaqahStudents} onRefresh={loadData} />}
-        {activeTab === 'pendaftaran' && (
-          <PendaftaranTab
-            pendaftaran={pendaftaran}
             batches={batches}
             selectedBatchFilter={selectedBatchFilter}
             onBatchFilterChange={setSelectedBatchFilter}
@@ -718,15 +638,6 @@ export default function AdminPage() {
               onRefresh={() => mutateTikrar()}
             />
           )
-        )}
-        {activeTab === 'muallimah' && (
-          <MuallimahTab
-            muallimah={muallimah}
-            batches={batches}
-            selectedBatchFilter={selectedBatchFilter}
-            onBatchFilterChange={setSelectedBatchFilter}
-            onRefresh={loadData}
-          />
         )}
         {activeTab === 'exam-questions' && (
           <div className="space-y-6">
@@ -903,6 +814,8 @@ function BatchesTab({ batches, onRefresh }: { batches: Batch[], onRefresh: () =>
 
   const handleConfirmDelete = async () => {
     if (!editingBatch) return;
+
+    const supabase = createClient();
 
     try {
       const { error } = await supabase
@@ -1461,6 +1374,8 @@ function ProgramsTab({ programs, batches, selectedBatchFilter, onBatchFilterChan
   const handleConfirmDelete = async () => {
     if (!editingProgram) return;
 
+    const supabase = createClient();
+
     try {
       const { error } = await supabase
         .from('programs')
@@ -1570,6 +1485,7 @@ function ProgramForm({ program, onClose, onSuccess }: { program: Program | null,
   }, []);
 
   const loadBatches = async () => {
+    const supabase = createClient();
     const { data } = await supabase
       .from('batches')
       .select('*')
@@ -1580,6 +1496,7 @@ function ProgramForm({ program, onClose, onSuccess }: { program: Program | null,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const supabase = createClient();
 
     try {
       // Ensure duration_weeks is not undefined
@@ -1824,6 +1741,7 @@ function HalaqahTab({ halaqahs, batches, selectedBatchFilter, onBatchFilterChang
 
   const handleConfirmDelete = async () => {
     if (!editingHalaqah) return;
+    const supabase = createClient();
 
     try {
       const { error } = await supabase
@@ -1936,6 +1854,7 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
   }, []);
 
   const loadPrograms = async () => {
+    const supabase = createClient();
     const { data } = await supabase
       .from('programs')
       .select('*')
@@ -1946,6 +1865,7 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const supabase = createClient();
 
     try {
       let result: any;
@@ -2109,13 +2029,31 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
 }
 
 // Users Tab Component
-function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }) {
+interface UsersTabProps {
+  users: User[];
+  muallimah: any[];
+  batches: Batch[];
+  selectedBatchFilter: string;
+  onBatchFilterChange: (filter: string) => void;
+  onRefresh: () => void;
+  onUsersRefresh: () => void;
+}
+
+function UsersTab({
+  users,
+  muallimah,
+  batches,
+  selectedBatchFilter,
+  onBatchFilterChange,
+  onRefresh,
+  onUsersRefresh
+}: UsersTabProps) {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
 
   // Filter users by role based on actual registrations, supporting multi-role
   // A user can appear in multiple tabs if they have multiple roles/registrations
@@ -2131,21 +2069,7 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
     const hasReEnrolled = u.tikrar_registrations!.some(reg =>
       reg.re_enrollment_completed === true
     );
-    // Exclude if ALL registrations are not re-enrolled (those are calon thalibah)
-    const allNotReEnrolled = u.tikrar_registrations!.every(reg =>
-      reg.re_enrollment_completed !== true
-    );
-    return hasReEnrolled && !allNotReEnrolled;
-  });
-
-  // Calon Thalibah: has tikrar registration but ALL registrations have re_enrollment_completed=false (belum daftar ulang)
-  const calonThalibahUsers = users.filter(u => {
-    const hasTikrar = u.tikrar_registrations && u.tikrar_registrations.length > 0;
-    if (!hasTikrar) return false;
-    // Must have tikrar registration and NONE are re-enrolled
-    return u.tikrar_registrations!.every(reg =>
-      reg.re_enrollment_completed !== true
-    );
+    return hasReEnrolled;
   });
 
   // Muallimah: has muallimah_registration OR role='ustadzah'
@@ -2169,8 +2093,6 @@ function UsersTab({ users, onRefresh }: { users: User[], onRefresh: () => void }
         return adminUsers;
       case 'thalibah':
         return thalibahUsers;
-      case 'calon_thalibah':
-        return calonThalibahUsers;
       case 'muallimah':
         return muallimahUsers;
       case 'musyrifah':
@@ -2633,16 +2555,6 @@ Tim Markaz Tikrar Indonesia`;
             Thalibah ({thalibahUsers.length})
           </button>
           <button
-            onClick={() => setActiveSubTab('calon_thalibah')}
-            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
-              activeSubTab === 'calon_thalibah'
-                ? 'border-green-900 text-green-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Calon Thalibah ({calonThalibahUsers.length})
-          </button>
-          <button
             onClick={() => setActiveSubTab('muallimah')}
             className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeSubTab === 'muallimah'
@@ -2650,7 +2562,7 @@ Tim Markaz Tikrar Indonesia`;
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Muallimah ({muallimahUsers.length})
+            Muallimah ({muallimah.length})
           </button>
           <button
             onClick={() => setActiveSubTab('musyrifah')}
@@ -2675,174 +2587,188 @@ Tim Markaz Tikrar Indonesia`;
         </nav>
       </div>
 
+      {/* Muallimah Tab Content - Special handling for muallimah registrations */}
+      {activeSubTab === 'muallimah' && (
+        <MuallimahTab
+          muallimah={muallimah}
+          batches={batches}
+          selectedBatchFilter={selectedBatchFilter}
+          onBatchFilterChange={onBatchFilterChange}
+          onRefresh={onRefresh}
+        />
+      )}
+
       {/* All Users Tab Content */}
-      {(activeSubTab === 'all' || activeSubTab === 'admin' || activeSubTab === 'thalibah' || activeSubTab === 'calon_thalibah' || activeSubTab === 'muallimah' || activeSubTab === 'musyrifah') && (
+      {(activeSubTab === 'all' || activeSubTab === 'admin' || activeSubTab === 'thalibah' || activeSubTab === 'musyrifah') && (
         <>
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={handleDownloadUsers}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Download className="w-5 h-5 mr-2" />
-              Download Excel
-            </button>
-            <button
-              onClick={handleExportContacts}
-              disabled={isExporting}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isExporting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Exporting...
-                </>
-              ) : (
-                <>
-                  <Download className="w-5 h-5 mr-2" />
-                  Export to Gmail
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleOpenGmailImport}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
-              </svg>
-              Open Gmail Import
-            </button>
-            <button
-              onClick={() => {
-                setSelectedUser(null);
-                setShowModal(true);
-              }}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Add User
-            </button>
-          </div>
+          {/* Action buttons - Only show on "All Users" tab */}
+          {activeSubTab === 'all' && (
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleDownloadUsers}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Download Excel
+              </button>
+              <button
+                onClick={handleExportContacts}
+                disabled={isExporting}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-5 h-5 mr-2" />
+                    Export to Gmail
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleOpenGmailImport}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
+                </svg>
+                Open Gmail Import
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setShowModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Add User
+              </button>
+            </div>
+          )}
 
           {/* Statistics Dashboard - Only show on "All Users" tab */}
-      {activeSubTab === 'all' && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Total Users Card */}
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-indigo-100">Total Users</p>
-              <p className="text-3xl font-bold text-white mt-2">{users.length}</p>
-            </div>
-            <Users className="h-12 w-12 text-indigo-200 opacity-80" />
-          </div>
-        </div>
+          {activeSubTab === 'all' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Total Users Card */}
+              <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 p-6 shadow-md hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-indigo-100">Total Users</p>
+                    <p className="text-3xl font-bold text-white mt-2">{users.length}</p>
+                  </div>
+                  <Users className="h-12 w-12 text-indigo-200 opacity-80" />
+                </div>
+              </div>
 
-        {/* Active Users Card */}
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500 to-green-600 p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-green-100">Active Users</p>
-              <p className="text-3xl font-bold text-white mt-2">
-                {users.filter(u => u.is_active).length}
-              </p>
-              <p className="text-xs text-green-100 mt-1">
-                {users.length > 0 ? Math.round((users.filter(u => u.is_active).length / users.length) * 100) : 0}% of total
-              </p>
-            </div>
-            <CheckCircle className="h-12 w-12 text-green-200 opacity-80" />
-          </div>
-        </div>
+              {/* Active Users Card */}
+              <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-green-500 to-green-600 p-6 shadow-md hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-100">Active Users</p>
+                    <p className="text-3xl font-bold text-white mt-2">
+                      {users.filter(u => u.is_active).length}
+                    </p>
+                    <p className="text-xs text-green-100 mt-1">
+                      {users.length > 0 ? Math.round((users.filter(u => u.is_active).length / users.length) * 100) : 0}% of total
+                    </p>
+                  </div>
+                  <CheckCircle className="h-12 w-12 text-green-200 opacity-80" />
+                </div>
+              </div>
 
-        {/* Inactive Users Card */}
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-red-500 to-red-600 p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-red-100">Inactive Users</p>
-              <p className="text-3xl font-bold text-white mt-2">
-                {users.filter(u => !u.is_active).length}
-              </p>
-              <p className="text-xs text-red-100 mt-1">
-                {users.length > 0 ? Math.round((users.filter(u => !u.is_active).length / users.length) * 100) : 0}% of total
-              </p>
-            </div>
-            <XCircle className="h-12 w-12 text-red-200 opacity-80" />
-          </div>
-        </div>
+              {/* Inactive Users Card */}
+              <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-red-500 to-red-600 p-6 shadow-md hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-100">Inactive Users</p>
+                    <p className="text-3xl font-bold text-white mt-2">
+                      {users.filter(u => !u.is_active).length}
+                    </p>
+                    <p className="text-xs text-red-100 mt-1">
+                      {users.length > 0 ? Math.round((users.filter(u => !u.is_active).length / users.length) * 100) : 0}% of total
+                    </p>
+                  </div>
+                  <XCircle className="h-12 w-12 text-red-200 opacity-80" />
+                </div>
+              </div>
 
-        {/* Tikrar Participants Card */}
-        <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-purple-100">Tikrar Participants</p>
-              <p className="text-3xl font-bold text-white mt-2">
-                {users.filter(u => u.tikrar_registrations && u.tikrar_registrations.length > 0).length}
-              </p>
-              <p className="text-xs text-purple-100 mt-1">
-                {users.length > 0 ? Math.round((users.filter(u => u.tikrar_registrations && u.tikrar_registrations.length > 0).length / users.length) * 100) : 0}% enrolled
-              </p>
+              {/* Tikrar Participants Card */}
+              <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 p-6 shadow-md hover:shadow-lg transition-shadow">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-100">Tikrar Participants</p>
+                    <p className="text-3xl font-bold text-white mt-2">
+                      {users.filter(u => u.tikrar_registrations && u.tikrar_registrations.length > 0).length}
+                    </p>
+                    <p className="text-xs text-purple-100 mt-1">
+                      {users.length > 0 ? Math.round((users.filter(u => u.tikrar_registrations && u.tikrar_registrations.length > 0).length / users.length) * 100) : 0}% enrolled
+                    </p>
+                  </div>
+                  <Award className="h-12 w-12 text-purple-200 opacity-80" />
+                </div>
+              </div>
             </div>
-            <Award className="h-12 w-12 text-purple-200 opacity-80" />
-          </div>
-        </div>
-      </div>
-      )}
+          )}
 
       {/* Role Distribution Cards - Only show on "All Users" tab */}
       {activeSubTab === 'all' && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Admin Role Card */}
-        <div className="bg-white rounded-lg border border-purple-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-purple-800">Admin</h3>
-            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-              {users.filter(u => u.role === 'admin').length}
-            </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Admin Role Card */}
+          <div className="bg-white rounded-lg border border-purple-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-purple-800">Admin</h3>
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                {users.filter(u => u.role === 'admin').length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">
+              {users.length > 0 ? Math.round((users.filter(u => u.role === 'admin').length / users.length) * 100) : 0}% of all users
+            </p>
           </div>
-          <p className="text-xs text-gray-600">
-            {users.length > 0 ? Math.round((users.filter(u => u.role === 'admin').length / users.length) * 100) : 0}% of all users
-          </p>
-        </div>
 
-        {/* Ustadzah Role Card */}
-        <div className="bg-white rounded-lg border border-blue-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-blue-800">Muallimah</h3>
-            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-              {users.filter(u => u.role === 'ustadzah').length}
-            </span>
+          {/* Ustadzah Role Card */}
+          <div className="bg-white rounded-lg border border-blue-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-blue-800">Muallimah</h3>
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                {users.filter(u => u.role === 'ustadzah').length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">
+              {users.length > 0 ? Math.round((users.filter(u => u.role === 'ustadzah').length / users.length) * 100) : 0}% of all users
+            </p>
           </div>
-          <p className="text-xs text-gray-600">
-            {users.length > 0 ? Math.round((users.filter(u => u.role === 'ustadzah').length / users.length) * 100) : 0}% of all users
-          </p>
-        </div>
 
-        {/* Musyrifah Role Card */}
-        <div className="bg-white rounded-lg border border-green-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-green-800">Musyrifah</h3>
-            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-              {users.filter(u => u.role === 'musyrifah').length}
-            </span>
+          {/* Musyrifah Role Card */}
+          <div className="bg-white rounded-lg border border-green-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-green-800">Musyrifah</h3>
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                {users.filter(u => u.role === 'musyrifah').length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">
+              {users.length > 0 ? Math.round((users.filter(u => u.role === 'musyrifah').length / users.length) * 100) : 0}% of all users
+            </p>
           </div>
-          <p className="text-xs text-gray-600">
-            {users.length > 0 ? Math.round((users.filter(u => u.role === 'musyrifah').length / users.length) * 100) : 0}% of all users
-          </p>
-        </div>
 
-        {/* Thalibah Role Card */}
-        <div className="bg-white rounded-lg border border-yellow-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-yellow-800">Thalibah</h3>
-            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-              {users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length}
-            </span>
+          {/* Thalibah Role Card */}
+          <div className="bg-white rounded-lg border border-yellow-200 p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-yellow-800">Thalibah</h3>
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                {users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length}
+              </span>
+            </div>
+            <p className="text-xs text-gray-600">
+              {users.length > 0 ? Math.round((users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length / users.length) * 100) : 0}% of all users
+            </p>
           </div>
-          <p className="text-xs text-gray-600">
-            {users.length > 0 ? Math.round((users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length / users.length) * 100) : 0}% of all users
-          </p>
         </div>
-      </div>
       )}
 
       <AdminDataTable
@@ -4716,11 +4642,65 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   const [showUnapproveModal, setShowUnapproveModal] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
   const [unapproveReason, setUnapproveReason] = useState('');
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // Filter muallimah by batch_id
-  const filteredMuallimah = selectedBatchFilter === 'all'
-    ? muallimah
-    : muallimah.filter(m => m.batch_id === selectedBatchFilter);
+  // Sorting and filtering states
+  const [sortField, setSortField] = useState<'submitted_at' | 'full_name' | 'status' | 'preferred_juz'>('submitted_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Debug log
+  console.log('MuallimahTab render:', {
+    muallimahLength: muallimah.length,
+    muallimahData: muallimah,
+    selectedBatchFilter,
+    batchesLength: batches.length
+  });
+
+  // Filter muallimah by batch_id, status, and search query
+  const filteredMuallimah = muallimah.filter(m => {
+    const matchesBatch = selectedBatchFilter === 'all' || m.batch_id === selectedBatchFilter;
+    const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
+    const matchesSearch = searchQuery === '' ||
+      m.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.preferred_juz?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesBatch && matchesStatus && matchesSearch;
+  });
+
+  console.log('Filtered muallimah:', filteredMuallimah.length);
+
+  // Sort muallimah
+  const sortedMuallimah = [...filteredMuallimah].sort((a, b) => {
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+
+    if (sortField === 'submitted_at') {
+      aVal = new Date(aVal).getTime();
+      bVal = new Date(bVal).getTime();
+    }
+
+    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedMuallimah.length / itemsPerPage);
+  const paginatedMuallimah = sortedMuallimah.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedBatchFilter, statusFilter, searchQuery]);
 
   // Calculate statistics
   const stats = {
@@ -4730,6 +4710,30 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     approved: filteredMuallimah.filter(m => m.status === 'approved').length,
     rejected: filteredMuallimah.filter(m => m.status === 'rejected').length,
     waitlist: filteredMuallimah.filter(m => m.status === 'waitlist').length,
+  };
+
+  // Handle sort
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Format schedule for display
+  const formatSchedule = (scheduleStr: string) => {
+    if (!scheduleStr) return '-';
+    try {
+      const schedule = JSON.parse(scheduleStr);
+      if (Array.isArray(schedule) && schedule.length > 0) {
+        return schedule.map((s: any) => `${s.day} ${s.time_start}-${s.time_end}`).join(', ');
+      }
+      return scheduleStr;
+    } catch {
+      return scheduleStr;
+    }
   };
 
   // Handle approve
@@ -4806,51 +4810,88 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
 
   return (
     <div className="space-y-6">
-      {/* Batch Filter */}
-      <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
-        <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
-        <select
-          value={selectedBatchFilter}
-          onChange={(e) => onBatchFilterChange(e.target.value)}
-          className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
-        >
-          <option value="all">All Batches ({muallimah.length})</option>
-          {batches.map((batch) => (
-            <option key={batch.id} value={batch.id}>
-              {batch.name} ({muallimah.filter(m => m.batch_id === batch.id).length})
-            </option>
-          ))}
-        </select>
-        {selectedBatchFilter !== 'all' && (
-          <span className="text-sm text-gray-500">
-            Showing {filteredMuallimah.length} of {muallimah.length} registrations
-          </span>
-        )}
+      {/* Filters Section */}
+      <div className="bg-white p-4 rounded-lg shadow space-y-4">
+        {/* Batch and Status Filters */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Batch:</label>
+            <select
+              value={selectedBatchFilter}
+              onChange={(e) => onBatchFilterChange(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="all">All Batches ({muallimah.length})</option>
+              {batches.map((batch) => (
+                <option key={batch.id} value={batch.id}>
+                  {batch.name} ({muallimah.filter(m => m.batch_id === batch.id).length})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending ({stats.pending})</option>
+              <option value="review">In Review ({stats.review})</option>
+              <option value="approved">Approved ({stats.approved})</option>
+              <option value="rejected">Rejected ({stats.rejected})</option>
+              <option value="waitlist">Waitlist ({stats.waitlist})</option>
+            </select>
+          </div>
+
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search by name, email, or juz..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+        </div>
+
+        {/* Results count */}
+        <div className="text-sm text-gray-600">
+          Showing {filteredMuallimah.length} of {muallimah.length} registrations
+        </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-3 text-white cursor-pointer hover:shadow-xl transition-shadow"
+             onClick={() => setStatusFilter(statusFilter === 'all' ? 'approved' : 'all')}>
           <p className="text-blue-100 text-xs font-medium">Total</p>
           <p className="text-2xl font-bold">{stats.total}</p>
         </div>
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-4 text-white">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-3 text-white cursor-pointer hover:shadow-xl transition-shadow"
+             onClick={() => setStatusFilter('pending')}>
           <p className="text-yellow-100 text-xs font-medium">Pending</p>
           <p className="text-2xl font-bold">{stats.pending}</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg shadow-lg p-4 text-white">
+        <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg shadow-lg p-3 text-white cursor-pointer hover:shadow-xl transition-shadow"
+             onClick={() => setStatusFilter('review')}>
           <p className="text-blue-100 text-xs font-medium">In Review</p>
           <p className="text-2xl font-bold">{stats.review}</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-3 text-white cursor-pointer hover:shadow-xl transition-shadow"
+             onClick={() => setStatusFilter('approved')}>
           <p className="text-green-100 text-xs font-medium">Approved</p>
           <p className="text-2xl font-bold">{stats.approved}</p>
         </div>
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-4 text-white">
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-3 text-white cursor-pointer hover:shadow-xl transition-shadow"
+             onClick={() => setStatusFilter('rejected')}>
           <p className="text-red-100 text-xs font-medium">Rejected</p>
           <p className="text-2xl font-bold">{stats.rejected}</p>
         </div>
-        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg shadow-lg p-4 text-white">
+        <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg shadow-lg p-3 text-white cursor-pointer hover:shadow-xl transition-shadow"
+             onClick={() => setStatusFilter('waitlist')}>
           <p className="text-gray-100 text-xs font-medium">Waitlist</p>
           <p className="text-2xl font-bold">{stats.waitlist}</p>
         </div>
@@ -4862,18 +4903,58 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('full_name')}
+                >
+                  <div className="flex items-center gap-1">
+                    Name
+                    {sortField === 'full_name' && (
+                      <span className="text-gray-400">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Preferred Juz</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('preferred_juz')}
+                >
+                  <div className="flex items-center gap-1">
+                    Preferred Juz
+                    {sortField === 'preferred_juz' && (
+                      <span className="text-gray-400">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1">
+                    Status
+                    {sortField === 'status' && (
+                      <span className="text-gray-400">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('submitted_at')}
+                >
+                  <div className="flex items-center gap-1">
+                    Submitted
+                    {sortField === 'submitted_at' && (
+                      <span className="text-gray-400">{sortOrder === 'asc' ? '↑' : '↓'}</span>
+                    )}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredMuallimah.length === 0 ? (
+              {paginatedMuallimah.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -4881,10 +4962,18 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                   </td>
                 </tr>
               ) : (
-                filteredMuallimah.map((m) => (
+                paginatedMuallimah.map((m) => (
                   <tr key={m.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{m.full_name}</div>
+                      <button
+                        onClick={() => {
+                          setSelectedRegistration(m);
+                          setShowDetailModal(true);
+                        }}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-900 text-left"
+                      >
+                        {m.full_name}
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">{m.email}</div>
@@ -4895,8 +4984,10 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{m.preferred_juz || '-'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{m.preferred_schedule || '-'}</div>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-xs truncate" title={formatSchedule(m.preferred_schedule)}>
+                        {formatSchedule(m.preferred_schedule)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(m.status)}`}>
@@ -4931,6 +5022,83 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                    <span className="font-medium">{Math.min(currentPage * itemsPerPage, sortedMuallimah.length)}</span> of{' '}
+                    <span className="font-medium">{sortedMuallimah.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            currentPage === pageNum
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Unapprove Modal */}
@@ -4991,6 +5159,195 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedRegistration && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowDetailModal(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Muallimah Registration Details
+                  </h3>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Status Badge */}
+                  <div className="flex items-center justify-between">
+                    <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getStatusBadge(selectedRegistration.status)}`}>
+                      {selectedRegistration.status.toUpperCase()}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      Submitted: {new Date(selectedRegistration.submitted_at).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+
+                  {/* Personal Information Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Personal Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.full_name}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.email}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">WhatsApp</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.whatsapp}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Birth Date</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.birth_date} (born in {selectedRegistration.birth_place})</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">Address</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.address}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Education</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.education}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Occupation</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.occupation}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quran Information Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Quran Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Memorization Level</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.memorization_level}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Memorized Juz</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.memorized_juz || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Preferred Juz</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.preferred_juz}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Teaching Experience Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Teaching Experience</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Experience</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.teaching_experience}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.teaching_years || '-'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">Institutions</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.teaching_institutions || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Schedule Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Schedule Preferences</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Preferred Schedule</label>
+                        <p className="mt-1 text-sm text-gray-900">{formatSchedule(selectedRegistration.preferred_schedule)}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Backup Schedule</label>
+                        <p className="mt-1 text-sm text-gray-900">{formatSchedule(selectedRegistration.backup_schedule)}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Timezone</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.timezone}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Information Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Additional Information</h4>
+                    <div className="space-y-4">
+                      {selectedRegistration.motivation && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Motivation</label>
+                          <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedRegistration.motivation}</p>
+                        </div>
+                      )}
+                      {selectedRegistration.special_skills && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Special Skills</label>
+                          <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedRegistration.special_skills}</p>
+                        </div>
+                      )}
+                      {selectedRegistration.health_condition && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Health Condition</label>
+                          <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedRegistration.health_condition}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Batch Information */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Batch Information</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Batch</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.batch?.name || '-'}</p>
+                      </div>
+                      {selectedRegistration.reviewed_at && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Reviewed At</label>
+                          <p className="mt-1 text-sm text-gray-900">{new Date(selectedRegistration.reviewed_at).toLocaleString('id-ID')}</p>
+                        </div>
+                      )}
+                    </div>
+                    {selectedRegistration.review_notes && (
+                      <div className="mt-3">
+                        <label className="block text-sm font-medium text-gray-700">Review Notes</label>
+                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedRegistration.review_notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={() => setShowDetailModal(false)}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Close
                 </button>
               </div>
             </div>

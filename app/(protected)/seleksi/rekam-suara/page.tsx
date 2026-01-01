@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mic, Upload, CheckCircle, AlertCircle, Loader2, Play, Pause } from 'lucide-react';
-import { supabase } from '@/lib/supabase-singleton';
+import { createClient } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
 export default function RekamSuaraPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const supabase = createClient();
 
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);

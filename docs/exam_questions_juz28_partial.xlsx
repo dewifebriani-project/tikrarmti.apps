@@ -1,7 +1,0 @@
-Section,Section Title,Question Number,Question Text,Question Type,Option 1,Option 2,Option 3,Option 4,Correct Answer (1-4),Points
-2,Tebak Nama Surat,1,ٱلنَّجْمُ ٱلثَّاقِبُ,multiple_choice,Ath-Thariq,Al-Ghasiyah,Al-Buruj,An-Naba,1,1
-2,Tebak Nama Surat,2,وَٱلسَّمَآءِ وَٱلطَّارِقِ,multiple_choice,At-Tariq,Al-Inshiqaq,Al-Mutaffifin,Al-Infitar,1,1
-3,Tebak Ayat,1,وَٱلسَّمَآءِ وَٱلطَّارِقِ,multiple_choice,1,2,3,4,1,1
-4,Sambung Surat,1,سَبِّحِ ٱسْمَ رَبِّكَ ٱلْأَعْلَى,multiple_choice,Al-Ghashiyah,Al-A'la,At-Tariq,Al-Buruj,2,1
-5,Tebak Awal Ayat,1,Surat An-Naba ayat 38,multiple_choice,رَبِّ السَّمَاوَاتِ,يَوْمَ يَقُومُ,وَالنَّازِعَات,عَمَّ,1,1
-6,Ayat Mutasyabihat,1,Ayat mirip,multiple_choice,Option A,Option B,Option C,Option D,1,1

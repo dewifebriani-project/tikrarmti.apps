@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { createClient } from './supabase/client'
 import { createSupabaseAdmin } from './supabase'
 
 const supabaseAdmin = createSupabaseAdmin()
@@ -48,6 +48,7 @@ export class BatchService {
 
   static async deleteBatch(batchId: string): Promise<void> {
     try {
+      const supabase = createClient();
       const { error } = await supabase
         .from('batches')
         .delete()
@@ -63,6 +64,7 @@ export class BatchService {
 
   static async getBatch(batchId: string): Promise<Batch | null> {
     try {
+      const supabase = createClient();
       const { data, error } = await supabase
         .from('batches')
         .select('*')
@@ -85,6 +87,7 @@ export class BatchService {
 
   static async getBatches(filter?: ExtendedBatchFilter): Promise<Batch[]> {
     try {
+      const supabase = createClient();
       let query = supabase.from('batches').select('*') as any;
 
       if (filter) {
@@ -120,6 +123,7 @@ export class BatchService {
 
   static async getBatchStatistics(batchId: string): Promise<BatchStatistics | null> {
     try {
+      const supabase = createClient();
       // Get all enrollments for this batch
       const { data: enrollments, error: enrollmentError } = await supabase
         .from('batch_enrollments')
@@ -280,6 +284,7 @@ export class BatchService {
 
   static async getEnrollments(batchId?: string): Promise<BatchEnrollment[]> {
     try {
+      const supabase = createClient();
       let query = supabase.from('batch_enrollments').select('*') as any;
 
       if (batchId) {
@@ -337,6 +342,7 @@ export class BatchService {
 
   static async getSessions(batchId: string): Promise<BatchSession[]> {
     try {
+      const supabase = createClient();
       const { data, error } = await supabase
         .from('batch_sessions')
         .select('*')
@@ -362,6 +368,7 @@ export class BatchService {
       const startDate = new Date();
       startDate.setMonth(endDate.getMonth() - months + 1);
 
+      const supabase = createClient();
       const { data: enrollments, error } = await supabase
         .from('batch_enrollments')
         .select('*')

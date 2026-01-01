@@ -6,7 +6,23 @@ import { programSchemas } from '@/lib/schemas';
 
 const supabaseAdmin = createSupabaseAdmin();
 
-// GET /api/program - Get all programs with optional filtering
+/**
+ * @deprecated GET method is deprecated.
+ *
+ * MIGRATION GUIDE:
+ * Instead of fetching programs via API from client:
+ * ❌ const { data } = await fetch('/api/program')
+ *
+ * Use Server Component:
+ * ✅ async function MyServerComponent() {
+ * ✅   const supabase = createClient()
+ * ✅   const { data } = await supabase.from('programs').select('*, batch:batches(*)')
+ * ✅   return <ClientComponent programs={data} />
+ * ✅ }
+ *
+ * This endpoint is kept for backward compatibility only.
+ * The POST method (create program) is NOT deprecated.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Temporarily disabled admin check for development

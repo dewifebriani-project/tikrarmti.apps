@@ -1,6 +1,5 @@
-import { NextResponse, NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 // Protected routes that require authentication
 const protectedRoutes = [
@@ -33,90 +32,63 @@ const publicRoutes = [
   '/favicon.ico',
 ]
 
+/**
+ * Middleware - REDIRECT ONLY
+ *
+ * SECURITY ARCHITECTURE:
+ * - This middleware ONLY checks for cookie existence
+ * - NO Supabase fetch calls (performance & security)
+ * - NO session validation (handled by server layout)
+ * - Single responsibility: Route protection via redirect
+ *
+ * Session validation is done in:
+ * - app/(protected)/layout.tsx (Server Component)
+ */
 export async function middleware(request: NextRequest) {
-  const startTime = Date.now()
   const { pathname } = request.nextUrl
-  const response = NextResponse.next()
 
-  console.log('MIDDLEWARE - Request:', {
-    pathname,
-    method: request.method,
-    cookieCount: request.cookies.getAll().length,
-    timestamp: new Date().toISOString()
-  })
-
-  // Skip middleware for static files and public routes
-  // IMPORTANT: API routes should skip middleware auth check - they handle auth themselves
+  // Skip middleware for static files
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname.includes('.') ||
-    pathname.startsWith('/api') ||  // Skip ALL API routes - they handle their own auth
-    publicRoutes.some(route => pathname.startsWith(route))
+    pathname.includes('.')
   ) {
-    return response
+    return NextResponse.next()
   }
 
-  // Check if route requires authentication
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-
-  if (!isProtectedRoute) {
-    return response
+  // API routes handle their own auth - skip middleware
+  if (pathname.startsWith('/api')) {
+    return NextResponse.next()
   }
 
-  console.log('MIDDLEWARE - Protected route detected:', pathname)
-
-  // Create Supabase server client for middleware
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          const cookies = request.cookies.getAll()
-          console.log('MIDDLEWARE - Cookies getAll:', {
-            count: cookies.length,
-            names: cookies.map(c => c.name),
-            hasSupabase: cookies.some(c => c.name.includes('supabase') || c.name.includes('sb-'))
-          })
-          return cookies
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            response.cookies.set(name, value, {
-              ...options,
-              maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
-            })
-          })
-        },
-      },
-    }
+  // Check for Supabase session cookies (NOT validation, just existence)
+  // Supabase SSR uses cookies like: sb-<project-ref>-auth-token
+  // We check for any cookie starting with 'sb-' that contains 'auth'
+  const cookies = request.cookies.getAll()
+  const hasSessionCookie = cookies.some(cookie =>
+    cookie.name.startsWith('sb-') && cookie.name.includes('auth')
   )
 
-  // Get user session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
-  console.log('MIDDLEWARE - Auth check:', {
-    hasUser: !!user,
-    userId: user?.id,
-    userEmail: user?.email,
-    elapsed: Date.now() - startTime + 'ms'
-  })
-
-  // Redirect to login if user is not authenticated
-  if (!user) {
-    console.log('MIDDLEWARE - Redirecting to login, no user found')
-    // Save the intended URL to redirect back after login
+  // Redirect to login if accessing protected route without session cookie
+  if (isProtectedRoute && !hasSessionCookie) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  console.log('MIDDLEWARE - User authenticated, allowing access')
-  return response
+  // Redirect to dashboard if accessing login/register with active session
+  // But NOT for auth callback routes or forgot/reset password flows
+  const authFlowRoutes = ['/forgot-password', '/reset-password', '/auth/callback', '/auth/confirm']
+  const isAuthFlowRoute = authFlowRoutes.some(route => pathname.startsWith(route))
+
+  if (hasSessionCookie && !isAuthFlowRoute && (pathname === '/login' || pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {

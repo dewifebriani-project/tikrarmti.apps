@@ -11,8 +11,8 @@ import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 
 function LoginPageContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
@@ -27,34 +27,10 @@ function LoginPageContent() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
-  const [rememberMe, setRememberMe] = useState(false);
 
   // Set isClient flag after mount to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
-
-    // Load saved credentials if "Remember Me" was checked
-    const savedEmail = localStorage.getItem('tikrar_remember_email');
-    const savedPassword = localStorage.getItem('tikrar_remember_password');
-    const wasRemembered = localStorage.getItem('tikrar_remember_me') === 'true';
-
-    if (wasRemembered && savedEmail && savedPassword) {
-      // Decrypt/decode the saved password (simple base64 for now)
-      try {
-        const decodedPassword = atob(savedPassword);
-        setFormData({
-          email: savedEmail,
-          password: decodedPassword
-        });
-        setRememberMe(true);
-      } catch (err) {
-        console.error('Failed to load saved credentials:', err);
-        // Clear invalid saved data
-        localStorage.removeItem('tikrar_remember_email');
-        localStorage.removeItem('tikrar_remember_password');
-        localStorage.removeItem('tikrar_remember_me');
-      }
-    }
   }, []);
 
   useEffect(() => {
@@ -73,10 +49,10 @@ function LoginPageContent() {
             Registrasi Berhasil!
           </p>
           <p className="text-base">
-            ✅ Akun <em>Ukhti</em> telah aktif. <strong>Silakan login</strong> dengan email dan password yang telah <em>Ukhti</em> daftarkan.
+            ✅ Akun <em>Ukhti</em> telah terdaftar. <strong>Silakan cek inbox email</strong> untuk link konfirmasi sebelum login.
           </p>
           <p className="text-sm text-gray-600">
-            Tidak perlu konfirmasi email. Akun langsung dapat digunakan.
+            Konfirmasi email diperlukan untuk keamanan akun.
           </p>
         </div>
       );
@@ -160,19 +136,8 @@ function LoginPageContent() {
       }
 
       if (data.user && data.session) {
-        // Save credentials if Remember Me is checked
-        if (rememberMe) {
-          // Encrypt/encode password with base64 (simple encoding for now)
-          const encodedPassword = btoa(formData.password);
-          localStorage.setItem('tikrar_remember_email', formData.email);
-          localStorage.setItem('tikrar_remember_password', encodedPassword);
-          localStorage.setItem('tikrar_remember_me', 'true');
-        } else {
-          // Clear saved credentials if Remember Me is not checked
-          localStorage.removeItem('tikrar_remember_email');
-          localStorage.removeItem('tikrar_remember_password');
-          localStorage.removeItem('tikrar_remember_me');
-        }
+        // SECURITY: Password storage removed - using Supabase HttpOnly cookies only
+        // "Remember Me" is handled by Supabase session persistence (cookie-based)
 
         // Show success notification
         setNotificationMessage('Login berhasil! Mengarahkan ke dashboard...');
@@ -371,19 +336,7 @@ function LoginPageContent() {
                 </div>
               </div>
 
-              {/* Remember Me Checkbox */}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 text-green-900 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
-                    disabled={isLoading}
-                  />
-                  <span className="text-sm text-gray-700 select-none">Ingatkan saya</span>
-                </label>
-
+              <div className="flex justify-end">
                 <Link
                   href="/forgot-password"
                   className="text-sm text-green-900 hover:text-green-700 hover:underline transition-colors"

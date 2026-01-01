@@ -3,9 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Import singleton client to avoid multiple instances
-export { supabase } from './supabase-singleton'
-
 // Admin client creation function (server-side only)
 export function createSupabaseAdmin() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -201,7 +198,7 @@ export type Database = {
           blok?: string
           lokasi?: string
           masalah_tajwid?: string | null
-          waktu_tashih?: string
+          waktu_tashih: string
         }
       }
       progress_milestones: {

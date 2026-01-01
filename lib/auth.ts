@@ -1,14 +1,18 @@
 /**
  * Auth utilities
  * Helper functions for authentication
+ *
+ * SECURITY: These utilities use the browser client with HttpOnly cookies.
+ * No token storage in localStorage/sessionStorage.
  */
 
-import { supabase } from '@/lib/supabase-singleton';
+import { createClient } from '@/lib/supabase/client';
 
 /**
  * Register user with email and password
  */
 export async function registerWithEmail(email: string, password: string, name: string, role: string) {
+  const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -31,6 +35,7 @@ export async function registerWithEmail(email: string, password: string, name: s
  * Get user by ID
  */
 export async function getUserById(userId: string) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -48,6 +53,7 @@ export async function getUserById(userId: string) {
  * Update user data
  */
 export async function updateUserData(userId: string, userData: Record<string, unknown>) {
+  const supabase = createClient();
   const { data, error } = await (supabase as any)
     .from('users')
     .update(userData)
@@ -66,6 +72,7 @@ export async function updateUserData(userId: string, userData: Record<string, un
  * Login with email and password
  */
 export async function loginWithEmail(email: string, password: string) {
+  const supabase = createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -82,6 +89,7 @@ export async function loginWithEmail(email: string, password: string) {
  * Logout current user
  */
 export async function logout() {
+  const supabase = createClient();
   const { error } = await supabase.auth.signOut();
   if (error) {
     throw error;
@@ -92,6 +100,7 @@ export async function logout() {
  * Reset password
  */
 export async function resetPassword(email: string) {
+  const supabase = createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email);
   if (error) {
     throw error;
@@ -102,6 +111,7 @@ export async function resetPassword(email: string) {
  * Update password
  */
 export async function updatePassword(newPassword: string) {
+  const supabase = createClient();
   const { error } = await supabase.auth.updateUser({
     password: newPassword,
   });

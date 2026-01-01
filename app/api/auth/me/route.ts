@@ -2,46 +2,42 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 
+/**
+ * @deprecated This endpoint is deprecated.
+ *
+ * MIGRATION GUIDE:
+ * Instead of fetching user data via API from client:
+ * ❌ const { user } = useAuth() // fetches /api/auth/me
+ *
+ * Use server-side data fetching:
+ * ✅ const { data: { user } } = await supabase.auth.getUser() // in server component
+ * ✅ const user = useServerUserData() // from server layout via props
+ *
+ * USER DATA SHOULD COME FROM:
+ * 1. Server layout (app/(protected)/layout.tsx) - fetches and passes to client
+ * 2. Server components - fetch directly from Supabase
+ * 3. NOT from client-side API calls
+ *
+ * This endpoint is kept for backward compatibility only.
+ * It will be removed in a future version.
+ */
 export async function GET(request: Request) {
   const startTime = Date.now()
+
+  // Log deprecation warning
+  console.warn('[DEPRECATED] /api/auth/me endpoint called. Migration to server-side data fetching recommended.')
+
   try {
-    // Debug: Log all cookies available to server
     const cookieStore = cookies()
     const allCookies = cookieStore.getAll()
-    console.log('API /api/auth/me - Cookies available:', {
-      count: allCookies.length,
-      cookieNames: allCookies.map(c => c.name),
-      hasSupabaseSession: allCookies.some(c => c.name.includes('supabase') || c.name.includes('sb-')),
-      timestamp: new Date().toISOString()
-    })
 
-    // Use the centralized server client that properly handles cookies
+    // Use the centralized server client
     const supabase = createClient()
 
-    // Debug: Log cookies for troubleshooting
-    const { data: { session } } = await supabase.auth.getSession()
-    console.log('API /api/auth/me - Session check:', {
-      hasSession: !!session,
-      hasAccessToken: !!session?.access_token,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      elapsed: Date.now() - startTime + 'ms'
-    })
-
-    // Get the current user using the centralized server client
+    // Get the current user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    console.log('API /api/auth/me - Supabase auth result:', {
-      hasUser: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      hasError: !!authError,
-      errorMessage: authError?.message,
-      elapsed: Date.now() - startTime + 'ms'
-    })
-
     if (authError || !user) {
-      console.log('API /api/auth/me - Returning 401 Unauthorized, elapsed:', Date.now() - startTime + 'ms')
       return NextResponse.json({
         success: false,
         error: {
@@ -52,7 +48,7 @@ export async function GET(request: Request) {
       }, { status: 401 })
     }
 
-    // Fetch user data from database
+    // Fetch user data from database (RLS filtered)
     const { data: userData, error: dbError } = await supabase
       .from('users')
       .select('*')
@@ -85,12 +81,9 @@ export async function GET(request: Request) {
       alasan_daftar: userData?.alasan_daftar,
     }
 
-    // Return in standardized API response format with data wrapper
-    console.log('API /api/auth/me - Success, elapsed:', Date.now() - startTime + 'ms')
     return NextResponse.json({
       success: true,
       data: userResponse,
-      // Also include user key for backwards compatibility
       user: userResponse,
       timestamp: new Date().toISOString()
     })

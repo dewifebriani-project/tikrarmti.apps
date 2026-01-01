@@ -184,11 +184,11 @@ export async function POST(request: NextRequest) {
     let newUser;
     let authUser;
 
-    // Create user with auto-confirmed email using admin client
+    // Create user with email confirmation required (SECURITY)
     const { data: signUpData, error: signUpError } = await (supabaseAdmin as any).auth.admin.createUser({
       email: body.email,
       password: body.password,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: false, // Require email confirmation for security
       user_metadata: {
         full_name: body.full_name,
         role: body.role
@@ -196,10 +196,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!signUpError) {
-      logger.info('User created and auto-confirmed', {
+      logger.info('User created, email confirmation required', {
         email: body.email,
         userId: signUpData.user.id,
-        autoConfirmed: true
+        emailConfirmRequired: true
       });
     }
 
@@ -387,7 +387,7 @@ export async function POST(request: NextRequest) {
 
     const responseMessage = existingUser
       ? 'Profil berhasil diperbarui'
-      : `🎉 Pendaftaran berhasil! *Ukhti* sudah dapat login menggunakan email dan password yang telah didaftarkan.`;
+      : `🎉 Pendaftaran berhasil! Silakan cek inbox email *Ukhti* untuk link konfirmasi sebelum login.`;
 
     logger.auth('Registration completed', newUser.id, {
       email: body.email,
@@ -395,7 +395,7 @@ export async function POST(request: NextRequest) {
     });
 
     const responseData = {
-      requiresEmailVerification: false,
+      requiresEmailVerification: true, // Email confirmation now required
       user: {
         id: newUser.id,
         email: newUser.email,

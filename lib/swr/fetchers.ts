@@ -13,19 +13,6 @@ import { ApiResponse, ApiError, PaginatedResponse } from '../api-wrapper'
 
 
 /**
- * Get auth token dari localStorage atau cookies
- */
-function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null
-
-  // Try to get from cookies first (for SSR compatibility)
-  const match = document.cookie.match(/sb-access-token=([^;]+)/)
-  if (match) return match[1]
-
-  return null
-}
-
-/**
  * Base fetch configuration
  */
 interface FetchConfig extends RequestInit {
@@ -37,9 +24,20 @@ interface FetchConfig extends RequestInit {
  * Build URL dengan query parameters
  */
 function buildURL(endpoint: string, params?: Record<string, string | number | boolean>): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const url = new URL(endpoint, baseUrl || origin)
+  // Priority: window.location.origin > NEXT_PUBLIC_APP_URL > empty
+  if (typeof window !== 'undefined') {
+    const url = new URL(endpoint, window.location.origin)
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, String(value))
+      })
+    }
+    return url.toString()
+  }
+
+  // Server-side fallback
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const url = new URL(endpoint, baseUrl)
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -52,6 +50,11 @@ function buildURL(endpoint: string, params?: Record<string, string | number | bo
 
 /**
  * Build headers untuk request
+ *
+ * NOTE: Sesuai arsitektur, kita TIDAK menggunakan Authorization header.
+ * Session cookie (HttpOnly) otomatis dikirim oleh browser.
+ *
+ * @see docs/arsitektur.md - Session Management
  */
 function buildHeaders(config?: FetchConfig): Headers {
   const headers = new Headers(config?.headers)
@@ -61,13 +64,8 @@ function buildHeaders(config?: FetchConfig): Headers {
     headers.set('Content-Type', 'application/json')
   }
 
-  // Add auth token if required
-  if (config?.requireAuth !== false) {
-    const authToken = getAuthToken()
-    if (authToken) {
-      headers.set('Authorization', `Bearer ${authToken}`)
-    }
-  }
+  // NO Authorization header - cookie HttpOnly otomatis dikirim oleh browser
+  // Sesuai arsitektur: "Cookie-based session only", "HttpOnly Cookie Only"
 
   return headers
 }

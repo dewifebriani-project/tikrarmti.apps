@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseAdmin } from '@/lib/supabase'
 
 export async function GET() {
   try {
     const startTime = Date.now()
+    const supabase = createSupabaseAdmin()
 
     // Check Supabase connection
     const { data, error } = await supabase

@@ -4,6 +4,22 @@ import { createSupabaseAdmin } from '@/lib/supabase';
 
 const supabaseAdmin = createSupabaseAdmin();
 
+/**
+ * @deprecated This endpoint is deprecated.
+ *
+ * MIGRATION GUIDE:
+ * Instead of fetching juz options via API from client:
+ * ❌ const { data } = await fetch('/api/juz')
+ *
+ * Use Server Component:
+ * ✅ async function MyServerComponent() {
+ * ✅   const supabase = createClient()
+ * ✅   const { data } = await supabase.from('juz_options').select('*').eq('is_active', true)
+ * ✅   return <ClientComponent juzOptions={data} />
+ * ✅ }
+ *
+ * This endpoint is kept for backward compatibility only.
+ */
 export async function GET() {
   try {
     // Get all active juz options, ordered by sort_order

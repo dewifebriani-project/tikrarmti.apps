@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase-singleton';
+import { createClient } from '@/lib/supabase/client';
 import { Crown } from "lucide-react";
 import { debugOAuth } from '@/lib/oauth-debug';
 import { getDeviceInfo, getAuthTimeout, shouldUseOptimizedOAuth } from '@/lib/platform-detection';
@@ -10,6 +10,7 @@ import { getDeviceInfo, getAuthTimeout, shouldUseOptimizedOAuth } from '@/lib/pl
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

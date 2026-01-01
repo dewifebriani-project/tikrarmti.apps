@@ -198,7 +198,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
               "img-src 'self' data: https:",
               "media-src 'self' blob: https://*.supabase.co",
-              "connect-src 'self' https://*.supabase.co",
+              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id",
             ].join('; ')
           },
           // Permissions-Policy removed from wildcard - use specific routes instead

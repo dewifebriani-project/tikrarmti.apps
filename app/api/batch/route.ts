@@ -8,6 +8,23 @@ import { batchSchemas } from '@/lib/schemas';
 
 const supabaseAdmin = createSupabaseAdmin();
 
+/**
+ * @deprecated GET method is deprecated.
+ *
+ * MIGRATION GUIDE:
+ * Instead of fetching batches via API from client:
+ * ❌ const { data } = await fetch('/api/batch')
+ *
+ * Use Server Component:
+ * ✅ async function MyServerComponent() {
+ * ✅   const supabase = createClient()
+ * ✅   const { data } = await supabase.from('batches').select('*')
+ * ✅   return <ClientComponent batches={data} />
+ * ✅ }
+ *
+ * This endpoint is kept for backward compatibility only.
+ * The POST method (create batch) is NOT deprecated.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Temporarily disabled admin check for development

@@ -22,6 +22,10 @@ export function createClient() {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, {
               ...options,
+              // SECURITY: Explicit cookie flags
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
               maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
             })
           )

@@ -46,11 +46,12 @@ export async function GET(request: NextRequest) {
     // Fetch muallimah data with admin client (bypasses RLS)
     console.log('Starting muallimah data fetch at', new Date().toISOString());
 
+    // Since user_id references auth.users, we need to fetch user data separately
+    // or use the full_name and email stored in muallimah_registrations
     let query = supabaseAdmin
       .from('muallimah_registrations')
       .select(`
         *,
-        user:users!muallimah_registrations_user_id_fkey(full_name, email),
         batch:batches(name)
       `)
       .order('submitted_at', { ascending: false });

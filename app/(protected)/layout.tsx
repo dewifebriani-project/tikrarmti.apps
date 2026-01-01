@@ -1,10 +1,26 @@
-import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import ProtectedClientLayout from './ProtectedClientLayout'
+import { validateEnv } from '@/lib/env'
 
-// This is a Server Component that validates authentication
-// before rendering any protected routes
+// Validate environment on server startup
+validateEnv()
+
+/**
+ * PROTECTED LAYOUT – Server Component Auth Guard
+ *
+ * SECURITY ARCHITECTURE:
+ * - Validates session on server-side
+ * - Fetches user data with RLS applied
+ * - Passes user data to client via props (no API calls)
+ * - Single source of truth for authenticated user data
+ *
+ * Session validation happens here, NOT in middleware.
+ * Authorization happens via RLS policies, NOT client-side checks.
+ *
+ * IMPORTANT: Redirect is handled by middleware, not here.
+ * If user reaches here without auth, middleware should have redirected them.
+ */
 export default async function ProtectedLayout({
   children,
 }: {
@@ -12,7 +28,7 @@ export default async function ProtectedLayout({
 }) {
   const cookieStore = cookies()
 
-  // Create Supabase server client
+  // Create Supabase server client - READ ONLY cookies in Server Component
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,43 +37,27 @@ export default async function ProtectedLayout({
         getAll() {
           return cookieStore.getAll()
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, {
-              ...options,
-              maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
-            })
-          )
-        },
       },
     }
   )
 
-  // Get user session - server-side
+  // Get user session - server-side validation
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  console.log('Protected Layout - Auth check:', {
-    hasUser: !!user,
-    userId: user?.id,
-    userEmail: user?.email,
-  })
-
-  // Server-side redirect if not authenticated
+  // If no user, return null - middleware should have redirected
+  // This is a fallback to prevent errors
   if (!user) {
-    console.log('Protected Layout - Redirecting to login, no user found')
-    redirect('/login')
+    return null
   }
 
-  // Fetch user data from database for client components
+  // Fetch user data from database (RLS filtered)
   const { data: userData } = await supabase
     .from('users')
     .select('*')
     .eq('id', user.id)
     .single()
-
-  console.log('Protected Layout - User authenticated, rendering protected content')
 
   // Pass user data to client components via props
   return (

@@ -164,7 +164,9 @@
       "Bash(npx supabase db remote execute:*)",
       "Bash(npx supabase --help)",
       "Bash(npx supabase migration:*)",
-      "Bash(npx dotenv-cli:*)"
+      "Bash(npx dotenv-cli:*)",
+      "Bash(npm run lint)",
+      "Bash(npx next lint:*)"
     ],
     "deny": [],
     "ask": []

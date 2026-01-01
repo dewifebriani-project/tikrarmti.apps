@@ -587,7 +587,8 @@ export default function PerjalananSaya() {
                       onClick={async () => {
                         console.log('Opening debug API...');
                         try {
-                          const supabase = (await import('@/lib/supabase-singleton')).supabase;
+                          const { createClient } = await import('@/lib/supabase/client');
+                          const supabase = createClient();
                           const { data: { session } } = await supabase.auth.getSession();
 
                           const headers: Record<string, string> = {};

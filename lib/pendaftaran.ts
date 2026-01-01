@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { createClient } from './supabase/client'
 import { createSupabaseAdmin } from './supabase'
 
 const supabaseAdmin = createSupabaseAdmin()
@@ -173,6 +173,7 @@ export const updateApprovalStatus = async (
 
 export const getAllPendaftaran = async () => {
   try {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
@@ -188,6 +189,7 @@ export const getAllPendaftaran = async () => {
 
 export const getPendaftaranById = async (id: string) => {
   try {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
@@ -204,6 +206,7 @@ export const getPendaftaranById = async (id: string) => {
 
 export const getPendaftaranByUserId = async (user_id: string) => {
   try {
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')

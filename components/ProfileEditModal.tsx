@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase-singleton';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,8 @@ export default function ProfileEditModal({ user, userData, onProfileUpdate, chil
     try {
       // Update Supabase profile
       if (user?.id) {
-        const { error } = await (supabase as any)
+        const supabase = createClient();
+        const { error } = await supabase
           .from('users')
           .update({
             full_name: formData.displayName,
