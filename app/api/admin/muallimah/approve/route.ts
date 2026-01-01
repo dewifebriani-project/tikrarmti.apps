@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Muallimah registration approved successfully'
+      message: 'Muallimah registration approved successfully',
+      version: 'v2' // Version marker to confirm deployment
     });
 
   } catch (error) {
