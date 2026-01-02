@@ -99,18 +99,26 @@ export function HalaqahManagementTab() {
   };
 
   const loadBatches = async () => {
-    const { data, error } = await supabase
-      .from('batches')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log('[HalaqahManagementTab] Loading batches...');
+    try {
+      const response = await fetch('/api/admin/batches');
+      const result = await response.json();
 
-    if (!error && data) {
-      setBatches(data);
-      if (!selectedBatch && data.length > 0) {
-        setSelectedBatch(data[0].id);
+      console.log('[HalaqahManagementTab] Batches API response:', result);
+
+      if (response.ok && result.data) {
+        console.log('[HalaqahManagementTab] Loaded batches:', result.data.length);
+        setBatches(result.data);
+        if (!selectedBatch && result.data.length > 0) {
+          setSelectedBatch(result.data[0].id);
+        }
+      } else {
+        console.error('[HalaqahManagementTab] Error loading batches:', result.error);
+        toast.error('Failed to load batches: ' + (result.error || 'Unknown error'));
       }
-    } else if (error) {
-      console.error('Error loading batches:', error);
+    } catch (error: any) {
+      console.error('[HalaqahManagementTab] Exception loading batches:', error);
+      toast.error('Failed to load batches: ' + error.message);
     }
   };
 
@@ -308,12 +316,12 @@ export function HalaqahManagementTab() {
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900 min-w-[200px]"
           >
-            <option value="">All Batches</option>
+            <option value="">All Batches {batches.length > 0 && `(${batches.length})`}</option>
             {batches.map((batch) => (
               <option key={batch.id} value={batch.id}>
-                {batch.name}
+                {batch.name} ({batch.status})
               </option>
             ))}
           </select>
