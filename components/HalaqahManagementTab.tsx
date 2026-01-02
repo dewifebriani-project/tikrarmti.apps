@@ -133,15 +133,20 @@ export function HalaqahManagementTab() {
   const loadHalaqahs = async () => {
     let query = supabase
       .from('halaqah')
-      .select(`
-        *,
-        program:programs!inner(id, name, class_type, batch_id, batch:batches(id, name))
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     // Apply filters
     if (selectedBatch) {
-      query = query.eq('program.batch_id', selectedBatch);
+      // First get program IDs for this batch
+      const { data: batchPrograms } = await supabase
+        .from('programs')
+        .select('id')
+        .eq('batch_id', selectedBatch);
+
+      if (batchPrograms) {
+        query = query.in('program_id', batchPrograms.map((p: { id: string }) => p.id));
+      }
     }
     if (selectedProgram) {
       query = query.eq('program_id', selectedProgram);
@@ -159,9 +164,27 @@ export function HalaqahManagementTab() {
 
     if (!data) return;
 
-    // Enrich with student counts and muallimah info
+    // Enrich with program details, student counts, and muallimah info
     const enrichedData = await Promise.all(
       data.map(async (h: any) => {
+        // Fetch program details
+        const { data: programData } = await supabase
+          .from('programs')
+          .select('id, name, class_type, batch_id')
+          .eq('id', h.program_id)
+          .single();
+
+        // Fetch batch details
+        let batchData = null;
+        if (programData?.batch_id) {
+          const { data } = await supabase
+            .from('batches')
+            .select('id, name')
+            .eq('id', programData.batch_id)
+            .single();
+          batchData = data;
+        }
+
         // Count active students
         const { count } = await supabase
           .from('halaqah_students')
@@ -182,6 +205,10 @@ export function HalaqahManagementTab() {
 
         return {
           ...h,
+          program: programData ? {
+            ...programData,
+            batch: batchData
+          } : undefined,
           _count: { students: count || 0 },
           muallimah: muallimah || undefined
         };
