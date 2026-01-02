@@ -5476,6 +5476,10 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                         <p className="mt-1 text-sm text-gray-900">{selectedRegistration.whatsapp}</p>
                       </div>
                       <div>
+                        <label className="block text-sm font-medium text-gray-700">Age</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.age || '-'}</p>
+                      </div>
+                      <div>
                         <label className="block text-sm font-medium text-gray-700">Birth Date</label>
                         <p className="mt-1 text-sm text-gray-900">{selectedRegistration.birth_date} (born in {selectedRegistration.birth_place})</p>
                       </div>
@@ -5509,6 +5513,41 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Preferred Juz</label>
                         <p className="mt-1 text-sm text-gray-900">{selectedRegistration.preferred_juz}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Examined Juz</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.examined_juz || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Certified Juz</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.certified_juz || '-'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Education & Institutions Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Education & Institutions</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Tajweed Institution</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.tajweed_institution || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Quran Institution</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.quran_institution || '-'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">Teaching Communities</label>
+                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedRegistration.teaching_communities || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Memorized Tajweed Matan</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.memorized_tajweed_matan || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Studied Matan Exegesis</label>
+                        <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{selectedRegistration.studied_matan_exegesis || '-'}</p>
                       </div>
                     </div>
                   </div>
@@ -5547,6 +5586,29 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Timezone</label>
                         <p className="mt-1 text-sm text-gray-900">{selectedRegistration.timezone}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Class Preferences Section */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Class Preferences</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Class Type</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.class_type || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Preferred Max Thalibah</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.preferred_max_thalibah || '-'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">Paid Class Interest</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.paid_class_interest || '-'}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700">Understands Commitment</label>
+                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.understands_commitment ? 'Yes' : 'No'}</p>
                       </div>
                     </div>
                   </div>
