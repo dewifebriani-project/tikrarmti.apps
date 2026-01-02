@@ -4641,10 +4641,39 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [showUnapproveModal, setShowUnapproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<any>(null);
   const [unapproveReason, setUnapproveReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Add user modal states
+  const [users, setUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({
+    user_id: '',
+    batch_id: '',
+    full_name: '',
+    birth_date: '',
+    birth_place: '',
+    address: '',
+    whatsapp: '',
+    email: '',
+    education: '',
+    occupation: '',
+    memorization_level: '',
+    memorized_juz: '',
+    preferred_juz: '',
+    teaching_experience: '',
+    teaching_years: '',
+    teaching_institutions: '',
+    preferred_schedule: '',
+    backup_schedule: '',
+    tajweed_institution: '',
+    quran_institution: '',
+  });
+  const [submittingAddUser, setSubmittingAddUser] = useState(false);
 
   // Sorting and filtering states
   const [sortField, setSortField] = useState<'submitted_at' | 'full_name' | 'status' | 'preferred_juz'>('submitted_at');
@@ -4835,6 +4864,108 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     }
   };
 
+  // Load users for add user modal
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch('/api/admin/users');
+      const result = await response.json();
+      if (response.ok) {
+        setUsers(result.users || []);
+      } else {
+        toast.error(result.error || 'Failed to load users');
+      }
+    } catch (error: any) {
+      console.error('Error loading users:', error);
+      toast.error(error.message || 'Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Open add user modal
+  const handleOpenAddUserModal = () => {
+    setShowAddUserModal(true);
+    if (users.length === 0) {
+      loadUsers();
+    }
+  };
+
+  // Handle user selection
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setAddUserForm(prev => ({
+        ...prev,
+        user_id: userId,
+        full_name: user.full_name || '',
+        email: user.email || '',
+        whatsapp: user.whatsapp || '',
+        address: user.alamat || '',
+        birth_date: user.tanggal_lahir || '',
+        birth_place: user.tempat_lahir || '',
+        occupation: user.pekerjaan || '',
+      }));
+    }
+  };
+
+  // Handle add user form submit
+  const handleAddUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addUserForm.user_id || !addUserForm.batch_id) {
+      toast.error('Please select a user and batch');
+      return;
+    }
+
+    setSubmittingAddUser(true);
+    try {
+      const response = await fetch('/api/admin/muallimah/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(addUserForm),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add muallimah');
+      }
+
+      toast.success('Muallimah added successfully');
+      setShowAddUserModal(false);
+      setSelectedUserId('');
+      setAddUserForm({
+        user_id: '',
+        batch_id: '',
+        full_name: '',
+        birth_date: '',
+        birth_place: '',
+        address: '',
+        whatsapp: '',
+        email: '',
+        education: '',
+        occupation: '',
+        memorization_level: '',
+        memorized_juz: '',
+        preferred_juz: '',
+        teaching_experience: '',
+        teaching_years: '',
+        teaching_institutions: '',
+        preferred_schedule: '',
+        backup_schedule: '',
+        tajweed_institution: '',
+        quran_institution: '',
+      });
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error adding muallimah:', error);
+      toast.error(error.message || 'Failed to add muallimah');
+    } finally {
+      setSubmittingAddUser(false);
+    }
+  };
+
   // Get status badge color
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -4851,6 +4982,18 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     <div className="space-y-6">
       {/* Filters Section */}
       <div className="bg-white p-4 rounded-lg shadow space-y-4">
+        {/* Header with Add button */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Muallimah Registrations</h2>
+          <button
+            onClick={handleOpenAddUserModal}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Existing User
+          </button>
+        </div>
+
         {/* Batch and Status Filters */}
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
@@ -5465,6 +5608,414 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                 >
                   Close
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Existing User as Muallimah Modal */}
+      {showAddUserModal && (
+        <div className="fixed z-50 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowAddUserModal(false)}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Add Existing User as Muallimah
+                  </h3>
+                  <button
+                    onClick={() => setShowAddUserModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddUserSubmit} className="space-y-6">
+                  {/* User Selection */}
+                  <div className="border-b border-gray-200 pb-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Step 1: Select User</h4>
+                    <div>
+                      <label htmlFor="user-select" className="block text-sm font-medium text-gray-700 mb-2">
+                        Select User <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="user-select"
+                        value={selectedUserId}
+                        onChange={(e) => handleUserSelect(e.target.value)}
+                        disabled={loadingUsers}
+                        required
+                        className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      >
+                        <option value="">-- Select a user --</option>
+                        {loadingUsers ? (
+                          <option disabled>Loading users...</option>
+                        ) : (
+                          users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.full_name || user.email} ({user.email})
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Muallimah Details */}
+                  <div className="border-b border-gray-200 pb-4">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Step 2: Muallimah Details</h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Batch Selection */}
+                      <div>
+                        <label htmlFor="batch_id" className="block text-sm font-medium text-gray-700 mb-1">
+                          Batch <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          id="batch_id"
+                          value={addUserForm.batch_id}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, batch_id: e.target.value }))}
+                          required
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        >
+                          <option value="">-- Select batch --</option>
+                          {batches.map((batch) => (
+                            <option key={batch.id} value={batch.id}>
+                              {batch.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Full Name */}
+                      <div>
+                        <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="full_name"
+                          value={addUserForm.full_name}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, full_name: e.target.value }))}
+                          required
+                          minLength={2}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Birth Date */}
+                      <div>
+                        <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700 mb-1">
+                          Birth Date <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          id="birth_date"
+                          value={addUserForm.birth_date}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, birth_date: e.target.value }))}
+                          required
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Birth Place */}
+                      <div>
+                        <label htmlFor="birth_place" className="block text-sm font-medium text-gray-700 mb-1">
+                          Birth Place <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="birth_place"
+                          value={addUserForm.birth_place}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, birth_place: e.target.value }))}
+                          required
+                          minLength={2}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* WhatsApp */}
+                      <div>
+                        <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-1">
+                          WhatsApp (62...) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="whatsapp"
+                          value={addUserForm.whatsapp}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                          required
+                          pattern="^62\d{8,14}$"
+                          placeholder="628123456789"
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Email */}
+                      <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          value={addUserForm.email}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, email: e.target.value }))}
+                          required
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Address */}
+                      <div className="md:col-span-2">
+                        <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                          Address <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          id="address"
+                          rows={2}
+                          value={addUserForm.address}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, address: e.target.value }))}
+                          required
+                          minLength={5}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Education */}
+                      <div>
+                        <label htmlFor="education" className="block text-sm font-medium text-gray-700 mb-1">
+                          Education <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="education"
+                          value={addUserForm.education}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, education: e.target.value }))}
+                          required
+                          minLength={2}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Occupation */}
+                      <div>
+                        <label htmlFor="occupation" className="block text-sm font-medium text-gray-700 mb-1">
+                          Occupation <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="occupation"
+                          value={addUserForm.occupation}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, occupation: e.target.value }))}
+                          required
+                          minLength={2}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Memorization Level */}
+                      <div>
+                        <label htmlFor="memorization_level" className="block text-sm font-medium text-gray-700 mb-1">
+                          Memorization Level <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="memorization_level"
+                          value={addUserForm.memorization_level}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, memorization_level: e.target.value }))}
+                          required
+                          minLength={2}
+                          placeholder="e.g., Juz 30, Juz 29-30"
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Memorized Juz */}
+                      <div>
+                        <label htmlFor="memorized_juz" className="block text-sm font-medium text-gray-700 mb-1">
+                          Memorized Juz
+                        </label>
+                        <input
+                          type="text"
+                          id="memorized_juz"
+                          value={addUserForm.memorized_juz}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, memorized_juz: e.target.value }))}
+                          placeholder="e.g., 28, 29, 30"
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Preferred Juz */}
+                      <div>
+                        <label htmlFor="preferred_juz" className="block text-sm font-medium text-gray-700 mb-1">
+                          Preferred Juz <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          id="preferred_juz"
+                          value={addUserForm.preferred_juz}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, preferred_juz: e.target.value }))}
+                          required
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Teaching Experience */}
+                      <div className="md:col-span-2">
+                        <label htmlFor="teaching_experience" className="block text-sm font-medium text-gray-700 mb-1">
+                          Teaching Experience <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          id="teaching_experience"
+                          rows={2}
+                          value={addUserForm.teaching_experience}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, teaching_experience: e.target.value }))}
+                          required
+                          minLength={5}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Teaching Years */}
+                      <div>
+                        <label htmlFor="teaching_years" className="block text-sm font-medium text-gray-700 mb-1">
+                          Teaching Years
+                        </label>
+                        <input
+                          type="text"
+                          id="teaching_years"
+                          value={addUserForm.teaching_years}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, teaching_years: e.target.value }))}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Teaching Institutions */}
+                      <div>
+                        <label htmlFor="teaching_institutions" className="block text-sm font-medium text-gray-700 mb-1">
+                          Teaching Institutions
+                        </label>
+                        <input
+                          type="text"
+                          id="teaching_institutions"
+                          value={addUserForm.teaching_institutions}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, teaching_institutions: e.target.value }))}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Preferred Schedule */}
+                      <div className="md:col-span-2">
+                        <label htmlFor="preferred_schedule" className="block text-sm font-medium text-gray-700 mb-1">
+                          Preferred Schedule <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          id="preferred_schedule"
+                          rows={2}
+                          value={addUserForm.preferred_schedule}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, preferred_schedule: e.target.value }))}
+                          required
+                          placeholder="e.g., Monday 19:00-21:00, Wednesday 19:00-21:00"
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Backup Schedule */}
+                      <div className="md:col-span-2">
+                        <label htmlFor="backup_schedule" className="block text-sm font-medium text-gray-700 mb-1">
+                          Backup Schedule <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          id="backup_schedule"
+                          rows={2}
+                          value={addUserForm.backup_schedule}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, backup_schedule: e.target.value }))}
+                          required
+                          placeholder="e.g., Tuesday 19:00-21:00, Thursday 19:00-21:00"
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Tajweed Institution */}
+                      <div>
+                        <label htmlFor="tajweed_institution" className="block text-sm font-medium text-gray-700 mb-1">
+                          Tajweed Institution
+                        </label>
+                        <input
+                          type="text"
+                          id="tajweed_institution"
+                          value={addUserForm.tajweed_institution}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, tajweed_institution: e.target.value }))}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+
+                      {/* Quran Institution */}
+                      <div>
+                        <label htmlFor="quran_institution" className="block text-sm font-medium text-gray-700 mb-1">
+                          Quran Institution
+                        </label>
+                        <input
+                          type="text"
+                          id="quran_institution"
+                          value={addUserForm.quran_institution}
+                          onChange={(e) => setAddUserForm(prev => ({ ...prev, quran_institution: e.target.value }))}
+                          className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button
+                      type="submit"
+                      disabled={submittingAddUser || !addUserForm.user_id || !addUserForm.batch_id}
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submittingAddUser ? 'Adding...' : 'Add Muallimah'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddUserModal(false);
+                        setSelectedUserId('');
+                        setAddUserForm({
+                          user_id: '',
+                          batch_id: '',
+                          full_name: '',
+                          birth_date: '',
+                          birth_place: '',
+                          address: '',
+                          whatsapp: '',
+                          email: '',
+                          education: '',
+                          occupation: '',
+                          memorization_level: '',
+                          memorized_juz: '',
+                          preferred_juz: '',
+                          teaching_experience: '',
+                          teaching_years: '',
+                          teaching_institutions: '',
+                          preferred_schedule: '',
+                          backup_schedule: '',
+                          tajweed_institution: '',
+                          quran_institution: '',
+                        });
+                      }}
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
