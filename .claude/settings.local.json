@@ -166,7 +166,9 @@
       "Bash(npx supabase migration:*)",
       "Bash(npx dotenv-cli:*)",
       "Bash(npm run lint)",
-      "Bash(npx next lint:*)"
+      "Bash(npx next lint:*)",
+      "Bash(npx vercel --prod)",
+      "Bash(git status:*)"
     ],
     "deny": [],
     "ask": []

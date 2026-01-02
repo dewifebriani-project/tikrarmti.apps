@@ -42,6 +42,7 @@ import { AdminExamImport } from '@/components/AdminExamImport';
 import { AdminAddQuestion } from '@/components/AdminAddQuestion';
 import { AdminExamSettings } from '@/components/AdminExamSettings';
 import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
+import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 
 interface Batch {
   id: string;
@@ -260,7 +261,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'presensi' | 'tikrar' | 'exam-questions' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'exam-questions' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -468,6 +469,7 @@ export default function AdminPage() {
     { id: 'users' as TabType, name: 'Users', icon: Users },
     { id: 'batches' as TabType, name: 'Batches', icon: Calendar },
     { id: 'programs' as TabType, name: 'Programs', icon: BookOpen },
+    { id: 'halaqah' as TabType, name: 'Halaqah', icon: Users },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
@@ -679,6 +681,7 @@ export default function AdminPage() {
             )}
           </div>
         )}
+        {activeTab === 'halaqah' && <HalaqahManagementTab />}
         {activeTab === 'reports' && <ReportsTab />}
       </div>
 
