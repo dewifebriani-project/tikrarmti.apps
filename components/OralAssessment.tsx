@@ -19,6 +19,7 @@ interface OralAssessmentProps {
   };
   onSave?: (data: any) => void;
   readOnly?: boolean;
+  allowNoSubmission?: boolean; // Allow assessment without VN
 }
 
 interface ErrorCounts {
@@ -38,7 +39,8 @@ export function OralAssessment({
   oralSubmissionUrl,
   currentAssessment,
   onSave,
-  readOnly = false
+  readOnly = false,
+  allowNoSubmission = false
 }: OralAssessmentProps) {
   const [errors, setErrors] = useState<ErrorCounts>({
     makhraj: currentAssessment?.oral_makhraj_errors || 0,
@@ -113,7 +115,7 @@ export function OralAssessment({
     }
   };
 
-  if (!oralSubmissionUrl) {
+  if (!oralSubmissionUrl && !allowNoSubmission) {
     return (
       <div className="bg-gray-50 p-6 rounded-lg">
         <div className="flex items-center gap-2 text-gray-600">
@@ -126,18 +128,30 @@ export function OralAssessment({
 
   return (
     <div className="space-y-6">
-      <div className="bg-green-50 p-4 rounded-lg">
-        <div className="flex items-center gap-2 mb-3">
-          <Volume2 className="w-5 h-5 text-green-700" />
-          <h4 className="font-semibold text-green-900">Rekaman QS. Al-Fath 29</h4>
+      {oralSubmissionUrl ? (
+        <div className="bg-green-50 p-4 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Volume2 className="w-5 h-5 text-green-700" />
+            <h4 className="font-semibold text-green-900">Rekaman QS. Al-Fath 29</h4>
+          </div>
+          <audio
+            src={oralSubmissionUrl}
+            controls
+            className="w-full"
+            preload="auto"
+          />
         </div>
-        <audio
-          src={oralSubmissionUrl}
-          controls
-          className="w-full"
-          preload="auto"
-        />
-      </div>
+      ) : (
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-5 h-5 text-yellow-700" />
+            <h4 className="font-semibold text-yellow-900">Tidak Ada Rekaman VN</h4>
+          </div>
+          <p className="text-sm text-yellow-800">
+            Penilaian dilakukan tanpa rekaman video/audio. Pastikan penilaian berdasarkan evaluasi langsung atau metode lain yang sah.
+          </p>
+        </div>
+      )}
 
       <div className="bg-white border rounded-lg p-6">
         <h4 className="font-semibold text-gray-900 mb-4">Penilaian Tajweed - Klik kategori yang salah</h4>
