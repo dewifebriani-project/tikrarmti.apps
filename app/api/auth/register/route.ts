@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     const { data: signUpData, error: signUpError } = await (supabaseAdmin as any).auth.admin.createUser({
       email: body.email,
       password: body.password,
-      email_confirm: false, // Require email confirmation for security
+      email_confirm: true, // Require email confirmation for security
       user_metadata: {
         full_name: body.full_name,
         role: body.role
