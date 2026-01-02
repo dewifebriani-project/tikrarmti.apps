@@ -101,20 +101,44 @@ export function HalaqahManagementTab() {
   const loadBatches = async () => {
     console.log('[HalaqahManagementTab] Loading batches...');
     try {
+      // First try using the API endpoint (for admins)
       const response = await fetch('/api/admin/batches');
       const result = await response.json();
 
       console.log('[HalaqahManagementTab] Batches API response:', result);
 
       if (response.ok && result.data) {
-        console.log('[HalaqahManagementTab] Loaded batches:', result.data.length);
+        console.log('[HalaqahManagementTab] Loaded batches via API:', result.data.length);
         setBatches(result.data);
         if (!selectedBatch && result.data.length > 0) {
           setSelectedBatch(result.data[0].id);
         }
-      } else {
-        console.error('[HalaqahManagementTab] Error loading batches:', result.error);
-        toast.error('Failed to load batches: ' + (result.error || 'Unknown error'));
+        return;
+      }
+
+      // If API fails (403/401), fall back to direct Supabase query
+      console.log('[HalaqahManagementTab] API failed, falling back to direct query');
+    } catch (apiError: any) {
+      console.log('[HalaqahManagementTab] API exception, falling back to direct query:', apiError.message);
+    }
+
+    // Fallback: Direct Supabase query (works with RLS for all authenticated users)
+    try {
+      const { data, error } = await supabase
+        .from('batches')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[HalaqahManagementTab] Direct query error:', error);
+        toast.error('Failed to load batches: ' + error.message);
+        return;
+      }
+
+      console.log('[HalaqahManagementTab] Loaded batches via direct query:', data?.length || 0);
+      setBatches(data || []);
+      if (!selectedBatch && data && data.length > 0) {
+        setSelectedBatch(data[0].id);
       }
     } catch (error: any) {
       console.error('[HalaqahManagementTab] Exception loading batches:', error);
