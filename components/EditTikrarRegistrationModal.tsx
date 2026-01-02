@@ -112,9 +112,9 @@ export function EditTikrarRegistrationModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto my-4">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto my-4 flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between rounded-t-lg z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between rounded-t-lg z-10 flex-shrink-0">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Edit Pendaftaran Tikrar</h2>
           <button
             type="button"
@@ -126,7 +126,7 @@ export function EditTikrarRegistrationModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 flex flex-col flex-1 overflow-y-auto">
           {/* Info Card - Current Registration */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <h3 className="font-medium text-blue-900 mb-2">Informasi Saat Ini</h3>
@@ -217,7 +217,7 @@ export function EditTikrarRegistrationModal({
           </div>
 
           {/* Footer */}
-          <div className="flex gap-2 sm:gap-3 justify-end pt-4 border-t border-gray-200">
+          <div className="flex gap-2 sm:gap-3 justify-end pt-4 border-t border-gray-200 flex-shrink-0 sticky bottom-0 bg-white">
             <button
               type="button"
               onClick={onClose}
@@ -230,8 +230,12 @@ export function EditTikrarRegistrationModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-              style={{ touchAction: 'manipulation', minHeight: '44px' }}
+              className="px-3 sm:px-4 py-2 text-sm sm:text-base bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ touchAction: 'manipulation', minHeight: '44px', minWidth: '120px' }}
+              onClick={(e) => {
+                // Ensure click propagates properly on mobile
+                e.currentTarget.focus();
+              }}
             >
               {isSubmitting ? (
                 <>
