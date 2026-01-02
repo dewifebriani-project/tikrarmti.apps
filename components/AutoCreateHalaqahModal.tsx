@@ -87,7 +87,7 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
       .from('programs')
       .select('*')
       .eq('batch_id', selectedBatch)
-      .eq('status', 'active');
+      .in('status', ['open', 'ongoing']);
 
     if (error) {
       toast.error('Failed to load programs');

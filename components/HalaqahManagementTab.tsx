@@ -33,12 +33,13 @@ interface Halaqah {
   max_students?: number;
   waitlist_max?: number;
   preferred_juz?: number;
-  status: 'draft' | 'open' | 'closed' | 'completed';
+  status: 'active' | 'inactive' | 'suspended';
   created_at: string;
   program?: {
     id: string;
     name: string;
     class_type: string;
+    batch_id: string;
     batch?: {
       id: string;
       name: string;
@@ -108,6 +109,8 @@ export function HalaqahManagementTab() {
       if (!selectedBatch && data.length > 0) {
         setSelectedBatch(data[0].id);
       }
+    } else if (error) {
+      console.error('Error loading batches:', error);
     }
   };
 
@@ -118,10 +121,12 @@ export function HalaqahManagementTab() {
       .from('programs')
       .select('*')
       .eq('batch_id', selectedBatch)
-      .eq('status', 'active');
+      .in('status', ['open', 'ongoing']);
 
     if (!error && data) {
       setPrograms(data);
+    } else if (error) {
+      console.error('Error loading programs:', error);
     }
   };
 
@@ -130,14 +135,13 @@ export function HalaqahManagementTab() {
       .from('halaqah')
       .select(`
         *,
-        program:programs(id, name, class_type, batch:batches(id, name)),
-        muallimah:muallimah_id(id, full_name, email)
+        program:programs!inner(id, name, class_type, batch_id, batch:batches(id, name))
       `)
       .order('created_at', { ascending: false });
 
     // Apply filters
     if (selectedBatch) {
-      query = query.eq('program.batch.id', selectedBatch);
+      query = query.eq('program.batch_id', selectedBatch);
     }
     if (selectedProgram) {
       query = query.eq('program_id', selectedProgram);
@@ -148,21 +152,42 @@ export function HalaqahManagementTab() {
 
     const { data, error } = await query;
 
-    if (!error && data) {
-      // Enrich with student counts
-      const enrichedData = await Promise.all(
-        data.map(async (h: Halaqah) => {
-          const { count } = await supabase
-            .from('halaqah_students')
-            .select('*', { count: 'exact', head: true })
-            .eq('halaqah_id', h.id)
-            .eq('status', 'active');
-
-          return { ...h, _count: { students: count || 0 } };
-        })
-      );
-      setHalaqahs(enrichedData);
+    if (error) {
+      console.error('Error loading halaqahs:', error);
+      return;
     }
+
+    if (!data) return;
+
+    // Enrich with student counts and muallimah info
+    const enrichedData = await Promise.all(
+      data.map(async (h: any) => {
+        // Count active students
+        const { count } = await supabase
+          .from('halaqah_students')
+          .select('*', { count: 'exact', head: true })
+          .eq('halaqah_id', h.id)
+          .eq('status', 'active');
+
+        // Fetch muallimah if assigned
+        let muallimah = null;
+        if (h.muallimah_id) {
+          const { data: muallimahData } = await supabase
+            .from('users')
+            .select('id, full_name, email')
+            .eq('id', h.muallimah_id)
+            .single();
+          muallimah = muallimahData;
+        }
+
+        return {
+          ...h,
+          _count: { students: count || 0 },
+          muallimah: muallimah || undefined
+        };
+      })
+    );
+    setHalaqahs(enrichedData);
   };
 
   const handleDeleteHalaqah = async (halaqahId: string) => {
@@ -214,14 +239,13 @@ export function HalaqahManagementTab() {
 
   const getStatusBadge = (status: Halaqah['status']) => {
     const styles = {
-      draft: 'bg-gray-100 text-gray-800',
-      open: 'bg-green-100 text-green-800',
-      closed: 'bg-red-100 text-red-800',
-      completed: 'bg-blue-100 text-blue-800',
+      active: 'bg-green-100 text-green-800',
+      inactive: 'bg-gray-100 text-gray-800',
+      suspended: 'bg-red-100 text-red-800',
     };
 
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status]}`}>
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status] || styles.inactive}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
@@ -287,10 +311,9 @@ export function HalaqahManagementTab() {
             className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
           >
             <option value="">All Status</option>
-            <option value="draft">Draft</option>
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-            <option value="completed">Completed</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
           </select>
 
           <button
@@ -449,21 +472,21 @@ export function HalaqahManagementTab() {
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {halaqah.status === 'draft' && (
+                          {halaqah.status === 'inactive' && (
                             <button
-                              onClick={() => handleStatusChange(halaqah.id, 'open')}
+                              onClick={() => handleStatusChange(halaqah.id, 'active')}
                               className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                              title="Open enrollment"
+                              title="Activate halaqah"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </button>
                           )}
 
-                          {halaqah.status === 'open' && (
+                          {halaqah.status === 'active' && (
                             <button
-                              onClick={() => handleStatusChange(halaqah.id, 'closed')}
+                              onClick={() => handleStatusChange(halaqah.id, 'inactive')}
                               className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                              title="Close enrollment"
+                              title="Deactivate halaqah"
                             >
                               <XCircle className="w-4 h-4" />
                             </button>
