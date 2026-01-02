@@ -3539,11 +3539,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
 
 Barakallahu fiik atas pendaftaran Ukhti di *Program Tikrar Tahfidz MTI*${batchName ? ` (${batchName})` : ''} 🌙
 
-Kami dari Markaz Tikrar Indonesia ingin menginformasikan mengenai status pendaftaran Ukhti.
-
-📖 "Dan sesungguhnya telah Kami mudahkan Al-Qur'an untuk peringatan, maka adakah orang yang mau mengambil pelajaran?" (QS. Al-Qamar: 17)
-
-Jika ada pertanyaan atau membutuhkan bantuan, jangan ragu untuk menghubungi kami.
+Kami dari Markaz Tikrar Indonesia ingin menginformasikan mengenai status pendaftaran Ukhti, bahwa Ukhti belum mengirimkan Voice Note di aplikasi. Jika Ukhti ada kendala dengan mengirimkan VN di aplikasi setelah mencobanya, dapat mengirimkan VN ke Kak Mara.
 
 Jazakillahu khairan
 Tim Markaz Tikrar Indonesia`;
