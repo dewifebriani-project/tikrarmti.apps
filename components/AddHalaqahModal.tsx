@@ -54,6 +54,7 @@ const DAYS = [
 ];
 
 export function AddHalaqahModal({ onClose, onSuccess }: AddHalaqahModalProps) {
+  console.log('[AddHalaqahModal] Component rendered!');
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -74,8 +75,13 @@ export function AddHalaqahModal({ onClose, onSuccess }: AddHalaqahModalProps) {
   });
 
   useEffect(() => {
+    console.log('[AddHalaqahModal] useEffect triggered!');
     loadBatches();
   }, []);
+
+  useEffect(() => {
+    console.log('[AddHalaqahModal] State changed:', { batchesCount: batches.length, selectedBatch });
+  }, [batches, selectedBatch]);
 
   useEffect(() => {
     if (selectedBatch) {

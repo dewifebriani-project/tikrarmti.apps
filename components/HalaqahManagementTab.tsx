@@ -85,6 +85,11 @@ export function HalaqahManagementTab() {
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Debug: log when showAddHalaqahModal changes
+  useEffect(() => {
+    console.log('[HalaqahManagementTab] showAddHalaqahModal:', showAddHalaqahModal);
+  }, [showAddHalaqahModal]);
+
   useEffect(() => {
     loadData();
   }, [selectedBatch, selectedProgram, selectedStatus, refreshTrigger]);
@@ -321,7 +326,10 @@ export function HalaqahManagementTab() {
           </p>
         </div>
         <button
-          onClick={() => setShowAddHalaqahModal(true)}
+          onClick={() => {
+            console.log('[HalaqahManagementTab] Add Halaqah button clicked!');
+            setShowAddHalaqahModal(true);
+          }}
           className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
