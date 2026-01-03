@@ -4214,14 +4214,34 @@ Tim Markaz Tikrar Indonesia`;
         onSubmit={async (formData) => {
           try {
             if (selectedApplication) {
-              // Update - prepare update data
-              const updateData = {
+              // Update - prepare update data with all form fields
+              const updateData: Record<string, any> = {
                 full_name: formData.full_name,
                 batch_name: formData.batch_name,
                 chosen_juz: formData.chosen_juz,
                 status: formData.status,
                 selection_status: formData.selection_status,
               };
+
+              // Add optional fields if they exist in formData
+              if (formData.oral_assessment_status !== undefined && formData.oral_assessment_status !== '') {
+                updateData.oral_assessment_status = formData.oral_assessment_status;
+              }
+              if (formData.oral_total_score !== undefined && formData.oral_total_score !== '') {
+                updateData.oral_total_score = Number(formData.oral_total_score);
+              }
+              if (formData.oral_assessment_notes !== undefined && formData.oral_assessment_notes !== '') {
+                updateData.oral_assessment_notes = formData.oral_assessment_notes;
+              }
+              if (formData.wa_phone !== undefined && formData.wa_phone !== '') {
+                updateData.wa_phone = formData.wa_phone;
+              }
+              if (formData.domicile !== undefined && formData.domicile !== '') {
+                updateData.domicile = formData.domicile;
+              }
+              if (formData.alasan_mengundurkan_diri !== undefined && formData.alasan_mengundurkan_diri !== '') {
+                updateData.alasan_mengundurkan_diri = formData.alasan_mengundurkan_diri;
+              }
 
               // @ts-ignore - Supabase update types issue
               const { error } = await supabase

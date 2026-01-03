@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 
 export interface FormField {
@@ -39,14 +39,24 @@ export function AdminCrudModal({
   submitButtonText = 'Save',
   isEditing = false,
 }: AdminCrudModalProps) {
-  const [formData, setFormData] = useState<Record<string, any>>(
-    fields.reduce((acc, field) => {
-      acc[field.name] = initialData[field.name] ?? field.defaultValue ?? (field.type === 'checkbox' ? false : '');
-      return acc;
-    }, {} as Record<string, any>)
-  );
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update formData when initialData changes or modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const newFormData = fields.reduce((acc, field) => {
+        const value = initialData?.[field.name];
+        acc[field.name] = value !== undefined && value !== null
+          ? value
+          : field.defaultValue ?? (field.type === 'checkbox' ? false : '');
+        return acc;
+      }, {} as Record<string, any>);
+      setFormData(newFormData);
+      setErrors({});
+    }
+  }, [isOpen, initialData, fields]);
 
   if (!isOpen) return null;
 
