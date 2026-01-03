@@ -21,8 +21,9 @@ export default function DashboardContent() {
   const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
 
-  // Combined loading state - also consider if user data is not yet available
-  const isPageLoading = isLoading || !user || batchLoading || statsLoading || registrationsLoading
+  // Combined loading state
+  // Note: User data is guaranteed by server layout, no need to check !user here
+  const isPageLoading = isLoading || batchLoading || statsLoading || registrationsLoading
 
   // Calculate registration status from SWR data
   const hasRegistered = registrations.length > 0
@@ -80,18 +81,6 @@ export default function DashboardContent() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    )
-  }
-
-  // If user is not available after loading, show error or redirect
-  if (!user && !isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          <p className="font-medium">Session tidak tersedia</p>
-          <p className="text-sm mt-1">Silakan login kembali untuk mengakses dashboard.</p>
-        </div>
       </div>
     )
   }
