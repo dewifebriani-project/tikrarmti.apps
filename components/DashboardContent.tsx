@@ -43,7 +43,7 @@ export default function DashboardContent() {
   }
 
   // Loading state - Consistent across all devices
-  if (isLoading) {
+  if (isPageLoading) {
     return (
       <div className="space-y-4 sm:space-y-6">
         {/* Welcome card skeleton */}
@@ -80,6 +80,18 @@ export default function DashboardContent() {
             </div>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  // If user is not available after loading, show error or redirect
+  if (!user && !isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <p className="font-medium">Session tidak tersedia</p>
+          <p className="text-sm mt-1">Silakan login kembali untuk mengakses dashboard.</p>
+        </div>
       </div>
     )
   }
