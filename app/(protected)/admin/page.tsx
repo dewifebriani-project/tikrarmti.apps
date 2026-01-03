@@ -261,6 +261,8 @@ interface TikrarTahfidz {
   written_quiz_correct_answers?: number;
   written_submitted_at?: string;
   written_quiz_submitted_at?: string;
+  written_exam_submitted_at?: string;
+  written_exam_status?: string;
   exam_score?: number;
   exam_submitted_at?: string;
   exam_status?: string;
@@ -3726,7 +3728,7 @@ Tim Markaz Tikrar Indonesia`;
       filterable: true,
       // Custom sort function for proper ordering: Juz 30/N/A -> Not submitted -> Pending -> Scores (low to high)
       sortFn: (a, b, direction) => {
-        // Helper to get sort value: -1 = Juz 30/N/A, 0 = Not submitted, 1 = Pending, 2+ = Score value + 2
+        // Helper to get sort value: -1 = Juz 30/N/A, 0 = Not submitted, 1 = In Progress, 2 = Pending, 3+ = Score value + 3
         const getSortValue = (t: TikrarTahfidz) => {
           // Check if Juz 30A or 30B - no written quiz required
           const isJuz30 = t.chosen_juz?.toLowerCase().includes('30a') ||
@@ -3738,9 +3740,12 @@ Tim Markaz Tikrar Indonesia`;
                          t.chosen_juz?.toLowerCase() === '30';
 
           if (isJuz30) return -1; // Juz 30 - first
-          if (!t.written_submitted_at) return 0; // Not submitted
-          if (t.written_quiz_score === null || t.written_quiz_score === undefined) return 1; // Pending
-          return t.written_quiz_score + 2; // Score (add 2 to put after pending)
+          // Check submission status from both old and new fields
+          const hasSubmitted = t.written_exam_submitted_at || t.written_submitted_at;
+          if (!hasSubmitted) return 0; // Not submitted
+          if (t.written_exam_status === 'in_progress') return 1; // In Progress
+          if (t.written_quiz_score === null || t.written_quiz_score === undefined) return 2; // Pending
+          return t.written_quiz_score + 3; // Score (add 3 to put after pending)
         };
 
         const aVal = getSortValue(a);
@@ -3765,9 +3770,15 @@ Tim Markaz Tikrar Indonesia`;
           return value.includes('n/a') || value.includes('30') || value.includes('juz');
         }
 
-        // Not submitted
-        if (!row.written_submitted_at) {
+        // Not submitted - check both fields
+        const hasSubmitted = row.written_exam_submitted_at || row.written_submitted_at;
+        if (!hasSubmitted) {
           return value.includes('not') || value.includes('submit');
+        }
+
+        // In Progress
+        if (row.written_exam_status === 'in_progress') {
+          return value.includes('progr') || value.includes('in');
         }
 
         // Pending
@@ -3775,15 +3786,13 @@ Tim Markaz Tikrar Indonesia`;
           return value.includes('pend');
         }
 
-        // Score exists - check percentage
-        const totalQuestions = row.written_quiz_total_questions || 100;
-        const percentage = Math.round((row.written_quiz_score / totalQuestions) * 100);
+        // Score exists - check if pass/fail
+        const score = row.written_quiz_score || 0;
+        if (value.includes('pass')) return score >= 70;
+        if (value.includes('fail')) return score < 70;
 
-        if (value.includes('pass')) return percentage >= 70;
-        if (value.includes('fail')) return percentage < 70;
-
-        // Match percentage number
-        return String(percentage).includes(value);
+        // Match score number
+        return String(score).includes(value);
       },
       render: (t) => {
         // Check if Juz 30A or 30B - no written quiz required
@@ -3803,24 +3812,34 @@ Tim Markaz Tikrar Indonesia`;
           );
         }
 
-        if (!t.written_submitted_at) {
+        // Check submission status from both old and new fields
+        const hasSubmitted = t.written_exam_submitted_at || t.written_submitted_at;
+
+        if (!hasSubmitted) {
           return <span className="text-xs text-gray-400">Not submitted</span>;
+        }
+
+        // Check exam status - if in_progress, show as in progress
+        if (t.written_exam_status === 'in_progress') {
+          return <span className="text-xs text-yellow-600 font-medium">In Progress</span>;
         }
 
         if (t.written_quiz_score === null || t.written_quiz_score === undefined) {
           return <span className="text-xs text-yellow-600 font-medium">Pending</span>;
         }
 
-        const totalQuestions = t.written_quiz_total_questions || 100;
-        const percentage = Math.round((t.written_quiz_score / totalQuestions) * 100);
-        const isPassing = percentage >= 70;
+        // Display the score directly from exam_attempts (score is 0-100)
+        const score = t.written_quiz_score || 0;
+        const isPassing = score >= 70;
 
         return (
           <div className="flex items-center gap-1">
             <span className={`text-sm font-bold ${isPassing ? 'text-green-600' : 'text-red-600'}`}>
-              {percentage}%
+              {score}
             </span>
-            <span className="text-xs text-gray-500">({t.written_quiz_score}/{totalQuestions})</span>
+            <span className={`px-1.5 py-0.5 text-xs font-semibold rounded ${isPassing ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {isPassing ? 'PASS' : 'FAIL'}
+            </span>
           </div>
         );
       },

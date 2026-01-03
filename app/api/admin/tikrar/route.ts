@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     console.log('Query parameters:', { skipCount, page, limit, offset });
 
     // If skipCount is true, load ALL data without pagination
+    // First, fetch tikrar data
     let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
@@ -70,6 +71,43 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch exam_attempts (written quiz scores) for all registrations
+    let enrichedData = data || [];
+    if (data && data.length > 0) {
+      const registrationIds = data.map((r: any) => r.id);
+
+      // Fetch exam attempts for these registrations
+      // Get the highest score attempt for each registration (for written quiz)
+      const { data: examAttempts } = await supabaseAdmin
+        .from('exam_attempts')
+        .select('id, registration_id, score, status, submitted_at, created_at')
+        .in('registration_id', registrationIds)
+        .order('created_at', { ascending: false });
+
+      // Create a map of registration_id -> exam attempt (first/latest attempt)
+      const examAttemptsMap = new Map();
+      if (examAttempts) {
+        for (const attempt of examAttempts) {
+          // Store the first/latest attempt for each registration
+          if (!examAttemptsMap.has(attempt.registration_id)) {
+            examAttemptsMap.set(attempt.registration_id, attempt);
+          }
+        }
+      }
+
+      // Enrich data with exam score
+      enrichedData = data.map((tikrar: any) => {
+        const examAttempt = examAttemptsMap.get(tikrar.id);
+        return {
+          ...tikrar,
+          // Use exam_attempts.score as written_quiz_score
+          written_quiz_score: examAttempt?.score ?? tikrar.written_quiz_score,
+          written_exam_submitted_at: examAttempt?.submitted_at ?? tikrar.written_exam_submitted_at,
+          written_exam_status: examAttempt?.status ?? tikrar.written_exam_status,
+        };
+      });
+    }
+
     // Get total count for pagination
     let totalCount = data?.length || 0;
     if (!skipCount) {
@@ -84,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: enrichedData || [],
       pagination: {
         page,
         limit,
