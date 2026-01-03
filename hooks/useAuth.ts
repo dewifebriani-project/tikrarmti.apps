@@ -31,19 +31,23 @@ export function useAuth() {
 
   // Listen to auth state changes for UI updates only
   useEffect(() => {
+    let isRedirecting = false
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log('Auth state changed:', event, 'Session exists:', !!session)
 
-      // On sign out, redirect to login
-      if (event === 'SIGNED_OUT') {
+      // On sign out, redirect to login (with guard against multiple redirects)
+      // This handles cases where session is invalidated server-side
+      if (event === 'SIGNED_OUT' && !isRedirecting) {
+        isRedirecting = true
         console.log('User signed out, redirecting to login')
         if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+          // Use replace to avoid adding to history stack
+          window.location.replace('/login')
         }
       }
 
-      // On token refresh or sign in, we could trigger a page refresh
-      // but for now, server data is sufficient
+      // On token refresh or sign in, server will handle on next navigation
       if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
         console.log('Auth event:', event, '- server will handle on next navigation')
       }
