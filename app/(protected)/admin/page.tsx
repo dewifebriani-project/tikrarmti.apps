@@ -5036,31 +5036,39 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   const formatSchedule = (scheduleStr: string) => {
     if (!scheduleStr) return '-';
 
-    // Map day names to Indonesian (support both English and Indonesian input)
-    const dayTranslation: Record<string, string> = {
-      'monday': 'Senin',
-      'tuesday': 'Selasa',
-      'wednesday': 'Rabu',
-      'thursday': 'Kamis',
-      'friday': 'Jumat',
-      'saturday': 'Sabtu',
-      'sunday': 'Minggu',
-      'senin': 'Senin',
-      'selasa': 'Selasa',
-      'rabu': 'Rabu',
-      'kamis': 'Kamis',
-      'jumat': 'Jumat',
-      'sabtu': 'Sabtu',
-      'minggu': 'Minggu'
+    // Map day names to Indonesian with colors
+    const dayConfig: Record<string, { name: string; color: string }> = {
+      'senin': { name: 'Senin', color: '#EF4444' },    // Red
+      'selasa': { name: 'Selasa', color: '#F97316' },  // Orange
+      'rabu': { name: 'Rabu', color: '#FBBF24' },      // Yellow
+      'kamis': { name: 'Kamis', color: '#10B981' },    // Green
+      'jumat': { name: 'Jumat', color: '#3B82F6' },    // Blue
+      'sabtu': { name: 'Sabtu', color: '#6366F1' },    // Indigo
+      'minggu': { name: 'Minggu', color: '#8B5CF6' },  // Purple
+      'monday': { name: 'Senin', color: '#EF4444' },
+      'tuesday': { name: 'Selasa', color: '#F97316' },
+      'wednesday': { name: 'Rabu', color: '#FBBF24' },
+      'thursday': { name: 'Kamis', color: '#10B981' },
+      'friday': { name: 'Jumat', color: '#3B82F6' },
+      'saturday': { name: 'Sabtu', color: '#6366F1' },
+      'sunday': { name: 'Minggu', color: '#8B5CF6' }
     };
 
-    // If already in readable format (not JSON), translate day name
+    const getColoredDay = (dayStr: string) => {
+      const dayLower = dayStr.toLowerCase();
+      const config = dayConfig[dayLower];
+      if (config) {
+        return `<span style="color: ${config.color}; font-weight: 600;">${config.name}</span>`;
+      }
+      return dayStr;
+    };
+
+    // If already in readable format (not JSON), translate and color day name
     if (!scheduleStr.startsWith('[') && !scheduleStr.startsWith('{')) {
-      // Try to translate day name in plain text: "monday 10.30-11.30" -> "Senin 10.30-11.30"
       let result = scheduleStr;
-      for (const [eng, ind] of Object.entries(dayTranslation)) {
-        const regex = new RegExp(`\\b${eng}\\b`, 'gi');
-        result = result.replace(regex, ind);
+      for (const [key, config] of Object.entries(dayConfig)) {
+        const regex = new RegExp(`\\b${key}\\b`, 'gi');
+        result = result.replace(regex, `<span style="color: ${config.color}; font-weight: 600;">${config.name}</span>`);
       }
       return result;
     }
@@ -5071,22 +5079,20 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
       // Handle single object: {"day":"Sabtu","time_start":"09:30","time_end":"11:00"}
       if (schedule && typeof schedule === 'object' && !Array.isArray(schedule)) {
         const dayRaw = schedule.day || '';
-        const dayLower = dayRaw.toLowerCase();
-        const dayInd = dayTranslation[dayLower] || dayRaw;
+        const dayHtml = getColoredDay(dayRaw);
         const timeStart = schedule.time_start || '';
         const timeEnd = schedule.time_end || '';
-        return `${dayInd} ${timeStart}-${timeEnd}`;
+        return `${dayHtml} ${timeStart}-${timeEnd}`;
       }
 
       // Handle array: [{...}, {...}]
       if (Array.isArray(schedule) && schedule.length > 0) {
         const formatted = schedule.map((s: any) => {
           const dayRaw = s.day || '';
-          const dayLower = dayRaw.toLowerCase();
-          const dayInd = dayTranslation[dayLower] || dayRaw;
+          const dayHtml = getColoredDay(dayRaw);
           const timeStart = s.time_start || '';
           const timeEnd = s.time_end || '';
-          return `${dayInd} ${timeStart}-${timeEnd}`;
+          return `${dayHtml} ${timeStart}-${timeEnd}`;
         });
         // Join with line breaks for multiple schedules
         return formatted.join('\n');
@@ -5457,6 +5463,8 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                     )}
                   </div>
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Thalibah</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -5555,10 +5563,14 @@ Tim Markaz Tikrar Indonesia`;
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{m.preferred_juz || '-'}</div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{m.class_type || '-'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{m.preferred_max_thalibah || '-'}</div>
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs whitespace-pre-line" title={formatSchedule(m.preferred_schedule)}>
-                        {formatSchedule(m.preferred_schedule)}
-                      </div>
+                      <div className="text-sm max-w-xs whitespace-pre-line" dangerouslySetInnerHTML={{ __html: formatSchedule(m.preferred_schedule) }} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(m.status)}`}>
