@@ -5041,7 +5041,7 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
       return scheduleStr;
     }
 
-    // Map English day names to Indonesian
+    // Map day names to Indonesian (support both English and Indonesian input)
     const dayTranslation: Record<string, string> = {
       'monday': 'Senin',
       'tuesday': 'Selasa',
@@ -5049,15 +5049,35 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
       'thursday': 'Kamis',
       'friday': 'Jumat',
       'saturday': 'Sabtu',
-      'sunday': 'Minggu'
+      'sunday': 'Minggu',
+      'senin': 'Senin',
+      'selasa': 'Selasa',
+      'rabu': 'Rabu',
+      'kamis': 'Kamis',
+      'jumat': 'Jumat',
+      'sabtu': 'Sabtu',
+      'minggu': 'Minggu'
     };
 
     try {
       const schedule = JSON.parse(scheduleStr);
+
+      // Handle single object: {"day":"Sabtu","time_start":"09:30","time_end":"11:00"}
+      if (schedule && typeof schedule === 'object' && !Array.isArray(schedule)) {
+        const dayRaw = schedule.day || '';
+        const dayLower = dayRaw.toLowerCase();
+        const dayInd = dayTranslation[dayLower] || dayRaw;
+        const timeStart = schedule.time_start || '';
+        const timeEnd = schedule.time_end || '';
+        return `${dayInd} ${timeStart}-${timeEnd}`;
+      }
+
+      // Handle array: [{...}, {...}]
       if (Array.isArray(schedule) && schedule.length > 0) {
         const formatted = schedule.map((s: any) => {
-          const dayEng = s.day?.toLowerCase() || '';
-          const dayInd = dayTranslation[dayEng] || dayEng;
+          const dayRaw = s.day || '';
+          const dayLower = dayRaw.toLowerCase();
+          const dayInd = dayTranslation[dayLower] || dayRaw;
           const timeStart = s.time_start || '';
           const timeEnd = s.time_end || '';
           return `${dayInd} ${timeStart}-${timeEnd}`;
@@ -5065,6 +5085,7 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
         // Join with line breaks for multiple schedules
         return formatted.join('\n');
       }
+
       return scheduleStr;
     } catch {
       // If parse fails, return original string
