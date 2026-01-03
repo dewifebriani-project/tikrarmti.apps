@@ -5175,12 +5175,27 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     setSelectedUserId(userId);
     const user = users.find(u => u.id === userId);
     if (user) {
+      // Format phone number to ensure it starts with 62
+      let formattedPhone = user.whatsapp || user.phone || '';
+      if (formattedPhone) {
+        // Remove non-numeric characters
+        formattedPhone = formattedPhone.replace(/\D/g, '');
+        // If starts with 0, replace with 62
+        if (formattedPhone.startsWith('0')) {
+          formattedPhone = '62' + formattedPhone.substring(1);
+        }
+        // If doesn't start with 62, prepend it
+        else if (!formattedPhone.startsWith('62')) {
+          formattedPhone = '62' + formattedPhone;
+        }
+      }
+
       setAddUserForm(prev => ({
         ...prev,
         user_id: userId,
         full_name: user.full_name || '',
         email: user.email || '',
-        whatsapp: user.whatsapp || '',
+        whatsapp: formattedPhone,
         address: user.alamat || '',
         birth_date: user.tanggal_lahir || '',
         birth_place: user.tempat_lahir || '',
@@ -6132,7 +6147,16 @@ Tim Markaz Tikrar Indonesia`;
                           type="text"
                           id="whatsapp"
                           value={addUserForm.whatsapp}
-                          onChange={(e) => setAddUserForm(prev => ({ ...prev, whatsapp: e.target.value }))}
+                          onChange={(e) => {
+                            // Auto-format phone number to start with 62
+                            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                            if (value.startsWith('0')) {
+                              value = '62' + value.substring(1);
+                            } else if (!value.startsWith('62') && value.length > 0) {
+                              value = '62' + value;
+                            }
+                            setAddUserForm(prev => ({ ...prev, whatsapp: value }));
+                          }}
                           required
                           pattern="^62\d{8,14}$"
                           placeholder="628123456789"
