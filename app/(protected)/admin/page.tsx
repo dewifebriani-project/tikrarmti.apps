@@ -5036,11 +5036,6 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   const formatSchedule = (scheduleStr: string) => {
     if (!scheduleStr) return '-';
 
-    // If already in readable format (not JSON), return as is
-    if (!scheduleStr.startsWith('[') && !scheduleStr.startsWith('{')) {
-      return scheduleStr;
-    }
-
     // Map day names to Indonesian (support both English and Indonesian input)
     const dayTranslation: Record<string, string> = {
       'monday': 'Senin',
@@ -5058,6 +5053,17 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
       'sabtu': 'Sabtu',
       'minggu': 'Minggu'
     };
+
+    // If already in readable format (not JSON), translate day name
+    if (!scheduleStr.startsWith('[') && !scheduleStr.startsWith('{')) {
+      // Try to translate day name in plain text: "monday 10.30-11.30" -> "Senin 10.30-11.30"
+      let result = scheduleStr;
+      for (const [eng, ind] of Object.entries(dayTranslation)) {
+        const regex = new RegExp(`\\b${eng}\\b`, 'gi');
+        result = result.replace(regex, ind);
+      }
+      return result;
+    }
 
     try {
       const schedule = JSON.parse(scheduleStr);
