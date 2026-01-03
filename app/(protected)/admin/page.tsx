@@ -3725,9 +3725,12 @@ Tim Markaz Tikrar Indonesia`;
       sortable: true,
       filterable: true,
       render: (t) => {
-        // Check if Juz 30 - no written quiz required
-        const isJuz30 = t.chosen_juz?.toLowerCase().includes('30b') ||
+        // Check if Juz 30A or 30B - no written quiz required
+        const isJuz30 = t.chosen_juz?.toLowerCase().includes('30a') ||
+                       t.chosen_juz?.toLowerCase().includes('30 a') ||
+                       t.chosen_juz?.toLowerCase().includes('30b') ||
                        t.chosen_juz?.toLowerCase().includes('30 b') ||
+                       t.chosen_juz?.toLowerCase() === '30a' ||
                        t.chosen_juz?.toLowerCase() === '30b' ||
                        t.chosen_juz?.toLowerCase() === '30';
 
@@ -3757,47 +3760,6 @@ Tim Markaz Tikrar Indonesia`;
               {percentage}%
             </span>
             <span className="text-xs text-gray-500">({t.written_quiz_score}/{totalQuestions})</span>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'exam_score',
-      label: 'Exam Score',
-      sortable: true,
-      filterable: true,
-      render: (t) => {
-        // Check if Juz 30 - no exam required
-        const isJuz30 = t.chosen_juz?.toLowerCase().includes('30b') ||
-                       t.chosen_juz?.toLowerCase().includes('30 b') ||
-                       t.chosen_juz?.toLowerCase() === '30b' ||
-                       t.chosen_juz?.toLowerCase() === '30';
-
-        if (isJuz30) {
-          return (
-            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full font-medium">
-              Juz 30 (N/A)
-            </span>
-          );
-        }
-
-        if (!t.exam_submitted_at) {
-          return <span className="text-xs text-gray-400">Not submitted</span>;
-        }
-
-        if (t.exam_score === null || t.exam_score === undefined) {
-          return <span className="text-xs text-yellow-600 font-medium">In Progress</span>;
-        }
-
-        const isPassing = t.exam_score >= 70;
-        return (
-          <div className="flex items-center gap-1">
-            <span className={`text-sm font-bold ${isPassing ? 'text-green-600' : 'text-red-600'}`}>
-              {t.exam_score}
-            </span>
-            <span className={`px-1.5 py-0.5 text-xs font-semibold rounded ${isPassing ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {isPassing ? 'PASS' : 'FAIL'}
-            </span>
           </div>
         );
       },
@@ -3855,7 +3817,6 @@ Tim Markaz Tikrar Indonesia`;
     { name: 'oral_total_score', label: 'Oral Total Score', type: 'number', required: false },
     { name: 'oral_assessment_notes', label: 'Oral Assessment Notes', type: 'textarea', required: false },
     { name: 'written_quiz_score', label: 'Written Quiz Score', type: 'number', required: false },
-    { name: 'exam_score', label: 'Exam Score', type: 'number', required: false },
     { name: 'wa_phone', label: 'WhatsApp Phone', type: 'tel', required: false },
     { name: 'domicile', label: 'Domicile', type: 'text', required: false },
     {
@@ -4343,9 +4304,6 @@ Tim Markaz Tikrar Indonesia`;
               }
               if (formData.written_quiz_score !== undefined && formData.written_quiz_score !== '') {
                 updateData.written_quiz_score = Number(formData.written_quiz_score);
-              }
-              if (formData.exam_score !== undefined && formData.exam_score !== '') {
-                updateData.exam_score = Number(formData.exam_score);
               }
               if (formData.wa_phone !== undefined && formData.wa_phone !== '') {
                 updateData.wa_phone = formData.wa_phone;
