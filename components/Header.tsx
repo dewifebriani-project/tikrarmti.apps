@@ -32,9 +32,6 @@ export default function Header() {
           <Link href="/#testimoni" className="text-black hover:text-green-900 transition-colors font-medium text-sm xl:text-base">
             Testimoni
           </Link>
-          <Link href="/donasi" className="text-black hover:text-green-900 transition-colors font-medium text-sm xl:text-base">
-            Donasi
-          </Link>
         </nav>
 
         <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4">
