@@ -53,21 +53,26 @@ export function useAuth() {
     try {
       console.log('Starting logout process...')
 
-      // Call Supabase signOut directly to clear cookies
-      const supabase = createClient()
-      const { error } = await supabase.auth.signOut()
+      // Call server API to properly clear cookies
+      // Server-side signOut is required to clear HttpOnly cookies
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (error) {
-        console.error('Supabase signOut error:', error)
+      if (!response.ok) {
+        console.error('Logout API failed:', response.status)
       }
 
-      console.log('Logout: User signed out successfully')
+      const result = await response.json()
+      console.log('Logout API response:', result)
 
-      // Use router.push for client-side navigation (better UX)
-      // Middleware will handle redirect if session is properly cleared
+      // Redirect to login after server has cleared cookies
       if (typeof window !== 'undefined') {
-        // Force hard redirect to ensure cookies are cleared
-        window.location.href = '/login'
+        window.location.href = result.redirect || '/login'
       }
     } catch (error) {
       console.error('Logout failed:', error)
