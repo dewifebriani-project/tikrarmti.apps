@@ -3812,7 +3812,7 @@ Tim Markaz Tikrar Indonesia`;
         }
 
         // Check submission status from both old and new fields
-        const hasSubmitted = t.written_exam_submitted_at || t.written_submitted_at;
+        const hasSubmitted = t.written_exam_submitted_at || t.written_quiz_submitted_at;
 
         if (!hasSubmitted) {
           return <span className="text-xs text-gray-400">Not submitted</span>;
