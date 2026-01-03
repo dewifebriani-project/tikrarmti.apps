@@ -5,6 +5,7 @@ import {
   Users,
   Calendar,
   Clock,
+  Plus,
   RefreshCw,
   Filter,
   CheckCircle2,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
+import { AddHalaqahModal } from '@/components/AddHalaqahModal';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 
 interface Halaqah {
@@ -79,6 +81,7 @@ export function HalaqahManagementTab() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
   // Modals
+  const [showAddHalaqahModal, setShowAddHalaqahModal] = useState(false);
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -317,6 +320,13 @@ export function HalaqahManagementTab() {
             Manage halaqah (study groups) for muallimah and thalibah
           </p>
         </div>
+        <button
+          onClick={() => setShowAddHalaqahModal(true)}
+          className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Halaqah
+        </button>
       </div>
 
       {/* Filters */}
@@ -557,6 +567,17 @@ export function HalaqahManagementTab() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Add Halaqah Modal */}
+      {showAddHalaqahModal && (
+        <AddHalaqahModal
+          onClose={() => setShowAddHalaqahModal(false)}
+          onSuccess={() => {
+            setShowAddHalaqahModal(false);
+            setRefreshTrigger(prev => prev + 1);
+          }}
+        />
       )}
     </div>
   );
