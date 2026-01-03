@@ -3729,10 +3729,27 @@ Tim Markaz Tikrar Indonesia`;
       required: true,
       options: [
         { value: 'pending', label: 'Pending' },
-        { value: 'approved', label: 'Approved' },
-        { value: 'rejected', label: 'Rejected' },
+        { value: 'selected', label: 'Selected' },
+        { value: 'not_selected', label: 'Not Selected' },
+        { value: 'waitlist', label: 'Waitlist' },
       ]
     },
+    {
+      name: 'oral_assessment_status',
+      label: 'Oral Assessment Status',
+      type: 'select',
+      required: false,
+      options: [
+        { value: 'pending', label: 'Pending' },
+        { value: 'pass', label: 'Pass' },
+        { value: 'fail', label: 'Fail' },
+        { value: 'not_submitted', label: 'Not Submitted' },
+      ]
+    },
+    { name: 'oral_total_score', label: 'Oral Total Score', type: 'number', required: false },
+    { name: 'oral_assessment_notes', label: 'Oral Assessment Notes', type: 'textarea', required: false },
+    { name: 'wa_phone', label: 'WhatsApp Phone', type: 'tel', required: false },
+    { name: 'domicile', label: 'Domicile', type: 'text', required: false },
     {
       name: 'alasan_mengundurkan_diri',
       label: 'Alasan Mengundurkan Diri',
