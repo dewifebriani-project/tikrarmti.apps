@@ -33,34 +33,43 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   }, []);
 
   const loadBatches = async () => {
+    console.log('[AutoCreateHalaqahModal] Loading batches...');
     setLoading(true);
     try {
       // Try API endpoint first (for admins)
       const response = await fetch('/api/admin/batches');
       const apiResult = await response.json();
 
+      console.log('[AutoCreateHalaqahModal] API response:', { ok: response.ok, data: apiResult.data?.length });
+
       if (response.ok && apiResult.data) {
         // Filter only open batches
         const openBatches = apiResult.data.filter((b: Batch) => b.status === 'open');
+        console.log('[AutoCreateHalaqahModal] Open batches:', openBatches.length);
         setBatches(openBatches);
         if (openBatches.length > 0) {
           setSelectedBatch(openBatches[0].id);
+          console.log('[AutoCreateHalaqahModal] Selected batch:', openBatches[0].id, openBatches[0].name);
         }
         return;
       }
 
       // Fallback to direct query
+      console.log('[AutoCreateHalaqahModal] Using fallback direct query');
       const { data, error } = await supabase
         .from('batches')
         .select('*')
         .eq('status', 'open')
         .order('created_at', { ascending: false });
 
+      console.log('[AutoCreateHalaqahModal] Direct query result:', { count: data?.length, error });
+
       if (error) throw error;
 
       setBatches(data || []);
       if (data && data.length > 0) {
         setSelectedBatch(data[0].id);
+        console.log('[AutoCreateHalaqahModal] Selected batch from fallback:', data[0].id, data[0].name);
       }
     } catch (error: any) {
       console.error('Error loading batches:', error);
@@ -71,11 +80,16 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   };
 
   const handleAutoCreate = async () => {
+    console.log('[AutoCreateHalaqahModal] handleAutoCreate called');
+    console.log('[AutoCreateHalaqahModal] selectedBatch:', selectedBatch);
+
     if (!selectedBatch) {
+      console.log('[AutoCreateHalaqahModal] No batch selected');
       toast.error('Please select batch');
       return;
     }
 
+    console.log('[AutoCreateHalaqahModal] Starting creation process...');
     setCreating(true);
     const details: string[] = [];
     let successCount = 0;
@@ -288,7 +302,10 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
                   Cancel
                 </button>
                 <button
-                  onClick={handleAutoCreate}
+                  onClick={() => {
+                    console.log('[AutoCreateHalaqahModal] Button clicked');
+                    handleAutoCreate();
+                  }}
                   disabled={creating || !selectedBatch}
                   className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
