@@ -34,6 +34,12 @@ export function createClient() {
         detectSessionInUrl: true,
         flowType: 'pkce', // Use PKCE flow for better security
         // No custom storage needed - createBrowserClient handles this internally
+      },
+      global: {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        }
       }
     }
   )
