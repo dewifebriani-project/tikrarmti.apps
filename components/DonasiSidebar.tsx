@@ -8,10 +8,10 @@ export default function DonasiSidebar() {
 
   const donasiMenuItems = [
     {
-      href: '/donasi',
+      href: '/donasi-dashboard',
       label: 'Dashboard Donasi',
       icon: Heart,
-      isActive: pathname === '/donasi'
+      isActive: pathname === '/donasi-dashboard'
     },
     {
       href: '/donasi-dashboard/form',
