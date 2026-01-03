@@ -3724,6 +3724,67 @@ Tim Markaz Tikrar Indonesia`;
       label: 'Written Score',
       sortable: true,
       filterable: true,
+      // Custom sort function for proper ordering: Juz 30/N/A -> Not submitted -> Pending -> Scores (low to high)
+      sortFn: (a, b, direction) => {
+        // Helper to get sort value: -1 = Juz 30/N/A, 0 = Not submitted, 1 = Pending, 2+ = Score value + 2
+        const getSortValue = (t: TikrarTahfidz) => {
+          // Check if Juz 30A or 30B - no written quiz required
+          const isJuz30 = t.chosen_juz?.toLowerCase().includes('30a') ||
+                         t.chosen_juz?.toLowerCase().includes('30 a') ||
+                         t.chosen_juz?.toLowerCase().includes('30b') ||
+                         t.chosen_juz?.toLowerCase().includes('30 b') ||
+                         t.chosen_juz?.toLowerCase() === '30a' ||
+                         t.chosen_juz?.toLowerCase() === '30b' ||
+                         t.chosen_juz?.toLowerCase() === '30';
+
+          if (isJuz30) return -1; // Juz 30 - first
+          if (!t.written_submitted_at) return 0; // Not submitted
+          if (t.written_quiz_score === null || t.written_quiz_score === undefined) return 1; // Pending
+          return t.written_quiz_score + 2; // Score (add 2 to put after pending)
+        };
+
+        const aVal = getSortValue(a);
+        const bVal = getSortValue(b);
+
+        return direction === 'asc' ? aVal - bVal : bVal - aVal;
+      },
+      // Custom filter to match status
+      filterFn: (row, filterValue) => {
+        const value = filterValue.toLowerCase();
+
+        // Check if Juz 30
+        const isJuz30 = row.chosen_juz?.toLowerCase().includes('30a') ||
+                       row.chosen_juz?.toLowerCase().includes('30 a') ||
+                       row.chosen_juz?.toLowerCase().includes('30b') ||
+                       row.chosen_juz?.toLowerCase().includes('30 b') ||
+                       row.chosen_juz?.toLowerCase() === '30a' ||
+                       row.chosen_juz?.toLowerCase() === '30b' ||
+                       row.chosen_juz?.toLowerCase() === '30';
+
+        if (isJuz30) {
+          return value.includes('n/a') || value.includes('30') || value.includes('juz');
+        }
+
+        // Not submitted
+        if (!row.written_submitted_at) {
+          return value.includes('not') || value.includes('submit');
+        }
+
+        // Pending
+        if (row.written_quiz_score === null || row.written_quiz_score === undefined) {
+          return value.includes('pend');
+        }
+
+        // Score exists - check percentage
+        const totalQuestions = row.written_quiz_total_questions || 100;
+        const percentage = Math.round((row.written_quiz_score / totalQuestions) * 100);
+
+        if (value.includes('pass')) return percentage >= 70;
+        if (value.includes('fail')) return percentage < 70;
+
+        // Match percentage number
+        return String(percentage).includes(value);
+      },
       render: (t) => {
         // Check if Juz 30A or 30B - no written quiz required
         const isJuz30 = t.chosen_juz?.toLowerCase().includes('30a') ||
