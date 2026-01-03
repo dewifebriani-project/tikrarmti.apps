@@ -53,33 +53,30 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   }, [selectedBatch]);
 
   const loadBatches = async () => {
-    // First, try to get all batches without status filter to debug
-    const { data: allBatches, error: allError } = await supabase
-      .from('batches')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log('[AutoCreateHalaqahModal] Loading batches...');
+    try {
+      const { data, error } = await supabase
+        .from('batches')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    console.log('All batches:', allBatches);
-    console.log('All batches error:', allError);
+      console.log('[AutoCreateHalaqahModal] Batches data:', data);
+      console.log('[AutoCreateHalaqahModal] Batches error:', error);
 
-    // Then try with status filter
-    const { data, error } = await supabase
-      .from('batches')
-      .select('*')
-      .eq('status', 'open')
-      .order('created_at', { ascending: false });
+      if (error) {
+        console.error('[AutoCreateHalaqahModal] Error loading batches:', error);
+        toast.error('Failed to load batches: ' + error.message);
+        return;
+      }
 
-    console.log('Open batches:', data);
-    console.log('Open batches error:', error);
-
-    if (error) {
-      console.error('Error loading batches:', error);
-      toast.error(`Failed to load batches: ${error.message}`);
-    } else {
+      console.log('[AutoCreateHalaqahModal] Loaded batches:', data?.length || 0);
       setBatches(data || []);
       if (data && data.length > 0) {
         setSelectedBatch(data[0].id);
       }
+    } catch (error: any) {
+      console.error('[AutoCreateHalaqahModal] Exception loading batches:', error);
+      toast.error('Failed to load batches: ' + error.message);
     }
   };
 
