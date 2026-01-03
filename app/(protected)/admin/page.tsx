@@ -243,7 +243,6 @@ interface TikrarTahfidz {
   approved_by?: string;
   approved_at?: string;
   oral_submitted_at?: string;
-  written_submitted_at?: string;
   oral_submission_url?: string | null;
   oral_submission_file_name?: string | null;
   oral_makhraj_errors?: number;
