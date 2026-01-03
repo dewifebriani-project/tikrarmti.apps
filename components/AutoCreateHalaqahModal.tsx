@@ -11,21 +11,6 @@ interface Batch {
   status: string;
 }
 
-interface Program {
-  id: string;
-  name: string;
-  class_type: string;
-}
-
-interface MuallimaRegistration {
-  id: string;
-  user_id: string;
-  full_name: string;
-  preferred_juz: string;
-  preferred_max_thalibah: number;
-  status: string;
-}
-
 interface AutoCreateHalaqahModalProps {
   onClose: () => void;
   onSuccess: () => void;
@@ -35,9 +20,7 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [programs, setPrograms] = useState<Program[]>([]);
   const [selectedBatch, setSelectedBatch] = useState('');
-  const [selectedProgram, setSelectedProgram] = useState('');
   const [creating, setCreating] = useState(false);
   const [result, setResult] = useState<{
     success: number;
@@ -48,12 +31,6 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   useEffect(() => {
     loadBatches();
   }, []);
-
-  useEffect(() => {
-    if (selectedBatch) {
-      loadPrograms();
-    }
-  }, [selectedBatch]);
 
   const loadBatches = async () => {
     setLoading(true);
@@ -93,32 +70,9 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
     }
   };
 
-  const loadPrograms = async () => {
-    if (!selectedBatch) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('programs')
-        .select('*')
-        .eq('batch_id', selectedBatch)
-        .in('status', ['open', 'ongoing'])
-        .order('name');
-
-      if (error) throw error;
-
-      setPrograms(data || []);
-      if (data && data.length > 0) {
-        setSelectedProgram(data[0].id);
-      }
-    } catch (error: any) {
-      console.error('Error loading programs:', error);
-      toast.error('Failed to load programs: ' + error.message);
-    }
-  };
-
   const handleAutoCreate = async () => {
-    if (!selectedBatch || !selectedProgram) {
-      toast.error('Please select batch and program');
+    if (!selectedBatch) {
+      toast.error('Please select batch');
       return;
     }
 
@@ -145,25 +99,24 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
 
       details.push(`Found ${muallimahs.length} approved muallimah`);
 
-      // 2. Create halaqah for each muallimah
+      // 2. Create halaqah for each muallimah (without program assignment)
       for (const muallimah of muallimahs) {
         try {
-          // Check if halaqah already exists for this muallimah in this program
-          const { data: existingHalaqah, error: checkError } = await supabase
+          // Check if halaqah already exists for this muallimah (without program)
+          const { data: existingHalaqahs } = await supabase
             .from('halaqah')
-            .select('id')
-            .eq('program_id', selectedProgram)
+            .select('id, name')
             .eq('muallimah_id', muallimah.user_id)
-            .single();
+            .is('program_id', null);
 
-          if (existingHalaqah) {
+          if (existingHalaqahs && existingHalaqahs.length > 0) {
             details.push(`⚠️ Halaqah already exists for ${muallimah.full_name}`);
             failedCount++;
             continue;
           }
 
           // Get muallimah schedule from muallimah_schedules table
-          const { data: schedules, error: schedError } = await supabase
+          const { data: schedules } = await supabase
             .from('muallimah_schedules')
             .select('*')
             .eq('muallimah_registration_id', muallimah.id)
@@ -171,11 +124,11 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
             .limit(1)
             .single();
 
-          // Create halaqah
+          // Create halaqah (without program assignment - will be added manually later)
           const { data: newHalaqah, error: createError } = await supabase
             .from('halaqah')
             .insert({
-              program_id: selectedProgram,
+              program_id: null, // Program will be assigned manually later
               muallimah_id: muallimah.user_id,
               name: `Halaqah ${muallimah.full_name}`,
               description: `Halaqah diampu oleh ${muallimah.full_name}`,
@@ -277,6 +230,7 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
                         <li>Setiap halaqah akan menggunakan jadwal preferred muallimah</li>
                         <li>Kuota maksimal thalibah diambil dari data muallimah</li>
                         <li>Halaqah yang sudah ada tidak akan dibuat ulang</li>
+                        <li>Program akan ditambahkan secara manual setelah halaqah dibuat</li>
                       </ul>
                     </div>
                   </div>
@@ -303,26 +257,6 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
                     ))}
                   </select>
                 </div>
-
-                {/* Program Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Program <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedProgram}
-                    onChange={(e) => setSelectedProgram(e.target.value)}
-                    disabled={loading || creating || !selectedBatch}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
-                  >
-                    <option value="">Select Program</option>
-                    {programs.map((program) => (
-                      <option key={program.id} value={program.id}>
-                        {program.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               {/* Actions */}
@@ -336,7 +270,7 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
                 </button>
                 <button
                   onClick={handleAutoCreate}
-                  disabled={creating || !selectedBatch || !selectedProgram}
+                  disabled={creating || !selectedBatch}
                   className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   {creating && <Loader2 className="w-4 h-4 animate-spin" />}
