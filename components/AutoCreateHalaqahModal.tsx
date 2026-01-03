@@ -99,6 +99,28 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
     let failedCount = 0;
 
     try {
+      // Check current user session
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log('[AutoCreateHalaqahModal] Current user:', {
+        id: user?.id,
+        email: user?.email,
+        error: userError
+      });
+
+      // Check user roles
+      if (user) {
+        const { data: userData, error: roleError } = await supabase
+          .from('users')
+          .select('id, email, roles')
+          .eq('id', user.id)
+          .single();
+
+        console.log('[AutoCreateHalaqahModal] User roles:', {
+          userData,
+          roleError
+        });
+      }
+
       // 1. Get all approved muallimah for this batch
       console.log('[AutoCreateHalaqahModal] Querying muallimah for batch:', selectedBatch);
 
@@ -111,7 +133,13 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
       console.log('[AutoCreateHalaqahModal] Muallimah query result:', {
         count: muallimahs?.length || 0,
         data: muallimahs,
-        error: muallimaError
+        error: muallimaError,
+        errorDetails: muallimaError ? {
+          message: muallimaError.message,
+          code: muallimaError.code,
+          hint: muallimaError.hint,
+          details: muallimaError.details
+        } : null
       });
 
       if (muallimaError) {
