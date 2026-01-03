@@ -5,7 +5,6 @@ import {
   Users,
   Calendar,
   Clock,
-  Plus,
   RefreshCw,
   Filter,
   CheckCircle2,
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
-import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 
 interface Halaqah {
@@ -81,7 +79,6 @@ export function HalaqahManagementTab() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
   // Modals
-  const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -320,13 +317,6 @@ export function HalaqahManagementTab() {
             Manage halaqah (study groups) for muallimah and thalibah
           </p>
         </div>
-        <button
-          onClick={() => setShowAutoCreateModal(true)}
-          className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Auto-Create Halaqah
-        </button>
       </div>
 
       {/* Filters */}
@@ -567,17 +557,6 @@ export function HalaqahManagementTab() {
             </div>
           )}
         </div>
-      )}
-
-      {/* Auto-Create Modal */}
-      {showAutoCreateModal && (
-        <AutoCreateHalaqahModal
-          onClose={() => setShowAutoCreateModal(false)}
-          onSuccess={() => {
-            setShowAutoCreateModal(false);
-            setRefreshTrigger(prev => prev + 1);
-          }}
-        />
       )}
     </div>
   );
