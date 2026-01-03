@@ -21,8 +21,8 @@ export default function DashboardContent() {
   const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
 
-  // Combined loading state
-  const isPageLoading = isLoading || batchLoading || statsLoading || registrationsLoading
+  // Combined loading state - also consider if user data is not yet available
+  const isPageLoading = isLoading || !user || batchLoading || statsLoading || registrationsLoading
 
   // Calculate registration status from SWR data
   const hasRegistered = registrations.length > 0

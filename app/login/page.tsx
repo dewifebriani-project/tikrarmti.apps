@@ -175,6 +175,7 @@ function LoginPageContent() {
 
         // CRITICAL: Use server action to set session cookies properly on server
         // This ensures cookies are set correctly for SSR middleware
+        let serverSyncSuccess = false;
         try {
           const response = await fetch('/api/auth/login', {
             method: 'POST',
@@ -188,17 +189,20 @@ function LoginPageContent() {
             credentials: 'include',
           });
 
-          if (!response.ok) {
-            console.warn('Server session sync failed, but continuing anyway');
+          if (response.ok) {
+            const result = await response.json();
+            serverSyncSuccess = result.success;
+            console.log('Server session synced successfully:', result);
           } else {
-            console.log('Server session synced successfully');
+            console.warn('Server session sync failed, but continuing anyway');
           }
         } catch (err) {
           console.warn('Server session sync error, but continuing:', err);
         }
 
-        // Wait for server to process
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for server to process and cookies to be set
+        // Increase delay to ensure cookies are properly set before redirect
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
         // Check if there's a redirect URL from middleware
         const redirectUrl = searchParams.get('redirect');
