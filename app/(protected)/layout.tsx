@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import ProtectedClientLayout from './ProtectedClientLayout'
 import { validateEnv } from '@/lib/env'
 
@@ -18,8 +19,7 @@ validateEnv()
  * Session validation happens here, NOT in middleware.
  * Authorization happens via RLS policies, NOT client-side checks.
  *
- * IMPORTANT: Redirect is handled by middleware, not here.
- * If user reaches here without auth, middleware should have redirected them.
+ * IMPORTANT: This is the AUTH GUARD - redirects to login if no valid session
  */
 export default async function ProtectedLayout({
   children,
@@ -41,15 +41,16 @@ export default async function ProtectedLayout({
     }
   )
 
-  // Get user session - server-side validation
+  // Get user session - server-side validation (AUTH GUARD)
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser()
 
-  // If no user, return null - middleware should have redirected
-  // This is a fallback to prevent errors
-  if (!user) {
-    return null
+  // AUTH GUARD: Redirect to login if no valid session
+  // This is the PRIMARY auth check following arsitektur.md
+  if (!user || error) {
+    redirect('/login')
   }
 
   // Fetch user data from database (RLS filtered)
@@ -58,6 +59,11 @@ export default async function ProtectedLayout({
     .select('*')
     .eq('id', user.id)
     .single()
+
+  // Redirect to login if user not found in database
+  if (!userData) {
+    redirect('/login')
+  }
 
   // Pass user data to client components via props
   return (
