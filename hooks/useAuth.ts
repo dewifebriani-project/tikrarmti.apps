@@ -31,21 +31,11 @@ export function useAuth() {
 
   // Listen to auth state changes for UI updates only
   useEffect(() => {
-    let isRedirecting = false
-
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
       console.log('Auth state changed:', event, 'Session exists:', !!session)
 
-      // On sign out, redirect to login (with guard against multiple redirects)
-      // This handles cases where session is invalidated server-side
-      if (event === 'SIGNED_OUT' && !isRedirecting) {
-        isRedirecting = true
-        console.log('User signed out, redirecting to login')
-        if (typeof window !== 'undefined') {
-          // Use replace to avoid adding to history stack
-          window.location.replace('/login')
-        }
-      }
+      // No redirect handling here - logout() function handles redirect
+      // This listener is only for logging/debugging purposes
 
       // On token refresh or sign in, server will handle on next navigation
       if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
@@ -63,18 +53,20 @@ export function useAuth() {
     try {
       console.log('Starting logout process...')
 
-      // Call logout API to properly clear session
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include', // Include cookies
-      })
+      // Call Supabase signOut directly to clear cookies
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
 
-      const result = await response.json()
-      console.log('Logout API response:', result)
+      if (error) {
+        console.error('Supabase signOut error:', error)
+      }
 
-      // Regardless of API result, redirect to login
-      // Using window.location.href for hard redirect to clear any client state
+      console.log('Logout: User signed out successfully')
+
+      // Use router.push for client-side navigation (better UX)
+      // Middleware will handle redirect if session is properly cleared
       if (typeof window !== 'undefined') {
+        // Force hard redirect to ensure cookies are cleared
         window.location.href = '/login'
       }
     } catch (error) {
