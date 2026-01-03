@@ -65,15 +65,25 @@ export async function middleware(request: NextRequest) {
   // Supabase SSR uses cookies like: sb-<project-ref>-auth-token
   // We check for any cookie starting with 'sb-' that contains 'auth'
   const cookies = request.cookies.getAll()
-  const hasSessionCookie = cookies.some(cookie =>
+  const authCookies = cookies.filter(cookie =>
     cookie.name.startsWith('sb-') && cookie.name.includes('auth')
   )
+  const hasSessionCookie = authCookies.length > 0
+
+  // Debug logging
+  console.log('[Middleware]', {
+    pathname,
+    hasSessionCookie,
+    authCookieNames: authCookies.map(c => c.name),
+    cookieCount: cookies.length
+  })
 
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   // Redirect to login if accessing protected route without session cookie
   if (isProtectedRoute && !hasSessionCookie) {
+    console.log('[Middleware] Redirecting to login (no session cookie)')
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
@@ -85,6 +95,7 @@ export async function middleware(request: NextRequest) {
   const isAuthFlowRoute = authFlowRoutes.some(route => pathname.startsWith(route))
 
   if (hasSessionCookie && !isAuthFlowRoute && (pathname === '/login' || pathname === '/register')) {
+    console.log('[Middleware] Redirecting to dashboard (has session cookie)')
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
