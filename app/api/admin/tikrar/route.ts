@@ -106,6 +106,52 @@ export async function GET(request: NextRequest) {
           written_exam_status: examAttempt?.status ?? tikrar.written_exam_status,
         };
       });
+
+      // Auto-update selection_status based on scores
+      // If oral_total_score >= 70 AND written_quiz_score >= 70, set selection_status to 'selected'
+      const updates: any[] = [];
+      for (const tikrar of enrichedData) {
+        const oralScore = tikrar.oral_total_score;
+        const writtenScore = tikrar.written_quiz_score;
+
+        // Check if Juz 30 (no written quiz required)
+        const isJuz30 = tikrar.chosen_juz?.toLowerCase().includes('30a') ||
+                       tikrar.chosen_juz?.toLowerCase().includes('30 a') ||
+                       tikrar.chosen_juz?.toLowerCase().includes('30b') ||
+                       tikrar.chosen_juz?.toLowerCase().includes('30 b') ||
+                       tikrar.chosen_juz?.toLowerCase() === '30a' ||
+                       tikrar.chosen_juz?.toLowerCase() === '30b' ||
+                       tikrar.chosen_juz?.toLowerCase() === '30';
+
+        // For Juz 30: only need oral score >= 70
+        // For other juz: need both oral AND written score >= 70
+        const hasPassingScore = isJuz30
+          ? (oralScore !== null && oralScore !== undefined && oralScore >= 70)
+          : (oralScore !== null && oralScore !== undefined && oralScore >= 70 &&
+             writtenScore !== null && writtenScore !== undefined && writtenScore >= 70);
+
+        // Auto-update selection_status to 'selected' if scores are passing
+        if (hasPassingScore && tikrar.selection_status === 'pending') {
+          updates.push({
+            id: tikrar.id,
+            selection_status: 'selected'
+          });
+        }
+      }
+
+      // Batch update selection_status for passing registrations
+      if (updates.length > 0) {
+        await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .upsert(updates, { onConflict: 'id' });
+
+        // Update enrichedData with new selection_status
+        const updateMap = new Map(updates.map(u => [u.id, u.selection_status]));
+        enrichedData = enrichedData.map((item: any) => ({
+          ...item,
+          selection_status: updateMap.get(item.id) || item.selection_status
+        }));
+      }
     }
 
     // Get total count for pagination
