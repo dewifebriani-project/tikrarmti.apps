@@ -5,20 +5,19 @@ import {
   Users,
   Calendar,
   Clock,
-  Plus,
   RefreshCw,
   Filter,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Eye,
   Trash2,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
-import { AddHalaqahModal } from '@/components/AddHalaqahModal';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
+import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 
 interface Halaqah {
   id: string;
@@ -32,7 +31,8 @@ interface Halaqah {
   location?: string;
   max_students?: number;
   waitlist_max?: number;
-  preferred_juz?: number;
+  preferred_juz?: string;
+  zoom_link?: string;
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
   program?: {
@@ -81,14 +81,9 @@ export function HalaqahManagementTab() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
   // Modals
-  const [showAddHalaqahModal, setShowAddHalaqahModal] = useState(false);
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Debug: log when showAddHalaqahModal changes
-  useEffect(() => {
-    console.log('[HalaqahManagementTab] showAddHalaqahModal:', showAddHalaqahModal);
-  }, [showAddHalaqahModal]);
+  const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -326,17 +321,11 @@ export function HalaqahManagementTab() {
           </p>
         </div>
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            alert('Button clicked!');
-            console.log('[HalaqahManagementTab] Add Halaqah button clicked!');
-            setShowAddHalaqahModal(true);
-          }}
+          onClick={() => setShowAutoCreateModal(true)}
           className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" />
-          Add Halaqah
+          <Sparkles className="w-4 h-4" />
+          Auto Create Halaqah
         </button>
       </div>
 
@@ -580,12 +569,12 @@ export function HalaqahManagementTab() {
         </div>
       )}
 
-      {/* Add Halaqah Modal */}
-      {showAddHalaqahModal && (
-        <AddHalaqahModal
-          onClose={() => setShowAddHalaqahModal(false)}
+      {/* Auto Create Halaqah Modal */}
+      {showAutoCreateModal && (
+        <AutoCreateHalaqahModal
+          onClose={() => setShowAutoCreateModal(false)}
           onSuccess={() => {
-            setShowAddHalaqahModal(false);
+            setShowAutoCreateModal(false);
             setRefreshTrigger(prev => prev + 1);
           }}
         />

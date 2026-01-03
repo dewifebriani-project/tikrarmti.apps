@@ -1,0 +1,404 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import toast from 'react-hot-toast';
+
+interface Batch {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface Program {
+  id: string;
+  name: string;
+  class_type: string;
+}
+
+interface MuallimaRegistration {
+  id: string;
+  user_id: string;
+  full_name: string;
+  preferred_juz: string;
+  preferred_max_thalibah: number;
+  status: string;
+}
+
+interface AutoCreateHalaqahModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqahModalProps) {
+  const supabase = createClient();
+  const [loading, setLoading] = useState(false);
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedBatch, setSelectedBatch] = useState('');
+  const [selectedProgram, setSelectedProgram] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [result, setResult] = useState<{
+    success: number;
+    failed: number;
+    details: string[];
+  } | null>(null);
+
+  useEffect(() => {
+    loadBatches();
+  }, []);
+
+  useEffect(() => {
+    if (selectedBatch) {
+      loadPrograms();
+    }
+  }, [selectedBatch]);
+
+  const loadBatches = async () => {
+    setLoading(true);
+    try {
+      // Try API endpoint first (for admins)
+      const response = await fetch('/api/admin/batches');
+      const apiResult = await response.json();
+
+      if (response.ok && apiResult.data) {
+        // Filter only open batches
+        const openBatches = apiResult.data.filter((b: Batch) => b.status === 'open');
+        setBatches(openBatches);
+        if (openBatches.length > 0) {
+          setSelectedBatch(openBatches[0].id);
+        }
+        return;
+      }
+
+      // Fallback to direct query
+      const { data, error } = await supabase
+        .from('batches')
+        .select('*')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setBatches(data || []);
+      if (data && data.length > 0) {
+        setSelectedBatch(data[0].id);
+      }
+    } catch (error: any) {
+      console.error('Error loading batches:', error);
+      toast.error('Failed to load batches: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPrograms = async () => {
+    if (!selectedBatch) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('programs')
+        .select('*')
+        .eq('batch_id', selectedBatch)
+        .in('status', ['open', 'ongoing'])
+        .order('name');
+
+      if (error) throw error;
+
+      setPrograms(data || []);
+      if (data && data.length > 0) {
+        setSelectedProgram(data[0].id);
+      }
+    } catch (error: any) {
+      console.error('Error loading programs:', error);
+      toast.error('Failed to load programs: ' + error.message);
+    }
+  };
+
+  const handleAutoCreate = async () => {
+    if (!selectedBatch || !selectedProgram) {
+      toast.error('Please select batch and program');
+      return;
+    }
+
+    setCreating(true);
+    const details: string[] = [];
+    let successCount = 0;
+    let failedCount = 0;
+
+    try {
+      // 1. Get all approved muallimah for this batch
+      const { data: muallimahs, error: muallimaError } = await supabase
+        .from('muallimah_registrations')
+        .select('*')
+        .eq('batch_id', selectedBatch)
+        .eq('status', 'approved');
+
+      if (muallimaError) throw muallimaError;
+
+      if (!muallimahs || muallimahs.length === 0) {
+        toast.error('No approved muallimah found for this batch');
+        setCreating(false);
+        return;
+      }
+
+      details.push(`Found ${muallimahs.length} approved muallimah`);
+
+      // 2. Create halaqah for each muallimah
+      for (const muallimah of muallimahs) {
+        try {
+          // Check if halaqah already exists for this muallimah in this program
+          const { data: existingHalaqah, error: checkError } = await supabase
+            .from('halaqah')
+            .select('id')
+            .eq('program_id', selectedProgram)
+            .eq('muallimah_id', muallimah.user_id)
+            .single();
+
+          if (existingHalaqah) {
+            details.push(`⚠️ Halaqah already exists for ${muallimah.full_name}`);
+            failedCount++;
+            continue;
+          }
+
+          // Get muallimah schedule from muallimah_schedules table
+          const { data: schedules, error: schedError } = await supabase
+            .from('muallimah_schedules')
+            .select('*')
+            .eq('muallimah_registration_id', muallimah.id)
+            .eq('is_preferred', true)
+            .limit(1)
+            .single();
+
+          // Create halaqah
+          const { data: newHalaqah, error: createError } = await supabase
+            .from('halaqah')
+            .insert({
+              program_id: selectedProgram,
+              muallimah_id: muallimah.user_id,
+              name: `Halaqah ${muallimah.full_name}`,
+              description: `Halaqah diampu oleh ${muallimah.full_name}`,
+              day_of_week: schedules?.day_of_week || null,
+              start_time: schedules?.start_time || null,
+              end_time: schedules?.end_time || null,
+              max_students: muallimah.preferred_max_thalibah || 20,
+              waitlist_max: 5,
+              preferred_juz: muallimah.preferred_juz,
+              status: 'active',
+            })
+            .select()
+            .single();
+
+          if (createError) throw createError;
+
+          // Add muallimah as mentor in halaqah_mentors
+          const { error: mentorError } = await supabase
+            .from('halaqah_mentors')
+            .insert({
+              halaqah_id: newHalaqah.id,
+              mentor_id: muallimah.user_id,
+              role: 'ustadzah',
+              is_primary: true,
+            });
+
+          if (mentorError) {
+            console.error('Error adding mentor:', mentorError);
+            // Don't fail the whole creation if mentor assignment fails
+          }
+
+          details.push(`✓ Created halaqah for ${muallimah.full_name}`);
+          successCount++;
+        } catch (error: any) {
+          console.error(`Error creating halaqah for ${muallimah.full_name}:`, error);
+          details.push(`✗ Failed to create halaqah for ${muallimah.full_name}: ${error.message}`);
+          failedCount++;
+        }
+      }
+
+      setResult({
+        success: successCount,
+        failed: failedCount,
+        details,
+      });
+
+      if (successCount > 0) {
+        toast.success(`Successfully created ${successCount} halaqah`);
+      }
+
+      if (failedCount > 0) {
+        toast.error(`Failed to create ${failedCount} halaqah`);
+      }
+    } catch (error: any) {
+      console.error('Error in auto create:', error);
+      toast.error('Failed to auto create halaqah: ' + error.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (result && result.success > 0) {
+      onSuccess();
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-900">Auto Create Halaqah</h2>
+          <button
+            onClick={handleClose}
+            className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {!result ? (
+            <>
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  Fitur ini akan membuat halaqah secara otomatis untuk setiap muallimah yang sudah diapprove di batch yang dipilih.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Catatan:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Halaqah akan dibuat untuk setiap muallimah dengan status "approved"</li>
+                        <li>Setiap halaqah akan menggunakan jadwal preferred muallimah</li>
+                        <li>Kuota maksimal thalibah diambil dari data muallimah</li>
+                        <li>Halaqah yang sudah ada tidak akan dibuat ulang</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Batch Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Batch <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    disabled={loading || creating}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                  >
+                    <option value="">Select Batch</option>
+                    {batches.map((batch) => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Program Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Program <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedProgram}
+                    onChange={(e) => setSelectedProgram(e.target.value)}
+                    disabled={loading || creating || !selectedBatch}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
+                  >
+                    <option value="">Select Program</option>
+                    {programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={handleClose}
+                  disabled={creating}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAutoCreate}
+                  disabled={creating || !selectedBatch || !selectedProgram}
+                  className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {creating ? 'Creating...' : 'Auto Create Halaqah'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Result Summary */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-green-50 border border-green-200 rounded-md p-4">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="text-sm text-green-800 font-medium">Success</p>
+                        <p className="text-2xl font-bold text-green-900">{result.success}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {result.failed > 0 && (
+                    <div className="flex-1 bg-red-50 border border-red-200 rounded-md p-4">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <div>
+                          <p className="text-sm text-red-800 font-medium">Failed</p>
+                          <p className="text-2xl font-bold text-red-900">{result.failed}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Details:</h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4 max-h-64 overflow-y-auto">
+                    <ul className="space-y-1 text-sm font-mono">
+                      {result.details.map((detail, index) => (
+                        <li key={index} className="text-gray-700">
+                          {detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={handleClose}
+                  className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
