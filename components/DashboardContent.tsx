@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle, Users } from 'lucide-react'
+import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
@@ -301,18 +301,6 @@ export default function DashboardContent() {
               <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
                 <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
                 <span className="text-sm">Perjalanan Saya</span>
-              </Button>
-            </Link>
-            <Link href="/pengumuman">
-              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
-                <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">Pengumuman</span>
-              </Button>
-            </Link>
-            <Link href="/bantuan">
-              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
-                <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">Bantuan</span>
               </Button>
             </Link>
           </div>
