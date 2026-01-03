@@ -5041,15 +5041,29 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
       return scheduleStr;
     }
 
+    // Map English day names to Indonesian
+    const dayTranslation: Record<string, string> = {
+      'monday': 'Senin',
+      'tuesday': 'Selasa',
+      'wednesday': 'Rabu',
+      'thursday': 'Kamis',
+      'friday': 'Jumat',
+      'saturday': 'Sabtu',
+      'sunday': 'Minggu'
+    };
+
     try {
       const schedule = JSON.parse(scheduleStr);
       if (Array.isArray(schedule) && schedule.length > 0) {
-        return schedule.map((s: any) => {
-          const day = s.day?.toLowerCase() || '';
+        const formatted = schedule.map((s: any) => {
+          const dayEng = s.day?.toLowerCase() || '';
+          const dayInd = dayTranslation[dayEng] || dayEng;
           const timeStart = s.time_start || '';
           const timeEnd = s.time_end || '';
-          return `${day} ${timeStart}-${timeEnd}`;
-        }).join(', ');
+          return `${dayInd} ${timeStart}-${timeEnd}`;
+        });
+        // Join with line breaks for multiple schedules
+        return formatted.join('\n');
       }
       return scheduleStr;
     } catch {
@@ -5515,7 +5529,7 @@ Tim Markaz Tikrar Indonesia`;
                       <div className="text-sm text-gray-900">{m.preferred_juz || '-'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate" title={formatSchedule(m.preferred_schedule)}>
+                      <div className="text-sm text-gray-900 max-w-xs whitespace-pre-line" title={formatSchedule(m.preferred_schedule)}>
                         {formatSchedule(m.preferred_schedule)}
                       </div>
                     </td>
