@@ -26,6 +26,8 @@ export async function POST() {
     // - sb-<project-ref>-auth-token-code-verifier
     // - sb-<project-ref>-auth-refresh-token
     // - sb-<project-ref>-auth-token.0, .1, etc (chunked tokens)
+    // - sb-refresh-token
+    // - sb-access-token
     const allCookies = cookieStore.getAll();
     const response = NextResponse.json({
       success: true,
@@ -33,10 +35,19 @@ export async function POST() {
       redirect: '/login'
     });
 
-    // Clear ALL cookies starting with 'sb-' (not just auth cookies)
-    // This ensures we catch all variations including .0, .1, etc
+    // Clear ALL cookies related to Supabase auth
+    // This catches: sb-*, sb-refresh-token, sb-access-token, etc
     for (const cookie of allCookies) {
-      if (cookie.name.startsWith('sb-')) {
+      const cookieName = cookie.name.toLowerCase();
+
+      // Match any cookie starting with 'sb-' or containing supabase auth patterns
+      if (
+        cookieName.startsWith('sb-') ||
+        cookieName === 'sb-refresh-token' ||
+        cookieName === 'sb-access-token' ||
+        cookieName.includes('supabase') ||
+        cookieName.includes('auth-token')
+      ) {
         console.log('Clearing cookie:', cookie.name);
         response.cookies.delete(cookie.name);
       }

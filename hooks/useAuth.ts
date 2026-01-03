@@ -70,15 +70,26 @@ export function useAuth() {
       const result = await response.json()
       console.log('Logout API response:', result)
 
-      // Redirect to login after server has cleared cookies
+      // Force full page reload to /login with cache busting
+      // This ensures:
+      // 1. All client-side state is cleared
+      // 2. Browser fetches fresh JavaScript (not cached)
+      // 3. Middleware sees cleared cookies
       if (typeof window !== 'undefined') {
-        window.location.href = result.redirect || '/login'
+        // Add timestamp to prevent caching
+        const loginUrl = result.redirect || '/login'
+        const cacheBuster = loginUrl.includes('?')
+          ? `&t=${Date.now()}`
+          : `?t=${Date.now()}`
+
+        // Hard redirect to clear all client state and fetch fresh code
+        window.location.href = loginUrl + cacheBuster
       }
     } catch (error) {
       console.error('Logout failed:', error)
       // Still try to redirect even if logout fails
       if (typeof window !== 'undefined') {
-        window.location.href = '/login'
+        window.location.href = '/login?t=' + Date.now()
       }
     }
   }, [])
