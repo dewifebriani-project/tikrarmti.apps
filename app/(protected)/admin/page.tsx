@@ -5035,13 +5035,25 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   // Format schedule for display
   const formatSchedule = (scheduleStr: string) => {
     if (!scheduleStr) return '-';
+
+    // If already in readable format (not JSON), return as is
+    if (!scheduleStr.startsWith('[') && !scheduleStr.startsWith('{')) {
+      return scheduleStr;
+    }
+
     try {
       const schedule = JSON.parse(scheduleStr);
       if (Array.isArray(schedule) && schedule.length > 0) {
-        return schedule.map((s: any) => `${s.day} ${s.time_start}-${s.time_end}`).join(', ');
+        return schedule.map((s: any) => {
+          const day = s.day?.toLowerCase() || '';
+          const timeStart = s.time_start || '';
+          const timeEnd = s.time_end || '';
+          return `${day} ${timeStart}-${timeEnd}`;
+        }).join(', ');
       }
       return scheduleStr;
     } catch {
+      // If parse fails, return original string
       return scheduleStr;
     }
   };
