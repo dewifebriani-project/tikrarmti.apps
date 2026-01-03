@@ -27,6 +27,7 @@ export async function POST() {
     // - sb-<project-ref>-auth-refresh-token
     // - sb-<project-ref>-auth-token.0, .1, etc (chunked tokens)
     // - sb-refresh-token
+    // - sb-refresh-token-fallback
     // - sb-access-token
     const allCookies = cookieStore.getAll();
     const response = NextResponse.json({
@@ -36,7 +37,7 @@ export async function POST() {
     });
 
     // Clear ALL cookies related to Supabase auth
-    // This catches: sb-*, sb-refresh-token, sb-access-token, etc
+    // This catches: sb-*, sb-refresh-token*, sb-access-token, etc
     for (const cookie of allCookies) {
       const cookieName = cookie.name.toLowerCase();
 
@@ -44,6 +45,7 @@ export async function POST() {
       if (
         cookieName.startsWith('sb-') ||
         cookieName === 'sb-refresh-token' ||
+        cookieName.startsWith('sb-refresh-token') ||  // catches sb-refresh-token-fallback
         cookieName === 'sb-access-token' ||
         cookieName.includes('supabase') ||
         cookieName.includes('auth-token')
