@@ -20,11 +20,12 @@ export async function POST() {
 
     console.log('Logout: User signed out successfully');
 
-    // MANUALLY clear all Supabase auth cookies to ensure they're removed
+    // MANUALLY clear ALL Supabase cookies to ensure they're removed
     // Supabase SSR uses cookies with these patterns:
     // - sb-<project-ref>-auth-token
     // - sb-<project-ref>-auth-token-code-verifier
     // - sb-<project-ref>-auth-refresh-token
+    // - sb-<project-ref>-auth-token.0, .1, etc (chunked tokens)
     const allCookies = cookieStore.getAll();
     const response = NextResponse.json({
       success: true,
@@ -32,9 +33,10 @@ export async function POST() {
       redirect: '/login'
     });
 
-    // Clear all sb- auth cookies
+    // Clear ALL cookies starting with 'sb-' (not just auth cookies)
+    // This ensures we catch all variations including .0, .1, etc
     for (const cookie of allCookies) {
-      if (cookie.name.startsWith('sb-') && cookie.name.includes('auth')) {
+      if (cookie.name.startsWith('sb-')) {
         console.log('Clearing cookie:', cookie.name);
         response.cookies.delete(cookie.name);
       }
