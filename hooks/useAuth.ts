@@ -57,10 +57,19 @@ export function useAuth() {
   // Logout function
   const logout = useCallback(async () => {
     try {
-      // Sign out from Supabase
-      await supabase.auth.signOut()
+      console.log('Starting logout process...')
 
-      // Redirect immediately
+      // Call logout API to properly clear session
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include', // Include cookies
+      })
+
+      const result = await response.json()
+      console.log('Logout API response:', result)
+
+      // Regardless of API result, redirect to login
+      // Using window.location.href for hard redirect to clear any client state
       if (typeof window !== 'undefined') {
         window.location.href = '/login'
       }
@@ -71,7 +80,7 @@ export function useAuth() {
         window.location.href = '/login'
       }
     }
-  }, [supabase])
+  }, [])
 
   // Check if user is authenticated (has server data)
   const isAuthenticated = Boolean(serverUserData)
