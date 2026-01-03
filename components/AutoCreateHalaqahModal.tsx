@@ -24,19 +24,6 @@ interface Program {
   batch?: { name: string };
 }
 
-interface MuallimahRegistration {
-  id: string;
-  user_id: string;
-  full_name?: string;
-  preferred_juz?: number;
-  status: string;
-  user?: {
-    id: string;
-    full_name?: string;
-    email?: string;
-  };
-}
-
 interface CreateResult {
   muallimah: string;
   halaqahCreated: number;
@@ -69,7 +56,7 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
     const { data, error } = await supabase
       .from('batches')
       .select('*')
-      .eq('status', 'active')
+      .eq('status', 'open')
       .order('created_at', { ascending: false });
 
     if (error) {
