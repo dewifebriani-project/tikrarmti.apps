@@ -89,15 +89,21 @@ export function AddHalaqahModal({ onClose, onSuccess }: AddHalaqahModalProps) {
   }, [selectedBatch]);
 
   const loadBatches = async () => {
+    console.log('[AddHalaqahModal] Loading batches...');
     try {
       const { data, error } = await supabase
         .from('batches')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('[AddHalaqahModal] Batches data:', data);
+      console.log('[AddHalaqahModal] Batches error:', error);
+
       if (error) throw error;
+      console.log('[AddHalaqahModal] Setting batches:', data?.length || 0);
       setBatches(data || []);
     } catch (error: any) {
+      console.error('[AddHalaqahModal] Error loading batches:', error);
       toast.error('Failed to load batches: ' + error.message);
     }
   };
