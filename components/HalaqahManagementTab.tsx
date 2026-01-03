@@ -326,7 +326,10 @@ export function HalaqahManagementTab() {
           </p>
         </div>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            alert('Button clicked!');
             console.log('[HalaqahManagementTab] Add Halaqah button clicked!');
             setShowAddHalaqahModal(true);
           }}
