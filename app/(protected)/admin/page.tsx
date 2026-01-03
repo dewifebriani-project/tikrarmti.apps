@@ -3629,14 +3629,25 @@ Tim Markaz Tikrar Indonesia`;
       label: 'Selection Status',
       sortable: true,
       filterable: true,
-      render: (t) => (
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-          ${t.selection_status === 'approved' ? 'bg-green-100 text-green-800' :
-            t.selection_status === 'rejected' ? 'bg-red-100 text-red-800' :
-            'bg-yellow-100 text-yellow-800'}`}>
-          {t.selection_status}
-        </span>
-      ),
+      render: (t) => {
+        // Map selection status to display text and color
+        const statusConfig: Record<string, { text: string; color: string }> = {
+          'selected': { text: 'Selected', color: 'bg-green-100 text-green-800' },
+          'not_selected': { text: 'Not Selected', color: 'bg-red-100 text-red-800' },
+          'waitlist': { text: 'Waitlist', color: 'bg-blue-100 text-blue-800' },
+          'pending': { text: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
+          'approved': { text: 'Approved', color: 'bg-green-100 text-green-800' },
+          'rejected': { text: 'Rejected', color: 'bg-red-100 text-red-800' },
+        };
+
+        const config = statusConfig[t.selection_status] || statusConfig['pending'];
+
+        return (
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>
+            {config.text}
+          </span>
+        );
+      },
     },
     {
       key: 'alasan_mengundurkan_diri',
