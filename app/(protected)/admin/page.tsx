@@ -259,7 +259,6 @@ interface TikrarTahfidz {
   written_quiz_score?: number;
   written_quiz_total_questions?: number;
   written_quiz_correct_answers?: number;
-  written_submitted_at?: string;
   written_quiz_submitted_at?: string;
   written_exam_submitted_at?: string;
   written_exam_status?: string;
@@ -3741,7 +3740,7 @@ Tim Markaz Tikrar Indonesia`;
 
           if (isJuz30) return -1; // Juz 30 - first
           // Check submission status from both old and new fields
-          const hasSubmitted = t.written_exam_submitted_at || t.written_submitted_at;
+          const hasSubmitted = t.written_exam_submitted_at || t.written_quiz_submitted_at;
           if (!hasSubmitted) return 0; // Not submitted
           if (t.written_exam_status === 'in_progress') return 1; // In Progress
           if (t.written_quiz_score === null || t.written_quiz_score === undefined) return 2; // Pending
@@ -3771,7 +3770,7 @@ Tim Markaz Tikrar Indonesia`;
         }
 
         // Not submitted - check both fields
-        const hasSubmitted = row.written_exam_submitted_at || row.written_submitted_at;
+        const hasSubmitted = row.written_exam_submitted_at || row.written_quiz_submitted_at;
         if (!hasSubmitted) {
           return value.includes('not') || value.includes('submit');
         }
@@ -3922,8 +3921,8 @@ Tim Markaz Tikrar Indonesia`;
     selectionRejected: filteredTikrar.filter(t => t.selection_status === 'rejected').length,
     // Test submissions
     oralSubmitted: filteredTikrar.filter(t => t.oral_submitted_at).length,
-    writtenSubmitted: filteredTikrar.filter(t => t.written_submitted_at).length,
-    bothTestsSubmitted: filteredTikrar.filter(t => t.oral_submitted_at && t.written_submitted_at).length,
+    writtenSubmitted: filteredTikrar.filter(t => t.written_exam_submitted_at || t.written_quiz_submitted_at).length,
+    bothTestsSubmitted: filteredTikrar.filter(t => t.oral_submitted_at && (t.written_exam_submitted_at || t.written_quiz_submitted_at)).length,
   };
 
   // Calculate Juz distribution
