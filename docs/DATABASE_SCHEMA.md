@@ -54,6 +54,7 @@ CREATE TABLE public.batches (
   final_exam_end_date date,
   graduation_start_date date,
   graduation_end_date date,
+  registered_count integer DEFAULT 0,
   CONSTRAINT batches_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.error_logs (
@@ -82,9 +83,40 @@ CREATE TABLE public.exam_attempts (
   status text DEFAULT 'in_progress'::text CHECK (status = ANY (ARRAY['in_progress'::text, 'submitted'::text, 'graded'::text])),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  configuration_id uuid,
+  attempt_number integer DEFAULT 1,
+  time_taken integer,
+  passed boolean DEFAULT false,
+  is_graded boolean DEFAULT false,
   CONSTRAINT exam_attempts_pkey PRIMARY KEY (id),
   CONSTRAINT exam_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT exam_attempts_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.pendaftaran_tikrar_tahfidz(id)
+  CONSTRAINT exam_attempts_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.pendaftaran_tikrar_tahfidz(id),
+  CONSTRAINT exam_attempts_configuration_id_fkey FOREIGN KEY (configuration_id) REFERENCES public.exam_configurations(id)
+);
+CREATE TABLE public.exam_configurations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  duration_minutes integer NOT NULL DEFAULT 30,
+  start_time timestamp with time zone,
+  end_time timestamp with time zone,
+  max_attempts integer DEFAULT 1,
+  shuffle_questions boolean DEFAULT false,
+  randomize_order boolean DEFAULT false,
+  show_questions_all boolean DEFAULT true,
+  questions_per_attempt integer,
+  passing_score integer DEFAULT 70,
+  auto_grade boolean DEFAULT true,
+  allow_review boolean DEFAULT false,
+  show_results boolean DEFAULT true,
+  auto_submit_on_timeout boolean DEFAULT true,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by uuid,
+  score_calculation_mode text DEFAULT 'highest'::text,
+  CONSTRAINT exam_configurations_pkey PRIMARY KEY (id),
+  CONSTRAINT exam_configurations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.exam_question_flags (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -230,9 +262,9 @@ CREATE TABLE public.muallimah_registrations (
   class_type text CHECK (class_type = ANY (ARRAY['tashih_ujian'::text, 'tashih_only'::text, 'ujian_only'::text])),
   preferred_max_thalibah integer,
   CONSTRAINT muallimah_registrations_pkey PRIMARY KEY (id),
-  CONSTRAINT muallimah_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT muallimah_registrations_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
-  CONSTRAINT muallimah_registrations_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id)
+  CONSTRAINT muallimah_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT muallimah_registrations_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.musyrifah_registrations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -263,9 +295,9 @@ CREATE TABLE public.musyrifah_registrations (
   reviewed_by uuid,
   review_notes text,
   CONSTRAINT musyrifah_registrations_pkey PRIMARY KEY (id),
-  CONSTRAINT musyrifah_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT musyrifah_registrations_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
-  CONSTRAINT musyrifah_registrations_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id)
+  CONSTRAINT musyrifah_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT musyrifah_registrations_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.pendaftaran_tikrar_tahfidz (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -334,6 +366,7 @@ CREATE TABLE public.pendaftaran_tikrar_tahfidz (
   re_enrollment_completed boolean DEFAULT false,
   re_enrollment_completed_at timestamp with time zone,
   re_enrollment_confirmed_by uuid,
+  alasan_mengundurkan_diri text,
   CONSTRAINT pendaftaran_tikrar_tahfidz_pkey PRIMARY KEY (id),
   CONSTRAINT pendaftaran_tikrar_tahfidz_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
   CONSTRAINT pendaftaran_tikrar_tahfidz_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),

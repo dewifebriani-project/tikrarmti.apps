@@ -256,6 +256,7 @@ interface TikrarTahfidz {
   oral_assessed_by?: string;
   oral_assessed_at?: string;
   oral_assessment_notes?: string;
+  alasan_mengundurkan_diri?: string;
   user?: User;
   batch?: { name: string };
   program?: { name: string };
@@ -3163,10 +3164,13 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   const [unapproveReason, setUnapproveReason] = useState('');
   const [showUnapproveModal, setShowUnapproveModal] = useState(false);
 
-  // Filter tikrar by batch_id or batch_name
-  const filteredTikrar = selectedBatchFilter === 'all'
+  // Filter tikrar by batch_id or batch_name (before hiding withdrawn for stats)
+  const tikrarByBatch = selectedBatchFilter === 'all'
     ? tikrar
     : tikrar.filter(t => t.batch_id === selectedBatchFilter);
+
+  // Filter to hide withdrawn registrations from table view
+  const filteredTikrar = tikrarByBatch.filter(t => t.status !== 'withdrawn');
 
   // Get only pending applications
   const pendingTikrar = filteredTikrar.filter(t => t.status === 'pending');
@@ -3611,6 +3615,27 @@ Tim Markaz Tikrar Indonesia`;
       ),
     },
     {
+      key: 'alasan_mengundurkan_diri',
+      label: 'Alasan Mundur',
+      sortable: false,
+      filterable: false,
+      render: (t) => {
+        if (t.status !== 'withdrawn' && t.status !== 'rejected') {
+          return <span className="text-gray-400">-</span>;
+        }
+        if (!t.alasan_mengundurkan_diri) {
+          return <span className="text-gray-400 text-xs">Tidak ada</span>;
+        }
+        return (
+          <div className="max-w-xs">
+            <p className="text-sm text-gray-700 truncate" title={t.alasan_mengundurkan_diri}>
+              {t.alasan_mengundurkan_diri}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
       key: 'oral_total_score',
       label: 'Oral Score',
       sortable: true,
@@ -3708,15 +3733,22 @@ Tim Markaz Tikrar Indonesia`;
         { value: 'rejected', label: 'Rejected' },
       ]
     },
+    {
+      name: 'alasan_mengundurkan_diri',
+      label: 'Alasan Mengundurkan Diri',
+      type: 'textarea',
+      required: false,
+      placeholder: 'Masukkan alasan mengundurkan diri...',
+    },
   ];
 
-  // Calculate statistics
+  // Calculate statistics (withdrawn counted from tikrarByBatch to show in stats)
   const stats = {
     total: filteredTikrar.length,
     pending: filteredTikrar.filter(t => t.status === 'pending').length,
     approved: filteredTikrar.filter(t => t.status === 'approved').length,
     rejected: filteredTikrar.filter(t => t.status === 'rejected').length,
-    withdrawn: filteredTikrar.filter(t => t.status === 'withdrawn').length,
+    withdrawn: tikrarByBatch.filter(t => t.status === 'withdrawn').length,
     completed: filteredTikrar.filter(t => t.status === 'completed').length,
     // Selection status
     selectionPending: filteredTikrar.filter(t => t.selection_status === 'pending').length,
