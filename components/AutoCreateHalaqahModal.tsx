@@ -83,16 +83,35 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
 
     try {
       // 1. Get all approved muallimah for this batch
+      console.log('[AutoCreateHalaqahModal] Querying muallimah for batch:', selectedBatch);
+
       const { data: muallimahs, error: muallimaError } = await supabase
         .from('muallimah_registrations')
         .select('*')
         .eq('batch_id', selectedBatch)
         .eq('status', 'approved');
 
-      if (muallimaError) throw muallimaError;
+      console.log('[AutoCreateHalaqahModal] Muallimah query result:', {
+        count: muallimahs?.length || 0,
+        data: muallimahs,
+        error: muallimaError
+      });
+
+      if (muallimaError) {
+        console.error('[AutoCreateHalaqahModal] Error querying muallimah:', muallimaError);
+        throw muallimaError;
+      }
 
       if (!muallimahs || muallimahs.length === 0) {
-        toast.error('No approved muallimah found for this batch');
+        // Try to get all muallimah registrations for debugging
+        const { data: allMuallimahs } = await supabase
+          .from('muallimah_registrations')
+          .select('id, full_name, status, batch_id')
+          .eq('batch_id', selectedBatch);
+
+        console.log('[AutoCreateHalaqahModal] All muallimah for this batch:', allMuallimahs);
+
+        toast.error('No approved muallimah found for this batch. Check console for details.');
         setCreating(false);
         return;
       }
