@@ -5032,6 +5032,19 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     }
   };
 
+  // Format class type for display
+  const formatClassType = (classType: string) => {
+    if (!classType) return '-';
+
+    const classTypeMap: Record<string, string> = {
+      'tashih_ujian': 'Kelas Tashih + Ujian',
+      'tashih_only': 'Kelas Tashih Saja',
+      'ujian_only': 'Kelas Ujian Saja'
+    };
+
+    return classTypeMap[classType] || classType;
+  };
+
   // Format schedule for display
   const formatSchedule = (scheduleStr: string) => {
     if (!scheduleStr) return '-';
@@ -5564,7 +5577,7 @@ Tim Markaz Tikrar Indonesia`;
                       <div className="text-sm text-gray-900">{m.preferred_juz || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{m.class_type || '-'}</div>
+                      <div className="text-sm text-gray-900">{formatClassType(m.class_type)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{m.preferred_max_thalibah || '-'}</div>
@@ -5997,7 +6010,7 @@ Tim Markaz Tikrar Indonesia`;
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Class Type</label>
-                        <p className="mt-1 text-sm text-gray-900">{selectedRegistration.class_type || '-'}</p>
+                        <p className="mt-1 text-sm text-gray-900">{formatClassType(selectedRegistration.class_type)}</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Preferred Max Thalibah</label>
