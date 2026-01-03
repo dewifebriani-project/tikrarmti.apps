@@ -53,14 +53,28 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   }, [selectedBatch]);
 
   const loadBatches = async () => {
+    // First, try to get all batches without status filter to debug
+    const { data: allBatches, error: allError } = await supabase
+      .from('batches')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    console.log('All batches:', allBatches);
+    console.log('All batches error:', allError);
+
+    // Then try with status filter
     const { data, error } = await supabase
       .from('batches')
       .select('*')
       .eq('status', 'open')
       .order('created_at', { ascending: false });
 
+    console.log('Open batches:', data);
+    console.log('Open batches error:', error);
+
     if (error) {
-      toast.error('Failed to load batches');
+      console.error('Error loading batches:', error);
+      toast.error(`Failed to load batches: ${error.message}`);
     } else {
       setBatches(data || []);
       if (data && data.length > 0) {
