@@ -151,14 +151,9 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
             continue;
           }
 
-          // Get muallimah schedule from muallimah_schedules table
-          const { data: schedules } = await supabase
-            .from('muallimah_schedules')
-            .select('*')
-            .eq('muallimah_registration_id', muallimah.id)
-            .eq('is_preferred', true)
-            .limit(1)
-            .single();
+          // Note: preferred_schedule is a text field, not a structured table
+          // Schedule will be set manually by admin after halaqah is created
+          // We just create the halaqah with basic info from muallimah registration
 
           // Create halaqah (without program assignment - will be added manually later)
           const { data: newHalaqah, error: createError } = await supabase
@@ -168,9 +163,9 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
               muallimah_id: muallimah.user_id,
               name: `Halaqah ${muallimah.full_name}`,
               description: `Halaqah diampu oleh ${muallimah.full_name}`,
-              day_of_week: schedules?.day_of_week || null,
-              start_time: schedules?.start_time || null,
-              end_time: schedules?.end_time || null,
+              day_of_week: null, // Will be set manually later
+              start_time: null, // Will be set manually later
+              end_time: null, // Will be set manually later
               max_students: muallimah.preferred_max_thalibah || 20,
               waitlist_max: 5,
               preferred_juz: muallimah.preferred_juz,
@@ -263,10 +258,10 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
                       <p className="font-medium mb-1">Catatan:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>Halaqah akan dibuat untuk setiap muallimah dengan status "approved"</li>
-                        <li>Setiap halaqah akan menggunakan jadwal preferred muallimah</li>
-                        <li>Kuota maksimal thalibah diambil dari data muallimah</li>
+                        <li>Kuota maksimal thalibah diambil dari data muallimah (default: 20)</li>
+                        <li>Waitlist max diset otomatis ke 5</li>
                         <li>Halaqah yang sudah ada tidak akan dibuat ulang</li>
-                        <li>Program akan ditambahkan secara manual setelah halaqah dibuat</li>
+                        <li>Program dan jadwal akan ditambahkan secara manual setelah halaqah dibuat</li>
                       </ul>
                     </div>
                   </div>

@@ -78,16 +78,16 @@ CREATE TABLE halaqah_students (
        │   │   ├─> Jika sudah ada: Skip (warning)
        │   │   └─> Jika belum ada: Lanjut create
        │   │
-       │   ├─> Ambil jadwal preferred dari muallimah_schedules
+       │   ├─> Note: preferred_schedule adalah text field, bukan tabel
        │   │
        │   ├─> Create halaqah baru dengan data:
-       │   │   ├─> program_id: dari program terpilih
+       │   │   ├─> program_id: NULL (akan diisi manual nanti)
        │   │   ├─> muallimah_id: dari muallimah.user_id
        │   │   ├─> name: "Halaqah {nama_muallimah}"
        │   │   ├─> description: "Halaqah diampu oleh {nama_muallimah}"
-       │   │   ├─> day_of_week: dari schedule
-       │   │   ├─> start_time: dari schedule
-       │   │   ├─> end_time: dari schedule
+       │   │   ├─> day_of_week: NULL (akan diisi manual nanti)
+       │   │   ├─> start_time: NULL (akan diisi manual nanti)
+       │   │   ├─> end_time: NULL (akan diisi manual nanti)
        │   │   ├─> max_students: dari muallimah.preferred_max_thalibah atau 20
        │   │   ├─> waitlist_max: 5 (default)
        │   │   ├─> preferred_juz: dari muallimah.preferred_juz

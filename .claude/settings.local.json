@@ -168,7 +168,9 @@
       "Bash(npm run lint)",
       "Bash(npx next lint:*)",
       "Bash(npx vercel --prod)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(npx supabase:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Add proper HTTP headers to Supabase browser client\n\nResolves 406 \\(Not Acceptable\\) error when making REST API calls by adding explicit Accept and Content-Type headers to the browser client configuration.\n\nThis ensures all Supabase REST API requests from the browser include the proper headers expected by the Supabase API.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []
