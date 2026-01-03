@@ -62,12 +62,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check for Supabase session cookies (NOT validation, just existence)
-  // Supabase SSR uses cookies like: sb-<project-ref>-auth-token
-  // We check for any cookie starting with 'sb-' that contains 'auth'
+  // Supabase SSR uses cookies like:
+  // - sb-<project-ref>-auth-token
+  // - sb-refresh-token
+  // - sb-refresh-token-fallback
   const cookies = request.cookies.getAll()
-  const authCookies = cookies.filter(cookie =>
-    cookie.name.startsWith('sb-') && cookie.name.includes('auth')
-  )
+  const authCookies = cookies.filter(cookie => {
+    const name = cookie.name.toLowerCase()
+    return name.startsWith('sb-') ||
+           name === 'sb-refresh-token' ||
+           name.startsWith('sb-refresh-token')
+  })
   const hasSessionCookie = authCookies.length > 0
 
   // Debug logging
