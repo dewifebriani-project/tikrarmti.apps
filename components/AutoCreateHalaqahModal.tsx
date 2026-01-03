@@ -17,6 +17,8 @@ interface AutoCreateHalaqahModalProps {
 }
 
 export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqahModalProps) {
+  console.log('[AutoCreateHalaqahModal] Component mounted - Version 2026-01-04');
+
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -29,6 +31,7 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
   } | null>(null);
 
   useEffect(() => {
+    console.log('[AutoCreateHalaqahModal] useEffect triggered - calling loadBatches');
     loadBatches();
   }, []);
 
