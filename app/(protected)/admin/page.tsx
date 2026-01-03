@@ -3170,7 +3170,22 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     : tikrar.filter(t => t.batch_id === selectedBatchFilter);
 
   // Filter to hide withdrawn registrations from table view
-  const filteredTikrar = tikrarByBatch.filter(t => t.status !== 'withdrawn');
+  const filteredTikrar = tikrarByBatch
+    .filter(t => t.status !== 'withdrawn')
+    // Sort by oral score: Not submitted -> Pending -> Score (low to high)
+    .sort((a, b) => {
+      // Helper to get sort value: 0 = Not submitted, 1 = Pending, 2+ = Score value + 2
+      const getSortValue = (t: TikrarTahfidz) => {
+        if (!t.oral_submission_url) return 0; // Not submitted - first
+        if (t.oral_total_score === null || t.oral_total_score === undefined) return 1; // Pending - second
+        return t.oral_total_score + 2; // Score (add 2 to put after pending)
+      };
+
+      const aVal = getSortValue(a);
+      const bVal = getSortValue(b);
+
+      return aVal - bVal; // Ascending order
+    });
 
   // Get only pending applications
   const pendingTikrar = filteredTikrar.filter(t => t.status === 'pending');
