@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
 
 interface Batch {
@@ -19,7 +18,6 @@ interface AutoCreateHalaqahModalProps {
 export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqahModalProps) {
   console.log('[AutoCreateHalaqahModal] Component mounted - Version 2026-01-04');
 
-  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatch, setSelectedBatch] = useState('');
@@ -94,156 +92,49 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
 
     console.log('[AutoCreateHalaqahModal] Starting creation process...');
     setCreating(true);
-    const details: string[] = [];
-    let successCount = 0;
-    let failedCount = 0;
 
     try {
-      // Check current user session
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      console.log('[AutoCreateHalaqahModal] Current user:', {
-        id: user?.id,
-        email: user?.email,
-        error: userError
+      // Call API endpoint
+      const response = await fetch('/api/admin/halaqah/auto-create-simple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batch_id: selectedBatch,
+        }),
       });
 
-      // Check user roles
-      if (user) {
-        const { data: userData, error: roleError } = await supabase
-          .from('users')
-          .select('id, email, roles')
-          .eq('id', user.id)
-          .single();
+      const result = await response.json();
 
-        console.log('[AutoCreateHalaqahModal] User roles:', {
-          userData,
-          roleError
-        });
+      if (!response.ok) {
+        console.error('[AutoCreateHalaqahModal] API error:', result);
+        throw new Error(result.error || 'Failed to auto-create halaqah');
       }
 
-      // 1. Get all approved muallimah for this batch
-      console.log('[AutoCreateHalaqahModal] Querying muallimah for batch:', selectedBatch);
-
-      const { data: muallimahs, error: muallimaError } = await supabase
-        .from('muallimah_registrations')
-        .select('*')
-        .eq('batch_id', selectedBatch)
-        .eq('status', 'approved');
-
-      console.log('[AutoCreateHalaqahModal] Muallimah query result:', {
-        count: muallimahs?.length || 0,
-        data: muallimahs,
-        error: muallimaError,
-        errorDetails: muallimaError ? {
-          message: muallimaError.message,
-          code: muallimaError.code,
-          hint: muallimaError.hint,
-          details: muallimaError.details
-        } : null
-      });
-
-      if (muallimaError) {
-        console.error('[AutoCreateHalaqahModal] Error querying muallimah:', muallimaError);
-        throw muallimaError;
-      }
-
-      if (!muallimahs || muallimahs.length === 0) {
-        // Try to get all muallimah registrations for debugging
-        const { data: allMuallimahs } = await supabase
-          .from('muallimah_registrations')
-          .select('id, full_name, status, batch_id')
-          .eq('batch_id', selectedBatch);
-
-        console.log('[AutoCreateHalaqahModal] All muallimah for this batch:', allMuallimahs);
-
-        toast.error('No approved muallimah found for this batch. Check console for details.');
-        setCreating(false);
-        return;
-      }
-
-      details.push(`Found ${muallimahs.length} approved muallimah`);
-
-      // 2. Create halaqah for each muallimah (without program assignment)
-      for (const muallimah of muallimahs) {
-        try {
-          // Check if halaqah already exists for this muallimah (without program)
-          const { data: existingHalaqahs } = await supabase
-            .from('halaqah')
-            .select('id, name')
-            .eq('muallimah_id', muallimah.user_id)
-            .is('program_id', null);
-
-          if (existingHalaqahs && existingHalaqahs.length > 0) {
-            details.push(`⚠️ Halaqah already exists for ${muallimah.full_name}`);
-            failedCount++;
-            continue;
-          }
-
-          // Note: preferred_schedule is a text field, not a structured table
-          // Schedule will be set manually by admin after halaqah is created
-          // We just create the halaqah with basic info from muallimah registration
-
-          // Create halaqah (without program assignment - will be added manually later)
-          const { data: newHalaqah, error: createError } = await supabase
-            .from('halaqah')
-            .insert({
-              program_id: null, // Program will be assigned manually later
-              muallimah_id: muallimah.user_id,
-              name: `Halaqah ${muallimah.full_name}`,
-              description: `Halaqah diampu oleh ${muallimah.full_name}`,
-              day_of_week: null, // Will be set manually later
-              start_time: null, // Will be set manually later
-              end_time: null, // Will be set manually later
-              max_students: muallimah.preferred_max_thalibah || 20,
-              waitlist_max: 5,
-              preferred_juz: muallimah.preferred_juz,
-              status: 'active',
-            })
-            .select()
-            .single();
-
-          if (createError) throw createError;
-
-          // Add muallimah as mentor in halaqah_mentors
-          const { error: mentorError } = await supabase
-            .from('halaqah_mentors')
-            .insert({
-              halaqah_id: newHalaqah.id,
-              mentor_id: muallimah.user_id,
-              role: 'ustadzah',
-              is_primary: true,
-            });
-
-          if (mentorError) {
-            console.error('Error adding mentor:', mentorError);
-            // Don't fail the whole creation if mentor assignment fails
-          }
-
-          details.push(`✓ Created halaqah for ${muallimah.full_name}`);
-          successCount++;
-        } catch (error: any) {
-          console.error(`Error creating halaqah for ${muallimah.full_name}:`, error);
-          details.push(`✗ Failed to create halaqah for ${muallimah.full_name}: ${error.message}`);
-          failedCount++;
-        }
-      }
+      console.log('[AutoCreateHalaqahModal] API result:', result);
 
       setResult({
-        success: successCount,
-        failed: failedCount,
-        details,
+        success: result.created,
+        failed: result.skipped,
+        details: result.details || [],
       });
 
-      if (successCount > 0) {
-        toast.success(`Successfully created ${successCount} halaqah`);
+      if (result.created > 0) {
+        toast.success(result.message || `Successfully created ${result.created} halaqah`);
       }
 
-      if (failedCount > 0) {
-        toast.error(`Failed to create ${failedCount} halaqah`);
+      if (result.skipped > 0) {
+        toast.error(`Skipped ${result.skipped} halaqah`);
       }
     } catch (error: any) {
       console.error('Error in auto create:', error);
       toast.error('Failed to auto create halaqah: ' + error.message);
+      setResult({
+        success: 0,
+        failed: 1,
+        details: [error.message]
+      });
     } finally {
       setCreating(false);
     }
