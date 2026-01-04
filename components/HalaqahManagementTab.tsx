@@ -14,7 +14,6 @@ import {
   Loader2,
   Sparkles
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
@@ -69,7 +68,6 @@ interface Program {
 }
 
 export function HalaqahManagementTab() {
-  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -101,11 +99,8 @@ export function HalaqahManagementTab() {
   const loadBatches = async () => {
     console.log('[HalaqahManagementTab] Loading batches...');
     try {
-      // First try using the API endpoint (for admins)
       const response = await fetch('/api/admin/batches');
       const result = await response.json();
-
-      console.log('[HalaqahManagementTab] Batches API response:', result);
 
       if (response.ok && result.data) {
         console.log('[HalaqahManagementTab] Loaded batches via API:', result.data.length);
@@ -115,138 +110,55 @@ export function HalaqahManagementTab() {
         }
         return;
       }
-
-      // If API fails (403/401), fall back to direct Supabase query
-      console.log('[HalaqahManagementTab] API failed, falling back to direct query');
     } catch (apiError: any) {
-      console.log('[HalaqahManagementTab] API exception, falling back to direct query:', apiError.message);
-    }
-
-    // Fallback: Direct Supabase query (works with RLS for all authenticated users)
-    try {
-      const { data, error } = await supabase
-        .from('batches')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('[HalaqahManagementTab] Direct query error:', error);
-        toast.error('Failed to load batches: ' + error.message);
-        return;
-      }
-
-      console.log('[HalaqahManagementTab] Loaded batches via direct query:', data?.length || 0);
-      setBatches(data || []);
-      if (!selectedBatch && data && data.length > 0) {
-        setSelectedBatch(data[0].id);
-      }
-    } catch (error: any) {
-      console.error('[HalaqahManagementTab] Exception loading batches:', error);
-      toast.error('Failed to load batches: ' + error.message);
+      console.error('[HalaqahManagementTab] Error loading batches:', apiError.message);
     }
   };
 
   const loadPrograms = async () => {
     if (!selectedBatch) return;
 
-    const { data, error } = await supabase
-      .from('programs')
-      .select('*')
-      .eq('batch_id', selectedBatch)
-      .in('status', ['open', 'ongoing']);
+    try {
+      const response = await fetch('/api/programs?batch_id=' + selectedBatch);
+      const result = await response.json();
 
-    if (!error && data) {
-      setPrograms(data);
-    } else if (error) {
+      if (response.ok && result.data) {
+        setPrograms(result.data);
+      }
+    } catch (error) {
       console.error('Error loading programs:', error);
     }
   };
 
   const loadHalaqahs = async () => {
-    let query = supabase
-      .from('halaqah')
-      .select('*')
-      .order('created_at', { ascending: false });
+    console.log('[HalaqahManagementTab] Loading halaqahs...');
 
-    // Apply filters
-    if (selectedBatch) {
-      // First get program IDs for this batch
-      const { data: batchPrograms } = await supabase
-        .from('programs')
-        .select('id')
-        .eq('batch_id', selectedBatch);
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (selectedBatch) params.append('batch_id', selectedBatch);
+      if (selectedProgram) params.append('program_id', selectedProgram);
+      if (selectedStatus) params.append('status', selectedStatus);
 
-      if (batchPrograms) {
-        query = query.in('program_id', batchPrograms.map((p: { id: string }) => p.id));
+      const response = await fetch(`/api/admin/halaqah?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[HalaqahManagementTab] Failed to load halaqahs:', result);
+        toast.error(result.error || 'Failed to load halaqah data');
+        return;
       }
+
+      if (result.success && result.data) {
+        console.log('[HalaqahManagementTab] Loaded', result.data.length, 'halaqahs');
+        setHalaqahs(result.data);
+      } else {
+        setHalaqahs([]);
+      }
+    } catch (error: any) {
+      console.error('[HalaqahManagementTab] Error loading halaqahs:', error);
+      toast.error('Failed to load halaqahs: ' + error.message);
     }
-    if (selectedProgram) {
-      query = query.eq('program_id', selectedProgram);
-    }
-    if (selectedStatus) {
-      query = query.eq('status', selectedStatus);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error loading halaqahs:', error);
-      return;
-    }
-
-    if (!data) return;
-
-    // Enrich with program details, student counts, and muallimah info
-    const enrichedData = await Promise.all(
-      data.map(async (h: any) => {
-        // Fetch program details
-        const { data: programData } = await supabase
-          .from('programs')
-          .select('id, name, class_type, batch_id')
-          .eq('id', h.program_id)
-          .single();
-
-        // Fetch batch details
-        let batchData = null;
-        if (programData?.batch_id) {
-          const { data } = await supabase
-            .from('batches')
-            .select('id, name')
-            .eq('id', programData.batch_id)
-            .single();
-          batchData = data;
-        }
-
-        // Count active students
-        const { count } = await supabase
-          .from('halaqah_students')
-          .select('*', { count: 'exact', head: true })
-          .eq('halaqah_id', h.id)
-          .eq('status', 'active');
-
-        // Fetch muallimah if assigned
-        let muallimah = null;
-        if (h.muallimah_id) {
-          const { data: muallimahData } = await supabase
-            .from('users')
-            .select('id, full_name, email')
-            .eq('id', h.muallimah_id)
-            .single();
-          muallimah = muallimahData;
-        }
-
-        return {
-          ...h,
-          program: programData ? {
-            ...programData,
-            batch: batchData
-          } : undefined,
-          _count: { students: count || 0 },
-          muallimah: muallimah || undefined
-        };
-      })
-    );
-    setHalaqahs(enrichedData);
   };
 
   const handleDeleteHalaqah = async (halaqahId: string) => {
@@ -255,12 +167,15 @@ export function HalaqahManagementTab() {
     }
 
     try {
-      const { error } = await supabase
-        .from('halaqah')
-        .delete()
-        .eq('id', halaqahId);
+      const response = await fetch(`/api/admin/halaqah/${halaqahId}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete halaqah');
+      }
 
       toast.success('Halaqah deleted successfully');
       setRefreshTrigger(prev => prev + 1);
@@ -271,12 +186,19 @@ export function HalaqahManagementTab() {
 
   const handleStatusChange = async (halaqahId: string, newStatus: Halaqah['status']) => {
     try {
-      const { error } = await supabase
-        .from('halaqah')
-        .update({ status: newStatus })
-        .eq('id', halaqahId);
+      const response = await fetch(`/api/admin/halaqah/${halaqahId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update status');
+      }
 
       toast.success(`Status updated to ${newStatus}`);
       setRefreshTrigger(prev => prev + 1);
