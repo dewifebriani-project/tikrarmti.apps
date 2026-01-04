@@ -30,7 +30,7 @@ interface MuallimaRegistration {
 interface ThalibahRegistration {
   id: string;
   status: string;
-  final_status: string | null;
+  selection_status: string | null;
 }
 
 interface Halaqah {
@@ -59,7 +59,7 @@ interface BatchAnalysis {
   total_thalibah: number;
   approved_thalibah: number;
   pending_thalibah: number;
-  graduated_thalibah: number;
+  selected_thalibah: number;
 
   // Halaqah stats
   total_halaqah: number;
@@ -184,7 +184,7 @@ export function AnalysisTab() {
       console.log('[AnalysisTab] Querying thalibah for batch_id:', batchId);
       const { data: thalibahs, error: thalibahError } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
-        .select('id, status, final_status')
+        .select('id, status, selection_status')
         .eq('batch_id', batchId);
 
       console.log('[AnalysisTab] Thalibah query result:', {
@@ -203,14 +203,14 @@ export function AnalysisTab() {
       const thalibahList = (thalibahs || []) as ThalibahRegistration[];
       const totalThalibah = thalibahList.length;
       const approvedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'approved').length;
-      const pendingThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'pending' || t.status === 'review').length;
-      const graduatedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.final_status === 'lulus').length;
+      const pendingThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'pending').length;
+      const selectedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.selection_status === 'selected').length;
 
       console.log('[AnalysisTab] Thalibah stats:', {
         total: totalThalibah,
         approved: approvedThalibah,
         pending: pendingThalibah,
-        graduated: graduatedThalibah
+        selected: selectedThalibah
       });
 
       // Get halaqah stats
@@ -314,7 +314,7 @@ export function AnalysisTab() {
         total_thalibah: totalThalibah,
         approved_thalibah: approvedThalibah,
         pending_thalibah: pendingThalibah,
-        graduated_thalibah: graduatedThalibah,
+        selected_thalibah: selectedThalibah,
 
         total_halaqah: totalHalaqah,
         halaqah_with_program: halaqahWithProgram,
@@ -454,8 +454,8 @@ export function AnalysisTab() {
                   <span className="font-semibold text-yellow-600">{analysis.pending_thalibah}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Graduated:</span>
-                  <span className="font-semibold text-purple-600">{analysis.graduated_thalibah}</span>
+                  <span className="text-gray-600">Selected:</span>
+                  <span className="font-semibold text-purple-600">{analysis.selected_thalibah}</span>
                 </div>
               </div>
             </div>
