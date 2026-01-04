@@ -377,7 +377,7 @@ export function AssignThalibahModal({ batchId, batchName, onClose, onSuccess }: 
                 </p>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 scrollbar-track-gray-100">
                 {thalibahs.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -427,7 +427,7 @@ export function AssignThalibahModal({ batchId, batchName, onClose, onSuccess }: 
               </div>
 
               {showHalaqahList && (
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-400 hover:scrollbar-thumb-gray-500 scrollbar-track-gray-100">
                   {halaqahs.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
