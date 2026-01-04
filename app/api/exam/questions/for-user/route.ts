@@ -73,6 +73,14 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
+    console.log('[Exam API] Date check:', {
+      today: today.toISOString(),
+      todayDateOnly,
+      selection_start_date: batch.selection_start_date,
+      selection_end_date: batch.selection_end_date,
+      batchStatus: batch.status
+    });
+
     if (batch.selection_start_date && batch.selection_end_date) {
       // Parse dates as YYYY-MM-DD and convert to comparable numbers
       const startDateStr = batch.selection_start_date.substring(0, 10);
@@ -80,6 +88,16 @@ export async function GET(request: NextRequest) {
 
       const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
       const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
+
+      console.log('[Exam API] Date comparison:', {
+        startDateStr,
+        endDateStr,
+        startDateNum,
+        endDateNum,
+        todayDateOnly,
+        isBeforeStart: todayDateOnly < startDateNum,
+        isAfterEnd: todayDateOnly > endDateNum
+      });
 
       if (todayDateOnly < startDateNum || todayDateOnly > endDateNum) {
         const formatDate = (dateStr: string) => {
@@ -97,6 +115,11 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
       }
     } else {
+      console.log('[Exam API] Selection dates not set:', {
+        hasStartDate: !!batch.selection_start_date,
+        hasEndDate: !!batch.selection_end_date
+      });
+
       return NextResponse.json({
         error: 'Selection dates not set',
         details: 'Tanggal seleksi belum ditentukan untuk batch ini. Silakan hubungi admin.'
