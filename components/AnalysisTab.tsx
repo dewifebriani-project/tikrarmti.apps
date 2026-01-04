@@ -181,10 +181,24 @@ export function AnalysisTab() {
       });
 
       // Get thalibah stats
-      const { data: thalibahs } = await supabase
+      console.log('[AnalysisTab] Querying thalibah for batch_id:', batchId);
+      const { data: thalibahs, error: thalibahError } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select('id, status, final_status')
         .eq('batch_id', batchId);
+
+      console.log('[AnalysisTab] Thalibah query result:', {
+        count: thalibahs?.length,
+        error: thalibahError,
+        sample: thalibahs?.slice(0, 3)
+      });
+
+      if (thalibahError) {
+        console.error('[AnalysisTab] Error loading thalibah:', thalibahError);
+        toast.error('Failed to load thalibah data: ' + thalibahError.message);
+        setLoading(false);
+        return;
+      }
 
       const thalibahList = (thalibahs || []) as ThalibahRegistration[];
       const totalThalibah = thalibahList.length;
@@ -192,16 +206,42 @@ export function AnalysisTab() {
       const pendingThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'pending' || t.status === 'review').length;
       const graduatedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.final_status === 'lulus').length;
 
+      console.log('[AnalysisTab] Thalibah stats:', {
+        total: totalThalibah,
+        approved: approvedThalibah,
+        pending: pendingThalibah,
+        graduated: graduatedThalibah
+      });
+
       // Get halaqah stats
-      const { data: halaqahs } = await supabase
+      console.log('[AnalysisTab] Querying halaqah (all active)');
+      const { data: halaqahs, error: halaqahError } = await supabase
         .from('halaqah')
         .select('id, program_id, max_students, muallimah_id')
         .eq('status', 'active');
+
+      console.log('[AnalysisTab] Halaqah query result:', {
+        count: halaqahs?.length,
+        error: halaqahError
+      });
+
+      if (halaqahError) {
+        console.error('[AnalysisTab] Error loading halaqah:', halaqahError);
+        toast.error('Failed to load halaqah data: ' + halaqahError.message);
+        setLoading(false);
+        return;
+      }
 
       // Filter halaqahs by muallimah from this batch
       const approvedMuallimaIds = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').map((m: MuallimaRegistration) => m.user_id);
       const halaqahList = (halaqahs || []) as Halaqah[];
       const batchHalaqahs = halaqahList.filter((h: Halaqah) => h.muallimah_id && approvedMuallimaIds.includes(h.muallimah_id));
+
+      console.log('[AnalysisTab] Halaqah filtering:', {
+        totalHalaqahs: halaqahList.length,
+        approvedMuallimaCount: approvedMuallimaIds.length,
+        batchHalaqahsCount: batchHalaqahs.length
+      });
 
       const totalHalaqah = batchHalaqahs.length;
       const halaqahWithProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id !== null).length;
@@ -210,16 +250,33 @@ export function AnalysisTab() {
       // Calculate capacity
       const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
 
-      // Get filled slots
-      const halaqahIds = batchHalaqahs.map((h: Halaqah) => h.id);
-      const { data: students } = await supabase
-        .from('halaqah_students')
-        .select('id')
-        .in('halaqah_id', halaqahIds)
-        .eq('status', 'active');
+      // Get filled slots - only if there are halaqahs
+      let filledSlots = 0;
+      if (batchHalaqahs.length > 0) {
+        const halaqahIds = batchHalaqahs.map((h: Halaqah) => h.id);
+        console.log('[AnalysisTab] Querying halaqah_students for halaqah_ids:', halaqahIds.length);
 
-      const studentList = (students || []) as HalaqahStudent[];
-      const filledSlots = studentList.length;
+        const { data: students, error: studentsError } = await supabase
+          .from('halaqah_students')
+          .select('id')
+          .in('halaqah_id', halaqahIds)
+          .eq('status', 'active');
+
+        console.log('[AnalysisTab] Students query result:', {
+          count: students?.length,
+          error: studentsError
+        });
+
+        if (studentsError) {
+          console.error('[AnalysisTab] Error loading students:', studentsError);
+          // Don't fail the entire analysis, just set to 0
+          filledSlots = 0;
+        } else {
+          const studentList = (students || []) as HalaqahStudent[];
+          filledSlots = studentList.length;
+        }
+      }
+
       const availableSlots = totalCapacity - filledSlots;
       const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
 
