@@ -587,17 +587,9 @@ export default function PerjalananSaya() {
                       onClick={async () => {
                         console.log('Opening debug API...');
                         try {
-                          const { createClient } = await import('@/lib/supabase/client');
-                          const supabase = createClient();
-                          const { data: { session } } = await supabase.auth.getSession();
-
-                          const headers: Record<string, string> = {};
-                          if (session?.access_token) {
-                            headers['Authorization'] = `Bearer ${session.access_token}`;
-                          }
-
+                          // API handles auth server-side via cookies (no client-side auth check)
+                          // Follows arsitektur.md: No client-side auth checks
                           const response = await fetch('/api/debug/registration', {
-                            headers,
                             credentials: 'include'
                           });
 
