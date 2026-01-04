@@ -280,9 +280,9 @@ export function AnalysisTab() {
       const availableSlots = totalCapacity - filledSlots;
       const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
 
-      // Calculate ratios
-      const ratio = approvedMuallimah > 0 ? `1:${Math.round(approvedThalibah / approvedMuallimah)}` : '0:0';
-      const avgThalibahPerMuallimah = approvedMuallimah > 0 ? Math.round(approvedThalibah / approvedMuallimah) : 0;
+      // Calculate ratios - using SELECTED thalibah (sudah lulus ujian seleksi)
+      const ratio = approvedMuallimah > 0 ? `1:${Math.round(selectedThalibah / approvedMuallimah)}` : '0:0';
+      const avgThalibahPerMuallimah = approvedMuallimah > 0 ? Math.round(selectedThalibah / approvedMuallimah) : 0;
 
       // Determine adequacy - UPDATED: 1:10 maksimal
       const recommendedRatio = 10; // 1 muallimah : 10 thalibah (MAKSIMAL)
@@ -292,13 +292,15 @@ export function AnalysisTab() {
       let recommendation = '';
       if (approvedMuallimah === 0) {
         recommendation = 'Belum ada muallimah yang diapprove. Segera review dan approve muallimah.';
+      } else if (selectedThalibah === 0) {
+        recommendation = 'Belum ada thalibah yang selected (lulus ujian seleksi). Tunggu proses ujian VN dan pilihan ganda selesai.';
       } else if (avgThalibahPerMuallimah > recommendedRatio) {
-        const neededMuallimah = Math.ceil(approvedThalibah / recommendedRatio) - approvedMuallimah;
+        const neededMuallimah = Math.ceil(selectedThalibah / recommendedRatio) - approvedMuallimah;
         recommendation = `Jumlah muallimah kurang memadai. Dibutuhkan tambahan ${neededMuallimah} muallimah untuk rasio ideal (1:10 maksimal).`;
-      } else if (avgThalibahPerMuallimah < 5 && approvedThalibah > 0) {
+      } else if (avgThalibahPerMuallimah < 5 && selectedThalibah > 0) {
         recommendation = 'Jumlah muallimah berlebih. Pertimbangkan untuk meningkatkan kuota thalibah per halaqah.';
       } else {
-        recommendation = 'Rasio muallimah dan thalibah sudah ideal. Pastikan semua halaqah sudah di-assign program.';
+        recommendation = 'Rasio muallimah dan thalibah sudah ideal. Siap untuk dijadwalkan ke halaqah.';
       }
 
       const analysisData: BatchAnalysis = {
