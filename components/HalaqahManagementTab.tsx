@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
+import { formatSchedule, formatClassType } from '@/lib/format-utils';
 
 interface Halaqah {
   id: string;
@@ -339,11 +340,16 @@ export function HalaqahManagementTab() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Schedule</p>
-                <p className="font-medium">
-                  {selectedHalaqah.day_of_week
-                    ? `${getDayName(selectedHalaqah.day_of_week)}, ${formatTime(selectedHalaqah.start_time)} - ${formatTime(selectedHalaqah.end_time)}`
-                    : selectedHalaqah.preferred_schedule || 'Not set'}
-                </p>
+                {selectedHalaqah.day_of_week ? (
+                  <p className="font-medium">
+                    {getDayName(selectedHalaqah.day_of_week)}, {formatTime(selectedHalaqah.start_time)} - {formatTime(selectedHalaqah.end_time)}
+                  </p>
+                ) : (
+                  <div
+                    className="font-medium text-gray-900"
+                    dangerouslySetInnerHTML={{ __html: formatSchedule(selectedHalaqah.preferred_schedule) }}
+                  />
+                )}
               </div>
               <div>
                 <p className="text-sm text-gray-500">Muallimah</p>
@@ -422,7 +428,7 @@ export function HalaqahManagementTab() {
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-900">
-                          {halaqah.class_type || halaqah.program?.class_type || '-'}
+                          {formatClassType(halaqah.class_type || halaqah.program?.class_type)}
                         </p>
                       </td>
                       <td className="px-6 py-4">
@@ -432,22 +438,23 @@ export function HalaqahManagementTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-900">
-                          {halaqah.day_of_week ? (
-                            <>
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              <span>{getDayName(halaqah.day_of_week)}</span>
-                              {halaqah.start_time && (
-                                <>
-                                  <Clock className="w-4 h-4 text-gray-400 ml-2" />
-                                  <span>{halaqah.start_time} - {halaqah.end_time}</span>
-                                </>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-gray-500">{halaqah.preferred_schedule || 'Not set'}</span>
-                          )}
-                        </div>
+                        {halaqah.day_of_week ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-900">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span>{getDayName(halaqah.day_of_week)}</span>
+                            {halaqah.start_time && (
+                              <>
+                                <Clock className="w-4 h-4 text-gray-400 ml-2" />
+                                <span>{halaqah.start_time} - {halaqah.end_time}</span>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div
+                            className="text-sm max-w-xs whitespace-pre-line text-gray-900"
+                            dangerouslySetInnerHTML={{ __html: formatSchedule(halaqah.preferred_schedule) }}
+                          />
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-900">
