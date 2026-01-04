@@ -374,7 +374,7 @@ export function HalaqahManagementTab() {
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg">
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
@@ -423,7 +423,9 @@ export function HalaqahManagementTab() {
                     <tr key={halaqah.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div>
-                          <p className="font-medium text-gray-900">{halaqah.name}</p>
+                          <p className="font-medium text-gray-900">
+                            {halaqah.name.includes('Ustadzah') ? halaqah.name : `Halaqah Ustadzah ${halaqah.name}`}
+                          </p>
                           {halaqah.location && (
                             <p className="text-sm text-gray-500">{halaqah.location}</p>
                           )}
@@ -471,6 +473,9 @@ export function HalaqahManagementTab() {
                             {halaqah._count?.students || 0}/{halaqah.max_students || 20}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(halaqah.status)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
