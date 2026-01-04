@@ -124,12 +124,15 @@ export function AnalysisTab() {
   const loadAnalysis = async (batchId: string) => {
     setLoading(true);
     try {
-      // Get batch info
-      const { data: batchData } = await supabase
-        .from('batches')
-        .select('id, name, status')
-        .eq('id', batchId)
-        .single();
+      // Get batch info - use API to avoid RLS issues
+      const batchResponse = await fetch('/api/admin/batches');
+      if (!batchResponse.ok) {
+        toast.error('Failed to load batch data');
+        return;
+      }
+
+      const batchResult = await batchResponse.json();
+      const batchData = batchResult.data?.find((b: Batch) => b.id === batchId);
 
       if (!batchData) {
         toast.error('Batch not found');
