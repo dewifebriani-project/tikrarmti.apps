@@ -3753,6 +3753,16 @@ Tim Markaz Tikrar Indonesia`;
         const hasNoSubmission = !t.oral_submission_url;
         const hasNoScore = t.oral_total_score === null || t.oral_total_score === undefined;
 
+        // Debug logging
+        console.log('[Oral Score Debug]', {
+          id: t.id,
+          name: t.full_name,
+          oral_submission_url: t.oral_submission_url,
+          oral_total_score: t.oral_total_score,
+          hasNoSubmission,
+          hasNoScore
+        });
+
         // If no score at all, show pending
         if (hasNoScore) {
           return <span className="text-xs text-yellow-600 font-medium">Pending</span>;
