@@ -124,32 +124,61 @@ export function AnalysisTab() {
   const loadAnalysis = async (batchId: string) => {
     setLoading(true);
     try {
+      console.log('[AnalysisTab] Loading analysis for batch:', batchId);
+
       // Get batch info - use API to avoid RLS issues
       const batchResponse = await fetch('/api/admin/batches');
       if (!batchResponse.ok) {
+        console.error('[AnalysisTab] Failed to load batches:', batchResponse.status);
         toast.error('Failed to load batch data');
+        setLoading(false);
         return;
       }
 
       const batchResult = await batchResponse.json();
       const batchData = batchResult.data?.find((b: Batch) => b.id === batchId);
 
+      console.log('[AnalysisTab] Batch data:', batchData);
+
       if (!batchData) {
+        console.error('[AnalysisTab] Batch not found:', batchId);
         toast.error('Batch not found');
+        setLoading(false);
         return;
       }
 
       // Get muallimah stats
-      const { data: muallimahs } = await supabase
+      console.log('[AnalysisTab] Querying muallimah for batch_id:', batchId);
+      const { data: muallimahs, error: muallimaError } = await supabase
         .from('muallimah_registrations')
         .select('id, status, preferred_max_thalibah, user_id')
         .eq('batch_id', batchId);
+
+      console.log('[AnalysisTab] Muallimah query result:', {
+        count: muallimahs?.length,
+        error: muallimaError,
+        sample: muallimahs?.slice(0, 3)
+      });
+
+      if (muallimaError) {
+        console.error('[AnalysisTab] Error loading muallimah:', muallimaError);
+        toast.error('Failed to load muallimah data: ' + muallimaError.message);
+        setLoading(false);
+        return;
+      }
 
       const muallimaList = (muallimahs || []) as MuallimaRegistration[];
       const totalMuallimah = muallimaList.length;
       const approvedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').length;
       const pendingMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'pending' || m.status === 'review').length;
       const rejectedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'rejected').length;
+
+      console.log('[AnalysisTab] Muallimah stats:', {
+        total: totalMuallimah,
+        approved: approvedMuallimah,
+        pending: pendingMuallimah,
+        rejected: rejectedMuallimah
+      });
 
       // Get thalibah stats
       const { data: thalibahs } = await supabase
