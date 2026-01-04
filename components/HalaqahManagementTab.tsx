@@ -12,11 +12,13 @@ import {
   Eye,
   Trash2,
   Loader2,
-  Sparkles
+  Sparkles,
+  Edit
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
+import { EditHalaqahModal } from '@/components/EditHalaqahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
 
 interface Halaqah {
@@ -83,6 +85,7 @@ export function HalaqahManagementTab() {
 
   // Modals
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
+  const [editingHalaqah, setEditingHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
 
@@ -470,9 +473,6 @@ export function HalaqahManagementTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {getStatusBadge(halaqah.status)}
-                      </td>
-                      <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setSelectedHalaqah(halaqah)}
@@ -480,6 +480,14 @@ export function HalaqahManagementTab() {
                             title="View details"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            onClick={() => setEditingHalaqah(halaqah)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Edit halaqah"
+                          >
+                            <Edit className="w-4 h-4" />
                           </button>
 
                           {halaqah.status === 'inactive' && (
@@ -526,6 +534,18 @@ export function HalaqahManagementTab() {
           onClose={() => setShowAutoCreateModal(false)}
           onSuccess={() => {
             setShowAutoCreateModal(false);
+            setRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
+
+      {/* Edit Halaqah Modal */}
+      {editingHalaqah && (
+        <EditHalaqahModal
+          halaqah={editingHalaqah}
+          onClose={() => setEditingHalaqah(null)}
+          onSuccess={() => {
+            setEditingHalaqah(null);
             setRefreshTrigger(prev => prev + 1);
           }}
         />

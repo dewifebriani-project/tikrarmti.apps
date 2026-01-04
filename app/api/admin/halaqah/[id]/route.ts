@@ -34,7 +34,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { status } = body;
+    const { status, ...updateData } = body;
 
     // Get halaqah data for audit
     const { data: existingHalaqah } = await supabaseAdmin
@@ -43,9 +43,29 @@ export async function PATCH(
       .eq('id', params.id)
       .single();
 
+    // Prepare update data
+    const dataToUpdate: any = {};
+
+    if (status) {
+      dataToUpdate.status = status;
+    }
+
+    // Add other fields if provided
+    if (updateData.name !== undefined) dataToUpdate.name = updateData.name;
+    if (updateData.description !== undefined) dataToUpdate.description = updateData.description;
+    if (updateData.program_id !== undefined) dataToUpdate.program_id = updateData.program_id;
+    if (updateData.day_of_week !== undefined) dataToUpdate.day_of_week = updateData.day_of_week;
+    if (updateData.start_time !== undefined) dataToUpdate.start_time = updateData.start_time;
+    if (updateData.end_time !== undefined) dataToUpdate.end_time = updateData.end_time;
+    if (updateData.location !== undefined) dataToUpdate.location = updateData.location;
+    if (updateData.max_students !== undefined) dataToUpdate.max_students = updateData.max_students;
+    if (updateData.waitlist_max !== undefined) dataToUpdate.waitlist_max = updateData.waitlist_max;
+    if (updateData.preferred_juz !== undefined) dataToUpdate.preferred_juz = updateData.preferred_juz;
+    if (updateData.zoom_link !== undefined) dataToUpdate.zoom_link = updateData.zoom_link;
+
     const { error } = await supabaseAdmin
       .from('halaqah')
-      .update({ status })
+      .update(dataToUpdate)
       .eq('id', params.id);
 
     if (error) {
@@ -63,8 +83,8 @@ export async function PATCH(
       resource: 'halaqah',
       details: {
         halaqah_id: params.id,
-        old_status: existingHalaqah?.status,
-        new_status: status
+        old_data: existingHalaqah,
+        new_data: dataToUpdate
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
@@ -73,7 +93,7 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      message: `Status updated to ${status}`
+      message: status ? `Status updated to ${status}` : 'Halaqah updated successfully'
     });
 
   } catch (error) {
