@@ -3769,7 +3769,9 @@ Tim Markaz Tikrar Indonesia`;
         }
 
         // Has score - show it with indicator if no submission
-        const isPassing = t.oral_total_score >= 70;
+        // Use non-null assertion since we checked above
+        const score = t.oral_total_score!;
+        const isPassing = score >= 70;
         return (
           <div className="flex items-center gap-1">
             {/* Special indicator for score without submission */}
@@ -3779,7 +3781,7 @@ Tim Markaz Tikrar Indonesia`;
               </span>
             )}
             <span className={`text-sm font-bold ${isPassing ? 'text-green-600' : 'text-red-600'}`}>
-              {t.oral_total_score.toFixed(0)}
+              {score.toFixed(0)}
             </span>
             <span className={`px-1.5 py-0.5 text-xs font-semibold rounded ${isPassing ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {isPassing ? 'PASS' : 'FAIL'}
