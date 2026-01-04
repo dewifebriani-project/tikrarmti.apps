@@ -12,7 +12,7 @@ Fitur Auto Create Halaqah memungkinkan admin untuk membuat halaqah secara otomat
 ```sql
 CREATE TABLE halaqah (
   id uuid PRIMARY KEY,
-  program_id uuid NOT NULL REFERENCES programs(id),
+  program_id uuid REFERENCES programs(id),  -- Nullable: assigned by admin after halaqah creation
   muallimah_id uuid REFERENCES users(id),
   name varchar NOT NULL,
   description text,
@@ -323,3 +323,26 @@ Tidak ada API endpoint khusus untuk auto create halaqah. Semua operasi dilakukan
 - Migration Files:
   - `supabase/migrations/20260102_add_halaqah_scheduling_system.sql`
   - `supabase/migrations/20260103_add_halaqah_zoom_link.sql`
+  - `supabase/migrations/20260104_make_program_id_nullable.sql`
+
+## Migration Required
+
+Sebelum menggunakan fitur Auto Create Halaqah, jalankan migration berikut di Supabase SQL Editor:
+
+```sql
+-- Migration: Make halaqah.program_id nullable
+-- Alasan: Halaqah dibuat terlebih dahulu tanpa program, kemudian program ditambahkan manual oleh admin
+
+ALTER TABLE public.halaqah ALTER COLUMN program_id DROP NOT NULL;
+
+-- Verify the change
+SELECT
+  column_name,
+  is_nullable,
+  data_type
+FROM information_schema.columns
+WHERE table_name = 'halaqah'
+  AND column_name = 'program_id';
+```
+
+Setelah migration berhasil, `is_nullable` untuk kolom `program_id` harus bernilai `YES`.

@@ -172,7 +172,8 @@
       "Bash(npx supabase:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Add proper HTTP headers to Supabase browser client\n\nResolves 406 \\(Not Acceptable\\) error when making REST API calls by adding explicit Accept and Content-Type headers to the browser client configuration.\n\nThis ensures all Supabase REST API requests from the browser include the proper headers expected by the Supabase API.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git config:*)",
-      "Bash(found\" due to RLS blocking client-side Supabase queries. Created new admin \nAPI endpoints that use supabaseAdmin client to properly fetch halaqah data.\n\nChanges:\n- Create /api/admin/halaqah endpoint for fetching halaqahs\n- Create /api/admin/halaqah/[id] endpoint for PATCH and DELETE\n- Update HalaqahManagementTab to use API instead of direct queries\n- Remove unused Supabase client import\n\nThis follows the same pattern used in AnalysisTab for bypassing RLS \nin admin operations.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(found\" due to RLS blocking client-side Supabase queries. Created new admin \nAPI endpoints that use supabaseAdmin client to properly fetch halaqah data.\n\nChanges:\n- Create /api/admin/halaqah endpoint for fetching halaqahs\n- Create /api/admin/halaqah/[id] endpoint for PATCH and DELETE\n- Update HalaqahManagementTab to use API instead of direct queries\n- Remove unused Supabase client import\n\nThis follows the same pattern used in AnalysisTab for bypassing RLS \nin admin operations.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(supabase db push:*)"
     ],
     "deny": [],
     "ask": []

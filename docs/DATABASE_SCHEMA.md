@@ -158,7 +158,7 @@ CREATE TABLE public.exam_questions (
 );
 CREATE TABLE public.halaqah (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  program_id uuid NOT NULL,
+  program_id uuid,  -- Nullable: assigned by admin after halaqah creation
   name character varying NOT NULL,
   description text,
   day_of_week integer CHECK (day_of_week >= 1 AND day_of_week <= 7),
