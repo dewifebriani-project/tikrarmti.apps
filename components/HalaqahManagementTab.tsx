@@ -18,12 +18,14 @@ import {
   ChevronDown,
   Search,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 import { EditHalaqahModal } from '@/components/EditHalaqahModal';
+import { AssignThalibahModal } from '@/components/AssignThalibahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
 
 interface Halaqah {
@@ -102,6 +104,7 @@ export function HalaqahManagementTab() {
   const [editingHalaqah, setEditingHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
+  const [showAssignThalibahModal, setShowAssignThalibahModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -363,13 +366,23 @@ export function HalaqahManagementTab() {
             Manage halaqah (study groups) for muallimah and thalibah
           </p>
         </div>
-        <button
-          onClick={() => setShowAutoCreateModal(true)}
-          className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
-        >
-          <Sparkles className="w-4 h-4" />
-          Auto Create Halaqah
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowAssignThalibahModal(true)}
+            disabled={!selectedBatch}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <UserPlus className="w-4 h-4" />
+            Assign Thalibah
+          </button>
+          <button
+            onClick={() => setShowAutoCreateModal(true)}
+            className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Auto Create Halaqah
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -755,6 +768,19 @@ export function HalaqahManagementTab() {
           onClose={() => setShowAutoCreateModal(false)}
           onSuccess={() => {
             setShowAutoCreateModal(false);
+            setRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
+
+      {/* Assign Thalibah Modal */}
+      {showAssignThalibahModal && selectedBatch && (
+        <AssignThalibahModal
+          batchId={selectedBatch}
+          batchName={batches.find(b => b.id === selectedBatch)?.name || ''}
+          onClose={() => setShowAssignThalibahModal(false)}
+          onSuccess={() => {
+            setShowAssignThalibahModal(false);
             setRefreshTrigger(prev => prev + 1);
           }}
         />
