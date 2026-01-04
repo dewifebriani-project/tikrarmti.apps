@@ -505,8 +505,8 @@ export function HalaqahManagementTab() {
           ) : (
             <>
               {/* Table with horizontal scroll */}
-              <div className="overflow-x-auto overflow-y-visible">
-                <table className="w-full border-collapse">
+              <div className="overflow-x-auto overflow-y-visible scroll-smooth">
+                <table className="w-full border-collapse min-w-[1200px]">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
                       <th
@@ -622,7 +622,7 @@ export function HalaqahManagementTab() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => setSelectedHalaqah(halaqah)}
-                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors border border-transparent hover:border-indigo-200"
+                              className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-all border border-indigo-200 hover:border-indigo-300"
                               title="View details"
                             >
                               <Eye className="w-4 h-4" />
@@ -630,7 +630,7 @@ export function HalaqahManagementTab() {
 
                             <button
                               onClick={() => setEditingHalaqah(halaqah)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
+                              className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-all border border-blue-200 hover:border-blue-300"
                               title="Edit halaqah"
                             >
                               <Edit className="w-4 h-4" />
@@ -639,7 +639,7 @@ export function HalaqahManagementTab() {
                             {halaqah.status === 'inactive' && (
                               <button
                                 onClick={() => handleStatusChange(halaqah.id, 'active')}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors border border-transparent hover:border-green-200"
+                                className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-md transition-all border border-green-200 hover:border-green-300"
                                 title="Activate halaqah"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
@@ -649,7 +649,7 @@ export function HalaqahManagementTab() {
                             {halaqah.status === 'active' && (
                               <button
                                 onClick={() => handleStatusChange(halaqah.id, 'inactive')}
-                                className="p-2 text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-transparent hover:border-orange-200"
+                                className="p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-md transition-all border border-orange-200 hover:border-orange-300"
                                 title="Deactivate halaqah"
                               >
                                 <XCircle className="w-4 h-4" />
@@ -658,7 +658,7 @@ export function HalaqahManagementTab() {
 
                             <button
                               onClick={() => handleDeleteHalaqah(halaqah.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                              className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-all border border-red-200 hover:border-red-300"
                               title="Delete halaqah"
                             >
                               <Trash2 className="w-4 h-4" />

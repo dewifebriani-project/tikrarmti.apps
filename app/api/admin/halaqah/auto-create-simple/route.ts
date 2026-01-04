@@ -95,12 +95,22 @@ export async function POST(request: NextRequest) {
         }
 
         // Create halaqah (without program assignment)
+        // Clean up the name to avoid double "Halaqah" prefix
+        let cleanName = muallimah.full_name;
+        if (cleanName.startsWith('Halaqah ')) {
+          cleanName = cleanName.substring(8); // Remove "Halaqah " prefix
+        }
+        if (cleanName.startsWith('Ustadzah ')) {
+          cleanName = cleanName.substring(9); // Remove "Ustadzah " prefix
+        }
+        const halaqahName = `Halaqah Ustadzah ${cleanName}`;
+
         const { data: newHalaqah, error: createError } = await supabaseAdmin
           .from('halaqah')
           .insert({
             program_id: null,
             muallimah_id: muallimah.user_id,
-            name: `Halaqah Ustadzah ${muallimah.full_name}`,
+            name: halaqahName,
             description: `Halaqah diampu oleh ${muallimah.full_name}`,
             day_of_week: null,
             start_time: null,
