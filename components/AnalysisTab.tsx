@@ -20,6 +20,30 @@ interface Batch {
   status: string;
 }
 
+interface MuallimaRegistration {
+  id: string;
+  status: string;
+  preferred_max_thalibah: number | null;
+  user_id: string;
+}
+
+interface ThalibahRegistration {
+  id: string;
+  status: string;
+  final_status: string | null;
+}
+
+interface Halaqah {
+  id: string;
+  program_id: string | null;
+  max_students: number | null;
+  muallimah_id: string | null;
+}
+
+interface HalaqahStudent {
+  id: string;
+}
+
 interface BatchAnalysis {
   batch_id: string;
   batch_name: string;
@@ -115,13 +139,14 @@ export function AnalysisTab() {
       // Get muallimah stats
       const { data: muallimahs } = await supabase
         .from('muallimah_registrations')
-        .select('id, status, preferred_max_thalibah')
+        .select('id, status, preferred_max_thalibah, user_id')
         .eq('batch_id', batchId);
 
-      const totalMuallimah = muallimahs?.length || 0;
-      const approvedMuallimah = muallimahs?.filter(m => m.status === 'approved').length || 0;
-      const pendingMuallimah = muallimahs?.filter(m => m.status === 'pending' || m.status === 'review').length || 0;
-      const rejectedMuallimah = muallimahs?.filter(m => m.status === 'rejected').length || 0;
+      const muallimaList = (muallimahs || []) as MuallimaRegistration[];
+      const totalMuallimah = muallimaList.length;
+      const approvedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').length;
+      const pendingMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'pending' || m.status === 'review').length;
+      const rejectedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'rejected').length;
 
       // Get thalibah stats
       const { data: thalibahs } = await supabase
@@ -129,10 +154,11 @@ export function AnalysisTab() {
         .select('id, status, final_status')
         .eq('batch_id', batchId);
 
-      const totalThalibah = thalibahs?.length || 0;
-      const approvedThalibah = thalibahs?.filter(t => t.status === 'approved').length || 0;
-      const pendingThalibah = thalibahs?.filter(t => t.status === 'pending' || t.status === 'review').length || 0;
-      const graduatedThalibah = thalibahs?.filter(t => t.final_status === 'lulus').length || 0;
+      const thalibahList = (thalibahs || []) as ThalibahRegistration[];
+      const totalThalibah = thalibahList.length;
+      const approvedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'approved').length;
+      const pendingThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'pending' || t.status === 'review').length;
+      const graduatedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.final_status === 'lulus').length;
 
       // Get halaqah stats
       const { data: halaqahs } = await supabase
@@ -141,25 +167,27 @@ export function AnalysisTab() {
         .eq('status', 'active');
 
       // Filter halaqahs by muallimah from this batch
-      const approvedMuallimaIds = muallimahs?.filter(m => m.status === 'approved').map(m => m.user_id) || [];
-      const batchHalaqahs = halaqahs?.filter(h => approvedMuallimaIds.includes(h.muallimah_id)) || [];
+      const approvedMuallimaIds = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').map((m: MuallimaRegistration) => m.user_id);
+      const halaqahList = (halaqahs || []) as Halaqah[];
+      const batchHalaqahs = halaqahList.filter((h: Halaqah) => h.muallimah_id && approvedMuallimaIds.includes(h.muallimah_id));
 
       const totalHalaqah = batchHalaqahs.length;
-      const halaqahWithProgram = batchHalaqahs.filter(h => h.program_id !== null).length;
-      const halaqahWithoutProgram = batchHalaqahs.filter(h => h.program_id === null).length;
+      const halaqahWithProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id !== null).length;
+      const halaqahWithoutProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id === null).length;
 
       // Calculate capacity
-      const totalCapacity = batchHalaqahs.reduce((sum, h) => sum + (h.max_students || 0), 0);
+      const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
 
       // Get filled slots
-      const halaqahIds = batchHalaqahs.map(h => h.id);
+      const halaqahIds = batchHalaqahs.map((h: Halaqah) => h.id);
       const { data: students } = await supabase
         .from('halaqah_students')
         .select('id')
         .in('halaqah_id', halaqahIds)
         .eq('status', 'active');
 
-      const filledSlots = students?.length || 0;
+      const studentList = (students || []) as HalaqahStudent[];
+      const filledSlots = studentList.length;
       const availableSlots = totalCapacity - filledSlots;
       const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
 
@@ -167,8 +195,8 @@ export function AnalysisTab() {
       const ratio = approvedMuallimah > 0 ? `1:${Math.round(approvedThalibah / approvedMuallimah)}` : '0:0';
       const avgThalibahPerMuallimah = approvedMuallimah > 0 ? Math.round(approvedThalibah / approvedMuallimah) : 0;
 
-      // Determine adequacy
-      const recommendedRatio = 20; // 1 muallimah : 20 thalibah
+      // Determine adequacy - UPDATED: 1:10 maksimal
+      const recommendedRatio = 10; // 1 muallimah : 10 thalibah (MAKSIMAL)
       const isAdequate = avgThalibahPerMuallimah <= recommendedRatio;
 
       // Generate recommendation
@@ -177,8 +205,8 @@ export function AnalysisTab() {
         recommendation = 'Belum ada muallimah yang diapprove. Segera review dan approve muallimah.';
       } else if (avgThalibahPerMuallimah > recommendedRatio) {
         const neededMuallimah = Math.ceil(approvedThalibah / recommendedRatio) - approvedMuallimah;
-        recommendation = `Jumlah muallimah kurang memadai. Dibutuhkan tambahan ${neededMuallimah} muallimah untuk rasio ideal.`;
-      } else if (avgThalibahPerMuallimah < 10 && approvedThalibah > 0) {
+        recommendation = `Jumlah muallimah kurang memadai. Dibutuhkan tambahan ${neededMuallimah} muallimah untuk rasio ideal (1:10 maksimal).`;
+      } else if (avgThalibahPerMuallimah < 5 && approvedThalibah > 0) {
         recommendation = 'Jumlah muallimah berlebih. Pertimbangkan untuk meningkatkan kuota thalibah per halaqah.';
       } else {
         recommendation = 'Rasio muallimah dan thalibah sudah ideal. Pastikan semua halaqah sudah di-assign program.';
@@ -376,7 +404,7 @@ export function AnalysisTab() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Recommended:</span>
-                  <span className="font-semibold text-gray-600">≤ 20</span>
+                  <span className="font-semibold text-gray-600">≤ 10</span>
                 </div>
               </div>
             </div>
