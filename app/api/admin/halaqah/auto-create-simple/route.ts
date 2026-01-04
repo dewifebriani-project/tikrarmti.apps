@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
           .insert({
             program_id: null,
             muallimah_id: muallimah.user_id,
-            name: `Halaqah ${muallimah.full_name}`,
+            name: `Halaqah Ustadzah ${muallimah.full_name}`,
             description: `Halaqah diampu oleh ${muallimah.full_name}`,
             day_of_week: null,
             start_time: null,

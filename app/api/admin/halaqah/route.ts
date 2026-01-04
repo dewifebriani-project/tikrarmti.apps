@@ -40,50 +40,79 @@ export async function GET(request: NextRequest) {
 
     console.log('[Halaqah API] Loading halaqahs with filters:', { batch_id, program_id, status });
 
-    // Build query for halaqah
-    let query = supabaseAdmin
-      .from('halaqah')
-      .select('*')
-      .order('created_at', { ascending: false });
+    let halaqahs: any[] | null = null;
 
-    // Apply filters
+    // If batch_id is provided, we need special handling for halaqah with null program_id
     if (batch_id) {
-      // First get program IDs for this batch
+      // Get all muallimah IDs for this batch
+      const { data: batchMuallimahRegs } = await supabaseAdmin
+        .from('muallimah_registrations')
+        .select('user_id')
+        .eq('batch_id', batch_id)
+        .eq('status', 'approved');
+
+      const muallimahIds = batchMuallimahRegs?.map((m: { user_id: string }) => m.user_id) || [];
+
+      // Get program IDs for this batch
       const { data: batchPrograms } = await supabaseAdmin
         .from('programs')
         .select('id')
         .eq('batch_id', batch_id);
 
-      if (batchPrograms && batchPrograms.length > 0) {
-        query = query.in('program_id', batchPrograms.map((p: { id: string }) => p.id));
-      } else {
-        // No programs in this batch, return empty
-        return NextResponse.json({
-          success: true,
-          data: []
-        });
+      const programIds = batchPrograms?.map((p: { id: string }) => p.id) || [];
+
+      console.log('[Halaqah API] Batch muallimah IDs:', muallimahIds.length, 'Program IDs:', programIds.length);
+
+      // Fetch all halaqah and filter manually (needed for OR logic with null program_id)
+      const { data: allHalaqahs } = await supabaseAdmin
+        .from('halaqah')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // Filter: halaqah belongs to batch if:
+      // 1. program_id is in batch programs, OR
+      // 2. muallimah_id is in batch muallimah AND program_id is null (unassigned halaqah)
+      halaqahs = allHalaqahs?.filter((h: any) => {
+        // Match by program
+        if (h.program_id && programIds.includes(h.program_id)) {
+          return true;
+        }
+        // Match by muallimah in batch (for halaqah without program)
+        if (h.muallimah_id && muallimahIds.includes(h.muallimah_id)) {
+          return true;
+        }
+        return false;
+      }) || [];
+
+      console.log('[Halaqah API] Found', halaqahs.length, 'halaqahs for batch');
+    } else {
+      // No batch filter - use normal query
+      let query = supabaseAdmin
+        .from('halaqah')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (program_id) {
+        query = query.eq('program_id', program_id);
       }
+
+      if (status) {
+        query = query.eq('status', status);
+      }
+
+      const { data, error: halaqahError } = await query;
+
+      if (halaqahError) {
+        console.error('[Halaqah API] Error loading halaqahs:', halaqahError);
+        return NextResponse.json(
+          { error: 'Failed to load halaqah data', details: halaqahError.message },
+          { status: 500 }
+        );
+      }
+
+      halaqahs = data || [];
+      console.log('[Halaqah API] Found', halaqahs.length, 'halaqahs');
     }
-
-    if (program_id) {
-      query = query.eq('program_id', program_id);
-    }
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data: halaqahs, error: halaqahError } = await query;
-
-    if (halaqahError) {
-      console.error('[Halaqah API] Error loading halaqahs:', halaqahError);
-      return NextResponse.json(
-        { error: 'Failed to load halaqah data', details: halaqahError.message },
-        { status: 500 }
-      );
-    }
-
-    console.log('[Halaqah API] Found', halaqahs?.length || 0, 'halaqahs');
 
     if (!halaqahs || halaqahs.length === 0) {
       return NextResponse.json({
@@ -92,15 +121,28 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Apply additional filters
+    if (status) {
+      halaqahs = halaqahs.filter((h: any) => h.status === status);
+    }
+
+    if (program_id) {
+      halaqahs = halaqahs.filter((h: any) => h.program_id === program_id);
+    }
+
     // Enrich with program details, student counts, and muallimah info
     const enrichedData = await Promise.all(
       halaqahs.map(async (h: any) => {
         // Fetch program details
-        const { data: programData } = await supabaseAdmin
-          .from('programs')
-          .select('id, name, class_type, batch_id')
-          .eq('id', h.program_id)
-          .single();
+        let programData = null;
+        if (h.program_id) {
+          const { data } = await supabaseAdmin
+            .from('programs')
+            .select('id, name, class_type, batch_id')
+            .eq('id', h.program_id)
+            .single();
+          programData = data;
+        }
 
         // Fetch batch details
         let batchData = null;
