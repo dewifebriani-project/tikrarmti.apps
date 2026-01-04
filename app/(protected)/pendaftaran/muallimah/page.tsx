@@ -288,18 +288,23 @@ function MuallimahRegistrationContent() {
 
   const fetchUserData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
+      // Use /api/auth/me endpoint instead of direct Supabase query
+      // This avoids RLS policy issues with self-referential queries
+      const response = await fetch('/api/auth/me');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user data: ${response.status}`);
+      }
+      const result = await response.json();
 
-      if (error) throw error;
-      setUserData(data);
+      if (!result.success || !result.data) {
+        throw new Error('No user data returned');
+      }
+
+      setUserData(result.data);
 
       // Calculate age from tanggal_lahir
-      if (data?.tanggal_lahir) {
-        const birthDate = new Date(data.tanggal_lahir);
+      if (result.data?.tanggal_lahir) {
+        const birthDate = new Date(result.data.tanggal_lahir);
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
