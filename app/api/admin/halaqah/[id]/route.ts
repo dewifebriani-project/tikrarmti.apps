@@ -61,8 +61,8 @@ export async function PATCH(
       userId: user.id,
       action: 'UPDATE',
       resource: 'halaqah',
-      resourceId: params.id,
       details: {
+        halaqah_id: params.id,
         old_status: existingHalaqah?.status,
         new_status: status
       },
@@ -138,8 +138,8 @@ export async function DELETE(
       userId: user.id,
       action: 'DELETE',
       resource: 'halaqah',
-      resourceId: params.id,
       details: {
+        halaqah_id: params.id,
         halaqah_name: existingHalaqah?.name,
         program_id: existingHalaqah?.program_id
       },
