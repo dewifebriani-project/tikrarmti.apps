@@ -3712,13 +3712,13 @@ Tim Markaz Tikrar Indonesia`;
       label: 'Oral Score',
       sortable: true,
       filterable: true,
-      // Custom sort function for proper ordering: Not submitted -> Pending -> Scores (low to high)
+      // Custom sort function for proper ordering: Pending -> Scores (low to high)
+      // Scores without submission (manual) are sorted along with regular scores
       sortFn: (a, b, direction) => {
-        // Helper to get sort value: 0 = Not submitted, 1 = Pending, 2+ = Score value + 2
+        // Helper to get sort value: 0 = Pending, 1+ = Score value + 1
         const getSortValue = (t: TikrarTahfidz) => {
-          if (!t.oral_submission_url) return 0; // Not submitted
-          if (t.oral_total_score === null || t.oral_total_score === undefined) return 1; // Pending
-          return t.oral_total_score + 2; // Score (add 2 to put after pending)
+          if (t.oral_total_score === null || t.oral_total_score === undefined) return 0; // Pending
+          return t.oral_total_score + 1; // Score (add 1 to put after pending)
         };
 
         const aVal = getSortValue(a);
@@ -3730,14 +3730,14 @@ Tim Markaz Tikrar Indonesia`;
       filterFn: (row, filterValue) => {
         const value = filterValue.toLowerCase();
 
-        // Not submitted
-        if (!row.oral_submission_url) {
-          return value.includes('not') || value.includes('submit');
-        }
-
-        // Pending
+        // Pending (no score yet)
         if (row.oral_total_score === null || row.oral_total_score === undefined) {
           return value.includes('pend');
+        }
+
+        // Filter for manual (score without submission)
+        if (value.includes('manual') || value.includes('tanpa')) {
+          return !row.oral_submission_url && row.oral_total_score !== null;
         }
 
         // Score exists
@@ -3749,15 +3749,25 @@ Tim Markaz Tikrar Indonesia`;
         return String(row.oral_total_score).includes(value);
       },
       render: (t) => {
-        if (!t.oral_submission_url) {
-          return <span className="text-xs text-gray-400">Not submitted</span>;
-        }
-        if (t.oral_total_score === null || t.oral_total_score === undefined) {
+        // Show score even without submission (manual grading)
+        const hasNoSubmission = !t.oral_submission_url;
+        const hasNoScore = t.oral_total_score === null || t.oral_total_score === undefined;
+
+        // If no score at all, show pending
+        if (hasNoScore) {
           return <span className="text-xs text-yellow-600 font-medium">Pending</span>;
         }
+
+        // Has score - show it with indicator if no submission
         const isPassing = t.oral_total_score >= 70;
         return (
           <div className="flex items-center gap-1">
+            {/* Special indicator for score without submission */}
+            {hasNoSubmission && (
+              <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-purple-100 text-purple-800" title="Nilai tanpa rekaman">
+                Manual
+              </span>
+            )}
             <span className={`text-sm font-bold ${isPassing ? 'text-green-600' : 'text-red-600'}`}>
               {t.oral_total_score.toFixed(0)}
             </span>
