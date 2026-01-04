@@ -55,23 +55,8 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
         return;
       }
 
-      // Fallback to direct query
-      console.log('[AutoCreateHalaqahModal] Using fallback direct query');
-      const { data, error } = await supabase
-        .from('batches')
-        .select('*')
-        .eq('status', 'open')
-        .order('created_at', { ascending: false });
-
-      console.log('[AutoCreateHalaqahModal] Direct query result:', { count: data?.length, error });
-
-      if (error) throw error;
-
-      setBatches(data || []);
-      if (data && data.length > 0) {
-        setSelectedBatch(data[0].id);
-        console.log('[AutoCreateHalaqahModal] Selected batch from fallback:', data[0].id, data[0].name);
-      }
+      // If API fails, show error
+      throw new Error(apiResult.error || 'Failed to load batches');
     } catch (error: any) {
       console.error('Error loading batches:', error);
       toast.error('Failed to load batches: ' + error.message);
