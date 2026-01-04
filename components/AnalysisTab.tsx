@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import {
   Users,
   UserCheck,
@@ -82,7 +81,6 @@ interface BatchAnalysis {
 }
 
 export function AnalysisTab() {
-  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
@@ -126,47 +124,36 @@ export function AnalysisTab() {
     try {
       console.log('[AnalysisTab] Loading analysis for batch:', batchId);
 
-      // Get batch info - use API to avoid RLS issues
-      const batchResponse = await fetch('/api/admin/batches');
-      if (!batchResponse.ok) {
-        console.error('[AnalysisTab] Failed to load batches:', batchResponse.status);
-        toast.error('Failed to load batch data');
+      // Use API endpoint to get analysis data (bypasses RLS)
+      const analysisResponse = await fetch(`/api/admin/analysis?batch_id=${batchId}`);
+
+      if (!analysisResponse.ok) {
+        const errorData = await analysisResponse.json();
+        console.error('[AnalysisTab] Failed to load analysis:', analysisResponse.status, errorData);
+        toast.error(errorData.error || 'Failed to load analysis data');
         setLoading(false);
         return;
       }
 
-      const batchResult = await batchResponse.json();
-      const batchData = batchResult.data?.find((b: Batch) => b.id === batchId);
+      const analysisResult = await analysisResponse.json();
+      console.log('[AnalysisTab] Analysis API result:', analysisResult);
 
-      console.log('[AnalysisTab] Batch data:', batchData);
-
-      if (!batchData) {
-        console.error('[AnalysisTab] Batch not found:', batchId);
-        toast.error('Batch not found');
+      if (!analysisResult.success || !analysisResult.data) {
+        console.error('[AnalysisTab] Invalid analysis response');
+        toast.error('Invalid analysis data received');
         setLoading(false);
         return;
       }
 
-      // Get muallimah stats
-      console.log('[AnalysisTab] Querying muallimah for batch_id:', batchId);
-      const { data: muallimahs, error: muallimaError } = await supabase
-        .from('muallimah_registrations')
-        .select('id, status, preferred_max_thalibah, user_id')
-        .eq('batch_id', batchId);
+      const { batch, muallimahs, thalibahs, halaqahs, students } = analysisResult.data;
 
-      console.log('[AnalysisTab] Muallimah query result:', {
-        count: muallimahs?.length,
-        error: muallimaError,
-        sample: muallimahs?.slice(0, 3)
-      });
+      console.log('[AnalysisTab] Batch data:', batch);
+      console.log('[AnalysisTab] Muallimah count:', muallimahs.length);
+      console.log('[AnalysisTab] Thalibah count:', thalibahs.length);
+      console.log('[AnalysisTab] Halaqah count:', halaqahs.length);
+      console.log('[AnalysisTab] Students count:', students.length);
 
-      if (muallimaError) {
-        console.error('[AnalysisTab] Error loading muallimah:', muallimaError);
-        toast.error('Failed to load muallimah data: ' + muallimaError.message);
-        setLoading(false);
-        return;
-      }
-
+      // Process muallimah stats
       const muallimaList = (muallimahs || []) as MuallimaRegistration[];
       const totalMuallimah = muallimaList.length;
       const approvedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').length;
@@ -180,26 +167,7 @@ export function AnalysisTab() {
         rejected: rejectedMuallimah
       });
 
-      // Get thalibah stats
-      console.log('[AnalysisTab] Querying thalibah for batch_id:', batchId);
-      const { data: thalibahs, error: thalibahError } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select('id, status, selection_status')
-        .eq('batch_id', batchId);
-
-      console.log('[AnalysisTab] Thalibah query result:', {
-        count: thalibahs?.length,
-        error: thalibahError,
-        sample: thalibahs?.slice(0, 3)
-      });
-
-      if (thalibahError) {
-        console.error('[AnalysisTab] Error loading thalibah:', thalibahError);
-        toast.error('Failed to load thalibah data: ' + thalibahError.message);
-        setLoading(false);
-        return;
-      }
-
+      // Process thalibah stats
       const thalibahList = (thalibahs || []) as ThalibahRegistration[];
       const totalThalibah = thalibahList.length;
       const approvedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'approved').length;
@@ -212,25 +180,6 @@ export function AnalysisTab() {
         pending: pendingThalibah,
         selected: selectedThalibah
       });
-
-      // Get halaqah stats
-      console.log('[AnalysisTab] Querying halaqah (all active)');
-      const { data: halaqahs, error: halaqahError } = await supabase
-        .from('halaqah')
-        .select('id, program_id, max_students, muallimah_id')
-        .eq('status', 'active');
-
-      console.log('[AnalysisTab] Halaqah query result:', {
-        count: halaqahs?.length,
-        error: halaqahError
-      });
-
-      if (halaqahError) {
-        console.error('[AnalysisTab] Error loading halaqah:', halaqahError);
-        toast.error('Failed to load halaqah data: ' + halaqahError.message);
-        setLoading(false);
-        return;
-      }
 
       // Filter halaqahs by muallimah from this batch
       const approvedMuallimaIds = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').map((m: MuallimaRegistration) => m.user_id);
@@ -250,32 +199,8 @@ export function AnalysisTab() {
       // Calculate capacity
       const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
 
-      // Get filled slots - only if there are halaqahs
-      let filledSlots = 0;
-      if (batchHalaqahs.length > 0) {
-        const halaqahIds = batchHalaqahs.map((h: Halaqah) => h.id);
-        console.log('[AnalysisTab] Querying halaqah_students for halaqah_ids:', halaqahIds.length);
-
-        const { data: students, error: studentsError } = await supabase
-          .from('halaqah_students')
-          .select('id')
-          .in('halaqah_id', halaqahIds)
-          .eq('status', 'active');
-
-        console.log('[AnalysisTab] Students query result:', {
-          count: students?.length,
-          error: studentsError
-        });
-
-        if (studentsError) {
-          console.error('[AnalysisTab] Error loading students:', studentsError);
-          // Don't fail the entire analysis, just set to 0
-          filledSlots = 0;
-        } else {
-          const studentList = (students || []) as HalaqahStudent[];
-          filledSlots = studentList.length;
-        }
-      }
+      // Get filled slots from API response
+      const filledSlots = students?.length || 0;
 
       const availableSlots = totalCapacity - filledSlots;
       const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
@@ -304,9 +229,9 @@ export function AnalysisTab() {
       }
 
       const analysisData: BatchAnalysis = {
-        batch_id: batchData.id,
-        batch_name: batchData.name,
-        batch_status: batchData.status,
+        batch_id: batch.id,
+        batch_name: batch.name,
+        batch_status: batch.status,
 
         total_muallimah: totalMuallimah,
         approved_muallimah: approvedMuallimah,
