@@ -141,16 +141,27 @@ export async function GET(request: NextRequest) {
 
       // Batch update selection_status for passing registrations
       if (updates.length > 0) {
-        await supabaseAdmin
-          .from('pendaftaran_tikrar_tahfidz')
-          .upsert(updates, { onConflict: 'id' });
+        const idsToUpdate = updates.map(u => u.id);
 
-        // Update enrichedData with new selection_status
-        const updateMap = new Map(updates.map(u => [u.id, u.selection_status]));
-        enrichedData = enrichedData.map((item: any) => ({
-          ...item,
-          selection_status: updateMap.get(item.id) || item.selection_status
-        }));
+        console.log('[Tikrar API] Auto-updating selection_status to "selected" for IDs:', idsToUpdate);
+
+        const { error: updateError } = await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .update({ selection_status: 'selected' })
+          .in('id', idsToUpdate);
+
+        if (updateError) {
+          console.error('[Tikrar API] Error auto-updating selection_status:', updateError);
+        } else {
+          console.log('[Tikrar API] Successfully updated', idsToUpdate.length, 'records to "selected"');
+
+          // Update enrichedData with new selection_status
+          const updateMap = new Map(updates.map(u => [u.id, u.selection_status]));
+          enrichedData = enrichedData.map((item: any) => ({
+            ...item,
+            selection_status: updateMap.get(item.id) || item.selection_status
+          }));
+        }
       }
     }
 
