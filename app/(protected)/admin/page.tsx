@@ -3183,6 +3183,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   const [unapproveReason, setUnapproveReason] = useState('');
   const [showUnapproveModal, setShowUnapproveModal] = useState(false);
   const [isUpdatingSelection, setIsUpdatingSelection] = useState(false);
+  const [selectionStatusFilter, setSelectionStatusFilter] = useState<string>('all');
 
   // Filter tikrar by batch_id or batch_name (before hiding withdrawn for stats)
   const tikrarByBatch = selectedBatchFilter === 'all'
