@@ -95,15 +95,37 @@ export async function POST(request: NextRequest) {
         }
 
         // Create halaqah (without program assignment)
-        // Clean up the name to avoid double "Halaqah" prefix
+        // Clean up the name to avoid double "Halaqah" or "Ustadzah" prefix
         let cleanName = muallimah.full_name;
-        if (cleanName.startsWith('Halaqah ')) {
-          cleanName = cleanName.substring(8); // Remove "Halaqah " prefix
+        console.log(`[AutoCreateSimple] Original name: "${cleanName}"`);
+
+        // Remove "Halaqah " prefix (case-insensitive)
+        if (cleanName.toLowerCase().startsWith('halaqah ')) {
+          cleanName = cleanName.substring(8);
+          console.log(`[AutoCreateSimple] Removed "Halaqah " prefix: "${cleanName}"`);
         }
-        if (cleanName.startsWith('Ustadzah ')) {
-          cleanName = cleanName.substring(9); // Remove "Ustadzah " prefix
+        // Remove "Halaqah" prefix without space (case-insensitive)
+        else if (cleanName.toLowerCase().startsWith('halaqah')) {
+          cleanName = cleanName.substring(7);
+          console.log(`[AutoCreateSimple] Removed "Halaqah" prefix: "${cleanName}"`);
         }
+
+        // Remove "Ustadzah " prefix (case-insensitive)
+        if (cleanName.toLowerCase().startsWith('ustadzah ')) {
+          cleanName = cleanName.substring(9);
+          console.log(`[AutoCreateSimple] Removed "Ustadzah " prefix: "${cleanName}"`);
+        }
+        // Remove "Ustadzah" prefix without space (case-insensitive)
+        else if (cleanName.toLowerCase().startsWith('ustadzah')) {
+          cleanName = cleanName.substring(8);
+          console.log(`[AutoCreateSimple] Removed "Ustadzah" prefix: "${cleanName}"`);
+        }
+
+        // Trim any leading/trailing whitespace
+        cleanName = cleanName.trim();
+
         const halaqahName = `Halaqah Ustadzah ${cleanName}`;
+        console.log(`[AutoCreateSimple] Final halaqah name: "${halaqahName}"`);
 
         const { data: newHalaqah, error: createError } = await supabaseAdmin
           .from('halaqah')
