@@ -9,6 +9,30 @@ export async function POST(request: NextRequest) {
   const supabase = createServerClient();
 
   try {
+    // Auth check
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({
+        error: 'Unauthorized - Invalid session. Please login again.',
+        needsLogin: true
+      }, { status: 401 });
+    }
+
+    // Admin check
+    const { data: userData, error: dbError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (dbError || !userData || userData.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { batch_id, program_id } = body;
 
@@ -21,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all approved muallimah registrations for this batch
-    const { data: approvedMuallimah, error: fetchError } = await supabase
+    const { data: approvedMuallimah, error: fetchError } = await supabaseAdmin
       .from('muallimah_registrations')
       .select(`
         id,
@@ -48,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get program details
-    const { data: program, error: programError } = await supabase
+    const { data: program, error: programError } = await supabaseAdmin
       .from('programs')
       .select('*')
       .eq('id', program_id)
@@ -66,7 +90,7 @@ export async function POST(request: NextRequest) {
     for (const muallimah of approvedMuallimah) {
       try {
         // Get normalized schedules for this muallimah
-        const { data: schedules, error: scheduleError } = await supabase
+        const { data: schedules, error: scheduleError } = await supabaseAdmin
           .from('muallimah_schedules')
           .select('*')
           .eq('muallimah_registration_id', muallimah.id)
@@ -85,7 +109,7 @@ export async function POST(request: NextRequest) {
         for (const schedule of schedules) {
           const halaqahName = `${program.name} - Juz ${muallimah.preferred_juz} - ${muallimah.full_name}`;
 
-          const { data: newHalaqah, error: createError } = await supabase
+          const { data: newHalaqah, error: createError } = await supabaseAdmin
             .from('halaqah')
             .insert({
               program_id,
@@ -111,7 +135,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Assign muallimah as primary mentor
-          await supabase
+          await supabaseAdmin
             .from('halaqah_mentors')
             .insert({
               halaqah_id: newHalaqah.id,
