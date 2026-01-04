@@ -725,7 +725,7 @@ export default function PerjalananSaya() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-green-300 text-green-700 hover:bg-green-100"
+                    className="border-green-300 text-green-700 hover:bg-green-100 min-h-[44px] sm:min-h-0"
                     onClick={() => setIsEditModalOpen(true)}
                   >
                     <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
