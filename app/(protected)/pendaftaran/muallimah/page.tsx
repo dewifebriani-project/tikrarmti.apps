@@ -762,32 +762,42 @@ function MuallimahRegistrationContent() {
             </CardContent>
           </Card>
 
-          {/* User Info Display (from register) */}
+          {/* User Info Display (from muallimah_registrations or users) */}
           <Card className="mb-4 sm:mb-6">
             <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-4">
-              <CardTitle className="text-base sm:text-lg">Data Diri (Dari Akun Muallimatiy)</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">Data berikut diambil dari akun yang sudah terdaftar</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Data Diri</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {muallimahRegistration
+                  ? 'Data berikut diambil dari formulir pendaftaran yang sudah disimpan'
+                  : 'Data berikut diambil dari akun yang sudah terdaftar'}
+              </CardDescription>
             </CardHeader>
             <CardContent className="text-xs sm:text-sm space-y-1.5 sm:space-y-2 px-3 sm:px-4 pb-3 sm:pb-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2 sm:gap-x-3 gap-y-1 sm:gap-y-2">
-                <div><span className="text-gray-500">Nama:</span> {userData?.full_name || user?.full_name || '-'}</div>
+                {/* Use muallimah_registrations data if available, otherwise fallback to users table */}
+                <div><span className="text-gray-500">Nama:</span> {muallimahRegistration?.full_name || userData?.full_name || user?.full_name || '-'}</div>
                 <div><span className="text-gray-500">Kunyah:</span> {userData?.nama_kunyah || '-'}</div>
-                <div><span className="text-gray-500">Email:</span> {user?.email || '-'}</div>
-                <div><span className="text-gray-500">WhatsApp:</span> {userData?.whatsapp || '-'}</div>
+                <div><span className="text-gray-500">Email:</span> {muallimahRegistration?.email || user?.email || '-'}</div>
+                <div><span className="text-gray-500">WhatsApp:</span> {muallimahRegistration?.whatsapp || userData?.whatsapp || '-'}</div>
                 <div><span className="text-gray-500">Telegram:</span> {userData?.telegram || '-'}</div>
                 <div><span className="text-gray-500">Negara:</span> {userData?.negara || '-'}</div>
                 <div><span className="text-gray-500">Provinsi:</span> {userData?.provinsi || '-'}</div>
                 <div><span className="text-gray-500">Kota:</span> {userData?.kota || '-'}</div>
-                <div className="col-span-1 sm:col-span-2"><span className="text-gray-500">Alamat:</span> {userData?.alamat || '-'}</div>
-                <div><span className="text-gray-500">Tanggal Lahir:</span> {userData?.tanggal_lahir ? new Date(userData.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</div>
-                <div><span className="text-gray-500">Tempat Lahir:</span> {userData?.tempat_lahir || '-'}</div>
+                <div className="col-span-1 sm:col-span-2"><span className="text-gray-500">Alamat:</span> {muallimahRegistration?.address || userData?.alamat || '-'}</div>
+                <div><span className="text-gray-500">Tanggal Lahir:</span> {
+                  (() => {
+                    const date = muallimahRegistration?.birth_date || userData?.tanggal_lahir;
+                    return date ? new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-';
+                  })()
+                }</div>
+                <div><span className="text-gray-500">Tempat Lahir:</span> {muallimahRegistration?.birth_place || userData?.tempat_lahir || '-'}</div>
                 <div><span className="text-gray-500">Jenis Kelamin:</span> {userData?.jenis_kelamin || '-'}</div>
-                <div><span className="text-gray-500">Pekerjaan:</span> {userData?.pekerjaan || '-'}</div>
+                <div><span className="text-gray-500">Pekerjaan:</span> {muallimahRegistration?.occupation || userData?.pekerjaan || '-'}</div>
                 <div><span className="text-gray-500">Zona Waktu:</span> {userData?.zona_waktu || '-'}</div>
                 <div><span className="text-gray-500">Usia:</span> {formData.age || '-'} tahun</div>
               </div>
               <p className="text-[10px] sm:text-xs text-gray-500 mt-2 sm:mt-3">
-                Untuk mengubah data di atas, silakan edit profil di menu Pengaturan
+                {!muallimahRegistration && 'Untuk mengubah data di atas, silakan edit profil di menu Pengaturan'}
               </p>
             </CardContent>
           </Card>

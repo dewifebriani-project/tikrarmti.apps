@@ -254,16 +254,33 @@ export function HalaqahManagementTab() {
 
   // Format name - avoid double "Halaqah Ustadzah"
   const formatHalaqahName = (halaqah: Halaqah) => {
-    const name = halaqah.name;
-    // If name already starts with "Halaqah Ustadzah", return as is
-    if (name.startsWith('Halaqah Ustadzah')) {
-      return name;
+    let name = halaqah.name;
+
+    // Clean up multiple "Halaqah" prefixes (case-insensitive)
+    while (name.toLowerCase().startsWith('halaqah ')) {
+      name = name.substring(8);
     }
-    // If name contains "Ustadzah" somewhere, just return it
-    if (name.includes('Ustadzah')) {
-      return name;
+    while (name.toLowerCase().startsWith('halaqah')) {
+      name = name.substring(7);
     }
-    // Otherwise, add the prefix
+
+    // Clean up multiple "Ustadzah" prefixes (case-insensitive)
+    while (name.toLowerCase().startsWith('ustadzah ')) {
+      name = name.substring(9);
+    }
+    while (name.toLowerCase().startsWith('ustadzah')) {
+      name = name.substring(8);
+    }
+
+    // Trim whitespace
+    name = name.trim();
+
+    // If after cleaning we have an empty name or just spaces, return original
+    if (!name) {
+      return halaqah.name;
+    }
+
+    // Add the proper prefix
     return `Halaqah Ustadzah ${name}`;
   };
 
