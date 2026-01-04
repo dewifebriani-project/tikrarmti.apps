@@ -366,11 +366,10 @@ export default function ThalibahBatch2Page() {
 
     setIsSubmitting(true)
     try {
-      // Get authenticated user from Supabase
-      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser()
-
-      if (userError || !authUser) {
-        toast.error('Ukhti harus login terlebih dahulu')
+      // Use user from useAuth() hook (server-provided data via layout)
+      // This follows arsitektur.md: NO client-side auth checks
+      if (!user) {
+        toast.error('Sesi tidak valid. Silakan login kembali.')
         router.push('/login')
         return
       }
@@ -459,14 +458,14 @@ export default function ThalibahBatch2Page() {
       const isJanda = formData.has_permission === 'janda'
 
       const submitData = {
-        user_id: authUser.id,
+        user_id: user.id,
         batch_id: activeBatch.id,
         program_id: program.id,
         batch_name: activeBatch.name || 'Batch 2',
         // User data from users table
-        full_name: userProfile?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
-        email: authUser.email || '',
-        wa_phone: userProfile?.whatsapp || authUser.phone || '',
+        full_name: userProfile?.full_name || user.full_name || user.email || '',
+        email: user.email || '',
+        wa_phone: userProfile?.whatsapp || '',
         telegram_phone: userProfile?.telegram || '',
         address: userProfile?.alamat || '',
         birth_date: birthDateValue,
@@ -506,7 +505,7 @@ export default function ThalibahBatch2Page() {
           .from('pendaftaran_tikrar_tahfidz')
           .update(submitData)
           .eq('id', existingRegistrationId)
-          .eq('user_id', authUser.id)
+          .eq('user_id', user.id)
 
         if (updateError) {
           console.error('Update error:', updateError)

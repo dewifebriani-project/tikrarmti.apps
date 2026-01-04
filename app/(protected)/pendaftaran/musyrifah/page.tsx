@@ -297,11 +297,10 @@ function MusyrifahRegistrationContent() {
     setErrors({});
 
     try {
-      // Get user session
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        toast.error('<em>Ukhti</em> harus login terlebih dahulu');
+      // Use user from useAuth() hook (server-provided data via layout)
+      // This follows arsitektur.md: NO client-side auth checks
+      if (!user) {
+        toast.error('Sesi tidak valid. Silakan login kembali.');
         router.push('/login');
         return;
       }
