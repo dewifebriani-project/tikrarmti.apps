@@ -29,7 +29,8 @@ import {
   AlertCircle,
   XCircle,
   X,
-  HelpCircle
+  HelpCircle,
+  RefreshCw
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
@@ -3175,6 +3176,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   const [loadingReview, setLoadingReview] = useState(false);
   const [unapproveReason, setUnapproveReason] = useState('');
   const [showUnapproveModal, setShowUnapproveModal] = useState(false);
+  const [isUpdatingSelection, setIsUpdatingSelection] = useState(false);
 
   // Filter tikrar by batch_id or batch_name (before hiding withdrawn for stats)
   const tikrarByBatch = selectedBatchFilter === 'all'
@@ -3424,6 +3426,38 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
     } catch (error: any) {
       console.error('Error unapproving application:', error);
       toast.error('Error unapproving application: ' + error.message);
+    }
+  };
+
+  // Handler to update selection_status based on scores
+  const handleUpdateSelectionStatus = async () => {
+    setIsUpdatingSelection(true);
+    try {
+      const response = await fetch('/api/admin/tikrar/update-selection-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          batch_id: selectedBatchFilter === 'all' ? null : selectedBatchFilter,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update selection status');
+      }
+
+      toast.success(result.message || `Updated ${result.updated_count} registrations to "selected"`);
+
+      // Refresh data
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error updating selection status:', error);
+      toast.error('Error updating selection status: ' + error.message);
+    } finally {
+      setIsUpdatingSelection(false);
     }
   };
 
@@ -4314,6 +4348,31 @@ Tim Markaz Tikrar Indonesia`;
               className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Approve All Pending
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Update Selection Status Button */}
+      {stats.selectionPending > 0 && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-purple-900">Update Selection Status</h3>
+              <p className="text-sm text-purple-700 mt-1">
+                {stats.selectionPending} registration(s) with pending selection status
+              </p>
+              <p className="text-xs text-purple-600 mt-1">
+                Automatically set to "Selected" when oral ≥ 70 and written ≥ 70
+              </p>
+            </div>
+            <button
+              onClick={handleUpdateSelectionStatus}
+              disabled={isUpdatingSelection}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`h-4 w-4 ${isUpdatingSelection ? 'animate-spin' : ''}`} />
+              {isUpdatingSelection ? 'Updating...' : 'Update Status'}
             </button>
           </div>
         </div>
