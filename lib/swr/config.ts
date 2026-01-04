@@ -38,7 +38,11 @@ export const swrConfig: SWRConfiguration = {
     if (error.code === 'SESSION_EXPIRED' || error.status === 401) {
       return false
     }
-    // Jangan retry untuk error client (4xx)
+    // Jangan retry untuk error client (4xx) - check HTTP status first
+    if (error.status >= 400 && error.status < 500) {
+      return false
+    }
+    // Jangan retry untuk error client (4xx) by code
     if (error.code && String(error.code).startsWith('4')) {
       return false
     }
