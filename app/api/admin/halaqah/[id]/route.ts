@@ -145,7 +145,7 @@ export async function DELETE(
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
-      level: 'WARNING'
+      level: 'WARN'
     });
 
     return NextResponse.json({
