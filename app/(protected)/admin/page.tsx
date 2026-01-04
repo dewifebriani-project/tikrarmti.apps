@@ -324,6 +324,7 @@ export default function AdminPage() {
   const [presensi, setPresensi] = useState<Presensi[]>([]);
   const [muallimah, setMuallimah] = useState<any[]>([]);
   const [selectedBatchFilter, setSelectedBatchFilter] = useState<string>('all');
+  const [selectionStatusFilter, setSelectionStatusFilter] = useState<string>('all');
 
   // Exam modal states
   const [showExamImportModal, setShowExamImportModal] = useState(false);
@@ -365,6 +366,11 @@ export default function AdminPage() {
       loadData();
     }
   }, [activeTab, user]);
+
+  // Reset selection status filter when batch changes
+  useEffect(() => {
+    setSelectionStatusFilter('all');
+  }, [selectedBatchFilter]);
 
   // Disable eslint exhaustive-deps warning for loadData
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3186,6 +3192,7 @@ function TikrarTab({ tikrar, batches, selectedBatchFilter, onBatchFilterChange, 
   // Filter to hide withdrawn registrations from table view
   const filteredTikrar = tikrarByBatch
     .filter(t => t.status !== 'withdrawn')
+    .filter(t => selectionStatusFilter === 'all' || t.selection_status === selectionStatusFilter)
     // Sort by oral score: Not submitted -> Pending -> Score (low to high)
     .sort((a, b) => {
       // Helper to get sort value: 0 = Not submitted, 1 = Pending, 2+ = Score value + 2
@@ -4125,21 +4132,40 @@ Tim Markaz Tikrar Indonesia`;
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Selection Status Breakdown */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Selection Status</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-700">Selection Status</h3>
+            {selectionStatusFilter !== 'all' && (
+              <button
+                onClick={() => setSelectionStatusFilter('all')}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div
+              className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${selectionStatusFilter === 'pending' ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}
+              onClick={() => setSelectionStatusFilter(selectionStatusFilter === 'pending' ? 'all' : 'pending')}
+            >
               <span className="text-sm text-gray-600">Pending Selection</span>
               <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
                 {stats.selectionPending}
               </span>
             </div>
-            <div className="flex items-center justify-between">
+            <div
+              className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${selectionStatusFilter === 'approved' ? 'bg-green-50' : 'hover:bg-gray-50'}`}
+              onClick={() => setSelectionStatusFilter(selectionStatusFilter === 'approved' ? 'all' : 'approved')}
+            >
               <span className="text-sm text-gray-600">Selected</span>
               <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
                 {stats.selectionApproved}
               </span>
             </div>
-            <div className="flex items-center justify-between">
+            <div
+              className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${selectionStatusFilter === 'rejected' ? 'bg-red-50' : 'hover:bg-gray-50'}`}
+              onClick={() => setSelectionStatusFilter(selectionStatusFilter === 'rejected' ? 'all' : 'rejected')}
+            >
               <span className="text-sm text-gray-600">Not Selected</span>
               <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
                 {stats.selectionRejected}
