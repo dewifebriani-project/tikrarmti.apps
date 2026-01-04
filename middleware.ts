@@ -94,15 +94,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Redirect to dashboard if accessing login/register with active session
-  // But NOT for auth callback routes or forgot/reset password flows
-  const authFlowRoutes = ['/forgot-password', '/reset-password', '/auth/callback', '/auth/confirm']
-  const isAuthFlowRoute = authFlowRoutes.some(route => pathname.startsWith(route))
-
-  if (hasSessionCookie && !isAuthFlowRoute && (pathname === '/login' || pathname === '/register')) {
-    console.log('[Middleware] Redirecting to dashboard (has session cookie)')
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // DO NOT redirect to dashboard from login/register
+  // Let the protected layout handle session validation properly
+  // Cookies can be expired but still present, causing redirect loops
+  // Users should be able to access login page even with cookies
 
   return NextResponse.next()
 }
