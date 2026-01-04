@@ -20,7 +20,7 @@ import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 
 interface Halaqah {
   id: string;
-  program_id: string;
+  program_id: string | null;
   muallimah_id?: string;
   name: string;
   description?: string;
@@ -34,6 +34,8 @@ interface Halaqah {
   zoom_link?: string;
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
+  class_type?: string;
+  preferred_schedule?: string;
   program?: {
     id: string;
     name: string;
@@ -338,12 +340,18 @@ export function HalaqahManagementTab() {
               <div>
                 <p className="text-sm text-gray-500">Schedule</p>
                 <p className="font-medium">
-                  {getDayName(selectedHalaqah.day_of_week)}, {formatTime(selectedHalaqah.start_time)} - {formatTime(selectedHalaqah.end_time)}
+                  {selectedHalaqah.day_of_week
+                    ? `${getDayName(selectedHalaqah.day_of_week)}, ${formatTime(selectedHalaqah.start_time)} - ${formatTime(selectedHalaqah.end_time)}`
+                    : selectedHalaqah.preferred_schedule || 'Not set'}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Muallimah</p>
-                <p className="font-medium">{selectedHalaqah.muallimah?.full_name || 'Not assigned'}</p>
+                <p className="font-medium">
+                  {selectedHalaqah.muallimah?.full_name
+                    ? `Ustadzah ${selectedHalaqah.muallimah.full_name}`
+                    : 'Not assigned'}
+                </p>
               </div>
             </div>
 
@@ -379,6 +387,9 @@ export function HalaqahManagementTab() {
                       Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Class Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Program
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -410,6 +421,11 @@ export function HalaqahManagementTab() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
+                        <p className="text-sm text-gray-900">
+                          {halaqah.class_type || halaqah.program?.class_type || '-'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
                         <div>
                           <p className="text-sm text-gray-900">{halaqah.program?.name || '-'}</p>
                           <p className="text-xs text-gray-500">{halaqah.program?.batch?.name || '-'}</p>
@@ -417,19 +433,25 @@ export function HalaqahManagementTab() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-sm text-gray-900">
-                          <Calendar className="w-4 h-4 text-gray-400" />
-                          <span>{getDayName(halaqah.day_of_week)}</span>
-                          {halaqah.start_time && (
+                          {halaqah.day_of_week ? (
                             <>
-                              <Clock className="w-4 h-4 text-gray-400 ml-2" />
-                              <span>{halaqah.start_time} - {halaqah.end_time}</span>
+                              <Calendar className="w-4 h-4 text-gray-400" />
+                              <span>{getDayName(halaqah.day_of_week)}</span>
+                              {halaqah.start_time && (
+                                <>
+                                  <Clock className="w-4 h-4 text-gray-400 ml-2" />
+                                  <span>{halaqah.start_time} - {halaqah.end_time}</span>
+                                </>
+                              )}
                             </>
+                          ) : (
+                            <span className="text-gray-500">{halaqah.preferred_schedule || 'Not set'}</span>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-900">
-                          {halaqah.muallimah?.full_name || 'Not assigned'}
+                          {halaqah.muallimah?.full_name ? `Ustadzah ${halaqah.muallimah.full_name}` : 'Not assigned'}
                         </p>
                       </td>
                       <td className="px-6 py-4">

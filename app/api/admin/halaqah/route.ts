@@ -164,6 +164,9 @@ export async function GET(request: NextRequest) {
 
         // Fetch muallimah if assigned
         let muallimah = null;
+        let classType = null;
+        let preferredSchedule = null;
+
         if (h.muallimah_id) {
           const { data: muallimahData } = await supabaseAdmin
             .from('users')
@@ -171,10 +174,27 @@ export async function GET(request: NextRequest) {
             .eq('id', h.muallimah_id)
             .single();
           muallimah = muallimahData;
+
+          // Fetch muallimah registration data for class_type and preferred_schedule
+          const { data: muallimahRegData } = await supabaseAdmin
+            .from('muallimah_registrations')
+            .select('class_type, preferred_schedule, backup_schedule')
+            .eq('user_id', h.muallimah_id)
+            .eq('status', 'approved')
+            .order('submitted_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (muallimahRegData) {
+            classType = muallimahRegData.class_type;
+            preferredSchedule = muallimahRegData.preferred_schedule;
+          }
         }
 
         return {
           ...h,
+          class_type: classType || programData?.class_type || null,
+          preferred_schedule: preferredSchedule,
           program: programData ? {
             ...programData,
             batch: batchData
