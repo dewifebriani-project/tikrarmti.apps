@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   Calendar,
@@ -13,7 +13,12 @@ import {
   Trash2,
   Loader2,
   Sparkles,
-  Edit
+  Edit,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -82,6 +87,15 @@ export function HalaqahManagementTab() {
   const [selectedBatch, setSelectedBatch] = useState<string>('');
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sort
+  const [sortColumn, setSortColumn] = useState<keyof Halaqah>('name');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Modals
   const [selectedHalaqah, setSelectedHalaqah] = useState<Halaqah | null>(null);
@@ -238,6 +252,90 @@ export function HalaqahManagementTab() {
     );
   };
 
+  // Format name - avoid double "Halaqah Ustadzah"
+  const formatHalaqahName = (halaqah: Halaqah) => {
+    const name = halaqah.name;
+    // If name already starts with "Halaqah Ustadzah", return as is
+    if (name.startsWith('Halaqah Ustadzah')) {
+      return name;
+    }
+    // If name contains "Ustadzah" somewhere, just return it
+    if (name.includes('Ustadzah')) {
+      return name;
+    }
+    // Otherwise, add the prefix
+    return `Halaqah Ustadzah ${name}`;
+  };
+
+  // Handle sort
+  const handleSort = (column: keyof Halaqah) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Filter and sort halaqahs
+  const filteredAndSortedHalaqahs = useMemo(() => {
+    let filtered = [...halaqahs];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(h =>
+        h.name.toLowerCase().includes(query) ||
+        h.muallimah?.full_name?.toLowerCase().includes(query) ||
+        h.program?.name?.toLowerCase().includes(query) ||
+        h.location?.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      let aVal = a[sortColumn];
+      let bVal = b[sortColumn];
+
+      // Handle nested properties
+      if (sortColumn === 'name') {
+        aVal = formatHalaqahName(a).toLowerCase();
+        bVal = formatHalaqahName(b).toLowerCase();
+      } else if (sortColumn === 'program_id') {
+        aVal = a.program?.name || '';
+        bVal = b.program?.name || '';
+      }
+
+      if (aVal === bVal) return 0;
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      return sortDirection === 'asc'
+        ? (aVal as any) > (bVal as any) ? 1 : -1
+        : (aVal as any) < (bVal as any) ? 1 : -1;
+    });
+
+    return filtered;
+  }, [halaqahs, searchQuery, sortColumn, sortDirection]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredAndSortedHalaqahs.length / itemsPerPage);
+  const paginatedHalaqahs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAndSortedHalaqahs.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAndSortedHalaqahs, currentPage, itemsPerPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedBatch, selectedProgram, selectedStatus]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -259,16 +357,27 @@ export function HalaqahManagementTab() {
 
       {/* Filters */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-700">Filters:</span>
           </div>
 
+          <div className="relative flex-1 min-w-[250px]">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by name, muallimah, program, location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            />
+          </div>
+
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900 min-w-[200px]"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900 min-w-[200px]"
           >
             <option value="">All Batches {batches.length > 0 && `(${batches.length})`}</option>
             {batches.map((batch) => (
@@ -281,7 +390,7 @@ export function HalaqahManagementTab() {
           <select
             value={selectedProgram}
             onChange={(e) => setSelectedProgram(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
             disabled={!selectedBatch}
           >
             <option value="">All Programs</option>
@@ -295,7 +404,7 @@ export function HalaqahManagementTab() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -305,11 +414,17 @@ export function HalaqahManagementTab() {
 
           <button
             onClick={() => setRefreshTrigger(prev => prev + 1)}
-            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
           >
             <RefreshCw className="w-3 h-3" />
             Refresh
           </button>
+        </div>
+
+        {/* Results count */}
+        <div className="mt-3 text-sm text-gray-600">
+          Showing {paginatedHalaqahs.length} of {filteredAndSortedHalaqahs.length} halaqahs
+          {filteredAndSortedHalaqahs.length !== halaqahs.length && ` (filtered from ${halaqahs.length} total)`}
         </div>
       </div>
 
@@ -379,7 +494,7 @@ export function HalaqahManagementTab() {
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          ) : halaqahs.length === 0 ? (
+          ) : filteredAndSortedHalaqahs.length === 0 ? (
             <div className="text-center py-12">
               <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">No halaqah found</p>
@@ -388,147 +503,231 @@ export function HalaqahManagementTab() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Class Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Program
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Schedule
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Muallimah
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Students
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {halaqahs.map((halaqah) => (
-                    <tr key={halaqah.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {halaqah.name.includes('Ustadzah') ? halaqah.name : `Halaqah Ustadzah ${halaqah.name}`}
-                          </p>
-                          {halaqah.location && (
-                            <p className="text-sm text-gray-500">{halaqah.location}</p>
+            <>
+              {/* Table with horizontal scroll */}
+              <div className="overflow-x-auto overflow-y-visible">
+                <table className="w-full border-collapse">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th
+                        onClick={() => handleSort('name')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          Name
+                          {sortColumn === 'name' && (
+                            sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-gray-900">
-                          {formatClassType(halaqah.class_type || halaqah.program?.class_type)}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="text-sm text-gray-900">{halaqah.program?.name || '-'}</p>
-                          <p className="text-xs text-gray-500">{halaqah.program?.batch?.name || '-'}</p>
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Class Type
+                      </th>
+                      <th
+                        onClick={() => handleSort('program_id')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          Program
+                          {sortColumn === 'program_id' && (
+                            sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {halaqah.day_of_week ? (
-                          <div className="flex items-center gap-2 text-sm text-gray-900">
-                            <Calendar className="w-4 h-4 text-gray-400" />
-                            <span>{getDayName(halaqah.day_of_week)}</span>
-                            {halaqah.start_time && (
-                              <>
-                                <Clock className="w-4 h-4 text-gray-400 ml-2" />
-                                <span>{halaqah.start_time} - {halaqah.end_time}</span>
-                              </>
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Schedule
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Muallimah
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Students
+                      </th>
+                      <th
+                        onClick={() => handleSort('status')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          Status
+                          {sortColumn === 'status' && (
+                            sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          )}
+                        </div>
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {paginatedHalaqahs.map((halaqah) => (
+                      <tr key={halaqah.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {formatHalaqahName(halaqah)}
+                            </p>
+                            {halaqah.location && (
+                              <p className="text-sm text-gray-500">{halaqah.location}</p>
                             )}
                           </div>
-                        ) : (
-                          <div
-                            className="text-sm max-w-xs whitespace-pre-line text-gray-900"
-                            dangerouslySetInnerHTML={{ __html: formatSchedule(halaqah.preferred_schedule) }}
-                          />
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-gray-900">
-                          {halaqah.muallimah?.full_name ? `Ustadzah ${halaqah.muallimah.full_name}` : 'Not assigned'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900">
-                            {halaqah._count?.students || 0}/{halaqah.max_students || 20}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(halaqah.status)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setSelectedHalaqah(halaqah)}
-                            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                            title="View details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            onClick={() => setEditingHalaqah(halaqah)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            title="Edit halaqah"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-
-                          {halaqah.status === 'inactive' && (
-                            <button
-                              onClick={() => handleStatusChange(halaqah.id, 'active')}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                              title="Activate halaqah"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                            </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900">
+                            {formatClassType(halaqah.class_type || halaqah.program?.class_type)}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-sm text-gray-900">{halaqah.program?.name || '-'}</p>
+                            <p className="text-xs text-gray-500">{halaqah.program?.batch?.name || '-'}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {halaqah.day_of_week ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-900">
+                              <Calendar className="w-4 h-4 text-gray-400" />
+                              <span>{getDayName(halaqah.day_of_week)}</span>
+                              {halaqah.start_time && (
+                                <>
+                                  <Clock className="w-4 h-4 text-gray-400 ml-2" />
+                                  <span>{halaqah.start_time} - {halaqah.end_time}</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <div
+                              className="text-sm max-w-xs whitespace-pre-line text-gray-900"
+                              dangerouslySetInnerHTML={{ __html: formatSchedule(halaqah.preferred_schedule) }}
+                            />
                           )}
-
-                          {halaqah.status === 'active' && (
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-900">
+                            {halaqah.muallimah?.full_name ? `Ustadzah ${halaqah.muallimah.full_name}` : 'Not assigned'}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-900">
+                              {halaqah._count?.students || 0}/{halaqah.max_students || 20}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(halaqah.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => handleStatusChange(halaqah.id, 'inactive')}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                              title="Deactivate halaqah"
+                              onClick={() => setSelectedHalaqah(halaqah)}
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors border border-transparent hover:border-indigo-200"
+                              title="View details"
                             >
-                              <XCircle className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
 
+                            <button
+                              onClick={() => setEditingHalaqah(halaqah)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-transparent hover:border-blue-200"
+                              title="Edit halaqah"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+
+                            {halaqah.status === 'inactive' && (
+                              <button
+                                onClick={() => handleStatusChange(halaqah.id, 'active')}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded-md transition-colors border border-transparent hover:border-green-200"
+                                title="Activate halaqah"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            {halaqah.status === 'active' && (
+                              <button
+                                onClick={() => handleStatusChange(halaqah.id, 'inactive')}
+                                className="p-2 text-orange-600 hover:bg-orange-50 rounded-md transition-colors border border-transparent hover:border-orange-200"
+                                title="Deactivate halaqah"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => handleDeleteHalaqah(halaqah.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                              title="Delete halaqah"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
                           <button
-                            onClick={() => handleDeleteHalaqah(halaqah.id)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                            title="Delete halaqah"
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`w-10 h-10 rounded-md border ${
+                              currentPage === pageNum
+                                ? 'bg-green-900 text-white border-green-900'
+                                : 'border-gray-300 hover:bg-gray-50'
+                            }`}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            {pageNum}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
