@@ -501,10 +501,10 @@ function MuallimahRegistrationContent() {
     setErrors({});
 
     try {
-      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !authUser) {
-        toast.error('Ukhti harus login terlebih dahulu');
+      // Use user from useAuth() hook (server-provided data via layout)
+      // This follows arsitektur.md: NO client-side auth checks
+      if (!user) {
+        toast.error('Sesi tidak valid. Silakan login kembali.');
         router.push('/login');
         return;
       }
@@ -517,15 +517,15 @@ function MuallimahRegistrationContent() {
       }
 
       const submitData = {
-        user_id: authUser.id,
+        user_id: user.id,
         batch_id: batchId,
         // Data from users table (not in form)
-        full_name: userData?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
+        full_name: userData?.full_name || user.full_name || user.email || '',
         birth_date: userData?.tanggal_lahir || new Date().toISOString(),
         birth_place: userData?.tempat_lahir || '-',
         address: userData?.alamat || '-',
-        whatsapp: userData?.whatsapp || authUser.phone || '-',
-        email: authUser.email || '',
+        whatsapp: userData?.whatsapp || '-',
+        email: user.email || '',
         education: '-', // Not in current schema, provide default value
         occupation: userData?.pekerjaan || '-',
         memorization_level: '-', // Required by DB, provide default value
@@ -573,7 +573,7 @@ function MuallimahRegistrationContent() {
           .from('muallimah_registrations')
           .update(submitData)
           .eq('id', existingRegistrationId)
-          .eq('user_id', authUser.id);
+          .eq('user_id', user.id);
 
         if (updateError) {
           console.error('=== UPDATE ERROR DETAILS ===');
