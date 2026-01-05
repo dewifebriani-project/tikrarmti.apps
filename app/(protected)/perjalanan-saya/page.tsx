@@ -446,6 +446,18 @@ export default function PerjalananSaya() {
   const completedCount = timelineData.filter(item => item.status === 'completed').length;
   const totalCount = timelineData.length;
 
+  // Handle session expired error - must be before conditional returns
+  useEffect(() => {
+    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
+      setHasSessionError(true);
+      // Redirect to login after a short delay
+      const timer = setTimeout(() => {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [registrationsError]);
+
   // Helper functions for display - must be before conditional returns
   const getJuzLabel = (juzValue: string) => {
     const juzLabels: Record<string, string> = {
@@ -517,18 +529,6 @@ export default function PerjalananSaya() {
         };
     }
   };
-
-  // Handle session expired error
-  useEffect(() => {
-    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
-      setHasSessionError(true);
-      // Redirect to login after a short delay
-      const timer = setTimeout(() => {
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [registrationsError]);
 
   // Don't render if session expired
   if (hasSessionError) {
