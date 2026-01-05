@@ -102,6 +102,20 @@ export default function PerjalananSaya() {
     selectionStatus: registrations?.[0]?.selection_status
   });
 
+  // Debug log for admin button
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('[PerjalananSai] Admin button debug:', {
+        userRole: user?.role,
+        userRoles: user?.roles,
+        batchId,
+        isAdmin: user?.role === 'admin',
+        isAdminIncludes: user?.role?.includes('admin'),
+        showButton: (user?.role === 'admin' || user?.role?.includes('admin')) && batchId
+      });
+    }
+  }, [user, batchId]);
+
   // Debug log for batch data
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1490,7 +1504,9 @@ export default function PerjalananSaya() {
                       </Button>
                     </Link>
                     {/* Admin-only: Daftar Ulang button (testing phase) */}
-                    {(user?.role === 'admin' || user?.role?.includes('admin')) && batchId && (
+                    {((user?.role === 'admin') ||
+                      (Array.isArray(user?.role) && user.role.includes('admin')) ||
+                      (Array.isArray(user?.roles) && user.roles.includes('admin'))) && batchId && (
                       <Link href={`/daftar-ulang?batch_id=${batchId}`}>
                         <Button
                           size="sm"
