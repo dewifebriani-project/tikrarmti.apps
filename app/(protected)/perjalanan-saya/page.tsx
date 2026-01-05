@@ -60,34 +60,6 @@ export default function PerjalananSaya() {
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
 
-  // Handle session expired error
-  useEffect(() => {
-    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
-      setHasSessionError(true);
-      // Redirect to login after a short delay
-      const timer = setTimeout(() => {
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [registrationsError]);
-
-  // Don't render if session expired
-  if (hasSessionError) {
-    return (
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Sesi Berakhir</h3>
-            <p className="text-yellow-700 mb-4">Mohon login kembali untuk melanjutkan.</p>
-            <p className="text-sm text-yellow-600">Mengalihkan ke halaman login...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Get batch_id from registration - safely handle undefined registrations
   const batchId = useMemo(() => {
     if (registrations && registrations.length > 0) {
@@ -190,47 +162,14 @@ export default function PerjalananSaya() {
     setIsClient(true);
   }, []);
 
-  // Helper functions for display
-  const getJuzLabel = (juzValue: string) => {
-    const juzLabels: Record<string, string> = {
-      '30A': 'Juz 30A (halaman 1-20)',
-      '30B': 'Juz 30B (halaman 21-40)',
-      '28A': 'Juz 28A (halaman 1-10)',
-      '28B': 'Juz 28B (halaman 11-20)',
-      '28': 'Juz 28',
-      '29': 'Juz 29',
-      '29A': 'Juz 29A (halaman 1-10)',
-      '29B': 'Juz 29B (halaman 11-20)',
-    };
-    return juzLabels[juzValue] || `Juz ${juzValue}`;
-  };
-
-  // Check if user chose Juz 30 (no exam required)
-  const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
-
-  const getTimeSlotLabel = (slotValue: string) => {
-    // Nilai di database disimpan sebagai "06-09", "18-21", dll
-    const slotLabels: Record<string, string> = {
-      '04-06': '04-06 WIB',
-      '06-09': '06-09 WIB',
-      '09-12': '09-12 WIB',
-      '12-15': '12-15 WIB',
-      '15-18': '15-18 WIB',
-      '18-21': '18-21 WIB',
-      '21-24': '21-24 WIB',
-      // Legacy values untuk compatibility
-      'pagi': '06-09 WIB',
-      'siang': '12-15 WIB',
-      'sore': '15-18 WIB',
-      'malam': '18-21 WIB',
-    };
-
-    return slotLabels[slotValue] || `${slotValue} WIB`;
-  };
-
-  const handleEditSuccess = () => {
-    // Trigger SWR revalidation to refresh data
-    window.location.reload();
+  // Helper to get icon based on type - define BEFORE useMemo to avoid circular dependency
+  const getIconForType = (type: string) => {
+    // Return default icon for now
+    return (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
   };
 
   // Function to parse Indonesian date string
@@ -273,16 +212,6 @@ export default function PerjalananSaya() {
     const year = parseInt(parts[2]);
 
     return new Date(year, month, day);
-  };
-
-  // Helper to get icon based on type - define BEFORE useMemo to avoid circular dependency
-  const getIconForType = (type: string) => {
-    // Return default icon for now
-    return (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    );
   };
 
   // Create timeline data from batch or fallback to hardcoded data
@@ -506,13 +435,96 @@ export default function PerjalananSaya() {
         status
       };
     });
-  }, [isClient, registrationStatus, baseTimelineData]);
+  }, [isClient, registrationStatus, baseTimelineData, parseIndonesianDate]);
 
   // Check if edit button should be shown (before re_enrollment_completed is true)
   const canEditRegistration = useMemo(() => {
     // Edit allowed if re_enrollment_completed is not true (false, null, or undefined)
     return registrationStatus?.registration?.re_enrollment_completed !== true;
   }, [registrationStatus]);
+
+  const completedCount = timelineData.filter(item => item.status === 'completed').length;
+  const totalCount = timelineData.length;
+
+  // Handle session expired error
+  useEffect(() => {
+    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
+      setHasSessionError(true);
+      // Redirect to login after a short delay
+      const timer = setTimeout(() => {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [registrationsError]);
+
+  // Don't render if session expired
+  if (hasSessionError) {
+    return (
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Sesi Berakhir</h3>
+            <p className="text-yellow-700 mb-4">Mohon login kembali untuk melanjutkan.</p>
+            <p className="text-sm text-yellow-600">Mengalihkan ke halaman login...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isClient) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  // Helper functions for display
+  const getJuzLabel = (juzValue: string) => {
+    const juzLabels: Record<string, string> = {
+      '30A': 'Juz 30A (halaman 1-20)',
+      '30B': 'Juz 30B (halaman 21-40)',
+      '28A': 'Juz 28A (halaman 1-10)',
+      '28B': 'Juz 28B (halaman 11-20)',
+      '28': 'Juz 28',
+      '29': 'Juz 29',
+      '29A': 'Juz 29A (halaman 1-10)',
+      '29B': 'Juz 29B (halaman 11-20)',
+    };
+    return juzLabels[juzValue] || `Juz ${juzValue}`;
+  };
+
+  // Check if user chose Juz 30 (no exam required)
+  const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
+
+  const getTimeSlotLabel = (slotValue: string) => {
+    // Nilai di database disimpan sebagai "06-09", "18-21", dll
+    const slotLabels: Record<string, string> = {
+      '04-06': '04-06 WIB',
+      '06-09': '06-09 WIB',
+      '09-12': '09-12 WIB',
+      '12-15': '12-15 WIB',
+      '15-18': '15-18 WIB',
+      '18-21': '18-21 WIB',
+      '21-24': '21-24 WIB',
+      // Legacy values untuk compatibility
+      'pagi': '06-09 WIB',
+      'siang': '12-15 WIB',
+      'sore': '15-18 WIB',
+      'malam': '18-21 WIB',
+    };
+
+    return slotLabels[slotValue] || `${slotValue} WIB`;
+  };
+
+  const handleEditSuccess = () => {
+    // Trigger SWR revalidation to refresh data
+    window.location.reload();
+  };
 
   const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
