@@ -45,6 +45,7 @@ import { AdminExamSettings } from '@/components/AdminExamSettings';
 import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
 import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 import { AnalysisTab } from '@/components/AnalysisTab';
+import { SystemLogsTab } from '@/components/SystemLogsTab';
 
 interface Batch {
   id: string;
@@ -273,7 +274,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'exam-questions' | 'analysis' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'exam-questions' | 'analysis' | 'system-logs' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -492,6 +493,7 @@ export default function AdminPage() {
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
     { id: 'analysis' as TabType, name: 'Analysis', icon: BarChart3 },
+    { id: 'system-logs' as TabType, name: 'System Logs', icon: AlertCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText }
   ];
 
@@ -702,6 +704,7 @@ export default function AdminPage() {
         )}
         {activeTab === 'halaqah' && <HalaqahManagementTab />}
         {activeTab === 'analysis' && <AnalysisTab />}
+        {activeTab === 'system-logs' && <SystemLogsTab isActive={activeTab === 'system-logs'} />}
         {activeTab === 'reports' && <ReportsTab />}
       </div>
 

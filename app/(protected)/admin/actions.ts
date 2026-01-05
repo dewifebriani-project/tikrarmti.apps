@@ -3,6 +3,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
+import { logError, LogErrorContext } from '@/lib/logger'
 
 /**
  * ADMIN SERVER ACTIONS
@@ -51,6 +52,11 @@ async function verifyAdmin() {
   const { data: { user }, error: userError } = await supabase.auth.getUser()
 
   if (userError || !user) {
+    // Log auth failure
+    await logError(userError || new Error('No user found'), {
+      function: 'verifyAdmin',
+      errorType: 'auth',
+    } as LogErrorContext)
     throw new Error('Unauthorized - Invalid session')
   }
 
@@ -63,6 +69,13 @@ async function verifyAdmin() {
     .single()
 
   if (dbError || !userData || userData.role !== 'admin') {
+    // Log forbidden access attempt
+    await logError(dbError || new Error(`User ${user.id} attempted admin access without admin role`), {
+      userId: user.id,
+      userEmail: user.email,
+      function: 'verifyAdmin',
+      errorType: 'auth',
+    } as LogErrorContext)
     throw new Error('Forbidden - Admin access required')
   }
 
@@ -78,7 +91,7 @@ async function verifyAdmin() {
 export async function createUser(data: CreateUserData) {
   try {
     // CRITICAL: Verify admin role first
-    const { supabaseAdmin } = await verifyAdmin()
+    const { user, supabaseAdmin } = await verifyAdmin()
 
     // Validate required fields
     if (!data.email) {
@@ -119,7 +132,14 @@ export async function createUser(data: CreateUserData) {
       .single()
 
     if (error) {
-      console.error('[createUser] Error:', error)
+      // Log database error
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'createUser',
+        errorType: 'database',
+        context: { email: data.email },
+      } as LogErrorContext)
       return {
         success: false,
         error: error.message
@@ -135,7 +155,12 @@ export async function createUser(data: CreateUserData) {
     }
 
   } catch (error) {
-    console.error('[createUser] Exception:', error)
+    // Log unexpected error
+    await logError(error, {
+      function: 'createUser',
+      errorType: 'runtime',
+      context: { email: data.email },
+    } as LogErrorContext)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to create user'
@@ -152,7 +177,7 @@ export async function createUser(data: CreateUserData) {
 export async function updateUser(data: UpdateUserData) {
   try {
     // CRITICAL: Verify admin role first
-    const { supabaseAdmin } = await verifyAdmin()
+    const { user, supabaseAdmin } = await verifyAdmin()
 
     // Validate required fields
     if (!data.id) {
@@ -187,7 +212,14 @@ export async function updateUser(data: UpdateUserData) {
       .single()
 
     if (error) {
-      console.error('[updateUser] Error:', error)
+      // Log database error
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'updateUser',
+        errorType: 'database',
+        context: { targetUserId: id },
+      } as LogErrorContext)
       return {
         success: false,
         error: error.message
@@ -203,7 +235,12 @@ export async function updateUser(data: UpdateUserData) {
     }
 
   } catch (error) {
-    console.error('[updateUser] Exception:', error)
+    // Log unexpected error
+    await logError(error, {
+      function: 'updateUser',
+      errorType: 'runtime',
+      context: { targetUserId: data.id },
+    } as LogErrorContext)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update user'
@@ -220,7 +257,7 @@ export async function updateUser(data: UpdateUserData) {
 export async function deleteUser(userId: string) {
   try {
     // CRITICAL: Verify admin role first
-    const { supabaseAdmin } = await verifyAdmin()
+    const { user, supabaseAdmin } = await verifyAdmin()
 
     // Validate required fields
     if (!userId) {
@@ -237,7 +274,14 @@ export async function deleteUser(userId: string) {
       .eq('id', userId)
 
     if (error) {
-      console.error('[deleteUser] Error:', error)
+      // Log database error
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'deleteUser',
+        errorType: 'database',
+        context: { targetUserId: userId },
+      } as LogErrorContext)
       return {
         success: false,
         error: error.message
@@ -252,7 +296,12 @@ export async function deleteUser(userId: string) {
     }
 
   } catch (error) {
-    console.error('[deleteUser] Exception:', error)
+    // Log unexpected error
+    await logError(error, {
+      function: 'deleteUser',
+      errorType: 'runtime',
+      context: { targetUserId: userId },
+    } as LogErrorContext)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete user'
@@ -270,7 +319,7 @@ export async function deleteUser(userId: string) {
 export async function bulkUpdateUsers(updates: UpdateUserData[]) {
   try {
     // CRITICAL: Verify admin role first
-    const { supabaseAdmin } = await verifyAdmin()
+    const { user, supabaseAdmin } = await verifyAdmin()
 
     // Validate input
     if (!updates || updates.length === 0) {
@@ -294,7 +343,14 @@ export async function bulkUpdateUsers(updates: UpdateUserData[]) {
     // Check for errors
     const errors = results.filter(r => r.status === 'rejected')
     if (errors.length > 0) {
-      console.error('[bulkUpdateUsers] Some updates failed:', errors)
+      // Log partial failure
+      await logError(new Error(`${errors.length} out of ${updates.length} updates failed`), {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'bulkUpdateUsers',
+        errorType: 'runtime',
+        context: { failedCount: errors.length, totalCount: updates.length },
+      } as LogErrorContext)
       return {
         success: false,
         error: `${errors.length} out of ${updates.length} updates failed`
@@ -310,10 +366,254 @@ export async function bulkUpdateUsers(updates: UpdateUserData[]) {
     }
 
   } catch (error) {
-    console.error('[bulkUpdateUsers] Exception:', error)
+    // Log unexpected error
+    await logError(error, {
+      function: 'bulkUpdateUsers',
+      errorType: 'runtime',
+      context: { updateCount: updates?.length },
+    } as LogErrorContext)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update users'
+    }
+  }
+}
+
+// ============================================================================
+// SYSTEM LOGS SERVER ACTIONS
+// ============================================================================
+
+export interface SystemLogFilter {
+  limit?: number
+  offset?: number
+  severity?: ('DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[]
+  errorType?: ('runtime' | 'auth' | 'database' | 'validation' | 'network' | 'unknown')[]
+  isAuthError?: boolean
+  isSupabaseGetUserError?: boolean
+  userId?: string
+  startDate?: string
+  endDate?: string
+  search?: string
+}
+
+export interface SystemLogEntry {
+  id: string
+  created_at: string
+  error_message: string
+  error_name?: string
+  error_stack?: string
+  context: Record<string, any>
+  user_id?: string
+  user_email?: string
+  user_role?: string[]
+  request_path?: string
+  request_method?: string
+  ip_address?: string
+  user_agent?: string
+  severity: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL'
+  error_type: 'runtime' | 'auth' | 'database' | 'validation' | 'network' | 'unknown'
+  is_auth_error: boolean
+  is_supabase_getuser_error: boolean
+  sentry_event_id?: string
+  sentry_sent: boolean
+}
+
+export interface SystemLogsResponse {
+  success: boolean
+  data?: SystemLogEntry[]
+  count?: number
+  error?: string
+}
+
+/**
+ * Get system logs (Admin only)
+ *
+ * SECURITY: Admin role validation is REQUIRED before returning any logs
+ *
+ * @param filter Filter options for logs
+ * @returns System logs matching the filter
+ */
+export async function getSystemLogs(filter: SystemLogFilter = {}): Promise<SystemLogsResponse> {
+  try {
+    // CRITICAL: Verify admin role first
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    // Build query
+    let query = supabaseAdmin
+      .from('system_logs')
+      .select('*', { count: 'exact' })
+
+    // Apply filters
+    if (filter.severity && filter.severity.length > 0) {
+      query = query.in('severity', filter.severity)
+    }
+
+    if (filter.errorType && filter.errorType.length > 0) {
+      query = query.in('error_type', filter.errorType)
+    }
+
+    if (filter.isAuthError !== undefined) {
+      query = query.eq('is_auth_error', filter.isAuthError)
+    }
+
+    if (filter.isSupabaseGetUserError !== undefined) {
+      query = query.eq('is_supabase_getuser_error', filter.isSupabaseGetUserError)
+    }
+
+    if (filter.userId) {
+      query = query.eq('user_id', filter.userId)
+    }
+
+    if (filter.startDate) {
+      query = query.gte('created_at', filter.startDate)
+    }
+
+    if (filter.endDate) {
+      query = query.lte('created_at', filter.endDate)
+    }
+
+    if (filter.search) {
+      query = query.or(`error_message.ilike.%${filter.search}%,error_name.ilike.%${filter.search}%,request_path.ilike.%${filter.search}%`)
+    }
+
+    // Apply pagination and ordering
+    const limit = Math.min(filter.limit || 100, 500) // Max 500 records
+    const offset = filter.offset || 0
+
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    // Execute query
+    const { data, error, count } = await query
+
+    if (error) {
+      // Log database error
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'getSystemLogs',
+        errorType: 'database',
+        context: { filter },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    return {
+      success: true,
+      data: data as SystemLogEntry[],
+      count: count || 0,
+    }
+
+  } catch (error) {
+    // Log unexpected error
+    await logError(error, {
+      function: 'getSystemLogs',
+      errorType: 'runtime',
+      context: { filter },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch system logs',
+    }
+  }
+}
+
+/**
+ * Get system logs statistics (Admin only)
+ *
+ * @param filter Filter options for statistics
+ * @returns Statistics about system logs
+ */
+export async function getSystemLogsStats(filter: Omit<SystemLogFilter, 'limit' | 'offset'> = {}) {
+  try {
+    // CRITICAL: Verify admin role first
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    // Build base query with filters
+    let query = supabaseAdmin
+      .from('system_logs')
+      .select('severity, error_type, is_auth_error, is_supabase_getuser_error', { count: 'exact', head: false })
+
+    // Apply filters
+    if (filter.severity && filter.severity.length > 0) {
+      query = query.in('severity', filter.severity)
+    }
+
+    if (filter.errorType && filter.errorType.length > 0) {
+      query = query.in('error_type', filter.errorType)
+    }
+
+    if (filter.isAuthError !== undefined) {
+      query = query.eq('is_auth_error', filter.isAuthError)
+    }
+
+    if (filter.isSupabaseGetUserError !== undefined) {
+      query = query.eq('is_supabase_getuser_error', filter.isSupabaseGetUserError)
+    }
+
+    if (filter.userId) {
+      query = query.eq('user_id', filter.userId)
+    }
+
+    if (filter.startDate) {
+      query = query.gte('created_at', filter.startDate)
+    }
+
+    if (filter.endDate) {
+      query = query.lte('created_at', filter.endDate)
+    }
+
+    // Execute query
+    const { data, error } = await query
+
+    if (error) {
+      // Log database error
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'getSystemLogsStats',
+        errorType: 'database',
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message,
+      }
+    }
+
+    // Calculate statistics
+    const stats = {
+      total: data?.length || 0,
+      bySeverity: {} as Record<string, number>,
+      byErrorType: {} as Record<string, number>,
+      authErrors: 0,
+      supabaseGetUserErrors: 0,
+    }
+
+    data?.forEach(log => {
+      stats.bySeverity[log.severity] = (stats.bySeverity[log.severity] || 0) + 1
+      stats.byErrorType[log.error_type] = (stats.byErrorType[log.error_type] || 0) + 1
+      if (log.is_auth_error) stats.authErrors++
+      if (log.is_supabase_getuser_error) stats.supabaseGetUserErrors++
+    })
+
+    return {
+      success: true,
+      data: stats,
+    }
+
+  } catch (error) {
+    // Log unexpected error
+    await logError(error, {
+      function: 'getSystemLogsStats',
+      errorType: 'runtime',
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch system logs statistics',
     }
   }
 }

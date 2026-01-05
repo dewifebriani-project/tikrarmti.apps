@@ -1,4 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
+import * as Sentry from '@sentry/nextjs';
 
 export interface LogEntry {
   user_id?: string;
@@ -233,38 +235,209 @@ export const logSecurity = {
   },
 };
 
-// Error logging
-export const logError = async (error: Error, context?: Record<string, any>) => {
-  try {
-    console.error('[ERROR]', error.message, {
-      stack: error.stack,
-      context,
-    });
+// ============================================================================
+// ROBUST ERROR LOGGING - SENTRY + DATABASE INTEGRATION
+// ============================================================================
 
-    // Send to error tracking service (e.g., Sentry, LogRocket)
-    /*
-    if (process.env.SENTRY_DSN) {
-      Sentry.captureException(error, { extra: context });
-    }
-    */
+export interface LogErrorContext extends Record<string, any> {
+  userId?: string
+  userEmail?: string
+  userRole?: string | string[]
+  function?: string
+  requestPath?: string
+  requestMethod?: string
+  ipAddress?: string
+  userAgent?: string
+  errorType?: 'runtime' | 'auth' | 'database' | 'validation' | 'network' | 'unknown'
+  severity?: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL'
+}
 
-    // Or store in database
-    try {
-      const supabase = createServerClient();
-      await supabase
-        .from('error_logs')
-        .insert({
-          message: error.message,
-          stack: error.stack,
-          context,
-        });
-    } catch (dbError) {
-      console.warn('Failed to save error log to database:', dbError);
-    }
-  } catch (e) {
-    console.error('Failed to log error:', e);
+/**
+ * Robust error logging function
+ *
+ * Sends error to Sentry AND stores in system_logs table
+ *
+ * @param error - Error object
+ * @param context - Additional context information
+ */
+export const logError = async (
+  error: Error | unknown,
+  context: LogErrorContext = {}
+): Promise<{ sentryId?: string; dbId?: string }> => {
+  // Normalize error
+  const errorObj = error instanceof Error ? error : new Error(String(error))
+  const errorMessage = errorObj.message
+  const errorStack = errorObj.stack
+  const errorName = errorObj.name || 'Error'
+
+  // Auto-detect error type
+  let errorType: LogErrorContext['errorType'] = context.errorType || 'runtime'
+  if (errorMessage?.includes('auth') || errorMessage?.includes('Unauthorized')) {
+    errorType = 'auth'
+  } else if (errorMessage?.includes('database') || errorMessage?.includes('PG')) {
+    errorType = 'database'
+  } else if (errorMessage?.includes('validation')) {
+    errorType = 'validation'
+  } else if (errorMessage?.includes('network') || errorMessage?.includes('fetch')) {
+    errorType = 'network'
   }
-};
+
+  // Auto-detect severity
+  const severity: LogErrorContext['severity'] = context.severity ||
+    (errorType === 'auth' ? 'ERROR' : 'ERROR')
+
+  // Prepare enhanced context
+  const enhancedContext: LogErrorContext = {
+    ...context,
+    errorType,
+    severity,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+  }
+
+  // Console logging (always)
+  console.error(`[ERROR:${errorType}] ${errorMessage}`, {
+    name: errorName,
+    stack: errorStack,
+    context: enhancedContext,
+  })
+
+  let sentryId: string | undefined
+  let dbId: string | undefined
+
+  // 1. Send to Sentry (if configured)
+  if (process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.NODE_ENV !== 'development') {
+    try {
+      // Set user context if available
+      if (context.userId) {
+        Sentry.setUser({
+          id: context.userId,
+          email: context.userEmail,
+          role: Array.isArray(context.userRole) ? context.userRole.join(',') : context.userRole,
+        })
+      }
+
+      // Capture exception with context
+      sentryId = Sentry.captureException(errorObj, {
+        level: severity.toLowerCase() as Sentry.SeverityLevel,
+        tags: {
+          errorType,
+          function: context.function || 'unknown',
+          requestPath: context.requestPath || 'unknown',
+        },
+        extra: {
+          ...context,
+          timestamp: enhancedContext.timestamp,
+        },
+      })
+
+      // Clear user context after capture
+      Sentry.setUser(null)
+    } catch (sentryError) {
+      console.error('[Sentry] Failed to send error:', sentryError)
+    }
+  }
+
+  // 2. Store in system_logs table
+  try {
+    const supabaseAdmin = createSupabaseAdmin()
+
+    // Auto-detect supabase.auth.getUser errors
+    const isSupabaseGetUserError =
+      errorMessage?.toLowerCase().includes('supabase.auth.getuser') ||
+      errorMessage?.toLowerCase().includes('getuser()') ||
+      context.function?.toLowerCase().includes('getuser')
+
+    // Auto-detect auth errors
+    const isAuthError =
+      errorType === 'auth' ||
+      isSupabaseGetUserError ||
+      errorMessage?.toLowerCase().includes('unauthorized') ||
+      errorMessage?.toLowerCase().includes('forbidden')
+
+    const { data, error: dbError } = await supabaseAdmin
+      .from('system_logs')
+      .insert({
+        error_message: errorMessage,
+        error_name: errorName,
+        error_stack: errorStack,
+        context: enhancedContext,
+        user_id: context.userId || null,
+        user_email: context.userEmail || null,
+        user_role: context.userRole ? (Array.isArray(context.userRole) ? context.userRole : [context.userRole]) : null,
+        request_path: context.requestPath || null,
+        request_method: context.requestMethod || null,
+        ip_address: context.ipAddress || null,
+        user_agent: context.userAgent || null,
+        severity,
+        error_type: errorType,
+        is_auth_error: isAuthError,
+        is_supabase_getuser_error: isSupabaseGetUserError,
+        environment: process.env.NODE_ENV,
+        release_version: process.env.NEXT_PUBLIC_APP_VERSION,
+        sentry_event_id: sentryId || null,
+        sentry_sent: !!sentryId,
+      })
+      .select('id')
+      .single()
+
+    if (!dbError && data?.id) {
+      dbId = data.id
+    } else {
+      console.warn('[Database] Failed to insert system_log:', dbError)
+    }
+  } catch (dbError) {
+    console.error('[Database] Exception while logging error:', dbError)
+  }
+
+  return { sentryId, dbId }
+}
+
+/**
+ * Convenience function for logging supabase.auth.getUser() errors
+ */
+export const logAuthGetUserError = async (
+  error: Error | unknown,
+  context: Omit<LogErrorContext, 'errorType'> = {}
+) => {
+  return logError(error, {
+    ...context,
+    errorType: 'auth',
+    isSupabaseGetUserError: true,
+  })
+}
+
+/**
+ * Convenience function for logging database errors
+ */
+export const logDatabaseError = async (
+  error: Error | unknown,
+  context: Omit<LogErrorContext, 'errorType'> = {}
+) => {
+  return logError(error, {
+    ...context,
+    errorType: 'database',
+  })
+}
+
+/**
+ * Convenience function for logging validation errors
+ */
+export const logValidationError = async (
+  error: Error | unknown,
+  context: Omit<LogErrorContext, 'errorType'> = {}
+) => {
+  return logError(error, {
+    ...context,
+    errorType: 'validation',
+    severity: 'WARN',
+  })
+}
+
+// Legacy error logging function (deprecated - use logError instead)
+export const logErrorLegacy = async (error: Error, context?: Record<string, any>) => {
+  return logError(error, context)
+}
 
 // Performance monitoring
 export const logPerformance = async (metric: string, value: number, unit: string, context?: Record<string, any>) => {
