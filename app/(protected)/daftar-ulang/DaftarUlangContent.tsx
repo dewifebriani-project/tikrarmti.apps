@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 import {
   Users,
@@ -202,17 +202,20 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     );
   }
 
-  // Partner selection state
-  const [partnerType, setPartnerType] = useState<'thalibah' | 'family' | 'tarteel'>('thalibah');
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
-  const [familyMemberName, setFamilyMemberName] = useState('');
-  const [familyRelationship, setFamilyRelationship] = useState('');
-  const [tarteelCommitment, setTarteelCommitment] = useState(false);
-  const [dailyProofMethod, setDailyProofMethod] = useState('');
+  // Partner selection state - initialize with lazy function to avoid recreating
+  const [partnerType, setPartnerType] = useState<'thalibah' | 'family' | 'tarteel'>(() => {
+    // Will be updated by useEffect after data loads
+    return 'thalibah';
+  });
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>(() => '');
+  const [familyMemberName, setFamilyMemberName] = useState(() => '');
+  const [familyRelationship, setFamilyRelationship] = useState(() => '');
+  const [tarteelCommitment, setTarteelCommitment] = useState(() => false);
+  const [dailyProofMethod, setDailyProofMethod] = useState(() => '');
 
   // Akad state
-  const [akadAgreed, setAkadAgreed] = useState(false);
-  const [currentSection, setCurrentSection] = useState(0);
+  const [akadAgreed, setAkadAgreed] = useState(() => false);
+  const [currentSection, setCurrentSection] = useState(() => 0);
 
   async function fetcher(url: string) {
     const res = await fetch(url);
@@ -220,29 +223,36 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     return res.json();
   }
 
-  // Use useMemo to prevent unnecessary re-renders from SWR data
-  const compatiblePartners = useMemo(() => partnerData?.data?.compatible_partners || [], [partnerData?.data?.compatible_partners]);
-  const existingPreference = useMemo(() => partnerData?.data?.existing_preference, [partnerData?.data?.existing_preference]);
-  const pendingRequests = useMemo(() => partnerData?.data?.pending_requests || [], [partnerData?.data?.pending_requests]);
-  const akadCommitment = useMemo(() => akadData?.data, [akadData?.data]);
+  // Direct extraction - useMemo was causing issues with SWR
+  const compatiblePartners = partnerData?.data?.compatible_partners || [];
+  const existingPreference = partnerData?.data?.existing_preference;
+  const pendingRequests = partnerData?.data?.pending_requests || [];
+  const akadCommitment = akadData?.data;
+
+  // Use ref to track if we've already initialized state from data
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (existingPreference) {
-      setPartnerType(existingPreference.partner_type);
-      if (existingPreference.preferred_partner_id) {
-        setSelectedPartnerId(existingPreference.preferred_partner_id);
+    // Only run once when data first loads
+    if (!initializedRef.current) {
+      if (existingPreference) {
+        setPartnerType(existingPreference.partner_type);
+        if (existingPreference.preferred_partner_id) {
+          setSelectedPartnerId(existingPreference.preferred_partner_id);
+        }
+        if (existingPreference.family_member_name) {
+          setFamilyMemberName(existingPreference.family_member_name);
+          setFamilyRelationship(existingPreference.family_member_relationship || '');
+        }
+        if (existingPreference.tarteel_commitment) {
+          setTarteelCommitment(existingPreference.tarteel_commitment);
+          setDailyProofMethod(existingPreference.daily_proof_method || '');
+        }
       }
-      if (existingPreference.family_member_name) {
-        setFamilyMemberName(existingPreference.family_member_name);
-        setFamilyRelationship(existingPreference.family_member_relationship || '');
+      if (akadCommitment?.agreed) {
+        setAkadAgreed(true);
       }
-      if (existingPreference.tarteel_commitment) {
-        setTarteelCommitment(existingPreference.tarteel_commitment);
-        setDailyProofMethod(existingPreference.daily_proof_method || '');
-      }
-    }
-    if (akadCommitment?.agreed) {
-      setAkadAgreed(true);
+      initializedRef.current = true;
     }
   }, [existingPreference, akadCommitment]);
 
