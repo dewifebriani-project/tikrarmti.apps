@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import {
   Users,
@@ -115,10 +115,12 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Check if user is admin
-  const isAdmin = userRole === 'admin' ||
-    (Array.isArray(userRole) && userRole.includes('admin')) ||
-    (Array.isArray((userRole as any)?.roles) && (userRole as any).roles.includes('admin'));
+  // Check if user is admin - use useMemo to prevent re-renders
+  const isAdmin = useMemo(() => {
+    return userRole === 'admin' ||
+      (Array.isArray(userRole) && userRole.includes('admin')) ||
+      (Array.isArray((userRole as any)?.roles) && (userRole as any).roles.includes('admin'));
+  }, [userRole]);
 
   // Fetch batch data
   const { data: batch, error: batchError } = useSWR(
