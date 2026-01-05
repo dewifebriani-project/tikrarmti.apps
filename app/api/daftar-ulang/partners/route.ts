@@ -59,20 +59,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Use the database function to find compatible partners
-    const { data: compatiblePartners, error: partnersError } = await supabaseAdmin
-      .rpc('find_compatible_study_partners', {
-        p_user_id: user.id,
-        p_batch_id: batchId,
-        p_time_slot: registration.main_time_slot,
-        p_juz: registration.chosen_juz
-      });
+    // If function doesn't exist yet, return empty array
+    let compatiblePartners: any[] = [];
+    try {
+      const { data: partners, error: partnersError } = await supabaseAdmin
+        .rpc('find_compatible_study_partners', {
+          p_user_id: user.id,
+          p_batch_id: batchId,
+          p_time_slot: registration.main_time_slot,
+          p_juz: registration.chosen_juz
+        });
 
-    if (partnersError) {
-      console.error('[Partners API] Error finding partners:', partnersError);
-      return NextResponse.json(
-        { error: 'Failed to find compatible partners' },
-        { status: 500 }
-      );
+      if (!partnersError && partners) {
+        compatiblePartners = partners;
+      } else if (partnersError) {
+        console.warn('[Partners API] Function not available or error:', partnersError);
+        // Continue with empty partners - don't fail the request
+      }
+    } catch (err) {
+      console.warn('[Partners API] Exception calling find_compatible_study_partners:', err);
+      // Continue with empty partners
     }
 
     // Get existing partner preferences for the user
@@ -84,13 +90,23 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     // Get pending requests from others (where they selected this user)
-    const { data: pendingRequests } = await supabaseAdmin
-      .from('study_partner_preferences')
-      .select('*, users!study_partner_preferences_user_id_fkey(full_name), registrations:pendaftaran_tikrar_tahfidz(chosen_juz, main_time_slot)')
-      .eq('batch_id', batchId)
-      .eq('preferred_partner_id', user.id)
-      .eq('partner_status', 'pending')
-      .eq('partner_type', 'thalibah');
+    let pendingRequests: any[] = [];
+    try {
+      const { data: requests } = await supabaseAdmin
+        .from('study_partner_preferences')
+        .select('*, users!study_partner_preferences_user_id_fkey(full_name), registrations:pendaftaran_tikrar_tahfidz(chosen_juz, main_time_slot)')
+        .eq('batch_id', batchId)
+        .eq('preferred_partner_id', user.id)
+        .eq('partner_status', 'pending')
+        .eq('partner_type', 'thalibah');
+
+      if (requests) {
+        pendingRequests = requests;
+      }
+    } catch (err) {
+      console.warn('[Partners API] Error fetching pending requests:', err);
+      // Continue with empty requests
+    }
 
     return NextResponse.json({
       success: true,
