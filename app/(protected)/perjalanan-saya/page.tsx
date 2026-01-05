@@ -107,11 +107,12 @@ export default function PerjalananSaya() {
     if (typeof window !== 'undefined') {
       console.log('[PerjalananSai] Admin button debug:', {
         userRole: user?.role,
-        userRoles: user?.roles,
         batchId,
         isAdmin: user?.role === 'admin',
         isAdminIncludes: user?.role?.includes('admin'),
-        showButton: (user?.role === 'admin' || user?.role?.includes('admin')) && batchId
+        showButton: ((user?.role === 'admin') ||
+          (Array.isArray(user?.role) && user.role.includes('admin')) ||
+          (Array.isArray((user as any)?.roles) && (user as any).roles.includes('admin'))) && batchId
       });
     }
   }, [user, batchId]);
