@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import useSWR from 'swr';
 import {
   Users,
@@ -359,8 +359,14 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     }
   };
 
+  // Stable navigation callbacks to prevent re-renders
+  const goToPartner = useCallback(() => setCurrentStep('partner'), []);
+  const goToIntro = useCallback(() => setCurrentStep('intro'), []);
+  const goToAkad = useCallback(() => setCurrentStep('akad'), []);
+  const goToReview = useCallback(() => setCurrentStep('review'), []);
+
   if (currentStep === 'intro') {
-    return <IntroStep onNext={() => setCurrentStep('partner')} batch={batch} />;
+    return <IntroStep onNext={goToPartner} batch={batch} />;
   }
 
   if (currentStep === 'partner') {
@@ -383,7 +389,7 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
         existingPreference={existingPreference}
         pendingRequests={pendingRequests}
         loading={loading}
-        onBack={() => setCurrentStep('intro')}
+        onBack={goToIntro}
         onNext={handlePartnerSubmit}
       />
     );
@@ -397,7 +403,7 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
         currentSection={currentSection}
         setCurrentSection={setCurrentSection}
         loading={loading}
-        onBack={() => setCurrentStep('partner')}
+        onBack={goToPartner}
         onNext={handleAkadSubmit}
       />
     );
@@ -412,7 +418,7 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
         existingPreference={existingPreference}
         akadCommitment={akadCommitment}
         loading={submitting}
-        onBack={() => setCurrentStep('akad')}
+        onBack={goToAkad}
         onNext={handleSubmitDaftarUlang}
         statusData={statusData}
       />
