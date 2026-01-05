@@ -68,6 +68,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify all required components are completed
+
+    // Check schedule preference exists
+    const { data: schedulePreference } = await supabaseAdmin
+      .from('ustadzah_preferences')
+      .select('preferred_muallimah_tashih, preferred_muallimah_ujian')
+      .eq('user_id', user.id)
+      .eq('batch_id', batch_id)
+      .maybeSingle();
+
+    if (!schedulePreference || !schedulePreference.preferred_muallimah_tashih || !schedulePreference.preferred_muallimah_ujian) {
+      return NextResponse.json(
+        { error: 'Please select your tashih and ujian schedule preferences first' },
+        { status: 400 }
+      );
+    }
+
     const { data: akad } = await supabaseAdmin
       .from('akad_commitments')
       .select('agreed')
@@ -225,6 +241,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Check requirements
+    const { data: schedulePreference } = await supabaseAdmin
+      .from('ustadzah_preferences')
+      .select('preferred_muallimah_tashih, preferred_muallimah_ujian')
+      .eq('user_id', user.id)
+      .eq('batch_id', batchId)
+      .maybeSingle();
+
     const { data: akad } = await supabaseAdmin
       .from('akad_commitments')
       .select('agreed, signed_at')
@@ -246,11 +269,13 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     // Calculate completion status
+    const scheduleSelected = !!(schedulePreference && schedulePreference.preferred_muallimah_tashih && schedulePreference.preferred_muallimah_ujian);
     const requirements = {
+      schedule_selected: scheduleSelected,
       akad_completed: !!(akad && akad.agreed),
       partner_selected: !!partner,
       halaqah_assigned: !!halaqahAssignment,
-      can_submit: !!(akad && akad.agreed) && !!partner && !!halaqahAssignment
+      can_submit: scheduleSelected && !!(akad && akad.agreed) && !!partner && !!halaqahAssignment
     };
 
     return NextResponse.json({
@@ -263,6 +288,7 @@ export async function GET(request: NextRequest) {
         },
         requirements,
         details: {
+          schedule: schedulePreference,
           akad,
           partner,
           halaqah: halaqahAssignment

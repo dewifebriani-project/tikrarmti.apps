@@ -57,7 +57,7 @@ interface DaftarUlangContentProps {
   userRole?: string;
 }
 
-type Step = 'intro' | 'partner' | 'akad' | 'review' | 'complete';
+type Step = 'intro' | 'schedule' | 'partner' | 'akad' | 'review' | 'complete';
 
 const AKAD_CONTENT = {
   title: 'AKAD KOMITMEN THALIBAH TIKRAR TAHFIDZ',
@@ -134,6 +134,12 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     fetcher
   );
 
+  // Fetch schedule data
+  const { data: scheduleData, error: scheduleError, mutate: mutateSchedules } = useSWR(
+    () => registration ? `/api/daftar-ulang/schedules?batch_id=${batchId}` : null,
+    fetcher
+  );
+
   // Fetch partner data
   const { data: partnerData, error: partnerError, mutate: mutatePartners } = useSWR(
     () => registration ? `/api/daftar-ulang/partners?batch_id=${batchId}` : null,
@@ -202,6 +208,11 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     );
   }
 
+  // Schedule selection state
+  const [selectedTashihSchedule, setSelectedTashihSchedule] = useState<string>(() => '');
+  const [selectedUjianSchedule, setSelectedUjianSchedule] = useState<string>(() => '');
+  const [scheduleNotes, setScheduleNotes] = useState(() => '');
+
   // Partner selection state - initialize with lazy function to avoid recreating
   const [partnerType, setPartnerType] = useState<'thalibah' | 'family' | 'tarteel'>(() => {
     // Will be updated by useEffect after data loads
@@ -224,6 +235,8 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   }
 
   // Direct extraction - useMemo was causing issues with SWR
+  const availableSchedules = scheduleData?.data?.available_schedules;
+  const existingSchedulePreference = scheduleData?.data?.existing_preference;
   const compatiblePartners = partnerData?.data?.compatible_partners || [];
   const existingPreference = partnerData?.data?.existing_preference;
   const pendingRequests = partnerData?.data?.pending_requests || [];
@@ -236,6 +249,11 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   useEffect(() => {
     // Only run once when data first loads
     if (!initializedRef.current) {
+      if (existingSchedulePreference) {
+        setSelectedTashihSchedule(existingSchedulePreference.preferred_muallimah_tashih || '');
+        setSelectedUjianSchedule(existingSchedulePreference.preferred_muallimah_ujian || '');
+        setScheduleNotes(existingSchedulePreference.notes || '');
+      }
       if (existingPreference) {
         setPartnerType(existingPreference.partner_type);
         if (existingPreference.preferred_partner_id) {
@@ -255,7 +273,37 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
       }
       initializedRef.current = true;
     }
-  }, [existingPreference, akadCommitment]);
+  }, [existingSchedulePreference, existingPreference, akadCommitment]);
+
+  const handleScheduleSubmit = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/daftar-ulang/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: batchId,
+          tashih_schedule_id: selectedTashihSchedule,
+          ujian_schedule_id: selectedUjianSchedule,
+          notes: scheduleNotes
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save schedule preference');
+      }
+
+      toast.success('Preferensi jadwal berhasil disimpan!');
+      mutateSchedules();
+      setCurrentStep('partner');
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal menyimpan preferensi jadwal');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePartnerSubmit = async () => {
     setLoading(true);
@@ -361,13 +409,31 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   };
 
   // Stable navigation callbacks to prevent re-renders
+  const goToSchedule = useCallback(() => setCurrentStep('schedule'), []);
   const goToPartner = useCallback(() => setCurrentStep('partner'), []);
   const goToIntro = useCallback(() => setCurrentStep('intro'), []);
   const goToAkad = useCallback(() => setCurrentStep('akad'), []);
   const goToReview = useCallback(() => setCurrentStep('review'), []);
 
   if (currentStep === 'intro') {
-    return <IntroStep onNext={goToPartner} batch={batch} />;
+    return <IntroStep onNext={goToSchedule} batch={batch} />;
+  }
+
+  if (currentStep === 'schedule') {
+    return (
+      <ScheduleStep
+        availableSchedules={availableSchedules}
+        selectedTashihSchedule={selectedTashihSchedule}
+        setSelectedTashihSchedule={setSelectedTashihSchedule}
+        selectedUjianSchedule={selectedUjianSchedule}
+        setSelectedUjianSchedule={setSelectedUjianSchedule}
+        scheduleNotes={scheduleNotes}
+        setScheduleNotes={setScheduleNotes}
+        loading={loading}
+        onBack={goToIntro}
+        onNext={handleScheduleSubmit}
+      />
+    );
   }
 
   if (currentStep === 'partner') {
@@ -391,7 +457,7 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
         existingPreference={existingPreference}
         pendingRequests={pendingRequests}
         loading={loading}
-        onBack={goToIntro}
+        onBack={goToSchedule}
         onNext={handlePartnerSubmit}
       />
     );
@@ -416,6 +482,9 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
       <ReviewStep
         batch={batch}
         registration={registration}
+        selectedTashihSchedule={selectedTashihSchedule}
+        selectedUjianSchedule={selectedUjianSchedule}
+        availableSchedules={availableSchedules}
         partnerType={partnerType}
         existingPreference={existingPreference}
         akadCommitment={akadCommitment}
@@ -434,6 +503,164 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   return null;
 }
 
+// Schedule Step
+function ScheduleStep({
+  availableSchedules,
+  selectedTashihSchedule,
+  setSelectedTashihSchedule,
+  selectedUjianSchedule,
+  setSelectedUjianSchedule,
+  scheduleNotes,
+  setScheduleNotes,
+  loading,
+  onBack,
+  onNext
+}: any) {
+  const canSubmit = () => {
+    return !!selectedTashihSchedule && !!selectedUjianSchedule;
+  };
+
+  if (!availableSchedules) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-green-900 mx-auto mb-4" />
+          <p className="text-gray-600">Memuat jadwal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilih Jadwal Tashih dan Ujian Pekanan</h2>
+          <p className="text-gray-600">Pilih jadwal yang sesuai dengan waktu Anda untuk tashih hafalan dan ujian pekanan</p>
+        </div>
+
+        <div className="space-y-8">
+          {/* Jadwal Tashih */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Clock className="w-5 h-5 text-green-900" />
+              <h3 className="font-semibold text-gray-900">Jadwal Tashih Hafalan</h3>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>Tashih</strong> adalah sesi untuk menyetorkan hafalan baru kepada muallimah. Pilih jadwal yang sesuai dengan waktu Anda.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              {availableSchedules.tashih_schedules?.map((schedule: any) => (
+                <label
+                  key={schedule.id}
+                  className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all ${
+                    selectedTashihSchedule === schedule.id
+                      ? 'border-green-900 bg-green-50'
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">{schedule.label}</p>
+                    <p className="text-sm text-gray-600">{schedule.time}</p>
+                  </div>
+                  <input
+                    type="radio"
+                    name="tashih"
+                    checked={selectedTashihSchedule === schedule.id}
+                    onChange={() => setSelectedTashihSchedule(schedule.id)}
+                    className="w-4 h-4 text-green-900"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Jadwal Ujian */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-5 h-5 text-green-900" />
+              <h3 className="font-semibold text-gray-900">Jadwal Ujian Pekanan</h3>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg mb-4">
+              <p className="text-sm text-purple-800">
+                <strong>Ujian Pekanan</strong> adalah ujian mingguan untuk mengetes hafalan yang telah Anda setorkan. Biasanya dilaksanakan pada akhir pekan.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
+              {availableSchedules.ujian_schedules?.map((schedule: any) => (
+                <label
+                  key={schedule.id}
+                  className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all ${
+                    selectedUjianSchedule === schedule.id
+                      ? 'border-green-900 bg-green-50'
+                      : 'border-gray-200 hover:border-green-300'
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium text-gray-900">{schedule.label}</p>
+                    <p className="text-sm text-gray-600">{schedule.time}</p>
+                  </div>
+                  <input
+                    type="radio"
+                    name="ujian"
+                    checked={selectedUjianSchedule === schedule.id}
+                    onChange={() => setSelectedUjianSchedule(schedule.id)}
+                    className="w-4 h-4 text-green-900"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Catatan Tambahan */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Catatan Tambahan (Opsional)
+            </label>
+            <textarea
+              value={scheduleNotes}
+              onChange={(e) => setScheduleNotes(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-900 focus:border-transparent"
+              rows={3}
+              placeholder="Jika ada catatan khusus terkait jadwal, tuliskan di sini..."
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-between mt-8">
+          <button
+            onClick={onBack}
+            disabled={loading}
+            className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Kembali
+          </button>
+          <button
+            onClick={onNext}
+            disabled={loading || !canSubmit()}
+            className="px-6 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Menyimpan...
+              </>
+            ) : (
+              <>
+                Lanjut
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Intro Step
 function IntroStep({ onNext, batch }: { onNext: () => void; batch: Batch }) {
   return (
@@ -450,7 +677,17 @@ function IntroStep({ onNext, batch }: { onNext: () => void; batch: Batch }) {
         <div className="space-y-6 mb-8">
           <div className="flex items-start gap-4">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <Users className="w-4 h-4 text-blue-600" />
+              <Clock className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Pilih Jadwal Tashih dan Ujian Pekanan</h3>
+              <p className="text-sm text-gray-600">Pilih jadwal yang sesuai untuk tashih hafalan dan ujian pekanan</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Users className="w-4 h-4 text-green-600" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">Pilih Pasangan Setoran</h3>
@@ -469,8 +706,8 @@ function IntroStep({ onNext, batch }: { onNext: () => void; batch: Batch }) {
           </div>
 
           <div className="flex items-start gap-4">
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-yellow-600" />
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">Selesaikan Daftar Ulang</h3>
@@ -492,7 +729,6 @@ function IntroStep({ onNext, batch }: { onNext: () => void; batch: Batch }) {
 
 // Partner Step
 function PartnerStep({
-  user,
   registration,
   userRegistration,
   partnerType,
@@ -514,8 +750,6 @@ function PartnerStep({
   onBack,
   onNext
 }: any) {
-  const [showPartnerInfo, setShowPartnerInfo] = useState(false);
-
   const canSubmit = () => {
     if (partnerType === 'thalibah') return !!selectedPartnerId;
     if (partnerType === 'family') return !!familyMemberName;
@@ -537,7 +771,7 @@ function PartnerStep({
 
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <button
-            onClick={() => { setPartnerType('thalibah'); setShowPartnerInfo(false); }}
+            onClick={() => { setPartnerType('thalibah'); }}
             className={`p-6 rounded-lg border-2 text-left transition-all ${
               partnerType === 'thalibah'
                 ? 'border-green-900 bg-green-50'
@@ -550,7 +784,7 @@ function PartnerStep({
           </button>
 
           <button
-            onClick={() => { setPartnerType('family'); setShowPartnerInfo(false); }}
+            onClick={() => { setPartnerType('family'); }}
             className={`p-6 rounded-lg border-2 text-left transition-all ${
               partnerType === 'family'
                 ? 'border-green-900 bg-green-50'
@@ -563,7 +797,7 @@ function PartnerStep({
           </button>
 
           <button
-            onClick={() => { setPartnerType('tarteel'); setShowPartnerInfo(false); }}
+            onClick={() => { setPartnerType('tarteel'); }}
             className={`p-6 rounded-lg border-2 text-left transition-all ${
               partnerType === 'tarteel'
                 ? 'border-green-900 bg-green-50'
@@ -915,6 +1149,9 @@ function AkadStep({
 function ReviewStep({
   batch,
   registration,
+  selectedTashihSchedule,
+  selectedUjianSchedule,
+  availableSchedules,
   partnerType,
   existingPreference,
   akadCommitment,
@@ -924,10 +1161,24 @@ function ReviewStep({
   statusData
 }: any) {
   const requirements = statusData?.data?.requirements || {
+    schedule_selected: !!selectedTashihSchedule && !!selectedUjianSchedule,
     akad_completed: !!akadCommitment?.agreed,
     partner_selected: !!existingPreference,
     halaqah_assigned: false,
-    can_submit: !!akadCommitment?.agreed && !!existingPreference
+    can_submit: !!selectedTashihSchedule && !!selectedUjianSchedule && !!akadCommitment?.agreed && !!existingPreference
+  };
+
+  // Get schedule labels
+  const getTashihLabel = () => {
+    if (!selectedTashihSchedule || !availableSchedules?.tashih_schedules) return '-';
+    const schedule = availableSchedules.tashih_schedules.find((s: any) => s.id === selectedTashihSchedule);
+    return schedule ? schedule.label : selectedTashihSchedule;
+  };
+
+  const getUjianLabel = () => {
+    if (!selectedUjianSchedule || !availableSchedules?.ujian_schedules) return '-';
+    const schedule = availableSchedules.ujian_schedules.find((s: any) => s.id === selectedUjianSchedule);
+    return schedule ? schedule.label : selectedUjianSchedule;
   };
 
   const getPartnerTypeLabel = () => {
@@ -965,6 +1216,21 @@ function ReviewStep({
                 <dd className="font-medium">{registration.backup_time_slot}</dd>
               </div>
             </dl>
+          </div>
+
+          <div className="border-b border-gray-200 pb-6">
+            <h3 className="font-semibold text-gray-900 mb-3">Jadwal Tashih dan Ujian</h3>
+            <div className="flex items-center gap-3 mb-3">
+              {requirements.schedule_selected ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-600" />
+              )}
+              <div>
+                <p className="font-medium">Jadwal Tashih: {getTashihLabel()}</p>
+                <p className="font-medium">Jadwal Ujian: {getUjianLabel()}</p>
+              </div>
+            </div>
           </div>
 
           <div className="border-b border-gray-200 pb-6">
@@ -1009,12 +1275,12 @@ function ReviewStep({
             <h3 className="font-semibold text-gray-900 mb-3">Status Penyelesaian</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                {requirements.akad_completed ? (
+                {requirements.schedule_selected ? (
                   <CheckCircle className="w-4 h-4 text-green-600" />
                 ) : (
                   <XCircle className="w-4 h-4 text-gray-400" />
                 )}
-                <span className="text-sm">Akad komitmen</span>
+                <span className="text-sm">Jadwal tashih dan ujian dipilih</span>
               </div>
               <div className="flex items-center gap-2">
                 {requirements.partner_selected ? (
@@ -1023,6 +1289,14 @@ function ReviewStep({
                   <XCircle className="w-4 h-4 text-gray-400" />
                 )}
                 <span className="text-sm">Pasangan setoran dipilih</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {requirements.akad_completed ? (
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-gray-400" />
+                )}
+                <span className="text-sm">Akad komitmen disetujui</span>
               </div>
               <div className="flex items-center gap-2">
                 {requirements.halaqah_assigned ? (
@@ -1045,8 +1319,9 @@ function ReviewStep({
               <div>
                 <p className="font-semibold text-yellow-900">Belum Lengkap</p>
                 <p className="text-sm text-yellow-800">
-                  {!requirements.akad_completed && 'Silakan setujui akad komitmen. '}
+                  {!requirements.schedule_selected && 'Silakan pilih jadwal tashih dan ujian. '}
                   {!requirements.partner_selected && 'Silakan pilih pasangan setoran. '}
+                  {!requirements.akad_completed && 'Silakan setujui akad komitmen. '}
                   {!requirements.halaqah_assigned && 'Anda perlu ditugaskan ke halaqah oleh admin terlebih dahulu.'}
                 </p>
               </div>
