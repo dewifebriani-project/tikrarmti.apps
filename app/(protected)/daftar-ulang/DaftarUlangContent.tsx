@@ -227,6 +227,7 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   const compatiblePartners = partnerData?.data?.compatible_partners || [];
   const existingPreference = partnerData?.data?.existing_preference;
   const pendingRequests = partnerData?.data?.pending_requests || [];
+  const userRegistration = partnerData?.data?.user_registration;
   const akadCommitment = akadData?.data;
 
   // Use ref to track if we've already initialized state from data
@@ -373,6 +374,7 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     return (
       <PartnerStep
         registration={registration}
+        userRegistration={userRegistration}
         partnerType={partnerType}
         setPartnerType={setPartnerType}
         selectedPartnerId={selectedPartnerId}
@@ -492,6 +494,7 @@ function IntroStep({ onNext, batch }: { onNext: () => void; batch: Batch }) {
 function PartnerStep({
   user,
   registration,
+  userRegistration,
   partnerType,
   setPartnerType,
   selectedPartnerId,
@@ -519,6 +522,10 @@ function PartnerStep({
     if (partnerType === 'tarteel') return tarteelCommitment;
     return false;
   };
+
+  // Use userRegistration from partners API if available, otherwise fallback to registration
+  const displayJuz = userRegistration?.chosen_juz || registration?.chosen_juz || '-';
+  const displayTimeSlot = userRegistration?.main_time_slot || registration?.main_time_slot || '-';
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
@@ -576,7 +583,7 @@ function PartnerStep({
                 <Info className="w-4 h-4 text-blue-600" />
                 <h4 className="font-semibold text-blue-900">Info Pencocokan</h4>
               </div>
-              <p className="text-sm text-blue-800">Juz Anda: <strong>{registration.chosen_juz}</strong> | Waktu: <strong>{registration.main_time_slot}</strong></p>
+              <p className="text-sm text-blue-800">Juz Anda: <strong>{displayJuz}</strong> | Waktu: <strong>{displayTimeSlot}</strong></p>
               <p className="text-sm text-blue-800 mt-1">Pasangan dengan juz dan waktu yang sama akan diprioritaskan.</p>
             </div>
 
