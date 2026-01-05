@@ -30,6 +30,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/jurnal-harian',
     '/tashih',
     '/perjalanan-saya',
+    '/daftar-ulang',
     '/seleksi',
     '/ujian',
     '/alumni',
