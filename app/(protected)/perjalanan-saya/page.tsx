@@ -1490,7 +1490,7 @@ export default function PerjalananSaya() {
                       </Button>
                     </Link>
                     {/* Admin-only: Daftar Ulang button (testing phase) */}
-                    {user?.role?.includes('admin') && batchId && (
+                    {(user?.role === 'admin' || user?.role?.includes('admin')) && batchId && (
                       <Link href={`/daftar-ulang?batch_id=${batchId}`}>
                         <Button
                           size="sm"
