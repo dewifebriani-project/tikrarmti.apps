@@ -555,9 +555,6 @@ export default function PerjalananSaya() {
     }
   };
 
-  const completedCount = timelineData.filter(item => item.status === 'completed').length;
-  const totalCount = timelineData.length;
-
   // Prevent hydration mismatch by not rendering until mounted
   if (!isClient) {
     return (
