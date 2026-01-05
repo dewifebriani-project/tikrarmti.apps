@@ -18,12 +18,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-interface User {
-  id: string;
-  full_name: string;
-  email: string;
-}
-
 interface Batch {
   id: string;
   name: string;
@@ -57,10 +51,9 @@ interface AkadCommitment {
   akad_content?: any;
 }
 
-interface DaftarUlangClientProps {
-  user: User;
-  batch: Batch;
-  registration: Registration;
+interface DaftarUlangContentProps {
+  userId: string;
+  batchId: string;
 }
 
 type Step = 'intro' | 'partner' | 'akad' | 'review' | 'complete';
@@ -116,28 +109,90 @@ const AKAD_CONTENT = {
   ]
 };
 
-export default function DaftarUlangClient({ user, batch, registration }: DaftarUlangClientProps) {
+export default function DaftarUlangContent({ userId, batchId }: DaftarUlangContentProps) {
   const [currentStep, setCurrentStep] = useState<Step>('intro');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Fetch batch data
+  const { data: batch, error: batchError } = useSWR(
+    `/api/batches/${batchId}`,
+    fetcher
+  );
+
+  // Fetch registration data
+  const { data: registration, error: registrationError } = useSWR(
+    `/api/pendaftaran/my?batch_id=${batchId}`,
+    fetcher
+  );
+
   // Fetch partner data
   const { data: partnerData, error: partnerError, mutate: mutatePartners } = useSWR(
-    `/api/daftar-ulang/partners?batch_id=${batch.id}`,
+    () => registration ? `/api/daftar-ulang/partners?batch_id=${batchId}` : null,
     fetcher
   );
 
   // Fetch akad data
   const { data: akadData, error: akadError, mutate: mutateAkad } = useSWR(
-    `/api/daftar-ulang/akad?batch_id=${batch.id}`,
+    () => registration ? `/api/daftar-ulang/akad?batch_id=${batchId}` : null,
     fetcher
   );
 
   // Fetch completion status
   const { data: statusData, mutate: mutateStatus } = useSWR(
-    `/api/daftar-ulang/submit?batch_id=${batch.id}`,
+    () => registration ? `/api/daftar-ulang/submit?batch_id=${batchId}` : null,
     fetcher
   );
+
+  // Show loading while fetching initial data
+  if (!batch || !registration) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-green-900 mx-auto mb-4" />
+          <p className="text-gray-600">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is selected
+  if (registration.selection_status !== 'selected') {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-4">Belum Dipilih</h1>
+          <p className="text-gray-600 mb-6">Halaman daftar ulang hanya untuk thalibah yang sudah dipilih.</p>
+          <a
+            href="/perjalanan-saya"
+            className="inline-block px-6 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors"
+          >
+            Kembali ke Perjalanan Saya
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if already completed
+  if (registration.re_enrollment_completed) {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-900 mb-4">Daftar Ulang Sudah Selesai</h1>
+          <p className="text-gray-600 mb-2">Alhamdulillah! Anda sudah menyelesaikan daftar ulang.</p>
+          <a
+            href="/perjalanan-saya"
+            className="inline-block px-6 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors mt-4"
+          >
+            Ke Perjalanan Saya
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // Partner selection state
   const [partnerType, setPartnerType] = useState<'thalibah' | 'family' | 'tarteel'>('thalibah');
@@ -186,7 +241,7 @@ export default function DaftarUlangClient({ user, batch, registration }: DaftarU
     setLoading(true);
     try {
       const payload: any = {
-        batch_id: batch.id,
+        batch_id: batchId,
         partner_type: partnerType
       };
 
@@ -239,7 +294,7 @@ export default function DaftarUlangClient({ user, batch, registration }: DaftarU
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          batch_id: batch.id,
+          batch_id: batchId,
           akad_content: AKAD_CONTENT,
           agreed: true
         })
@@ -267,7 +322,7 @@ export default function DaftarUlangClient({ user, batch, registration }: DaftarU
       const res = await fetch('/api/daftar-ulang/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch_id: batch.id })
+        body: JSON.stringify({ batch_id: batchId })
       });
 
       const data = await res.json();
@@ -292,7 +347,6 @@ export default function DaftarUlangClient({ user, batch, registration }: DaftarU
   if (currentStep === 'partner') {
     return (
       <PartnerStep
-        user={user}
         registration={registration}
         partnerType={partnerType}
         setPartnerType={setPartnerType}
@@ -333,7 +387,6 @@ export default function DaftarUlangClient({ user, batch, registration }: DaftarU
   if (currentStep === 'review') {
     return (
       <ReviewStep
-        user={user}
         batch={batch}
         registration={registration}
         partnerType={partnerType}
@@ -828,7 +881,6 @@ function AkadStep({
 
 // Review Step
 function ReviewStep({
-  user,
   batch,
   registration,
   partnerType,
@@ -862,16 +914,8 @@ function ReviewStep({
 
         <div className="space-y-6 mb-8">
           <div className="border-b border-gray-200 pb-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Informasi Pribadi</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">Informasi Pendaftaran</h3>
             <dl className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <dt className="text-gray-600">Nama Lengkap</dt>
-                <dd className="font-medium">{user.full_name}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-600">Email</dt>
-                <dd className="font-medium">{user.email}</dd>
-              </div>
               <div>
                 <dt className="text-gray-600">Batch</dt>
                 <dd className="font-medium">{batch.name}</dd>
@@ -879,6 +923,14 @@ function ReviewStep({
               <div>
                 <dt className="text-gray-600">Juz</dt>
                 <dd className="font-medium">{registration.chosen_juz}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-600">Waktu Utama</dt>
+                <dd className="font-medium">{registration.main_time_slot}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-600">Waktu Cadangan</dt>
+                <dd className="font-medium">{registration.backup_time_slot}</dd>
               </div>
             </dl>
           </div>
