@@ -1,114 +1,56 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-
-// Protected routes that require authentication
-const protectedRoutes = [
-  '/dashboard',
-  '/perjalanan-saya',
-  '/pendaftaran',
-  '/alumni',
-  '/jurnal-harian',
-  '/kelulusan-sertifikat',
-  '/tagihan-pembayaran',
-  '/tashih',
-  '/ujian',
-  '/lengkapi-profile',
-  '/pengaturan',
-  '/seleksi',
-  '/admin',
-]
-
-// Public routes that don't require authentication
-const publicRoutes = [
-  '/',
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/syarat-ketentuan',
-  '/api/auth/callback',
-  '/auth/callback',
-  '/auth/confirm',
-  '/favicon.ico',
-]
+import { type NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
 /**
- * Middleware - REDIRECT ONLY
+ * MIDDLEWARE - The Cookie Refresher
  *
- * SECURITY ARCHITECTURE:
- * - This middleware ONLY checks for cookie existence
- * - NO Supabase fetch calls (performance & security)
- * - NO session validation (handled by server layout)
- * - Single responsibility: Route protection via redirect
+ * ARCHITECTURE V3 COMPLIANCE ✅
  *
- * Session validation is done in:
- * - app/(protected)/layout.tsx (Server Component)
+ * Purpose:
+ * - Refresh expired auth tokens automatically
+ * - Write updated cookies to browser via Set-Cookie headers
+ * - Prevent logout loops when tokens expire
+ *
+ * What happens here:
+ * 1. Every request passes through this middleware
+ * 2. updateSession() checks if auth token needs refresh
+ * 3. If token is expired/expiring, it gets refreshed
+ * 4. New token is written to cookies (both request and response)
+ * 5. Server Components receive fresh token automatically
+ *
+ * What does NOT happen here:
+ * ❌ Authorization checks (done in Server Layout via getUser)
+ * ❌ Role-based access control (done via RLS in database)
+ * ❌ Heavy business logic (keep middleware fast)
+ * ❌ Manual cookie manipulation (handled by @supabase/ssr)
+ *
+ * Security Architecture:
+ * - Middleware: Token refresh only (this file)
+ * - Layout: Auth guard with getUser() (app/(protected)/layout.tsx)
+ * - Database: RLS policies for data access control
+ *
+ * Reference:
+ * - arsitektur.md section 6 "Middleware (The Cookie Refresher)"
+ * - https://supabase.com/docs/guides/auth/server-side/nextjs
+ *
+ * CRITICAL: Do not add route-based redirect logic here.
+ * Let Server Components handle authorization decisions.
  */
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Skip middleware for static files
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next()
-  }
-
-  // API routes handle their own auth - skip middleware
-  if (pathname.startsWith('/api')) {
-    return NextResponse.next()
-  }
-
-  // Check for Supabase session cookies (NOT validation, just existence)
-  // Supabase SSR uses cookies like:
-  // - sb-<project-ref>-auth-token
-  // - sb-refresh-token
-  // - sb-refresh-token-fallback
-  const cookies = request.cookies.getAll()
-  const authCookies = cookies.filter(cookie => {
-    const name = cookie.name.toLowerCase()
-    return name.startsWith('sb-') ||
-           name === 'sb-refresh-token' ||
-           name.startsWith('sb-refresh-token')
-  })
-  const hasSessionCookie = authCookies.length > 0
-
-  // Debug logging
-  console.log('[Middleware]', {
-    pathname,
-    hasSessionCookie,
-    authCookieNames: authCookies.map(c => c.name),
-    cookieCount: cookies.length
-  })
-
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-
-  // Redirect to login if accessing protected route without session cookie
-  if (isProtectedRoute && !hasSessionCookie) {
-    console.log('[Middleware] Redirecting to login (no session cookie)')
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(loginUrl)
-  }
-
-  // DO NOT redirect to dashboard from login/register
-  // Let the protected layout handle session validation properly
-  // Cookies can be expired but still present, causing redirect loops
-  // Users should be able to access login page even with cookies
-
-  return NextResponse.next()
+  // Delegate to helper that handles cookie refresh
+  // This returns a response with updated Set-Cookie headers if token was refreshed
+  return await updateSession(request)
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths EXCEPT:
      * - _next/static (static files)
+     * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public files (svg, png, jpg, jpeg, gif, webp)
      */
-    '/((?!_next/static|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

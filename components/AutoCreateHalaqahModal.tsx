@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { autoCreateSimpleHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 
 interface Batch {
   id: string;
@@ -79,37 +80,28 @@ export function AutoCreateHalaqahModal({ onClose, onSuccess }: AutoCreateHalaqah
     setCreating(true);
 
     try {
-      // Call API endpoint
-      const response = await fetch('/api/admin/halaqah/auto-create-simple', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          batch_id: selectedBatch,
-        }),
+      const result = await autoCreateSimpleHalaqah({
+        batch_id: selectedBatch,
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('[AutoCreateHalaqahModal] API error:', result);
+      if (!result.success) {
+        console.error('[AutoCreateHalaqahModal] Error:', result);
         throw new Error(result.error || 'Failed to auto-create halaqah');
       }
 
-      console.log('[AutoCreateHalaqahModal] API result:', result);
+      console.log('[AutoCreateHalaqahModal] Result:', result);
 
       setResult({
-        success: result.created,
-        failed: result.skipped,
+        success: result.created || 0,
+        failed: result.skipped || 0,
         details: result.details || [],
       });
 
-      if (result.created > 0) {
+      if (result.created && result.created > 0) {
         toast.success(result.message || `Successfully created ${result.created} halaqah`);
       }
 
-      if (result.skipped > 0) {
+      if (result.skipped && result.skipped > 0) {
         toast.error(`Skipped ${result.skipped} halaqah`);
       }
     } catch (error: any) {

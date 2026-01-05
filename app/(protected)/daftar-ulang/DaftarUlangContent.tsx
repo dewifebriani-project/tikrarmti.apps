@@ -17,6 +17,7 @@ import {
   XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { submitReEnrollment, getReEnrollmentStatus } from './actions';
 
 interface Batch {
   id: string;
@@ -152,10 +153,16 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     fetcher
   );
 
-  // Fetch completion status
+  // Fetch completion status using Server Action
   const { data: statusData, mutate: mutateStatus } = useSWR(
-    () => registration ? `/api/daftar-ulang/submit?batch_id=${batchId}` : null,
-    fetcher
+    () => registration ? `re-enrollment-status-${batchId}` : null,
+    async () => {
+      const result = await getReEnrollmentStatus(batchId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch status');
+      }
+      return result;
+    }
   );
 
   // Show loading while fetching initial data
@@ -387,19 +394,18 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
   const handleSubmitDaftarUlang = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch('/api/daftar-ulang/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch_id: batchId })
-      });
+      // Use Server Action instead of API route
+      const result = await submitReEnrollment(batchId);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit daftar ulang');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to submit daftar ulang');
       }
 
-      toast.success(data.data.message || 'Daftar ulang berhasil!');
+      toast.success(result.data?.message || 'Daftar ulang berhasil!');
+
+      // Revalidate status data
+      await mutateStatus();
+
       setCurrentStep('complete');
     } catch (error: any) {
       toast.error(error.message || 'Gagal menyelesaikan daftar ulang');

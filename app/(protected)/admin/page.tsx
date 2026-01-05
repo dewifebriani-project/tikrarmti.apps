@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { createSupabaseAdmin } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { createUser, updateUser } from './actions';
 import toast, { Toaster } from 'react-hot-toast';
 import { OralAssessment } from '@/components/OralAssessment';
 import {
@@ -2425,24 +2425,26 @@ Tim Markaz Tikrar Indonesia`;
 
   const handleSubmit = async (data: Record<string, any>) => {
     try {
-      const supabaseAdmin = createSupabaseAdmin();
+      let result;
 
       if (selectedUser) {
-        // Update existing user using admin client to bypass RLS
-        const { error } = await supabaseAdmin
-          .from('users')
-          .update(data)
-          .eq('id', selectedUser.id);
+        // Update existing user using Server Action (secure)
+        result = await updateUser({
+          id: selectedUser.id,
+          ...data
+        } as any);
 
-        if (error) throw error;
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update user');
+        }
         toast.success('User updated successfully');
       } else {
-        // Create new user using admin client to bypass RLS
-        const { error } = await supabaseAdmin
-          .from('users')
-          .insert([data]);
+        // Create new user using Server Action (secure)
+        result = await createUser(data as any);
 
-        if (error) throw error;
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create user');
+        }
         toast.success('User created successfully');
       }
 

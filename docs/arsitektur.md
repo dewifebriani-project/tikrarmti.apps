@@ -1,224 +1,152 @@
-# Dokumen Arsitektur (Revisi) – Tikrarmti Apps
+Dokumen Arsitektur (Final Revisi V3) – Tikrarmti Apps
 
-## Daftar Isi
+Daftar Isi
 
-1. [Pengantar](#pengantar)
-2. [Teknologi & Stack](#teknologi--stack)
-3. [Struktur Proyek](#struktur-proyek)
-4. [Arsitektur Autentikasi](#arsitektur-autentikasi)
-5. [Middleware](#middleware)
-6. [Server Layout](#server-layout)
-7. [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
-8. [Session Management](#session-management)
-9. [API Routes](#api-routes)
-10. [Data Fetching](#data-fetching)
-11. [Observability](#observability)
-12. [Keamanan](#keamanan)
-13. [Referensi](#referensi)
+Pengantar
 
----
+Prinsip Arsitektur
 
-## Pengantar
+Teknologi & Stack
 
-Dokumen ini merupakan revisi arsitektur resmi Tikrarmti Apps yang dibangun menggunakan **Next.js 14** (App Router) dan **Supabase**. Revisi ini bertujuan menyederhanakan kompleksitas, menghilangkan redundansi autentikasi, serta menegaskan prinsip keamanan berbasis database (RLS-first) tanpa mengurangi tingkat keamanan aplikasi.
+Struktur Proyek
 
-### Prinsip Revisi
+Arsitektur Autentikasi
 
-- **RLS as Source of Truth**: Row Level Security adalah single source of truth untuk otorisasi data. Server tidak boleh memiliki logic duplikat yang bertentangan dengan RLS.
-- **Cookie-Based Session Only**: Hanya gunakan HttpOnly cookie untuk session. Tidak ada localStorage/sessionStorage untuk token autentikasi.
-- **Single Responsibility per Layer**: Setiap layer memiliki tanggung jawab tunggal - Middleware redirect, Server Layout validasi session, RLS otorisasi data.
-- **Server-Centric Security**: Semua validasi keamanan dilakukan di server. Client hanya untuk presentasi.
+Middleware (The Cookie Refresher)
 
----
+Server Layout (The Security Gate)
 
-## Teknologi & Stack
+Role-Based Access Control (RBAC)
 
-### Core Technologies
+Session Management
 
-| Teknologi | Versi | Penggunaan |
-|-----------|-------|------------|
-| Next.js | 14+ | Framework React dengan App Router |
-| React | 18+ | Library UI |
-| TypeScript | 5+ | Type safety |
-| Supabase | Latest | Backend-as-a-Service (Auth, Database, Storage) |
-| TailwindCSS | Latest | Styling |
-| Radix UI | Latest | Komponen UI yang accessible |
-| SWR | Latest | Data fetching dan caching client-side (UI helper only) |
-| Zod | Latest | Validasi schema |
+Mutation Handling
 
-### Development Tools
+Data Fetching & Performance
 
-- **ESLint**: Linting kode
-- **Prettier**: Formatting kode
-- **Husky**: Git hooks untuk pre-commit checks
-- **Sentry**: Error tracking dan monitoring
+Keamanan
 
----
+1. Pengantar
 
-## Struktur Proyek
+Dokumen ini adalah acuan teknis final ("Single Source of Truth") untuk pengembangan Tikrarmti Apps. Dokumen ini disusun berdasarkan best-practice Supabase SSR dan keterbatasan teknis Next.js 14 App Router.
 
-```
+2. Prinsip Arsitektur
+
+Prinsip Utama
+
+Server-Side Validation Only: Client tidak pernah dipercaya untuk validasi sesi atau hak akses.
+
+RLS as Authority: Keamanan data mutlak berada di level database (Row Level Security).
+
+Middleware for Persistence: Middleware bertugas "menulis ulang" cookie sesi agar user tidak logout tiba-tiba (karena keterbatasan Server Component).
+
+Strict User Verification: Menggunakan getUser() bukan getSession() untuk gerbang keamanan utama.
+
+3. Teknologi & Stack
+
+Teknologi
+
+Penggunaan
+
+Next.js 14
+
+App Router, Server Actions
+
+Supabase SSR
+
+Auth & Cookie Management (@supabase/ssr)
+
+PostgreSQL
+
+Database & RLS Policies
+
+Zod
+
+Validasi Input (Schema)
+
+React 18
+
+UI Components
+
+4. Struktur Proyek
+
 tikrarmti.apps/
-├── app/                          # Next.js App Router
-│   ├── (protected)/              # Group route untuk halaman terproteksi
-│   │   ├── layout.tsx           # Server-side auth guard
+├── app/
+│   ├── (protected)/        # GROUP: Halaman butuh login
+│   │   ├── layout.tsx      # SECURITY GATE (getUser Check)
 │   │   ├── dashboard/
-│   │   ├── perjalanan-saya/
-│   │   └── pendaftaran/
-│   ├── (public)/                 # Group route untuk halaman publik
-│   ├── api/                      # API Routes (mutation only)
-│   │   └── auth/
+│   │   └── ...
+│   ├── auth/               # Route Handler
+│   │   └── callback/       # Penukar Code -> Session
+│   │       └── route.ts
 │   ├── login/
-│   ├── register/
-│   ├── auth/                     # Auth callback pages
-│   ├── layout.tsx                # Root layout
-│   └── globals.css
-├── components/                    # Komponen React reusable
-│   ├── ui/                       # Komponen UI dasar (Radix UI)
-│   ├── dashboard/                # Komponen khusus dashboard
-│   └── layouts/                  # Komponen layout client
-├── hooks/                         # Custom React hooks (UI helpers)
-│   └── useBatchTimeline.ts       # Hanya untuk UI state management
-├── lib/                           # Utility functions dan configurations
-│   ├── supabase/                 # Supabase client configurations
-│   │   ├── server.ts             # Server client (primary)
-│   │   └── client.ts             # Browser client (minimal use)
-│   ├── supabase.ts               # TypeScript definitions
-│   └── api-responses.ts          # Standard response formats
-├── supabase/                      # Supabase migrations dan functions
-│   └── migrations/
-│       ├── add_users_rls_policies.sql
-│       └── cleanup_and_fix_rls_policies.sql
-├── middleware.ts                  # Next.js middleware (redirect-only)
-├── docs/                          # Dokumentasi
-│   └── arsitektur-supabase-nextjs.md
-└── scripts/                       # Utility scripts
-```
+│   └── layout.tsx          # Root Layout
+├── lib/
+│   └── supabase/
+│       ├── server.ts       # Client untuk Server Component/Action
+│       └── middleware.ts   # Client khusus Middleware
+├── middleware.ts           # Global Middleware
+└── ...
 
-### Konvensi Penamaan File
 
-| Jenis File | Konvensi | Contoh |
-|------------|----------|--------|
-| Component | PascalCase | `UserProfile.tsx` |
-| Hook | camelCase dengan `use` prefix | `useBatchTimeline.ts` |
-| Utility | camelCase | `formatDate.ts` |
-| Type Definition | PascalCase dengan `.types` suffix | `User.types.ts` |
-| API Route | lowercase dengan kebab-case | `app/api/auth/login/route.ts` |
 
----
+5. Arsitektur Autentikasi
 
-## Arsitektur Autentikasi
+Alur Request (The Lifecycle)
 
-### Prinsip Autentikasi
+Request Masuk: User membuka halaman /dashboard.
 
-Arsitektur autentikasi Tikrarmti Apps mengikuti pola **sederhana dan server-centric**:
+Middleware: Mengecek cookie. Jika token hampir habis, middleware me-refresh token dan menulis cookie baru ke browser (Penting!).
 
-1. **Middleware**: Hanya melakukan redirect berdasarkan keberadaan session cookie. Tidak fetch Supabase.
-2. **Server Layout**: Validasi session di server component. Auth guard utama untuk protected routes.
-3. **RLS**: Otorisasi data sepenuhnya di database layer. Server hanya pre-check untuk UX yang lebih baik.
+Server Layout: Memanggil supabase.auth.getUser().
 
-### Flow Autentikasi (Sederhana)
+Valid ke server Supabase? -> Lanjut.
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    SIMPLIFIED LOGIN FLOW                               │
-└─────────────────────────────────────────────────────────────────────────┘
+Tidak valid/Banned? -> Redirect /login.
 
-User                 Next.js                    Supabase                Database
- │                       │                          │                        │
- │  1. Submit Login      │                          │                        │
- ├─────────────────────>│                          │                        │
- │                       │                          │                        │
- │                       │  2. signInWithPassword() │                        │
- │                       ├─────────────────────────>│                        │
- │                       │                          │                        │
- │                       │  3. Set HttpOnly Cookie  │  4. Validate Creds     │
- │                       │<─────────────────────────├──────────────────────>│
- │  5. Redirect to Dashboard                        │                        │
- │<─────────────────────┤                          │                        │
- │                       │                          │                        │
- │  6. Load Protected Page                          │                        │
- │                       │  7. Server Layout Validasi│                        │
- │                       ├─────────────────────────>│                        │
- │  8. Render dengan User Data (RLS Filtered)       │                        │
- │<─────────────────────┤                          │                        │
-```
+Page Render: Fetch data.
 
-### Perbedaan dengan Versi Sebelumnya
+Database (RLS): Memfilter data berdasarkan auth.uid().
 
-| Aspek | Versi Lama | Versi Revisi |
-|-------|-----------|--------------|
-| Storage | Cookie + localStorage | **Cookie only** |
-| Middleware | Fetch Supabase, refresh session | **Redirect only** |
-| Client Auth Hook | SWR fetch `/api/auth/user` | **Dihapus**, server layout provides data |
-| RBAC | Server + RLS (duplikat) | **RLS only**, server pre-check optional |
+6. Middleware (The Cookie Refresher)
 
----
+MENGAPA WAJIB ADA?
+Meskipun Server Component bisa me-refresh token, mereka tidak bisa menyimpan token baru tersebut ke browser (keterbatasan Next.js Streaming). Tanpa middleware, user akan mengalami loop refresh yang lambat atau logout paksa.
 
-## Middleware
+Kode: middleware.ts
 
-**File**: `middleware.ts`
+import { type NextRequest } from 'next/server'
+import { updateSession } from '@/lib/supabase/middleware'
 
-### Implementasi
-
-```typescript
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-
-export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl
-
-  // Cek keberadaan session cookie (tidak fetch Supabase)
-  const hasSessionCookie = req.cookies.get('sb-access-token') ||
-                           req.cookies.get('sb-refresh-token')
-
-  const protectedRoutes = ['/dashboard', '/perjalanan-saya', '/pendaftaran']
-  const publicRoutes = ['/login', '/register', '/forgot-password']
-  const isApiRoute = pathname.startsWith('/api')
-
-  const isProtectedRoute = protectedRoutes.some(route =>
-    pathname.startsWith(route)
-  )
-  const isPublicRoute = publicRoutes.some(route =>
-    pathname.startsWith(route)
-  )
-
-  // Redirect ke login jika tidak ada cookie
-  if (isProtectedRoute && !hasSessionCookie) {
-    return NextResponse.redirect(new URL('/login', req.url))
-  }
-
-  // Redirect ke dashboard jika sudah ada cookie
-  if (isPublicRoute && hasSessionCookie && !isApiRoute) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
-  }
-
-  return NextResponse.next()
+export async function middleware(request: NextRequest) {
+  // updateSession:
+  // 1. Cek token
+  // 2. Refresh jika perlu
+  // 3. Kembalikan Response dengan header Set-Cookie baru
+  return await updateSession(request)
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    // Match semua path kecuali static files & images
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
-```
 
-### Aturan Middleware
 
-- **Redirect Only**: Middleware hanya melakukan redirect, tidak fetch Supabase
-- **Cookie Check**: Cek keberadaan session cookie, bukan validasi session
-- **Fast Execution**: Middleware harus secepat mungkin, tidak ada network calls
-- **Single Responsibility**: Tanggung jawab hanya routing, bukan autentikasi
 
----
+Kode Helper: lib/supabase/middleware.ts
 
-## Server Layout
+(Standard boilerplate dari dokumentasi Supabase SSR)
 
-**File**: `app/(protected)/layout.tsx`
+7. Server Layout (The Security Gate)
 
-### Implementasi
+Ini adalah satu-satunya tempat di mana kita memutuskan user boleh masuk atau ditendang keluar.
 
-```typescript
-import { createClient } from '@/lib/supabase/server'
+Kode: app/(protected)/layout.tsx
+
 import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function ProtectedLayout({
   children,
@@ -227,513 +155,137 @@ export default async function ProtectedLayout({
 }) {
   const supabase = createClient()
 
-  // Validasi session - ini adalah auth guard utama
-  const { data: { session }, error } = await supabase.auth.getSession()
+  // PENTING: Gunakan getUser(), bukan getSession()
+  // getUser() memverifikasi token langsung ke server Supabase Auth.
+  // Ini mencegah penggunaan token palsu atau token usang.
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-  if (!session || error) {
+  if (error || !user) {
     redirect('/login')
   }
 
-  // Fetch user data (akan difilter oleh RLS)
-  const { data: user } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
+  return <>{children}</>
+}
 
-  if (!user) {
-    redirect('/login')
-  }
 
-  // Pass user data ke client component via props
-  return (
-    <ProtectedClientLayout
-      user={user}
-      session={session}
-    >
-      {children}
-    </ProtectedClientLayout>
+
+8. Role-Based Access Control (RBAC)
+
+Jangan Lakukan Ini di Client/Component:
+❌ if (user.role === 'admin') { showAdminButton() } // Tidak aman untuk proteksi data
+
+Lakukan Ini:
+✅ Gunakan RLS Policy di Database.
+✅ UI hanya menyembunyikan menu untuk UX, tapi keamanan tetap di DB.
+
+Contoh Policy (SQL)
+
+-- Hanya Admin yang boleh UPDATE tabel settings
+CREATE POLICY "Admin Update Settings"
+ON app_settings
+FOR UPDATE
+USING (
+  EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = auth.uid() AND role = 'admin'
   )
-}
-```
+);
 
-### Aturan Server Layout
 
-- **Auth Guard**: Server layout adalah auth guard utama untuk protected routes
-- **Session Validation**: Validasi session dilakukan di sini, bukan di middleware
-- **User Data Fetch**: Fetch user data di server, pass ke client via props
-- **RLS Trusted**: Data yang di-fetch sudah difilter oleh RLS, server tidak perlu filter lagi
-- **No Client Auth Hook**: Tidak perlu `useAuth` hook yang fetch `/api/auth/user`
 
----
+9. Session Management
 
-## Role-Based Access Control (RBAC)
+Cookie Name: Default Supabase (sb-<ref>-auth-token).
 
-### Prinsip RBAC
+Configuration: Diatur otomatis oleh @supabase/ssr (Secure, HttpOnly, SameSite).
 
-RBAC di Tikrarmti Apps mengikuti prinsip **RLS-First**:
+Handling: 100% otomatis.
 
-1. **RLS sebagai Source of Truth**: Semua otorisasi data ada di RLS policies
-2. **Server Pre-Check**: Server boleh melakukan pre-check untuk UX yang lebih baik, tapi bukan pengganti RLS
-3. **Client untuk UX**: Client hanya menampilkan/menyembunyikan UI berdasarkan role, bukan untuk security
+Manual Touch: DILARANG. Jangan set/get cookie auth secara manual.
 
-### Roles
+10. Mutation Handling
 
-| Role | Deskripsi |
-|------|-----------|
-| `user` | User standar, akses data sendiri |
-| `staff` | Musyrifah/Muallimah, akses semua santri |
-| `admin` | Administrator, akses penuh |
+Gunakan Server Actions untuk mengubah data. Ini memastikan kode berjalan di server yang aman.
 
-### RLS Policies
+Contoh: actions/update-user.ts
 
-**File**: `supabase/migrations/add_users_rls_policies.sql`
+'use server'
 
-```sql
--- Enable RLS
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
--- Policy: Users can view own profile
-CREATE POLICY "Users can view own profile"
-  ON users
-  FOR SELECT
-  USING (auth.uid() = id);
-
--- Policy: Staff can view all users
-CREATE POLICY "Staff can view all users"
-  ON users
-  FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM users
-      WHERE id = auth.uid() AND role IN ('staff', 'admin')
-    )
-  );
-
--- Policy: Admins have full access
-CREATE POLICY "Admins can manage all users"
-  ON users
-  FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM users
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
-```
-
-### Server Pre-Check (Optional)
-
-Server boleh melakukan pre-check untuk redirect early jika user tidak memiliki akses:
-
-```typescript
-// Server component untuk admin-only page
-export default async function AdminPage() {
-  const supabase = createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-
-  if (!session) {
-    redirect('/login')
-  }
-
-  // Pre-check: Fetch user role untuk UX redirect
-  const { data: user } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', session.user.id)
-    .single()
-
-  // Redirect jika bukan admin (UX, bukan security - security ada di RLS)
-  if (user?.role !== 'admin') {
-    redirect('/dashboard')
-  }
-
-  // Render admin page (RLS akan memastikan hanya admin yang bisa akses data)
-  return <AdminDashboard />
-}
-```
-
-### Aturan RBAC
-
-- **RLS is Mandatory**: RLS **wajib** ada untuk semua tabel dengan data user
-- **Server Pre-Check Optional**: Pre-check di server hanya untuk UX, bukan pengganti RLS
-- **Client for UX**: Client hanya hide/show UI, jangan gunakan untuk security decisions
-- **No Role in JWT**: Jangan simpan role di JWT/cookie, selalu query dari database
-
----
-
-## Session Management
-
-### Prinsip Session Management
-
-Tikrarmti Apps menggunakan **cookie-based session only**:
-
-1. **HttpOnly Cookie**: Session token disimpan di HttpOnly cookie
-2. **No LocalStorage**: Tidak ada token di localStorage/sessionStorage
-3. **Automatic Refresh**: Supabase SSr handle automatic token refresh
-4. **Server Access**: Cookie otomatis dikirim ke server untuk setiap request
-
-### Cookie Configuration
-
-**File**: `lib/supabase/server.ts`
-
-```typescript
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-
-export function createClient() {
-  const cookieStore = cookies()
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
-            })
-          } catch {
-            // Method not available in Server Component
-          }
-        },
-      },
-    }
-  )
-}
-```
-
-### Aturan Session Management
-
-- **HttpOnly Cookie Only**: Hanya gunakan HttpOnly cookie untuk session
-- **No LocalStorage**: Dilarang menyimpan token di localStorage/sessionStorage
-- **No Manual Token Management**: Jangan manual manage token refresh, biarkan Supabase SSR handle
-- **Cookie Security**: Cookie harus memiliki flag `HttpOnly`, `Secure`, dan `SameSite`
-
----
-
-## API Routes
-
-### Prinsip API Routes
-
-API routes di Tikrarmti Apps hanya digunakan untuk **mutation operations**:
-
-1. **Mutation Only**: API routes hanya untuk create, update, delete operations
-2. **No Data Fetching**: Data fetching dilakukan di server component, bukan via API
-3. **Input Validation**: Semua input divalidasi dengan Zod
-4. **RLS Applies**: RLS tetap berlaku untuk semua database operations
-
-### Contoh API Route
-
-**File**: `app/api/user/update/route.ts`
-
-```typescript
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-// Validation schema dengan Zod
-const updateUserSchema = z.object({
-  full_name: z.string().min(2).optional(),
-  phone_number: z.string().regex(/^[0-9]+$/).optional(),
-})
+export async function updateUser(formData: FormData) {
+  const supabase = createClient()
+  
+  // 1. Validasi Auth (Double check, meski RLS sudah cover)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
 
-export async function POST(request: Request) {
-  try {
-    const supabase = createClient()
-    const { data: { session } } = await supabase.auth.getSession()
+  // 2. Validasi Data
+  // ... Zod parsing ...
 
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+  // 3. Eksekusi DB
+  const { error } = await supabase
+    .from('profiles')
+    .update(parsedData)
+    .eq('id', user.id) // RLS akan memvalidasi ini juga
 
-    const body = await request.json()
-
-    // Validate input
-    const result = updateUserSchema.safeParse(body)
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error.flatten() },
-        { status: 400 }
-      )
-    }
-
-    // Update user (RLS akan memastikan user hanya bisa update dirinya sendiri)
-    const { data, error } = await supabase
-      .from('users')
-      .update(result.data)
-      .eq('id', session.user.id)
-      .select()
-      .single()
-
-    if (error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ success: true, data })
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  if (error) return { error: error.message }
+  return { success: true }
 }
-```
 
-### Aturan API Routes
 
-- **Mutation Only**: API routes hanya untuk mutations (CUD), bukan queries (R)
-- **Zod Validation**: Semua input **wajib** divalidasi dengan Zod
-- **Error Handling**: Return consistent error response format
-- **No Password Handling**: Jangan handle password di API, gunakan Supabase Auth
-- **RLS Applies**: Database operations di API tetap difilter oleh RLS
 
----
+11. Data Fetching & Performance
 
-## Data Fetching
+Pattern Utama
 
-### Prinsip Data Fetching
+Fetch data langsung di komponen halaman (page.tsx) sebagai Server Component.
 
-Tikrarmti Apps menggunakan pendekatan **server-centric** untuk data fetching:
+Parallel Data Fetching
 
-1. **Server Component**: Data fetching utama dilakukan di server component
-2. **RLS Filtering**: Data sudah difilter oleh RLS di database level
-3. **SWR for UI**: SWR hanya digunakan untuk UI state management, bukan untuk data fetching sensitif
-4. **No Duplicate Fetch**: Jangan fetch data yang sama di server dan client
+Jika mengambil data dari beberapa tabel, jangan gunakan await berurutan (Waterfall). Gunakan Promise.all untuk performa maksimal.
 
-### Server Components (Primary)
-
-```typescript
-// ✅ GOOD: Server component untuk data fetching
-async function DashboardPage() {
+// app/(protected)/dashboard/page.tsx
+export default async function Dashboard() {
   const supabase = createClient()
 
-  // Fetch data di server (RLS filtered)
-  const { data: user } = await supabase
-    .from('users')
-    .select('*')
-    .single()
-
-  const { data: jurnal } = await supabase
-    .from('jurnal_harian')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  return <Dashboard user={user} jurnal={jurnal} />
-}
-```
-
-### Client Components with SWR (UI Helper Only)
-
-```typescript
-// ✅ GOOD: SWR untuk UI state management saja
-'use client'
-
-import useSWR from 'swr'
-
-// Hanya untuk data non-sensitif atau polling updates
-function JurnalCounter() {
-  const { data: count } = useSWR('/api/jurnal/count', {
-    refreshInterval: 5000, // Polling untuk live updates
-  })
-
-  return <div>Total Jurnal: {count}</div>
-}
-```
-
-```typescript
-// ❌ BAD: Fetching sensitive data di client
-'use client'
-
-import useSWR from 'swr'
-
-function UserProfile() {
-  // Jangan fetch sensitive data via API di client
-  const { data: user } = useSWR('/api/user')
-
-  return <div>{user?.email}</div>
-}
-```
-
-### Aturan Data Fetching
-
-- **Server First**: Selalu fetch data di server component bila memungkinkan
-- **RLS Trusted**: Data dari server sudah difilter RLS, aman ditampilkan ke client
-- **SWR for UI**: SWR hanya untuk UI helpers (polling, optimistic updates), bukan untuk sensitive data
-- **No Duplicate Fetch**: Jangan fetch data yang sama di server dan client
-
----
-
-## Observability
-
-### Error Handling
-
-#### Error Boundary
-
-**File**: `app/error.tsx`
-
-```typescript
-'use client'
-
-import { useEffect } from 'react'
-
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string }
-  reset: () => void
-}) {
-  useEffect(() => {
-    // Log error ke error tracking service (Sentry)
-    console.error('Application error:', error)
-  }, [error])
-
+  // ✅ Good Practice: Parallel Fetching
+  const [userData, todosData] = await Promise.all([
+    supabase.from('profiles').select('*').single(),
+    supabase.from('todos').select('*') // RLS Applied
+  ])
+  
   return (
-    <div className="error-container">
-      <h2>Terjadi kesalahan</h2>
-      <button onClick={reset}>Coba lagi</button>
-    </div>
+    <main>
+       <UserProfile data={userData.data} />
+       <TodoList data={todosData.data} />
+    </main>
   )
 }
-```
 
-#### Server-Side Logging
 
-```typescript
-// Log error di server component
-export default async function Page() {
-  const supabase = createClient()
 
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
+Streaming & Suspense
 
-    if (error) throw error
+Untuk komponen yang memuat data lambat, bungkus dengan <Suspense> agar UI tidak blocking.
 
-    return <Page data={data} />
-  } catch (error) {
-    // Log ke error tracking service
-    console.error('Server error:', error)
-    throw error // Error Boundary akan catch
-  }
-}
-```
+12. Keamanan
 
-### Aturan Observability
+Checklist Audit:
 
-- **Error Boundary**: Gunakan Error Boundary untuk catch React errors
-- **Server Logging**: Log error di server untuk debugging
-- **Sentry**: Setup Sentry untuk production error tracking
-- **No Sensitive Data**: Jangan log sensitive data (password, token, dll)
+$$$$
 
----
+ Middleware terpasang dan memanggil updateSession.
 
-## Keamanan
+$$$$
 
-### Security Checklist
+ Halaman terproteksi berada di dalam group route (protected) yang memiliki layout getUser().
 
-Setiap fitur baru **harus** memenuhi checklist ini:
+$$$$
 
-- [ ] Route terproteksi dengan middleware (redirect-only)
-- [ ] Server layout validasi session
-- [ ] RLS policies ada dan sudah di-test
-- [ ] Input divalidasi dengan Zod
-- [ ] Output di-sanitasi (prevent XSS)
-- [ ] Error messages tidak expose sensitive info
-- [ ] Rate limiting untuk API endpoints
-- [ ] HttpOnly cookie untuk session
-- [ ] HTTPS enforced di production
-- [ ] No localStorage untuk token
+ RLS Policy aktif (ALTER TABLE ... ENABLE ROW LEVEL SECURITY) untuk semua tabel.
 
-### Security Best Practices
+$$$$
 
-#### 1. RLS adalah Pertahanan Terakhir
-
-```sql
--- RLS harus selalu aktif
-ALTER TABLE sensitive_data ENABLE ROW LEVEL SECURITY;
-
--- Policy yang restrictive
-CREATE POLICY "Restrictive policy"
-  ON sensitive_data
-  FOR ALL
-  USING (auth.uid() = user_id);
-```
-
-#### 2. Input Validation dengan Zod
-
-```typescript
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-})
-
-const result = schema.safeParse(input)
-if (!result.success) {
-  return { error: 'Invalid input' }
-}
-```
-
-#### 3. Output Sanitization
-
-```typescript
-import DOMPurify from 'isomorphic-dompurify'
-
-function sanitizeUserInput(html: string): string {
-  return DOMPurify.sanitize(html)
-}
-```
-
-#### 4. Rate Limiting
-
-```typescript
-import { Ratelimit } from '@upstash/ratelimit'
-
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, '10 s'),
-})
-
-const { success } = await ratelimit.limit(ip)
-if (!success) {
-  return { error: 'Too many requests' }
-}
-```
-
-### Aturan Keamanan
-
-- **RLS Mandatory**: RLS wajib untuk semua tabel dengan data user
-- **No LocalStorage Token**: Dilarang menyimpan token di localStorage
-- **HttpOnly Cookie**: Session cookie harus HttpOnly dan Secure
-- **Input Validation**: Semua input divalidasi dengan Zod
-- **Error Messages**: Jangan expose sensitive info di error messages
-- **HTTPS**: HTTPS enforced di production
-- **Rate Limiting**: Rate limiting untuk API endpoints
-
----
-
-## Referensi
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Supabase Documentation](https://supabase.com/docs)
-- [Supabase SSR Guide](https://supabase.com/docs/guides/auth/server-side/nextjs)
-- [Row Level Security](https://supabase.com/docs/guides/auth/row-level-security)
-- [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org)
-
----
-
-**Dokumen ini adalah living document. Revisi ini menyederhanakan arsitektur dengan prinsip RLS-first dan server-centric security. Jika ada perubahan arsitektur atau pattern baru, update dokumen ini.**
-
-Untuk pertanyaan atau clarifications, hubungi tech lead.
+ Tidak ada eksposur SERVICE_ROLE_KEY di client side env.

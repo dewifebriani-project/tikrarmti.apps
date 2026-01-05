@@ -54,15 +54,16 @@ function ResetPasswordPageContent() {
       console.log('Checking if user has active session...');
 
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Use getUser() instead of getSession() for server-side validation
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         console.log('Session check result:', {
-          hasSession: !!session,
-          user: session?.user?.email,
-          error: sessionError?.message
+          hasUser: !!user,
+          email: user?.email,
+          error: userError?.message
         });
 
-        if (sessionError || !session) {
+        if (userError || !user) {
           console.error('No valid session found');
           setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
         }

@@ -50,11 +50,11 @@ function AuthCallbackContent() {
           console.log('Password recovery flow detected (query params), redirecting to reset-password...');
           // For password recovery, Supabase will handle the session via hash fragment or redirect
           // The user should already have a session set by Supabase
-          // Try to get session and redirect to reset-password
-          const { data: sessionData } = await supabase.auth.getSession();
+          // Try to get user and redirect to reset-password
+          const { data: { user } } = await supabase.auth.getUser();
 
-          if (sessionData.session) {
-            console.log('Session exists, redirecting to reset-password...');
+          if (user) {
+            console.log('User session exists, redirecting to reset-password...');
             window.location.replace('/reset-password');
             return;
           } else {
@@ -281,24 +281,33 @@ function AuthCallbackContent() {
           }
         }
 
-        // If no code or hash, try to get existing session
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        // If no code or hash, try to get existing user session
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-        if (sessionError || !sessionData.session?.user?.email) {
+        if (userError || !user?.email) {
           setError('No authorization code or session found. Please try again.');
           setLoading(false);
           return;
         }
 
-        // At this point we have a valid session - set server-side cookies first
-        const userEmail = sessionData.session.user.email;
-        const userId = sessionData.session.user.id;
-        const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
+        // At this point we have a valid user session - set server-side cookies first
+        const userEmail = user.email;
+        const userId = user.id;
+        const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
 
         console.log('User authenticated:', userEmail);
 
         if (!userEmail) {
           throw new Error('User email is required');
+        }
+
+        // Get session tokens for server-side cookies
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+          setError('Failed to get session tokens. Please try again.');
+          setLoading(false);
+          return;
         }
 
         // Set server-side cookies for middleware authentication
@@ -308,8 +317,8 @@ function AuthCallbackContent() {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
-              access_token: sessionData.session.access_token,
-              refresh_token: sessionData.session.refresh_token,
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
             }),
           });
           console.log('Server-side cookies set successfully');
@@ -321,7 +330,7 @@ function AuthCallbackContent() {
         // Ensure user exists in database BEFORE redirect - with platform optimization
         try {
           const device = getDeviceInfo();
-          const provider = sessionData.session.user.app_metadata?.provider || 'email';
+          const provider = user.app_metadata?.provider || 'email';
 
           // Skip ensure-user for mobile/tablet OAuth to speed up authentication
           if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {

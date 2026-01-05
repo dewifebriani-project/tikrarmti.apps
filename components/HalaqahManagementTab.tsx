@@ -27,6 +27,7 @@ import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 import { EditHalaqahModal } from '@/components/EditHalaqahModal';
 import { AssignThalibahModal } from '@/components/AssignThalibahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
+import { getHalaqahs, updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 
 interface Halaqah {
   id: string;
@@ -157,22 +158,21 @@ export function HalaqahManagementTab() {
     console.log('[HalaqahManagementTab] Loading halaqahs...');
 
     try {
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (selectedBatch) params.append('batch_id', selectedBatch);
-      if (selectedProgram) params.append('program_id', selectedProgram);
-      if (selectedStatus) params.append('status', selectedStatus);
+      // Build filters
+      const filters: { batch_id?: string; program_id?: string; status?: 'draft' | 'active' | 'completed' | 'cancelled' } = {};
+      if (selectedBatch) filters.batch_id = selectedBatch;
+      if (selectedProgram) filters.program_id = selectedProgram;
+      if (selectedStatus) filters.status = selectedStatus as 'draft' | 'active' | 'completed' | 'cancelled';
 
-      const response = await fetch(`/api/admin/halaqah?${params.toString()}`);
-      const result = await response.json();
+      const result = await getHalaqahs(filters);
 
-      if (!response.ok) {
+      if (!result.success) {
         console.error('[HalaqahManagementTab] Failed to load halaqahs:', result);
         toast.error(result.error || 'Failed to load halaqah data');
         return;
       }
 
-      if (result.success && result.data) {
+      if (result.data) {
         console.log('[HalaqahManagementTab] Loaded', result.data.length, 'halaqahs');
         setHalaqahs(result.data);
       } else {
@@ -190,13 +190,9 @@ export function HalaqahManagementTab() {
     }
 
     try {
-      const response = await fetch(`/api/admin/halaqah/${halaqahId}`, {
-        method: 'DELETE',
-      });
+      const result = await deleteHalaqah(halaqahId);
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (!result.success) {
         throw new Error(result.error || 'Failed to delete halaqah');
       }
 
@@ -209,17 +205,12 @@ export function HalaqahManagementTab() {
 
   const handleStatusChange = async (halaqahId: string, newStatus: Halaqah['status']) => {
     try {
-      const response = await fetch(`/api/admin/halaqah/${halaqahId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
+      const result = await updateHalaqah({
+        id: halaqahId,
+        status: newStatus as 'draft' | 'active' | 'completed' | 'cancelled'
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (!result.success) {
         throw new Error(result.error || 'Failed to update status');
       }
 

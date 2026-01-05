@@ -14,6 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getHalaqahs, assignThalibahToHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 
 interface Thalibah {
   id: string;
@@ -85,15 +86,19 @@ export function AssignThalibahModal({ batchId, batchName, onClose, onSuccess }: 
 
   const loadHalaqahs = async () => {
     try {
-      const response = await fetch(`/api/admin/halaqah?batch_id=${batchId}&status=active`);
-      const result = await response.json();
+      const result = await getHalaqahs({
+        batch_id: batchId,
+        status: 'active'
+      });
 
-      if (response.ok && result.data) {
+      if (result.success && result.data) {
         setHalaqahs(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to load halaqahs');
       }
     } catch (error) {
       console.error('Error loading halaqahs:', error);
-      toast.error('Failed to load halaqahs');
+      toast.error(error instanceof Error ? error.message : 'Failed to load halaqahs');
     }
   };
 
@@ -123,18 +128,12 @@ export function AssignThalibahModal({ batchId, batchName, onClose, onSuccess }: 
 
     setAssigning(true);
     try {
-      const response = await fetch('/api/admin/halaqah/assign-thalibah', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          thalibah_ids: Array.from(selectedThalibahs),
-          batch_id: batchId
-        })
+      const result = await assignThalibahToHalaqah({
+        thalibah_ids: Array.from(selectedThalibahs),
+        batch_id: batchId
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (!result.success || !result.data) {
         throw new Error(result.error || 'Assignment failed');
       }
 
@@ -143,7 +142,6 @@ export function AssignThalibahModal({ batchId, batchName, onClose, onSuccess }: 
 
       // Show summary toast
       const { success, partial, failed, skipped } = result.data;
-      const total = success.length + partial.length + failed.length + skipped.length;
       toast.success(
         `Assignment complete: ${success.length} successful, ${partial.length} partial, ${failed.length} failed, ${skipped.length} skipped`
       );

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { updateHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 
 interface Halaqah {
   id: string;
@@ -71,29 +72,20 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
     setSaving(true);
 
     try {
-      const response = await fetch(`/api/admin/halaqah/${halaqah.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description || null,
-          program_id: formData.program_id || null,
-          day_of_week: formData.day_of_week ? Number(formData.day_of_week) : null,
-          start_time: formData.start_time || null,
-          end_time: formData.end_time || null,
-          location: formData.location || null,
-          max_students: formData.max_students,
-          waitlist_max: formData.waitlist_max,
-          preferred_juz: formData.preferred_juz || null,
-          zoom_link: formData.zoom_link || null,
-        }),
+      const result = await updateHalaqah({
+        id: halaqah.id,
+        name: formData.name,
+        description: formData.description || undefined,
+        program_id: formData.program_id || undefined,
+        day_of_week: formData.day_of_week ? Number(formData.day_of_week) : undefined,
+        start_time: formData.start_time || undefined,
+        end_time: formData.end_time || undefined,
+        max_students: formData.max_students,
+        waitlist_max: formData.waitlist_max,
+        preferred_juz: formData.preferred_juz || undefined,
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
+      if (!result.success) {
         throw new Error(result.error || 'Failed to update halaqah');
       }
 
