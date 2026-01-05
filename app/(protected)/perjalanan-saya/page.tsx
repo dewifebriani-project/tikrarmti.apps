@@ -446,35 +446,7 @@ export default function PerjalananSaya() {
   const completedCount = timelineData.filter(item => item.status === 'completed').length;
   const totalCount = timelineData.length;
 
-  // Handle session expired error
-  useEffect(() => {
-    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
-      setHasSessionError(true);
-      // Redirect to login after a short delay
-      const timer = setTimeout(() => {
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [registrationsError]);
-
-  // Don't render if session expired
-  if (hasSessionError) {
-    return (
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Sesi Berakhir</h3>
-            <p className="text-yellow-700 mb-4">Mohon login kembali untuk melanjutkan.</p>
-            <p className="text-sm text-yellow-600">Mengalihkan ke halaman login...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Helper functions for display
+  // Helper functions for display - must be before conditional returns
   const getJuzLabel = (juzValue: string) => {
     const juzLabels: Record<string, string> = {
       '30A': 'Juz 30A (halaman 1-20)',
@@ -545,6 +517,34 @@ export default function PerjalananSaya() {
         };
     }
   };
+
+  // Handle session expired error
+  useEffect(() => {
+    if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
+      setHasSessionError(true);
+      // Redirect to login after a short delay
+      const timer = setTimeout(() => {
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [registrationsError]);
+
+  // Don't render if session expired
+  if (hasSessionError) {
+    return (
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Sesi Berakhir</h3>
+            <p className="text-yellow-700 mb-4">Mohon login kembali untuk melanjutkan.</p>
+            <p className="text-sm text-yellow-600">Mengalihkan ke halaman login...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Prevent hydration mismatch by not rendering until mounted
   if (!isClient) {
