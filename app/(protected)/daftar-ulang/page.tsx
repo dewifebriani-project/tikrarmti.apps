@@ -10,7 +10,7 @@ export default function DaftarUlangPage() {
   const [batchId, setBatchId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
-  // Get batch_id from URL search params
+  // Get batch_id from URL search params on mount
   useEffect(() => {
     setIsClient(true);
     const params = new URLSearchParams(window.location.search);
@@ -18,24 +18,7 @@ export default function DaftarUlangPage() {
     if (urlBatchId) {
       setBatchId(urlBatchId);
     }
-  }, []);
-
-  // Update batchId from user when user data is loaded
-  useEffect(() => {
-    if (user && !batchId) {
-      // Fetch user's current batch from API
-      fetch('/api/user/profile')
-        .then(res => res.json())
-        .then(data => {
-          if (data.data?.current_tikrar_batch_id) {
-            setBatchId(data.data.current_tikrar_batch_id);
-          }
-        })
-        .catch(() => {
-          // Ignore error, will show batch not found message
-        });
-    }
-  }, [user, batchId]);
+  }, []); // Run once on mount
 
   // Show loading while auth is loading
   if (authLoading || !isClient) {
@@ -49,7 +32,7 @@ export default function DaftarUlangPage() {
     );
   }
 
-  // Redirect if not authenticated (handled by useAuth hook)
+  // Redirect if not authenticated
   if (!isAuthenticated || !user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -62,12 +45,16 @@ export default function DaftarUlangPage() {
     );
   }
 
+  // If no batch_id from URL, show message to get it from perjalanan-saya
   if (!batchId) {
     return (
       <div className="max-w-md mx-auto text-center py-12">
         <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-900 mb-4">Batch Tidak Ditemukan</h1>
-        <p className="text-gray-600 mb-6">Silakan pilih batch terlebih dahulu dari menu Perjalanan Saya.</p>
+        <p className="text-gray-600 mb-6">
+          Halaman daftar ulang membutuhkan parameter batch_id.
+          Silakan akses dari menu Perjalanan Saya.
+        </p>
         <a
           href="/perjalanan-saya"
           className="inline-block px-6 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors"
