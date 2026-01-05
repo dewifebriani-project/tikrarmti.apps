@@ -54,6 +54,7 @@ interface AkadCommitment {
 interface DaftarUlangContentProps {
   userId: string;
   batchId: string;
+  userRole?: string;
 }
 
 type Step = 'intro' | 'partner' | 'akad' | 'review' | 'complete';
@@ -109,10 +110,15 @@ const AKAD_CONTENT = {
   ]
 };
 
-export default function DaftarUlangContent({ userId, batchId }: DaftarUlangContentProps) {
+export default function DaftarUlangContent({ userId, batchId, userRole }: DaftarUlangContentProps) {
   const [currentStep, setCurrentStep] = useState<Step>('intro');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Check if user is admin
+  const isAdmin = userRole === 'admin' ||
+    (Array.isArray(userRole) && userRole.includes('admin')) ||
+    (Array.isArray((userRole as any)?.roles) && (userRole as any).roles.includes('admin'));
 
   // Fetch batch data
   const { data: batch, error: batchError } = useSWR(
@@ -156,8 +162,8 @@ export default function DaftarUlangContent({ userId, batchId }: DaftarUlangConte
     );
   }
 
-  // Check if user is selected
-  if (registration.selection_status !== 'selected') {
+  // Check if user is selected (skip check for admin during testing)
+  if (!isAdmin && registration.selection_status !== 'selected') {
     return (
       <div className="max-w-md mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-8 text-center">

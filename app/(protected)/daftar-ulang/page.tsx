@@ -65,5 +65,5 @@ export default function DaftarUlangPage() {
     );
   }
 
-  return <DaftarUlangContent userId={user.id} batchId={batchId} />;
+  return <DaftarUlangContent userId={user.id} batchId={batchId} userRole={user.role} />;
 }
