@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, BookOpen, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import DaftarUlangContent from './DaftarUlangContent';
 
 export default function DaftarUlangPage() {
@@ -14,8 +14,28 @@ export default function DaftarUlangPage() {
   useEffect(() => {
     setIsClient(true);
     const params = new URLSearchParams(window.location.search);
-    setBatchId(params.get('batch_id') || user?.current_tikrar_batch_id || null);
-  }, [user]);
+    const urlBatchId = params.get('batch_id');
+    if (urlBatchId) {
+      setBatchId(urlBatchId);
+    }
+  }, []);
+
+  // Update batchId from user when user data is loaded
+  useEffect(() => {
+    if (user && !batchId) {
+      // Fetch user's current batch from API
+      fetch('/api/user/profile')
+        .then(res => res.json())
+        .then(data => {
+          if (data.data?.current_tikrar_batch_id) {
+            setBatchId(data.data.current_tikrar_batch_id);
+          }
+        })
+        .catch(() => {
+          // Ignore error, will show batch not found message
+        });
+    }
+  }, [user, batchId]);
 
   // Show loading while auth is loading
   if (authLoading || !isClient) {
@@ -44,18 +64,16 @@ export default function DaftarUlangPage() {
 
   if (!batchId) {
     return (
-      <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-gray-900 mb-4">Batch Tidak Ditemukan</h1>
-          <p className="text-gray-600 mb-6">Silakan pilih batch terlebih dahulu dari menu Perjalanan Saya.</p>
-          <a
-            href="/perjalanan-saya"
-            className="inline-block px-6 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors"
-          >
-            Ke Perjalanan Saya
-          </a>
-        </div>
+      <div className="max-w-md mx-auto text-center py-12">
+        <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+        <h1 className="text-xl font-bold text-gray-900 mb-4">Batch Tidak Ditemukan</h1>
+        <p className="text-gray-600 mb-6">Silakan pilih batch terlebih dahulu dari menu Perjalanan Saya.</p>
+        <a
+          href="/perjalanan-saya"
+          className="inline-block px-6 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors"
+        >
+          Ke Perjalanan Saya
+        </a>
       </div>
     );
   }
