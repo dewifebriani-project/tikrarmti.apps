@@ -1,6 +1,8 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
+
+const supabaseAdmin = createSupabaseAdmin();
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +12,17 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const searchParams = request.nextUrl.searchParams;
+    const supabase = createServerClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return NextResponse.json({
+        error: 'Unauthorized - Invalid session. Please login again.',
+        needsLogin: true
+      }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch_id');
 
     if (!batchId) {
@@ -21,20 +32,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get current user
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-
-    if (authError || !session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Get user's registration to find their time slot
-    const { data: registration, error: regError } = await supabase
+    const { data: registration, error: regError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('id, chosen_juz, main_time_slot, backup_time_slot')
       .eq('batch_id', batchId)
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Check if user already has schedule preferences
-    const { data: existingPreference, error: prefError } = await supabase
+    const { data: existingPreference, error: prefError } = await supabaseAdmin
       .from('ustadzah_preferences')
       .select('*')
       .eq('registration_id', registration.id)
@@ -113,9 +114,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const body = await request.json();
+    const supabase = createServerClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
+    if (userError || !user) {
+      return NextResponse.json({
+        error: 'Unauthorized - Invalid session. Please login again.',
+        needsLogin: true
+      }, { status: 401 });
+    }
+
+    const body = await request.json();
     const { batch_id, tashih_schedule_id, ujian_schedule_id, notes } = body;
 
     if (!batch_id || !tashih_schedule_id || !ujian_schedule_id) {
@@ -125,20 +134,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current user
-    const {
-      data: { session },
-      error: authError,
-    } = await supabase.auth.getSession();
-
-    if (authError || !session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Get user's registration
-    const { data: registration, error: regError } = await supabase
+    const { data: registration, error: regError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('id')
       .eq('batch_id', batch_id)
@@ -154,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if preference already exists
-    const { data: existingPref } = await supabase
+    const { data: existingPref } = await supabaseAdmin
       .from('ustadzah_preferences')
       .select('id')
       .eq('registration_id', registration.id)
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
     let result;
     if (existingPref) {
       // Update existing preference
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('ustadzah_preferences')
         .update({
           preferred_muallimah_tashih: tashih_schedule_id,
@@ -179,7 +178,7 @@ export async function POST(request: NextRequest) {
       result = data;
     } else {
       // Insert new preference
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('ustadzah_preferences')
         .insert({
           registration_id: registration.id,
@@ -197,7 +196,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log to audit
-    await supabase.from('audit_logs').insert({
+    await supabaseAdmin.from('audit_logs').insert({
       user_id: userId,
       action: existingPref ? 'update_schedule_preference' : 'create_schedule_preference',
       table_name: 'ustadzah_preferences',
