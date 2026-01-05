@@ -220,10 +220,11 @@ export default function DaftarUlangContent({ userId, batchId, userRole }: Daftar
     return res.json();
   }
 
-  const compatiblePartners = partnerData?.data?.compatible_partners || [];
-  const existingPreference = partnerData?.data?.existing_preference;
-  const pendingRequests = partnerData?.data?.pending_requests || [];
-  const akadCommitment = akadData?.data;
+  // Use useMemo to prevent unnecessary re-renders from SWR data
+  const compatiblePartners = useMemo(() => partnerData?.data?.compatible_partners || [], [partnerData?.data?.compatible_partners]);
+  const existingPreference = useMemo(() => partnerData?.data?.existing_preference, [partnerData?.data?.existing_preference]);
+  const pendingRequests = useMemo(() => partnerData?.data?.pending_requests || [], [partnerData?.data?.pending_requests]);
+  const akadCommitment = useMemo(() => akadData?.data, [akadData?.data]);
 
   useEffect(() => {
     if (existingPreference) {
