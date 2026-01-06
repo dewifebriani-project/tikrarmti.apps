@@ -74,12 +74,15 @@ ON system_logs
 FOR SELECT
 TO authenticated
 USING (
-  -- Check if user has admin role
+  -- Check if user has admin role (supports both 'role' and 'roles' column)
   EXISTS (
     SELECT 1
     FROM users
     WHERE users.id = auth.uid()
-    AND 'admin' = ANY(users.role)
+    AND (
+      users.role = 'admin'  -- Single role column (backward compatibility)
+      OR 'admin' = ANY(users.roles)  -- Multi-role array (new standard)
+    )
   )
 );
 
