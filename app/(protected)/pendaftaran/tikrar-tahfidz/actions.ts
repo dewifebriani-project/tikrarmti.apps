@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
 export async function submitTikrarRegistration(formData: any, userProfile: any, user: any, batch: any, isEditMode: boolean, existingRegistrationId?: string) {
   const supabase = createClient()
