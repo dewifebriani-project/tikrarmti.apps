@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 /**
  * GET /api/daftar-ulang/halaqah
  * Fetch available halaqah for daftar ulang
- * Sorted by availability (most slots first)
+ * Sorted by day_of_week
  */
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch halaqah with their class types and availability
+    // Fetch halaqah with muallimah information
     const { data: halaqahData, error: halaqahError } = await supabase
       .from('halaqah')
       .select(`
@@ -47,21 +47,15 @@ export async function GET(request: NextRequest) {
         start_time,
         end_time,
         location,
+        max_students,
         status,
-        halaqah_class_types (
+        zoom_link,
+        preferred_juz,
+        muallimah_id,
+        users!halaqah_muallimah_id_fkey (
           id,
-          class_type,
-          current_students,
-          max_students,
-          is_active
-        ),
-        halaqah_mentors (
-          mentor_id,
-          role,
-          is_primary,
-          users (
-            full_name
-          )
+          full_name,
+          email
         )
       `)
       .eq('status', 'active')
@@ -75,40 +69,41 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Process and sort halaqah by availability
-    // Full halaqah go to bottom, available halaqah sorted by most slots first
-    const processedHalaqah = (halaqahData || [])
-      .map(h => {
-        const classTypes = h.halaqah_class_types || []
-        const totalCurrent = classTypes.reduce((sum, ct) => sum + (ct.current_students || 0), 0)
-        const totalMax = classTypes.reduce((sum, ct) => sum + (ct.max_students || 20), 0)
-        const isFull = totalCurrent >= totalMax
-        const availableSlots = totalMax - totalCurrent
+    // Process halaqah data
+    const processedHalaqah = (halaqahData || []).map(h => {
+      // For now, calculate current students from halaqah_students table
+      // TODO: Add proper student count tracking from daftar_ulang_submissions
+      const currentStudents = 0 // Default to 0 since we don't have real-time tracking
+      const maxStudents = h.max_students || 20
+      const isFull = currentStudents >= maxStudents
+      const availableSlots = maxStudents - currentStudents
 
-        return {
-          ...h,
-          total_current_students: totalCurrent,
-          total_max_students: totalMax,
-          available_slots: availableSlots,
-          is_full: isFull,
-          class_types: classTypes,
-          mentors: h.halaqah_mentors || []
-        }
-      })
-      .sort((a, b) => {
-        // Full halaqah go to bottom
-        if (a.is_full && !b.is_full) return 1
-        if (!a.is_full && b.is_full) return -1
-        // Within same status, sort by available slots (descending)
-        return b.available_slots - a.available_slots
-      })
+      // Handle muallimah from users relation (comes as single object, not array)
+      const muallimah = (h as any).users
+
+      return {
+        ...h,
+        total_current_students: currentStudents,
+        total_max_students: maxStudents,
+        available_slots: availableSlots,
+        is_full: isFull,
+        class_types: [], // Empty since we're not using halaqah_class_types table
+        mentors: muallimah ? [{
+          mentor_id: muallimah.id,
+          role: 'muallimah',
+          is_primary: true,
+          users: {
+            full_name: muallimah.full_name
+          }
+        }] : [] // Use muallimah from users table
+      }
+    })
 
     // Get user's existing daftar ulang submission if any
     const { data: existingSubmission } = await supabase
       .from('daftar_ulang_submissions')
       .select('*')
       .eq('user_id', user.id)
-      .eq('registration_id', registration.batch_id) // Note: needs actual registration_id
       .maybeSingle()
 
     return NextResponse.json({

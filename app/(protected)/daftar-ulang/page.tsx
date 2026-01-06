@@ -572,89 +572,102 @@ function HalaqahSelectionStep({
 
       {/* Halaqah List with Checkboxes */}
       <div className="space-y-3">
-        {halaqahData.map(halaqah => {
-          const ujianSelected = isUjianSelected(halaqah.id)
-          const tashihSelected = isTashihSelected(halaqah.id)
+        {halaqahData.length === 0 ? (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <Info className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-yellow-900 mb-2">Belum Ada Jadwal Halaqah</h3>
+            <p className="text-sm text-yellow-700 mb-4">
+              Jadwal halaqah belum tersedia. Silakan hubungi admin untuk informasi lebih lanjut.
+            </p>
+            <p className="text-xs text-yellow-600">
+              Admin akan membuat jadwal halaqah setelah periode pendaftaran ulang ditutup.
+            </p>
+          </div>
+        ) : (
+          halaqahData.map(halaqah => {
+            const ujianSelected = isUjianSelected(halaqah.id)
+            const tashihSelected = isTashihSelected(halaqah.id)
 
-          return (
-            <div
-              key={halaqah.id}
-              className={`
-                border rounded-lg p-4 transition-all
-                ${halaqah.is_full ? 'bg-gray-50 border-gray-200' : 'border-gray-200 hover:border-gray-300'}
-              `}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <h4 className="font-medium text-gray-900">{halaqah.name}</h4>
-                    {halaqah.is_full && (
-                      <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Penuh</span>
+            return (
+              <div
+                key={halaqah.id}
+                className={`
+                  border rounded-lg p-4 transition-all
+                  ${halaqah.is_full ? 'bg-gray-50 border-gray-200' : 'border-gray-200 hover:border-gray-300'}
+                `}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-medium text-gray-900">{halaqah.name}</h4>
+                      {halaqah.is_full && (
+                        <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Penuh</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {halaqah.day_of_week && DAY_NAMES[halaqah.day_of_week]} • {halaqah.start_time} - {halaqah.end_time} WIB
+                    </p>
+                    {halaqah.location && (
+                      <p className="text-sm text-gray-500 mt-1">{halaqah.location}</p>
+                    )}
+                    {halaqah.description && (
+                      <p className="text-sm text-gray-600 mt-2">{halaqah.description}</p>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {halaqah.day_of_week && DAY_NAMES[halaqah.day_of_week]} • {halaqah.start_time} - {halaqah.end_time} WIB
-                  </p>
-                  {halaqah.location && (
-                    <p className="text-sm text-gray-500 mt-1">{halaqah.location}</p>
-                  )}
-                  {halaqah.description && (
-                    <p className="text-sm text-gray-600 mt-2">{halaqah.description}</p>
-                  )}
+
+                  {/* Checkboxes */}
+                  <div className="flex items-center space-x-4 ml-4">
+                    {/* Ujian Checkbox */}
+                    <label className={`
+                      flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-all
+                      ${halaqah.is_full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
+                      ${ujianSelected ? 'bg-green-50 border border-green-200' : ''}
+                    `}>
+                      <input
+                        type="checkbox"
+                        checked={ujianSelected}
+                        disabled={halaqah.is_full}
+                        onChange={() => !halaqah.is_full && toggleUjian(halaqah.id)}
+                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium">Ujian</span>
+                    </label>
+
+                    {/* Tashih Checkbox */}
+                    <label className={`
+                      flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-all
+                      ${halaqah.is_full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
+                      ${tashihSelected ? 'bg-blue-50 border border-blue-200' : ''}
+                    `}>
+                      <input
+                        type="checkbox"
+                        checked={tashihSelected}
+                        disabled={halaqah.is_full}
+                        onChange={() => !halaqah.is_full && toggleTashih(halaqah.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium">Tashih</span>
+                    </label>
+                  </div>
                 </div>
 
-                {/* Checkboxes */}
-                <div className="flex items-center space-x-4 ml-4">
-                  {/* Ujian Checkbox */}
-                  <label className={`
-                    flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-all
-                    ${halaqah.is_full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
-                    ${ujianSelected ? 'bg-green-50 border border-green-200' : ''}
-                  `}>
-                    <input
-                      type="checkbox"
-                      checked={ujianSelected}
-                      disabled={halaqah.is_full}
-                      onChange={() => !halaqah.is_full && toggleUjian(halaqah.id)}
-                      className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium">Ujian</span>
-                  </label>
-
-                  {/* Tashih Checkbox */}
-                  <label className={`
-                    flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-all
-                    ${halaqah.is_full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
-                    ${tashihSelected ? 'bg-blue-50 border border-blue-200' : ''}
-                  `}>
-                    <input
-                      type="checkbox"
-                      checked={tashihSelected}
-                      disabled={halaqah.is_full}
-                      onChange={() => !halaqah.is_full && toggleTashih(halaqah.id)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium">Tashih</span>
-                  </label>
-                </div>
+                {/* Mentors info */}
+                {halaqah.mentors && halaqah.mentors.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500">
+                      <span className="font-medium">Muallimah: </span>
+                      {halaqah.mentors
+                        .filter((m: any) => m.role === 'muallimah')
+                        .map((m: any) => m.users?.full_name)
+                        .filter(Boolean)
+                        .join(', ') || '-'}
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {/* Mentors info */}
-              {halaqah.mentors && halaqah.mentors.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <p className="text-xs text-gray-500">
-                    <span className="font-medium">Ustadzah: </span>
-                    {halaqah.mentors
-                      .filter((m: any) => m.role === 'ustadzah')
-                      .map((m: any) => m.users?.full_name)
-                      .filter(Boolean)
-                      .join(', ') || '-'}
-                  </p>
-                </div>
-              )}
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
 
       {/* Tashih Umum Option */}
