@@ -16,7 +16,6 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, BookOpen, GraduationCap, Heart, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { submitMuallimahRegistration } from './actions';
 
 // Simple debounce utility function
@@ -98,7 +97,6 @@ function MuallimahRegistrationContent() {
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { activeBatch, isLoading: batchLoading } = useActiveBatch();
-  const supabase = createClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [batchId, setBatchId] = useState<string>('');
@@ -345,76 +343,13 @@ function MuallimahRegistrationContent() {
   };
 
   // Auto-save draft functionality
+  // DISABLED: Auto-save violates arsitektur.md (client-side mutation)
+  // TODO: Implement server-side auto-save using Server Actions if needed
   const autoSaveDraft = useCallback(
     debounce(async () => {
-      if (!user || !batchId || isFormSubmitted) return;
-
-      try {
-        setAutoSaving(true);
-        const draftData = {
-          user_id: user.id,
-          batch_id: batchId,
-          // Save only form fields, not user data
-          tajweed_institution: formData.tajweed_institution || null,
-          quran_institution: formData.quran_institution || null,
-          memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
-          studied_matan_exegesis: formData.studied_matan_exegesis || null,
-          memorized_juz: formData.memorized_juz.length > 0 ? formData.memorized_juz.join(', ') : null,
-          examined_juz: formData.examined_juz.length > 0 ? formData.examined_juz.join(', ') : null,
-          certified_juz: formData.certified_juz.length > 0 ? formData.certified_juz.join(', ') : null,
-          preferred_juz: formData.preferred_juz.length > 0 ? formData.preferred_juz.join(', ') : null,
-          class_type: formData.class_type,
-          preferred_max_thalibah: formData.preferred_max_thalibah || null,
-          teaching_communities: formData.teaching_communities || null,
-          paid_class_interest: formData.wants_paid_class ? JSON.stringify({
-            name: formData.paid_class_name || null,
-            schedule1_day: formData.paid_class_schedule1_day || null,
-            schedule1_time_start: formData.paid_class_schedule1_time_start || null,
-            schedule1_time_end: formData.paid_class_schedule1_time_end || null,
-            schedule2_day: formData.paid_class_schedule2_day || null,
-            schedule2_time_start: formData.paid_class_schedule2_time_start || null,
-            schedule2_time_end: formData.paid_class_schedule2_time_end || null,
-            max_students: formData.paid_class_max_students || null,
-            spp_percentage: formData.paid_class_spp_percentage || null,
-            additional_info: formData.paid_class_interest || null,
-          }) : null,
-        };
-
-        // Check if draft or any existing registration exists
-        const { data: existingRecord } = await supabase
-          .from('muallimah_registrations')
-          .select('id, status')
-          .eq('user_id', user.id)
-          .eq('batch_id', batchId)
-          .maybeSingle();
-
-        if (existingRecord) {
-          // Only update if status is draft, otherwise don't update submitted registrations
-          if (existingRecord.status === 'draft') {
-            await supabase
-              .from('muallimah_registrations')
-              .update(draftData)
-              .eq('id', existingRecord.id);
-            setLastSavedAt(new Date());
-          }
-          // If status is pending/review/approved/rejected, don't auto-save to avoid conflicts
-        } else {
-          // No existing record, create new draft
-          await supabase
-            .from('muallimah_registrations')
-            .insert({
-              ...draftData,
-              status: 'draft',
-              submitted_at: new Date().toISOString(),
-            });
-          setLastSavedAt(new Date());
-        }
-      } catch (error) {
-        console.error('Auto-save error:', error);
-      } finally {
-        setAutoSaving(false);
-      }
-    }, 1000), // 1 second debounce
+      // Disabled - client-side mutations not allowed per arsitektur.md
+      return;
+    }, 1000),
     [formData, user, batchId, existingRegistrationId, isFormSubmitted]
   );
 
