@@ -94,18 +94,18 @@ TO service_role
 WITH CHECK (true);
 
 -- Policy: Service role can update logs (for Sentry sync)
-CREATE POLICY "Service role can update system logs"
+CREATE POLICY "Service role can update system_logs"
 ON system_logs
 FOR UPDATE
 TO service_role
 WITH CHECK (true);
 
 -- Policy: Service role can delete logs (for cleanup)
-CREATE POLICY "Service role can delete system logs"
+CREATE POLICY "Service role can delete system_logs"
 ON system_logs
 FOR DELETE
 TO service_role
-WITH CHECK (true);
+USING (true);
 
 -- ============================================================================
 -- Helper Functions
