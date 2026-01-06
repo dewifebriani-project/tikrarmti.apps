@@ -226,15 +226,15 @@ SELECT
   p.batch_id,
   p.registration_date,
   p.status,
-  t.email as thalibah_email,
-  t.full_name as thalibah_name,
+  u.email as thalibah_email,
+  u.full_name as thalibah_name,
   pr.name as program_name,
   pr.batch_id as program_batch_id,
   b.name as batch_name,
   b.start_date as batch_start_date,
   b.end_date as batch_end_date
 FROM pendaftaran_tikrar_tahfidz p
-JOIN thalibah t ON p.thalibah_id = t.id
+JOIN users u ON p.thalibah_id = u.id
 JOIN programs pr ON p.program_id = pr.id
 LEFT JOIN batches b ON p.batch_id = b.id;
 
