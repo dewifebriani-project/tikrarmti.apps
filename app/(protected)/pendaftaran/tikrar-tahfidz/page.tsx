@@ -18,6 +18,7 @@ import { Progress } from '@/components/ui/progress'
 import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { submitTikrarRegistration } from './actions'
 
 interface FormData {
   // Section 1 - Komitmen & Pemahaman
@@ -365,193 +366,46 @@ export default function ThalibahBatch2Page() {
     }
 
     setIsSubmitting(true)
+    setSubmitError(null)
+
     try {
-      // Use user from useAuth() hook (server-provided data via layout)
-      // This follows arsitektur.md: NO client-side auth checks
-      if (!user) {
-        toast.error('Sesi tidak valid. Silakan login kembali.')
-        router.push('/login')
-        return
-      }
+      // Use Server Action for mutation (follows arsitektur.md)
+      const result = await submitTikrarRegistration(
+        formData,
+        userProfile,
+        user,
+        activeBatch,
+        isEditMode,
+        existingRegistrationId || undefined
+      )
 
-      // Fetch program associated with this batch
-      // Try to find program with status 'open' first, fallback to any program for this batch
-      let program = null
-      let programError = null
+      if (result.success) {
+        toast.success(result.message)
+        setSubmitStatus(result.status || 'success')
 
-      console.log('🔍 Fetching program for batch:', activeBatch.id)
+        // Clear draft after successful submission
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEY)
+        }
 
-      // First attempt: Try to find 'open' program
-      const { data: openProgram, error: openError } = await supabase
-        .from('programs')
-        .select('id')
-        .eq('batch_id', activeBatch.id)
-        .eq('status', 'open')
-        .maybeSingle()
+        // Refresh registrations cache
+        mutateRegistrations()
 
-      console.log('📊 Open program query result:', { openProgram, openError })
+        // Redirect to dashboard after 3 seconds
+        const timer = setTimeout(() => {
+          router.push('/dashboard')
+        }, 3000)
 
-      if (openProgram) {
-        program = openProgram
-        console.log('✅ Found open program:', program)
+        setRedirectTimer(timer)
       } else {
-        console.log('⚠️ No open program found, trying any program...')
-        // Second attempt: Find any program for this batch (fallback)
-        const { data: anyProgram, error: anyError } = await supabase
-          .from('programs')
-          .select('id')
-          .eq('batch_id', activeBatch.id)
-          .maybeSingle()
-
-        console.log('📊 Any program query result:', { anyProgram, anyError })
-
-        if (anyProgram) {
-          program = anyProgram
-          console.log('✅ Found program (fallback):', program)
-        } else {
-          programError = anyError || openError
-          console.log('❌ No program found at all:', programError)
-        }
+        toast.error(result.error || 'Gagal mengirim pendaftaran')
+        setSubmitError(result.error || 'Terjadi kesalahan saat mengirim formulir')
+        setSubmitStatus('error')
       }
-
-      // TEMPORARY WORKAROUND: If program fetch fails, try to fetch ANY program from database
-      if (programError || !program) {
-        console.error('❌ Program fetch failed!')
-        console.error('Batch ID:', activeBatch.id)
-        console.error('Error details:', programError)
-        console.error('Full activeBatch:', activeBatch)
-
-        // Try to fetch any available program as last resort
-        console.log('🔄 Attempting fallback: fetching any available program...')
-        const { data: fallbackProgram, error: fallbackError } = await supabase
-          .from('programs')
-          .select('id, batch_id, name, status')
-          .limit(1)
-          .maybeSingle()
-
-        console.log('🆘 Fallback program query result:', { fallbackProgram, fallbackError })
-
-        if (fallbackProgram) {
-          program = fallbackProgram
-          console.warn('⚠️ Using fallback program:', fallbackProgram)
-          toast.warning(`Menggunakan program fallback: ${fallbackProgram.name}. Silakan hubungi admin jika ini bukan program yang tepat.`)
-        } else {
-          toast.error('Program untuk batch ini belum tersedia. Silakan hubungi admin.')
-          setIsSubmitting(false)
-          return
-        }
-      }
-
-      console.log('🎯 Using program ID:', program.id)
-
-      // Calculate age from birth_date
-      const birthDateValue = userProfile?.tanggal_lahir || new Date().toISOString()
-      const birthDate = new Date(birthDateValue)
-      const today = new Date()
-      let age = today.getFullYear() - birthDate.getFullYear()
-      const monthDiff = today.getMonth() - birthDate.getMonth()
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--
-      }
-
-      // Prepare submission data - matching pendaftaran_tikrar_tahfidz table schema
-      const isJanda = formData.has_permission === 'janda'
-
-      const submitData = {
-        user_id: user.id,
-        batch_id: activeBatch.id,
-        program_id: program.id,
-        batch_name: activeBatch.name || 'Batch 2',
-        // User data from users table
-        full_name: userProfile?.full_name || user.full_name || user.email || '',
-        email: user.email || '',
-        wa_phone: userProfile?.whatsapp || '',
-        telegram_phone: userProfile?.telegram || '',
-        address: userProfile?.alamat || '',
-        birth_date: birthDateValue,
-        age: age,
-        domicile: userProfile?.kota || '',
-        timezone: userProfile?.zona_waktu || 'WIB',
-        // Form data - Section 1
-        understands_commitment: formData.understands_commitment,
-        tried_simulation: formData.tried_simulation,
-        no_negotiation: formData.no_negotiation,
-        has_telegram: formData.has_telegram,
-        saved_contact: formData.saved_contact,
-        // Section 2
-        has_permission: formData.has_permission,
-        permission_name: isJanda ? '' : formData.permission_name,
-        permission_phone: isJanda ? '' : formData.permission_phone,
-        chosen_juz: formData.chosen_juz,
-        no_travel_plans: formData.no_travel_plans,
-        motivation: formData.motivation,
-        ready_for_team: formData.ready_for_team,
-        // Section 3
-        main_time_slot: formData.main_time_slot,
-        backup_time_slot: formData.backup_time_slot,
-        time_commitment: formData.time_commitment,
-        // Section 4
-        understands_program: formData.understands_program,
-        questions: formData.questions || null,
-        // Status fields
-        status: 'pending',
-        selection_status: 'pending',
-        submission_date: new Date().toISOString(),
-      }
-
-      if (isEditMode && existingRegistrationId) {
-        // Update existing registration
-        const { error: updateError } = await supabase
-          .from('pendaftaran_tikrar_tahfidz')
-          .update(submitData)
-          .eq('id', existingRegistrationId)
-          .eq('user_id', user.id)
-
-        if (updateError) {
-          console.error('Update error:', updateError)
-          toast.error(`Gagal memperbarui data pendaftaran: ${updateError.message || 'Unknown error'}`)
-          throw updateError
-        }
-
-        toast.success('Alhamdulillah! Data pendaftaran berhasil diperbarui!')
-        setSubmitStatus('success_update')
-      } else {
-        // Create new registration
-        const { error: submitError } = await supabase
-          .from('pendaftaran_tikrar_tahfidz')
-          .insert(submitData)
-
-        if (submitError) {
-          console.error('Submit error:', submitError)
-          toast.error(`Gagal mengirim pendaftaran: ${submitError.message || 'Unknown error'}`)
-          throw submitError
-        }
-
-        toast.success('Alhamdulillah! Pendaftaran Tikrar Tahfidz berhasil dikirim!')
-        setSubmitStatus('success')
-      }
-
-      // Clear draft after successful submission
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-
-      // Refresh registrations cache
-      mutateRegistrations()
-
-      // Redirect to dashboard after 3 seconds
-      const timer = setTimeout(() => {
-        router.push('/dashboard')
-      }, 3000)
-
-      setRedirectTimer(timer)
-
     } catch (error: any) {
       console.error('Submit error:', error)
-      let errorMessage = 'Terjadi kesalahan saat mengirim formulir'
-      if (error?.message) {
-        errorMessage = error.message
-      }
+      const errorMessage = error?.message || 'Terjadi kesalahan tidak terduga'
+      toast.error(errorMessage)
       setSubmitError(errorMessage)
       setSubmitStatus('error')
     } finally {
