@@ -7,7 +7,7 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
@@ -1508,22 +1508,6 @@ export default function PerjalananSaya() {
                         Tashih
                       </Button>
                     </Link>
-                    {/* Admin-only: Daftar Ulang button (testing phase) */}
-                    {((user?.role === 'admin') ||
-                      (Array.isArray(user?.role) && user.role.includes('admin')) ||
-                      (Array.isArray((user as any)?.roles) && (user as any).roles.includes('admin'))) && batchId && (
-                      <Link href={`/daftar-ulang?batch_id=${batchId}`}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-orange-300 text-orange-700 hover:bg-orange-50 text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2"
-                          title="Admin Only - Fitur Daftar Ulang (Tahap Uji Coba)"
-                        >
-                          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                          Daftar Ulang
-                        </Button>
-                      </Link>
-                    )}
                   </div>
                 </div>
               )}
