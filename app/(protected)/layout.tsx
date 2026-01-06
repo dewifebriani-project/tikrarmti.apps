@@ -77,16 +77,19 @@ export default async function ProtectedLayout({
 
   // Extract results
   const { data: { user }, error: authError } = authResult
-  const { data: userData } = userDataResult
+  const { data: userData, error: userError } = userDataResult
 
   // AUTH GUARD: Redirect to login if no valid session
   // This is the PRIMARY auth check following arsitektur.md
   if (!user || authError) {
+    console.error('[ProtectedLayout] Auth error:', authError)
     redirect('/login')
   }
 
   // Redirect to login if user not found in database
-  if (!userData) {
+  if (!userData || userError) {
+    console.error('[ProtectedLayout] User data error:', userError)
+    console.error('[ProtectedLayout] User data:', userData)
     redirect('/login')
   }
 
