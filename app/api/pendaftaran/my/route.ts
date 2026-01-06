@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's tikrar registrations with program and batch details
-    // This API is specifically for perjalanan-saya page which should ONLY show tikrar registrations
     const { data: tikrarRegistrations, error: tikrarError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
@@ -27,24 +26,59 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (tikrarError) {
-      console.error('Error fetching tikrar registrations:', tikrarError)
-      return NextResponse.json({
-        success: true,
-        data: [],
-      })
-    }
+    // Get user's muallimah registrations with batch details
+    const { data: muallimahRegistrations, error: muallimahError } = await supabase
+      .from('muallimah_registrations')
+      .select(`
+        *,
+        batch:batches(*)
+      `)
+      .eq('user_id', user.id)
+      .order('submitted_at', { ascending: false })
 
-    // Map registrations to add role type for consistency
-    const registrations = (tikrarRegistrations || []).map(reg => ({
-      ...reg,
-      registration_type: 'calon_thalibah',
-      role: 'calon_thalibah'
-    }))
+    // Get user's musyrifah registrations with program and batch details
+    const { data: musyrifahRegistrations, error: musyrifahError } = await supabase
+      .from('musyrifah_registrations')
+      .select(`
+        *,
+        program:programs(*),
+        batch:batches(*)
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    // Combine all registrations into a single array
+    const allRegistrations = [
+      ...(tikrarRegistrations || []).map(reg => ({
+        ...reg,
+        registration_type: 'calon_thalibah',
+        role: 'calon_thalibah',
+        status: reg.status || 'pending'
+      })),
+      ...(muallimahRegistrations || []).map(reg => ({
+        ...reg,
+        registration_type: 'muallimah',
+        role: 'muallimah',
+        status: reg.status || 'pending'
+      })),
+      ...(musyrifahRegistrations || []).map(reg => ({
+        ...reg,
+        registration_type: 'musyrifah',
+        role: 'musyrifah',
+        status: reg.status || 'pending'
+      }))
+    ]
+
+    // Sort by created_at/submitted_at descending
+    allRegistrations.sort((a, b) => {
+      const dateA = new Date(a.created_at || a.submitted_at || 0)
+      const dateB = new Date(b.created_at || b.submitted_at || 0)
+      return dateB.getTime() - dateA.getTime()
+    })
 
     return NextResponse.json({
       success: true,
-      data: registrations,
+      data: allRegistrations,
     })
 
   } catch (error) {
