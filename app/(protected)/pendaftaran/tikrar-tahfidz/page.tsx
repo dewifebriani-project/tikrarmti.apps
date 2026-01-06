@@ -381,7 +381,7 @@ export default function ThalibahBatch2Page() {
 
       if (result.success) {
         toast.success(result.message)
-        setSubmitStatus(result.status || 'success')
+        setSubmitStatus((result.status || 'success') as 'idle' | 'success' | 'success_update' | 'error')
 
         // Clear draft after successful submission
         if (typeof window !== 'undefined') {
