@@ -366,7 +366,7 @@ export default function ThalibahBatch2Page() {
     }
 
     setIsSubmitting(true)
-    setSubmitError(null)
+    setSubmitError('')
 
     try {
       // Use Server Action for mutation (follows arsitektur.md)
