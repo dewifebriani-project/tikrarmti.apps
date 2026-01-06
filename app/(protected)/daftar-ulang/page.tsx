@@ -23,13 +23,13 @@ interface HalaqahData {
   total_max_students: number
   available_slots: number
   is_full: boolean
+  class_type: string // 'tashih_ujian', 'tashih_only', 'ujian_only'
   class_types: Array<{
-    id: string
     class_type: string
-    current_students: number
-    max_students: number
-    is_active: boolean
+    label: string
   }>
+  muallimah_preferred_juz: string | null
+  muallimah_schedule: string | null
   mentors: Array<{
     mentor_id: string
     role: string
@@ -541,18 +541,53 @@ function HalaqahSelectionStep({
 }) {
   const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
 
+  // Helper to check if class type is available
+  const hasUjian = (halaqah: HalaqahData) =>
+    halaqah.class_types.some(ct => ct.class_type === 'ujian')
+  const hasTashih = (halaqah: HalaqahData) =>
+    halaqah.class_types.some(ct => ct.class_type === 'tashih')
+  const isTashihUjianBoth = (halaqah: HalaqahData) =>
+    halaqah.class_type === 'tashih_ujian'
+
   const toggleUjian = (halaqahId: string) => {
-    // Toggle: if already selected, deselect; otherwise select
-    const newUjianId = formData.ujian_halaqah_id === halaqahId ? '' : halaqahId
-    onChange({ ...formData, ujian_halaqah_id: newUjianId })
+    const halaqah = halaqahData.find(h => h.id === halaqahId)
+    if (!halaqah || !hasUjian(halaqah)) return
+
+    // If tashih_ujian, must select both
+    if (isTashihUjianBoth(halaqah)) {
+      const newUjianId = formData.ujian_halaqah_id === halaqahId ? '' : halaqahId
+      onChange({
+        ...formData,
+        ujian_halaqah_id: newUjianId,
+        tashih_halaqah_id: newUjianId,
+        is_tashih_umum: false
+      })
+    } else {
+      const newUjianId = formData.ujian_halaqah_id === halaqahId ? '' : halaqahId
+      onChange({ ...formData, ujian_halaqah_id: newUjianId })
+    }
   }
 
   const toggleTashih = (halaqahId: string) => {
+    const halaqah = halaqahData.find(h => h.id === halaqahId)
+    if (!halaqah || !hasTashih(halaqah)) return
+
     // If enabling tashih umum, clear specific halaqah
     if (formData.is_tashih_umum) {
       onChange({ ...formData, is_tashih_umum: false, tashih_halaqah_id: halaqahId })
+      return
+    }
+
+    // If tashih_ujian, must select both
+    if (isTashihUjianBoth(halaqah)) {
+      const newTashihId = formData.tashih_halaqah_id === halaqahId ? '' : halaqahId
+      onChange({
+        ...formData,
+        ujian_halaqah_id: newTashihId,
+        tashih_halaqah_id: newTashihId,
+        is_tashih_umum: false
+      })
     } else {
-      // Toggle: if already selected, deselect; otherwise select
       const newTashihId = formData.tashih_halaqah_id === halaqahId ? '' : halaqahId
       onChange({ ...formData, tashih_halaqah_id: newTashihId })
     }
@@ -561,17 +596,36 @@ function HalaqahSelectionStep({
   const isUjianSelected = (halaqahId: string) => formData.ujian_halaqah_id === halaqahId
   const isTashihSelected = (halaqahId: string) => formData.tashih_halaqah_id === halaqahId
 
+  // Class type badge colors
+  const getClassTypeColor = (classType: string) => {
+    switch (classType) {
+      case 'tashih_ujian': return 'bg-purple-100 text-purple-700 border-purple-200'
+      case 'tashih_only': return 'bg-blue-100 text-blue-700 border-blue-200'
+      case 'ujian_only': return 'bg-green-100 text-green-700 border-green-200'
+      default: return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+
+  const getClassTypeLabel = (classType: string) => {
+    switch (classType) {
+      case 'tashih_ujian': return 'Tashih + Ujian'
+      case 'tashih_only': return 'Tashih'
+      case 'ujian_only': return 'Ujian'
+      default: return classType
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Pilih Jadwal Halaqah</h2>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg p-6 text-white">
+        <h2 className="text-2xl font-bold mb-2">Pilih Jadwal Halaqah</h2>
+        <p className="text-emerald-50">
           Pilih jadwal untuk kelas ujian dan/atau kelas tashih. Waktu yang ditampilkan dalam WIB.
         </p>
       </div>
 
-      {/* Halaqah List with Checkboxes */}
-      <div className="space-y-3">
+      {/* Halaqah List with Colorful Cards */}
+      <div className="space-y-4">
         {halaqahData.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
             <Info className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
@@ -587,83 +641,177 @@ function HalaqahSelectionStep({
           halaqahData.map(halaqah => {
             const ujianSelected = isUjianSelected(halaqah.id)
             const tashihSelected = isTashihSelected(halaqah.id)
+            const isBothRequired = isTashihUjianBoth(halaqah)
 
             return (
               <div
                 key={halaqah.id}
                 className={`
-                  border rounded-lg p-4 transition-all
-                  ${halaqah.is_full ? 'bg-gray-50 border-gray-200' : 'border-gray-200 hover:border-gray-300'}
+                  border-2 rounded-xl overflow-hidden transition-all shadow-sm hover:shadow-md
+                  ${halaqah.is_full ? 'bg-gray-50 border-gray-300' : 'bg-white border-gray-200 hover:border-emerald-300'}
+                  ${(ujianSelected || tashihSelected) ? 'ring-2 ring-emerald-400 border-emerald-400' : ''}
                 `}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-medium text-gray-900">{halaqah.name}</h4>
-                      {halaqah.is_full && (
-                        <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">Penuh</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {halaqah.day_of_week && DAY_NAMES[halaqah.day_of_week]} • {halaqah.start_time} - {halaqah.end_time} WIB
-                    </p>
-                    {halaqah.location && (
-                      <p className="text-sm text-gray-500 mt-1">{halaqah.location}</p>
-                    )}
-                    {halaqah.description && (
-                      <p className="text-sm text-gray-600 mt-2">{halaqah.description}</p>
+                {/* Header with name and class type badge */}
+                <div className={`
+                  px-4 py-3 flex items-center justify-between
+                  ${ujianSelected || tashihSelected ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-gray-50 to-gray-100'}
+                `}>
+                  <div className="flex items-center space-x-3">
+                    <h4 className={`font-semibold ${ujianSelected || tashihSelected ? 'text-white' : 'text-gray-900'}`}>
+                      {halaqah.name}
+                    </h4>
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getClassTypeColor(halaqah.class_type)}`}>
+                      {getClassTypeLabel(halaqah.class_type)}
+                    </span>
+                    {halaqah.is_full && (
+                      <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full">Penuh</span>
                     )}
                   </div>
-
-                  {/* Checkboxes */}
-                  <div className="flex items-center space-x-4 ml-4">
-                    {/* Ujian Checkbox */}
-                    <label className={`
-                      flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-all
-                      ${halaqah.is_full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
-                      ${ujianSelected ? 'bg-green-50 border border-green-200' : ''}
-                    `}>
-                      <input
-                        type="checkbox"
-                        checked={ujianSelected}
-                        disabled={halaqah.is_full}
-                        onChange={() => !halaqah.is_full && toggleUjian(halaqah.id)}
-                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
-                      />
-                      <span className="text-sm font-medium">Ujian</span>
-                    </label>
-
-                    {/* Tashih Checkbox */}
-                    <label className={`
-                      flex items-center space-x-2 px-3 py-2 rounded-lg cursor-pointer transition-all
-                      ${halaqah.is_full ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
-                      ${tashihSelected ? 'bg-blue-50 border border-blue-200' : ''}
-                    `}>
-                      <input
-                        type="checkbox"
-                        checked={tashihSelected}
-                        disabled={halaqah.is_full}
-                        onChange={() => !halaqah.is_full && toggleTashih(halaqah.id)}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium">Tashih</span>
-                    </label>
-                  </div>
+                  {isBothRequired && (
+                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
+                      Wajib Keduanya
+                    </span>
+                  )}
                 </div>
 
-                {/* Mentors info */}
-                {halaqah.mentors && halaqah.mentors.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                      <span className="font-medium">Muallimah: </span>
-                      {halaqah.mentors
-                        .filter((m: any) => m.role === 'muallimah')
-                        .map((m: any) => m.users?.full_name)
-                        .filter(Boolean)
-                        .join(', ') || '-'}
-                    </p>
+                <div className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    {/* Time */}
+                    <div className="flex items-center space-x-2 text-sm">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <span className="text-gray-700">
+                        <span className="font-medium">{DAY_NAMES[halaqah.day_of_week || 0]}</span>
+                        <span className="text-gray-500 mx-1">•</span>
+                        {halaqah.start_time} - {halaqah.end_time} WIB
+                      </span>
+                    </div>
+
+                    {/* Muallimah Schedule */}
+                    {halaqah.muallimah_schedule && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <span className="text-gray-700">
+                          <span className="font-medium">Slot: </span>
+                          {halaqah.muallimah_schedule}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Juz */}
+                    {halaqah.muallimah_preferred_juz && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                        </div>
+                        <span className="text-gray-700">
+                          <span className="font-medium">Juz: </span>
+                          {halaqah.muallimah_preferred_juz}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Location */}
+                    {halaqah.location && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-gray-700">{halaqah.location}</span>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Muallimah */}
+                  {halaqah.mentors && halaqah.mentors.length > 0 && (
+                    <div className="flex items-center space-x-2 mb-4 pb-3 border-b border-gray-100">
+                      <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        <span className="font-medium">Muallimah:</span>{' '}
+                        {halaqah.mentors
+                          .filter((m: any) => m.role === 'muallimah')
+                          .map((m: any) => m.users?.full_name)
+                          .filter(Boolean)
+                          .join(', ') || '-'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Selection Buttons */}
+                  <div className="flex flex-wrap gap-3">
+                    {/* Ujian Button */}
+                    {hasUjian(halaqah) && (
+                      <button
+                        onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
+                        disabled={halaqah.is_full}
+                        className={`
+                          flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
+                          ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                            ujianSelected ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' :
+                            'bg-white border-2 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50'}
+                        `}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          {ujianSelected && (
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          <span>Ujian</span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Tashih Button */}
+                    {hasTashih(halaqah) && (
+                      <button
+                        onClick={() => !halaqah.is_full && toggleTashih(halaqah.id)}
+                        disabled={halaqah.is_full}
+                        className={`
+                          flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
+                          ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                            tashihSelected ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md' :
+                            'bg-white border-2 border-blue-200 text-blue-700 hover:border-blue-400 hover:bg-blue-50'}
+                        `}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          {tashihSelected && (
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          <span>Tashih</span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  {isBothRequired && (
+                    <p className="text-xs text-purple-600 mt-2 text-center">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Kelas ini mencakup ujian dan tashih, keduanya wajib dipilih bersamaan
+                    </p>
+                  )}
+                </div>
               </div>
             )
           })
@@ -671,8 +819,8 @@ function HalaqahSelectionStep({
       </div>
 
       {/* Tashih Umum Option */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <label className="flex items-start space-x-3 cursor-pointer">
+      <div className="bg-gradient-to-r from-sky-50 to-blue-50 border-2 border-sky-200 rounded-xl p-5">
+        <label className="flex items-start space-x-4 cursor-pointer">
           <input
             type="checkbox"
             checked={formData.is_tashih_umum}
@@ -681,11 +829,16 @@ function HalaqahSelectionStep({
               is_tashih_umum: e.target.checked,
               tashih_halaqah_id: e.target.checked ? '' : formData.tashih_halaqah_id
             })}
-            className="w-4 h-4 mt-0.5 text-blue-600 rounded focus:ring-blue-500"
+            className="w-5 h-5 mt-0.5 text-sky-600 rounded focus:ring-sky-500"
           />
           <div>
-            <h4 className="font-medium text-blue-900">Kelas Tashih Umum</h4>
-            <p className="text-sm text-blue-700 mt-1">
+            <h4 className="font-semibold text-sky-900 flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Kelas Tashih Umum
+            </h4>
+            <p className="text-sm text-sky-700 mt-1">
               Pilih ini jika Anda ingin bergabung di kelas tashih umum bersama thalibah lain yang tidak memiliki pasangan/tetap.
             </p>
           </div>
@@ -693,30 +846,35 @@ function HalaqahSelectionStep({
       </div>
 
       {/* Summary */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-2">Pilihan Anda:</h4>
-        <div className="text-sm space-y-1">
-          <div>
-            <span className="text-gray-600">Kelas Ujian: </span>
-            {formData.ujian_halaqah_id ? (
-              <span className="font-medium text-green-700">
-                {halaqahData.find(h => h.id === formData.ujian_halaqah_id)?.name || '-'}
-              </span>
-            ) : (
-              <span className="text-gray-400">Belum dipilih</span>
-            )}
+      <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-xl p-5">
+        <h4 className="font-bold text-gray-900 mb-3 flex items-center">
+          <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          Pilihan Anda:
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className={`p-3 rounded-lg ${formData.ujian_halaqah_id ? 'bg-green-100 border border-green-300' : 'bg-gray-100'}`}>
+            <span className="text-xs text-gray-600 uppercase tracking-wide">Kelas Ujian</span>
+            <div className={`font-medium mt-1 ${formData.ujian_halaqah_id ? 'text-green-800' : 'text-gray-400'}`}>
+              {formData.ujian_halaqah_id ? (
+                halaqahData.find(h => h.id === formData.ujian_halaqah_id)?.name || '-'
+              ) : (
+                'Belum dipilih'
+              )}
+            </div>
           </div>
-          <div>
-            <span className="text-gray-600">Kelas Tashih: </span>
-            {formData.is_tashih_umum ? (
-              <span className="font-medium text-blue-700">Tashih Umum</span>
-            ) : formData.tashih_halaqah_id ? (
-              <span className="font-medium text-blue-700">
-                {halaqahData.find(h => h.id === formData.tashih_halaqah_id)?.name || '-'}
-              </span>
-            ) : (
-              <span className="text-gray-400">Belum dipilih</span>
-            )}
+          <div className={`p-3 rounded-lg ${(formData.is_tashih_umum || formData.tashih_halaqah_id) ? 'bg-blue-100 border border-blue-300' : 'bg-gray-100'}`}>
+            <span className="text-xs text-gray-600 uppercase tracking-wide">Kelas Tashih</span>
+            <div className={`font-medium mt-1 ${(formData.is_tashih_umum || formData.tashih_halaqah_id) ? 'text-blue-800' : 'text-gray-400'}`}>
+              {formData.is_tashih_umum ? (
+                'Tashih Umum'
+              ) : formData.tashih_halaqah_id ? (
+                halaqahData.find(h => h.id === formData.tashih_halaqah_id)?.name || '-'
+              ) : (
+                'Belum dipilih'
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch halaqah with muallimah information
+    // Fetch halaqah with muallimah information and their class types
     const { data: halaqahData, error: halaqahError } = await supabase
       .from('halaqah')
       .select(`
@@ -56,9 +56,16 @@ export async function GET(request: NextRequest) {
           id,
           full_name,
           email
+        ),
+        muallimah_registrations!inner (
+          class_type,
+          preferred_juz,
+          preferred_schedule
         )
       `)
       .eq('status', 'active')
+      .eq('muallimah_registrations.batch_id', registration.batch_id)
+      .eq('muallimah_registrations.status', 'approved')
       .order('day_of_week', { ascending: true })
 
     if (halaqahError) {
@@ -81,13 +88,32 @@ export async function GET(request: NextRequest) {
       // Handle muallimah from users relation (comes as single object, not array)
       const muallimah = (h as any).users
 
+      // Get muallimah registration data for class type and preferred juz
+      const muallimahReg = (h as any).muallimah_registrations?.[0]
+      const classType = muallimahReg?.class_type || 'tashih_ujian' // Default to both
+      const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
+      const muallimahSchedule = muallimahReg?.preferred_schedule
+
+      // Determine class types from muallimah registration
+      // class_type can be: 'tashih_ujian', 'tashih_only', 'ujian_only'
+      let classTypes: Array<{ class_type: string; label: string }> = []
+      if (classType === 'tashih_ujian' || classType === 'tashih_only') {
+        classTypes.push({ class_type: 'tashih', label: 'Tashih' })
+      }
+      if (classType === 'tashih_ujian' || classType === 'ujian_only') {
+        classTypes.push({ class_type: 'ujian', label: 'Ujian' })
+      }
+
       return {
         ...h,
         total_current_students: currentStudents,
         total_max_students: maxStudents,
         available_slots: availableSlots,
         is_full: isFull,
-        class_types: [], // Empty since we're not using halaqah_class_types table
+        class_type: classType, // 'tashih_ujian', 'tashih_only', or 'ujian_only'
+        class_types: classTypes,
+        muallimah_preferred_juz: muallimahPreferredJuz,
+        muallimah_schedule: muallimahSchedule,
         mentors: muallimah ? [{
           mentor_id: muallimah.id,
           role: 'muallimah',
