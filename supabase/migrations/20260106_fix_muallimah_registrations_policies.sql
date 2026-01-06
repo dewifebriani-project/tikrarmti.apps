@@ -8,69 +8,121 @@
 -- Enable RLS on muallimah_registrations table
 ALTER TABLE muallimah_registrations ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if any (to avoid conflicts)
-DROP POLICY IF EXISTS "Users can view own muallimah registration" ON muallimah_registrations;
-DROP POLICY IF EXISTS "Users can insert own muallimah registration" ON muallimah_registrations;
-DROP POLICY IF EXISTS "Users can update own muallimah registration" ON muallimah_registrations;
-DROP POLICY IF EXISTS "Service role can manage muallimah registrations" ON muallimah_registrations;
-
-DROP POLICY IF EXISTS "allow_users_read_own_registrations" ON muallimah_registrations;
-DROP POLICY IF EXISTS "allow_users_insert_own_registrations" ON muallimah_registrations;
-DROP POLICY IF EXISTS "allow_users_update_own_pending_registrations" ON muallimah_registrations;
-
 -- ============================================================================
--- CREATE POLICIES
+-- CREATE OR REPLACE POLICIES (idempotent)
 -- ============================================================================
 
--- 1. Users can view their own muallimah registration
-CREATE POLICY "Users can view own muallimah registration"
-ON muallimah_registrations
-FOR SELECT
-TO authenticated
-USING (auth.uid() = user_id);
+-- Note: PostgreSQL doesn't support CREATE OR REPLACE POLICY, so we use DO block
 
--- 2. Users can insert their own muallimah registration
-CREATE POLICY "Users can insert own muallimah registration"
-ON muallimah_registrations
-FOR INSERT
-TO authenticated
-WITH CHECK (auth.uid() = user_id);
+DO $$
+DECLARE
+  policy_count INTEGER;
+BEGIN
+  -- 1. Users can view their own muallimah registration
+  SELECT COUNT(*) INTO policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  AND tablename = 'muallimah_registrations'
+  AND policyname = 'Users can view own muallimah registration';
 
--- 3. Users can update their own muallimah registration (only if pending/review)
-CREATE POLICY "Users can update own muallimah registration"
-ON muallimah_registrations
-FOR UPDATE
-TO authenticated
-USING (
-  auth.uid() = user_id
-  AND status IN ('pending', 'review', 'approved', 'rejected')
-)
-WITH CHECK (
-  auth.uid() = user_id
-  AND status IN ('pending', 'review', 'approved', 'rejected')
-);
+  IF policy_count = 0 THEN
+    CREATE POLICY "Users can view own muallimah registration"
+    ON muallimah_registrations
+    FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+    RAISE NOTICE 'Created policy: Users can view own muallimah registration';
+  END IF;
 
--- 4. Service role (admin) can do anything
-CREATE POLICY "Service role can manage muallimah registrations"
-ON muallimah_registrations
-FOR ALL
-TO service_role
-WITH CHECK (true);
+  -- 2. Users can insert their own muallimah registration
+  SELECT COUNT(*) INTO policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  AND tablename = 'muallimah_registrations'
+  AND policyname = 'Users can insert own muallimah registration';
 
--- 5. Admins can view all registrations
-CREATE POLICY "Admins can view all muallimah registrations"
-ON muallimah_registrations
-FOR SELECT
-TO authenticated
-USING (is_admin_user(auth.uid()));
+  IF policy_count = 0 THEN
+    CREATE POLICY "Users can insert own muallimah registration"
+    ON muallimah_registrations
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+    RAISE NOTICE 'Created policy: Users can insert own muallimah registration';
+  END IF;
 
--- 6. Admins can manage all registrations
-CREATE POLICY "Admins can manage muallimah registrations"
-ON muallimah_registrations
-FOR ALL
-TO authenticated
-USING (is_admin_user(auth.uid()))
-WITH CHECK (is_admin_user(auth.uid()));
+  -- 3. Users can update their own muallimah registration
+  SELECT COUNT(*) INTO policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  AND tablename = 'muallimah_registrations'
+  AND policyname = 'Users can update own muallimah registration';
+
+  IF policy_count = 0 THEN
+    CREATE POLICY "Users can update own muallimah registration"
+    ON muallimah_registrations
+    FOR UPDATE
+    TO authenticated
+    USING (
+      auth.uid() = user_id
+      AND status IN ('pending', 'review', 'approved', 'rejected')
+    )
+    WITH CHECK (
+      auth.uid() = user_id
+      AND status IN ('pending', 'review', 'approved', 'rejected')
+    );
+    RAISE NOTICE 'Created policy: Users can update own muallimah registration';
+  END IF;
+
+  -- 4. Service role can do anything
+  SELECT COUNT(*) INTO policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  AND tablename = 'muallimah_registrations'
+  AND policyname = 'Service role can manage muallimah registrations';
+
+  IF policy_count = 0 THEN
+    CREATE POLICY "Service role can manage muallimah registrations"
+    ON muallimah_registrations
+    FOR ALL
+    TO service_role
+    WITH CHECK (true);
+    RAISE NOTICE 'Created policy: Service role can manage muallimah registrations';
+  END IF;
+
+  -- 5. Admins can view all registrations
+  SELECT COUNT(*) INTO policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  AND tablename = 'muallimah_registrations'
+  AND policyname = 'Admins can view all muallimah registrations';
+
+  IF policy_count = 0 THEN
+    CREATE POLICY "Admins can view all muallimah registrations"
+    ON muallimah_registrations
+    FOR SELECT
+    TO authenticated
+    USING (is_admin_user(auth.uid()));
+    RAISE NOTICE 'Created policy: Admins can view all muallimah registrations';
+  END IF;
+
+  -- 6. Admins can manage all registrations
+  SELECT COUNT(*) INTO policy_count
+  FROM pg_policies
+  WHERE schemaname = 'public'
+  AND tablename = 'muallimah_registrations'
+  AND policyname = 'Admins can manage muallimah registrations';
+
+  IF policy_count = 0 THEN
+    CREATE POLICY "Admins can manage muallimah registrations"
+    ON muallimah_registrations
+    FOR ALL
+    TO authenticated
+    USING (is_admin_user(auth.uid()))
+    WITH CHECK (is_admin_user(auth.uid()));
+    RAISE NOTICE 'Created policy: Admins can manage muallimah registrations';
+  END IF;
+
+END $$;
 
 -- ============================================================================
 -- VERIFICATION
@@ -87,13 +139,3 @@ FROM pg_policies
 WHERE schemaname = 'public'
 AND tablename = 'muallimah_registrations'
 ORDER BY policyname;
-
--- ============================================================================
--- EXPECTED POLICIES:
--- 1. Users can view own muallimah registration - SELECT
--- 2. Users can insert own muallimah registration - INSERT
--- 3. Users can update own muallimah registration - UPDATE
--- 4. Service role can manage muallimah registrations - ALL
--- 5. Admins can view all muallimah registrations - SELECT
--- 6. Admins can manage muallimah registrations - ALL
--- ============================================================================
