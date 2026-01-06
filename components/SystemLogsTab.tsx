@@ -120,12 +120,21 @@ export function SystemLogsTab({ isActive = false }: SystemLogsTabProps) {
   }
 
   const toggleFilter = (filterType: 'severity' | 'errorType', value: string) => {
-    const currentValues = filters[filterType] || []
-    const newValues = currentValues.includes(value as any)
-      ? currentValues.filter(v => v !== value)
-      : [...currentValues, value]
+    if (filterType === 'severity') {
+      const currentValues = filters.severity || []
+      const newValues = currentValues.includes(value as any)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value]
 
-    handleFilterChange(filterType, newValues.length > 0 ? newValues : undefined)
+      handleFilterChange('severity', newValues.length > 0 ? newValues as any : undefined)
+    } else {
+      const currentValues = filters.errorType || []
+      const newValues = currentValues.includes(value as any)
+        ? currentValues.filter(v => v !== value)
+        : [...currentValues, value]
+
+      handleFilterChange('errorType', newValues.length > 0 ? newValues as any : undefined)
+    }
   }
 
   const toggleExpand = (logId: string) => {
