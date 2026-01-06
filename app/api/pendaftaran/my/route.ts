@@ -47,6 +47,13 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
+    // Debug logging
+    console.log('=== /api/pendaftaran/my DEBUG ===')
+    console.log('User ID:', user.id)
+    console.log('Tikrar registrations:', tikrarRegistrations?.length || 0)
+    console.log('Muallimah registrations:', muallimahRegistrations?.length || 0)
+    console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0)
+
     // Combine all registrations into a single array
     const allRegistrations = [
       ...(tikrarRegistrations || []).map(reg => ({
@@ -68,6 +75,14 @@ export async function GET(request: NextRequest) {
         status: reg.status || 'pending'
       }))
     ]
+
+    console.log('Total registrations:', allRegistrations.length)
+    console.log('Registrations by role:', {
+      calon_thalibah: allRegistrations.filter(r => r.role === 'calon_thalibah').length,
+      muallimah: allRegistrations.filter(r => r.role === 'muallimah').length,
+      musyrifah: allRegistrations.filter(r => r.role === 'musyrifah').length,
+    })
+    console.log('===========================')
 
     // Sort by created_at/submitted_at descending
     allRegistrations.sort((a, b) => {
