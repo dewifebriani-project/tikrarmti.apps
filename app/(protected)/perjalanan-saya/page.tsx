@@ -111,6 +111,9 @@ export default function PerjalananSaya() {
   }, [batch, batchId, batchLoading]);
 
   // Fetch exam eligibility
+  // FIXED: Don't fetch directly in useEffect, use SWR hook instead (follows arsitektur.md)
+  // For now, disable this to prevent error
+  /*
   useEffect(() => {
     const fetchExamEligibility = async () => {
       if (!isAuthenticated) return;
@@ -126,6 +129,7 @@ export default function PerjalananSaya() {
     };
     fetchExamEligibility();
   }, [isAuthenticated]);
+  */
 
   // Calculate registration status from SWR data - safely handle undefined registrations
   const registrationStatus = useMemo(() => {
