@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Calendar, BookOpen, GraduationCap, Heart, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 import { submitMuallimahRegistration } from './actions';
 
 // Simple debounce utility function
@@ -97,6 +98,7 @@ function MuallimahRegistrationContent() {
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { activeBatch, isLoading: batchLoading } = useActiveBatch();
+  const supabase = createClient(); // For SELECT operations only (read-only)
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [batchId, setBatchId] = useState<string>('');
