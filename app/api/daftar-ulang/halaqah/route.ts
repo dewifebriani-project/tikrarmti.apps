@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch halaqah with muallimah information and their class types
+    // Fetch halaqah with muallimah information - first get all active halaqah
     const { data: halaqahData, error: halaqahError } = await supabase
       .from('halaqah')
       .select(`
@@ -56,25 +56,30 @@ export async function GET(request: NextRequest) {
           id,
           full_name,
           email
-        ),
-        muallimah_registrations!inner (
-          class_type,
-          preferred_juz,
-          preferred_schedule
         )
       `)
       .eq('status', 'active')
-      .eq('muallimah_registrations.batch_id', registration.batch_id)
-      .eq('muallimah_registrations.status', 'approved')
       .order('day_of_week', { ascending: true })
 
     if (halaqahError) {
       console.error('Error fetching halaqah:', halaqahError)
       return NextResponse.json(
-        { error: 'Failed to fetch halaqah data' },
+        { error: 'Failed to fetch halaqah data', details: halaqahError.message },
         { status: 500 }
       )
     }
+
+    // Fetch muallimah registrations separately for this batch
+    const { data: muallimahRegs } = await supabase
+      .from('muallimah_registrations')
+      .select('user_id, class_type, preferred_juz, preferred_schedule')
+      .eq('batch_id', registration.batch_id)
+      .eq('status', 'approved')
+
+    // Create a map for quick lookup
+    const muallimahMap = new Map(
+      (muallimahRegs || []).map(reg => [reg.user_id, reg])
+    )
 
     // Process halaqah data
     const processedHalaqah = (halaqahData || []).map(h => {
@@ -88,8 +93,8 @@ export async function GET(request: NextRequest) {
       // Handle muallimah from users relation (comes as single object, not array)
       const muallimah = (h as any).users
 
-      // Get muallimah registration data for class type and preferred juz
-      const muallimahReg = (h as any).muallimah_registrations?.[0]
+      // Get muallimah registration data from the map using muallimah_id
+      const muallimahReg = muallimah?.id ? muallimahMap.get(muallimah.id) : null
       const classType = muallimahReg?.class_type || 'tashih_ujian' // Default to both
       const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
       const muallimahSchedule = muallimahReg?.preferred_schedule
@@ -148,7 +153,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
