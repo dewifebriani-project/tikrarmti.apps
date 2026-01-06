@@ -17,6 +17,7 @@ import { Calendar, BookOpen, GraduationCap, Heart, Loader2, Info } from 'lucide-
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { submitMuallimahRegistration } from './actions';
 
 // Simple debounce utility function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
@@ -497,129 +498,28 @@ function MuallimahRegistrationContent() {
       return;
     }
 
+    if (!user) {
+      toast.error('Sesi tidak valid. Silakan login kembali.');
+      router.push('/login');
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
 
     try {
-      // Use user from useAuth() hook (server-provided data via layout)
-      // This follows arsitektur.md: NO client-side auth checks
-      if (!user) {
-        toast.error('Sesi tidak valid. Silakan login kembali.');
-        router.push('/login');
-        return;
-      }
+      // Use Server Action for mutation (follows arsitektur.md)
+      const result = await submitMuallimahRegistration(formData, userData, user, batchId);
 
-      // Submit muallimah registration data
-      const schedule1Formatted = formatSchedule(formData.schedule1_day, formData.schedule1_time_start, formData.schedule1_time_end);
-      let schedule2Formatted = null;
-      if (formData.schedule2_day && formData.schedule2_time_start && formData.schedule2_time_end) {
-        schedule2Formatted = formatSchedule(formData.schedule2_day, formData.schedule2_time_start, formData.schedule2_time_end);
-      }
-
-      const submitData = {
-        user_id: user.id,
-        batch_id: batchId,
-        // Data from users table (not in form)
-        full_name: userData?.full_name || user.full_name || user.email || '',
-        birth_date: userData?.tanggal_lahir || new Date().toISOString(),
-        birth_place: userData?.tempat_lahir || '-',
-        address: userData?.alamat || '-',
-        whatsapp: userData?.whatsapp || '-',
-        email: user.email || '',
-        education: '-', // Not in current schema, provide default value
-        occupation: userData?.pekerjaan || '-',
-        memorization_level: '-', // Required by DB, provide default value
-        // New fields from form
-        tajweed_institution: formData.tajweed_institution,
-        quran_institution: formData.quran_institution,
-        teaching_communities: formData.teaching_communities || null,
-        memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
-        studied_matan_exegesis: formData.studied_matan_exegesis || null,
-        memorized_juz: formData.memorized_juz.length > 0 ? formData.memorized_juz.join(', ') : null,
-        examined_juz: formData.examined_juz.length > 0 ? formData.examined_juz.join(', ') : null,
-        certified_juz: formData.certified_juz.length > 0 ? formData.certified_juz.join(', ') : null,
-        preferred_juz: formData.preferred_juz.length > 0 ? formData.preferred_juz.join(', ') : '',
-        class_type: formData.class_type,
-        preferred_max_thalibah: formData.preferred_max_thalibah || null,
-        teaching_experience: '-', // Legacy field, required by DB
-        teaching_years: null,
-        teaching_institutions: null,
-        // Store schedule as JSON string
-        preferred_schedule: JSON.stringify(schedule1Formatted),
-        backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : JSON.stringify({ day: '', time_start: '', time_end: '' }), // Provide default for required field
-        timezone: 'WIB',
-        paid_class_interest: formData.wants_paid_class ? JSON.stringify({
-          name: formData.paid_class_name || null,
-          schedule1: formData.paid_class_schedule1_day
-            ? formatPaidClassSchedule(formData.paid_class_schedule1_day, formData.paid_class_schedule1_time_start || '', formData.paid_class_schedule1_time_end || '')
-            : null,
-          schedule2: formData.paid_class_schedule2_day
-            ? formatPaidClassSchedule(formData.paid_class_schedule2_day, formData.paid_class_schedule2_time_start || '', formData.paid_class_schedule2_time_end || '')
-            : null,
-          max_students: formData.paid_class_max_students || null,
-          spp_percentage: formData.paid_class_spp_percentage || null,
-          additional_info: formData.paid_class_interest || null,
-        }) : null,
-        understands_commitment: formData.understands_commitment,
-        age: formData.age,
-        motivation: null,
-        special_skills: null,
-        health_condition: null,
-      };
-
-      if (isEditMode && existingRegistrationId) {
-        // Update existing registration
-        const { error: updateError } = await supabase
-          .from('muallimah_registrations')
-          .update(submitData)
-          .eq('id', existingRegistrationId)
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          console.error('=== UPDATE ERROR DETAILS ===');
-          console.error('Error message:', updateError.message);
-          console.error('Error details:', updateError.details);
-          console.error('Error hint:', updateError.hint);
-          console.error('Error code:', updateError.code);
-          console.error('Full error object:', JSON.stringify(updateError, null, 2));
-          console.error('Submit data being sent:', JSON.stringify(submitData, null, 2));
-          console.error('==========================');
-          toast.error(`Gagal memperbarui data pendaftaran: ${updateError.message || 'Unknown error'}`);
-          throw updateError;
-        }
-
-        toast.success('Alhamdulillah! Data pendaftaran Muallimah berhasil diperbarui!');
+      if (result.success) {
+        toast.success(result.message || 'Alhamdulillah! Pendaftaran berhasil dikirim!');
+        router.push('/dashboard');
       } else {
-        // Create new registration
-        const { error: submitError } = await supabase
-          .from('muallimah_registrations')
-          .insert({
-            ...submitData,
-            status: 'pending',
-            submitted_at: new Date().toISOString(),
-          });
-
-        if (submitError) {
-          console.error('=== SUBMIT ERROR DETAILS ===');
-          console.error('Error message:', submitError.message);
-          console.error('Error details:', submitError.details);
-          console.error('Error hint:', submitError.hint);
-          console.error('Error code:', submitError.code);
-          console.error('Full error object:', JSON.stringify(submitError, null, 2));
-          console.error('Submit data being sent:', JSON.stringify(submitData, null, 2));
-          console.error('==========================');
-          toast.error(`Gagal mengirim pendaftaran: ${submitError.message || 'Unknown error'}`);
-          throw submitError;
-        }
-
-        toast.success('Alhamdulillah! Pendaftaran sebagai Muallimah berhasil dikirim!');
+        toast.error(result.error || 'Gagal mengirim pendaftaran');
       }
-
-      router.push('/dashboard');
-
     } catch (error: any) {
       console.error('Submit error:', error);
-      // Toast already shown above, no need to show again
+      toast.error(error?.message || 'Terjadi kesalahan tidak terduga');
     } finally {
       setIsLoading(false);
     }
