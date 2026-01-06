@@ -67,15 +67,24 @@ export const swrConfig: SWRConfiguration = {
     })
 
     // Handle session expired - redirect to login
+    // CRITICAL: Only redirect on client-side and in browser (not during SSR/build)
     if (error.code === 'SESSION_EXPIRED' || error.status === 401) {
-      // Only redirect if we're on client side
-      if (typeof window !== 'undefined') {
+      // Only redirect if we're on client side AND in browser environment
+      // This prevents redirect loops during:
+      // - Server-side rendering (SSR)
+      // - Build process
+      // - Static generation
+      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         // Prevent infinite redirect loops
         const currentPath = window.location.pathname;
-        if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register')) {
+        if (!currentPath.startsWith('/login') && !currentPath.startsWith('/register') && !currentPath.startsWith('/auth')) {
           console.log('[SWR] Session expired, redirecting to login...');
           // Store current path for redirect after login
-          sessionStorage.setItem('redirectAfterLogin', currentPath);
+          try {
+            sessionStorage.setItem('redirectAfterLogin', currentPath);
+          } catch (e) {
+            // sessionStorage might be disabled or full
+          }
           // Redirect to login
           window.location.href = '/login?session=expired';
         }

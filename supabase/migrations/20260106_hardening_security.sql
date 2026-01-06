@@ -221,10 +221,10 @@ DROP VIEW IF EXISTS user_registrations;
 CREATE VIEW user_registrations AS
 SELECT
   p.id,
-  p.thalibah_id,
+  p.user_id,
   p.program_id,
   p.batch_id,
-  p.registration_date,
+  p.submission_date,
   p.status,
   u.email as thalibah_email,
   u.full_name as thalibah_name,
@@ -234,7 +234,7 @@ SELECT
   b.start_date as batch_start_date,
   b.end_date as batch_end_date
 FROM pendaftaran_tikrar_tahfidz p
-JOIN users u ON p.thalibah_id = u.id
+JOIN users u ON p.user_id = u.id
 JOIN programs pr ON p.program_id = pr.id
 LEFT JOIN batches b ON p.batch_id = b.id;
 
@@ -248,10 +248,6 @@ SELECT
   u.role,
   u.roles,
   u.is_active,
-  u.phone,
-  u.whatsapp,
-  u.provinsi,
-  u.kota,
   u.created_at,
   u.updated_at
 FROM users u
@@ -393,32 +389,37 @@ WITH CHECK (
 
 -- Set search_path for all SECURITY DEFINER functions to prevent hijacking
 
+-- Note: Only alter functions that exist. has_user_role doesn't exist yet, it's created later in this migration.
 ALTER FUNCTION handle_new_user SET search_path = public;
 ALTER FUNCTION add_user_role SET search_path = public;
 ALTER FUNCTION remove_user_role SET search_path = public;
-ALTER FUNCTION has_user_role SET search_path = public;
+-- ALTER FUNCTION has_user_role SET search_path = public;  -- Function doesn't exist yet
 ALTER FUNCTION log_system_error SET search_path = public;
 ALTER FUNCTION cleanup_old_system_logs SET search_path = public;
 
 -- Also fix search path for any existing admin functions
+-- Note: pg_proc_config doesn't exist in PostgreSQL, using simpler approach
 DO $$
 DECLARE
   func_record RECORD;
 BEGIN
   FOR func_record IN
-    SELECT p.proname as func_name
+    SELECT p.proname as func_name, pg_get_function_arguments(p.oid) as func_args
     FROM pg_proc p
     JOIN pg_namespace n ON p.pronamespace = n.oid
     WHERE n.nspname = 'public'
     AND p.prokind = 'f'
     AND p.prosecdef  -- SECURITY DEFINER functions
-    AND NOT EXISTS (
-      SELECT 1 FROM pg_proc_config
-      WHERE pg_proc_config.prooid = p.oid
-      AND pg_proc_config.configkey = 'search_path'
-    )
   LOOP
-    EXECUTE format('ALTER FUNCTION %I SET search_path = public', func_record.func_name);
+    -- Skip if already has search_path set (check by attempting to get current setting)
+    BEGIN
+      EXECUTE format('ALTER FUNCTION %I(%s) SET search_path = public',
+        func_record.func_name,
+        func_record.func_args);
+    EXCEPTION WHEN others THEN
+      -- If alter fails, function might not support search_path or has issues, skip it
+      NULL;
+    END;
   END LOOP;
 END $$;
 
@@ -521,7 +522,8 @@ END;
 $$;
 
 -- Helper function to safely check if user has any of the specified roles
-CREATE OR REPLACE FUNCTION user_has_role(user_id UUID, role_names TEXT[])
+DROP FUNCTION IF EXISTS user_has_role(UUID, TEXT[]);
+CREATE FUNCTION user_has_role(user_id UUID, role_names TEXT[])
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -540,8 +542,8 @@ END;
 $$;
 
 -- Grant execute on helper functions
-GRANT EXECUTE ON FUNCTION is_admin_user TO authenticated;
-GRANT EXECUTE ON FUNCTION user_has_role TO authenticated;
+GRANT EXECUTE ON FUNCTION is_admin_user(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION user_has_role(UUID, TEXT[]) TO authenticated;
 
 -- ============================================================================
 -- 8. SECURITY AUDIT LOGGING

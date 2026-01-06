@@ -85,12 +85,17 @@ export async function fetcher<T>(url: string, config?: FetchConfig): Promise<T> 
   })
 
   // Handle 401 Unauthorized - session expired
+  // CRITICAL: Only redirect on client-side to prevent build crashes
   if (response.status === 401) {
-    // Trigger redirect to login by throwing a special error
-    const error = new Error('Session expired')
-    ;(error as any).code = 'SESSION_EXPIRED'
-    ;(error as any).status = 401
-    throw error
+    // Only throw redirect error if we're in browser
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const error = new Error('Session expired')
+      ;(error as any).code = 'SESSION_EXPIRED'
+      ;(error as any).status = 401
+      throw error
+    }
+    // During SSR/build, just throw a normal error without redirect logic
+    throw new Error('Unauthorized')
   }
 
   if (!response.ok) {
