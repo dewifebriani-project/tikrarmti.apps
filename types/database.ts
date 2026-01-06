@@ -124,7 +124,7 @@ export interface Pendaftaran {
   re_enrollment_completed?: boolean;
   re_enrollment_completed_at?: string;
   re_enrollment_confirmed_by?: string;
-  selection_status?: 'pending' | 'passed' | 'failed';
+  selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
   // Nested relations
   program?: Program;
   batch?: Batch;

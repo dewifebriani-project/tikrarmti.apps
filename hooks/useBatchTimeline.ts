@@ -29,7 +29,7 @@ export interface TimelineItem {
 interface UseBatchTimelineOptions {
   userId?: string;
   registrationStatus?: 'pending' | 'approved' | 'rejected' | 'withdrawn';
-  selectionStatus?: 'pending' | 'passed' | 'failed';
+  selectionStatus?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
 }
 
 // Custom fetcher for batch API - returns batch directly (not wrapped)
@@ -164,7 +164,7 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
     // 3. Selection Results
     if (batch.selection_result_date) {
       const status = getStatus(batch.selection_result_date);
-      const hasPassed = options?.selectionStatus === 'passed';
+      const hasPassed = options?.selectionStatus === 'selected';
 
       timeline.push({
         id: '3',
@@ -187,7 +187,7 @@ export function useBatchTimeline(batchId: string | null, options?: UseBatchTimel
     // 4. Re-enrollment
     if (batch.re_enrollment_date) {
       const status = getStatus(batch.re_enrollment_date);
-      const hasPassed = options?.selectionStatus === 'passed';
+      const hasPassed = options?.selectionStatus === 'selected';
       const isAvailable = isActionAvailable(batch.re_enrollment_date);
 
       timeline.push({

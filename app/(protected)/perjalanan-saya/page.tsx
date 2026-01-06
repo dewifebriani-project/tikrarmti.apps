@@ -7,7 +7,7 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
@@ -45,7 +45,7 @@ interface TikrarRegistration extends Pendaftaran {
   exam_status?: string;
   exam_score?: number;
   exam_submitted_at?: string;
-  selection_status?: 'pending' | 'passed' | 'failed';
+  selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
 }
 
 export default function PerjalananSaya() {
@@ -1495,6 +1495,19 @@ export default function PerjalananSaya() {
                 <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
                   <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Aksi Cepat</h4>
                   <div className="flex flex-wrap gap-2">
+                    {/* Daftar Ulang button - only for selected thalibah who haven't completed re-enrollment */}
+                    {registrationStatus.selectionStatus === 'selected' && !registrationStatus.registration?.re_enrollment_completed && (
+                      <Link href={`/daftar-ulang?batch_id=${batchId}`}>
+                        <Button
+                          size="sm"
+                          className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2"
+                        >
+                          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                          <span className="hidden xs:inline">Daftar Ulang</span>
+                          <span className="xs:hidden">Daftar Ulang</span>
+                        </Button>
+                      </Link>
+                    )}
                     <Link href="/jurnal-harian">
                       <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
                         <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
