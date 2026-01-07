@@ -219,8 +219,8 @@ export default function FAQ() {
           </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        {/* Quick Actions - Desktop Only */}
+        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-4 gap-4 mb-12">
           {[
             {
               icon: Star,
