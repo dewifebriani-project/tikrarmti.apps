@@ -194,7 +194,18 @@ export default function FAQ() {
 
   const toggleQuestion = (categoryIndex: number, questionIndex: number) => {
     const current = expandedQuestion?.category === categoryIndex && expandedQuestion?.question === questionIndex;
-    setExpandedQuestion(current ? null : { category: categoryIndex, question: questionIndex });
+    const newState = current ? null : { category: categoryIndex, question: questionIndex };
+    setExpandedQuestion(newState);
+
+    // Scroll to the question element when expanding
+    if (!current) {
+      setTimeout(() => {
+        const questionElement = document.getElementById(`faq-question-${categoryIndex}-${questionIndex}`);
+        if (questionElement) {
+          questionElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
   };
 
   // Prevent hydration mismatch by not rendering until mounted
@@ -313,6 +324,7 @@ export default function FAQ() {
                   {category.questions.map((faq, questionIndex) => (
                     <div
                       key={questionIndex}
+                      id={`faq-question-${categoryIndex}-${questionIndex}`}
                       className={`border-b border-gray-100 last:border-b-0 ${
                         expandedQuestion?.category === categoryIndex && expandedQuestion?.question === questionIndex ? 'bg-green-50' : ''
                       }`}
