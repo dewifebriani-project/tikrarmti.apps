@@ -128,12 +128,17 @@ export async function GET(request: NextRequest) {
     // Build partner list with compatibility info
     const partners = (selectedByOthers || []).map((pref: any) => {
       const partnerReg = registrationMap.get(pref.user_id)
+      // Use registration full_name if available, otherwise fallback to users table
+      const displayName = partnerReg?.full_name || pref.users?.full_name
       return {
         user_id: pref.user_id,
         registration_id: pref.registration_id,
         status: pref.status,
         created_at: pref.created_at,
-        users: pref.users,
+        users: {
+          ...pref.users,
+          full_name: displayName // Use the registration name
+        },
         registrations: partnerReg ? [partnerReg] : [],
         is_mutual_match: mutualMatches.some((m: any) => m.preferred_partner_id === pref.user_id),
         has_user_selected_them: (selectedByUser || []).some((u: any) => u.preferred_partner_id === pref.user_id),
@@ -149,8 +154,14 @@ export async function GET(request: NextRequest) {
     // Also add selected by user partners with their registration data
     const selectedByUserWithReg = (selectedByUser || []).map((pref: any) => {
       const partnerReg = selectedUserRegistrationMap.get(pref.preferred_partner_id)
+      // Use registration full_name if available, otherwise fallback to users table
+      const displayName = partnerReg?.full_name || pref.users?.full_name
       return {
         ...pref,
+        users: {
+          ...pref.users,
+          full_name: displayName // Use the registration name
+        },
         registrations: partnerReg ? [partnerReg] : []
       }
     })
