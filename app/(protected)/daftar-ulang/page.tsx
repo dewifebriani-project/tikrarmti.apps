@@ -214,6 +214,7 @@ export default function DaftarUlangPage() {
       // Tidak ada validasi wajib untuk tashih
       setCurrentStep('partner')
     } else if (currentStep === 'partner') {
+      console.log('Partner step validation - formData:', formData)
       if (!formData.partner_type) {
         toast.error('Pilih jenis pasangan belajar')
         return
@@ -1003,6 +1004,7 @@ function PartnerSelectionStep({
 
   const handlePartnerSelect = (partner: any) => {
     console.log('handlePartnerSelect called:', partner.user_id, partner.users?.full_name)
+    console.log('Current formData.partner_user_id before update:', formData.partner_user_id)
     onChange({ ...formData, partner_user_id: partner.user_id })
     setShowDropdown(false)
     setSearchQuery(partner.users?.full_name || '') // Keep the partner's name in the input
