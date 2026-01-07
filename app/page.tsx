@@ -191,7 +191,7 @@ export default function Home() {
               {
                 step: "01",
                 title: "Simulasi & Daftar",
-                description: "Wajib mencoba simulasi Tikrar (Surah An-Naba' 1-11 x 40 kali) untuk mengukur kesanggupan. Pendaftaran dilanjutkan dengan tes bacaan dan seleksi berkas.",
+                description: "Wajib mencoba simulasi Tikrar (Surah An-Naba' 1-11 x 40 kali) untuk mengukur kesanggupan. Pendaftaran dilanjutkan dengan seleksi berkas, tes bacaan, dan soal ujian pilihan ganda bagi juz lanjutan.",
                 icon: Sparkles
               },
               {
