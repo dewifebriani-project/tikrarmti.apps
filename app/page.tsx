@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 // Import FAQ component as default export
@@ -9,13 +9,10 @@ import {
   Star,
   Users,
   Trophy,
-  ArrowRight,
   Crown,
   Heart,
   Shield,
-  Sparkles,
-  Clock,
-  CheckCircle
+  Sparkles
 } from "lucide-react";
 
 export default function Home() {
@@ -93,17 +90,17 @@ export default function Home() {
 
           {/* Quick Login */}
           <div className="text-center">
-            <p className="text-gray-600 mb-4">Sudah bergabung?</p>
+            <p className="text-gray-600 mb-4 text-base sm:text-lg">Sudah bergabung?</p>
             <Button
               asChild
-              variant="ghost"
-              className="text-green-900 hover:text-green-800 hover:bg-green-50 px-8 py-3 font-semibold rounded-xl transition-all duration-300 hover:scale-105"
+              size="lg"
+              className="bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
             >
-              <Link href="/login" className="flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Link href="/login" className="flex items-center gap-2 sm:gap-3">
+                <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
-                Masuk
+                <span>Masuk</span>
               </Link>
             </Button>
           </div>
@@ -250,22 +247,22 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="bg-white text-green-900 hover:bg-gray-100 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+                className="bg-white text-green-900 hover:bg-gray-100 px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
               >
-                <Link href="/register" className="flex items-center gap-3">
-                  <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-                  Daftar Sekarang
+                <Link href="/register" className="flex items-center gap-2 sm:gap-3">
+                  <Crown className="w-6 h-6 sm:w-7 sm:h-7 group-hover:rotate-12 transition-transform duration-300" />
+                  <span>Daftar Sekarang</span>
                 </Link>
               </Button>
               <Button
                 asChild
                 variant="outline"
                 size="lg"
-                className="border-2 border-white text-white hover:bg-white hover:text-green-900 px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+                className="border-3 border-white text-white hover:bg-white hover:text-green-900 px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
               >
-                <Link href="/login" className="flex items-center gap-3">
-                  <Heart className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
-                  Masuk Akun
+                <Link href="/login" className="flex items-center gap-2 sm:gap-3">
+                  <Heart className="w-6 h-6 sm:w-7 sm:h-7 group-hover:scale-110 transition-transform duration-300" />
+                  <span>Masuk</span>
                 </Link>
               </Button>
             </div>
