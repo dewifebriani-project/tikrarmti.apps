@@ -1003,7 +1003,7 @@ function PartnerSelectionStep({
   const handlePartnerSelect = (partner: any) => {
     onChange({ ...formData, partner_user_id: partner.user_id })
     setShowDropdown(false)
-    setSearchQuery('')
+    setSearchQuery(partner.users?.full_name || '') // Keep the partner's name in the input
   }
 
   return (
@@ -1053,10 +1053,20 @@ function PartnerSelectionStep({
                     setSearchQuery(e.target.value)
                     setShowDropdown(true)
                   }}
-                  onFocus={() => setShowDropdown(true)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                  onFocus={() => {
+                    // Only show dropdown if no partner is selected yet
+                    if (!formData.partner_user_id) {
+                      setShowDropdown(true)
+                    }
+                  }}
+                  disabled={!!formData.partner_user_id}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
+                    formData.partner_user_id
+                      ? 'bg-green-50 border-green-300 text-green-800 cursor-not-allowed'
+                      : 'border-gray-300'
+                  }`}
                 />
-                {showDropdown && searchQuery && (
+                {showDropdown && searchQuery && !formData.partner_user_id && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                     {filteredPartners.length > 0 ? (
                       filteredPartners.map((partner) => (
@@ -1066,7 +1076,7 @@ function PartnerSelectionStep({
                           onClick={() => handlePartnerSelect(partner)}
                         >
                           <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
-                          <p className="text-xs text-gray-600">Juz: {partner.registrations?.chosen_juz || '-'}</p>
+                          <p className="text-xs text-gray-600">Juz: {partner.registrations?.[0]?.chosen_juz || '-'}</p>
                         </div>
                       ))
                     ) : (
@@ -1088,7 +1098,7 @@ function PartnerSelectionStep({
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{selectedPartner.users?.full_name}</p>
-                          <p className="text-xs text-gray-600">Juz: {selectedPartner.registrations?.chosen_juz || '-'}</p>
+                          <p className="text-xs text-gray-600">Juz: {selectedPartner.registrations?.[0]?.chosen_juz || '-'}</p>
                           {selectedPartner.is_mutual_match ? (
                             <span className="inline-flex items-center mt-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
                               <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -1112,7 +1122,10 @@ function PartnerSelectionStep({
                             Setujui
                           </button>
                           <button
-                            onClick={() => onChange({ ...formData, partner_user_id: '' })}
+                            onClick={() => {
+                              onChange({ ...formData, partner_user_id: '' })
+                              setSearchQuery('')
+                            }}
                             className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700"
                           >
                             Tolak
