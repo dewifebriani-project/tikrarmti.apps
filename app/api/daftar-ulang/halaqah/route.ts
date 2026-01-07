@@ -81,54 +81,80 @@ export async function GET(request: NextRequest) {
       (muallimahRegs || []).map(reg => [reg.user_id, reg])
     )
 
-    // Process halaqah data
-    const processedHalaqah = (halaqahData || []).map(h => {
-      // For now, calculate current students from halaqah_students table
-      // TODO: Add proper student count tracking from daftar_ulang_submissions
-      const currentStudents = 0 // Default to 0 since we don't have real-time tracking
-      const maxStudents = h.max_students || 20
-      const isFull = currentStudents >= maxStudents
-      const availableSlots = maxStudents - currentStudents
+    // Process halaqah data and filter by thalibah's juz
+    const processedHalaqah = (halaqahData || [])
+      .map(h => {
+        // For now, calculate current students from halaqah_students table
+        // TODO: Add proper student count tracking from daftar_ulang_submissions
+        const currentStudents = 0 // Default to 0 since we don't have real-time tracking
+        const maxStudents = h.max_students || 20
+        const isFull = currentStudents >= maxStudents
+        const availableSlots = maxStudents - currentStudents
 
-      // Handle muallimah from users relation (comes as single object, not array)
-      const muallimah = (h as any).users
+        // Handle muallimah from users relation (comes as single object, not array)
+        const muallimah = (h as any).users
 
-      // Get muallimah registration data from the map using muallimah_id
-      const muallimahReg = muallimah?.id ? muallimahMap.get(muallimah.id) : null
-      const classType = muallimahReg?.class_type || 'tashih_ujian' // Default to both
-      const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
-      const muallimahSchedule = muallimahReg?.preferred_schedule
+        // Get muallimah registration data from the map using muallimah_id
+        const muallimahReg = muallimah?.id ? muallimahMap.get(muallimah.id) : null
+        const classType = muallimahReg?.class_type || 'tashih_ujian' // Default to both
+        const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
+        const muallimahSchedule = muallimahReg?.preferred_schedule
 
-      // Determine class types from muallimah registration
-      // class_type can be: 'tashih_ujian', 'tashih_only', 'ujian_only'
-      let classTypes: Array<{ class_type: string; label: string }> = []
-      if (classType === 'tashih_ujian' || classType === 'tashih_only') {
-        classTypes.push({ class_type: 'tashih', label: 'Tashih' })
-      }
-      if (classType === 'tashih_ujian' || classType === 'ujian_only') {
-        classTypes.push({ class_type: 'ujian', label: 'Ujian' })
-      }
+        // Determine class types from muallimah registration
+        // class_type can be: 'tashih_ujian', 'tashih_only', 'ujian_only'
+        let classTypes: Array<{ class_type: string; label: string }> = []
+        if (classType === 'tashih_ujian' || classType === 'tashih_only') {
+          classTypes.push({ class_type: 'tashih', label: 'Tashih' })
+        }
+        if (classType === 'tashih_ujian' || classType === 'ujian_only') {
+          classTypes.push({ class_type: 'ujian', label: 'Ujian' })
+        }
 
-      return {
-        ...h,
-        total_current_students: currentStudents,
-        total_max_students: maxStudents,
-        available_slots: availableSlots,
-        is_full: isFull,
-        class_type: classType, // 'tashih_ujian', 'tashih_only', or 'ujian_only'
-        class_types: classTypes,
-        muallimah_preferred_juz: muallimahPreferredJuz,
-        muallimah_schedule: muallimahSchedule,
-        mentors: muallimah ? [{
-          mentor_id: muallimah.id,
-          role: 'muallimah',
-          is_primary: true,
-          users: {
-            full_name: muallimah.full_name
-          }
-        }] : [] // Use muallimah from users table
-      }
-    })
+        return {
+          ...h,
+          total_current_students: currentStudents,
+          total_max_students: maxStudents,
+          available_slots: availableSlots,
+          is_full: isFull,
+          class_type: classType, // 'tashih_ujian', 'tashih_only', or 'ujian_only'
+          class_types: classTypes,
+          muallimah_preferred_juz: muallimahPreferredJuz,
+          muallimah_schedule: muallimahSchedule,
+          mentors: muallimah ? [{
+            mentor_id: muallimah.id,
+            role: 'muallimah',
+            is_primary: true,
+            users: {
+              full_name: muallimah.full_name
+            }
+          }] : [] // Use muallimah from users table
+        }
+      })
+      // Filter halaqah: only show those matching thalibah's juz with muallimah's preferred_juz
+      // If muallimah_preferred_juz is null or empty, include it (means muallimah teaches all juz)
+      .filter(h => {
+        if (!h.muallimah_preferred_juz) return true // Muallimah teaches all juz
+
+        // Parse thalibah's chosen_juz (e.g., "30A", "30B", "28A", "28B", "28", "29")
+        const thalibahJuz = registration.chosen_juz
+
+        // Parse muallimah's preferred_juz (could be comma-separated like "30,29" or single "30")
+        const muallimahJuzList = h.muallimah_preferred_juz.split(',').map((j: string) => j.trim())
+
+        // Check if there's a match
+        return muallimahJuzList.some((muallimahJuz: string) => {
+          // Exact match
+          if (muallimahJuz === thalibahJuz) return true
+
+          // Check base juz (e.g., "30" matches "30A", "30B", "30")
+          if (thalibahJuz.startsWith(muallimahJuz)) return true
+
+          // Check if muallimah's juz starts with thalibah's juz (e.g., "30A" matches "30")
+          if (muallimahJuz.startsWith(thalibahJuz)) return true
+
+          return false
+        })
+      })
 
     // Get user's existing daftar ulang submission if any
     const { data: existingSubmission } = await supabase

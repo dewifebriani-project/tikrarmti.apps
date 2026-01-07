@@ -208,6 +208,7 @@ export default function DaftarUlangPage() {
         return
       }
       // Tashih opsional - bisa pilih halaqah atau tashih umum atau tidak pilih sama sekali
+      // Tidak ada validasi wajib untuk tashih
       setCurrentStep('partner')
     } else if (currentStep === 'partner') {
       if (!formData.partner_type) {
@@ -701,7 +702,14 @@ function HalaqahSelectionStep({
                         </div>
                         <span className="text-gray-700">
                           <span className="font-medium">Slot: </span>
-                          {halaqah.muallimah_schedule}
+                          {(() => {
+                            try {
+                              const schedule = JSON.parse(halaqah.muallimah_schedule)
+                              return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
+                            } catch {
+                              return halaqah.muallimah_schedule
+                            }
+                          })()}
                         </span>
                       </div>
                     )}
@@ -737,20 +745,47 @@ function HalaqahSelectionStep({
 
                   {/* Muallimah */}
                   {halaqah.mentors && halaqah.mentors.length > 0 && (
-                    <div className="flex items-center space-x-2 mb-4 pb-3 border-b border-gray-100">
-                      <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
-                        <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                    <div className="mb-4 pb-3 border-b border-gray-100">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                        <span className="text-sm text-gray-600">
+                          <span className="font-medium">Muallimah:</span>{' '}
+                          {halaqah.mentors
+                            .filter((m: any) => m.role === 'muallimah')
+                            .map((m: any) => `Ustadzah ${m.users?.full_name}`)
+                            .filter(Boolean)
+                            .join(', ') || '-'}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-600">
-                        <span className="font-medium">Muallimah:</span>{' '}
-                        {halaqah.mentors
-                          .filter((m: any) => m.role === 'muallimah')
-                          .map((m: any) => m.users?.full_name)
-                          .filter(Boolean)
-                          .join(', ') || '-'}
-                      </span>
+
+                      {/* Quota Progress Bar */}
+                      <div className="ml-8">
+                        <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                          <span>Kuota</span>
+                          <span className={halaqah.available_slots <= 3 ? 'text-orange-600 font-medium' : ''}>
+                            {halaqah.available_slots} dari {halaqah.total_max_students} tersedia
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${
+                              halaqah.is_full
+                                ? 'bg-red-500'
+                                : halaqah.available_slots <= 3
+                                ? 'bg-orange-500'
+                                : 'bg-green-500'
+                            }`}
+                            style={{ width: `${((halaqah.total_max_students - halaqah.available_slots) / halaqah.total_max_students) * 100}%` }}
+                          ></div>
+                        </div>
+                        {halaqah.is_full && (
+                          <p className="text-xs text-red-600 mt-1">Kelas penuh</p>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -839,7 +874,7 @@ function HalaqahSelectionStep({
               Kelas Tashih Umum
             </h4>
             <p className="text-sm text-sky-700 mt-1">
-              Pilih ini jika Anda ingin bergabung di kelas tashih umum bersama thalibah lain yang tidak memiliki pasangan/tetap.
+              Pilih ini jika Anda ingin bergabung di kelas tashih dengan waktu fleksibel. Anda akan mendapatkan pasangan setoran yang berbeda setiap pekannya atau sesuai kesepakatan, memberikan fleksibilitas lebih bagi yang memiliki jadwal tidak tetap.
             </p>
           </div>
         </label>

@@ -305,11 +305,26 @@ export async function uploadAkad(formData: FormData) {
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
-      .upload(filePath, file)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      return { success: false, error: 'Gagal mengupload file.' }
+
+      // Provide more specific error messages
+      if (uploadError.message.includes('bucket not found') || uploadError.message.includes('The resource was not found')) {
+        return {
+          success: false,
+          error: 'Bucket storage "documents" belum dibuat. Silakan hubungi admin untuk membuat bucket di Supabase Storage.'
+        }
+      }
+
+      return {
+        success: false,
+        error: `Gagal mengupload file: ${uploadError.message}`
+      }
     }
 
     // Get public URL
@@ -328,6 +343,15 @@ export async function uploadAkad(formData: FormData) {
     }
   } catch (error: any) {
     console.error('Upload akad error:', error)
+
+    // Check for bucket-related errors
+    if (error?.message?.includes('bucket') || error?.message?.includes('storage')) {
+      return {
+        success: false,
+        error: 'Bucket storage "documents" belum tersedia. Silakan hubungi admin.'
+      }
+    }
+
     return {
       success: false,
       error: error?.message || 'Terjadi kesalahan saat upload file'
