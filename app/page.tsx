@@ -66,7 +66,7 @@ export default function Home() {
               asChild
               variant="outline"
               size="lg"
-              className="border-2 border-green-900 bg-green-900 text-white hover:bg-green-800 hover:border-green-800 px-12 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+              className="border-2 border-green-900 text-green-900 hover:bg-green-50 px-12 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
             >
               <Link href="/metode" className="flex items-center gap-3">
                 <Star className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
@@ -75,8 +75,9 @@ export default function Home() {
             </Button>
             <Button
               asChild
+              variant="ghost"
               size="lg"
-              className="bg-green-900 text-white hover:bg-green-800 px-8 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+              className="text-green-900 hover:bg-green-50 px-8 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
             >
               <a href="#faq" className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-3">
@@ -85,7 +86,7 @@ export default function Home() {
                   </svg>
                   FAQ
                 </div>
-                <span className="text-xs text-green-100 font-normal">Pertanyaan yang Sering Diajukan</span>
+                <span className="text-xs text-green-700 font-normal">Pertanyaan yang Sering Diajukan</span>
               </a>
             </Button>
           </div>
@@ -258,10 +259,11 @@ export default function Home() {
               </Button>
               <Button
                 asChild
+                variant="outline"
                 size="lg"
-                className="bg-green-900 text-white hover:bg-green-800 px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+                className="!border-3 !border-white bg-white text-green-900 hover:bg-white hover:!text-green-700 px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
               >
-                <Link href="/login" className="flex items-center gap-2 sm:gap-3">
+                <Link href="/login" className="flex items-center gap-2 sm:gap-3 text-green-900 hover:text-green-700">
                   <Heart className="w-6 h-6 sm:w-7 sm:h-7 group-hover:scale-110 transition-transform duration-300" />
                   <span>Masuk</span>
                 </Link>
