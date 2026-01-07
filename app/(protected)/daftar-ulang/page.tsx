@@ -985,7 +985,8 @@ function PartnerSelectionStep({
       const response = await fetch('/api/daftar-ulang/partners')
       if (response.ok) {
         const data = await response.json()
-        setPartners(data.data?.partners_selected_by_others || [])
+        // Use all_available_partners to show ALL selected thalibah
+        setPartners(data.data?.all_available_partners || [])
       }
     } catch (error) {
       console.error('Fetch partners error:', error)

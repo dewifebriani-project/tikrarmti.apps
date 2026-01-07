@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 
 /**
  * GET /api/daftar-ulang/partners
- * Fetch eligible partners for self-matching
- * Returns users who also selected them as partner
+ * Fetch ALL eligible partners for self-matching
+ * Returns all thalibah who passed selection (selection_status='selected')
  */
 export async function GET(request: NextRequest) {
   try {
@@ -36,132 +36,93 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get users who have selected current user as partner
-    const { data: selectedByOthers, error: prefError } = await supabase
+    // Fetch ALL thalibah who passed selection in the same batch (for partner search)
+    const { data: allSelectedThalibah } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot')
+      .eq('batch_id', registration.batch_id)
+      .eq('selection_status', 'selected')
+      .neq('user_id', user.id) // Exclude current user
+
+    // Get users who have selected current user as partner (for showing who selected you)
+    const { data: selectedByOthers } = await supabase
       .from('partner_preferences')
       .select(`
-        id,
         user_id,
-        registration_id,
         status,
-        created_at,
-        users!partner_preferences_user_id_fkey (
-          id,
-          full_name,
-          email,
-          whatsapp
-        )
+        created_at
       `)
       .eq('preferred_partner_id', user.id)
       .eq('registration_id', registration.id)
       .in('status', ['pending', 'accepted'])
 
-    if (prefError) {
-      console.error('Error fetching partner preferences:', prefError)
-    }
-
-    // Fetch the actual registrations for users who selected current user
-    const userIds = (selectedByOthers || []).map((p: any) => p.user_id)
-    const { data: partnerRegistrations } = userIds.length > 0 ? await supabase
-      .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, full_name')
-      .eq('batch_id', registration.batch_id)
-      .eq('selection_status', 'selected')
-      .in('user_id', userIds) : { data: [] }
-
-    // Create a map for quick lookup
-    const registrationMap = new Map(
-      (partnerRegistrations || []).map(reg => [reg.user_id, reg])
-    )
-
     // Get users that current user has selected
-    const { data: selectedByUser, error: userPrefError } = await supabase
+    const { data: selectedByUser } = await supabase
       .from('partner_preferences')
       .select(`
-        id,
         preferred_partner_id,
         status,
-        created_at,
-        users:partner_preferences_preferred_partner_id_fkey (
-          id,
-          full_name,
-          email,
-          whatsapp
-        )
+        created_at
       `)
       .eq('user_id', user.id)
       .eq('registration_id', registration.id)
 
-    if (userPrefError) {
-      console.error('Error fetching user preferences:', userPrefError)
-    }
-
-    // Fetch registrations for users selected by current user
-    const selectedUserIds = (selectedByUser || []).map((p: any) => p.preferred_partner_id)
-    const { data: selectedUserRegistrations } = selectedUserIds.length > 0 ? await supabase
-      .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, full_name')
-      .eq('batch_id', registration.batch_id)
-      .eq('selection_status', 'selected')
-      .in('user_id', selectedUserIds) : { data: [] }
-
-    // Create a map for selected user registrations
-    const selectedUserRegistrationMap = new Map(
-      (selectedUserRegistrations || []).map(reg => [reg.user_id, reg])
-    )
+    // Create Sets for quick lookup
+    const selectedByOthersSet = new Set((selectedByOthers || []).map((p: any) => p.user_id))
+    const selectedByUserSet = new Set((selectedByUser || []).map((p: any) => p.preferred_partner_id))
 
     // Check for mutual matches
-    const mutualMatches = (selectedByUser || [])
-      .filter((pref: any) => {
-        return (selectedByOthers || []).some((other: any) =>
-          other.user_id === pref.preferred_partner_id &&
-          other.preferred_partner_id === user.id &&
-          pref.status === 'accepted' &&
-          other.status === 'accepted'
-        )
-      })
-      .map((pref: any) => ({
-        ...pref,
-        is_mutual_match: true
-      }))
-
-    // Build partner list with compatibility info
-    const partners = (selectedByOthers || []).map((pref: any) => {
-      const partnerReg = registrationMap.get(pref.user_id)
-      // Use registration full_name if available, otherwise fallback to users table
-      const displayName = partnerReg?.full_name || pref.users?.full_name
-      return {
-        user_id: pref.user_id,
-        registration_id: pref.registration_id,
-        status: pref.status,
-        created_at: pref.created_at,
-        users: {
-          ...pref.users,
-          full_name: displayName // Use the registration name
-        },
-        registrations: partnerReg ? [partnerReg] : [],
-        is_mutual_match: mutualMatches.some((m: any) => m.preferred_partner_id === pref.user_id),
-        has_user_selected_them: (selectedByUser || []).some((u: any) => u.preferred_partner_id === pref.user_id),
-        // Calculate schedule compatibility
-        schedule_compatible: checkScheduleCompatibility(
-          registration,
-          partnerReg || null
-        ),
-        juz_compatible: registration.chosen_juz === partnerReg?.chosen_juz
+    const mutualMatchesSet = new Set()
+    ;(selectedByUser || []).forEach((pref: any) => {
+      const isMutual = (selectedByOthers || []).some((other: any) =>
+        other.user_id === pref.preferred_partner_id &&
+        other.preferred_partner_id === user.id &&
+        pref.status === 'accepted' &&
+        other.status === 'accepted'
+      )
+      if (isMutual) {
+        mutualMatchesSet.add(pref.preferred_partner_id)
       }
     })
 
-    // Also add selected by user partners with their registration data
-    const selectedByUserWithReg = (selectedByUser || []).map((pref: any) => {
-      const partnerReg = selectedUserRegistrationMap.get(pref.preferred_partner_id)
-      // Use registration full_name if available, otherwise fallback to users table
-      const displayName = partnerReg?.full_name || pref.users?.full_name
+    // Build partner list - ALL selected thalibah can be chosen as partners
+    const partners = (allSelectedThalibah || []).map((reg: any) => {
+      // Calculate schedule compatibility
+      const schedule_compatible = checkScheduleCompatibility(
+        registration,
+        reg
+      )
+
+      return {
+        user_id: reg.user_id,
+        registration_id: registration.id, // Use current user's registration_id for creating preferences
+        status: 'available', // All thalibah are available to be selected
+        created_at: null,
+        users: {
+          id: reg.user_id,
+          full_name: reg.full_name,
+          email: null,
+          whatsapp: null
+        },
+        registrations: [reg],
+        is_mutual_match: mutualMatchesSet.has(reg.user_id),
+        has_user_selected_them: selectedByOthersSet.has(reg.user_id),
+        has_selected_them: selectedByUserSet.has(reg.user_id),
+        schedule_compatible: schedule_compatible,
+        juz_compatible: registration.chosen_juz === reg.chosen_juz
+      }
+    })
+
+    // Separate lists for display purposes
+    const partners_selected_by_others = partners.filter(p => p.has_user_selected_them)
+    const partners_selected_by_user = (selectedByUser || []).map((pref: any) => {
+      const partnerReg = (allSelectedThalibah || []).find(r => r.user_id === pref.preferred_partner_id)
       return {
         ...pref,
-        users: {
-          ...pref.users,
-          full_name: displayName // Use the registration name
-        },
+        users: partnerReg ? {
+          id: partnerReg.user_id,
+          full_name: partnerReg.full_name
+        } : null,
         registrations: partnerReg ? [partnerReg] : []
       }
     })
@@ -176,9 +137,10 @@ export async function GET(request: NextRequest) {
           main_time_slot: registration.main_time_slot,
           backup_time_slot: registration.backup_time_slot
         },
-        partners_selected_by_others: partners,
-        partners_selected_by_user: selectedByUserWithReg,
-        mutual_matches: mutualMatches
+        all_available_partners: partners, // ALL selected thalibah
+        partners_selected_by_others: partners_selected_by_others,
+        partners_selected_by_user: partners_selected_by_user,
+        mutual_matches: Array.from(mutualMatchesSet)
       }
     })
 
