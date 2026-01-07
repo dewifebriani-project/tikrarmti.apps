@@ -48,15 +48,15 @@ export default function Header() {
             </Link>
           </Button>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile/Tablet Masuk Button - with text and larger */}
           <Button
-            variant="outline"
             asChild
-            className="md:hidden border-green-900 text-green-900 hover:bg-green-50 hover:border-green-900 px-2 sm:px-3 py-1 sm:py-2"
+            className="md:hidden bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-4 sm:px-6 py-2 sm:py-2.5 text-base sm:text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
           >
-            <Link href="/login">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            <Link href="/login" className="flex items-center gap-2">
+              <span>Masuk</span>
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </Link>
           </Button>
