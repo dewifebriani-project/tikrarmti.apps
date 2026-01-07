@@ -557,8 +557,22 @@ function HalaqahSelectionStep({
     const halaqah = halaqahData.find(h => h.id === halaqahId)
     if (!halaqah || !hasUjian(halaqah)) return
 
+    // Check if there's already a tashih_ujian halaqah selected (both ujian and tashih in one)
+    // If so, cannot select any other halaqah
+    const currentlySelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+    if (currentlySelectedHalaqah && isTashihUjianBoth(currentlySelectedHalaqah) && currentlySelectedHalaqah.id !== halaqahId) {
+      toast.error('Anda sudah memilih kelas Tashih+Ujian. Tidak bisa memilih halaqah lain.')
+      return
+    }
+
     // If tashih_ujian, must select both
     if (isTashihUjianBoth(halaqah)) {
+      // Check if there's already a separate ujian or tashih selected
+      if ((formData.ujian_halaqah_id && formData.ujian_halaqah_id !== halaqahId) ||
+          (formData.tashih_halaqah_id && formData.tashih_halaqah_id !== halaqahId)) {
+        toast.error('Tidak bisa memilih kelas Tashih+Ujian jika sudah memilih kelas lain')
+        return
+      }
       const newUjianId = formData.ujian_halaqah_id === halaqahId ? '' : halaqahId
       onChange({
         ...formData,
@@ -576,6 +590,14 @@ function HalaqahSelectionStep({
     const halaqah = halaqahData.find(h => h.id === halaqahId)
     if (!halaqah || !hasTashih(halaqah)) return
 
+    // Check if there's already a tashih_ujian halaqah selected (both ujian and tashih in one)
+    // If so, cannot select any other halaqah
+    const currentlySelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+    if (currentlySelectedHalaqah && isTashihUjianBoth(currentlySelectedHalaqah) && currentlySelectedHalaqah.id !== halaqahId) {
+      toast.error('Anda sudah memilih kelas Tashih+Ujian. Tidak bisa memilih halaqah lain.')
+      return
+    }
+
     // If enabling tashih umum, clear specific halaqah
     if (formData.is_tashih_umum) {
       onChange({ ...formData, is_tashih_umum: false, tashih_halaqah_id: halaqahId })
@@ -584,6 +606,12 @@ function HalaqahSelectionStep({
 
     // If tashih_ujian, must select both
     if (isTashihUjianBoth(halaqah)) {
+      // Check if there's already a separate ujian or tashih selected
+      if ((formData.ujian_halaqah_id && formData.ujian_halaqah_id !== halaqahId) ||
+          (formData.tashih_halaqah_id && formData.tashih_halaqah_id !== halaqahId)) {
+        toast.error('Tidak bisa memilih kelas Tashih+Ujian jika sudah memilih kelas lain')
+        return
+      }
       const newTashihId = formData.tashih_halaqah_id === halaqahId ? '' : halaqahId
       onChange({
         ...formData,
@@ -784,12 +812,20 @@ function HalaqahSelectionStep({
                     {hasUjian(halaqah) && (
                       <button
                         onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
-                        disabled={halaqah.is_full}
+                        disabled={halaqah.is_full || (() => {
+                          const selectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                          return selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
+                        })()}
                         className={`
                           flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
                           ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
-                            ujianSelected ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' :
-                            'bg-white border-2 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50'}
+                            (() => {
+                              const selectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                              const isDisabled = selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
+                              return isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                                ujianSelected ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' :
+                                'bg-white border-2 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50'
+                            })()}
                         `}
                       >
                         <div className="flex items-center justify-center space-x-2">
@@ -807,12 +843,20 @@ function HalaqahSelectionStep({
                     {hasTashih(halaqah) && (
                       <button
                         onClick={() => !halaqah.is_full && toggleTashih(halaqah.id)}
-                        disabled={halaqah.is_full}
+                        disabled={halaqah.is_full || (() => {
+                          const selectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                          return selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
+                        })()}
                         className={`
                           flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
                           ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
-                            tashihSelected ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md' :
-                            'bg-white border-2 border-blue-200 text-blue-700 hover:border-blue-400 hover:bg-blue-50'}
+                            (() => {
+                              const selectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                              const isDisabled = selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
+                              return isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                                tashihSelected ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md' :
+                                'bg-white border-2 border-blue-200 text-blue-700 hover:border-blue-400 hover:bg-blue-50'
+                            })()}
                         `}
                       >
                         <div className="flex items-center justify-center space-x-2">
@@ -1249,7 +1293,38 @@ function ReviewStep({
   const getHalaqahSchedule = (halaqahId: string) => {
     const halaqah = halaqahData.find(h => h.id === halaqahId)
     if (!halaqah) return '-'
-    return `${DAY_NAMES[halaqah.day_of_week || 0]} ${halaqah.start_time} - ${halaqah.end_time}`
+
+    // Try to parse muallimah_schedule first, fallback to day_of_week/start_time/end_time
+    if (halaqah.muallimah_schedule) {
+      try {
+        const schedule = JSON.parse(halaqah.muallimah_schedule)
+        return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
+      } catch {
+        // If parsing fails, use fallback
+      }
+    }
+
+    const day = DAY_NAMES[halaqah.day_of_week || 0]
+    const time = halaqah.start_time && halaqah.end_time
+      ? `${halaqah.start_time} - ${halaqah.end_time} WIB`
+      : ''
+    return time ? `${day} • ${time}` : day
+  }
+
+  const getHalaqahDetails = (halaqahId: string) => {
+    const halaqah = halaqahData.find(h => h.id === halaqahId)
+    if (!halaqah) return null
+
+    return {
+      name: halaqah.name,
+      schedule: getHalaqahSchedule(halaqahId),
+      juz: halaqah.muallimah_preferred_juz || '-',
+      location: halaqah.location || '-',
+      muallimah: halaqah.mentors
+        ?.filter((m: any) => m.role === 'muallimah')
+        .map((m: any) => `Ustadzah ${m.users?.full_name}`)
+        .join(', ') || '-'
+    }
   }
 
   const PARTNER_TYPE_LABELS = {
@@ -1281,11 +1356,11 @@ function ReviewStep({
             </div>
             <div>
               <span className="text-gray-600">Waktu Utama</span>
-              <p className="font-medium">{formData.confirmed_main_time_slot}</p>
+              <p className="font-medium">{formData.confirmed_main_time_slot}{formData.confirmed_main_time_slot && !formData.confirmed_main_time_slot.includes('WIB') ? ' WIB' : ''}</p>
             </div>
             <div>
               <span className="text-gray-600">Waktu Cadangan</span>
-              <p className="font-medium">{formData.confirmed_backup_time_slot}</p>
+              <p className="font-medium">{formData.confirmed_backup_time_slot}{formData.confirmed_backup_time_slot && !formData.confirmed_backup_time_slot.includes('WIB') ? ' WIB' : ''}</p>
             </div>
           </div>
         </div>
@@ -1293,22 +1368,45 @@ function ReviewStep({
         {/* Halaqah */}
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="font-medium text-gray-900 mb-3">Jadwal Halaqah</h3>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-4 text-sm">
             <div>
               <span className="text-gray-600">Kelas Ujian</span>
               <p className="font-medium">{getHalaqahName(formData.ujian_halaqah_id)}</p>
-              <p className="text-gray-600">{getHalaqahSchedule(formData.ujian_halaqah_id)}</p>
+              {(() => {
+                const details = getHalaqahDetails(formData.ujian_halaqah_id)
+                if (!details) return null
+                return (
+                  <div className="mt-1 text-gray-600 space-y-1">
+                    <p>{details.schedule}</p>
+                    <p>Juz: {details.juz}</p>
+                    <p>Lokasi: {details.location}</p>
+                    <p>Muallimah: {details.muallimah}</p>
+                  </div>
+                )
+              })()}
             </div>
             {formData.is_tashih_umum ? (
               <div>
                 <span className="text-gray-600">Kelas Tashih</span>
                 <p className="font-medium">Tashih Umum</p>
+                <p className="text-gray-600 mt-1">Kelas tashih dengan waktu fleksibel</p>
               </div>
             ) : (
               <div>
                 <span className="text-gray-600">Kelas Tashih</span>
                 <p className="font-medium">{getHalaqahName(formData.tashih_halaqah_id)}</p>
-                <p className="text-gray-600">{getHalaqahSchedule(formData.tashih_halaqah_id)}</p>
+                {(() => {
+                  const details = getHalaqahDetails(formData.tashih_halaqah_id)
+                  if (!details) return null
+                  return (
+                    <div className="mt-1 text-gray-600 space-y-1">
+                      <p>{details.schedule}</p>
+                      <p>Juz: {details.juz}</p>
+                      <p>Lokasi: {details.location}</p>
+                      <p>Muallimah: {details.muallimah}</p>
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </div>
