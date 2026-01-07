@@ -17,6 +17,7 @@ export interface DaftarUlangFormData {
   partner_user_id?: string
   partner_name?: string
   partner_relationship?: string
+  partner_wa_phone?: string
   partner_notes?: string
 
   // Halaqah selection
@@ -210,6 +211,7 @@ export async function submitDaftarUlang(
       partner_user_id: data.partner_user_id,
       partner_name: data.partner_name,
       partner_relationship: data.partner_relationship,
+      partner_wa_phone: data.partner_wa_phone,
       partner_notes: data.partner_notes,
 
       // Halaqah selection

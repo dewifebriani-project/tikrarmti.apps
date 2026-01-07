@@ -68,6 +68,7 @@ export default function DaftarUlangPage() {
     partner_user_id: string
     partner_name: string
     partner_relationship: string
+    partner_wa_phone: string
     partner_notes: string
     akad_url: string
     akad_file_name: string
@@ -90,6 +91,7 @@ export default function DaftarUlangPage() {
     partner_user_id: '',
     partner_name: '',
     partner_relationship: '',
+    partner_wa_phone: '',
     partner_notes: '',
 
     // Step 4: Akad
@@ -172,6 +174,7 @@ export default function DaftarUlangPage() {
           partner_user_id: formData.partner_user_id,
           partner_name: formData.partner_name,
           partner_relationship: formData.partner_relationship,
+          partner_wa_phone: formData.partner_wa_phone,
           partner_notes: formData.partner_notes,
           akad_url: formData.akad_url,
           akad_file_name: formData.akad_file_name,
@@ -840,17 +843,18 @@ function HalaqahSelectionStep({
       </div>
 
       {/* Tashih Umum Option */}
-      <div className="bg-gradient-to-r from-sky-50 to-blue-50 border-2 border-sky-200 rounded-xl p-5">
-        <label className="flex items-start space-x-4 cursor-pointer">
+      <div className={`bg-gradient-to-r from-sky-50 to-blue-50 border-2 rounded-xl p-5 ${formData.tashih_halaqah_id ? 'border-gray-300 opacity-60' : 'border-sky-200'}`}>
+        <label className={`flex items-start space-x-4 ${formData.tashih_halaqah_id ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
           <input
             type="checkbox"
             checked={formData.is_tashih_umum}
+            disabled={formData.tashih_halaqah_id ? true : false}
             onChange={(e) => onChange({
               ...formData,
               is_tashih_umum: e.target.checked,
               tashih_halaqah_id: e.target.checked ? '' : formData.tashih_halaqah_id
             })}
-            className="w-5 h-5 mt-0.5 text-sky-600 rounded focus:ring-sky-500"
+            className="w-5 h-5 mt-0.5 text-sky-600 rounded focus:ring-sky-500 disabled:opacity-50"
           />
           <div>
             <h4 className="font-semibold text-sky-900 flex items-center">
@@ -862,6 +866,14 @@ function HalaqahSelectionStep({
             <p className="text-sm text-sky-700 mt-1">
               Pilih ini jika Anda ingin bergabung di kelas tashih dengan waktu fleksibel. Anda akan mendapatkan pasangan setoran yang berbeda setiap pekannya atau sesuai kesepakatan, memberikan fleksibilitas lebih bagi yang memiliki jadwal tidak tetap.
             </p>
+            {formData.tashih_halaqah_id && (
+              <p className="text-xs text-orange-600 mt-2 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Tidak bisa memilih Tashih Umum karena Anda sudah memilih kelas tashih
+              </p>
+            )}
           </div>
         </label>
       </div>
@@ -914,6 +926,8 @@ function PartnerSelectionStep({
 }) {
   const [partners, setPartners] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showDropdown, setShowDropdown] = useState(false)
 
   useEffect(() => {
     if (formData.partner_type === 'self_match' && registrationId) {
@@ -934,6 +948,17 @@ function PartnerSelectionStep({
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Filter partners based on search query
+  const filteredPartners = partners.filter(partner =>
+    partner.users?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const handlePartnerSelect = (partner: any) => {
+    onChange({ ...formData, partner_user_id: partner.user_id })
+    setShowDropdown(false)
+    setSearchQuery('')
   }
 
   return (
@@ -960,7 +985,7 @@ function PartnerSelectionStep({
             <div className="flex-1">
               <h3 className="font-medium text-gray-900">Pilih Sendiri</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Pilih pasangan belajar sendiri. Pasangan harus saling memilih untuk membentuk kelompok.
+                Pilih pasangan belajar sendiri. Pasangan harus saling memilih untuk membentuk kelompok. Bisa lintas juz.
               </p>
             </div>
             <input
@@ -972,60 +997,93 @@ function PartnerSelectionStep({
           </div>
 
           {formData.partner_type === 'self_match' && (
-            <div className="mt-4 space-y-2">
-              {isLoading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-                  <p className="text-sm text-gray-600 mt-2">Memuat daftar pasangan...</p>
-                </div>
-              ) : partners.length === 0 ? (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-sm text-yellow-800">
-                    Belum ada yang memilih Anda sebagai pasangan. Anda bisa memilih pasangan nanti.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {partners.map((partner) => (
-                    <div
-                      key={partner.id}
-                      className={`
-                        border rounded-lg p-3 cursor-pointer transition-all
-                        ${formData.partner_user_id === partner.user_id
-                          ? 'border-green-300 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                        }
-                      `}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onChange({ ...formData, partner_user_id: partner.user_id })
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{partner.users.full_name}</p>
-                          <p className="text-xs text-gray-600">{partner.registrations?.chosen_juz}</p>
+            <div className="mt-4 space-y-3">
+              {/* Search Input with Autocomplete */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ketik nama thalibah untuk mencari..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setShowDropdown(true)
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+                {showDropdown && searchQuery && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredPartners.length > 0 ? (
+                      filteredPartners.map((partner) => (
+                        <div
+                          key={partner.user_id}
+                          className="px-3 py-2 hover:bg-green-50 cursor-pointer border-b last:border-b-0"
+                          onClick={() => handlePartnerSelect(partner)}
+                        >
+                          <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
+                          <p className="text-xs text-gray-600">Juz: {partner.registrations?.chosen_juz || '-'}</p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          {partner.is_mutual_match && (
-                            <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-gray-500 text-sm">
+                        Tidak ditemukan thalibah dengan nama tersebut
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Selected Partner with Approve/Reject Buttons */}
+              {formData.partner_user_id && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  {(() => {
+                    const selectedPartner = partners.find(p => p.user_id === formData.partner_user_id)
+                    if (!selectedPartner) return null
+                    return (
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{selectedPartner.users?.full_name}</p>
+                          <p className="text-xs text-gray-600">Juz: {selectedPartner.registrations?.chosen_juz || '-'}</p>
+                          {selectedPartner.is_mutual_match ? (
+                            <span className="inline-flex items-center mt-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
                               Saling Memilih
                             </span>
-                          )}
-                          {partner.schedule_compatible && (
-                            <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-                              Jadwal Cocok
-                            </span>
-                          )}
-                          {partner.juz_compatible && (
-                            <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">
-                              Juz Sama
+                          ) : (
+                            <span className="inline-flex items-center mt-1 px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
+                              </svg>
+                              Menunggu Persetujuan
                             </span>
                           )}
                         </div>
+                        <div className="flex gap-2 ml-3">
+                          <button
+                            className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                          >
+                            Setujui
+                          </button>
+                          <button
+                            onClick={() => onChange({ ...formData, partner_user_id: '' })}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700"
+                          >
+                            Tolak
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })()}
+                </div>
+              )}
+
+              {!isLoading && partners.length === 0 && !searchQuery && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800">
+                    Belum ada yang memilih Anda sebagai pasangan. Ketik nama thalibah di atas untuk mencari pasangan.
+                  </p>
                 </div>
               )}
             </div>
@@ -1105,6 +1163,13 @@ function PartnerSelectionStep({
                 <option value="saudara">Saudara (Mahram)</option>
                 <option value="lainnya">Lainnya</option>
               </select>
+              <input
+                type="text"
+                placeholder="Nomor WhatsApp keluarga"
+                value={formData.partner_wa_phone}
+                onChange={e => onChange({ ...formData, partner_wa_phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              />
               <textarea
                 placeholder="Catatan tambahan (opsional)"
                 value={formData.partner_notes}
@@ -1145,7 +1210,7 @@ function PartnerSelectionStep({
             <div className="mt-4 space-y-3">
               <input
                 type="text"
-                placeholder="Nama lengkap (untuk sertifikat)"
+                placeholder="Username atau nama di aplikasi Tarteel"
                 value={formData.partner_name}
                 onChange={e => onChange({ ...formData, partner_name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
