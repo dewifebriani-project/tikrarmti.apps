@@ -258,9 +258,9 @@ export default function Home() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="border-3 border-white text-white hover:bg-white hover:text-green-900 px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+                className="!border-3 !border-white !text-white hover:!bg-white hover:!text-green-900 px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
               >
-                <Link href="/login" className="flex items-center gap-2 sm:gap-3">
+                <Link href="/login" className="flex items-center gap-2 sm:gap-3 !text-white hover:!text-green-900">
                   <Heart className="w-6 h-6 sm:w-7 sm:h-7 group-hover:scale-110 transition-transform duration-300" />
                   <span>Masuk</span>
                 </Link>
