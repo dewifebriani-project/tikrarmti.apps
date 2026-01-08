@@ -30,7 +30,8 @@ import {
   XCircle,
   X,
   HelpCircle,
-  RefreshCw
+  RefreshCw,
+  HeartHandshake
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
@@ -46,6 +47,7 @@ import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
 import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 import { AnalysisTab } from '@/components/AnalysisTab';
 import { SystemLogsTab } from '@/components/SystemLogsTab';
+import { AdminPairingTab } from '@/components/AdminPairingTab';
 
 interface Batch {
   id: string;
@@ -274,7 +276,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'exam-questions' | 'analysis' | 'system-logs' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -493,6 +495,7 @@ export default function AdminPage() {
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
     { id: 'analysis' as TabType, name: 'Analysis', icon: BarChart3 },
+    { id: 'pairing' as TabType, name: 'Pairing', icon: HeartHandshake },
     { id: 'system-logs' as TabType, name: 'System Logs', icon: AlertCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText }
   ];
@@ -704,6 +707,7 @@ export default function AdminPage() {
         )}
         {activeTab === 'halaqah' && <HalaqahManagementTab />}
         {activeTab === 'analysis' && <AnalysisTab />}
+        {activeTab === 'pairing' && <AdminPairingTab />}
         {activeTab === 'system-logs' && <SystemLogsTab isActive={activeTab === 'system-logs'} />}
         {activeTab === 'reports' && <ReportsTab />}
       </div>
