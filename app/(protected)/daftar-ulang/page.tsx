@@ -1029,8 +1029,6 @@ function PartnerSelectionStep({
 }) {
   const [partners, setPartners] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showDropdown, setShowDropdown] = useState(false)
 
   // Use ref to always get latest formData
   const formDataRef = useRef(formData)
@@ -1057,11 +1055,6 @@ function PartnerSelectionStep({
       setIsLoading(false)
     }
   }
-
-  // Filter partners based on search query
-  const filteredPartners = partners.filter(partner =>
-    partner.users?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
 
   const handlePartnerSelect = (partner: any) => {
     console.log('=== handlePartnerSelect called ===')
@@ -1121,51 +1114,69 @@ function PartnerSelectionStep({
           </div>
 
           {formData.partner_type === 'self_match' && (
-            <div className="mt-4 space-y-3">
-              {/* Search Input with Autocomplete */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Ketik nama thalibah untuk mencari..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value)
-                    setShowDropdown(true)
-                  }}
-                  onFocus={() => {
-                    // Only show dropdown if no partner is selected yet
-                    if (!formData.partner_user_id) {
-                      setShowDropdown(true)
-                    }
-                  }}
-                  disabled={!!formData.partner_user_id}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 ${
-                    formData.partner_user_id
-                      ? 'bg-green-50 border-green-300 text-green-800 cursor-not-allowed'
-                      : 'border-gray-300'
-                  }`}
-                />
-                {showDropdown && searchQuery && !formData.partner_user_id && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {filteredPartners.length > 0 ? (
-                      filteredPartners.map((partner) => (
-                        <div
-                          key={partner.user_id}
-                          className="px-3 py-2 hover:bg-green-50 cursor-pointer border-b last:border-b-0"
-                          onClick={() => handlePartnerSelect(partner)}
-                        >
+            <div className="mt-4">
+              <p className="text-sm text-gray-600 mb-3">Pilih satu nama thalibah berikut:</p>
+
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  <p className="mt-2 text-sm text-gray-600">Memuat daftar thalibah...</p>
+                </div>
+              ) : partners.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Tidak ada thalibah lain yang tersedia</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-2">
+                  {partners.map((partner) => (
+                    <button
+                      key={partner.user_id}
+                      type="button"
+                      onClick={() => handlePartnerSelect(partner)}
+                      className={`
+                        p-4 rounded-lg border-2 text-left transition-all
+                        ${formData.partner_user_id === partner.user_id
+                          ? 'bg-green-50 border-green-500 ring-2 ring-green-500 shadow-md'
+                          : 'bg-white border-gray-200 hover:border-green-400 hover:bg-green-50'
+                        }
+                      `}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
                           <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
-                          <p className="text-xs text-gray-600">Juz: {partner.registrations?.[0]?.chosen_juz || '-'}</p>
+                          <p className="text-xs text-gray-600 mt-1">Juz: {partner.registrations?.[0]?.chosen_juz || '-'}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {partner.users?.zona_waktu || '-'}
+                          </p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-gray-500 text-sm">
-                        Tidak ditemukan thalibah dengan nama tersebut
+                        {formData.partner_user_id === partner.user_id && (
+                          <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        )}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {formData.partner_user_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    console.log('=== Clearing partner selection ===')
+                    onChange({
+                      ...formDataRef.current,
+                      partner_user_id: ''
+                    })
+                    setSearchQuery('')
+                  }}
+                  className="mt-3 text-sm text-red-600 hover:text-red-700 underline"
+                >
+                  Ganti pilihan
+                </button>
+              )}
+            </div>
 
               {/* Selected Partner with Approve/Reject Buttons */}
               {formData.partner_user_id && (
