@@ -240,26 +240,38 @@ export default function DaftarUlangPage() {
       console.log('Partner step validation - formData:', formData)
       console.log('partner_type:', formData.partner_type)
       console.log('partner_user_id:', formData.partner_user_id)
-      console.log('partner_user_id type:', typeof formData.partner_user_id)
-      console.log('partner_user_id is truthy:', !!formData.partner_user_id)
 
       if (!formData.partner_type) {
         toast.error('Pilih jenis pasangan belajar')
         return
       }
-      if (formData.partner_type === 'self_match' && !formData.partner_user_id) {
-        console.log('Validation failed - partner_type:', formData.partner_type, 'partner_user_id:', formData.partner_user_id)
-        toast.error('Pilih pasangan belajar')
-        return
+
+      // Validasi berdasarkan jenis pasangan
+      if (formData.partner_type === 'self_match') {
+        // Untuk pilih sendiri, user WAJIB memilih pasangan
+        if (!formData.partner_user_id) {
+          toast.error('Silakan pilih nama pasangan belajar dari dropdown')
+          return
+        }
+      } else if (formData.partner_type === 'family') {
+        // Untuk keluarga, WAJIB isi nama dan hubungan
+        if (!formData.partner_name) {
+          toast.error('Isi nama pasangan belajar (keluarga)')
+          return
+        }
+        if (!formData.partner_relationship) {
+          toast.error('Pilih hubungan dengan pasangan belajar')
+          return
+        }
+      } else if (formData.partner_type === 'tarteel') {
+        // Untuk tarteel, WAJIB isi nama
+        if (!formData.partner_name) {
+          toast.error('Isi nama pasangan belajar')
+          return
+        }
       }
-      if ((formData.partner_type === 'family' || formData.partner_type === 'tarteel') && !formData.partner_name) {
-        toast.error('Isi nama pasangan belajar')
-        return
-      }
-      if (formData.partner_type === 'family' && !formData.partner_relationship) {
-        toast.error('Pilih hubungan dengan pasangan belajar')
-        return
-      }
+      // system_match tidak perlu validasi apapun (langsung lanjut)
+
       console.log('Partner validation passed, proceeding to review')
       setCurrentStep('review')
     } else if (currentStep === 'review') {
