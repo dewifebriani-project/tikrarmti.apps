@@ -36,6 +36,7 @@ export function createClient() {
         persistSession: true,
         detectSessionInUrl: true,
         flowType: 'pkce', // Use PKCE flow for better security (must match client-side)
+        debug: process.env.NODE_ENV === 'development', // Enable debug in development
       }
     }
   )
