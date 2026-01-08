@@ -18,10 +18,10 @@ export async function GET(
     // Create server-side Supabase client
     const supabase = createServerClient();
 
-    // Get the current session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // IMPORTANT: Use getUser() not getSession() for security (per arsitektur.md)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -44,7 +44,7 @@ export async function GET(
     }
 
     // Check if the registration belongs to the current user
-    if (registration.user_id !== session.user.id) {
+    if (registration.user_id !== user.id) {
       return NextResponse.json(
         { error: 'Access denied' },
         { status: 403 }
@@ -79,10 +79,10 @@ export async function PUT(
     // Create server-side Supabase client
     const supabase = createServerClient();
 
-    // Get the current session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // IMPORTANT: Use getUser() not getSession() for security (per arsitektur.md)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -107,7 +107,7 @@ export async function PUT(
     }
 
     // Check if the registration belongs to the current user
-    if (existingRegistration.user_id !== session.user.id) {
+    if (existingRegistration.user_id !== user.id) {
       return NextResponse.json(
         { error: 'Access denied' },
         { status: 403 }
