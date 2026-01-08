@@ -1029,6 +1029,7 @@ function PartnerSelectionStep({
 }) {
   const [partners, setPartners] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Use ref to always get latest formData
   const formDataRef = useRef(formData)
@@ -1056,13 +1057,18 @@ function PartnerSelectionStep({
     }
   }
 
-  const handlePartnerSelect = (partner: any) => {
+  // Filter partners based on search query
+  const filteredPartners = partners.filter((partner) => {
+    const fullName = partner.users?.full_name || ''
+    return fullName.toLowerCase().includes(searchQuery.toLowerCase())
+  })
+
+  const handlePartnerSelect = (partner: any, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent event from bubbling to parent
+
     console.log('=== handlePartnerSelect called ===')
     console.log('Selected partner:', partner.user_id, partner.users?.full_name)
-    console.log('Current formData.partner_user_id before update:', formData.partner_user_id)
-    console.log('Current formDataRef.current.partner_user_id:', formDataRef.current.partner_user_id)
 
-    // Use ref to get latest formData, then update
     const updatedData = {
       ...formDataRef.current,
       partner_type: 'self_match',
@@ -1111,48 +1117,60 @@ function PartnerSelectionStep({
           </div>
 
           {formData.partner_type === 'self_match' && (
-            <div className="mt-4">
-              <p className="text-sm text-gray-600 mb-3">Pilih satu nama thalibah berikut:</p>
+            <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+              <p className="text-sm text-gray-600 mb-3">Cari nama pasangan belajar:</p>
+
+              {/* Search Input */}
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Ketik nama thalibah..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
 
               {isLoading ? (
                 <div className="text-center py-8">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                   <p className="mt-2 text-sm text-gray-600">Memuat daftar thalibah...</p>
                 </div>
-              ) : partners.length === 0 ? (
+              ) : filteredPartners.length === 0 ? (
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Tidak ada thalibah lain yang tersedia</p>
+                  <p className="text-sm text-gray-600">
+                    {searchQuery ? 'Tidak ada thalibah dengan nama tersebut' : 'Tidak ada thalibah lain yang tersedia'}
+                  </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-2">
-                  {partners.map((partner) => (
-                    <button
+                <div className="border border-gray-200 rounded-lg max-h-80 overflow-y-auto">
+                  {filteredPartners.map((partner) => (
+                    <div
                       key={partner.user_id}
-                      type="button"
-                      onClick={() => handlePartnerSelect(partner)}
+                      onClick={(e) => handlePartnerSelect(partner, e)}
                       className={`
-                        p-4 rounded-lg border-2 text-left transition-all
+                        p-3 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors
                         ${formData.partner_user_id === partner.user_id
-                          ? 'bg-green-50 border-green-500 ring-2 ring-green-500 shadow-md'
-                          : 'bg-white border-gray-200 hover:border-green-400 hover:bg-green-50'
+                          ? 'bg-green-50 hover:bg-green-100'
+                          : 'bg-white hover:bg-gray-50'
                         }
                       `}
                     >
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
-                          <p className="text-xs text-gray-600 mt-1">Juz: {partner.registrations?.[0]?.chosen_juz || '-'}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {partner.users?.zona_waktu || '-'}
+                          <p className="text-xs text-gray-600 mt-1">
+                            Juz: {partner.registrations?.[0]?.chosen_juz || '-'} • {partner.users?.zona_waktu || '-'}
                           </p>
                         </div>
                         {formData.partner_user_id === partner.user_id && (
-                          <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                         )}
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -1160,12 +1178,14 @@ function PartnerSelectionStep({
               {formData.partner_user_id && (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation()
                     console.log('=== Clearing partner selection ===')
                     onChange({
                       ...formDataRef.current,
                       partner_user_id: ''
                     })
+                    setSearchQuery('')
                   }}
                   className="mt-3 text-sm text-red-600 hover:text-red-700 underline"
                 >
