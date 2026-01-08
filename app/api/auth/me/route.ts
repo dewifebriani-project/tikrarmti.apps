@@ -64,7 +64,7 @@ export async function GET(request: Request) {
       id: user.id,
       email: user.email,
       full_name: userData?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0],
-      role: userData?.role || user.user_metadata?.role || 'calon_thalibah',
+      roles: userData?.roles || user.user_metadata?.roles || ['calon_thalibah'],
       avatar_url: userData?.avatar_url,
       created_at: userData?.created_at || user.created_at,
       whatsapp: userData?.whatsapp,
