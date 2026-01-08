@@ -69,16 +69,22 @@ export async function PUT(
                                     body.oral_total_score !== undefined || body.oral_assessment_status !== undefined ||
                                     body.oral_assessment_notes !== undefined;
 
-    if (!isAdmin && !isOralSubmissionUpdate && body.user_id !== user.id) {
-      logger.warn('User ID mismatch in registration update', {
-        requestUserId: body.user_id,
-        sessionUserId: user.id,
-        ip: clientIP
-      });
+    // For non-admin users doing regular updates (not oral submission), verify they own the registration
+    // Note: user_id in body is optional, so we only check if it's provided
+    if (!isAdmin && !isOralSubmissionUpdate && !isOralAssessmentUpdate) {
+      // If user_id is provided in body, it must match the authenticated user
+      if (body.user_id !== undefined && body.user_id !== user.id) {
+        logger.warn('User ID mismatch in registration update', {
+          requestUserId: body.user_id,
+          sessionUserId: user.id,
+          ip: clientIP
+        });
 
-      return NextResponse.json({
-        error: 'Invalid user session. Please login again.'
-      }, { status: 401 });
+        return NextResponse.json({
+          error: 'Invalid user session. Please login again.'
+        }, { status: 401 });
+      }
+      // The actual ownership check is done below (lines 91-93) by filtering the query
     }
 
     // First, check if the registration exists
