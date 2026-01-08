@@ -1072,9 +1072,6 @@ function PartnerSelectionStep({
     console.log('Calling onChange with updatedData:', updatedData.partner_user_id)
     onChange(updatedData)
 
-    setShowDropdown(false)
-    setSearchQuery(partner.users?.full_name || '') // Keep the partner's name in the input
-
     console.log('handlePartnerSelect completed')
   }
 
@@ -1169,81 +1166,11 @@ function PartnerSelectionStep({
                       ...formDataRef.current,
                       partner_user_id: ''
                     })
-                    setSearchQuery('')
                   }}
                   className="mt-3 text-sm text-red-600 hover:text-red-700 underline"
                 >
                   Ganti pilihan
                 </button>
-              )}
-            </div>
-
-              {/* Selected Partner with Approve/Reject Buttons */}
-              {formData.partner_user_id && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  {(() => {
-                    const selectedPartner = partners.find(p => p.user_id === formData.partner_user_id)
-                    if (!selectedPartner) return null
-                    return (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{selectedPartner.users?.full_name}</p>
-                            <p className="text-xs text-gray-600">Juz: {selectedPartner.registrations?.[0]?.chosen_juz || '-'}</p>
-                            {selectedPartner.is_mutual_match ? (
-                              <span className="inline-flex items-center mt-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                                Saling Memilih
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center mt-1 px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded-full">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clipRule="evenodd" />
-                                </svg>
-                                Menunggu Persetujuan
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-2 ml-3">
-                            <button
-                              className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
-                            >
-                              Setujui
-                            </button>
-                            <button
-                              onClick={() => {
-                                onChange({ ...formData, partner_user_id: '' })
-                                setSearchQuery('')
-                              }}
-                              className="px-3 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700"
-                            >
-                              Tolak
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Guidance text */}
-                        <div className="mt-3 pt-3 border-t border-green-200">
-                          <p className="text-xs text-gray-700 leading-relaxed">
-                            <strong>Panduan:</strong> Silakan hubungi <span className="font-medium text-green-700">{selectedPartner.users?.full_name}</span> melalui WhatsApp untuk meminta persetujuan.
-                            Jika dia menyetujui, dia perlu membuka aplikasi dan menekan tombol "Setujui" di halaman daftar ulangnya.
-                            Jika dia menolak, Anda akan mendapatkan notifikasi dan dapat memilih pasangan lain.
-                          </p>
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
-
-              {!isLoading && partners.length === 0 && !searchQuery && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-sm text-yellow-800">
-                    Belum ada yang memilih Anda sebagai pasangan. Ketik nama thalibah di atas untuk mencari pasangan.
-                  </p>
-                </div>
               )}
             </div>
           )}
