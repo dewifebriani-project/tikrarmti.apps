@@ -6,6 +6,9 @@
 --              Each juz category: main_time_slot > backup_time_slot > different time
 -- ============================================================================
 
+-- Drop old function if exists (with different signature)
+DROP FUNCTION IF EXISTS public.find_compatible_study_partners(p_user_id UUID, p_batch_id UUID, p_time_slot VARCHAR, p_juz VARCHAR);
+
 CREATE OR REPLACE FUNCTION find_compatible_study_partners(
   p_user_id UUID,
   p_batch_id UUID,
