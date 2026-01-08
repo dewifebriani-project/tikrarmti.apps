@@ -85,16 +85,21 @@ export async function GET(request: Request) {
     const systemMatchRequests = []
 
     for (const submission of submissions || []) {
+      // Supabase returns nested relations as arrays
+      const users = submission.users as any
+      const registrations = submission.registrations as any
+      const batch = submission.batch as any
+
       const requestData = {
         id: submission.id,
         user_id: submission.user_id,
-        user_name: submission.users?.full_name,
-        user_email: submission.users?.email,
-        user_zona_waktu: submission.users?.zona_waktu,
-        user_wa_phone: submission.users?.whatsapp,
-        chosen_juz: submission.registrations?.chosen_juz,
-        main_time_slot: submission.registrations?.main_time_slot,
-        backup_time_slot: submission.registrations?.backup_time_slot,
+        user_name: users?.[0]?.full_name,
+        user_email: users?.[0]?.email,
+        user_zona_waktu: users?.[0]?.zona_waktu,
+        user_wa_phone: users?.[0]?.whatsapp,
+        chosen_juz: registrations?.[0]?.chosen_juz,
+        main_time_slot: registrations?.[0]?.main_time_slot,
+        backup_time_slot: registrations?.[0]?.backup_time_slot,
         partner_type: submission.partner_type,
         partner_user_id: submission.partner_user_id,
         partner_name: submission.partner_name,
@@ -102,7 +107,7 @@ export async function GET(request: Request) {
         partner_notes: submission.partner_notes,
         submitted_at: submission.submitted_at,
         batch_id: submission.batch_id,
-        batch_name: submission.batch?.name,
+        batch_name: batch?.[0]?.name,
       }
 
       if (submission.partner_type === 'self_match') {
