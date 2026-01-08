@@ -1029,9 +1029,18 @@ function PartnerSelectionStep({
   const handlePartnerSelect = (partner: any) => {
     console.log('handlePartnerSelect called:', partner.user_id, partner.users?.full_name)
     console.log('Current formData.partner_user_id before update:', formData.partner_user_id)
-    onChange({ ...formData, partner_user_id: partner.user_id })
+    console.log('Current formData.partner_type before update:', formData.partner_type)
+
+    // Auto-set partner_type to self_match when partner is selected
+    onChange({
+      ...formData,
+      partner_type: 'self_match',
+      partner_user_id: partner.user_id
+    })
     setShowDropdown(false)
     setSearchQuery(partner.users?.full_name || '') // Keep the partner's name in the input
+
+    console.log('After update - partner_type: self_match, partner_user_id:', partner.user_id)
   }
 
   return (
