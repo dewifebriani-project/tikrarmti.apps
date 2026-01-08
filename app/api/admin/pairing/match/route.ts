@@ -135,6 +135,9 @@ export async function GET(request: Request) {
     const juzMatches = matches.filter(m => m.match_score >= 60 && m.match_score < 80)
     const crossJuzMatches = matches.filter(m => m.match_score < 60)
 
+    // userData.users is also returned as an array by Supabase
+    const userDataUsers = userData.users as any
+
     return NextResponse.json({
       success: true,
       data: {
@@ -142,7 +145,7 @@ export async function GET(request: Request) {
           user_id: userData.user_id,
           full_name: userData.full_name,
           chosen_juz: userData.chosen_juz,
-          zona_waktu: userData.users?.zona_waktu,
+          zona_waktu: userDataUsers?.[0]?.zona_waktu,
           main_time_slot: userData.main_time_slot,
           backup_time_slot: userData.backup_time_slot,
         },
