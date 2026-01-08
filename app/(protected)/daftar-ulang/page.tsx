@@ -237,11 +237,12 @@ export default function DaftarUlangPage() {
       // Tidak ada validasi wajib untuk tashih
       setCurrentStep('partner')
     } else if (currentStep === 'partner') {
-      console.log('Partner step validation - formData:', formData)
-      console.log('partner_type:', formData.partner_type)
-      console.log('partner_user_id:', formData.partner_user_id)
+      console.log('=== Partner step validation ===')
+      console.log('formData.partner_type:', formData.partner_type)
+      console.log('formData.partner_user_id:', formData.partner_user_id)
 
-      if (!formData.partner_type) {
+      if (!formData.partner_type || formData.partner_type === '') {
+        console.log('Validation failed: No partner type selected')
         toast.error('Pilih jenis pasangan belajar')
         return
       }
@@ -249,10 +250,12 @@ export default function DaftarUlangPage() {
       // Validasi berdasarkan jenis pasangan
       if (formData.partner_type === 'self_match') {
         // Untuk pilih sendiri, user WAJIB memilih pasangan
-        if (!formData.partner_user_id) {
+        if (!formData.partner_user_id || formData.partner_user_id === '') {
+          console.log('Validation failed: self_match but no partner selected')
           toast.error('Silakan pilih nama pasangan belajar dari dropdown')
           return
         }
+        console.log('Validation passed: self_match with partner selected')
       } else if (formData.partner_type === 'family') {
         // Untuk keluarga, WAJIB isi nama dan hubungan
         if (!formData.partner_name) {
