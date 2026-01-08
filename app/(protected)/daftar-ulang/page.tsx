@@ -152,6 +152,12 @@ export default function DaftarUlangPage() {
           const halaqahDataResult = await halaqahResponse.json()
           setHalaqahData(halaqahDataResult.data?.halaqah || [])
           setExistingSubmission(halaqahDataResult.data?.existing_submission)
+
+          // Check if user already submitted daftar ulang
+          if (halaqahDataResult.data?.existing_submission?.status === 'submitted') {
+            setCurrentStep('success')
+            toast.success('Anda sudah melakukan daftar ulang!')
+          }
         }
       } catch (error) {
         console.error('Fetch error:', error)
@@ -210,15 +216,7 @@ export default function DaftarUlangPage() {
     return () => clearTimeout(timer)
   }, [formData, registrationData?.id])
 
-  // Debug: Log isLoading state changes
-  useEffect(() => {
-    console.log('=== isLoading state changed ===', isLoading)
-  }, [isLoading])
-
   const handleNext = () => {
-    console.log('=== handleNext called ===')
-    console.log('currentStep:', currentStep)
-    console.log('formData:', formData)
 
     // Validate current step before proceeding
     if (currentStep === 'confirm') {
@@ -237,12 +235,7 @@ export default function DaftarUlangPage() {
       // Tidak ada validasi wajib untuk tashih
       setCurrentStep('partner')
     } else if (currentStep === 'partner') {
-      console.log('=== Partner step validation ===')
-      console.log('formData.partner_type:', formData.partner_type)
-      console.log('formData.partner_user_id:', formData.partner_user_id)
-
       if (!formData.partner_type) {
-        console.log('Validation failed: No partner type selected')
         toast.error('Pilih jenis pasangan belajar')
         return
       }
@@ -251,11 +244,9 @@ export default function DaftarUlangPage() {
       if (formData.partner_type === 'self_match') {
         // Untuk pilih sendiri, user WAJIB memilih pasangan
         if (!formData.partner_user_id) {
-          console.log('Validation failed: self_match but no partner selected')
           toast.error('Silakan pilih nama pasangan belajar dari dropdown')
           return
         }
-        console.log('Validation passed: self_match with partner selected')
       } else if (formData.partner_type === 'family') {
         // Untuk keluarga, WAJIB isi nama dan hubungan
         if (!formData.partner_name) {
@@ -275,7 +266,6 @@ export default function DaftarUlangPage() {
       }
       // system_match tidak perlu validasi apapun (langsung lanjut)
 
-      console.log('Partner validation passed, proceeding to review')
       setCurrentStep('review')
     } else if (currentStep === 'review') {
       setCurrentStep('akad')
@@ -374,14 +364,6 @@ export default function DaftarUlangPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Daftar Ulang Tikrar Tahfidz</h1>
           <p className="text-gray-600">Lengkapi data daftar ulang untuk memulai perjalanan hafalan</p>
-          {/* Debug info */}
-          <div className="mt-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-            <p><strong>DEBUG:</strong></p>
-            <p>isLoading: {isLoading.toString()}</p>
-            <p>currentStep: {currentStep}</p>
-            <p>partner_type: {formData.partner_type || '(empty)'}</p>
-            <p>partner_user_id: {formData.partner_user_id || '(empty)'}</p>
-          </div>
         </div>
 
         {/* Progress Steps */}
@@ -467,7 +449,7 @@ export default function DaftarUlangPage() {
             )}
 
             {currentStep === 'success' && (
-              <SuccessStep />
+              <SuccessStep existingSubmission={existingSubmission} />
             )}
           </CardContent>
         </Card>
@@ -485,12 +467,7 @@ export default function DaftarUlangPage() {
             </Button>
 
             <Button
-              onClick={() => {
-                console.log('=== BUTTON CLICKED ===')
-                console.log('isLoading state:', isLoading)
-                console.log('currentStep:', currentStep)
-                handleNext()
-              }}
+              onClick={handleNext}
               disabled={isLoading}
               className="bg-green-600 hover:bg-green-700"
             >
@@ -706,6 +683,22 @@ function HalaqahSelectionStep({
     }
   }
 
+  // Sort halaqah: tashih_ujian first, then ujian_only, then tashih_only
+  const getSortPriority = (classType: string) => {
+    switch (classType) {
+      case 'tashih_ujian': return 1
+      case 'ujian_only': return 2
+      case 'tashih_only': return 3
+      default: return 4
+    }
+  }
+
+  const sortedHalaqahData = [...halaqahData].sort((a, b) => {
+    const priorityA = getSortPriority(a.class_type)
+    const priorityB = getSortPriority(b.class_type)
+    return priorityA - priorityB
+  })
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg p-6 text-white">
@@ -729,7 +722,7 @@ function HalaqahSelectionStep({
             </p>
           </div>
         ) : (
-          halaqahData.map(halaqah => {
+          sortedHalaqahData.map(halaqah => {
             const ujianSelected = isUjianSelected(halaqah.id)
             const tashihSelected = isTashihSelected(halaqah.id)
             const isBothRequired = isTashihUjianBoth(halaqah)
@@ -1066,19 +1059,13 @@ function PartnerSelectionStep({
   const handlePartnerSelect = (partner: any, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent event from bubbling to parent
 
-    console.log('=== handlePartnerSelect called ===')
-    console.log('Selected partner:', partner.user_id, partner.users?.full_name)
-
     const updatedData = {
       ...formDataRef.current,
       partner_type: 'self_match',
       partner_user_id: partner.user_id
     }
 
-    console.log('Calling onChange with updatedData:', updatedData.partner_user_id)
     onChange(updatedData)
-
-    console.log('handlePartnerSelect completed')
   }
 
   return (
@@ -1180,7 +1167,6 @@ function PartnerSelectionStep({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation()
-                    console.log('=== Clearing partner selection ===')
                     onChange({
                       ...formDataRef.current,
                       partner_user_id: ''
@@ -1587,15 +1573,22 @@ function AkadUploadStep({
   )
 }
 
-function SuccessStep() {
+function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const router = useRouter()
+
+  // Check if this is a previously submitted registration
+  const isPreviouslySubmitted = existingSubmission?.status === 'submitted'
 
   return (
     <div className="text-center py-8">
       <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Alhamdulillah! Daftar Ulang Berhasil</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        {isPreviouslySubmitted ? 'Anda Sudah Daftar Ulang' : 'Alhamdulillah! Daftar Ulang Berhasil'}
+      </h2>
       <p className="text-gray-600 mb-8">
-        Data daftar ulang Anda berhasil dikirim. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.
+        {isPreviouslySubmitted
+          ? 'Data daftar ulang Anda sudah kami terima. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'
+          : 'Data daftar ulang Anda berhasil dikirim. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'}
       </p>
 
       <div className="space-y-3">
