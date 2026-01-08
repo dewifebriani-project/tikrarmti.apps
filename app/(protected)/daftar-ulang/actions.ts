@@ -324,7 +324,7 @@ export async function uploadAkad(formData: FormData) {
   try {
     const fileExt = file.name.split('.').pop()
     const fileName = `${authUser.id}/${Date.now()}_akad.${fileExt}`
-    const filePath = `daftar-ulang/${fileName}`
+    const filePath = `akad/${fileName}`
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -340,7 +340,7 @@ export async function uploadAkad(formData: FormData) {
       if (uploadError.message.includes('bucket not found') || uploadError.message.includes('The resource was not found')) {
         return {
           success: false,
-          error: 'Bucket storage "documents" belum dibuat. Silakan hubungi admin untuk membuat bucket di Supabase Storage.'
+          error: 'Bucket storage belum tersedia. Silakan hubungi admin.'
         }
       }
 
@@ -371,7 +371,7 @@ export async function uploadAkad(formData: FormData) {
     if (error?.message?.includes('bucket') || error?.message?.includes('storage')) {
       return {
         success: false,
-        error: 'Bucket storage "documents" belum tersedia. Silakan hubungi admin.'
+        error: 'Bucket storage belum tersedia. Silakan hubungi admin.'
       }
     }
 
