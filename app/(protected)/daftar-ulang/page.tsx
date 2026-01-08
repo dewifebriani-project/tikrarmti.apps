@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1032,6 +1032,10 @@ function PartnerSelectionStep({
   const [searchQuery, setSearchQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
 
+  // Use ref to always get latest formData
+  const formDataRef = useRef(formData)
+  formDataRef.current = formData
+
   useEffect(() => {
     if (formData.partner_type === 'self_match' && registrationId) {
       fetchPartners()
@@ -1063,19 +1067,17 @@ function PartnerSelectionStep({
     console.log('=== handlePartnerSelect called ===')
     console.log('Selected partner:', partner.user_id, partner.users?.full_name)
     console.log('Current formData.partner_user_id before update:', formData.partner_user_id)
-    console.log('Current formData.partner_type before update:', formData.partner_type)
+    console.log('Current formDataRef.current.partner_user_id:', formDataRef.current.partner_user_id)
 
-    // Use functional update to avoid closure issues
-    onChange((prev: any) => {
-      console.log('Previous state in functional update:', prev.partner_user_id)
-      const newState = {
-        ...prev,
-        partner_type: 'self_match',
-        partner_user_id: partner.user_id
-      }
-      console.log('New state after update:', newState.partner_user_id)
-      return newState
-    })
+    // Use ref to get latest formData, then update
+    const updatedData = {
+      ...formDataRef.current,
+      partner_type: 'self_match',
+      partner_user_id: partner.user_id
+    }
+
+    console.log('Calling onChange with updatedData:', updatedData.partner_user_id)
+    onChange(updatedData)
 
     setShowDropdown(false)
     setSearchQuery(partner.users?.full_name || '') // Keep the partner's name in the input
