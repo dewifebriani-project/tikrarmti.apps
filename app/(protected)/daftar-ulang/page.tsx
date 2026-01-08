@@ -11,6 +11,20 @@ import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad } from './actions'
 
 type Step = 'confirm' | 'halaqah' | 'partner' | 'review' | 'akad' | 'success'
 
+// Helper function to format time slot value
+const formatTimeSlot = (timeSlot: string): string => {
+  const timeSlotMap: Record<string, string> = {
+    '04-06': '04.00 - 06.00 WIB/WITA/WIT',
+    '06-09': '06.00 - 09.00 WIB/WITA/WIT',
+    '09-12': '09.00 - 12.00 WIB/WITA/WIT',
+    '12-15': '12.00 - 15.00 WIB/WITA/WIT',
+    '15-18': '15.00 - 18.00 WIB/WITA/WIT',
+    '18-21': '18.00 - 21.00 WIB/WITA/WIT',
+    '21-24': '21.00 - 24.00 WIB/WITA/WIT'
+  }
+  return timeSlotMap[timeSlot] || timeSlot
+}
+
 interface HalaqahData {
   id: string
   name: string
@@ -215,6 +229,11 @@ export default function DaftarUlangPage() {
       setCurrentStep('partner')
     } else if (currentStep === 'partner') {
       console.log('Partner step validation - formData:', formData)
+      console.log('partner_type:', formData.partner_type)
+      console.log('partner_user_id:', formData.partner_user_id)
+      console.log('partner_user_id type:', typeof formData.partner_user_id)
+      console.log('partner_user_id is truthy:', !!formData.partner_user_id)
+
       if (!formData.partner_type) {
         toast.error('Pilih jenis pasangan belajar')
         return
@@ -232,6 +251,7 @@ export default function DaftarUlangPage() {
         toast.error('Pilih hubungan dengan pasangan belajar')
         return
       }
+      console.log('Partner validation passed, proceeding to review')
       setCurrentStep('review')
     } else if (currentStep === 'review') {
       setCurrentStep('akad')
@@ -496,7 +516,7 @@ function ConfirmDataStep({
           <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Utama</label>
           <input
             type="text"
-            value={formData.confirmed_main_time_slot}
+            value={formatTimeSlot(formData.confirmed_main_time_slot)}
             readOnly
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
           />
@@ -506,7 +526,7 @@ function ConfirmDataStep({
           <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Cadangan</label>
           <input
             type="text"
-            value={formData.confirmed_backup_time_slot}
+            value={formatTimeSlot(formData.confirmed_backup_time_slot)}
             readOnly
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
           />
@@ -1385,11 +1405,11 @@ function ReviewStep({
             </div>
             <div>
               <span className="text-gray-600">Waktu Utama</span>
-              <p className="font-medium">{formData.confirmed_main_time_slot}{formData.confirmed_main_time_slot && !formData.confirmed_main_time_slot.includes('WIB') ? ' WIB' : ''}</p>
+              <p className="font-medium">{formatTimeSlot(formData.confirmed_main_time_slot)}</p>
             </div>
             <div>
               <span className="text-gray-600">Waktu Cadangan</span>
-              <p className="font-medium">{formData.confirmed_backup_time_slot}{formData.confirmed_backup_time_slot && !formData.confirmed_backup_time_slot.includes('WIB') ? ' WIB' : ''}</p>
+              <p className="font-medium">{formatTimeSlot(formData.confirmed_backup_time_slot)}</p>
             </div>
           </div>
         </div>
