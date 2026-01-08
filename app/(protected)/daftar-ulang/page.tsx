@@ -210,6 +210,11 @@ export default function DaftarUlangPage() {
     return () => clearTimeout(timer)
   }, [formData, registrationData?.id])
 
+  // Debug: Log isLoading state changes
+  useEffect(() => {
+    console.log('=== isLoading state changed ===', isLoading)
+  }, [isLoading])
+
   const handleNext = () => {
     console.log('=== handleNext called ===')
     console.log('currentStep:', currentStep)
@@ -354,6 +359,14 @@ export default function DaftarUlangPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Daftar Ulang Tikrar Tahfidz</h1>
           <p className="text-gray-600">Lengkapi data daftar ulang untuk memulai perjalanan hafalan</p>
+          {/* Debug info */}
+          <div className="mt-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+            <p><strong>DEBUG:</strong></p>
+            <p>isLoading: {isLoading.toString()}</p>
+            <p>currentStep: {currentStep}</p>
+            <p>partner_type: {formData.partner_type || '(empty)'}</p>
+            <p>partner_user_id: {formData.partner_user_id || '(empty)'}</p>
+          </div>
         </div>
 
         {/* Progress Steps */}
@@ -457,7 +470,12 @@ export default function DaftarUlangPage() {
             </Button>
 
             <Button
-              onClick={handleNext}
+              onClick={() => {
+                console.log('=== BUTTON CLICKED ===')
+                console.log('isLoading state:', isLoading)
+                console.log('currentStep:', currentStep)
+                handleNext()
+              }}
               disabled={isLoading}
               className="bg-green-600 hover:bg-green-700"
             >
