@@ -7,9 +7,10 @@ CREATE TABLE IF NOT EXISTS public.study_partners (
   -- Batch reference
   batch_id UUID NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
 
-  -- The two paired users
+  -- The two paired users (user_1_id should always be < user_2_id to prevent duplicates)
   user_1_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   user_2_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  CHECK (user_1_id < user_2_id),
 
   -- Pairing metadata
   pairing_type TEXT NOT NULL CHECK (pairing_type IN ('self_match', 'system_match', 'family', 'tarteel')),
@@ -20,15 +21,7 @@ CREATE TABLE IF NOT EXISTS public.study_partners (
   paired_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
   -- Notes
-  notes TEXT,
-
-  -- Ensure unique pairing (same two users can't be paired twice)
-  CONSTRAINT unique_pairing EXCLUDE (
-    WITH OPERATOR (=) AS (
-      LEAST(user_1_id, user_2_id),
-      GREATEST(user_1_id, user_2_id)
-    )
-  )
+  notes TEXT
 );
 
 -- Add indexes for performance

@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const { data: existingPairing } = await supabase
       .from('study_partners')
       .select('id')
-      .or(`and(user_1_id.eq.${user_1_id},user_2_id.eq.${user_2_id}),and(user_1_id.eq.${user_2_id},user_2_id.eq.${user_1_id})`)
+      .or(`user_1_id.eq.${user_1_id},user_2_id.eq.${user_1_id},user_1_id.eq.${user_2_id},user_2_id.eq.${user_2_id}`)
       .maybeSingle()
 
     if (existingPairing) {
@@ -72,13 +72,17 @@ export async function POST(request: Request) {
       )
     }
 
-    // 5. Create the pairing
+    // 5. Create the pairing (ensure user_1_id < user_2_id for unique constraint)
+    const [smallerUserId, largerUserId] = user_1_id < user_2_id
+      ? [user_1_id, user_2_id]
+      : [user_2_id, user_1_id]
+
     const { error: pairingError } = await supabase
       .from('study_partners')
       .insert({
         batch_id: submission.batch_id,
-        user_1_id,
-        user_2_id,
+        user_1_id: smallerUserId,
+        user_2_id: largerUserId,
         pairing_type: 'self_match',
         pairing_status: 'active',
         paired_by: user.id, // Admin who approved
