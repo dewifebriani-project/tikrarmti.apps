@@ -51,11 +51,11 @@ export async function PUT(
     // Check if user is admin
     const { data: userData, error: userDataError } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    const isAdmin = userData?.role === 'admin';
+    const isAdmin = userData?.roles?.includes('admin');
 
     // Verify that the user_id in the request matches the authenticated user
     // Skip this check for oral submission updates (they don't need user_id in body)
@@ -275,11 +275,11 @@ export async function DELETE(
     // Check if user is admin
     const { data: userData, error: userDataError } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (!userData || userData.role !== 'admin') {
+    if (!userData || !userData.roles?.includes('admin')) {
       return NextResponse.json({
         error: 'Forbidden - Admin access required'
       }, { status: 403 });
