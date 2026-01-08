@@ -66,6 +66,27 @@ export async function saveDaftarUlangDraft(
       .eq('registration_id', registrationId)
       .maybeSingle()
 
+    // Convert empty strings to null for UUID and optional fields
+    const cleanedData = {
+      confirmed_full_name: data.confirmed_full_name,
+      confirmed_chosen_juz: data.confirmed_chosen_juz,
+      confirmed_main_time_slot: data.confirmed_main_time_slot,
+      confirmed_backup_time_slot: data.confirmed_backup_time_slot,
+      confirmed_wa_phone: data.confirmed_wa_phone || null,
+      confirmed_address: data.confirmed_address || null,
+      partner_type: data.partner_type,
+      partner_user_id: data.partner_user_id || null,
+      partner_name: data.partner_name || null,
+      partner_relationship: data.partner_relationship || null,
+      partner_wa_phone: data.partner_wa_phone || null,
+      partner_notes: data.partner_notes || null,
+      ujian_halaqah_id: data.ujian_halaqah_id || null,
+      tashih_halaqah_id: data.tashih_halaqah_id || null,
+      is_tashih_umum: data.is_tashih_umum,
+      akad_url: data.akad_url || null,
+      akad_file_name: data.akad_file_name || null,
+    }
+
     let result
 
     if (existing) {
@@ -73,7 +94,7 @@ export async function saveDaftarUlangDraft(
       result = await supabase
         .from('daftar_ulang_submissions')
         .update({
-          ...data,
+          ...cleanedData,
           updated_at: new Date().toISOString()
         })
         .eq('id', existing.id)
@@ -88,7 +109,7 @@ export async function saveDaftarUlangDraft(
           registration_id: registrationId,
           batch_id: registration.batch_id,
           status: 'draft',
-          ...data
+          ...cleanedData
         })
         .select()
         .single()
@@ -206,22 +227,22 @@ export async function submitDaftarUlang(
       confirmed_wa_phone: data.confirmed_wa_phone || registration.wa_phone,
       confirmed_address: data.confirmed_address || registration.address,
 
-      // Partner selection
+      // Partner selection - Convert empty strings to null for UUID fields
       partner_type: data.partner_type,
-      partner_user_id: data.partner_user_id,
-      partner_name: data.partner_name,
-      partner_relationship: data.partner_relationship,
-      partner_wa_phone: data.partner_wa_phone,
-      partner_notes: data.partner_notes,
+      partner_user_id: data.partner_user_id || null,
+      partner_name: data.partner_name || null,
+      partner_relationship: data.partner_relationship || null,
+      partner_wa_phone: data.partner_wa_phone || null,
+      partner_notes: data.partner_notes || null,
 
-      // Halaqah selection
-      ujian_halaqah_id: data.ujian_halaqah_id,
-      tashih_halaqah_id: data.tashih_halaqah_id,
+      // Halaqah selection - Convert empty strings to null for UUID fields
+      ujian_halaqah_id: data.ujian_halaqah_id || null,
+      tashih_halaqah_id: data.tashih_halaqah_id || null,
       is_tashih_umum: data.is_tashih_umum || false,
 
       // Akad
-      akad_url: data.akad_url,
-      akad_file_name: data.akad_file_name,
+      akad_url: data.akad_url || null,
+      akad_file_name: data.akad_file_name || null,
       akad_submitted_at: new Date().toISOString(),
 
       // Status
