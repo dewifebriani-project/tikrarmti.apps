@@ -101,15 +101,19 @@ export async function GET(request: Request) {
     const matches = []
 
     for (const candidate of candidates || []) {
+      // Supabase returns nested relations as arrays
+      const users = candidate.users as any
+      const registrations = candidate.registrations as any
+
       const candidateData = {
         user_id: candidate.user_id,
-        full_name: candidate.users?.full_name,
-        email: candidate.users?.email,
-        zona_waktu: candidate.users?.zona_waktu,
-        wa_phone: candidate.users?.whatsapp,
-        chosen_juz: candidate.registrations?.chosen_juz,
-        main_time_slot: candidate.registrations?.main_time_slot,
-        backup_time_slot: candidate.registrations?.backup_time_slot,
+        full_name: users?.[0]?.full_name,
+        email: users?.[0]?.email,
+        zona_waktu: users?.[0]?.zona_waktu,
+        wa_phone: users?.[0]?.whatsapp,
+        chosen_juz: registrations?.[0]?.chosen_juz,
+        main_time_slot: registrations?.[0]?.main_time_slot,
+        backup_time_slot: registrations?.[0]?.backup_time_slot,
       }
 
       // Calculate matching score
