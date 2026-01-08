@@ -81,12 +81,35 @@ export async function GET(request: NextRequest) {
       (muallimahRegs || []).map(reg => [reg.user_id, reg])
     )
 
+    // Fetch all submissions for this batch to count students per halaqah
+    const { data: submissions } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, status')
+      .eq('batch_id', registration.batch_id)
+      .in('status', ['submitted', 'draft'])
+
+    // Count students per halaqah
+    const halaqahStudentCount = new Map<string, number>()
+    if (submissions) {
+      for (const sub of submissions) {
+        // Count ujian halaqah
+        if (sub.ujian_halaqah_id) {
+          const current = halaqahStudentCount.get(sub.ujian_halaqah_id) || 0
+          halaqahStudentCount.set(sub.ujian_halaqah_id, current + 1)
+        }
+        // Count tashih halaqah (not tashih_umum)
+        if (sub.tashih_halaqah_id && !sub.is_tashih_umum) {
+          const current = halaqahStudentCount.get(sub.tashih_halaqah_id) || 0
+          halaqahStudentCount.set(sub.tashih_halaqah_id, current + 1)
+        }
+      }
+    }
+
     // Process halaqah data and filter by thalibah's juz
     const processedHalaqah = (halaqahData || [])
       .map(h => {
-        // For now, calculate current students from halaqah_students table
-        // TODO: Add proper student count tracking from daftar_ulang_submissions
-        const currentStudents = 0 // Default to 0 since we don't have real-time tracking
+        // Get current student count from submissions map
+        const currentStudents = halaqahStudentCount.get(h.id) || 0
         const maxStudents = h.max_students || 20
         const isFull = currentStudents >= maxStudents
         const availableSlots = maxStudents - currentStudents
