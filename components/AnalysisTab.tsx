@@ -9,7 +9,10 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  BarChart3
+  BarChart3,
+  HeartHandshake,
+  BookOpen,
+  ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -80,11 +83,39 @@ interface BatchAnalysis {
   recommendation: string;
 }
 
+interface MatchingAnalysis {
+  user_id: string;
+  user_name: string;
+  user_juz: string;
+  user_juz_number: number;
+  user_zona_waktu: string;
+  user_main_time: string;
+  user_backup_time: string;
+  total_matches: number;
+  zona_waktu_matches: number;
+  same_juz_matches: number;
+  cross_juz_matches: number;
+}
+
+interface HalaqahAvailability {
+  juz_code: string;
+  juz_number: number;
+  juz_name: string;
+  total_thalibah: number;
+  available_halaqah: number;
+  halaqah_details: any[];
+}
+
+type AnalysisTabType = 'overview' | 'matching' | 'halaqah';
+
 export function AnalysisTab() {
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<AnalysisTabType>('overview');
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [analysis, setAnalysis] = useState<BatchAnalysis | null>(null);
+  const [matchingData, setMatchingData] = useState<MatchingAnalysis[]>([]);
+  const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
 
   useEffect(() => {
     loadBatches();
@@ -92,9 +123,15 @@ export function AnalysisTab() {
 
   useEffect(() => {
     if (selectedBatchId) {
-      loadAnalysis(selectedBatchId);
+      if (activeTab === 'overview') {
+        loadAnalysis(selectedBatchId);
+      } else if (activeTab === 'matching') {
+        loadMatchingAnalysis(selectedBatchId);
+      } else if (activeTab === 'halaqah') {
+        loadHalaqahAvailability(selectedBatchId);
+      }
     }
-  }, [selectedBatchId]);
+  }, [selectedBatchId, activeTab]);
 
   const loadBatches = async () => {
     try {
@@ -268,12 +305,76 @@ export function AnalysisTab() {
     }
   };
 
-  if (loading && !analysis) {
+  const loadMatchingAnalysis = async (batchId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/analysis/matching?batch_id=${batchId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to load matching analysis');
+        setLoading(false);
+        return;
+      }
+
+      const result = await response.json();
+      setMatchingData(result.data?.matches || []);
+    } catch (error) {
+      console.error('Error loading matching analysis:', error);
+      toast.error('Failed to load matching analysis');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadHalaqahAvailability = async (batchId: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/analysis/halaqah-availability?batch_id=${batchId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Failed to load halaqah availability');
+        setLoading(false);
+        return;
+      }
+
+      const result = await response.json();
+      setHalaqahData(result.data?.availability || []);
+    } catch (error) {
+      console.error('Error loading halaqah availability:', error);
+      toast.error('Failed to load halaqah availability');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !analysis && activeTab === 'overview') {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
           <p className="text-sm text-gray-600">Loading analysis...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading && matchingData.length === 0 && activeTab === 'matching') {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
+          <p className="text-sm text-gray-600">Loading matching analysis...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading && halaqahData.length === 0 && activeTab === 'halaqah') {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
+          <p className="text-sm text-gray-600">Loading halaqah availability...</p>
         </div>
       </div>
     );
@@ -286,7 +387,7 @@ export function AnalysisTab() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Batch Analysis</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Analisis kecukupan muallimah dengan jumlah thalibah per batch
+            Analisis kecukupan muallimah, matching pasangan belajar, dan ketersediaan halaqah
           </p>
         </div>
       </div>
@@ -298,7 +399,10 @@ export function AnalysisTab() {
         </label>
         <select
           value={selectedBatchId}
-          onChange={(e) => setSelectedBatchId(e.target.value)}
+          onChange={(e) => {
+            setSelectedBatchId(e.target.value);
+            setLoading(true);
+          }}
           className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-900"
         >
           <option value="">-- Pilih Batch --</option>
@@ -310,7 +414,49 @@ export function AnalysisTab() {
         </select>
       </div>
 
-      {analysis && (
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="border-b border-gray-200">
+          <nav className="flex -mb-px">
+            <button
+              onClick={() => { setActiveTab('overview'); setLoading(true); }}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'overview'
+                  ? 'border-green-900 text-green-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Overview
+            </button>
+            <button
+              onClick={() => { setActiveTab('matching'); setLoading(true); }}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'matching'
+                  ? 'border-green-900 text-green-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <HeartHandshake className="w-4 h-4" />
+              Matching Pasangan
+            </button>
+            <button
+              onClick={() => { setActiveTab('halaqah'); setLoading(true); }}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === 'halaqah'
+                  ? 'border-green-900 text-green-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Ketersediaan Halaqah
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && analysis && (
         <>
           {/* Recommendation Card */}
           <div className={`rounded-lg shadow p-6 ${
@@ -478,7 +624,129 @@ export function AnalysisTab() {
         </>
       )}
 
-      {!analysis && selectedBatchId && (
+      {activeTab === 'matching' && (
+        <>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <HeartHandshake className="w-5 h-5 text-green-900" />
+              <h3 className="text-lg font-semibold text-gray-900">Analisis Matching Pasangan Belajar</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Analisis potensi matching pasangan belajar untuk setiap thalibah. Prioritas: zona waktu sama &gt; juz option sama &gt; juz number sama &gt; lintas juz.
+            </p>
+
+            {matchingData.length === 0 ? (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Belum ada data matching. Pilih batch untuk melihat analisis.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Utama</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Matches</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Juz Sama</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Lintas Juz</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {matchingData.map((match) => (
+                      <tr key={match.user_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{match.user_name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_juz}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_zona_waktu || '-'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_main_time}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            match.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {match.total_matches}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-purple-600">{match.zona_waktu_matches}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-blue-600">{match.same_juz_matches}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-orange-600">{match.cross_juz_matches}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'halaqah' && (
+        <>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-green-900" />
+              <h3 className="text-lg font-semibold text-gray-900">Ketersediaan Halaqah per Juz</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Analisis ketersediaan halaqah untuk setiap juz beserta jumlah thalibah dan kapasitas yang tersedia.
+            </p>
+
+            {halaqahData.length === 0 ? (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Belum ada data halaqah. Pilih batch untuk melihat analisis.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {halaqahData.map((juz) => (
+                  <div key={juz.juz_code} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">{juz.juz_name}</h4>
+                        <p className="text-sm text-gray-600">Code: {juz.juz_code} | Juz {juz.juz_number}</p>
+                      </div>
+                      <div className="flex gap-4 text-right">
+                        <div>
+                          <p className="text-xs text-gray-600">Thalibah</p>
+                          <p className="text-lg font-bold text-blue-600">{juz.total_thalibah}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600">Halaqah</p>
+                          <p className="text-lg font-bold text-green-600">{juz.available_halaqah}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {juz.halaqah_details && juz.halaqah_details.length > 0 ? (
+                      <div className="mt-4">
+                        <p className="text-xs font-medium text-gray-700 mb-2">Detail Halaqah:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {juz.halaqah_details.map((halaqah: any, idx: number) => (
+                            <div key={idx} className="bg-gray-50 rounded p-2 text-xs">
+                              <p className="font-medium text-gray-900">{halaqah.name}</p>
+                              <p className="text-gray-600">Type: {halaqah.class_type}</p>
+                              <p className="text-gray-600">
+                                {halaqah.current_students}/{halaqah.max_students}
+                                ({halaqah.available_slots} available)
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-500 mt-2">Tidak ada halaqah tersedia untuk juz ini.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {!analysis && selectedBatchId && activeTab === 'overview' && (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-600">Pilih batch untuk melihat analisis</p>
