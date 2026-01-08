@@ -211,6 +211,10 @@ export default function DaftarUlangPage() {
   }, [formData, registrationData?.id])
 
   const handleNext = () => {
+    console.log('=== handleNext called ===')
+    console.log('currentStep:', currentStep)
+    console.log('formData:', formData)
+
     // Validate current step before proceeding
     if (currentStep === 'confirm') {
       if (!formData.confirmed_full_name) {
