@@ -127,12 +127,13 @@ export async function POST(request: NextRequest) {
             jenis_kelamin: sanitizedData.jenis_kelamin,
             pekerjaan: sanitizedData.pekerjaan,
             alasan_daftar: sanitizedData.alasan_daftar,
-            role: sanitizedData.role,
+            // Note: Don't update roles array on profile completion
+            // Roles should be managed by admin only
             is_active: true,
             updated_at: new Date().toISOString()
           })
           .eq('id', user.id)
-          .select('id, email, full_name, role')
+          .select('id, email, full_name, roles')
           .single()
 
         if (updateError) {
@@ -171,12 +172,12 @@ export async function POST(request: NextRequest) {
             jenis_kelamin: sanitizedData.jenis_kelamin,
             pekerjaan: sanitizedData.pekerjaan,
             alasan_daftar: sanitizedData.alasan_daftar,
-            role: sanitizedData.role,
+            roles: [sanitizedData.role], // Convert role string to roles array
             is_active: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
-          .select('id, email, full_name, role')
+          .select('id, email, full_name, roles')
           .single()
 
         if (insertError) {
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
           id: result.id,
           email: result.email,
           full_name: result.full_name,
-          role: result.role
+          roles: result.roles
         }
       }, existingUser ? 'Profil berhasil diperbarui' : 'Profil berhasil dilengkapi')
 
