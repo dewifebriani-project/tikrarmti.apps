@@ -20,12 +20,12 @@ export async function GET(request: Request) {
   }
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
+    .from('users')
+    .select('roles')
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || !profile.roles || !profile.roles.includes('admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -51,12 +51,12 @@ export async function GET(request: Request) {
         chosen_juz,
         main_time_slot,
         backup_time_slot,
-        profiles!user_id (
+        users!user_id (
           id,
           full_name,
           email,
           zona_waktu,
-          wa_phone
+          whatsapp
         )
       `)
       .eq('user_id', userId)
@@ -75,12 +75,12 @@ export async function GET(request: Request) {
       .from('daftar_ulang_submissions')
       .select(`
         user_id,
-        profiles!daftar_ulang_submissions_user_id_fkey (
+        users!daftar_ulang_submissions_user_id_fkey (
           id,
           full_name,
           email,
           zona_waktu,
-          wa_phone
+          whatsapp
         ),
         registrations:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey (
           user_id,
@@ -103,10 +103,10 @@ export async function GET(request: Request) {
     for (const candidate of candidates || []) {
       const candidateData = {
         user_id: candidate.user_id,
-        full_name: candidate.profiles?.full_name,
-        email: candidate.profiles?.email,
-        zona_waktu: candidate.profiles?.zona_waktu,
-        wa_phone: candidate.profiles?.wa_phone,
+        full_name: candidate.users?.full_name,
+        email: candidate.users?.email,
+        zona_waktu: candidate.users?.zona_waktu,
+        wa_phone: candidate.users?.whatsapp,
         chosen_juz: candidate.registrations?.chosen_juz,
         main_time_slot: candidate.registrations?.main_time_slot,
         backup_time_slot: candidate.registrations?.backup_time_slot,
@@ -138,7 +138,7 @@ export async function GET(request: Request) {
           user_id: userData.user_id,
           full_name: userData.full_name,
           chosen_juz: userData.chosen_juz,
-          zona_waktu: userData.profiles?.zona_waktu,
+          zona_waktu: userData.users?.zona_waktu,
           main_time_slot: userData.main_time_slot,
           backup_time_slot: userData.backup_time_slot,
         },
@@ -172,7 +172,7 @@ export async function GET(request: Request) {
 function calculateMatchScore(user1: any, user2: any): number {
   let score = 0
 
-  const user1Zona = user1.profiles?.zona_waktu || user1.zona_waktu
+  const user1Zona = user1.users?.zona_waktu || user1.zona_waktu
   const user2Zona = user2.zona_waktu
 
   const user1Juz = user1.chosen_juz
@@ -205,7 +205,7 @@ function calculateMatchScore(user1: any, user2: any): number {
 function getMatchReasons(user1: any, user2: any): string[] {
   const reasons = []
 
-  const user1Zona = user1.profiles?.zona_waktu || user1.zona_waktu
+  const user1Zona = user1.users?.zona_waktu || user1.zona_waktu
   const user2Zona = user2.zona_waktu
 
   const user1Juz = user1.chosen_juz

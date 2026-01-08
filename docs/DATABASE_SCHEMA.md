@@ -57,6 +57,45 @@ CREATE TABLE public.batches (
   registered_count integer DEFAULT 0,
   CONSTRAINT batches_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.daftar_ulang_submissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  registration_id uuid NOT NULL,
+  batch_id uuid NOT NULL,
+  confirmed_full_name character varying NOT NULL,
+  confirmed_chosen_juz character varying NOT NULL,
+  confirmed_main_time_slot character varying NOT NULL,
+  confirmed_backup_time_slot character varying NOT NULL,
+  confirmed_wa_phone character varying,
+  confirmed_address text,
+  partner_type character varying NOT NULL CHECK (partner_type::text = ANY (ARRAY['self_match'::character varying, 'system_match'::character varying, 'family'::character varying, 'tarteel'::character varying]::text[])),
+  partner_user_id uuid,
+  partner_name character varying,
+  partner_relationship character varying,
+  partner_notes text,
+  ujian_halaqah_id uuid,
+  tashih_halaqah_id uuid,
+  is_tashih_umum boolean DEFAULT false,
+  akad_url text,
+  akad_file_name character varying,
+  akad_submitted_at timestamp with time zone,
+  status character varying NOT NULL DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying, 'approved'::character varying, 'rejected'::character varying]::text[])),
+  submitted_at timestamp with time zone,
+  reviewed_at timestamp with time zone,
+  reviewed_by uuid,
+  review_notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  partner_wa_phone character varying,
+  CONSTRAINT daftar_ulang_submissions_pkey PRIMARY KEY (id),
+  CONSTRAINT daftar_ulang_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT daftar_ulang_submissions_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.pendaftaran_tikrar_tahfidz(id),
+  CONSTRAINT daftar_ulang_submissions_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
+  CONSTRAINT daftar_ulang_submissions_partner_user_id_fkey FOREIGN KEY (partner_user_id) REFERENCES public.users(id),
+  CONSTRAINT daftar_ulang_submissions_ujian_halaqah_id_fkey FOREIGN KEY (ujian_halaqah_id) REFERENCES public.halaqah(id),
+  CONSTRAINT daftar_ulang_submissions_tashih_halaqah_id_fkey FOREIGN KEY (tashih_halaqah_id) REFERENCES public.halaqah(id),
+  CONSTRAINT daftar_ulang_submissions_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.error_logs (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   message text NOT NULL,
@@ -158,7 +197,7 @@ CREATE TABLE public.exam_questions (
 );
 CREATE TABLE public.halaqah (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  program_id uuid,  -- Nullable: assigned by admin after halaqah creation
+  program_id uuid,
   name character varying NOT NULL,
   description text,
   day_of_week integer CHECK (day_of_week >= 1 AND day_of_week <= 7),
@@ -169,8 +208,25 @@ CREATE TABLE public.halaqah (
   status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text, 'suspended'::character varying::text])),
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  zoom_link text,
+  muallimah_id uuid,
+  waitlist_max integer DEFAULT 5,
+  preferred_juz text,
   CONSTRAINT halaqah_pkey PRIMARY KEY (id),
-  CONSTRAINT halaqah_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.programs(id)
+  CONSTRAINT halaqah_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.programs(id),
+  CONSTRAINT halaqah_muallimah_id_fkey FOREIGN KEY (muallimah_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.halaqah_class_types (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  halaqah_id uuid NOT NULL,
+  class_type character varying NOT NULL CHECK (class_type::text = ANY (ARRAY['tashih_ujian'::character varying, 'tashih_only'::character varying, 'ujian_only'::character varying]::text[])),
+  current_students integer DEFAULT 0,
+  max_students integer DEFAULT 20,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT halaqah_class_types_pkey PRIMARY KEY (id),
+  CONSTRAINT halaqah_class_types_halaqah_id_fkey FOREIGN KEY (halaqah_id) REFERENCES public.halaqah(id)
 );
 CREATE TABLE public.halaqah_mentors (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -299,6 +355,19 @@ CREATE TABLE public.musyrifah_registrations (
   CONSTRAINT musyrifah_registrations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT musyrifah_registrations_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
+CREATE TABLE public.partner_preferences (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  preferred_partner_id uuid,
+  registration_id uuid NOT NULL,
+  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'cancelled'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT partner_preferences_pkey PRIMARY KEY (id),
+  CONSTRAINT partner_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT partner_preferences_preferred_partner_id_fkey FOREIGN KEY (preferred_partner_id) REFERENCES public.users(id),
+  CONSTRAINT partner_preferences_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.pendaftaran_tikrar_tahfidz(id)
+);
 CREATE TABLE public.pendaftaran_tikrar_tahfidz (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -401,8 +470,35 @@ CREATE TABLE public.programs (
   status character varying DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying::text, 'open'::character varying::text, 'ongoing'::character varying::text, 'completed'::character varying::text, 'cancelled'::character varying::text])),
   created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+  class_type text CHECK (class_type IS NULL OR (class_type = ANY (ARRAY['tikrar_tahfidz'::text, 'pra_tahfidz'::text, 'tashih_only'::text, 'ujian_only'::text, 'tashih_ujian'::text]))),
   CONSTRAINT programs_pkey PRIMARY KEY (id),
   CONSTRAINT programs_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id)
+);
+CREATE TABLE public.system_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  error_message text NOT NULL,
+  error_name text,
+  error_stack text,
+  context jsonb DEFAULT '{}'::jsonb,
+  user_id uuid,
+  user_email text,
+  user_role ARRAY,
+  request_path text,
+  request_method text,
+  ip_address text,
+  user_agent text,
+  severity text DEFAULT 'ERROR'::text CHECK (severity = ANY (ARRAY['DEBUG'::text, 'INFO'::text, 'WARN'::text, 'ERROR'::text, 'FATAL'::text])),
+  error_type text DEFAULT 'runtime'::text CHECK (error_type = ANY (ARRAY['runtime'::text, 'auth'::text, 'database'::text, 'validation'::text, 'network'::text, 'unknown'::text])),
+  is_auth_error boolean DEFAULT false,
+  is_supabase_getuser_error boolean DEFAULT false,
+  environment text DEFAULT 'development'::text,
+  release_version text,
+  tags ARRAY DEFAULT '{}'::text[],
+  sentry_event_id text,
+  sentry_sent boolean DEFAULT false,
+  CONSTRAINT system_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT system_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -433,128 +529,3 @@ CREATE TABLE public.users (
   CONSTRAINT fk_users_current_tikrar_batch FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id),
   CONSTRAINT users_current_tikrar_batch_id_fkey FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id)
 );
--- ============================================================================
--- DAFTAR ULANG SYSTEM TABLES (Added 2026-01-08)
--- ============================================================================
-
-CREATE TABLE public.daftar_ulang_submissions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  registration_id uuid NOT NULL REFERENCES public.pendaftaran_tikrar_tahfidz(id) ON DELETE CASCADE,
-  batch_id uuid NOT NULL REFERENCES public.batches(id),
-
-  -- Confirmed data from registration
-  confirmed_full_name character varying NOT NULL,
-  confirmed_chosen_juz character varying NOT NULL,
-  confirmed_main_time_slot character varying NOT NULL,
-  confirmed_backup_time_slot character varying NOT NULL,
-  confirmed_wa_phone character varying,
-  confirmed_address text,
-
-  -- Partner selection
-  partner_type character varying NOT NULL CHECK (partner_type::text = ANY (ARRAY['self_match'::character varying::text, 'system_match'::character varying::text, 'family'::character varying::text, 'tarteel'::character varying::text])),
-  partner_user_id uuid REFERENCES public.users(id),
-  partner_name character varying,
-  partner_relationship character varying,
-  partner_notes text,
-
-  -- Halaqah selection
-  ujian_halaqah_id uuid REFERENCES public.halaqah(id),
-  tashih_halaqah_id uuid REFERENCES public.halaqah(id),
-  is_tashih_umum boolean DEFAULT false,
-
-  -- Akad submission
-  akad_url text,
-  akad_file_name character varying,
-  akad_submitted_at timestamp with time zone,
-
-  -- Status tracking
-  status character varying NOT NULL DEFAULT 'draft'::character varying CHECK (status::text = ANY (ARRAY['draft'::character varying::text, 'submitted'::character varying::text, 'approved'::character varying::text, 'rejected'::character varying::text])),
-  submitted_at timestamp with time zone,
-  reviewed_at timestamp with time zone,
-  reviewed_by uuid REFERENCES public.users(id),
-  review_notes text,
-
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT daftar_ulang_submissions_user_id_key UNIQUE (user_id, registration_id)
-);
-
-CREATE TABLE public.partner_preferences (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  preferred_partner_id uuid REFERENCES public.users(id),
-  registration_id uuid NOT NULL REFERENCES public.pendaftaran_tikrar_tahfidz(id),
-  status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text, 'cancelled'::character varying::text])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT partner_preferences_user_partner_unique UNIQUE (user_id, preferred_partner_id, registration_id)
-);
-
-CREATE TABLE public.halaqah_class_types (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  halaqah_id uuid NOT NULL REFERENCES public.halaqah(id) ON DELETE CASCADE,
-  class_type character varying NOT NULL CHECK (class_type::text = ANY (ARRAY['tashih_ujian'::character varying::text, 'tashih_only'::character varying::text, 'ujian_only'::character varying::text])),
-  current_students integer DEFAULT 0,
-  max_students integer DEFAULT 20,
-  is_active boolean DEFAULT true,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT halaqah_class_types_halaqah_type_unique UNIQUE (halaqah_id, class_type)
-);
-
--- ============================================================================
--- FUNCTIONS (Added 2026-01-08)
--- ============================================================================
-
--- Function: find_compatible_study_partners
--- Returns compatible study partners with priority: zona_waktu first, then juz option > juz number > cross juz
--- Each category: main_time_slot > backup_time_slot
-CREATE OR REPLACE FUNCTION find_compatible_study_partners(
-  p_user_id uuid,
-  p_batch_id uuid,
-  p_time_slot character varying,
-  p_juz character varying,
-  p_zona_waktu character varying
-) RETURNS TABLE (
-  partner_id uuid,
-  partner_name character varying,
-  partner_juz character varying,
-  partner_juz_option character varying,
-  partner_juz_number integer,
-  partner_time_slot character varying,
-  partner_backup_time_slot character varying,
-  partner_zona_waktu character varying,
-  match_score integer,
-  match_details character varying
-) LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function: analyze_potential_matches
--- Analyzes potential matching opportunities for all selected thalibah in a batch
-CREATE OR REPLACE FUNCTION analyze_potential_matches(p_batch_id uuid)
-RETURNS TABLE (
-  user_id uuid,
-  user_name character varying,
-  user_juz character varying,
-  user_juz_number integer,
-  user_zona_waktu character varying,
-  user_main_time character varying,
-  user_backup_time character varying,
-  total_matches integer,
-  zona_waktu_matches integer,
-  same_juz_matches integer,
-  cross_juz_matches integer
-) LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function: analyze_halaqah_availability_by_juz
--- Analyzes halaqah availability by juz option for a given batch
-CREATE OR REPLACE FUNCTION analyze_halaqah_availability_by_juz(p_batch_id uuid)
-RETURNS TABLE (
-  juz_code character varying,
-  juz_number integer,
-  juz_name character varying,
-  total_thalibah integer,
-  available_halaqah integer,
-  halaqah_details jsonb
-) LANGUAGE plpgsql SECURITY DEFINER;
-

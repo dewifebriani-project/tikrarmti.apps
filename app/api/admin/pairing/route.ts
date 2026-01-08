@@ -21,12 +21,12 @@ export async function GET(request: Request) {
 
   // Check if user is admin
   const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role')
+    .from('users')
+    .select('roles')
     .eq('id', user.id)
     .single()
 
-  if (profileError || !profile || profile.role !== 'admin') {
+  if (profileError || !profile || !profile.roles || !profile.roles.includes('admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -50,12 +50,12 @@ export async function GET(request: Request) {
         partner_relationship,
         partner_notes,
         submitted_at,
-        profiles!daftar_ulang_submissions_user_id_fkey (
+        users!daftar_ulang_submissions_user_id_fkey (
           id,
           full_name,
           email,
           zona_waktu,
-          wa_phone
+          whatsapp
         ),
         registrations:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey (
           id,
@@ -88,10 +88,10 @@ export async function GET(request: Request) {
       const requestData = {
         id: submission.id,
         user_id: submission.user_id,
-        user_name: submission.profiles?.full_name,
-        user_email: submission.profiles?.email,
-        user_zona_waktu: submission.profiles?.zona_waktu,
-        user_wa_phone: submission.profiles?.wa_phone,
+        user_name: submission.users?.full_name,
+        user_email: submission.users?.email,
+        user_zona_waktu: submission.users?.zona_waktu,
+        user_wa_phone: submission.users?.whatsapp,
         chosen_juz: submission.registrations?.chosen_juz,
         main_time_slot: submission.registrations?.main_time_slot,
         backup_time_slot: submission.registrations?.backup_time_slot,
@@ -108,9 +108,9 @@ export async function GET(request: Request) {
       if (submission.partner_type === 'self_match') {
         // Fetch partner details
         if (submission.partner_user_id) {
-          const { data: partnerProfile } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, zona_waktu, wa_phone')
+          const { data: partnerUser } = await supabase
+            .from('users')
+            .select('id, full_name, email, zona_waktu, whatsapp')
             .eq('id', submission.partner_user_id)
             .single()
 
@@ -123,12 +123,12 @@ export async function GET(request: Request) {
 
           selfMatchRequests.push({
             ...requestData,
-            partner_details: partnerProfile ? {
-              id: partnerProfile.id,
-              full_name: partnerProfile.full_name,
-              email: partnerProfile.email,
-              zona_waktu: partnerProfile.zona_waktu,
-              wa_phone: partnerProfile.wa_phone,
+            partner_details: partnerUser ? {
+              id: partnerUser.id,
+              full_name: partnerUser.full_name,
+              email: partnerUser.email,
+              zona_waktu: partnerUser.zona_waktu,
+              wa_phone: partnerUser.whatsapp,
               chosen_juz: partnerRegistration?.chosen_juz,
               main_time_slot: partnerRegistration?.main_time_slot,
               backup_time_slot: partnerRegistration?.backup_time_slot,

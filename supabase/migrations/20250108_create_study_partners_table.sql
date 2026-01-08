@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS public.study_partners (
   batch_id UUID NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
 
   -- The two paired users (user_1_id should always be < user_2_id to prevent duplicates)
-  user_1_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  user_2_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  user_1_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_2_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   CHECK (user_1_id < user_2_id),
 
   -- Pairing metadata
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.study_partners (
   pairing_status TEXT NOT NULL DEFAULT 'active' CHECK (pairing_status IN ('active', 'inactive', 'paused')),
 
   -- Admin who created this pairing
-  paired_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  paired_by UUID REFERENCES users(id) ON DELETE SET NULL,
   paired_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
   -- Notes
@@ -50,8 +50,8 @@ FOR SELECT
 TO authenticated
 USING (
   EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    SELECT 1 FROM public.users
+    WHERE users.id = auth.uid() AND 'admin' = ANY(users.roles)
   )
 );
 
@@ -66,8 +66,8 @@ ON public.study_partners
 FOR INSERT
 WITH CHECK (
   EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    SELECT 1 FROM public.users
+    WHERE users.id = auth.uid() AND 'admin' = ANY(users.roles)
   )
 );
 
@@ -76,8 +76,8 @@ ON public.study_partners
 FOR UPDATE
 USING (
   EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    SELECT 1 FROM public.users
+    WHERE users.id = auth.uid() AND 'admin' = ANY(users.roles)
   )
 );
 
@@ -86,8 +86,8 @@ ON public.study_partners
 FOR DELETE
 USING (
   EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    SELECT 1 FROM public.users
+    WHERE users.id = auth.uid() AND 'admin' = ANY(users.roles)
   )
 );
 
