@@ -1074,12 +1074,20 @@ export default function PerjalananSaya() {
                                         {!isJuz30 && (
                                           <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                                             <p className="text-xs text-gray-600">Pilihan Ganda</p>
-                                            <p className="text-sm font-bold text-green-700">
-                                              {writtenQuizScore ?? 0} - {(writtenQuizScore ?? 0) < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
-                                            </p>
-                                            {juzAdjusted && (
-                                              <p className="text-xs text-blue-700 mt-1">
-                                                {juzAdjustmentReason}
+                                            {writtenQuizScore !== null && writtenQuizScore !== undefined ? (
+                                              <>
+                                                <p className="text-sm font-bold text-green-700">
+                                                  {writtenQuizScore} - {writtenQuizScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
+                                                </p>
+                                                {juzAdjusted && (
+                                                  <p className="text-xs text-blue-700 mt-1">
+                                                    {juzAdjustmentReason}
+                                                  </p>
+                                                )}
+                                              </>
+                                            ) : (
+                                              <p className="text-sm text-yellow-700 italic">
+                                                Belum dikerjakan
                                               </p>
                                             )}
                                           </div>
@@ -1433,12 +1441,20 @@ export default function PerjalananSaya() {
                                           {!isJuz30 && (
                                             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                                               <p className="text-sm text-gray-600">Pilihan Ganda</p>
-                                              <p className="text-base font-bold text-green-700">
-                                                {writtenQuizScore ?? 0} - {(writtenQuizScore ?? 0) < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
-                                              </p>
-                                              {juzAdjusted && (
-                                                <p className="text-sm text-blue-700 mt-1">
-                                                  {juzAdjustmentReason}
+                                              {writtenQuizScore !== null && writtenQuizScore !== undefined ? (
+                                                <>
+                                                  <p className="text-base font-bold text-green-700">
+                                                    {writtenQuizScore} - {writtenQuizScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
+                                                  </p>
+                                                  {juzAdjusted && (
+                                                    <p className="text-sm text-blue-700 mt-1">
+                                                      {juzAdjustmentReason}
+                                                    </p>
+                                                  )}
+                                                </>
+                                              ) : (
+                                                <p className="text-base text-yellow-700 italic">
+                                                  Belum dikerjakan
                                                 </p>
                                               )}
                                             </div>
