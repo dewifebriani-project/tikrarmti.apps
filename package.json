@@ -9,7 +9,8 @@
     "start": "next start -p 3003",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "generate-build-info": "node scripts/generate-build-info.js"
+    "generate-build-info": "node scripts/generate-build-info.js",
+    "update-selection": "npx tsx scripts/update-selection-status.ts"
   },
   "keywords": [
     "quran",
@@ -74,6 +75,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3"
+    "@eslint/eslintrc": "^3.3.3",
+    "tsx": "^4.21.0"
   }
 }
