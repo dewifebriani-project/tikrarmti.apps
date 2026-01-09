@@ -1550,6 +1550,54 @@ export default function PerjalananSaya() {
           </div>
         )}
 
+        {/* Daftar Ulang Card - Only for selected thalibah who haven't completed re-enrollment */}
+        {user && !isLoading && registrationStatus?.selectionStatus === 'selected' && !registrationStatus.registration?.re_enrollment_completed && (
+          <Link href={`/daftar-ulang?batch_id=${batchId}`} className="block mt-6 sm:mt-8 no-underline">
+            <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 transition-all cursor-pointer hover:shadow-lg">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl text-orange-900">
+                  <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
+                  <span>Mendaftar Ulang</span>
+                  <span className="ml-auto text-xs sm:text-sm bg-orange-600 text-white px-2 py-1 rounded-full">Wajib</span>
+                </CardTitle>
+                <CardDescription className="text-sm sm:text-base text-orange-800">
+                  Konfirmasi keikutsertaan dan lengkapi data untuk angkatan berikutnya
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-start space-x-2 sm:space-x-3">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-orange-900">
+                      <span className="font-medium">Alhamdulillah</span>, Anda telah dipilih untuk mengikuti program Tikrar MTI!
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-2 sm:space-x-3">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-orange-900">
+                      <span className="font-medium">Segera lengkapi</span> data daftar ulang sebelum {batch?.re_enrollment_date ? formatDateIndo(batch.re_enrollment_date) : 'batas waktu yang ditentukan'}
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-2 sm:space-x-3">
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs sm:text-sm text-orange-900">
+                      <span className="font-medium">Penting:</span> Upload akad dan pilih halaqah untuk menyelesaikan proses daftar ulang
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 sm:mt-4 flex items-center justify-between">
+                  <span className="text-xs sm:text-sm text-orange-700">
+                    Klik kartu ini untuk memulai &rarr;
+                  </span>
+                  <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
+                    <span>Mulai Daftar Ulang</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
         {/* Progress Overview */}
         {user && !isLoading && (
           <Card className="mt-6 sm:mt-8">
