@@ -98,10 +98,10 @@ interface MatchingAnalysis {
 }
 
 interface HalaqahAvailability {
-  juz_code: string;
   juz_number: number;
   juz_name: string;
   total_thalibah: number;
+  thalibah_breakdown: Record<string, { code: string; name: string; part: string; thalibah_count: number }>;
   total_halaqah: number;
   total_capacity: number;
   total_filled: number;
@@ -626,9 +626,10 @@ export function AnalysisTab() {
                   const needsMoreHalaqah = juz.needed_halaqah > 0;
                   const utilizationColor = juz.utilization_percentage >= 90 ? 'red' :
                                          juz.utilization_percentage >= 70 ? 'yellow' : 'green';
+                  const breakdownEntries = Object.entries(juz.thalibah_breakdown || {});
 
                   return (
-                    <div key={juz.juz_code} className={`border rounded-lg p-6 ${
+                    <div key={juz.juz_number} className={`border rounded-lg p-6 ${
                       needsMoreHalaqah ? 'border-red-300 bg-red-50' : 'border-gray-200'
                     }`}>
                       {/* Juz Header */}
@@ -656,8 +657,24 @@ export function AnalysisTab() {
                           )}
                         </div>
 
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {/* Thalibah Breakdown */}
+                        {breakdownEntries.length > 0 && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-xs font-medium text-blue-900 mb-2">Breakdown per Tipe:</p>
+                            <div className="flex gap-3 flex-wrap">
+                              {breakdownEntries.map(([code, data]: [string, any]) => (
+                                <div key={code} className="text-xs">
+                                  <span className="font-semibold text-blue-800">{data.code}:</span>
+                                  <span className="text-blue-700 ml-1">{data.thalibah_count} thalibah</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="bg-white rounded-lg p-3 border">
                             <p className="text-xs text-gray-600 mb-1">Total Thalibah</p>
                             <p className="text-2xl font-bold text-blue-600">{juz.total_thalibah}</p>

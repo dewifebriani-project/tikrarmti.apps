@@ -3,14 +3,14 @@
 -- This version uses halaqah.preferred_juz instead of programs.juz_selection
 
 -- Drop the existing function first to avoid return type conflicts
-DROP FUNCTION IF EXISTS analyze_halaqah_availability_by_juz(UUID);
+DROP FUNCTION IF EXISTS analyze_halaqah_availability_by_juz(UUID) CASCADE;
 
 CREATE FUNCTION analyze_halaqah_availability_by_juz(p_batch_id UUID)
 RETURNS TABLE (
-  juz_code VARCHAR,
   juz_number INTEGER,
-  juz_name VARCHAR,
+  juz_name TEXT,
   total_thalibah INTEGER,
+  thalibah_breakdown JSONB,  -- Breakdown per juz_code (28A, 28B, etc.)
   total_halaqah INTEGER,
   total_capacity INTEGER,
   total_filled INTEGER,
@@ -24,24 +24,47 @@ DECLARE
 BEGIN
   RETURN QUERY
   WITH juz_data AS (
-    -- Get all thalibah counts per juz
+    -- Get all thalibah counts per juz_code (28A, 28B, etc.)
     SELECT
       jo.code AS juz_code,
       jo.juz_number,
+      jo.part,
       jo.name AS juz_name,
       COALESCE((
-        SELECT COUNT(DISTINCT pt.user_id)
+        SELECT COUNT(DISTINCT pt.user_id)::INTEGER
         FROM public.pendaftaran_tikrar_tahfidz pt
         WHERE pt.batch_id = p_batch_id
           AND pt.selection_status = 'selected'
           AND pt.chosen_juz = jo.code
-      ), 0) AS total_thalibah
+      ), 0)::INTEGER AS total_thalibah
     FROM public.juz_options jo
     WHERE jo.is_active = true
       AND jo.juz_number IN (28, 29, 30)
   ),
+  juz_aggregated AS (
+    -- Aggregate by juz_number (combine 28A and 28B into Juz 28)
+    SELECT
+      juz_number,
+      juz_number::TEXT || ' (Halaman ' ||
+        MIN(CASE WHEN part = 'A' THEN start_page END) || '-' ||
+        MAX(CASE WHEN part = 'B' THEN end_page END) || ')' AS juz_name,
+      SUM(total_thalibah)::INTEGER AS total_thalibah,
+      JSONB_OBJECT_AGG(
+        juz_code,
+        JSONB_BUILD_OBJECT(
+          'code', juz_code,
+          'name', juz_name,
+          'part', part,
+          'thalibah_count', total_thalibah
+        )
+      ) FILTER (WHERE total_thalibah > 0) AS thalibah_breakdown
+    FROM juz_data
+    GROUP BY juz_number
+  ),
   halaqah_counts AS (
     -- Calculate filled slots for each halaqah
+    -- Include halaqah that have class types: tashih_ujian or ujian_only
+    -- Exclude halaqah that only have tashih_only (for pra-tikrar)
     SELECT
       h.id AS halaqah_id,
       h.name AS halaqah_name,
@@ -55,28 +78,43 @@ BEGIN
       -- No current students yet - this is for capacity planning
       -- We're analyzing if we have enough halaqah for selected thalibah
       0 AS current_students,
-      -- All slots are available (max_students is the capacity)
-      h.max_students AS available_slots
+      -- Use max_students from halaqah_class_types if available, otherwise from halaqah
+      COALESCE(
+        (SELECT SUM(hct.max_students)
+         FROM public.halaqah_class_types hct
+         WHERE hct.halaqah_id = h.id
+           AND hct.class_type IN ('tashih_ujian', 'ujian_only')
+           AND hct.is_active = true),
+        h.max_students
+      ) AS available_slots
     FROM public.halaqah h
-    INNER JOIN public.programs p ON p.id = h.program_id
-    WHERE p.batch_id = p_batch_id
+    LEFT JOIN public.programs p ON p.id = h.program_id
+    WHERE (p.batch_id = p_batch_id OR h.program_id IS NULL)
       AND h.status = 'active'
+      -- Only include halaqah that have tashih_ujian or ujian_only class types
+      AND EXISTS (
+        SELECT 1
+        FROM public.halaqah_class_types hct
+        WHERE hct.halaqah_id = h.id
+          AND hct.class_type IN ('tashih_ujian', 'ujian_only')
+          AND hct.is_active = true
+      )
   ),
   juz_halaqah AS (
-    -- Aggregate halaqah data per juz
+    -- Aggregate halaqah data per juz_number (combined A and B)
     SELECT
-      jd.juz_code,
-      jd.juz_number,
-      jd.juz_name,
-      jd.total_thalibah,
-      COUNT(DISTINCT hc.halaqah_id) AS total_halaqah,
+      ja.juz_number,
+      ja.juz_name,
+      ja.total_thalibah,
+      ja.thalibah_breakdown,
+      COUNT(DISTINCT hc.halaqah_id)::INTEGER AS total_halaqah,
       COALESCE(SUM(hc.max_students), 0)::INTEGER AS total_capacity,
       COALESCE(SUM(hc.current_students), 0)::INTEGER AS total_filled,
       COALESCE(SUM(hc.available_slots), 0)::INTEGER AS total_available,
       -- Calculate needed halaqah: CEIL((total_thalibah - total_available) / 5) if positive
       CASE
-        WHEN (jd.total_thalibah - COALESCE(SUM(hc.available_slots), 0)) > 0 THEN
-          CEIL((jd.total_thalibah - COALESCE(SUM(hc.available_slots), 0))::NUMERIC / v_min_capacity)
+        WHEN (ja.total_thalibah - COALESCE(SUM(hc.available_slots), 0)) > 0 THEN
+          CEIL((ja.total_thalibah - COALESCE(SUM(hc.available_slots), 0))::NUMERIC / v_min_capacity)
         ELSE 0
       END::INTEGER AS needed_halaqah,
       -- Calculate utilization percentage
@@ -84,24 +122,23 @@ BEGIN
         WHEN COALESCE(SUM(hc.max_students), 0) = 0 THEN 0
         ELSE ROUND((SUM(hc.current_students)::NUMERIC / NULLIF(SUM(hc.max_students), 0)) * 100, 2)
       END AS utilization_percentage
-    FROM juz_data jd
+    FROM juz_aggregated ja
     LEFT JOIN halaqah_counts hc ON (
       -- Match halaqah with juz using preferred_juz field
       -- If preferred_juz is NULL, the halaqah can teach all juz (include for all)
       hc.preferred_juz IS NULL OR (
         hc.preferred_juz IS NOT NULL AND (
-          hc.preferred_juz LIKE '%' || jd.juz_code::text || '%' OR
-          hc.preferred_juz LIKE '%' || jd.juz_number::text || '%'
+          hc.preferred_juz LIKE '%' || ja.juz_number::text || '%'
         )
       )
     )
-    GROUP BY jd.juz_code, jd.juz_number, jd.juz_name, jd.total_thalibah
+    GROUP BY ja.juz_number, ja.juz_name, ja.total_thalibah, ja.thalibah_breakdown
   )
   SELECT
-    jh.juz_code,
     jh.juz_number,
     jh.juz_name,
     jh.total_thalibah,
+    jh.thalibah_breakdown,
     jh.total_halaqah,
     jh.total_capacity,
     jh.total_filled,
@@ -131,7 +168,6 @@ BEGIN
         FROM halaqah_counts hc
         WHERE hc.preferred_juz IS NULL OR (
           hc.preferred_juz IS NOT NULL AND (
-            hc.preferred_juz LIKE '%' || jh.juz_code::text || '%' OR
             hc.preferred_juz LIKE '%' || jh.juz_number::text || '%'
           )
         )
@@ -139,7 +175,7 @@ BEGIN
       '[]'::jsonb
     ) AS halaqah_details
   FROM juz_halaqah jh
-  ORDER BY jh.juz_number, jh.juz_code;
+  ORDER BY jh.juz_number;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
