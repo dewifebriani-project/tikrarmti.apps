@@ -7,7 +7,7 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
@@ -1054,6 +1054,69 @@ export default function PerjalananSaya() {
                                   </p>
                                 </div>
                               </div>
+                            ) : item.id === 4 ? (
+                              // Daftar Ulang - Show status and akad files
+                              (() => {
+                                const daftarUlang = registrationStatus.registration?.daftar_ulang;
+                                const isCompleted = registrationStatus.registration?.re_enrollment_completed === true;
+
+                                if (isCompleted && daftarUlang) {
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-start space-x-2">
+                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
+                                          Daftar ulang selesai ✓
+                                        </p>
+                                      </div>
+
+                                      {/* Show akad files */}
+                                      {daftarUlang.akad_files && daftarUlang.akad_files.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          <p className={`text-xs ${styles.textColor} font-medium`}>File Akad:</p>
+                                          {daftarUlang.akad_files.map((file: { url: string; name: string }, idx: number) => (
+                                            <a
+                                              key={idx}
+                                              href={file.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                                            >
+                                              <FileText className="w-3 h-3" />
+                                              {file.name}
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {daftarUlang.submitted_at && (
+                                        <p className={`text-xs ${styles.textColor} mt-1`}>
+                                          Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                } else if (registrationStatus?.registration?.re_enrollment_completed === true) {
+                                  // Completed but no daftar ulang data (shouldn't happen but handle gracefully)
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-start space-x-2">
+                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
+                                          Daftar ulang selesai ✓
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  // Not completed yet
+                                  return (
+                                    <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                      {item.description}
+                                    </p>
+                                  );
+                                }
+                              })()
                             ) : item.id === 3 ? (
                               // Hasil Seleksi - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
                               (() => {
@@ -1437,7 +1500,70 @@ export default function PerjalananSaya() {
                                     </p>
                                   </div>
                                 </div>
-                              ) : item.id === 3 ? (
+                              ) : item.id === 4 ? (
+                              // Daftar Ulang - Show status and akad files
+                              (() => {
+                                const daftarUlang = registrationStatus.registration?.daftar_ulang;
+                                const isCompleted = registrationStatus.registration?.re_enrollment_completed === true;
+
+                                if (isCompleted && daftarUlang) {
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-start space-x-2">
+                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
+                                          Daftar ulang selesai ✓
+                                        </p>
+                                      </div>
+
+                                      {/* Show akad files */}
+                                      {daftarUlang.akad_files && daftarUlang.akad_files.length > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                          <p className={`text-xs ${styles.textColor} font-medium`}>File Akad:</p>
+                                          {daftarUlang.akad_files.map((file: { url: string; name: string }, idx: number) => (
+                                            <a
+                                              key={idx}
+                                              href={file.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                                            >
+                                              <FileText className="w-3 h-3" />
+                                              {file.name}
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {daftarUlang.submitted_at && (
+                                        <p className={`text-xs ${styles.textColor} mt-1`}>
+                                          Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                } else if (registrationStatus?.registration?.re_enrollment_completed === true) {
+                                  // Completed but no daftar ulang data (shouldn't happen but handle gracefully)
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-start space-x-2">
+                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
+                                          Daftar ulang selesai ✓
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  // Not completed yet
+                                  return (
+                                    <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                      {item.description}
+                                    </p>
+                                  );
+                                }
+                              })()
+                            ) : item.id === 3 ? (
                                 // Hasil Seleksi - Desktop view - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
                                 (() => {
                                   const oralStatus = registrationStatus?.oralAssessmentStatus;

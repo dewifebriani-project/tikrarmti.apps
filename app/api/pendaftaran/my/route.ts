@@ -47,21 +47,38 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
+    // Get user's daftar ulang submissions
+    const { data: daftarUlangSubmissions, error: daftarUlangError } = await supabase
+      .from('daftar_ulang_submissions')
+      .select(`
+        *,
+        batch:batches(*)
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
     // Debug logging
     console.log('=== /api/pendaftaran/my DEBUG ===')
     console.log('User ID:', user.id)
     console.log('Tikrar registrations:', tikrarRegistrations?.length || 0)
     console.log('Muallimah registrations:', muallimahRegistrations?.length || 0)
     console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0)
+    console.log('Daftar ulang submissions:', daftarUlangSubmissions?.length || 0)
 
     // Combine all registrations into a single array
     const allRegistrations = [
-      ...(tikrarRegistrations || []).map(reg => ({
-        ...reg,
-        registration_type: 'calon_thalibah',
-        role: 'calon_thalibah',
-        status: reg.status || 'pending'
-      })),
+      ...(tikrarRegistrations || []).map(reg => {
+        // Find matching daftar ulang submission for this registration
+        const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
+        return {
+          ...reg,
+          registration_type: 'calon_thalibah',
+          role: 'calon_thalibah',
+          status: reg.status || 'pending',
+          // Add daftar ulang data
+          daftar_ulang: daftarUlang || null
+        }
+      }),
       ...(muallimahRegistrations || []).map(reg => ({
         ...reg,
         registration_type: 'muallimah',
