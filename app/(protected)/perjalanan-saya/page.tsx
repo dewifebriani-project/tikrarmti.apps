@@ -465,14 +465,17 @@ export default function PerjalananSaya() {
   // Helper functions for display - must be before conditional returns
   const getJuzLabel = (juzValue: string) => {
     const juzLabels: Record<string, string> = {
-      '30A': 'Juz 30A (halaman 1-20)',
-      '30B': 'Juz 30B (halaman 21-40)',
+      '30A': 'Juz 30A (halaman 1-10)',
+      '30B': 'Juz 30B (halaman 11-24)',
       '28A': 'Juz 28A (halaman 1-10)',
       '28B': 'Juz 28B (halaman 11-20)',
+      '1A': 'Juz 1A (halaman 1-10)',
+      '1B': 'Juz 1B (halaman 11-20)',
       '28': 'Juz 28',
       '29': 'Juz 29',
       '29A': 'Juz 29A (halaman 1-10)',
       '29B': 'Juz 29B (halaman 11-20)',
+      '1': 'Juz 1',
     };
     return juzLabels[juzValue] || `Juz ${juzValue}`;
   };
@@ -1065,16 +1068,7 @@ export default function PerjalananSaya() {
                                         </div>
                                       </div>
 
-                                      {/* Show juz adjustment notice if applicable */}
-                                      {juzAdjusted && (
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                                          <p className="text-xs text-blue-800">
-                                            <span className="font-semibold">Penyesuaian Juz:</span> {juzAdjustmentReason}
-                                          </p>
-                                        </div>
-                                      )}
-
-                                      <div className={`grid ${isJuz30 || juzAdjusted ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+                                      <div className="grid grid-cols-1 gap-2">
                                         <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                                           <p className="text-xs text-gray-600">Rekam Suara</p>
                                           <p className="text-sm font-bold text-green-700">Lulus ✓</p>
@@ -1085,6 +1079,11 @@ export default function PerjalananSaya() {
                                             <p className="text-sm font-bold text-green-700">
                                               {examScore ?? 0} - {(examScore ?? 0) < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
                                             </p>
+                                            {juzAdjusted && (
+                                              <p className="text-xs text-blue-700 mt-1">
+                                                {juzAdjustmentReason}
+                                              </p>
+                                            )}
                                           </div>
                                         )}
                                       </div>
@@ -1428,16 +1427,7 @@ export default function PerjalananSaya() {
                                           </div>
                                         </div>
 
-                                        {/* Show juz adjustment notice if applicable */}
-                                        {juzAdjusted && (
-                                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                            <p className="text-sm text-blue-800">
-                                              <span className="font-semibold">Penyesuaian Juz:</span> {juzAdjustmentReason}
-                                            </p>
-                                          </div>
-                                        )}
-
-                                        <div className={`grid ${isJuz30 || juzAdjusted ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+                                        <div className="grid grid-cols-1 gap-3">
                                           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                                             <p className="text-sm text-gray-600">Rekam Suara</p>
                                             <p className="text-base font-bold text-green-700">Lulus ✓</p>
@@ -1448,6 +1438,11 @@ export default function PerjalananSaya() {
                                               <p className="text-base font-bold text-green-700">
                                                 {examScore ?? 0} - {(examScore ?? 0) < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
                                               </p>
+                                              {juzAdjusted && (
+                                                <p className="text-sm text-blue-700 mt-1">
+                                                  {juzAdjustmentReason}
+                                                </p>
+                                              )}
                                             </div>
                                           )}
                                         </div>
