@@ -87,10 +87,12 @@ BEGIN
     FROM juz_data jd
     LEFT JOIN halaqah_counts hc ON (
       -- Match halaqah with juz using preferred_juz field
-      -- If preferred_juz is NULL, include the halaqah for all juz (fallback behavior)
-      hc.preferred_juz IS NOT NULL AND (
-        hc.preferred_juz LIKE '%' || jd.juz_code::text || '%' OR
-        hc.preferred_juz LIKE '%' || jd.juz_number::text || '%'
+      -- If preferred_juz is NULL, the halaqah can teach all juz (include for all)
+      hc.preferred_juz IS NULL OR (
+        hc.preferred_juz IS NOT NULL AND (
+          hc.preferred_juz LIKE '%' || jd.juz_code::text || '%' OR
+          hc.preferred_juz LIKE '%' || jd.juz_number::text || '%'
+        )
       )
     )
     GROUP BY jd.juz_code, jd.juz_number, jd.juz_name, jd.total_thalibah
@@ -127,9 +129,11 @@ BEGIN
           ORDER BY hc.halaqah_name
         )
         FROM halaqah_counts hc
-        WHERE hc.preferred_juz IS NOT NULL AND (
-          hc.preferred_juz LIKE '%' || jh.juz_code::text || '%' OR
-          hc.preferred_juz LIKE '%' || jh.juz_number::text || '%'
+        WHERE hc.preferred_juz IS NULL OR (
+          hc.preferred_juz IS NOT NULL AND (
+            hc.preferred_juz LIKE '%' || jh.juz_code::text || '%' OR
+            hc.preferred_juz LIKE '%' || jh.juz_number::text || '%'
+          )
         )
       ),
       '[]'::jsonb
