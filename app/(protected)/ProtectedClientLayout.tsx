@@ -12,7 +12,7 @@ interface ProtectedClientLayoutProps {
     id: string
     email: string
     full_name: string
-    role: string
+    roles: string[]
     avatar_url?: string
     whatsapp?: string
     telegram?: string

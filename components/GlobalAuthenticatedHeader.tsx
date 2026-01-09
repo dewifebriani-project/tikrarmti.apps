@@ -348,12 +348,18 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                         <p className="font-semibold">{user?.full_name || (user as any)?.displayName || 'Pengguna'}</p>
                         <p className="text-sm opacity-90">{user?.email || ''}</p>
                         <p className="text-xs opacity-75 mt-1">
-                          {user?.role === 'calon_thalibah' ? 'Calon Thalibah' :
-                           user?.role === 'thalibah' ? 'Thalibah' :
-                           user?.role === 'musyrifah' ? 'Musyrifah' :
-                           user?.role === 'muallimah' ? 'Muallimah' :
-                           user?.role === 'admin' ? 'Administrator' :
-                           'User'}
+                          {(() => {
+                            // Get primary role from roles array with backward compatibility
+                            const primaryRole = user?.roles?.[0] || (user as any)?.role;
+                            switch (primaryRole) {
+                              case 'calon_thalibah': return 'Calon Thalibah';
+                              case 'thalibah': return 'Thalibah';
+                              case 'musyrifah': return 'Musyrifah';
+                              case 'muallimah': return 'Muallimah';
+                              case 'admin': return 'Administrator';
+                              default: return 'User';
+                            }
+                          })()}
                         </p>
                       </div>
                     </div>

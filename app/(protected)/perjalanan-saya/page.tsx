@@ -78,13 +78,13 @@ export default function PerjalananSaya() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       console.log('[PerjalananSai] Admin button debug:', {
-        userRole: user?.role,
+        userRoles: user?.roles,
+        userRoleLegacy: (user as any)?.role,
         batchId,
-        isAdmin: user?.role === 'admin',
-        isAdminIncludes: user?.role?.includes('admin'),
-        showButton: ((user?.role === 'admin') ||
-          (Array.isArray(user?.role) && user.role.includes('admin')) ||
-          (Array.isArray((user as any)?.roles) && (user as any).roles.includes('admin'))) && batchId
+        isAdmin: user?.roles?.includes('admin'),
+        isAdminLegacy: (user as any)?.role === 'admin',
+        isAdminWithFallback: user?.roles?.includes('admin') || (user as any)?.role === 'admin',
+        showButton: ((user?.roles?.includes('admin') || (user as any)?.role === 'admin')) && batchId
       });
     }
   }, [user, batchId]);
@@ -857,7 +857,8 @@ export default function PerjalananSaya() {
                                     hasSelectionTasks: item.hasSelectionTasks,
                                     registrationStatus: registrationStatus?.registration?.status,
                                     userId: user?.id,
-                                    userRole: user?.role
+                                    userRoles: user?.roles,
+                                    userRoleLegacy: (user as any)?.role
                                   });
                                   return null;
                                 })()}

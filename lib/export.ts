@@ -23,7 +23,7 @@ export const exportUsersToCSV = (users: User[], filename: string = 'users_export
     user.id,
     `"${user.full_name}"`,
     `"${user.email}"`,
-    `"${user.role}"`,
+    `"${user.roles?.[0] || (user as any)?.role || ''}"`,
     `"${user.phone || ''}"`,
     user.is_active ? 'Aktif' : 'Tidak Aktif',
     formatDate(new Date(user.created_at)),
@@ -73,7 +73,7 @@ export const exportUsersToExcel = async (users: User[], filename: string = 'user
     user.id,
     user.full_name,
     user.email,
-    user.role,
+    user.roles?.[0] || (user as any)?.role || '',
     user.phone || '',
     user.is_active ? 'Aktif' : 'Tidak Aktif',
     formatDate(new Date(user.created_at)),
@@ -106,7 +106,8 @@ export const exportUserStatistics = (users: User[], filename: string = 'user_sta
 
   // Calculate statistics
   const roleStats = users.reduce((acc, user) => {
-    acc[user.role] = (acc[user.role] || 0) + 1;
+    const role = user.roles?.[0] || (user as any)?.role || 'unknown';
+    acc[role] = (acc[role] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 

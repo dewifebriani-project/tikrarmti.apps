@@ -98,7 +98,8 @@ export function useAuth() {
   const isAuthenticated = Boolean(serverUserData)
 
   // Get user role from server data (for UI display only, NOT for authorization)
-  const userRole = serverUserData?.role || null
+  // Backward compatible: check both new 'roles' array and legacy 'role' string
+  const userRole = serverUserData?.roles?.[0] || (serverUserData as any)?.role || null
 
   return {
     // User data from server

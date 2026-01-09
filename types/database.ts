@@ -29,13 +29,27 @@ export interface User {
   email: string;
   full_name: string;
   phone?: string;
-  role: UserRole;
+  roles: UserRole[];
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
   current_tikrar_batch_id?: string;
   current_tikrar_batch?: Batch;
+  // Extended profile fields
+  nama_kunyah?: string;
+  negara?: string;
+  provinsi?: string;
+  kota?: string;
+  alamat?: string;
+  whatsapp?: string;
+  telegram?: string;
+  zona_waktu?: string;
+  tanggal_lahir?: string;
+  tempat_lahir?: string;
+  jenis_kelamin?: 'Laki-laki' | 'Perempuan';
+  pekerjaan?: string;
+  alasan_daftar?: string;
 }
 
 export interface Batch {

@@ -49,7 +49,12 @@ export default function UserEditModal({
   onClose,
   onSave
 }: UserEditModalProps) {
-  const [formData, setFormData] = useState<Partial<User>>({
+  const [formData, setFormData] = useState<{
+    full_name?: string;
+    email?: string;
+    role?: string;
+    phone?: string;
+  }>({
     full_name: '',
     email: '',
     role: 'calon_thalibah',
@@ -65,7 +70,7 @@ export default function UserEditModal({
       setFormData({
         full_name: user.full_name || '',
         email: user.email || '',
-        role: user.role || 'calon_thalibah',
+        role: user.roles?.[0] || (user as any)?.role || 'calon_thalibah',
         phone: user.phone || ''
       });
     }

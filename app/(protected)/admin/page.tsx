@@ -297,7 +297,7 @@ export default function AdminPage() {
   // SECURITY NOTE: This is for UI conditional rendering ONLY.
   // Actual authorization is enforced server-side via RLS policies.
   // Even if client-side check is bypassed, RLS will block unauthorized access.
-  const isAdmin: boolean = !authLoading && user?.role === 'admin';
+  const isAdmin: boolean = !authLoading && user?.roles?.includes('admin') === true;
 
   // SWR hooks for data fetching - only enabled when admin is authenticated
   const {
@@ -345,7 +345,7 @@ export default function AdminPage() {
     console.log('=== Admin Page Auth Check ===');
     console.log('Auth loading:', authLoading);
     console.log('User:', user);
-    console.log('User role:', user?.role);
+    console.log('User role:', user?.roles);
     console.log('Is Admin:', isAdmin);
     console.log('SWR States - Users loading:', usersLoading, 'Tikrar loading:', tikrarLoading, 'Stats loading:', statsLoading);
 
@@ -353,8 +353,8 @@ export default function AdminPage() {
       if (!user) {
         console.log('No user found, redirecting to login');
         router.push('/login');
-      } else if (user.role !== 'admin') {
-        console.log('User is not admin, role:', user.role);
+      } else if (!user.roles?.includes('admin')) {
+        console.log('User is not admin, roles:', user.roles);
         router.push('/dashboard');
       } else {
         console.log('Admin access granted');
@@ -2212,16 +2212,28 @@ function UsersTab({
       label: 'Role',
       sortable: true,
       filterable: true,
-      render: (user) => (
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-          ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-            user.role === 'ustadzah' ? 'bg-blue-100 text-blue-800' :
-            user.role === 'musyrifah' ? 'bg-green-100 text-green-800' :
-            user.role === 'thalibah' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-gray-100 text-gray-800'}`}>
-          {user.role || '-'}
-        </span>
-      ),
+      render: (user: any) => {
+        // Get first role for display (legacy support)
+        // Handle both new format (roles array) and old format (role string)
+        const primaryRole = user.roles?.[0] || (user as any)?.role || '-';
+        const getRoleBadge = (role: string) => {
+          switch (role) {
+            case 'admin': return 'bg-purple-100 text-purple-800';
+            case 'ustadzah': return 'bg-blue-100 text-blue-800';
+            case 'musyrifah': return 'bg-green-100 text-green-800';
+            case 'thalibah': return 'bg-yellow-100 text-yellow-800';
+            case 'calon_thalibah': return 'bg-gray-100 text-gray-800';
+            default: return 'bg-gray-100 text-gray-800';
+          }
+        };
+        return (
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadge(primaryRole)}`}>
+            {primaryRole === 'calon_thalibah' ? 'Calon Thalibah' :
+             primaryRole === 'ustadzah' ? 'Muallimah' :
+             primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1) || '-'}
+          </span>
+        );
+      },
     },
     {
       key: 'is_active',
@@ -6693,7 +6705,12 @@ function ReportsTab() {
 
       // Process data for reports
       const usersByRole = users?.reduce((acc: any, user: any) => {
-        acc[user.role] = (acc[user.role] || 0) + 1;
+        // For users with multiple roles, count each role
+        if (user.roles && Array.isArray(user.roles)) {
+          user.roles.forEach((role: string) => {
+            acc[role] = (acc[role] || 0) + 1;
+          });
+        }
         return acc;
       }, {});
 

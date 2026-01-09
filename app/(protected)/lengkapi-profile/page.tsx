@@ -217,15 +217,19 @@ export default function LengkapiProfilePage() {
 
       setSubmitStatus('success')
 
-      // Redirect after success
+      // Redirect after success with cache busting
       setTimeout(() => {
         // If user came from a registration page, return there with section=1 to show data diri
         if (returnUrl) {
-          router.push(returnUrl)
+          // Add timestamp to prevent caching
+          const url = returnUrl.includes('?')
+            ? `${returnUrl}&t=${Date.now()}`
+            : `${returnUrl}?t=${Date.now()}`
+          router.push(url)
         } else {
           router.push('/dashboard')
         }
-      }, 2000)
+      }, 1500)
 
     } catch (error) {
       console.error('Error submitting profile:', error)

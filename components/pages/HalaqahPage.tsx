@@ -373,9 +373,9 @@ export default function HalaqahPage() {
                 required
               >
                 <option value="">Pilih Mentor</option>
-                {users.filter(user => user.role === 'muallimah' || user.role === 'musyrifah').map((user) => (
+                {users.filter(user => (user.roles?.includes('muallimah') || (user as any)?.role === 'muallimah') || (user.roles?.includes('musyrifah') || (user as any)?.role === 'musyrifah')).map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.full_name} ({user.role})
+                    {user.full_name} ({user.roles?.[0] || (user as any)?.role || 'User'})
                   </option>
                 ))}
               </select>

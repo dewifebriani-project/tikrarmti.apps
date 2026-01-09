@@ -100,7 +100,7 @@ export default async function ProtectedLayout({
         id: user.id,
         email: user.email || '',
         full_name: userData?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-        role: userData?.role || user.user_metadata?.role || 'calon_thalibah',
+        roles: userData?.roles || user.user_metadata?.roles || ['calon_thalibah'],
         avatar_url: userData?.avatar_url,
         whatsapp: userData?.whatsapp,
         telegram: userData?.telegram,

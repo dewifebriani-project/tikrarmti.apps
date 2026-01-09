@@ -90,8 +90,8 @@ export default function UserDetailsModal({
                 {user.full_name}
               </DialogTitle>
               <p className="text-gray-500">{user.email}</p>
-              <Badge variant={getRoleBadgeVariant(user.role)} className="mt-1">
-                {user.role.replace('_', ' ')}
+              <Badge variant={getRoleBadgeVariant(user.roles?.[0] || (user as any)?.role)} className="mt-1">
+                {(user.roles?.[0] || (user as any)?.role || 'user').replace('_', ' ')}
               </Badge>
             </div>
           </div>
@@ -294,8 +294,8 @@ export default function UserDetailsModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-700">Role saat ini:</span>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role.replace('_', ' ')}
+                      <Badge variant={getRoleBadgeVariant(user.roles?.[0] || (user as any)?.role)}>
+                        {(user.roles?.[0] || (user as any)?.role || 'user').replace('_', ' ')}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-500">

@@ -4,7 +4,7 @@ export interface User {
   full_name: string;
   nama_kunyah?: string;
   phone?: string;
-  role: UserRole;
+  roles: UserRole[];
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
