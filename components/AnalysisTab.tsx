@@ -102,7 +102,12 @@ interface HalaqahAvailability {
   juz_number: number;
   juz_name: string;
   total_thalibah: number;
-  available_halaqah: number;
+  total_halaqah: number;
+  total_capacity: number;
+  total_filled: number;
+  total_available: number;
+  needed_halaqah: number;
+  utilization_percentage: number;
   halaqah_details: any[];
 }
 
@@ -687,10 +692,10 @@ export function AnalysisTab() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-green-900" />
-              <h3 className="text-lg font-semibold text-gray-900">Ketersediaan Halaqah per Juz</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Analisis Kapasitas Halaqah per Juz</h3>
             </div>
             <p className="text-sm text-gray-600 mb-6">
-              Analisis ketersediaan halaqah untuk setiap juz beserta jumlah thalibah dan kapasitas yang tersedia.
+              Analisis ketersediaan halaqah untuk setiap juz. Minimum kapasitas per halaqah adalah 5 thalibah.
             </p>
 
             {halaqahData.length === 0 ? (
@@ -699,47 +704,165 @@ export function AnalysisTab() {
                 <p className="text-gray-600">Belum ada data halaqah. Pilih batch untuk melihat analisis.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {halaqahData.map((juz) => (
-                  <div key={juz.juz_code} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900">{juz.juz_name}</h4>
-                        <p className="text-sm text-gray-600">Code: {juz.juz_code} | Juz {juz.juz_number}</p>
-                      </div>
-                      <div className="flex gap-4 text-right">
-                        <div>
-                          <p className="text-xs text-gray-600">Thalibah</p>
-                          <p className="text-lg font-bold text-blue-600">{juz.total_thalibah}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-600">Halaqah</p>
-                          <p className="text-lg font-bold text-green-600">{juz.available_halaqah}</p>
-                        </div>
-                      </div>
-                    </div>
+              <div className="space-y-6">
+                {halaqahData.map((juz) => {
+                  const needsMoreHalaqah = juz.needed_halaqah > 0;
+                  const utilizationColor = juz.utilization_percentage >= 90 ? 'red' :
+                                         juz.utilization_percentage >= 70 ? 'yellow' : 'green';
 
-                    {juz.halaqah_details && juz.halaqah_details.length > 0 ? (
-                      <div className="mt-4">
-                        <p className="text-xs font-medium text-gray-700 mb-2">Detail Halaqah:</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {juz.halaqah_details.map((halaqah: any, idx: number) => (
-                            <div key={idx} className="bg-gray-50 rounded p-2 text-xs">
-                              <p className="font-medium text-gray-900">{halaqah.name}</p>
-                              <p className="text-gray-600">Type: {halaqah.class_type}</p>
-                              <p className="text-gray-600">
-                                {halaqah.current_students}/{halaqah.max_students}
-                                ({halaqah.available_slots} available)
-                              </p>
+                  return (
+                    <div key={juz.juz_code} className={`border rounded-lg p-6 ${
+                      needsMoreHalaqah ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                    }`}>
+                      {/* Juz Header */}
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="text-xl font-bold text-gray-900">{juz.juz_name}</h4>
+                            <p className="text-sm text-gray-600">Juz {juz.juz_number}</p>
+                          </div>
+                          {needsMoreHalaqah ? (
+                            <div className="flex items-center gap-2 bg-red-100 text-red-800 px-4 py-2 rounded-lg">
+                              <AlertTriangle className="w-5 h-5" />
+                              <span className="font-semibold">Butuh {juz.needed_halaqah} Halaqah</span>
                             </div>
-                          ))}
+                          ) : juz.total_available >= 5 ? (
+                            <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                              <CheckCircle className="w-5 h-5" />
+                              <span className="font-semibold">Kapasitas Cukup</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg">
+                              <Clock className="w-5 h-5" />
+                              <span className="font-semibold">Kapasitas Terbatas</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-white rounded-lg p-3 border">
+                            <p className="text-xs text-gray-600 mb-1">Total Thalibah</p>
+                            <p className="text-2xl font-bold text-blue-600">{juz.total_thalibah}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-3 border">
+                            <p className="text-xs text-gray-600 mb-1">Total Halaqah</p>
+                            <p className="text-2xl font-bold text-purple-600">{juz.total_halaqah}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-3 border">
+                            <p className="text-xs text-gray-600 mb-1">Total Kapasitas</p>
+                            <p className="text-2xl font-bold text-gray-900">{juz.total_capacity}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-3 border">
+                            <p className="text-xs text-gray-600 mb-1">Tersedia</p>
+                            <p className="text-2xl font-bold text-green-600">{juz.total_available}</p>
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <p className="text-xs text-gray-500 mt-2">Tidak ada halaqah tersedia untuk juz ini.</p>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Capacity Bar */}
+                      <div className="mb-6">
+                        <div className="flex justify-between text-sm text-gray-700 mb-2">
+                          <span className="font-medium">Utilisasi Kapasitas</span>
+                          <span className={`font-bold ${
+                            utilizationColor === 'red' ? 'text-red-600' :
+                            utilizationColor === 'yellow' ? 'text-yellow-600' :
+                            'text-green-600'
+                          }`}>
+                            {juz.utilization_percentage}% ({juz.total_filled}/{juz.total_capacity})
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full transition-all bg-${utilizationColor}-600`}
+                            style={{ width: `${Math.min(juz.utilization_percentage, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2">
+                          {juz.needed_halaqah > 0
+                            ? `Kapasitas tidak cukup. Dibutuhkan ${juz.needed_halaqah} halaqah tambahan untuk menampung ${juz.total_thalibah} thalibah (min. 5 per halaqah).`
+                            : juz.utilization_percentage >= 90
+                            ? 'Kapasitas hampir penuh. Pertimbangkan membuka halaqah cadangan.'
+                            : 'Kapasitas memadai untuk menampung semua thalibah.'}
+                        </p>
+                      </div>
+
+                      {/* Halaqah Details */}
+                      {juz.halaqah_details && juz.halaqah_details.length > 0 ? (
+                        <div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Users className="w-4 h-4 text-gray-600" />
+                            <p className="text-sm font-semibold text-gray-900">Daftar Halaqah ({juz.halaqah_details.length})</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {juz.halaqah_details.map((halaqah: any, idx: number) => {
+                              const halaqahUtilColor = halaqah.utilization_percent >= 90 ? 'red' :
+                                                     halaqah.utilization_percent >= 70 ? 'yellow' : 'green';
+                              return (
+                                <div key={idx} className="bg-white rounded-lg border p-4">
+                                  <p className="font-semibold text-gray-900 text-sm mb-2">{halaqah.name}</p>
+
+                                  <div className="space-y-1 text-xs">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Hari:</span>
+                                      <span className="font-medium">{halaqah.day_of_week !== undefined && halaqah.day_of_week !== null ? `Hari ke-${halaqah.day_of_week}` : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Waktu:</span>
+                                      <span className="font-medium">
+                                        {halaqah.start_time && halaqah.end_time
+                                          ? `${halaqah.start_time} - ${halaqah.end_time}`
+                                          : '-'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Kapasitas:</span>
+                                      <span className="font-medium">{halaqah.max_students}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Terisi:</span>
+                                      <span className="font-medium text-blue-600">{halaqah.current_students}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Tersedia:</span>
+                                      <span className="font-medium text-green-600">{halaqah.available_slots}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Mini utilization bar */}
+                                  <div className="mt-3">
+                                    <div className="flex justify-between text-xs mb-1">
+                                      <span className="text-gray-600">Utilisasi:</span>
+                                      <span className={`font-bold text-${halaqahUtilColor}-600`}>
+                                        {halaqah.utilization_percent}%
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                      <div
+                                        className={`h-1.5 rounded-full bg-${halaqahUtilColor}-500`}
+                                        style={{ width: `${Math.min(halaqah.utilization_percent, 100)}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <Users className="w-10 h-10 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">Tidak ada halaqah tersedia untuk juz ini.</p>
+                          {juz.total_thalibah > 0 && (
+                            <p className="text-xs text-red-600 mt-1">
+                              Dibutuhkan setidaknya {Math.ceil(juz.total_thalibah / 5)} halaqah untuk {juz.total_thalibah} thalibah.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
