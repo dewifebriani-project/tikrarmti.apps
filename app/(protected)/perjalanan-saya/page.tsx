@@ -45,6 +45,13 @@ interface TikrarRegistration extends Pendaftaran {
   exam_score?: number;
   written_quiz_submitted_at?: string;
   selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
+  daftar_ulang?: {
+    id: string;
+    akad_files?: Array<{ url: string; name: string }>;
+    submitted_at?: string;
+    status?: string;
+    [key: string]: any;
+  } | null;
 }
 
 export default function PerjalananSaya() {
