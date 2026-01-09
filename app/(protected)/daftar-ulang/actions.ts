@@ -155,6 +155,7 @@ export async function submitDaftarUlang(
       selection_status,
       full_name,
       chosen_juz,
+      exam_score,
       main_time_slot,
       backup_time_slot,
       wa_phone,
@@ -205,6 +206,19 @@ export async function submitDaftarUlang(
     return { success: false, error: 'Upload akad daftar ulang terlebih dahulu.' }
   }
 
+  // 5. Calculate final juz placement based on exam score
+  const examScore = registration.exam_score || null
+  const chosenJuz = (registration.chosen_juz || '').toUpperCase()
+  let finalJuz = chosenJuz
+
+  if (examScore !== null && examScore < 70) {
+    if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
+      finalJuz = '29A'
+    } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
+      finalJuz = '30A'
+    }
+  }
+
   try {
     // Check for existing submission
     const { data: existing } = await supabase
@@ -219,9 +233,9 @@ export async function submitDaftarUlang(
       registration_id: registrationId,
       batch_id: registration.batch_id,
 
-      // Confirmed data
+      // Confirmed data - Use final_juz (adjusted based on exam score) for placement
       confirmed_full_name: data.confirmed_full_name || registration.full_name,
-      confirmed_chosen_juz: data.confirmed_chosen_juz || registration.chosen_juz,
+      confirmed_chosen_juz: finalJuz, // Use final juz placement instead of original chosen juz
       confirmed_main_time_slot: data.confirmed_main_time_slot || registration.main_time_slot,
       confirmed_backup_time_slot: data.confirmed_backup_time_slot || registration.backup_time_slot,
       confirmed_wa_phone: data.confirmed_wa_phone || registration.wa_phone,

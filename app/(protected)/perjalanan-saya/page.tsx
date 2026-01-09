@@ -1088,14 +1088,14 @@ export default function PerjalananSaya() {
                                         )}
                                       </div>
 
-                                      {/* Show final juz placement */}
-                                      {juzAdjusted && (
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                                          <p className="text-xs text-gray-600">Juz Penempatan Final</p>
-                                          <p className="text-sm font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
+                                      {/* Show final juz placement - always show */}
+                                      <div className={`bg-green-50 border ${juzAdjusted ? 'border-green-200' : 'border-emerald-200'} rounded-lg p-2`}>
+                                        <p className="text-xs text-gray-600">Juz Penempatan Final</p>
+                                        <p className="text-sm font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
+                                        {juzAdjusted && (
                                           <p className="text-xs text-green-600">Diperbarui berdasarkan nilai pilihan ganda</p>
-                                        </div>
-                                      )}
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 }
@@ -1447,14 +1447,14 @@ export default function PerjalananSaya() {
                                           )}
                                         </div>
 
-                                        {/* Show final juz placement */}
-                                        {juzAdjusted && (
-                                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                            <p className="text-sm text-gray-600">Juz Penempatan Final</p>
-                                            <p className="text-base font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
+                                        {/* Show final juz placement - always show */}
+                                        <div className={`bg-green-50 border ${juzAdjusted ? 'border-green-200' : 'border-emerald-200'} rounded-lg p-3`}>
+                                          <p className="text-sm text-gray-600">Juz Penempatan Final</p>
+                                          <p className="text-base font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
+                                          {juzAdjusted && (
                                             <p className="text-sm text-green-600">Diperbarui berdasarkan nilai pilihan ganda</p>
-                                          </div>
-                                        )}
+                                          )}
+                                        </div>
                                       </div>
                                     );
                                   }
