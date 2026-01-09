@@ -287,6 +287,20 @@ export async function submitDaftarUlang(
       return { success: false, error: result.error.message }
     }
 
+    // Update pendaftaran_tikrar_tahfidz to mark re_enrollment_completed as true
+    const { error: updateError } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .update({
+        re_enrollment_completed: true,
+        re_enrollment_completed_at: new Date().toISOString()
+      })
+      .eq('id', registrationId)
+
+    if (updateError) {
+      console.error('Failed to update re_enrollment_completed:', updateError)
+      // Continue anyway as the submission was successful
+    }
+
     // Revalidate paths
     revalidatePath('/dashboard')
     revalidatePath('/perjalanan-saya')
