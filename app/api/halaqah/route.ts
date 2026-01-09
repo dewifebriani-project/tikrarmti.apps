@@ -71,8 +71,7 @@ export async function GET(request: NextRequest) {
     // Count students for each halaqah
     const halaqahWithCounts = await Promise.all(
       (halaqah || []).map(async (h: any) => {
-        // Count unique thalibah (unique student_id) instead of counting rows
-        // This handles tashih_ujian classes where one thalibah has 2 rows (ujian + tashih)
+        // Count from halaqah_students table (actual joined students)
         const { data: activeStudents } = await supabase
           .from('halaqah_students')
           .select('student_id')
@@ -93,6 +92,28 @@ export async function GET(request: NextRequest) {
           ? new Set(waitlistStudents.map(s => s.student_id)).size
           : 0;
 
+        // Count from daftar_ulang_submissions (pending submissions)
+        // This includes users who have submitted daftar ulang but not yet joined halaqah_students
+        const { data: submissions } = await supabase
+          .from('daftar_ulang_submissions')
+          .select('user_id')
+          .eq('status', 'submitted')
+          .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
+
+        // For tashih_ujian classes, a single user may select both ujian and tashih
+        // We need to count unique users, not number of selections
+        const uniqueSubmissionCount = submissions
+          ? new Set(submissions.map(s => s.user_id)).size
+          : 0;
+
+        // Combine counts: avoid double-counting users who exist in both tables
+        const allStudentIds = new Set([
+          ...(activeStudents || []).map(s => s.student_id),
+          ...(submissions || []).map(s => s.user_id)
+        ]);
+
+        const totalUniqueCount = allStudentIds.size;
+
         // Get mentors
         const { data: mentors } = await supabase
           .from('halaqah_mentors')
@@ -101,7 +122,7 @@ export async function GET(request: NextRequest) {
 
         return {
           ...h,
-          students_count: uniqueActiveCount,
+          students_count: totalUniqueCount,
           waitlist_count: uniqueWaitlistCount,
           mentors: mentors || []
         } as HalaqahWithRelations;
