@@ -1025,7 +1025,26 @@ export default function PerjalananSaya() {
                               // Hasil Seleksi - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
                               (() => {
                                 const oralStatus = registrationStatus?.oralAssessmentStatus;
-                                const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30');
+                                const chosenJuz = registrationStatus?.chosenJuz?.toUpperCase() || '';
+                                const examScore = registrationStatus?.examScore;
+                                const isJuz30 = chosenJuz.startsWith('30');
+
+                                // Calculate adjusted juz based on exam score
+                                let finalJuz = chosenJuz;
+                                let juzAdjusted = false;
+                                let juzAdjustmentReason = '';
+
+                                if (oralStatus === 'pass' && examScore !== null && examScore !== undefined && examScore < 70) {
+                                  if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
+                                    finalJuz = '29A';
+                                    juzAdjusted = true;
+                                    juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                  } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
+                                    finalJuz = '30A';
+                                    juzAdjusted = true;
+                                    juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                  }
+                                }
 
                                 // CASE 1: Lulus Oral Test -> Tikrar Tahfidz MTI (regardless of written test score)
                                 if (oralStatus === 'pass') {
@@ -1045,7 +1064,17 @@ export default function PerjalananSaya() {
                                           </div>
                                         </div>
                                       </div>
-                                      <div className={`grid ${isJuz30 ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+
+                                      {/* Show juz adjustment notice if applicable */}
+                                      {juzAdjusted && (
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                          <p className="text-xs text-blue-800">
+                                            <span className="font-semibold">Penyesuaian Juz:</span> {juzAdjustmentReason}
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      <div className={`grid ${isJuz30 || juzAdjusted ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
                                         <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                                           <p className="text-xs text-gray-600">Rekam Suara</p>
                                           <p className="text-sm font-bold text-green-700">Lulus ✓</p>
@@ -1054,11 +1083,20 @@ export default function PerjalananSaya() {
                                           <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                                             <p className="text-xs text-gray-600">Pilihan Ganda</p>
                                             <p className="text-sm font-bold text-green-700">
-                                              {registrationStatus?.examScore ?? 0} - {!isJuz30 ? 'Penempatan Halaqah' : 'Lulus ✓'}
+                                              {examScore ?? 0} - {(examScore ?? 0) < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
                                             </p>
                                           </div>
                                         )}
                                       </div>
+
+                                      {/* Show final juz placement */}
+                                      {juzAdjusted && (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                                          <p className="text-xs text-gray-600">Juz Penempatan Final</p>
+                                          <p className="text-sm font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
+                                          <p className="text-xs text-green-600">Diperbarui berdasarkan nilai pilihan ganda</p>
+                                        </div>
+                                      )}
                                     </div>
                                   );
                                 }
@@ -1350,7 +1388,26 @@ export default function PerjalananSaya() {
                                 // Hasil Seleksi - Desktop view - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
                                 (() => {
                                   const oralStatus = registrationStatus?.oralAssessmentStatus;
-                                  const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30');
+                                  const chosenJuz = registrationStatus?.chosenJuz?.toUpperCase() || '';
+                                  const examScore = registrationStatus?.examScore;
+                                  const isJuz30 = chosenJuz.startsWith('30');
+
+                                  // Calculate adjusted juz based on exam score
+                                  let finalJuz = chosenJuz;
+                                  let juzAdjusted = false;
+                                  let juzAdjustmentReason = '';
+
+                                  if (oralStatus === 'pass' && examScore !== null && examScore !== undefined && examScore < 70) {
+                                    if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
+                                      finalJuz = '29A';
+                                      juzAdjusted = true;
+                                      juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                    } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
+                                      finalJuz = '30A';
+                                      juzAdjusted = true;
+                                      juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                    }
+                                  }
 
                                   // CASE 1: Lulus Oral Test -> Tikrar Tahfidz MTI (regardless of written test score)
                                   if (oralStatus === 'pass') {
@@ -1370,7 +1427,17 @@ export default function PerjalananSaya() {
                                             </div>
                                           </div>
                                         </div>
-                                        <div className={`grid ${isJuz30 ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
+
+                                        {/* Show juz adjustment notice if applicable */}
+                                        {juzAdjusted && (
+                                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                            <p className="text-sm text-blue-800">
+                                              <span className="font-semibold">Penyesuaian Juz:</span> {juzAdjustmentReason}
+                                            </p>
+                                          </div>
+                                        )}
+
+                                        <div className={`grid ${isJuz30 || juzAdjusted ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
                                           <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                                             <p className="text-sm text-gray-600">Rekam Suara</p>
                                             <p className="text-base font-bold text-green-700">Lulus ✓</p>
@@ -1379,11 +1446,20 @@ export default function PerjalananSaya() {
                                             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                                               <p className="text-sm text-gray-600">Pilihan Ganda</p>
                                               <p className="text-base font-bold text-green-700">
-                                                {registrationStatus?.examScore ?? 0} - {!isJuz30 ? 'Penempatan Halaqah' : 'Lulus ✓'}
+                                                {examScore ?? 0} - {(examScore ?? 0) < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
                                               </p>
                                             </div>
                                           )}
                                         </div>
+
+                                        {/* Show final juz placement */}
+                                        {juzAdjusted && (
+                                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                            <p className="text-sm text-gray-600">Juz Penempatan Final</p>
+                                            <p className="text-base font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
+                                            <p className="text-sm text-green-600">Diperbarui berdasarkan nilai pilihan ganda</p>
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   }

@@ -75,8 +75,12 @@ export async function POST(request: NextRequest) {
     // 1. All who pass oral test are automatically selected (regardless of written test score)
     // 2. Oral test failers go to Pra-Tikrar (not_selected status)
     // 3. Written test is only for halaqah placement (juz adjustment)
+    // 4. Juz adjustment rules (if written test score < 70):
+    //    - Juz 28A/28B → Juz 29A
+    //    - Juz 1A/1B or Juz 29A/29B → Juz 30A
     const idsToSelect: string[] = [];
     const idsToPraTikrar: string[] = [];
+    const juzAdjustments: { id: string; original_juz: string; adjusted_juz: string; reason: string }[] = [];
     const details: any[] = [];
 
     for (const reg of registrations) {
@@ -88,14 +92,44 @@ export async function POST(request: NextRequest) {
       // RULE 1: All who pass oral test are automatically SELECTED
       // (regardless of written test score)
       if (oralStatus === 'pass') {
+        let finalJuz = chosenJuz;
+        let adjustmentReason = null;
+
+        // Check if juz adjustment is needed (written test score < 70)
+        if (examScore !== null && examScore !== undefined && examScore < 70) {
+          // Juz 28A/28B → Juz 29A
+          if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
+            finalJuz = '29A';
+            adjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+          }
+          // Juz 1A/1B or Juz 29A/29B → Juz 30A
+          else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
+            finalJuz = '30A';
+            adjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+          }
+
+          // Track adjustment
+          if (adjustmentReason && finalJuz !== chosenJuz) {
+            juzAdjustments.push({
+              id: reg.id,
+              original_juz: chosenJuz,
+              adjusted_juz: finalJuz,
+              reason: adjustmentReason
+            });
+          }
+        }
+
         idsToSelect.push(reg.id);
         details.push({
           id: reg.id,
           chosen_juz: reg.chosen_juz,
+          final_juz: finalJuz,
           oral_assessment_status: oralStatus,
           exam_score: examScore,
           final_placement: 'Tikrar Tahfidz MTI',
-          reason: 'Passed oral test'
+          reason: 'Passed oral test',
+          juz_adjusted: finalJuz !== chosenJuz,
+          adjustment_reason: adjustmentReason
         });
       }
       // RULE 2: All who fail oral test go to Pra-Tikrar
@@ -131,6 +165,21 @@ export async function POST(request: NextRequest) {
       updatedSelectedCount = idsToSelect.length;
     }
 
+    // Update juz adjustments separately (if any)
+    if (juzAdjustments.length > 0 && !updateError) {
+      console.log('[UpdateSelectionStatus] Applying juz adjustments for', juzAdjustments.length, 'registrations');
+      for (const adjustment of juzAdjustments) {
+        const result = await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .update({ chosen_juz: adjustment.adjusted_juz })
+          .eq('id', adjustment.id);
+        if (result.error) {
+          console.error('[UpdateSelectionStatus] Error updating juz for registration', adjustment.id, ':', result.error);
+          updateError = result.error;
+        }
+      }
+    }
+
     // Update Pra-Tikrar registrations (using waitlist status to indicate Pra-Tikrar placement)
     if (idsToPraTikrar.length > 0 && !updateError) {
       console.log('[UpdateSelectionStatus] Updating', idsToPraTikrar.length, 'registrations to "waitlist" (Pra-Tikrar class)');
@@ -153,6 +202,7 @@ export async function POST(request: NextRequest) {
     console.log('[UpdateSelectionStatus] Successfully updated:', {
       selected: updatedSelectedCount,
       pra_tikrar: updatedPraTikrarCount,
+      juz_adjustments: juzAdjustments.length,
       total: updatedSelectedCount + updatedPraTikrarCount
     });
 
@@ -165,7 +215,9 @@ export async function POST(request: NextRequest) {
         batch_id: batch_id || 'all',
         selected_count: updatedSelectedCount,
         pra_tikrar_count: updatedPraTikrarCount,
+        juz_adjustments_count: juzAdjustments.length,
         total_updated: updatedSelectedCount + updatedPraTikrarCount,
+        juz_adjustments: juzAdjustments,
         details: details
       },
       ipAddress: getClientIp(request),
@@ -175,9 +227,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Updated ${updatedSelectedCount + updatedPraTikrarCount} registrations (${updatedSelectedCount} selected, ${updatedPraTikrarCount} Pra-Tikrar)`,
+      message: `Updated ${updatedSelectedCount + updatedPraTikrarCount} registrations (${updatedSelectedCount} selected, ${updatedPraTikrarCount} Pra-Tikrar${juzAdjustments.length > 0 ? `, ${juzAdjustments.length} juz adjustments` : ''})`,
       selected_count: updatedSelectedCount,
       pra_tikrar_count: updatedPraTikrarCount,
+      juz_adjustments_count: juzAdjustments.length,
+      juz_adjustments: juzAdjustments,
       total_updated: updatedSelectedCount + updatedPraTikrarCount,
       checked_count: registrations.length,
       details: details
