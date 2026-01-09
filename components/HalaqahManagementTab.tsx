@@ -320,9 +320,6 @@ export function HalaqahManagementTab() {
       if (sortColumn === 'name') {
         aVal = formatHalaqahName(a).toLowerCase();
         bVal = formatHalaqahName(b).toLowerCase();
-      } else if (sortColumn === 'program_id') {
-        aVal = a.program?.name || '';
-        bVal = b.program?.name || '';
       }
 
       if (aVal === bVal) return 0;
@@ -553,12 +550,12 @@ export function HalaqahManagementTab() {
                         Class Type
                       </th>
                       <th
-                        onClick={() => handleSort('program_id')}
+                        onClick={() => handleSort('preferred_juz')}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
                       >
                         <div className="flex items-center gap-1">
-                          Program
-                          {sortColumn === 'program_id' && (
+                          Juz
+                          {sortColumn === 'preferred_juz' && (
                             sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                           )}
                         </div>
@@ -570,7 +567,7 @@ export function HalaqahManagementTab() {
                         Muallimah
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Students
+                        Thalibah
                       </th>
                       <th
                         onClick={() => handleSort('status')}
@@ -607,10 +604,9 @@ export function HalaqahManagementTab() {
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <div>
-                            <p className="text-sm text-gray-900">{halaqah.program?.name || '-'}</p>
-                            <p className="text-xs text-gray-500">{halaqah.program?.batch?.name || '-'}</p>
-                          </div>
+                          <p className="text-sm text-gray-900">
+                            {halaqah.preferred_juz || '-'}
+                          </p>
                         </td>
                         <td className="px-6 py-4">
                           {halaqah.day_of_week ? (
@@ -640,8 +636,9 @@ export function HalaqahManagementTab() {
                           <div className="flex items-center gap-2">
                             <Users className="w-4 h-4 text-gray-400" />
                             <span className="text-sm text-gray-900">
-                              {halaqah._count?.students || 0}/{halaqah.max_students || 20}
+                              {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} / {halaqah.max_students || 20}
                             </span>
+                            <span className="text-xs text-gray-500">tersedia</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
