@@ -692,7 +692,6 @@ export function AnalysisTab() {
                             <p className="text-2xl font-bold text-green-600">{juz.total_available}</p>
                           </div>
                         </div>
-                      </div>
 
                       {/* Capacity Bar */}
                       <div className="mb-6">
