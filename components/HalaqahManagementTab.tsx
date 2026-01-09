@@ -633,12 +633,27 @@ export function HalaqahManagementTab() {
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-900">
-                              {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} / {halaqah.max_students || 20}
-                            </span>
-                            <span className="text-xs text-gray-500">tersedia</span>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-gray-400" />
+                              <span className="text-sm text-gray-900">
+                                {halaqah.max_students ? (halaqah.max_students - (halaqah._count?.students || 0)) : '?'} dari {halaqah.max_students || 20}
+                              </span>
+                              <span className="text-xs text-gray-500">tersedia</span>
+                            </div>
+                            {/* Progress bar - similar to daftar ulang */}
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  (halaqah._count?.students || 0) >= (halaqah.max_students || 20)
+                                    ? 'bg-red-500'
+                                    : (halaqah.max_students || 20) - (halaqah._count?.students || 0) <= 3
+                                    ? 'bg-orange-500'
+                                    : 'bg-green-500'
+                                }`}
+                                style={{ width: `${((halaqah._count?.students || 0) / (halaqah.max_students || 20)) * 100}%` }}
+                              ></div>
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
