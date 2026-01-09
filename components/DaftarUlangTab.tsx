@@ -1,0 +1,474 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+import {
+  FileText,
+  Download,
+  Eye,
+  CheckCircle,
+  Clock,
+  Users,
+  Calendar,
+  RefreshCw
+} from 'lucide-react';
+
+interface DaftarUlangSubmission {
+  id: string;
+  user_id: string;
+  batch_id: string;
+  registration_id: string;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected';
+
+  // Confirmed data
+  confirmed_full_name?: string;
+  confirmed_chosen_juz?: string;
+  confirmed_main_time_slot?: string;
+  confirmed_backup_time_slot?: string;
+
+  // Partner
+  partner_type?: 'self_match' | 'system_match' | 'family' | 'tarteel';
+  partner_user_id?: string;
+  partner_name?: string;
+  partner_relationship?: string;
+  partner_wa_phone?: string;
+  partner_notes?: string;
+
+  // Halaqah
+  ujian_halaqah_id?: string;
+  tashih_halaqah_id?: string;
+  is_tashih_umum?: boolean;
+
+  // Akad
+  akad_files?: Array<{ url: string; name: string }>;
+  akad_submitted_at?: string;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  submitted_at?: string;
+  reviewed_at?: string;
+
+  // Relations
+  user?: {
+    id: string;
+    full_name: string;
+    email: string;
+  };
+  partner_user?: {
+    id: string;
+    full_name: string;
+    email: string;
+  };
+  ujian_halaqah?: {
+    id: string;
+    name: string;
+    day_of_week?: number;
+    start_time?: string;
+    end_time?: string;
+  };
+  tashih_halaqah?: {
+    id: string;
+    name: string;
+    day_of_week?: number;
+    start_time?: string;
+    end_time?: string;
+  };
+}
+
+interface DaftarUlangTabProps {
+  batchId?: string;
+}
+
+export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
+  const [submissions, setSubmissions] = useState<DaftarUlangSubmission[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSubmission, setSelectedSubmission] = useState<DaftarUlangSubmission | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const loadSubmissions = async () => {
+    console.log('[DaftarUlangTab] Loading submissions...');
+    setLoading(true);
+
+    try {
+      // Build query params
+      const params = new URLSearchParams();
+      if (batchId) params.append('batch_id', batchId);
+
+      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[DaftarUlangTab] Failed to load submissions:', result);
+        toast.error(result.error || 'Failed to load submissions');
+        return;
+      }
+
+      if (result.data) {
+        console.log('[DaftarUlangTab] Loaded', result.data.length, 'submissions');
+        setSubmissions(result.data);
+      } else {
+        setSubmissions([]);
+      }
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error loading submissions:', error);
+      toast.error('Failed to load submissions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSubmissions();
+  }, [batchId, refreshTrigger]);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      draft: 'bg-gray-100 text-gray-800',
+      submitted: 'bg-blue-100 text-blue-800',
+      approved: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+    };
+
+    const labels = {
+      draft: 'Draft',
+      submitted: 'Submitted',
+      approved: 'Approved',
+      rejected: 'Rejected',
+    };
+
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
+        {labels[status as keyof typeof labels] || status}
+      </span>
+    );
+  };
+
+  const getPartnerLabel = (submission: DaftarUlangSubmission) => {
+    if (submission.partner_type === 'self_match' && submission.partner_user) {
+      return submission.partner_user.full_name || submission.partner_user_id || '-';
+    }
+    if (submission.partner_type === 'family' || submission.partner_type === 'tarteel') {
+      return submission.partner_name || '-';
+    }
+    if (submission.partner_type === 'system_match') {
+      return 'System Match';
+    }
+    return '-';
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang Submissions</h2>
+        <button
+          onClick={() => setRefreshTrigger(prev => prev + 1)}
+          className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+        >
+          <RefreshCw className="w-3 h-3" />
+          Refresh
+        </button>
+      </div>
+
+      {/* List View */}
+      <div className="bg-white border border-gray-200 rounded-lg">
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          </div>
+        ) : submissions.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No submissions found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Thalibah
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Partner
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Halaqah
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Akad Files
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Submitted
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {submissions.map((submission) => (
+                  <tr key={submission.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {submission.confirmed_full_name || submission.user?.full_name || '-'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {submission.confirmed_chosen_juz || '-'} | {submission.confirmed_main_time_slot || '-'}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {getPartnerLabel(submission)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {submission.partner_type || '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs text-gray-900">
+                        <div>Ujian: {submission.ujian_halaqah?.name || (submission.is_tashih_umum ? '-' : 'Not selected')}</div>
+                        <div>Tashih: {submission.is_tashih_umum ? 'Umum' : (submission.tashih_halaqah?.name || 'Not selected')}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {submission.akad_files && submission.akad_files.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          {submission.akad_files.map((file, idx) => (
+                            <a
+                              key={idx}
+                              href={file.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              <FileText className="w-3 h-3" />
+                              {file.name}
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">No files</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {getStatusBadge(submission.status)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-xs text-gray-500">
+                        {formatDate(submission.submitted_at || submission.created_at)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => setSelectedSubmission(submission)}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Detail Modal */}
+      {selectedSubmission && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Submission Details</h3>
+              <button
+                onClick={() => setSelectedSubmission(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Thalibah Info */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Thalibah Information</h4>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Name</p>
+                      <p className="text-sm font-medium">{selectedSubmission.confirmed_full_name || selectedSubmission.user?.full_name || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm">{selectedSubmission.user?.email || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Chosen Juz</p>
+                      <p className="text-sm font-medium">{selectedSubmission.confirmed_chosen_juz || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Time Slot</p>
+                      <p className="text-sm">{selectedSubmission.confirmed_main_time_slot || '-'} {selectedSubmission.confirmed_backup_time_slot ? `(${selectedSubmission.confirmed_backup_time_slot})` : ''}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Partner Info */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Partner Information</h4>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Partner Type</p>
+                      <p className="text-sm font-medium">{selectedSubmission.partner_type || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Partner Name</p>
+                      <p className="text-sm">
+                        {selectedSubmission.partner_type === 'self_match' && selectedSubmission.partner_user
+                          ? selectedSubmission.partner_user.full_name
+                          : selectedSubmission.partner_name || '-'}
+                      </p>
+                    </div>
+                    {selectedSubmission.partner_relationship && (
+                      <div>
+                        <p className="text-xs text-gray-500">Relationship</p>
+                        <p className="text-sm">{selectedSubmission.partner_relationship}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.partner_wa_phone && (
+                      <div>
+                        <p className="text-xs text-gray-500">WhatsApp</p>
+                        <p className="text-sm">{selectedSubmission.partner_wa_phone}</p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedSubmission.partner_notes && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500">Notes</p>
+                      <p className="text-sm">{selectedSubmission.partner_notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Halaqah Info */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Halaqah Selection</h4>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div>
+                    <p className="text-xs text-gray-500">Ujian Halaqah</p>
+                    <p className="text-sm font-medium">
+                      {selectedSubmission.ujian_halaqah?.name || (selectedSubmission.is_tashih_umum ? '-' : 'Not selected')}
+                    </p>
+                    {selectedSubmission.ujian_halaqah && (
+                      <p className="text-xs text-gray-500">
+                        {selectedSubmission.ujian_halaqah.day_of_week !== undefined && `Day ${selectedSubmission.ujian_halaqah.day_of_week}, `}
+                        {selectedSubmission.ujian_halaqah.start_time} - {selectedSubmission.ujian_halaqah.end_time}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Tashih Halaqah</p>
+                    <p className="text-sm font-medium">
+                      {selectedSubmission.is_tashih_umum
+                        ? 'Kelas Tashih Umum'
+                        : (selectedSubmission.tashih_halaqah?.name || 'Not selected')}
+                    </p>
+                    {selectedSubmission.tashih_halaqah && (
+                      <p className="text-xs text-gray-500">
+                        {selectedSubmission.tashih_halaqah.day_of_week !== undefined && `Day ${selectedSubmission.tashih_halaqah.day_of_week}, `}
+                        {selectedSubmission.tashih_halaqah.start_time} - {selectedSubmission.tashih_halaqah.end_time}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Akad Files */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Akad Files</h4>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  {selectedSubmission.akad_files && selectedSubmission.akad_files.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedSubmission.akad_files.map((file, idx) => (
+                        <a
+                          key={idx}
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-2 bg-white rounded border hover:border-blue-300 transition-colors"
+                        >
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm flex-1">{file.name}</span>
+                          <Download className="w-4 h-4 text-gray-400" />
+                        </a>
+                      ))}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Submitted: {formatDate(selectedSubmission.akad_submitted_at || '')}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">No files uploaded</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 mb-2">Status & Timestamps</h4>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(selectedSubmission.status)}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p className="text-gray-500">Created</p>
+                      <p>{formatDate(selectedSubmission.created_at)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500">Updated</p>
+                      <p>{formatDate(selectedSubmission.updated_at)}</p>
+                    </div>
+                    {selectedSubmission.submitted_at && (
+                      <div>
+                        <p className="text-gray-500">Submitted</p>
+                        <p>{formatDate(selectedSubmission.submitted_at)}</p>
+                      </div>
+                    )}
+                    {selectedSubmission.reviewed_at && (
+                      <div>
+                        <p className="text-gray-500">Reviewed</p>
+                        <p>{formatDate(selectedSubmission.reviewed_at)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

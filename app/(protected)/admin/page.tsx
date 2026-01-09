@@ -48,6 +48,7 @@ import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 import { AnalysisTab } from '@/components/AnalysisTab';
 import { SystemLogsTab } from '@/components/SystemLogsTab';
 import { AdminPairingTab } from '@/components/AdminPairingTab';
+import { DaftarUlangTab } from '@/components/DaftarUlangTab';
 
 interface Batch {
   id: string;
@@ -276,7 +277,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -493,6 +494,7 @@ export default function AdminPage() {
     { id: 'halaqah' as TabType, name: 'Halaqah', icon: Users },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
+    { id: 'daftar-ulang' as TabType, name: 'Daftar Ulang', icon: FileText },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
     { id: 'analysis' as TabType, name: 'Analysis', icon: BarChart3 },
     { id: 'pairing' as TabType, name: 'Pairing', icon: HeartHandshake },
@@ -706,6 +708,7 @@ export default function AdminPage() {
           </div>
         )}
         {activeTab === 'halaqah' && <HalaqahManagementTab />}
+        {activeTab === 'daftar-ulang' && <DaftarUlangTab batchId={selectedBatchFilter} />}
         {activeTab === 'analysis' && <AnalysisTab />}
         {activeTab === 'pairing' && <AdminPairingTab />}
         {activeTab === 'system-logs' && <SystemLogsTab isActive={activeTab === 'system-logs'} />}
