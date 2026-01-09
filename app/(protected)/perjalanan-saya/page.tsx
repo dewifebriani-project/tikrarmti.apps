@@ -1022,25 +1022,24 @@ export default function PerjalananSaya() {
                                 </div>
                               </div>
                             ) : item.id === 3 ? (
-                              // Lulus Seleksi - Tampilkan pesan berdasarkan status kelulusan
+                              // Hasil Seleksi - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
                               (() => {
-                                const hasPassedOral = registrationStatus?.oralAssessmentStatus === 'pass';
-                                // Cek apakah user mengambil juz 30 (tidak wajib ujian pilihan ganda)
+                                const oralStatus = registrationStatus?.oralAssessmentStatus;
                                 const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30');
-                                // Untuk juz 30, hanya butuh lulus rekam suara. Untuk juz lain, butuh lulus keduanya dengan nilai >= 70
-                                const hasPassedExam = !isJuz30 && registrationStatus?.examStatus === 'completed' && (registrationStatus?.examScore ?? 0) >= 70;
-                                const hasPassedSelection = hasPassedOral && (isJuz30 || hasPassedExam);
 
-                                if (hasPassedSelection) {
+                                // CASE 1: Lulus Oral Test -> Tikrar Tahfidz MTI (regardless of written test score)
+                                if (oralStatus === 'pass') {
                                   return (
                                     <div className="space-y-3">
                                       <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 sm:p-4">
                                         <div className="flex items-start space-x-3">
                                           <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 mt-0.5 flex-shrink-0" />
                                           <div>
-                                            <h4 className="text-base sm:text-lg font-bold text-green-900 mb-2">Selamat! Ukhti Lulus Seleksi</h4>
+                                            <h4 className="text-base sm:text-lg font-bold text-green-900 mb-2">
+                                              Selamat! Ukhti Lulus ke Tikrar Tahfidz MTI
+                                            </h4>
                                             <p className="text-xs sm:text-sm text-green-800 leading-relaxed">
-                                              Alhamdulillah, Ukhti telah lulus seleksi penerimaan program Tikrar Tahfidz.
+                                              Alhamdulillah, Ukhti telah lulus seleksi penerimaan program Tikrar Tahfidz MTI.
                                               Teruslah bermuhasabah dan perbaiki diri demi menjadi hafidzah yang lebih baik.
                                             </p>
                                           </div>
@@ -1054,27 +1053,42 @@ export default function PerjalananSaya() {
                                         {!isJuz30 && (
                                           <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                                             <p className="text-xs text-gray-600">Pilihan Ganda</p>
-                                            <p className="text-sm font-bold text-green-700">{registrationStatus?.examScore ?? 0} - Lulus ✓</p>
+                                            <p className="text-sm font-bold text-green-700">
+                                              {registrationStatus?.examScore ?? 0} - {!isJuz30 ? 'Penempatan Halaqah' : 'Lulus ✓'}
+                                            </p>
                                           </div>
                                         )}
                                       </div>
                                     </div>
                                   );
-                                } else if (registrationStatus?.oralAssessmentStatus === 'fail' || (!isJuz30 && registrationStatus?.examStatus === 'completed' && (registrationStatus?.examScore ?? 0) < 70)) {
+                                }
+                                // CASE 2: Gagal Oral Test -> Pra-Tikrar (Kelas Persiapan)
+                                else if (oralStatus === 'fail') {
                                   return (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
-                                      <div className="flex items-start space-x-3">
-                                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                                        <div>
-                                          <h4 className="text-sm font-semibold text-red-800 mb-1">Belum Lulus Seleksi</h4>
-                                          <p className="text-xs text-red-700">
-                                            Mohon maaf, Ukhti belum lulus seleksi. Jangan menyerah, teruslah berikhtiar dan berdoa.
-                                          </p>
+                                    <div className="space-y-3">
+                                      <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3 sm:p-4">
+                                        <div className="flex items-start space-x-3">
+                                          <Target className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 mt-0.5 flex-shrink-0" />
+                                          <div>
+                                            <h4 className="text-base sm:text-lg font-bold text-orange-900 mb-2">
+                                              Ukhti Masuk Kelas Pra-Tikrar
+                                            </h4>
+                                            <p className="text-xs sm:text-sm text-orange-800 leading-relaxed">
+                                              Alhamdulillah, Ukhti diterima di kelas Pra-Tikrar (Kelas Khusus Persiapan Tikrar Tahfidz MTI).
+                                              Kelas ini dirancang khusus untuk mempersiapkan Ukhti agar lebih siap mengikuti program Tikrar Tahfidz.
+                                            </p>
+                                          </div>
                                         </div>
+                                      </div>
+                                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
+                                        <p className="text-xs text-gray-600">Rekam Suara</p>
+                                        <p className="text-sm font-bold text-orange-700">Perlu Peningkatan</p>
                                       </div>
                                     </div>
                                   );
-                                } else if (registrationStatus?.oralAssessmentStatus === 'pending' || (!isJuz30 && registrationStatus?.examStatus !== 'completed')) {
+                                }
+                                // CASE 3: Menunggu Hasil Oral Test
+                                else if (oralStatus === 'pending' || oralStatus === 'not_submitted') {
                                   return (
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
                                       <div className="flex items-start space-x-3">
@@ -1083,12 +1097,14 @@ export default function PerjalananSaya() {
                                           <h4 className="text-sm font-semibold text-yellow-800 mb-1">Menunggu Hasil Seleksi</h4>
                                           <p className="text-xs text-yellow-700">
                                             Hasil seleksi akan diumumkan pada tanggal yang telah ditentukan.
+                                            Semua peserta akan lulus ke Tikrar Tahfidz MTI atau Pra-Tikrar.
                                           </p>
                                         </div>
                                       </div>
                                     </div>
                                   );
                                 }
+                                // Default fallback
                                 return (
                                   <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
                                     {item.description}
@@ -1331,25 +1347,24 @@ export default function PerjalananSaya() {
                                   </div>
                                 </div>
                               ) : item.id === 3 ? (
-                                // Lulus Seleksi - Desktop view
+                                // Hasil Seleksi - Desktop view - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
                                 (() => {
-                                  const hasPassedOral = registrationStatus?.oralAssessmentStatus === 'pass';
-                                  // Cek apakah user mengambil juz 30 (tidak wajib ujian pilihan ganda)
+                                  const oralStatus = registrationStatus?.oralAssessmentStatus;
                                   const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30');
-                                  // Untuk juz 30, hanya butuh lulus rekam suara. Untuk juz lain, butuh lulus keduanya dengan nilai >= 70
-                                  const hasPassedExam = !isJuz30 && registrationStatus?.examStatus === 'completed' && (registrationStatus?.examScore ?? 0) >= 70;
-                                  const hasPassedSelection = hasPassedOral && (isJuz30 || hasPassedExam);
 
-                                  if (hasPassedSelection) {
+                                  // CASE 1: Lulus Oral Test -> Tikrar Tahfidz MTI (regardless of written test score)
+                                  if (oralStatus === 'pass') {
                                     return (
                                       <div className="space-y-3">
                                         <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
                                           <div className="flex items-start space-x-3">
                                             <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                                             <div>
-                                              <h4 className="text-lg font-bold text-green-900 mb-2">Selamat! Ukhti Lulus Seleksi</h4>
+                                              <h4 className="text-lg font-bold text-green-900 mb-2">
+                                                Selamat! Ukhti Lulus ke Tikrar Tahfidz MTI
+                                              </h4>
                                               <p className="text-sm text-green-800 leading-relaxed">
-                                                Alhamdulillah, Ukhti telah lulus seleksi penerimaan program Tikrar Tahfidz.
+                                                Alhamdulillah, Ukhti telah lulus seleksi penerimaan program Tikrar Tahfidz MTI.
                                                 Teruslah bermuhasabah dan perbaiki diri demi menjadi hafidzah yang lebih baik.
                                               </p>
                                             </div>
@@ -1363,27 +1378,42 @@ export default function PerjalananSaya() {
                                           {!isJuz30 && (
                                             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                                               <p className="text-sm text-gray-600">Pilihan Ganda</p>
-                                              <p className="text-base font-bold text-green-700">{registrationStatus?.examScore ?? 0} - Lulus ✓</p>
+                                              <p className="text-base font-bold text-green-700">
+                                                {registrationStatus?.examScore ?? 0} - {!isJuz30 ? 'Penempatan Halaqah' : 'Lulus ✓'}
+                                              </p>
                                             </div>
                                           )}
                                         </div>
                                       </div>
                                     );
-                                  } else if (registrationStatus?.oralAssessmentStatus === 'fail' || (!isJuz30 && registrationStatus?.examStatus === 'completed' && (registrationStatus?.examScore ?? 0) < 70)) {
+                                  }
+                                  // CASE 2: Gagal Oral Test -> Pra-Tikrar (Kelas Persiapan)
+                                  else if (oralStatus === 'fail') {
                                     return (
-                                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <div className="flex items-start space-x-3">
-                                          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                                          <div>
-                                            <h4 className="text-sm font-semibold text-red-800 mb-1">Belum Lulus Seleksi</h4>
-                                            <p className="text-sm text-red-700">
-                                              Mohon maaf, Ukhti belum lulus seleksi. Jangan menyerah, teruslah berikhtiar dan berdoa.
-                                            </p>
+                                      <div className="space-y-3">
+                                        <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
+                                          <div className="flex items-start space-x-3">
+                                            <Target className="w-6 h-6 text-orange-600 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                              <h4 className="text-lg font-bold text-orange-900 mb-2">
+                                                Ukhti Masuk Kelas Pra-Tikrar
+                                              </h4>
+                                              <p className="text-sm text-orange-800 leading-relaxed">
+                                                Alhamdulillah, Ukhti diterima di kelas Pra-Tikrar (Kelas Khusus Persiapan Tikrar Tahfidz MTI).
+                                                Kelas ini dirancang khusus untuk mempersiapkan Ukhti agar lebih siap mengikuti program Tikrar Tahfidz.
+                                              </p>
+                                            </div>
                                           </div>
+                                        </div>
+                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                                          <p className="text-sm text-gray-600">Rekam Suara</p>
+                                          <p className="text-base font-bold text-orange-700">Perlu Peningkatan</p>
                                         </div>
                                       </div>
                                     );
-                                  } else if (registrationStatus?.oralAssessmentStatus === 'pending' || (!isJuz30 && registrationStatus?.examStatus !== 'completed')) {
+                                  }
+                                  // CASE 3: Menunggu Hasil Oral Test
+                                  else if (oralStatus === 'pending' || oralStatus === 'not_submitted') {
                                     return (
                                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                         <div className="flex items-start space-x-3">
@@ -1392,12 +1422,14 @@ export default function PerjalananSaya() {
                                             <h4 className="text-sm font-semibold text-yellow-800 mb-1">Menunggu Hasil Seleksi</h4>
                                             <p className="text-sm text-yellow-700">
                                               Hasil seleksi akan diumumkan pada tanggal yang telah ditentukan.
+                                              Semua peserta akan lulus ke Tikrar Tahfidz MTI atau Pra-Tikrar.
                                             </p>
                                           </div>
                                         </div>
                                       </div>
                                     );
                                   }
+                                  // Default fallback
                                   return (
                                     <p className={`text-sm ${styles.textColor} leading-relaxed`}>
                                       {item.description}
