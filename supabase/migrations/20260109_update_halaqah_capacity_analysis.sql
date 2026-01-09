@@ -152,7 +152,6 @@ BEGIN
           AND (juz_selection::text LIKE '%' || jh.juz_code::text || '%'
                OR juz_selection::text LIKE '%' || jh.juz_number::text || '%')
       )
-    )
     ) AS halaqah_details
   FROM juz_halaqah jh
   ORDER BY jh.juz_number, jh.juz_code;
