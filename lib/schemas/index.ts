@@ -14,6 +14,10 @@ export const commonSchemas = {
   phone: z.string()
     .regex(/^(\+62|62|0)[0-9]{9,13}$/, 'Format nomor telepon tidak valid'),
 
+  // International phone validation (supports multiple country codes)
+  internationalPhone: z.string()
+    .regex(/^\+\d{8,15}$/, 'Format nomor telepon tidak valid. Gunakan format: +kode_negara nomor'),
+
   // URL validation
   url: z.string().url('URL tidak valid'),
 
@@ -83,16 +87,12 @@ export const authSchemas = {
     password: z.string().min(6, 'Password minimal 6 karakter'),
     full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),
     negara: z.string().min(1, 'Negara harus diisi'),
-    provinsi: z.string().optional(),
+    provinsi: z.string().nullable().optional(), // Allow null for non-Indonesian countries
     kota: z.string().min(1, 'Kota harus diisi'),
     alamat: z.string().min(10, 'Alamat minimal 10 karakter'),
-    whatsapp: commonSchemas.phone,
-    telegram: commonSchemas.phone.optional(),
-    zona_waktu: z.enum([
-      'WIB', 'WITA', 'WIT', 'MYT', 'PHT', 'ICT', 'IST', 'PKT', 'BST',
-      'CST', 'JST', 'KST', 'GMT', 'CET', 'EET', 'MSK', 'GST', 'TRT',
-      'AWST', 'ACST', 'AEST', 'AEDT', 'NZST', 'EST', 'MST', 'PST', 'HST', 'AST'
-    ]),
+    whatsapp: commonSchemas.internationalPhone, // Use international phone format
+    telegram: commonSchemas.internationalPhone.optional(), // Use international phone format
+    zona_waktu: z.string().min(1, 'Zona waktu harus diisi'), // Accept any valid timezone string
     tanggal_lahir: z.string().datetime({ offset: true }),
     tempat_lahir: z.string().min(1, 'Tempat lahir harus diisi'),
     jenis_kelamin: z.enum(['Laki-laki', 'Perempuan']),

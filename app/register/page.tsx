@@ -20,6 +20,7 @@ import { Crown, Heart, ArrowRight } from "lucide-react";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { validatePhoneNumberFormat } from "@/lib/utils/sanitize";
 import { negaraList, provinsiList, zonaWaktuList } from "@/lib/data/registration-data";
+import { countryCodes } from "@/lib/data/country-codes";
 
 function RegisterPageContent() {
   const router = useRouter();
@@ -143,13 +144,15 @@ function RegisterPageContent() {
     if (!formData.whatsapp.trim()) {
       newErrors.whatsapp = 'WhatsApp harus diisi';
     } else if (!validatePhoneNumberFormat(formData.whatsapp, formData.negara)) {
-      newErrors.whatsapp = 'Format WhatsApp tidak valid. Format: ID +62 [nomor telepon]';
+      const countryCode = countryCodes.find(c => c.name === formData.negara)?.dialCode || '+XX';
+      newErrors.whatsapp = `Format WhatsApp tidak valid. Format: ${formData.negara} ${countryCode} [nomor telepon]`;
     }
 
     if (!formData.telegram.trim()) {
       newErrors.telegram = 'Telegram harus diisi';
     } else if (!validatePhoneNumberFormat(formData.telegram, formData.negara)) {
-      newErrors.telegram = 'Format Telegram tidak valid. Format: ID +62 [nomor telepon]';
+      const countryCode = countryCodes.find(c => c.name === formData.negara)?.dialCode || '+XX';
+      newErrors.telegram = `Format Telegram tidak valid. Format: ${formData.negara} ${countryCode} [nomor telepon]`;
     }
 
     if (!formData.zonaWaktu) {
