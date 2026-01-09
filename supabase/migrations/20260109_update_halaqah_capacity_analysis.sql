@@ -1,7 +1,10 @@
 -- Update analyze_halaqah_availability_by_juz function to use new tables and include capacity analysis
 -- This function analyzes halaqah capacity per juz and determines if more halaqah are needed
 
-CREATE OR REPLACE FUNCTION analyze_halaqah_availability_by_juz(p_batch_id UUID)
+-- Drop the existing function first to avoid return type conflicts
+DROP FUNCTION IF EXISTS analyze_halaqah_availability_by_juz(UUID);
+
+CREATE FUNCTION analyze_halaqah_availability_by_juz(p_batch_id UUID)
 RETURNS TABLE (
   juz_code VARCHAR,
   juz_number INTEGER,
