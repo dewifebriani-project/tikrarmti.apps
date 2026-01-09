@@ -1476,8 +1476,22 @@ function ReviewStep({
               <p className="font-medium">{formData.confirmed_full_name}</p>
             </div>
             <div>
-              <span className="text-gray-600">Juz</span>
+              <span className="text-gray-600">Juz Pilihan</span>
               <p className="font-medium">{formData.confirmed_chosen_juz}</p>
+            </div>
+            <div>
+              <span className="text-gray-600">Juz Penempatan Final</span>
+              <p className="font-medium">
+                {formData.final_juz}
+                {formData.juz_adjusted && (
+                  <span className="ml-2 text-xs text-amber-600 font-semibold">
+                    (Disesuaikan)
+                  </span>
+                )}
+              </p>
+              {formData.juz_adjusted && (
+                <p className="text-xs text-gray-500 mt-1">{formData.juz_adjustment_reason}</p>
+              )}
             </div>
             <div>
               <span className="text-gray-600">Waktu Utama</span>
