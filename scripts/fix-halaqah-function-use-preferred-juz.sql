@@ -1,9 +1,7 @@
 -- Update analyze_halaqah_availability_by_juz function to use halaqah.preferred_juz
--- This function analyzes halaqah capacity per juz and determines if more halaqah are needed
--- This version uses halaqah.preferred_juz instead of programs.juz_selection
+-- This version doesn't require juz_selection column in programs table
 
--- Drop the existing function first to avoid return type conflicts
-DROP FUNCTION IF EXISTS analyze_halaqah_availability_by_juz(UUID);
+DROP FUNCTION IF EXISTS public.analyze_halaqah_availability_by_juz(UUID);
 
 CREATE FUNCTION analyze_halaqah_availability_by_juz(p_batch_id UUID)
 RETURNS TABLE (
@@ -157,3 +155,6 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON FUNCTION analyze_halaqah_availability_by_juz IS 'Analyzes halaqah capacity per juz using halaqah.preferred_juz field (no juz_selection in programs required)';
+
+-- Test the function
+SELECT * FROM analyze_halaqah_availability_by_juz('4bcb3020-20cb-46e2-8be4-0100f8012a49'::UUID);
