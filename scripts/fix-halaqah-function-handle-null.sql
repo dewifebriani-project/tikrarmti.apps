@@ -1,6 +1,6 @@
 -- Update analyze_halaqah_availability_by_juz function to use halaqah.preferred_juz
+-- This version handles cases where preferred_juz is NULL by matching all halaqah
 -- This function analyzes halaqah capacity per juz and determines if more halaqah are needed
--- This version uses halaqah.preferred_juz instead of programs.juz_selection
 
 -- Drop the existing function first to avoid return type conflicts
 DROP FUNCTION IF EXISTS analyze_halaqah_availability_by_juz(UUID);
@@ -91,28 +91,28 @@ BEGIN
       jd.juz_name,
       jd.total_thalibah,
       COUNT(DISTINCT hc.halaqah_id) AS total_halaqah,
-      COALESCE(SUM(hc.max_students), 0)::INTEGER AS total_capacity,
-      COALESCE(SUM(hc.current_students), 0)::INTEGER AS total_filled,
-      COALESCE(SUM(hc.available_slots), 0)::INTEGER AS total_available,
+      SUM(hc.max_students)::INTEGER AS total_capacity,
+      SUM(hc.current_students)::INTEGER AS total_filled,
+      SUM(hc.available_slots)::INTEGER AS total_available,
       -- Calculate needed halaqah: CEIL((total_thalibah - total_available) / 5) if positive
       CASE
-        WHEN (jd.total_thalibah - COALESCE(SUM(hc.available_slots), 0)) > 0 THEN
-          CEIL((jd.total_thalibah - COALESCE(SUM(hc.available_slots), 0))::NUMERIC / v_min_capacity)
+        WHEN (jd.total_thalibah - SUM(hc.available_slots)) > 0 THEN
+          CEIL((jd.total_thalibah - SUM(hc.available_slots))::NUMERIC / v_min_capacity)
         ELSE 0
       END::INTEGER AS needed_halaqah,
       -- Calculate utilization percentage
       CASE
-        WHEN COALESCE(SUM(hc.max_students), 0) = 0 THEN 0
+        WHEN SUM(hc.max_students) = 0 OR SUM(hc.max_students) IS NULL THEN 0
         ELSE ROUND((SUM(hc.current_students)::NUMERIC / NULLIF(SUM(hc.max_students), 0)) * 100, 2)
       END AS utilization_percentage
     FROM juz_data jd
     LEFT JOIN halaqah_counts hc ON (
       -- Match halaqah with juz using preferred_juz field
-      -- If preferred_juz is NULL, include the halaqah for all juz (fallback behavior)
-      hc.preferred_juz IS NOT NULL AND (
+      -- If preferred_juz is NULL, still include the halaqah
+      (hc.preferred_juz IS NOT NULL AND (
         hc.preferred_juz LIKE '%' || jd.juz_code::text || '%' OR
         hc.preferred_juz LIKE '%' || jd.juz_number::text || '%'
-      )
+      )) OR hc.preferred_juz IS NULL
     )
     GROUP BY jd.juz_code, jd.juz_number, jd.juz_name, jd.total_thalibah
   )
@@ -128,36 +128,36 @@ BEGIN
     jh.needed_halaqah,
     jh.utilization_percentage,
     -- Get halaqah details as JSONB
-    COALESCE(
-      (
-        SELECT JSONB_AGG(
-          JSONB_BUILD_OBJECT(
-            'id', hc.halaqah_id,
-            'name', hc.halaqah_name,
-            'max_students', hc.max_students,
-            'day_of_week', hc.day_of_week,
-            'start_time', hc.start_time,
-            'end_time', hc.end_time,
-            'current_students', hc.current_students,
-            'available_slots', hc.available_slots,
-            'utilization_percent', CASE
-              WHEN hc.max_students = 0 OR hc.max_students IS NULL THEN 0
-              ELSE ROUND((hc.current_students::NUMERIC / NULLIF(hc.max_students, 0)) * 100, 2)
-            END
-          )
-          ORDER BY hc.halaqah_name
+    (
+      SELECT JSONB_AGG(
+        JSONB_BUILD_OBJECT(
+          'id', hc.halaqah_id,
+          'name', hc.halaqah_name,
+          'max_students', hc.max_students,
+          'day_of_week', hc.day_of_week,
+          'start_time', hc.start_time,
+          'end_time', hc.end_time,
+          'current_students', hc.current_students,
+          'available_slots', hc.available_slots,
+          'utilization_percent', CASE
+            WHEN hc.max_students = 0 OR hc.max_students IS NULL THEN 0
+            ELSE ROUND((hc.current_students::NUMERIC / NULLIF(hc.max_students, 0)) * 100, 2)
+          END
         )
-        FROM halaqah_counts hc
-        WHERE hc.preferred_juz IS NOT NULL AND (
-          hc.preferred_juz LIKE '%' || jh.juz_code::text || '%' OR
-          hc.preferred_juz LIKE '%' || jh.juz_number::text || '%'
-        )
-      ),
-      '[]'::jsonb
+        ORDER BY hc.halaqah_name
+      )
+      FROM halaqah_counts hc
+      WHERE (hc.preferred_juz IS NOT NULL AND (
+        hc.preferred_juz LIKE '%' || jh.juz_code::text || '%' OR
+        hc.preferred_juz LIKE '%' || jh.juz_number::text || '%'
+      )) OR hc.preferred_juz IS NULL
     ) AS halaqah_details
   FROM juz_halaqah jh
   ORDER BY jh.juz_number, jh.juz_code;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-COMMENT ON FUNCTION analyze_halaqah_availability_by_juz IS 'Analyzes halaqah capacity per juz using halaqah.preferred_juz field (no juz_selection in programs required)';
+COMMENT ON FUNCTION analyze_halaqah_availability_by_juz IS 'Analyzes halaqah capacity per juz using halaqah.preferred_juz field (handles NULL values)';
+
+-- Test the function
+SELECT * FROM analyze_halaqah_availability_by_juz('4bcb3020-20cb-46e2-8be4-0100f8012a49'::UUID);
