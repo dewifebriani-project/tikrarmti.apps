@@ -54,7 +54,7 @@ BEGIN
       h.preferred_juz,
       -- Count students from both tables
       COALESCE((
-        SELECT COUNT(DISTINCT hs.student_id)
+        SELECT COUNT(DISTINCT hs.thalibah_id)
         FROM public.halaqah_students hs
         WHERE hs.halaqah_id = h.id AND hs.status = 'active'
       ), 0) +
@@ -67,7 +67,7 @@ BEGIN
       -- Calculate available slots
       (h.max_students - (
         COALESCE((
-          SELECT COUNT(DISTINCT hs.student_id)
+          SELECT COUNT(DISTINCT hs.thalibah_id)
           FROM public.halaqah_students hs
           WHERE hs.halaqah_id = h.id AND hs.status = 'active'
         ), 0) +
