@@ -27,7 +27,7 @@ import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 import { EditHalaqahModal } from '@/components/EditHalaqahModal';
 import { AssignThalibahModal } from '@/components/AssignThalibahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
-import { getHalaqahs, updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
+import { updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 
 interface Halaqah {
   id: string;
@@ -158,15 +158,16 @@ export function HalaqahManagementTab() {
     console.log('[HalaqahManagementTab] Loading halaqahs...');
 
     try {
-      // Build filters
-      const filters: { batch_id?: string; program_id?: string; status?: 'draft' | 'active' | 'completed' | 'cancelled' } = {};
-      if (selectedBatch) filters.batch_id = selectedBatch;
-      if (selectedProgram) filters.program_id = selectedProgram;
-      if (selectedStatus) filters.status = selectedStatus as 'draft' | 'active' | 'completed' | 'cancelled';
+      // Build query params
+      const params = new URLSearchParams();
+      if (selectedBatch) params.append('batch_id', selectedBatch);
+      if (selectedProgram) params.append('program_id', selectedProgram);
+      if (selectedStatus) params.append('status', selectedStatus);
 
-      const result = await getHalaqahs(filters);
+      const response = await fetch(`/api/halaqah?${params.toString()}`);
+      const result = await response.json();
 
-      if (!result.success) {
+      if (!response.ok) {
         console.error('[HalaqahManagementTab] Failed to load halaqahs:', result);
         toast.error(result.error || 'Failed to load halaqah data');
         return;
@@ -174,7 +175,14 @@ export function HalaqahManagementTab() {
 
       if (result.data) {
         console.log('[HalaqahManagementTab] Loaded', result.data.length, 'halaqahs');
-        setHalaqahs(result.data);
+        // Transform data to match expected format
+        const transformedHalaqahs = result.data.map((h: any) => ({
+          ...h,
+          _count: {
+            students: h.students_count || 0
+          }
+        }));
+        setHalaqahs(transformedHalaqahs);
       } else {
         setHalaqahs([]);
       }
