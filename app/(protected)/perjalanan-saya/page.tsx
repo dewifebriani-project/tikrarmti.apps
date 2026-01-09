@@ -42,7 +42,7 @@ interface TikrarRegistration extends Pendaftaran {
   oral_submission_url?: string;
   oral_submitted_at?: string;
   oral_assessment_status?: string;
-  written_quiz_score?: number;
+  exam_score?: number;
   written_quiz_submitted_at?: string;
   selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
 }
@@ -152,7 +152,7 @@ export default function PerjalananSaya() {
       oralAssessmentStatus: registration?.oral_assessment_status || 'pending',
       registrationId: registration?.id,
       chosenJuz: registration?.chosen_juz,
-      writtenQuizScore: registration?.written_quiz_score,
+      examScore: registration?.exam_score,
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at,
       selectionStatus: registration?.selection_status || 'pending',
     };
@@ -960,7 +960,7 @@ export default function PerjalananSaya() {
                                               </div>
                                             </div>
                                             <p className="text-xs text-green-800 mb-2">
-                                              Nilai: {registrationStatus?.writtenQuizScore ?? '-'}/100
+                                              Nilai: {registrationStatus?.examScore ?? '-'}/100
                                             </p>
                                             <p className="text-xs text-gray-600 italic">
                                               Dikirim: {registrationStatus?.writtenQuizSubmittedAt ? new Date(registrationStatus.writtenQuizSubmittedAt).toLocaleDateString('id-ID') : '-'}
@@ -1027,7 +1027,7 @@ export default function PerjalananSaya() {
                               (() => {
                                 const oralStatus = registrationStatus?.oralAssessmentStatus;
                                 const chosenJuz = registrationStatus?.chosenJuz?.toUpperCase() || '';
-                                const writtenQuizScore = registrationStatus?.writtenQuizScore;
+                                const examScore = registrationStatus?.examScore;
                                 const isJuz30 = chosenJuz.startsWith('30');
 
                                 // Calculate adjusted juz based on written quiz score
@@ -1035,15 +1035,15 @@ export default function PerjalananSaya() {
                                 let juzAdjusted = false;
                                 let juzAdjustmentReason = '';
 
-                                if (oralStatus === 'pass' && writtenQuizScore !== null && writtenQuizScore !== undefined && writtenQuizScore < 70) {
+                                if (oralStatus === 'pass' && examScore !== null && examScore !== undefined && examScore < 70) {
                                   if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
                                     finalJuz = '29A';
                                     juzAdjusted = true;
-                                    juzAdjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                    juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
                                   } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
                                     finalJuz = '30A';
                                     juzAdjusted = true;
-                                    juzAdjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                    juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
                                   }
                                 }
 
@@ -1074,10 +1074,10 @@ export default function PerjalananSaya() {
                                         {!isJuz30 && (
                                           <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                                             <p className="text-xs text-gray-600">Pilihan Ganda</p>
-                                            {writtenQuizScore !== null && writtenQuizScore !== undefined ? (
+                                            {examScore !== null && examScore !== undefined ? (
                                               <>
                                                 <p className="text-sm font-bold text-green-700">
-                                                  {writtenQuizScore} - {writtenQuizScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
+                                                  {examScore} - {examScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
                                                 </p>
                                                 {juzAdjusted && (
                                                   <p className="text-xs text-blue-700 mt-1">
@@ -1328,7 +1328,7 @@ export default function PerjalananSaya() {
                                               </div>
                                             </div>
                                             <p className="text-sm text-green-800 mb-2">
-                                              Nilai: {registrationStatus?.writtenQuizScore ?? '-'}/100
+                                              Nilai: {registrationStatus?.examScore ?? '-'}/100
                                             </p>
                                             <p className="text-sm text-gray-600 italic">
                                               Dikirim: {registrationStatus?.writtenQuizSubmittedAt ? new Date(registrationStatus.writtenQuizSubmittedAt).toLocaleDateString('id-ID') : '-'}
@@ -1394,7 +1394,7 @@ export default function PerjalananSaya() {
                                 (() => {
                                   const oralStatus = registrationStatus?.oralAssessmentStatus;
                                   const chosenJuz = registrationStatus?.chosenJuz?.toUpperCase() || '';
-                                  const writtenQuizScore = registrationStatus?.writtenQuizScore;
+                                  const examScore = registrationStatus?.examScore;
                                   const isJuz30 = chosenJuz.startsWith('30');
 
                                   // Calculate adjusted juz based on written quiz score
@@ -1402,15 +1402,15 @@ export default function PerjalananSaya() {
                                   let juzAdjusted = false;
                                   let juzAdjustmentReason = '';
 
-                                  if (oralStatus === 'pass' && writtenQuizScore !== null && writtenQuizScore !== undefined && writtenQuizScore < 70) {
+                                  if (oralStatus === 'pass' && examScore !== null && examScore !== undefined && examScore < 70) {
                                     if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
                                       finalJuz = '29A';
                                       juzAdjusted = true;
-                                      juzAdjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                      juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
                                     } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
                                       finalJuz = '30A';
                                       juzAdjusted = true;
-                                      juzAdjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+                                      juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
                                     }
                                   }
 
@@ -1441,10 +1441,10 @@ export default function PerjalananSaya() {
                                           {!isJuz30 && (
                                             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                                               <p className="text-sm text-gray-600">Pilihan Ganda</p>
-                                              {writtenQuizScore !== null && writtenQuizScore !== undefined ? (
+                                              {examScore !== null && examScore !== undefined ? (
                                                 <>
                                                   <p className="text-base font-bold text-green-700">
-                                                    {writtenQuizScore} - {writtenQuizScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
+                                                    {examScore} - {examScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
                                                   </p>
                                                   {juzAdjusted && (
                                                     <p className="text-sm text-blue-700 mt-1">

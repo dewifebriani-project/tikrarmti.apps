@@ -75,7 +75,7 @@ export default function DaftarUlangPage() {
     confirmed_backup_time_slot: string
     confirmed_wa_phone: string
     confirmed_address: string
-    written_quiz_score: number | null
+    exam_score: number | null
     final_juz: string
     juz_adjusted: boolean
     juz_adjustment_reason: string
@@ -98,7 +98,7 @@ export default function DaftarUlangPage() {
     confirmed_backup_time_slot: '',
     confirmed_wa_phone: '',
     confirmed_address: '',
-    written_quiz_score: null,
+    exam_score: null,
     final_juz: '',
     juz_adjusted: false,
     juz_adjustment_reason: '',
@@ -145,22 +145,22 @@ export default function DaftarUlangPage() {
 
         setRegistrationData(selectedRegistration)
 
-        // Calculate final juz based on written quiz score
-        const writtenQuizScore = selectedRegistration.written_quiz_score || null
+        // Calculate final juz based on exam score
+        const examScore = selectedRegistration.exam_score || null
         const chosenJuz = (selectedRegistration.chosen_juz || '').toUpperCase()
         let finalJuz = chosenJuz
         let juzAdjusted = false
         let juzAdjustmentReason = ''
 
-        if (writtenQuizScore !== null && writtenQuizScore < 70) {
+        if (examScore !== null && examScore < 70) {
           if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
             finalJuz = '29A'
             juzAdjusted = true
-            juzAdjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
+            juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
           } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
             finalJuz = '30A'
             juzAdjusted = true
-            juzAdjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
+            juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
           }
         }
 
@@ -172,7 +172,7 @@ export default function DaftarUlangPage() {
           confirmed_backup_time_slot: selectedRegistration.backup_time_slot || prev.confirmed_backup_time_slot,
           confirmed_wa_phone: selectedRegistration.wa_phone || prev.confirmed_wa_phone,
           confirmed_address: selectedRegistration.address || prev.confirmed_address,
-          written_quiz_score: writtenQuizScore,
+          exam_score: examScore,
           final_juz: finalJuz,
           juz_adjusted: juzAdjusted,
           juz_adjustment_reason: juzAdjustmentReason,

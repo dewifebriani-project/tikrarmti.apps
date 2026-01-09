@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
     console.log('[UpdateSelectionStatus] Starting auto-update for batch:', batch_id || 'all');
 
     // Build query to get registrations that need update
-    // FIXED: Fetch oral_assessment_status and written_quiz_score
+    // FIXED: Fetch oral_assessment_status and exam_score
     let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, chosen_juz, oral_assessment_status, written_quiz_score, selection_status, exam_juz_number')
+      .select('id, chosen_juz, oral_assessment_status, exam_score, selection_status, exam_juz_number')
       .eq('selection_status', 'pending')
       .eq('status', 'approved'); // Only update approved registrations
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     for (const reg of registrations) {
       const oralStatus = reg.oral_assessment_status;
-      const writtenQuizScore = reg.written_quiz_score;
+      const examScore = reg.exam_score;
       const chosenJuz = reg.chosen_juz?.toUpperCase() || '';
       const examJuzNumber = reg.exam_juz_number;
 
@@ -96,16 +96,16 @@ export async function POST(request: NextRequest) {
         let adjustmentReason = null;
 
         // Check if juz adjustment is needed (written quiz score < 70)
-        if (writtenQuizScore !== null && writtenQuizScore !== undefined && writtenQuizScore < 70) {
+        if (examScore !== null && examScore !== undefined && examScore < 70) {
           // Juz 28A/28B → Juz 29A
           if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
             finalJuz = '29A';
-            adjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+            adjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
           }
           // Juz 1A/1B or Juz 29A/29B → Juz 30A
           else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
             finalJuz = '30A';
-            adjustmentReason = `Nilai pilihan ganda ${writtenQuizScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+            adjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
           }
 
           // Track adjustment
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
           chosen_juz: reg.chosen_juz,
           final_juz: finalJuz,
           oral_assessment_status: oralStatus,
-          written_quiz_score: writtenQuizScore,
+          exam_score: examScore,
           final_placement: 'Tikrar Tahfidz MTI',
           reason: 'Passed oral test',
           juz_adjusted: finalJuz !== chosenJuz,
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
           id: reg.id,
           chosen_juz: reg.chosen_juz,
           oral_assessment_status: oralStatus,
-          written_quiz_score: writtenQuizScore,
+          exam_score: examScore,
           final_placement: 'Pra-Tikrar',
           reason: 'Failed oral test - needs preparation class'
         });

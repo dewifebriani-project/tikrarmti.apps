@@ -32,7 +32,7 @@ async function updateSelectionStatus(batchId?: string) {
     // Build query
     let query = supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, chosen_juz, oral_assessment_status, written_quiz_score, selection_status')
+      .select('id, chosen_juz, oral_assessment_status, exam_score, selection_status')
       .eq('selection_status', 'pending')
       .eq('status', 'approved')
 
@@ -70,7 +70,7 @@ async function updateSelectionStatus(batchId?: string) {
     // Process each registration
     for (const reg of registrations) {
       const oralStatus = reg.oral_assessment_status
-      const writtenQuizScore = reg.written_quiz_score
+      const examScore = reg.exam_score
       const chosenJuz = reg.chosen_juz?.toUpperCase() || ''
 
       // Rule 1: Pass oral test → Selected

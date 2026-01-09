@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Get user's registration to find batch_id and calculate final juz
     const { data: registration, error: regError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('batch_id, chosen_juz, written_quiz_score, main_time_slot, backup_time_slot')
+      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot')
       .eq('user_id', user.id)
       .eq('selection_status', 'selected')
       .order('created_at', { ascending: false })
@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Calculate final juz placement based on written quiz score
-    const writtenQuizScore = registration.written_quiz_score || null
+    // Calculate final juz placement based on exam score
+    const examScore = registration.exam_score || null
     const chosenJuz = (registration.chosen_juz || '').toUpperCase()
     let finalJuz = chosenJuz
 
-    if (writtenQuizScore !== null && writtenQuizScore < 70) {
+    if (examScore !== null && examScore < 70) {
       if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
         finalJuz = '29A'
       } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
