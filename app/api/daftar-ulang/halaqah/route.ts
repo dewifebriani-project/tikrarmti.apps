@@ -110,24 +110,46 @@ export async function GET(request: NextRequest) {
       .in('status', ['submitted', 'draft'])
 
     // Count students per halaqah
-    const halaqahStudentCount = new Map<string, number>()
+    // Use a Set to track unique users per halaqah
+    const halaqahStudentMap = new Map<string, Set<string>>()
+
     if (submissions) {
       for (const sub of submissions) {
         // Skip current user's existing submission when counting quota
         // (they will be updating their choice, not taking an additional slot)
         if (sub.user_id === user.id) continue
 
-        // Count ujian halaqah
+        // For tashih_ujian classes, ujian_halaqah_id and tashih_halaqah_id are the same
+        // We need to count each user only once per halaqah, even if they selected both ujian and tashih
+        const uniqueHalaqahIds: string[] = []
+
         if (sub.ujian_halaqah_id) {
-          const current = halaqahStudentCount.get(sub.ujian_halaqah_id) || 0
-          halaqahStudentCount.set(sub.ujian_halaqah_id, current + 1)
+          uniqueHalaqahIds.push(sub.ujian_halaqah_id)
         }
-        // Count tashih halaqah (not tashih_umum)
         if (sub.tashih_halaqah_id && !sub.is_tashih_umum) {
-          const current = halaqahStudentCount.get(sub.tashih_halaqah_id) || 0
-          halaqahStudentCount.set(sub.tashih_halaqah_id, current + 1)
+          // Only add if not already in the list (for tashih_ujian case)
+          if (!uniqueHalaqahIds.includes(sub.tashih_halaqah_id)) {
+            uniqueHalaqahIds.push(sub.tashih_halaqah_id)
+          }
+        }
+
+        // Add user to each unique halaqah
+        for (let i = 0; i < uniqueHalaqahIds.length; i++) {
+          const halaqahId = uniqueHalaqahIds[i]
+          if (!halaqahStudentMap.has(halaqahId)) {
+            halaqahStudentMap.set(halaqahId, new Set())
+          }
+          halaqahStudentMap.get(halaqahId)!.add(sub.user_id)
         }
       }
+    }
+
+    // Convert Set to count
+    const halaqahStudentCount = new Map<string, number>()
+    const entries = Array.from(halaqahStudentMap.entries())
+    for (let i = 0; i < entries.length; i++) {
+      const [halaqahId, userSet] = entries[i]
+      halaqahStudentCount.set(halaqahId, userSet.size)
     }
 
     // Process halaqah data and filter by thalibah's juz
