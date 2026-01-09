@@ -52,32 +52,32 @@ BEGIN
       h.program_id,
       -- Use preferred_juz from halaqah table
       h.preferred_juz,
-      -- Count students from both tables
+      -- Count students from daftar_ulang_submissions table
+      -- For tashih_ujian classes, ujian_halaqah_id and tashih_halaqah_id can be the same
+      -- We need to count each user only once per halaqah
       COALESCE((
-        SELECT COUNT(DISTINCT hs.thalibah_id)
-        FROM public.halaqah_students hs
-        WHERE hs.halaqah_id = h.id AND hs.status = 'active'
-      ), 0) +
-      COALESCE((
-        SELECT COUNT(DISTINCT dus.user_id)
+        SELECT COUNT(DISTINCT CASE
+          WHEN dus.ujian_halaqah_id = h.id THEN dus.user_id
+          WHEN dus.tashih_halaqah_id = h.id AND NOT dus.is_tashih_umum THEN dus.user_id
+          ELSE NULL
+        END)
         FROM public.daftar_ulang_submissions dus
         WHERE dus.status = 'submitted'
+          AND dus.batch_id = p_batch_id
           AND (dus.ujian_halaqah_id = h.id OR dus.tashih_halaqah_id = h.id)
       ), 0) AS current_students,
       -- Calculate available slots
-      (h.max_students - (
-        COALESCE((
-          SELECT COUNT(DISTINCT hs.thalibah_id)
-          FROM public.halaqah_students hs
-          WHERE hs.halaqah_id = h.id AND hs.status = 'active'
-        ), 0) +
-        COALESCE((
-          SELECT COUNT(DISTINCT dus.user_id)
-          FROM public.daftar_ulang_submissions dus
-          WHERE dus.status = 'submitted'
-            AND (dus.ujian_halaqah_id = h.id OR dus.tashih_halaqah_id = h.id)
-        ), 0)
-      )) AS available_slots
+      (h.max_students - COALESCE((
+        SELECT COUNT(DISTINCT CASE
+          WHEN dus.ujian_halaqah_id = h.id THEN dus.user_id
+          WHEN dus.tashih_halaqah_id = h.id AND NOT dus.is_tashih_umum THEN dus.user_id
+          ELSE NULL
+        END)
+        FROM public.daftar_ulang_submissions dus
+        WHERE dus.status = 'submitted'
+          AND dus.batch_id = p_batch_id
+          AND (dus.ujian_halaqah_id = h.id OR dus.tashih_halaqah_id = h.id)
+      ), 0)) AS available_slots
     FROM public.halaqah h
     INNER JOIN public.programs p ON p.id = h.program_id
     WHERE p.batch_id = p_batch_id
