@@ -111,7 +111,7 @@ interface HalaqahAvailability {
   halaqah_details: any[];
 }
 
-type AnalysisTabType = 'overview' | 'matching' | 'halaqah';
+type AnalysisTabType = 'overview' | 'matching';
 
 export function AnalysisTab() {
   const [loading, setLoading] = useState(true);
@@ -130,10 +130,9 @@ export function AnalysisTab() {
     if (selectedBatchId) {
       if (activeTab === 'overview') {
         loadAnalysis(selectedBatchId);
+        loadHalaqahAvailability(selectedBatchId);
       } else if (activeTab === 'matching') {
         loadMatchingAnalysis(selectedBatchId);
-      } else if (activeTab === 'halaqah') {
-        loadHalaqahAvailability(selectedBatchId);
       }
     }
   }, [selectedBatchId, activeTab]);
@@ -374,16 +373,6 @@ export function AnalysisTab() {
     );
   }
 
-  if (loading && halaqahData.length === 0 && activeTab === 'halaqah') {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900"></div>
-          <p className="text-sm text-gray-600">Loading halaqah availability...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -444,17 +433,6 @@ export function AnalysisTab() {
             >
               <HeartHandshake className="w-4 h-4" />
               Matching Pasangan
-            </button>
-            <button
-              onClick={() => { setActiveTab('halaqah'); setLoading(true); }}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'halaqah'
-                  ? 'border-green-900 text-green-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              Ketersediaan Halaqah
             </button>
           </nav>
         </div>
@@ -626,69 +604,8 @@ export function AnalysisTab() {
               </p>
             </div>
           </div>
-        </>
-      )}
 
-      {activeTab === 'matching' && (
-        <>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <HeartHandshake className="w-5 h-5 text-green-900" />
-              <h3 className="text-lg font-semibold text-gray-900">Analisis Matching Pasangan Belajar</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Analisis potensi matching pasangan belajar untuk setiap thalibah. Prioritas: zona waktu sama &gt; juz option sama &gt; juz number sama &gt; lintas juz.
-            </p>
-
-            {matchingData.length === 0 ? (
-              <div className="text-center py-12">
-                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Belum ada data matching. Pilih batch untuk melihat analisis.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Utama</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Matches</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Juz Sama</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Lintas Juz</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {matchingData.map((match) => (
-                      <tr key={match.user_id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{match.user_name}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_juz}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_zona_waktu || '-'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_main_time}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            match.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {match.total_matches}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-purple-600">{match.zona_waktu_matches}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-blue-600">{match.same_juz_matches}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-orange-600">{match.cross_juz_matches}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {activeTab === 'halaqah' && (
-        <>
+          {/* Halaqah Availability per Juz */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-green-900" />
@@ -863,6 +780,64 @@ export function AnalysisTab() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'matching' && (
+        <>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <HeartHandshake className="w-5 h-5 text-green-900" />
+              <h3 className="text-lg font-semibold text-gray-900">Analisis Matching Pasangan Belajar</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Analisis potensi matching pasangan belajar untuk setiap thalibah. Prioritas: zona waktu sama &gt; juz option sama &gt; juz number sama &gt; lintas juz.
+            </p>
+
+            {matchingData.length === 0 ? (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Belum ada data matching. Pilih batch untuk melihat analisis.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Utama</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Matches</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Juz Sama</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Lintas Juz</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {matchingData.map((match) => (
+                      <tr key={match.user_id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{match.user_name}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_juz}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_zona_waktu || '-'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_main_time}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            match.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {match.total_matches}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-purple-600">{match.zona_waktu_matches}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-blue-600">{match.same_juz_matches}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-orange-600">{match.cross_juz_matches}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
