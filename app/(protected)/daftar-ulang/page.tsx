@@ -688,8 +688,12 @@ function HalaqahSelectionStep({
 
     // Check if there's already a tashih_ujian halaqah selected (both ujian and tashih in one)
     // If so, cannot select any other halaqah
-    const currentlySelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
-    if (currentlySelectedHalaqah && isTashihUjianBoth(currentlySelectedHalaqah) && currentlySelectedHalaqah.id !== halaqahId) {
+    const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+    const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+
+    // If either ujian or tashih is already a tashih_ujian halaqah and we're clicking a different halaqah
+    if ((ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqahId) ||
+        (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqahId)) {
       toast.error('Anda sudah memilih kelas Tashih+Ujian. Tidak bisa memilih halaqah lain.')
       return
     }
@@ -721,8 +725,12 @@ function HalaqahSelectionStep({
 
     // Check if there's already a tashih_ujian halaqah selected (both ujian and tashih in one)
     // If so, cannot select any other halaqah
-    const currentlySelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
-    if (currentlySelectedHalaqah && isTashihUjianBoth(currentlySelectedHalaqah) && currentlySelectedHalaqah.id !== halaqahId) {
+    const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+    const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+
+    // If either ujian or tashih is already a tashih_ujian halaqah and we're clicking a different halaqah
+    if ((ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqahId) ||
+        (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqahId)) {
       toast.error('Anda sudah memilih kelas Tashih+Ujian. Tidak bisa memilih halaqah lain.')
       return
     }
@@ -958,16 +966,21 @@ function HalaqahSelectionStep({
                       <button
                         onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
                         disabled={halaqah.is_full || (() => {
-                          const selectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
-                          return selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
+                          const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                          const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                          const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                        (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                          return hasTashihUjianSelected
                         })()}
                         className={`
                           flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
                           ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
                             (() => {
-                              const selectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
-                              const isDisabled = selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
-                              return isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                              const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                              const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                              const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                            (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                              return hasTashihUjianSelected ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
                                 ujianSelected ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' :
                                 'bg-white border-2 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50'
                             })()}
@@ -989,16 +1002,21 @@ function HalaqahSelectionStep({
                       <button
                         onClick={() => !halaqah.is_full && toggleTashih(halaqah.id)}
                         disabled={halaqah.is_full || (() => {
-                          const selectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
-                          return selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
+                          const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                          const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                          const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                        (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                          return hasTashihUjianSelected
                         })()}
                         className={`
                           flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
                           ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
                             (() => {
-                              const selectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
-                              const isDisabled = selectedHalaqah && isTashihUjianBoth(selectedHalaqah) && selectedHalaqah.id !== halaqah.id
-                              return isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                              const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                              const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                              const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                            (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                              return hasTashihUjianSelected ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
                                 tashihSelected ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md' :
                                 'bg-white border-2 border-blue-200 text-blue-700 hover:border-blue-400 hover:bg-blue-50'
                             })()}
@@ -1289,7 +1307,7 @@ function PartnerSelectionStep({
             <div className="flex-1">
               <h3 className="font-medium text-gray-900">Dipasangkan oleh Sistem</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Sistem akan memasangkan Anda berdasarkan jadwal utama dan cadangan. Diutamakan sesama juz.
+                Sistem akan memasangkan Anda berdasarkan jadwal utama, zona waktu, dan juz.
               </p>
             </div>
             <input
