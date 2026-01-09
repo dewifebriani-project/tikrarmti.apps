@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get user's registration to find batch_id
+    // Get user's registration to find batch_id and calculate final juz
     const { data: registration, error: regError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('batch_id, chosen_juz, main_time_slot, backup_time_slot')
+      .select('batch_id, chosen_juz, written_quiz_score, main_time_slot, backup_time_slot')
       .eq('user_id', user.id)
       .eq('selection_status', 'selected')
       .order('created_at', { ascending: false })
@@ -34,6 +34,19 @@ export async function GET(request: NextRequest) {
         { error: 'No valid registration found' },
         { status: 404 }
       )
+    }
+
+    // Calculate final juz placement based on written quiz score
+    const writtenQuizScore = registration.written_quiz_score || null
+    const chosenJuz = (registration.chosen_juz || '').toUpperCase()
+    let finalJuz = chosenJuz
+
+    if (writtenQuizScore !== null && writtenQuizScore < 70) {
+      if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
+        finalJuz = '29A'
+      } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
+        finalJuz = '30A'
+      }
     }
 
     // Fetch halaqah with muallimah information - first get all active halaqah
@@ -153,13 +166,13 @@ export async function GET(request: NextRequest) {
           }] : [] // Use muallimah from users table
         }
       })
-      // Filter halaqah: only show those matching thalibah's juz with muallimah's preferred_juz
+      // Filter halaqah: only show those matching thalibah's FINAL juz with muallimah's preferred_juz
       // If muallimah_preferred_juz is null or empty, include it (means muallimah teaches all juz)
       .filter(h => {
         if (!h.muallimah_preferred_juz) return true // Muallimah teaches all juz
 
-        // Parse thalibah's chosen_juz (e.g., "30A", "30B", "28A", "28B", "28", "29")
-        const thalibahJuz = registration.chosen_juz
+        // Use finalJuz (adjusted based on written quiz score) instead of chosen_juz
+        const thalibahJuz = finalJuz
 
         // Parse muallimah's preferred_juz (could be comma-separated like "30,29" or single "30")
         const muallimahJuzList = h.muallimah_preferred_juz.split(',').map((j: string) => j.trim())

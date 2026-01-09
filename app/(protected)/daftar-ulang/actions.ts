@@ -155,7 +155,7 @@ export async function submitDaftarUlang(
       selection_status,
       full_name,
       chosen_juz,
-      exam_score,
+      written_quiz_score,
       main_time_slot,
       backup_time_slot,
       wa_phone,
@@ -206,12 +206,12 @@ export async function submitDaftarUlang(
     return { success: false, error: 'Upload akad daftar ulang terlebih dahulu.' }
   }
 
-  // 5. Calculate final juz placement based on exam score
-  const examScore = registration.exam_score || null
+  // 5. Calculate final juz placement based on written quiz score
+  const writtenQuizScore = registration.written_quiz_score || null
   const chosenJuz = (registration.chosen_juz || '').toUpperCase()
   let finalJuz = chosenJuz
 
-  if (examScore !== null && examScore < 70) {
+  if (writtenQuizScore !== null && writtenQuizScore < 70) {
     if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
       finalJuz = '29A'
     } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
