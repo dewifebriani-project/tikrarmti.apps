@@ -71,17 +71,27 @@ export async function GET(request: NextRequest) {
     // Count students for each halaqah
     const halaqahWithCounts = await Promise.all(
       (halaqah || []).map(async (h: any) => {
-        const { count: activeCount } = await supabase
+        // Count unique thalibah (unique student_id) instead of counting rows
+        // This handles tashih_ujian classes where one thalibah has 2 rows (ujian + tashih)
+        const { data: activeStudents } = await supabase
           .from('halaqah_students')
-          .select('*', { count: 'exact', head: true })
+          .select('student_id')
           .eq('halaqah_id', h.id)
           .eq('status', 'active');
 
-        const { count: waitlistCount } = await supabase
+        const uniqueActiveCount = activeStudents
+          ? new Set(activeStudents.map(s => s.student_id)).size
+          : 0;
+
+        const { data: waitlistStudents } = await supabase
           .from('halaqah_students')
-          .select('*', { count: 'exact', head: true })
+          .select('student_id')
           .eq('halaqah_id', h.id)
           .eq('status', 'waitlist');
+
+        const uniqueWaitlistCount = waitlistStudents
+          ? new Set(waitlistStudents.map(s => s.student_id)).size
+          : 0;
 
         // Get mentors
         const { data: mentors } = await supabase
@@ -91,8 +101,8 @@ export async function GET(request: NextRequest) {
 
         return {
           ...h,
-          students_count: activeCount || 0,
-          waitlist_count: waitlistCount || 0,
+          students_count: uniqueActiveCount,
+          waitlist_count: uniqueWaitlistCount,
           mentors: mentors || []
         } as HalaqahWithRelations;
       })
