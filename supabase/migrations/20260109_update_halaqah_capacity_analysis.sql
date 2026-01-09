@@ -44,22 +44,22 @@ BEGIN
   juz_aggregated AS (
     -- Aggregate by juz_number (combine 28A and 28B into Juz 28)
     SELECT
-      juz_number,
-      juz_number::TEXT || ' (Halaman ' ||
-        MIN(CASE WHEN part = 'A' THEN start_page END) || '-' ||
-        MAX(CASE WHEN part = 'B' THEN end_page END) || ')' AS juz_name,
-      SUM(total_thalibah)::INTEGER AS total_thalibah,
+      juz_data.juz_number,
+      juz_data.juz_number::TEXT || ' (Halaman ' ||
+        MIN(CASE WHEN juz_data.part = 'A' THEN juz_data.start_page END) || '-' ||
+        MAX(CASE WHEN juz_data.part = 'B' THEN juz_data.end_page END) || ')' AS juz_name,
+      SUM(juz_data.total_thalibah)::INTEGER AS total_thalibah,
       JSONB_OBJECT_AGG(
-        juz_code,
+        juz_data.juz_code,
         JSONB_BUILD_OBJECT(
-          'code', juz_code,
-          'name', juz_name,
-          'part', part,
-          'thalibah_count', total_thalibah
+          'code', juz_data.juz_code,
+          'name', juz_data.juz_name,
+          'part', juz_data.part,
+          'thalibah_count', juz_data.total_thalibah
         )
-      ) FILTER (WHERE total_thalibah > 0) AS thalibah_breakdown
+      ) FILTER (WHERE juz_data.total_thalibah > 0) AS thalibah_breakdown
     FROM juz_data
-    GROUP BY juz_number
+    GROUP BY juz_data.juz_number
   ),
   halaqah_counts AS (
     -- Calculate filled slots for each halaqah
