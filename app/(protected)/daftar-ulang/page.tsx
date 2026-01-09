@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText } from 'lucide-react'
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad } from './actions'
 
 type Step = 'confirm' | 'halaqah' | 'partner' | 'review' | 'akad' | 'success'
@@ -1503,15 +1503,106 @@ function AkadUploadStep({
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   isLoading: boolean
 }) {
+  const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
+  const [isLoadingAkad, setIsLoadingAkad] = useState(true)
+  const [akadError, setAkadError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchAkadIntisari() {
+      try {
+        setIsLoadingAkad(true)
+        setAkadError(null)
+
+        const response = await fetch('/api/daftar-ulang/akad-intisari')
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Gagal mengambil data akad')
+        }
+
+        setAkadData(data.data)
+      } catch (error) {
+        console.error('[AkadUploadStep] Error fetching akad:', error)
+        setAkadError(error instanceof Error ? error.message : 'Terjadi kesalahan')
+      } finally {
+        setIsLoadingAkad(false)
+      }
+    }
+
+    fetchAkadIntisari()
+  }, [])
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Akad</h2>
         <p className="text-gray-600 mb-6">
-          Upload akad daftar ulang yang sudah ditandatangani. Format PDF atau gambar (JPG, PNG), maksimal 5MB.
+          Silakan tulis tangan intisari akad di bawah ini, tandatangani, lalu upload hasil scan/fotonya.
         </p>
       </div>
 
+      {/* Akad Intisari Display */}
+      {!isLoadingAkad && akadData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="flex items-start space-x-3 mb-4">
+            <FileText className="w-6 h-6 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-amber-900 mb-2">{akadData.title}</h3>
+              <p className="text-sm text-amber-800 mb-4">
+                Tulis teks di bawah ini dengan tangan pada kertas, lalu tandatangani dan upload.
+              </p>
+            </div>
+          </div>
+
+          {/* Akad Text Box */}
+          <div className="bg-white border border-gray-300 rounded-lg p-6 mb-4">
+            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed">
+              {akadData.fullText}
+            </pre>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-semibold mb-2">Instruksi:</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Tulis seluruh teks akad di atas dengan tangan pada kertas</li>
+                  <li>Tandatangani di bagian bawah (tulis nama lengkap dan tanggal)</li>
+                  <li>Scan atau foto hasil tulisan tangan Anda</li>
+                  <li>Upload file hasil scan/foto di bawah ini</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading state for akad data */}
+      {isLoadingAkad && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+            <p className="text-gray-600">Memuat intisari akad...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {akadError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-red-800">
+              <p className="font-semibold">Gagal memuat intisari akad</p>
+              <p className="mt-1">{akadError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* File Upload Section */}
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
         {formData.akad_url ? (
           <div className="space-y-4">
