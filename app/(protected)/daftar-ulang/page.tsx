@@ -75,6 +75,10 @@ export default function DaftarUlangPage() {
     confirmed_backup_time_slot: string
     confirmed_wa_phone: string
     confirmed_address: string
+    exam_score: number | null
+    final_juz: string
+    juz_adjusted: boolean
+    juz_adjustment_reason: string
     ujian_halaqah_id: string
     tashih_halaqah_id: string
     is_tashih_umum: boolean
@@ -94,6 +98,10 @@ export default function DaftarUlangPage() {
     confirmed_backup_time_slot: '',
     confirmed_wa_phone: '',
     confirmed_address: '',
+    exam_score: null,
+    final_juz: '',
+    juz_adjusted: false,
+    juz_adjustment_reason: '',
 
     // Step 2: Halaqah
     ujian_halaqah_id: '',
@@ -136,6 +144,26 @@ export default function DaftarUlangPage() {
         }
 
         setRegistrationData(selectedRegistration)
+
+        // Calculate final juz based on exam score
+        const examScore = selectedRegistration.exam_score || null
+        const chosenJuz = (selectedRegistration.chosen_juz || '').toUpperCase()
+        let finalJuz = chosenJuz
+        let juzAdjusted = false
+        let juzAdjustmentReason = ''
+
+        if (examScore !== null && examScore < 70) {
+          if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
+            finalJuz = '29A'
+            juzAdjusted = true
+            juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
+          } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
+            finalJuz = '30A'
+            juzAdjusted = true
+            juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
+          }
+        }
+
         setFormData(prev => ({
           ...prev,
           confirmed_full_name: selectedRegistration.full_name || prev.confirmed_full_name,
@@ -144,6 +172,10 @@ export default function DaftarUlangPage() {
           confirmed_backup_time_slot: selectedRegistration.backup_time_slot || prev.confirmed_backup_time_slot,
           confirmed_wa_phone: selectedRegistration.wa_phone || prev.confirmed_wa_phone,
           confirmed_address: selectedRegistration.address || prev.confirmed_address,
+          exam_score: examScore,
+          final_juz: finalJuz,
+          juz_adjusted: juzAdjusted,
+          juz_adjustment_reason: juzAdjustmentReason,
         }))
 
         // Fetch halaqah data
@@ -489,6 +521,24 @@ export default function DaftarUlangPage() {
   )
 }
 
+// Helper function for juz label
+const getJuzLabel = (juzValue: string) => {
+  const juzLabels: Record<string, string> = {
+    '30A': 'Juz 30A (halaman 1-10)',
+    '30B': 'Juz 30B (halaman 11-24)',
+    '28A': 'Juz 28A (halaman 1-10)',
+    '28B': 'Juz 28B (halaman 11-20)',
+    '1A': 'Juz 1A (halaman 1-10)',
+    '1B': 'Juz 1B (halaman 11-20)',
+    '28': 'Juz 28',
+    '29': 'Juz 29',
+    '29A': 'Juz 29A (halaman 1-10)',
+    '29B': 'Juz 29B (halaman 11-20)',
+    '1': 'Juz 1',
+  }
+  return juzLabels[juzValue] || `Juz ${juzValue}`
+}
+
 // Step Components
 
 function ConfirmDataStep({
@@ -517,14 +567,41 @@ function ConfirmDataStep({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Juz yang Dipilih</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Juz yang Dipilih (Saat Pendaftaran)</label>
           <input
             type="text"
-            value={formData.confirmed_chosen_juz}
+            value={getJuzLabel(formData.confirmed_chosen_juz)}
             readOnly
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
           />
         </div>
+
+        {formData.juz_adjusted ? (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Juz Penempatan Final</label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={getJuzLabel(formData.final_juz)}
+                readOnly
+                className="w-full px-3 py-2 border border-green-300 rounded-lg bg-green-50 text-green-800 font-semibold"
+              />
+              <p className="text-xs text-blue-700 flex items-center">
+                <Info className="w-4 h-4 mr-1" />
+                {formData.juz_adjustment_reason}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="md:col-span-2">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <p className="text-sm text-green-800">
+                Juz penempatan: <span className="font-semibold">{getJuzLabel(formData.confirmed_chosen_juz)}</span>
+              </p>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Waktu Utama</label>
