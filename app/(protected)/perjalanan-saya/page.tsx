@@ -147,6 +147,14 @@ export default function PerjalananSaya() {
     const approvedRegistration = registrations.find(reg => reg.status === 'approved');
     const registration = (approvedRegistration || registrations[0]) as TikrarRegistration;
 
+    // Debug log untuk daftar_ulang
+    console.log('[PerjalananSaya] Registration debug:', {
+      registrationId: registration?.id,
+      hasDaftarUlang: !!registration?.daftar_ulang,
+      daftarUlang: registration?.daftar_ulang,
+      reEnrollmentCompleted: registration?.re_enrollment_completed
+    });
+
     return {
       hasRegistered: hasActiveRegistration,
       registration,
