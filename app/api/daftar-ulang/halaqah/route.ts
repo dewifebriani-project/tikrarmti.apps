@@ -94,10 +94,18 @@ export async function GET(request: NextRequest) {
       (muallimahRegs || []).map(reg => [reg.user_id, reg])
     )
 
+    // Fetch user's existing daftar ulang submission if any (to exclude from quota calculation)
+    const { data: existingSubmission } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
     // Fetch all submissions for this batch to count students per halaqah
+    // Exclude current user's existing submission from quota calculation
     const { data: submissions } = await supabase
       .from('daftar_ulang_submissions')
-      .select('ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, status')
+      .select('ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, status, user_id')
       .eq('batch_id', registration.batch_id)
       .in('status', ['submitted', 'draft'])
 
@@ -105,6 +113,10 @@ export async function GET(request: NextRequest) {
     const halaqahStudentCount = new Map<string, number>()
     if (submissions) {
       for (const sub of submissions) {
+        // Skip current user's existing submission when counting quota
+        // (they will be updating their choice, not taking an additional slot)
+        if (sub.user_id === user.id) continue
+
         // Count ujian halaqah
         if (sub.ujian_halaqah_id) {
           const current = halaqahStudentCount.get(sub.ujian_halaqah_id) || 0
@@ -191,13 +203,6 @@ export async function GET(request: NextRequest) {
           return false
         })
       })
-
-    // Get user's existing daftar ulang submission if any
-    const { data: existingSubmission } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
 
     return NextResponse.json({
       success: true,
