@@ -25,9 +25,8 @@ export interface DaftarUlangFormData {
   tashih_halaqah_id?: string
   is_tashih_umum?: boolean
 
-  // Akad
-  akad_url?: string
-  akad_file_name?: string
+  // Akad - Array of files
+  akad_files?: Array<{ url: string; name: string }>
 }
 
 export async function saveDaftarUlangDraft(
@@ -83,8 +82,7 @@ export async function saveDaftarUlangDraft(
       ujian_halaqah_id: data.ujian_halaqah_id || null,
       tashih_halaqah_id: data.tashih_halaqah_id || null,
       is_tashih_umum: data.is_tashih_umum,
-      akad_url: data.akad_url || null,
-      akad_file_name: data.akad_file_name || null,
+      akad_files: data.akad_files || null,
     }
 
     let result
@@ -202,7 +200,7 @@ export async function submitDaftarUlang(
   }
 
   // 4. Validate akad is uploaded
-  if (!data.akad_url) {
+  if (!data.akad_files || data.akad_files.length === 0) {
     return { success: false, error: 'Upload akad daftar ulang terlebih dahulu.' }
   }
 
@@ -255,8 +253,7 @@ export async function submitDaftarUlang(
       is_tashih_umum: data.is_tashih_umum || false,
 
       // Akad
-      akad_url: data.akad_url || null,
-      akad_file_name: data.akad_file_name || null,
+      akad_files: data.akad_files || null,
       akad_submitted_at: new Date().toISOString(),
 
       // Status

@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText, X } from 'lucide-react'
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad } from './actions'
 
 type Step = 'confirm' | 'halaqah' | 'partner' | 'review' | 'akad' | 'success'
@@ -88,8 +88,7 @@ export default function DaftarUlangPage() {
     partner_relationship: string
     partner_wa_phone: string
     partner_notes: string
-    akad_url: string
-    akad_file_name: string
+    akad_files: Array<{ url: string; name: string }>
   }>({
     // Step 1: Confirmed data
     confirmed_full_name: '',
@@ -117,8 +116,7 @@ export default function DaftarUlangPage() {
     partner_notes: '',
 
     // Step 4: Akad
-    akad_url: '',
-    akad_file_name: '',
+    akad_files: [],
   })
 
   // Fetch registration data and halaqah on mount
@@ -228,8 +226,7 @@ export default function DaftarUlangPage() {
           partner_relationship: formData.partner_relationship,
           partner_wa_phone: formData.partner_wa_phone,
           partner_notes: formData.partner_notes,
-          akad_url: formData.akad_url,
-          akad_file_name: formData.akad_file_name,
+          akad_files: formData.akad_files,
         }
 
         // Only add partner_type if it's not empty
@@ -323,7 +320,7 @@ export default function DaftarUlangPage() {
       return
     }
 
-    if (!formData.akad_url) {
+    if (!formData.akad_files || formData.akad_files.length === 0) {
       toast.error('Upload akad terlebih dahulu')
       return
     }
@@ -352,32 +349,50 @@ export default function DaftarUlangPage() {
   }
 
   const handleAkadUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
     setIsLoading(true)
     try {
-      const formDataToUpload = new FormData()
-      formDataToUpload.append('file', file)
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formDataToUpload = new FormData()
+        formDataToUpload.append('file', file)
 
-      const result = await uploadAkad(formDataToUpload)
+        const result = await uploadAkad(formDataToUpload)
 
-      if (result.success && result.data) {
-        setFormData(prev => ({
-          ...prev,
-          akad_url: result.data.url,
-          akad_file_name: result.data.name,
-        }))
-        toast.success('Akad berhasil diupload')
-      } else {
-        toast.error(result.error || 'Gagal upload akad')
-      }
+        if (result.success && result.data) {
+          return {
+            url: result.data.url,
+            name: result.data.name
+          }
+        }
+        throw new Error(result.error || 'Gagal upload file')
+      })
+
+      const uploadedFiles = await Promise.all(uploadPromises)
+
+      setFormData(prev => ({
+        ...prev,
+        akad_files: [...prev.akad_files, ...uploadedFiles],
+      }))
+
+      toast.success(`${uploadedFiles.length} file berhasil diupload`)
     } catch (error: any) {
       console.error('Upload error:', error)
       toast.error(error?.message || 'Terjadi kesalahan')
     } finally {
       setIsLoading(false)
+      // Reset input
+      e.target.value = ''
     }
+  }
+
+  const handleRemoveAkadFile = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      akad_files: prev.akad_files.filter((_, i) => i !== index),
+    }))
+    toast.success('File berhasil dihapus')
   }
 
   // Loading state
@@ -476,6 +491,7 @@ export default function DaftarUlangPage() {
               <AkadUploadStep
                 formData={formData}
                 onUpload={handleAkadUpload}
+                onRemove={handleRemoveAkadFile}
                 isLoading={isLoading}
               />
             )}
@@ -1588,10 +1604,12 @@ function ReviewStep({
 function AkadUploadStep({
   formData,
   onUpload,
+  onRemove,
   isLoading
 }: {
   formData: any
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onRemove: (index: number) => void
   isLoading: boolean
 }) {
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
@@ -1695,23 +1713,45 @@ function AkadUploadStep({
 
       {/* File Upload Section */}
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-        {formData.akad_url ? (
+        {formData.akad_files && formData.akad_files.length > 0 ? (
           <div className="space-y-4">
             <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
             <div>
-              <p className="font-medium text-gray-900">Akad berhasil diupload</p>
-              <p className="text-sm text-gray-600 mt-1">{formData.akad_file_name}</p>
+              <p className="font-medium text-gray-900">
+                {formData.akad_files.length} File Akad berhasil diupload
+              </p>
             </div>
+
+            {/* List of uploaded files */}
+            <div className="space-y-2">
+              {formData.akad_files.map((file: { url: string; name: string }, index: number) => (
+                <div key={index} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <p className="text-sm text-gray-900 truncate">{file.name}</p>
+                  </div>
+                  <button
+                    onClick={() => onRemove(index)}
+                    className="text-red-600 hover:text-red-700 p-1"
+                    title="Hapus file"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
             <label className="inline-block">
               <input
                 type="file"
                 accept=".pdf,image/jpeg,image/png"
                 onChange={onUpload}
                 disabled={isLoading}
+                multiple
                 className="hidden"
               />
-              <span className="text-sm text-green-600 hover:text-green-700 cursor-pointer">
-                Ganti file
+              <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer inline-block">
+                {isLoading ? 'Mengupload...' : 'Tambah File'}
               </span>
             </label>
           </div>
@@ -1720,7 +1760,7 @@ function AkadUploadStep({
             <Upload className="w-12 h-12 text-gray-400 mx-auto" />
             <div>
               <p className="font-medium text-gray-900">Upload Akad</p>
-              <p className="text-sm text-gray-600 mt-2">Drag & drop atau klik untuk memilih file</p>
+              <p className="text-sm text-gray-600 mt-2">Upload satu atau beberapa file akad (PDF, JPG, PNG)</p>
             </div>
             <label className="inline-block">
               <input
@@ -1728,24 +1768,25 @@ function AkadUploadStep({
                 accept=".pdf,image/jpeg,image/png"
                 onChange={onUpload}
                 disabled={isLoading}
+                multiple
                 className="hidden"
               />
               <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer inline-block">
                 {isLoading ? 'Mengupload...' : 'Pilih File'}
               </span>
             </label>
-            <p className="text-xs text-gray-500">PDF, JPG, PNG - Maksimal 5MB</p>
+            <p className="text-xs text-gray-500">PDF, JPG, PNG - Maksimal 5MB per file</p>
           </div>
         )}
       </div>
 
-      {formData.akad_url && (
+      {formData.akad_files && formData.akad_files.length > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-start space-x-3">
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
             <div>
               <p className="text-sm text-green-800">
-                Akad sudah siap. Klik "Kirim Daftar Ulang" untuk menyelesaikan proses.
+                Akad sudah siap ({formData.akad_files.length} file). Klik "Kirim Daftar Ulang" untuk menyelesaikan proses.
               </p>
             </div>
           </div>
