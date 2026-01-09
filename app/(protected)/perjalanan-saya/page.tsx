@@ -414,6 +414,32 @@ export default function PerjalananSaya() {
         };
       }
 
+      // Special handling for selection result (id: 3)
+      // If user is already selected or not selected, mark selection phases as completed
+      const isSelected = registrationStatus?.selectionStatus === 'selected';
+      const isNotSelected = registrationStatus?.selectionStatus === 'not_selected';
+      const isWaitlist = registrationStatus?.selectionStatus === 'waitlist';
+
+      if (item.id === 2 && (isSelected || isNotSelected || isWaitlist)) {
+        // Oral test - completed if selection status is determined
+        return {
+          ...item,
+          status: 'completed' as const
+        };
+      }
+
+      if (item.id === 3) {
+        // Selection result
+        if (isSelected || isNotSelected || isWaitlist) {
+          // If selection status is determined, this is completed
+          return {
+            ...item,
+            status: 'completed' as const
+          };
+        }
+        // Otherwise, check the date
+      }
+
       const itemDate = parseIndonesianDate(item.date);
       itemDate.setHours(0, 0, 0, 0);
 
