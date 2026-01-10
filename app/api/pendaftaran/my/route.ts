@@ -86,31 +86,42 @@ export async function GET(request: NextRequest) {
     console.log('Daftar ulang submissions:', daftarUlangSubmissions?.length || 0)
 
     // Combine all registrations into a single array
+    // FILTER: Only include registrations with batch status = 'open'
     const allRegistrations = [
-      ...(tikrarRegistrations || []).map(reg => {
-        // Find matching daftar ulang submission for this registration
-        const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
-        return {
+      ...(tikrarRegistrations || [])
+        .filter(reg => reg.batch?.status === 'open')
+        .map(reg => {
+          // Find matching daftar ulang submission for this registration
+          const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
+          return {
+            ...reg,
+            registration_type: 'calon_thalibah',
+            role: 'calon_thalibah',
+            status: reg.status || 'pending',
+            // Add batch_name for display in perjalanan-saya page
+            batch_name: reg.batch?.name || null,
+            // Add daftar ulang data
+            daftar_ulang: daftarUlang || null
+          }
+        }),
+      ...(muallimahRegistrations || [])
+        .filter(reg => reg.batch?.status === 'open')
+        .map(reg => ({
           ...reg,
-          registration_type: 'calon_thalibah',
-          role: 'calon_thalibah',
+          registration_type: 'muallimah',
+          role: 'muallimah',
           status: reg.status || 'pending',
-          // Add daftar ulang data
-          daftar_ulang: daftarUlang || null
-        }
-      }),
-      ...(muallimahRegistrations || []).map(reg => ({
-        ...reg,
-        registration_type: 'muallimah',
-        role: 'muallimah',
-        status: reg.status || 'pending'
-      })),
-      ...(musyrifahRegistrations || []).map(reg => ({
-        ...reg,
-        registration_type: 'musyrifah',
-        role: 'musyrifah',
-        status: reg.status || 'pending'
-      }))
+          batch_name: reg.batch?.name || null
+        })),
+      ...(musyrifahRegistrations || [])
+        .filter(reg => reg.batch?.status === 'open')
+        .map(reg => ({
+          ...reg,
+          registration_type: 'musyrifah',
+          role: 'musyrifah',
+          status: reg.status || 'pending',
+          batch_name: reg.batch?.name || null
+        }))
     ]
 
     console.log('Total registrations:', allRegistrations.length)
@@ -128,17 +139,13 @@ export async function GET(request: NextRequest) {
       return dateB.getTime() - dateA.getTime()
     })
 
-    return NextResponse.json({
-      success: true,
-      data: allRegistrations,
-    })
+    // Return in format that fetcher expects: { data: [...] }
+    // The fetcher will extract .data property (see lib/swr/fetchers.ts:112-113)
+    return NextResponse.json({ data: allRegistrations })
 
   } catch (error) {
     console.error('Pendaftaran/my API error:', error)
     // Return empty array on error instead of failing
-    return NextResponse.json({
-      success: true,
-      data: [],
-    })
+    return NextResponse.json({ data: [] })
   }
 }
