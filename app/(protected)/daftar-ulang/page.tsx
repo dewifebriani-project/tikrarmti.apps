@@ -134,7 +134,10 @@ export default function DaftarUlangPage() {
         )
 
         if (!selectedRegistration) {
-          toast.error('Anda belum lolos seleksi')
+          console.log('[Daftar Ulang] No selected registration found')
+          console.log('[Daftar Ulang] User email:', user.email)
+          console.log('[Daftar Ulang] All registrations:', regData.data)
+          toast.error('Tidak ditemukan data pendaftaran thalibah yang lolos seleksi. Pastikan Anda sudah mendaftar sebagai thalibah dan lolos seleksi.')
           router.push('/perjalanan-saya')
           return
         }
