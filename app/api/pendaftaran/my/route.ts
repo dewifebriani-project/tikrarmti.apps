@@ -236,7 +236,8 @@ export async function GET(request: NextRequest) {
       status: r.status,
       batch_id: r.batch_id,
       batch: r.batch,
-      batch_status: r.batch?.[0]?.status
+      batch_status: r.batch?.[0]?.status,
+      will_pass_filter: r.batch?.[0]?.status === 'open'
     })))
     console.log('Muallimah registrations:', muallimahRegistrations?.length || 0)
     console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0)
@@ -247,7 +248,11 @@ export async function GET(request: NextRequest) {
     const allRegistrations: FinalRegistration[] = [
       ...((tikrarRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => reg.batch?.status === 'open')
+        .filter(reg => {
+          const passes = reg.batch?.status === 'open'
+          console.log(`[Filter] Tikrar reg ${reg.id}: batch_status=${reg.batch?.status}, passes=${passes}`)
+          return passes
+        })
         .map(reg => {
           // Find matching daftar ulang submission for this registration
           const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
