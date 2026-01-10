@@ -144,6 +144,9 @@ export default function PerjalananSaya() {
       return { hasRegistered: false };
     }
 
+    // hasRegistered = true for anyone with registration (except withdrawn)
+    // This allows rejected users to still see their journey timeline
+    const hasAnyRegistration = registrations.some(reg => reg.status !== 'withdrawn');
     const hasActiveRegistration = registrations.some(reg => ['approved', 'pending'].includes(reg.status));
     const approvedRegistration = registrations.find(reg => reg.status === 'approved');
     const registration = (approvedRegistration || registrations[0]) as TikrarRegistration;
@@ -151,17 +154,21 @@ export default function PerjalananSaya() {
     // Debug log untuk daftar_ulang
     console.log('[PerjalananSaya] Registration debug:', {
       registrationId: registration?.id,
+      registrationStatus: registration?.status,
+      hasAnyRegistration,
+      hasActiveRegistration,
       hasDaftarUlang: !!registration?.daftar_ulang,
       daftarUlang: registration?.daftar_ulang,
       reEnrollmentCompleted: registration?.re_enrollment_completed
     });
 
     return {
-      hasRegistered: hasActiveRegistration,
+      hasRegistered: hasAnyRegistration, // Show timeline for all registered users (including rejected)
       registration,
       hasActiveRegistration,
       pendingApproval: registrations.some(reg => reg.status === 'pending'),
       approved: !!approvedRegistration,
+      rejected: registrations.some(reg => reg.status === 'rejected'),
       // Consider having oral assessment as having submitted (even without url if admin input score manually)
       hasOralSubmission: !!(
         registration?.oral_submission_url ||
