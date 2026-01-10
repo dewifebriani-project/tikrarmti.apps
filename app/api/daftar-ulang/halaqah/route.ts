@@ -168,7 +168,15 @@ export async function GET(request: NextRequest) {
         const muallimahReg = muallimah?.id ? muallimahMap.get(muallimah.id) : null
         const classType = muallimahReg?.class_type || 'tashih_ujian' // Default to both
         const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
-        const muallimahSchedule = muallimahReg?.preferred_schedule
+
+        // Use halaqah schedule first, fallback to muallimah_registrations schedule
+        const halaqahSchedule = (h.day_of_week !== null && h.start_time && h.end_time)
+          ? JSON.stringify({
+              day: ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][h.day_of_week],
+              time_start: h.start_time,
+              time_end: h.end_time
+            })
+          : muallimahReg?.preferred_schedule || null
 
         // Determine class types from muallimah registration
         // class_type can be: 'tashih_ujian', 'tashih_only', 'ujian_only'
@@ -189,7 +197,7 @@ export async function GET(request: NextRequest) {
           class_type: classType, // 'tashih_ujian', 'tashih_only', or 'ujian_only'
           class_types: classTypes,
           muallimah_preferred_juz: muallimahPreferredJuz,
-          muallimah_schedule: muallimahSchedule,
+          muallimah_schedule: halaqahSchedule, // Use halaqah or muallimah schedule
           mentors: muallimah ? [{
             mentor_id: muallimah.id,
             role: 'muallimah',
