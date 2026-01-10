@@ -184,18 +184,23 @@ export async function GET(request: NextRequest) {
     // Debug logging
     console.log('=== /api/pendaftaran/my DEBUG ===')
     console.log('User ID:', user.id, 'Email:', user.email)
+    console.log('Tikrar registrations by user_id:', tikrarById?.length || 0, 'error:', errorById?.message)
     console.log('Tikrar registrations raw:', tikrarRegistrations?.length || 0)
     console.log('Tikrar registrations data:', tikrarRegistrations?.map((r: any) => ({
       id: r.id,
+      user_id: r.user_id,
+      email: r.email,
+      full_name: r.full_name,
       status: r.status,
+      selection_status: r.selection_status,
       batch_id: r.batch_id,
       batch_is_array: Array.isArray(r.batch),
       batch_status: Array.isArray(r.batch) ? r.batch?.[0]?.status : r.batch?.status,
       will_pass_filter: (Array.isArray(r.batch) ? r.batch?.[0]?.status : r.batch?.status) === 'open'
     })))
-    console.log('Muallimah registrations:', muallimahRegistrations?.length || 0)
-    console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0)
-    console.log('Daftar ulang submissions:', daftarUlangSubmissions?.length || 0)
+    console.log('Muallimah registrations:', muallimahRegistrations?.length || 0, 'error:', muallimahError?.message)
+    console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0, 'error:', musyrifahError?.message)
+    console.log('Daftar ulang submissions:', daftarUlangSubmissions?.length || 0, 'error:', daftarUlangError?.message)
 
     // Combine all registrations into a single array
     // FILTER: Only include registrations with batch status = 'open'
