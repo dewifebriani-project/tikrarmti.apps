@@ -68,11 +68,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Count students for each halaqah
+    // Count students for each halaqah using admin client (bypasses RLS)
+    // Only count: submitted status (NOT draft) + active status (NOT waitlist)
     const halaqahWithCounts = await Promise.all(
       (halaqah || []).map(async (h: any) => {
         // Count from halaqah_students table (actual joined students)
-        const { data: activeStudents } = await supabase
+        // ONLY active status counts toward quota (waitlist does NOT reduce quota)
+        const { data: activeStudents } = await supabaseAdmin
           .from('halaqah_students')
           .select('student_id')
           .eq('halaqah_id', h.id)
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest) {
           ? new Set(activeStudents.map(s => s.student_id)).size
           : 0;
 
-        const { data: waitlistStudents } = await supabase
+        const { data: waitlistStudents } = await supabaseAdmin
           .from('halaqah_students')
           .select('student_id')
           .eq('halaqah_id', h.id)
@@ -93,8 +95,8 @@ export async function GET(request: NextRequest) {
           : 0;
 
         // Count from daftar_ulang_submissions (pending submissions)
-        // This includes users who have submitted daftar ulang but not yet joined halaqah_students
-        const { data: submissions } = await supabase
+        // ONLY submitted status counts toward quota (draft does NOT reduce quota)
+        const { data: submissions } = await supabaseAdmin
           .from('daftar_ulang_submissions')
           .select('user_id')
           .eq('status', 'submitted')
@@ -115,7 +117,7 @@ export async function GET(request: NextRequest) {
         const totalUniqueCount = allStudentIds.size;
 
         // Get mentors
-        const { data: mentors } = await supabase
+        const { data: mentors } = await supabaseAdmin
           .from('halaqah_mentors')
           .select('mentor_id, role, is_primary')
           .eq('halaqah_id', h.id);
