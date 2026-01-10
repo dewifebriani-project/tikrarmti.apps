@@ -58,8 +58,8 @@ export async function GET(request: NextRequest) {
       `)
       .order('created_at', { ascending: false });
 
-    // Apply filters
-    if (batchId) {
+    // Apply filters (only if batchId is not 'all')
+    if (batchId && batchId !== 'all') {
       query = query.eq('batch_id', batchId);
     }
     if (status) {
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       .from('daftar_ulang_submissions')
       .select('*', { count: 'estimated', head: true });
 
-    if (batchId) {
+    if (batchId && batchId !== 'all') {
       countQuery = countQuery.eq('batch_id', batchId);
     }
     if (status) {
