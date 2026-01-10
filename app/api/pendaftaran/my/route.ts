@@ -129,8 +129,64 @@ export async function GET(request: NextRequest) {
             .eq('id', reg.id)
         }
       } else {
-        tikrarRegistrations = tikrarById
-        tikrarError = errorById
+        // Fallback: Try matching by user.email from users table (full_name match)
+        console.log('[API] No registrations found by email, trying by user profile...')
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('id, full_name, email')
+          .eq('id', user.id)
+          .single()
+
+        if (userProfile?.full_name) {
+          console.log('[API] User profile found:', userProfile.full_name)
+          const { data: tikrarByName, error: errorByName } = await supabase
+            .from('pendaftaran_tikrar_tahfidz')
+            .select(`
+              id,
+              user_id,
+              batch_id,
+              program_id,
+              status,
+              full_name,
+              wa_phone,
+              address,
+              chosen_juz,
+              main_time_slot,
+              backup_time_slot,
+              exam_score,
+              written_quiz_submitted_at,
+              oral_submission_url,
+              oral_submitted_at,
+              oral_score,
+              oral_assessment_status,
+              selection_status,
+              re_enrollment_completed,
+              created_at,
+              updated_at,
+              program:programs(*),
+              batch:batches(*)
+            `)
+            .ilike('full_name', `%${userProfile.full_name}%`)
+            .order('created_at', { ascending: false })
+
+          if (tikrarByName && tikrarByName.length > 0) {
+            tikrarRegistrations = tikrarByName
+            console.log('[API] Found registrations by name, updating user_id...')
+            // Update the user_id to fix mismatch
+            for (const reg of tikrarByName) {
+              await supabase
+                .from('pendaftaran_tikrar_tahfidz')
+                .update({ user_id: user.id })
+                .eq('id', reg.id)
+            }
+          } else {
+            tikrarRegistrations = tikrarById
+            tikrarError = errorById
+          }
+        } else {
+          tikrarRegistrations = tikrarById
+          tikrarError = errorById
+        }
       }
     } else {
       tikrarRegistrations = tikrarById
