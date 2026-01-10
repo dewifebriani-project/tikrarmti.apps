@@ -112,6 +112,28 @@ export async function saveDaftarUlangDraft(
     }
 
     if (result.error) {
+      console.error('[saveDaftarUlangDraft] Error:', {
+        error: result.error.message,
+        code: result.error.code,
+        existing: existing ? `id=${existing.id}` : 'none'
+      })
+
+      // Handle UNIQUE constraint violation specifically
+      if (result.error.code === '23505') {
+        return {
+          success: false,
+          error: 'Terjadi kesalahan pada data yang sudah ada. Silakan refresh halaman dan coba lagi.'
+        }
+      }
+
+      // Handle RLS violations
+      if (result.error.code === '42501') {
+        return {
+          success: false,
+          error: 'Terjadi kesalahan keamanan. Silakan logout dan login kembali.'
+        }
+      }
+
       return { success: false, error: result.error.message }
     }
 
@@ -212,12 +234,21 @@ export async function submitDaftarUlang(
 
   try {
     // Check for existing submission
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('daftar_ulang_submissions')
       .select('id, status')
       .eq('user_id', authUser.id)
       .eq('registration_id', registrationId)
       .maybeSingle()
+
+    // Debug logging
+    console.log('[submitDaftarUlang] Existing check:', {
+      userId: authUser.id,
+      registrationId,
+      existing,
+      existingError: existingError?.message,
+      existingErrorCode: existingError?.code
+    })
 
     const submissionData = {
       user_id: authUser.id,
@@ -276,6 +307,30 @@ export async function submitDaftarUlang(
     }
 
     if (result.error) {
+      console.error('[submitDaftarUlang] Submission error:', {
+        error: result.error.message,
+        code: result.error.code,
+        details: result.error.details,
+        hint: result.error.hint,
+        existing: existing ? `id=${existing.id}, status=${existing.status}` : 'none'
+      })
+
+      // Handle UNIQUE constraint violation specifically
+      if (result.error.code === '23505') {
+        return {
+          success: false,
+          error: 'Anda sudah memiliki pendaftaran daftar ulang. Silakan cek kembali atau hubungi admin.'
+        }
+      }
+
+      // Handle RLS violations
+      if (result.error.code === '42501') {
+        return {
+          success: false,
+          error: 'Terjadi kesalahan keamanan. Silakan logout dan login kembali.'
+        }
+      }
+
       return { success: false, error: result.error.message }
     }
 
