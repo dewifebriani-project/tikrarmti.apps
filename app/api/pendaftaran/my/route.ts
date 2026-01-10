@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { Batch } from '@/types/database'
+
+// Type for registration with nested batch
+interface RegistrationWithBatch {
+  id: string
+  batch_id: string
+  batch?: Batch | null
+  [key: string]: any
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,7 +97,7 @@ export async function GET(request: NextRequest) {
     // Combine all registrations into a single array
     // FILTER: Only include registrations with batch status = 'open'
     const allRegistrations = [
-      ...(tikrarRegistrations || [])
+      ...((tikrarRegistrations || []) as RegistrationWithBatch[])
         .filter(reg => reg.batch?.status === 'open')
         .map(reg => {
           // Find matching daftar ulang submission for this registration
@@ -104,7 +113,7 @@ export async function GET(request: NextRequest) {
             daftar_ulang: daftarUlang || null
           }
         }),
-      ...(muallimahRegistrations || [])
+      ...((muallimahRegistrations || []) as RegistrationWithBatch[])
         .filter(reg => reg.batch?.status === 'open')
         .map(reg => ({
           ...reg,
@@ -113,7 +122,7 @@ export async function GET(request: NextRequest) {
           status: reg.status || 'pending',
           batch_name: reg.batch?.name || null
         })),
-      ...(musyrifahRegistrations || [])
+      ...((musyrifahRegistrations || []) as RegistrationWithBatch[])
         .filter(reg => reg.batch?.status === 'open')
         .map(reg => ({
           ...reg,
