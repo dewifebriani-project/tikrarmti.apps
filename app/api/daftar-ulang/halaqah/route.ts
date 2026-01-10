@@ -105,12 +105,12 @@ export async function GET(request: NextRequest) {
       .eq('batch_id', registration.batch_id)
       .eq('status', 'submitted')
 
-    // Fetch halaqah_students (assigned thalibah including waitlist)
-    // These students have already been assigned to halaqah and should be counted in quota
+    // Fetch halaqah_students (assigned thalibah with active status only)
+    // IMPORTANT: waitlist does NOT reduce quota, only active status counts
     const { data: halaqahStudents } = await supabase
       .from('halaqah_students')
       .select('halaqah_id, thalibah_id, status')
-      .in('status', ['active', 'waitlist'])
+      .eq('status', 'active')
 
     // Count students per halaqah
     // Use a Set to track unique users per halaqah
@@ -147,8 +147,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Also count students from halaqah_students table (including waitlist)
-    // These are students who have been assigned to halaqah through the system
+    // Also count students from halaqah_students table (active only)
+    // Waitlist does NOT reduce quota, only active status counts
     if (halaqahStudents) {
       for (const student of halaqahStudents) {
         // Skip current user if they're already in halaqah_students

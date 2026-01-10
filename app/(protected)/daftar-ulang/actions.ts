@@ -241,11 +241,11 @@ export async function submitDaftarUlang(
       .eq('batch_id', registration.batch_id)
       .eq('status', 'submitted')
 
-    // Fetch halaqah_students with 'active' or 'waitlist' status
+    // Fetch halaqah_students with 'active' status only (waitlist does NOT reduce quota)
     const { data: halaqahStudents } = await supabase
       .from('halaqah_students')
       .select('halaqah_id, thalibah_id, status')
-      .in('status', ['active', 'waitlist'])
+      .eq('status', 'active')
 
     // Count students per halaqah using Set to avoid duplicates
     const halaqahStudentMap = new Map<string, Set<string>>()
@@ -271,7 +271,7 @@ export async function submitDaftarUlang(
       }
     }
 
-    // Count from halaqah_students (including waitlist)
+    // Count from halaqah_students (active only, waitlist does NOT reduce quota)
     if (halaqahStudents) {
       for (const student of halaqahStudents) {
         // Skip current user if they're already in halaqah_students
