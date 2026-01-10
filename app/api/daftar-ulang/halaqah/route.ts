@@ -105,6 +105,13 @@ export async function GET(request: NextRequest) {
       .eq('batch_id', registration.batch_id)
       .in('status', ['submitted', 'draft'])
 
+    // Fetch halaqah_students (assigned thalibah including waitlist)
+    // These students have already been assigned to halaqah and should be counted in quota
+    const { data: halaqahStudents } = await supabase
+      .from('halaqah_students')
+      .select('halaqah_id, thalibah_id, status')
+      .in('status', ['active', 'waitlist'])
+
     // Count students per halaqah
     // Use a Set to track unique users per halaqah
     const halaqahStudentMap = new Map<string, Set<string>>()
@@ -137,6 +144,21 @@ export async function GET(request: NextRequest) {
           }
           halaqahStudentMap.get(halaqahId)!.add(sub.user_id)
         }
+      }
+    }
+
+    // Also count students from halaqah_students table (including waitlist)
+    // These are students who have been assigned to halaqah through the system
+    if (halaqahStudents) {
+      for (const student of halaqahStudents) {
+        // Skip current user if they're already in halaqah_students
+        if (student.thalibah_id === user.id) continue
+
+        const halaqahId = student.halaqah_id
+        if (!halaqahStudentMap.has(halaqahId)) {
+          halaqahStudentMap.set(halaqahId, new Set())
+        }
+        halaqahStudentMap.get(halaqahId)!.add(student.thalibah_id)
       }
     }
 
