@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
         // Need to get batch_id from programData
         const batchId = programData?.batch?.id || programData?.batch_id;
 
-        if ((h.muallimah_id && batchId) && (!classType || !preferredSchedule)) {
+        if (h.muallimah_id && batchId) {
           console.log('[Halaqah API] Fetching muallimah_reg for halaqah:', h.id, 'muallimah_id:', h.muallimah_id, 'batch_id:', batchId);
           const { data: muallimahReg, error: regError } = await supabaseAdmin
             .from('muallimah_registrations')
@@ -182,8 +182,9 @@ export async function GET(request: NextRequest) {
           console.log('[Halaqah API] muallimah_reg result:', muallimahReg, 'error:', regError);
 
           if (muallimahReg) {
-            classType = classType || muallimahReg.class_type;
-            preferredSchedule = preferredSchedule || muallimahReg.preferred_schedule;
+            // Use muallimah_registrations data if halaqah doesn't have its own data
+            if (!classType) classType = muallimahReg.class_type;
+            if (!preferredSchedule) preferredSchedule = muallimahReg.preferred_schedule;
           }
         }
 
