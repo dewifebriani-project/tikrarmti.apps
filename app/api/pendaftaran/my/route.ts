@@ -51,7 +51,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's tikrar registrations with program and batch details
-    const { data: tikrarRegistrations, error: tikrarError } = await supabase
+    // First try by user_id, if empty, try by email (for cases where user_id doesn't match)
+    let tikrarRegistrations: any[] | null = null
+    let tikrarError: any = null
+
+    const { data: tikrarById, error: errorById } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
         id,
@@ -80,6 +84,57 @@ export async function GET(request: NextRequest) {
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+
+    // If no results by user_id, try by email (for legacy data or user_id mismatches)
+    if (!tikrarById || tikrarById.length === 0) {
+      console.log('[API] No registrations found by user_id, trying by email...')
+      const { data: tikrarByEmail, error: errorByEmail } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select(`
+          id,
+          user_id,
+          batch_id,
+          program_id,
+          status,
+          full_name,
+          wa_phone,
+          address,
+          chosen_juz,
+          main_time_slot,
+          backup_time_slot,
+          exam_score,
+          written_quiz_submitted_at,
+          oral_submission_url,
+          oral_submitted_at,
+          oral_score,
+          oral_assessment_status,
+          selection_status,
+          re_enrollment_completed,
+          created_at,
+          updated_at,
+          program:programs(*),
+          batch:batches(*)
+        `)
+        .eq('wa_phone', user.email) // Note: wa_phone field sometimes contains email
+        .order('created_at', { ascending: false })
+
+      if (tikrarByEmail && tikrarByEmail.length > 0) {
+        tikrarRegistrations = tikrarByEmail
+        console.log('[API] Found registrations by email, updating user_id...')
+        // Update the user_id to fix mismatch
+        for (const reg of tikrarByEmail) {
+          await supabase
+            .from('pendaftaran_tikrar_tahfidz')
+            .update({ user_id: user.id })
+            .eq('id', reg.id)
+        }
+      } else {
+        tikrarRegistrations = tikrarById
+        tikrarError = errorById
+      }
+    } else {
+      tikrarRegistrations = tikrarById
+    }
 
     // Get user's muallimah registrations with batch details
     const { data: muallimahRegistrations, error: muallimahError } = await supabase
