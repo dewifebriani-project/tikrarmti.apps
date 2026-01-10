@@ -93,10 +93,10 @@ export async function POST(request: NextRequest) {
       const uniqueSubmissionIds = new Set(submissions?.map(s => s.user_id) || []);
 
       // Combine both sets to get total unique students
-      const allStudentIds = new Set([
-        ...uniqueActiveIds,
-        ...uniqueSubmissionIds
-      ]);
+      const allStudentIds = new Set<string>();
+
+      uniqueActiveIds.forEach(id => allStudentIds.add(id));
+      uniqueSubmissionIds.forEach(id => allStudentIds.add(id));
 
       const totalCount = allStudentIds.size;
 
