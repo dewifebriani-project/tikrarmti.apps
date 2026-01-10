@@ -15,6 +15,16 @@ interface RegistrationWithBatch {
   id: string
   batch_id: string
   batch?: Batch | null
+  created_at?: string
+  submitted_at?: string
+  [key: string]: any
+}
+
+// Type for final registration with additional fields
+interface FinalRegistration {
+  id: string
+  created_at?: string
+  submitted_at?: string
   [key: string]: any
 }
 
@@ -112,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     // Combine all registrations into a single array
     // FILTER: Only include registrations with batch status = 'open'
-    const allRegistrations = [
+    const allRegistrations: FinalRegistration[] = [
       ...((tikrarRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
         .filter(reg => reg.batch?.status === 'open')
