@@ -54,10 +54,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total active halaqah count
-    const { count: totalHalaqah } = await supabase
+    const { count: totalHalaqah, error: countError } = await supabase
       .from('halaqah')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'active')
+
+    if (countError) {
+      console.error('[DEBUG] Error counting halaqah:', countError)
+    }
 
     // Fetch halaqah
     const { data: halaqahData, error: halaqahError } = await supabase
@@ -76,12 +80,29 @@ export async function GET(request: NextRequest) {
       .eq('status', 'active')
       .limit(5)
 
+    if (halaqahError) {
+      console.error('[DEBUG] Error fetching halaqah:', halaqahError)
+    }
+
     // Get muallimah registrations for this batch
-    const { data: muallimahRegs } = await supabase
+    const { data: muallimahRegs, error: muallimahError } = await supabase
       .from('muallimah_registrations')
       .select('user_id, class_type, preferred_juz, preferred_schedule')
       .eq('batch_id', registration.batch_id)
       .eq('status', 'approved')
+
+    if (muallimahError) {
+      console.error('[DEBUG] Error fetching muallimah registrations:', muallimahError)
+    }
+
+    console.log('[DEBUG] Halaqah query results:', {
+      totalHalaqah,
+      halaqahDataLength: halaqahData?.length || 0,
+      muallimahRegsLength: muallimahRegs?.length || 0,
+      countError: countError?.message,
+      halaqahError: halaqahError?.message,
+      muallimahError: muallimahError?.message
+    })
 
     // Check which halaqah match the juz filter
     const halaqahWithJuzCheck = (halaqahData || []).map(h => {
