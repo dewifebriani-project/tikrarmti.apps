@@ -33,14 +33,24 @@ export async function GET(request: NextRequest) {
       .select('id, user_id, full_name, email, status, selection_status, batch_id')
       .ilike('email', `%${user.email}%`)
 
-    // 4. Get batch info
-    const batchIds = [...(regsById || []), ...(regsByEmail || [])].map(r => r.batch_id)
+    // 4. Check registrations by full_name (from users table - already fetched as userProfile above)
+    let regsByName: any[] | null = null
+    if (userProfile?.full_name) {
+      const { data: byName } = await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('id, user_id, full_name, email, status, selection_status, batch_id')
+        .ilike('full_name', `%${userProfile.full_name}%`)
+      regsByName = byName
+    }
+
+    // 5. Get batch info
+    const batchIds = [...(regsById || []), ...(regsByEmail || []), ...(regsByName || [])].map(r => r.batch_id)
     const { data: batches } = await supabaseAdmin
       .from('batches')
       .select('*')
       .in('id', batchIds.length > 0 ? batchIds : ['00000000-0000-0000-0000-000000000000'])
 
-    // 5. Call the actual API endpoint
+    // 6. Call the actual API endpoint
     const apiUrl = new URL('/api/pendaftaran/my', request.url)
     const apiResponse = await fetch(apiUrl, {
       headers: { cookie: request.headers.get('cookie') || '' }
@@ -72,6 +82,11 @@ export async function GET(request: NextRequest) {
         byEmail: {
           count: regsByEmail?.length || 0,
           data: regsByEmail
+        },
+        byName: {
+          count: regsByName?.length || 0,
+          data: regsByName,
+          profileName: userProfile?.full_name || null
         }
       },
       batches: batches?.map(b => ({

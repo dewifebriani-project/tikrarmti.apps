@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
 import { Batch } from '@/types/database'
 
 // Type for Supabase query result with nested relations (batch comes as array)
@@ -86,9 +87,12 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     // If no results by user_id, try by email (for legacy data or user_id mismatches)
+    // IMPORTANT: Use admin client to bypass RLS policies that block viewing by email
     if (!tikrarById || tikrarById.length === 0) {
       console.log('[API] No registrations found by user_id, trying by email...')
-      const { data: tikrarByEmail, error: errorByEmail } = await supabase
+      const supabaseAdmin = createSupabaseAdmin()
+
+      const { data: tikrarByEmail, error: errorByEmail } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
           id,
@@ -115,15 +119,15 @@ export async function GET(request: NextRequest) {
           program:programs(*),
           batch:batches(*)
         `)
-        .eq('email', user.email) // Use email field for matching
+        .ilike('email', user.email || '') // Use case-insensitive match
         .order('created_at', { ascending: false })
 
       if (tikrarByEmail && tikrarByEmail.length > 0) {
         tikrarRegistrations = tikrarByEmail
         console.log('[API] Found registrations by email, updating user_id...')
-        // Update the user_id to fix mismatch
+        // Update the user_id to fix mismatch using admin client
         for (const reg of tikrarByEmail) {
-          await supabase
+          await supabaseAdmin
             .from('pendaftaran_tikrar_tahfidz')
             .update({ user_id: user.id })
             .eq('id', reg.id)
@@ -131,7 +135,7 @@ export async function GET(request: NextRequest) {
       } else {
         // Fallback: Try matching by user.email from users table (full_name match)
         console.log('[API] No registrations found by email, trying by user profile...')
-        const { data: userProfile } = await supabase
+        const { data: userProfile } = await supabaseAdmin
           .from('users')
           .select('id, full_name, email')
           .eq('id', user.id)
@@ -139,7 +143,7 @@ export async function GET(request: NextRequest) {
 
         if (userProfile?.full_name) {
           console.log('[API] User profile found:', userProfile.full_name)
-          const { data: tikrarByName, error: errorByName } = await supabase
+          const { data: tikrarByName, error: errorByName } = await supabaseAdmin
             .from('pendaftaran_tikrar_tahfidz')
             .select(`
               id,
@@ -172,9 +176,9 @@ export async function GET(request: NextRequest) {
           if (tikrarByName && tikrarByName.length > 0) {
             tikrarRegistrations = tikrarByName
             console.log('[API] Found registrations by name, updating user_id...')
-            // Update the user_id to fix mismatch
+            // Update the user_id to fix mismatch using admin client
             for (const reg of tikrarByName) {
-              await supabase
+              await supabaseAdmin
                 .from('pendaftaran_tikrar_tahfidz')
                 .update({ user_id: user.id })
                 .eq('id', reg.id)
