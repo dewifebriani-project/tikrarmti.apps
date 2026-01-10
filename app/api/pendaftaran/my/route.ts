@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     // IMPORTANT: Use admin client to bypass RLS policies that block viewing by email
     if (!tikrarById || tikrarById.length === 0) {
       console.log('[API] No registrations found by user_id, trying by email...')
+      console.log('[API] User email for search:', user.email)
       const supabaseAdmin = createSupabaseAdmin()
 
       const { data: tikrarByEmail, error: errorByEmail } = await supabaseAdmin
@@ -85,15 +86,18 @@ export async function GET(request: NextRequest) {
         .ilike('email', user.email || '') // Use case-insensitive match
         .order('created_at', { ascending: false })
 
+      console.log('[API] Email search result:', tikrarByEmail?.length || 0, 'error:', errorByEmail?.message)
+
       if (tikrarByEmail && tikrarByEmail.length > 0) {
         tikrarRegistrations = tikrarByEmail
         console.log('[API] Found registrations by email, updating user_id...')
         // Update the user_id to fix mismatch using admin client
         for (const reg of tikrarByEmail) {
-          await supabaseAdmin
+          const { error: updateError } = await supabaseAdmin
             .from('pendaftaran_tikrar_tahfidz')
             .update({ user_id: user.id })
             .eq('id', reg.id)
+          console.log('[API] Updated registration', reg.id, 'error:', updateError?.message)
         }
       } else {
         // Fallback: Try matching by user.email from users table (full_name match)
@@ -104,8 +108,10 @@ export async function GET(request: NextRequest) {
           .eq('id', user.id)
           .single()
 
+        console.log('[API] User profile:', userProfile)
+
         if (userProfile?.full_name) {
-          console.log('[API] User profile found:', userProfile.full_name)
+          console.log('[API] User profile found, searching by full_name:', userProfile.full_name)
           const { data: tikrarByName, error: errorByName } = await supabaseAdmin
             .from('pendaftaran_tikrar_tahfidz')
             .select(`
@@ -115,6 +121,8 @@ export async function GET(request: NextRequest) {
             `)
             .ilike('full_name', `%${userProfile.full_name}%`)
             .order('created_at', { ascending: false })
+
+          console.log('[API] Full_name search result:', tikrarByName?.length || 0, 'error:', errorByName?.message)
 
           if (tikrarByName && tikrarByName.length > 0) {
             tikrarRegistrations = tikrarByName
