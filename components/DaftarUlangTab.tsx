@@ -11,8 +11,13 @@ import {
   Clock,
   Users,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  List,
+  FolderTree
 } from 'lucide-react';
+import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
+
+type DaftarUlangSubTab = 'submissions' | 'halaqah';
 
 interface DaftarUlangSubmission {
   id: string;
@@ -82,6 +87,7 @@ interface DaftarUlangTabProps {
 }
 
 export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
+  const [activeSubTab, setActiveSubTab] = useState<DaftarUlangSubTab>('submissions');
   const [submissions, setSubmissions] = useState<DaftarUlangSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<DaftarUlangSubmission | null>(null);
@@ -171,30 +177,65 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang Submissions</h2>
-        <button
-          onClick={() => setRefreshTrigger(prev => prev + 1)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Refresh
-        </button>
+      {/* Header & Sub-tabs */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang</h2>
+          <button
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+        </div>
+
+        {/* Sub-tab Navigation */}
+        <nav className="border-b border-gray-200">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveSubTab('submissions')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeSubTab === 'submissions'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <List className="w-4 h-4" />
+              Submissions
+            </button>
+            <button
+              onClick={() => setActiveSubTab('halaqah')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeSubTab === 'halaqah'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FolderTree className="w-4 h-4" />
+              Per Halaqah
+            </button>
+          </div>
+        </nav>
       </div>
 
-      {/* List View */}
-      <div className="bg-white border border-gray-200 rounded-lg">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          </div>
-        ) : submissions.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No submissions found</p>
-          </div>
-        ) : (
+      {/* Sub-tab Content */}
+      {activeSubTab === 'halaqah' ? (
+        <DaftarUlangHalaqahTab batchId={batchId} />
+      ) : (
+        <>
+          {/* Submissions List View */}
+          <div className="bg-white border border-gray-200 rounded-lg">
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No submissions found</p>
+              </div>
+            ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -468,6 +509,8 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
