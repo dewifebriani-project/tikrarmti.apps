@@ -164,13 +164,17 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch class_type and preferred_schedule from muallimah_registrations
+        // Note: muallimah_registrations table uses 'user_id' column, not 'muallimah_id'
         if ((h.muallimah_id && h.program_id) && (!classType || !preferredSchedule)) {
-          const { data: muallimahReg } = await supabaseAdmin
+          console.log('[Halaqah API] Fetching muallimah_reg for halaqah:', h.id, 'muallimah_id:', h.muallimah_id, 'program_id:', h.program_id);
+          const { data: muallimahReg, error: regError } = await supabaseAdmin
             .from('muallimah_registrations')
             .select('class_type, preferred_schedule')
-            .eq('muallimah_id', h.muallimah_id)
+            .eq('user_id', h.muallimah_id)
             .eq('program_id', h.program_id)
             .maybeSingle();
+
+          console.log('[Halaqah API] muallimah_reg result:', muallimahReg, 'error:', regError);
 
           if (muallimahReg) {
             classType = classType || muallimahReg.class_type;
