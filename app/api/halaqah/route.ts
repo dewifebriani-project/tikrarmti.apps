@@ -138,10 +138,12 @@ export async function GET(request: NextRequest) {
           .select('mentor_id, role, is_primary')
           .eq('halaqah_id', h.id);
 
-        // Fetch program and muallimah data using admin client if not already included
+        // Fetch program, muallimah, and muallimah_registration data using admin client
         // This ensures admin panel always has complete data
         let programData = h.program;
         let muallimahData = h.muallimah;
+        let classType = h.class_type;
+        let preferredSchedule = h.preferred_schedule;
 
         if (!programData && h.program_id) {
           const { data: program } = await supabaseAdmin
@@ -161,10 +163,27 @@ export async function GET(request: NextRequest) {
           muallimahData = muallimah;
         }
 
+        // Fetch class_type and preferred_schedule from muallimah_registrations
+        if ((h.muallimah_id && h.program_id) && (!classType || !preferredSchedule)) {
+          const { data: muallimahReg } = await supabaseAdmin
+            .from('muallimah_registrations')
+            .select('class_type, preferred_schedule')
+            .eq('muallimah_id', h.muallimah_id)
+            .eq('program_id', h.program_id)
+            .maybeSingle();
+
+          if (muallimahReg) {
+            classType = classType || muallimahReg.class_type;
+            preferredSchedule = preferredSchedule || muallimahReg.preferred_schedule;
+          }
+        }
+
         return {
           ...h,
           program: programData,
           muallimah: muallimahData,
+          class_type: classType,
+          preferred_schedule: preferredSchedule,
           students_count: totalUniqueCount,
           waitlist_count: uniqueWaitlistCount,
           quota_details: {
