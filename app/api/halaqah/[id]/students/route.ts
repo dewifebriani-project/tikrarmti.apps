@@ -3,13 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
 
 /**
- * GET /api/halaqah/[halaqahId]/students
+ * GET /api/halaqah/[id]/students
  * Fetch students in a halaqah with their user info
  * Uses service role to bypass RLS and get user data for halaqah students
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { halaqahId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const supabase = createClient()
@@ -24,7 +24,7 @@ export async function GET(
       )
     }
 
-    const halaqahId = params.halaqahId
+    const halaqahId = params.id
 
     // Fetch the halaqah to verify the user has permission (muallimah or admin)
     const { data: halaqah, error: halaqahError } = await supabase
