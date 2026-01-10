@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         written_quiz_submitted_at,
         oral_submission_url,
         oral_submitted_at,
+        oral_score,
         oral_assessment_status,
         selection_status,
         re_enrollment_completed,

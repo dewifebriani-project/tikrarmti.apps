@@ -41,6 +41,7 @@ interface TikrarRegistration extends Pendaftaran {
   motivation?: string;
   oral_submission_url?: string;
   oral_submitted_at?: string;
+  oral_score?: number;
   oral_assessment_status?: string;
   exam_score?: number;
   written_quiz_submitted_at?: string;
@@ -161,7 +162,12 @@ export default function PerjalananSaya() {
       hasActiveRegistration,
       pendingApproval: registrations.some(reg => reg.status === 'pending'),
       approved: !!approvedRegistration,
-      hasOralSubmission: !!registration?.oral_submission_url,
+      // Consider having oral assessment as having submitted (even without url if admin input score manually)
+      hasOralSubmission: !!(
+        registration?.oral_submission_url ||
+        (registration?.oral_assessment_status && registration?.oral_assessment_status !== 'pending') ||
+        (registration?.oral_score != null && registration?.oral_score > 0)
+      ),
       oralSubmissionUrl: registration?.oral_submission_url,
       oralSubmittedAt: registration?.oral_submitted_at,
       oralAssessmentStatus: registration?.oral_assessment_status || 'pending',
