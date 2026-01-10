@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch halaqah with muallimah information - first get all active halaqah
+    // Fetch halaqah without joining to users table (to avoid RLS issues)
     const { data: halaqahData, error: halaqahError } = await supabase
       .from('halaqah')
       .select(`
@@ -64,12 +64,7 @@ export async function GET(request: NextRequest) {
         status,
         zoom_link,
         preferred_juz,
-        muallimah_id,
-        users!halaqah_muallimah_id_fkey (
-          id,
-          full_name,
-          email
-        )
+        muallimah_id
       `)
       .eq('status', 'active')
       .order('day_of_week', { ascending: true })
@@ -83,9 +78,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch muallimah registrations separately for this batch
+    // Include full_name to get muallimah name without querying users table
     const { data: muallimahRegs } = await supabase
       .from('muallimah_registrations')
-      .select('user_id, class_type, preferred_juz, preferred_schedule')
+      .select('user_id, class_type, preferred_juz, preferred_schedule, full_name')
       .eq('batch_id', registration.batch_id)
       .eq('status', 'approved')
 
@@ -161,13 +157,12 @@ export async function GET(request: NextRequest) {
         const isFull = currentStudents >= maxStudents
         const availableSlots = maxStudents - currentStudents
 
-        // Handle muallimah from users relation (comes as single object, not array)
-        const muallimah = (h as any).users
-
         // Get muallimah registration data from the map using muallimah_id
-        const muallimahReg = muallimah?.id ? muallimahMap.get(muallimah.id) : null
+        // No longer using users relation join - get data directly from muallimah_registrations
+        const muallimahReg = h.muallimah_id ? muallimahMap.get(h.muallimah_id) : null
         const classType = muallimahReg?.class_type || 'tashih_ujian' // Default to both
         const muallimahPreferredJuz = muallimahReg?.preferred_juz || h.preferred_juz
+        const muallimahName = muallimahReg?.full_name || 'Muallimah'
 
         // Use halaqah schedule first, fallback to muallimah_registrations schedule
         const halaqahSchedule = (h.day_of_week !== null && h.start_time && h.end_time)
@@ -198,14 +193,14 @@ export async function GET(request: NextRequest) {
           class_types: classTypes,
           muallimah_preferred_juz: muallimahPreferredJuz,
           muallimah_schedule: halaqahSchedule, // Use halaqah or muallimah schedule
-          mentors: muallimah ? [{
-            mentor_id: muallimah.id,
+          mentors: muallimahReg ? [{
+            mentor_id: h.muallimah_id,
             role: 'muallimah',
             is_primary: true,
             users: {
-              full_name: muallimah.full_name
+              full_name: muallimahName
             }
-          }] : [] // Use muallimah from users table
+          }] : [] // Use muallimah name from muallimah_registrations
         }
       })
       // Filter halaqah: only show those matching thalibah's FINAL juz with muallimah's preferred_juz
