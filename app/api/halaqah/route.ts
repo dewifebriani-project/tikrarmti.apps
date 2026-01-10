@@ -145,7 +145,9 @@ export async function GET(request: NextRequest) {
         let classType = h.class_type;
         let preferredSchedule = h.preferred_schedule;
 
-        if (!programData && h.program_id) {
+        // Always fetch program with batch if program_id exists
+        // This ensures we always have batch_id for muallimah_registrations query
+        if (h.program_id && (!programData || !programData.batch)) {
           const { data: program } = await supabaseAdmin
             .from('programs')
             .select('*, batch:batches(*)')
