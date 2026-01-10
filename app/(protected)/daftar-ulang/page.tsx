@@ -959,7 +959,7 @@ function HalaqahSelectionStep({
                   {/* Selection Buttons */}
                   <div className="flex flex-wrap gap-3">
                     {/* Combined Button for Tashih+Ujian */}
-                    {isBothRequired(halaqah) ? (
+                    {isBothRequired ? (
                       <button
                         onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
                         disabled={halaqah.is_full || (() => {
