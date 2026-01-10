@@ -19,7 +19,21 @@ export async function GET(request: NextRequest) {
     const { data: tikrarRegistrations, error: tikrarError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
-        *,
+        id,
+        user_id,
+        batch_id,
+        program_id,
+        status,
+        chosen_juz,
+        exam_score,
+        written_quiz_submitted_at,
+        oral_submission_url,
+        oral_submitted_at,
+        oral_assessment_status,
+        selection_status,
+        re_enrollment_completed,
+        created_at,
+        updated_at,
         program:programs(*),
         batch:batches(*)
       `)
