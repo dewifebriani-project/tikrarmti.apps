@@ -138,8 +138,33 @@ export async function GET(request: NextRequest) {
           .select('mentor_id, role, is_primary')
           .eq('halaqah_id', h.id);
 
+        // Fetch program and muallimah data using admin client if not already included
+        // This ensures admin panel always has complete data
+        let programData = h.program;
+        let muallimahData = h.muallimah;
+
+        if (!programData && h.program_id) {
+          const { data: program } = await supabaseAdmin
+            .from('programs')
+            .select('*, batch:batches(*)')
+            .eq('id', h.program_id)
+            .single();
+          programData = program;
+        }
+
+        if (!muallimahData && h.muallimah_id) {
+          const { data: muallimah } = await supabaseAdmin
+            .from('users')
+            .select('id, full_name, email')
+            .eq('id', h.muallimah_id)
+            .single();
+          muallimahData = muallimah;
+        }
+
         return {
           ...h,
+          program: programData,
+          muallimah: muallimahData,
           students_count: totalUniqueCount,
           waitlist_count: uniqueWaitlistCount,
           quota_details: {
