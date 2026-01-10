@@ -31,9 +31,12 @@ interface FinalRegistration {
 
 // Helper to convert Supabase result to registration with batch
 function toRegistrationWithBatch(reg: SupabaseRegistrationResult): RegistrationWithBatch {
+  // Handle both array and object format
+  // Supabase sometimes returns batch as array, sometimes as object
+  const batch = Array.isArray(reg.batch) ? reg.batch[0] : reg.batch
   return {
     ...reg,
-    batch: reg.batch?.[0] || null
+    batch: batch || null
   }
 }
 
@@ -235,9 +238,9 @@ export async function GET(request: NextRequest) {
       id: r.id,
       status: r.status,
       batch_id: r.batch_id,
-      batch: r.batch,
-      batch_status: r.batch?.[0]?.status,
-      will_pass_filter: r.batch?.[0]?.status === 'open'
+      batch_is_array: Array.isArray(r.batch),
+      batch_status: Array.isArray(r.batch) ? r.batch?.[0]?.status : r.batch?.status,
+      will_pass_filter: (Array.isArray(r.batch) ? r.batch?.[0]?.status : r.batch?.status) === 'open'
     })))
     console.log('Muallimah registrations:', muallimahRegistrations?.length || 0)
     console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0)
