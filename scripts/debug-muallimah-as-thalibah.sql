@@ -21,10 +21,10 @@ SELECT
     full_name,
     status,
     batch_id,
-    created_at
+    submitted_at
 FROM muallimah_registrations
 WHERE email = 'USER_EMAIL_HERE'  -- REPLACE THIS
-ORDER BY created_at DESC;
+ORDER BY submitted_at DESC;
 
 -- 3. Check thalibah registrations by user_id
 WITH user_info AS (
