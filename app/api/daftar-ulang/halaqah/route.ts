@@ -233,6 +233,8 @@ export async function GET(request: NextRequest) {
           return false
         })
       })
+      // Filter out tashih_only classes from daftar ulang page
+      .filter(h => h.class_type !== 'tashih_only')
 
     return NextResponse.json({
       success: true,

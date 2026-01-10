@@ -958,8 +958,8 @@ function HalaqahSelectionStep({
 
                   {/* Selection Buttons */}
                   <div className="flex flex-wrap gap-3">
-                    {/* Ujian Button */}
-                    {hasUjian(halaqah) && (
+                    {/* Combined Button for Tashih+Ujian */}
+                    {isBothRequired(halaqah) ? (
                       <button
                         onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
                         disabled={halaqah.is_full || (() => {
@@ -970,43 +970,80 @@ function HalaqahSelectionStep({
                           return hasTashihUjianSelected
                         })()}
                         className={`
-                          flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
+                          w-full px-6 py-3 rounded-lg font-medium text-sm transition-all
                           ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
                             (() => {
                               const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
                               const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
                               const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
                                                             (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                              const isSelected = ujianSelected && tashihSelected
                               return hasTashihUjianSelected ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
-                                ujianSelected ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' :
-                                'bg-white border-2 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50'
+                                isSelected ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md' :
+                                'bg-white border-2 border-purple-200 text-purple-700 hover:border-purple-400 hover:bg-purple-50'
                             })()}
                         `}
                       >
                         <div className="flex items-center justify-center space-x-2">
-                          {ujianSelected && (
+                          {ujianSelected && tashihSelected && (
                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                             </svg>
                           )}
-                          <span>Ujian</span>
+                          <span>Pilih Tashih + Ujian</span>
                         </div>
                       </button>
-                    )}
+                    ) : (
+                      <>
+                        {/* Separate Ujian Button */}
+                        {hasUjian(halaqah) && (
+                          <button
+                            onClick={() => !halaqah.is_full && toggleUjian(halaqah.id)}
+                            disabled={halaqah.is_full || (() => {
+                              const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                              const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                              const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                            (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                              return hasTashihUjianSelected
+                            })()}
+                            className={`
+                              flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
+                              ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                                (() => {
+                                  const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                                  const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                                  const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                                (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                                  return hasTashihUjianSelected ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
+                                    ujianSelected ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md' :
+                                    'bg-white border-2 border-green-200 text-green-700 hover:border-green-400 hover:bg-green-50'
+                                })()}
+                            `}
+                          >
+                            <div className="flex items-center justify-center space-x-2">
+                              {ujianSelected && (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                              <span>Ujian</span>
+                            </div>
+                          </button>
+                        )}
 
-                    {/* Tashih Button */}
-                    {hasTashih(halaqah) && (
-                      <button
-                        onClick={() => !halaqah.is_full && toggleTashih(halaqah.id)}
-                        disabled={halaqah.is_full || (() => {
-                          const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
-                          const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
-                          const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
-                                                        (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
-                          return hasTashihUjianSelected
-                        })()}
-                        className={`
-                          flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
+                        {/* Separate Tashih Button */}
+                        {hasTashih(halaqah) && (
+                          <button
+                            onClick={() => !halaqah.is_full && toggleTashih(halaqah.id)}
+                            disabled={halaqah.is_full || (() => {
+                              const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+                              const tashihSelectedHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+                              const hasTashihUjianSelected = (ujianSelectedHalaqah && isTashihUjianBoth(ujianSelectedHalaqah) && ujianSelectedHalaqah.id !== halaqah.id) ||
+                                                            (tashihSelectedHalaqah && isTashihUjianBoth(tashihSelectedHalaqah) && tashihSelectedHalaqah.id !== halaqah.id)
+                              return hasTashihUjianSelected
+                            })()}
+                            className={`
+                              flex-1 min-w-[140px] px-4 py-3 rounded-lg font-medium text-sm transition-all
                           ${halaqah.is_full ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-400' :
                             (() => {
                               const ujianSelectedHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
