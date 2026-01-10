@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
           program:programs(*),
           batch:batches(*)
         `)
-        .eq('wa_phone', user.email) // Note: wa_phone field sometimes contains email
+        .eq('email', user.email) // Use email field for matching
         .order('created_at', { ascending: false })
 
       if (tikrarByEmail && tikrarByEmail.length > 0) {
