@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Users, Clock, ArrowUp, Loader2, UserMinus } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
 
 interface HalaqahStudentsListProps {
@@ -33,7 +32,6 @@ interface CapacityInfo {
 }
 
 export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStudentsListProps) {
-  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [capacity, setCapacity] = useState<CapacityInfo | null>(null);
@@ -47,39 +45,19 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
   const loadStudents = async () => {
     setLoading(true);
     try {
-      // Fetch students with their info
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('halaqah_students')
-        .select(`
-          *,
-          thalibah:users!halaqah_students_thalibah_id_fkey(id, full_name, email)
-        `)
-        .eq('halaqah_id', halaqahId)
-        .order('created_at', { ascending: true });
+      // Fetch students with their info via API endpoint
+      // This bypasses the RLS issues by using service role on the server
+      const response = await fetch(`/api/halaqah/${halaqahId}/students`);
 
-      if (studentsError) throw studentsError;
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to load students');
+      }
 
-      // Fetch capacity info
-      const activeCount = studentsData?.filter((s: Student) => s.status === 'active').length || 0;
-      const waitlistCount = studentsData?.filter((s: Student) => s.status === 'waitlist').length || 0;
-
-      // Get halaqah to find max students
-      const { data: halaqah } = await supabase
-        .from('halaqah')
-        .select('max_students')
-        .eq('id', halaqahId)
-        .single();
-
-      const maxStudents = halaqah?.max_students || 20;
+      const { students: studentsData, capacity: capacityData } = await response.json();
 
       setStudents(studentsData || []);
-      setCapacity({
-        active_students: activeCount,
-        waitlist_students: waitlistCount,
-        max_students: maxStudents,
-        spots_available: Math.max(0, maxStudents - activeCount),
-        is_full: activeCount >= maxStudents,
-      });
+      setCapacity(capacityData);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load students');
     } finally {
