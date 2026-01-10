@@ -52,7 +52,7 @@ export function HalaqahStudentsList({ halaqahId, refreshTrigger }: HalaqahStuden
         .from('halaqah_students')
         .select(`
           *,
-          thalibah:thalibah_id(id, full_name, email)
+          thalibah:users!halaqah_students_thalibah_id_fkey(id, full_name, email)
         `)
         .eq('halaqah_id', halaqahId)
         .order('created_at', { ascending: true });
