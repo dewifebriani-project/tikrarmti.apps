@@ -862,8 +862,8 @@ function HalaqahSelectionStep({
 
                 <div className="p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                    {/* Muallimah Schedule / Jadwal */}
-                    {halaqah.muallimah_schedule && (
+                    {/* Schedule / Jadwal - use muallimah_schedule if available, fallback to halaqah schedule */}
+                    {(halaqah.muallimah_schedule || (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time)) && (
                       <div className="flex items-center space-x-2 text-sm">
                         <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                           <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -873,12 +873,21 @@ function HalaqahSelectionStep({
                         <span className="text-gray-700">
                           <span className="font-medium">Jadwal: </span>
                           {(() => {
-                            try {
-                              const schedule = JSON.parse(halaqah.muallimah_schedule)
-                              return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
-                            } catch {
-                              return halaqah.muallimah_schedule
+                            // Try to use muallimah_schedule first
+                            if (halaqah.muallimah_schedule) {
+                              try {
+                                const schedule = JSON.parse(halaqah.muallimah_schedule)
+                                return `${schedule.day} • ${schedule.time_start} - ${schedule.time_end} WIB`
+                              } catch {
+                                return halaqah.muallimah_schedule
+                              }
                             }
+                            // Fallback to halaqah schedule
+                            if (halaqah.day_of_week !== null && halaqah.start_time && halaqah.end_time) {
+                              const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
+                              return `${DAY_NAMES[halaqah.day_of_week]} • ${halaqah.start_time} - ${halaqah.end_time} WIB`
+                            }
+                            return '-'
                           })()}
                         </span>
                       </div>
@@ -1071,7 +1080,7 @@ function HalaqahSelectionStep({
               Kelas Tashih Umum
             </h4>
             <p className="text-sm text-sky-700 mt-1">
-              Pilih ini jika Anda ingin bergabung di kelas tashih dengan waktu fleksibel. Anda akan mendapatkan pasangan setoran yang berbeda setiap pekannya atau sesuai kesepakatan, memberikan fleksibilitas lebih bagi yang memiliki jadwal tidak tetap.
+              Pilih ini jika Anda ingin bergabung di kelas tashih dengan waktu fleksibel. Ukhti akan mendapatkan Ustadzah yang berbeda setiap pekannya atau sesuai kesepakatan, memberikan fleksibilitas lebih bagi yang memiliki jadwal tidak tetap.
             </p>
             {formData.tashih_halaqah_id && (
               <p className="text-xs text-orange-600 mt-2 flex items-center">
