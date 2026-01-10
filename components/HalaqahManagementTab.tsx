@@ -19,7 +19,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  UserPlus
+  UserPlus,
+  Calculator
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -106,6 +107,7 @@ export function HalaqahManagementTab() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
   const [showAssignThalibahModal, setShowAssignThalibahModal] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -189,6 +191,30 @@ export function HalaqahManagementTab() {
     } catch (error: any) {
       console.error('[HalaqahManagementTab] Error loading halaqahs:', error);
       toast.error('Failed to load halaqahs: ' + error.message);
+    }
+  };
+
+  const handleRecalculateQuota = async () => {
+    setRecalculating(true);
+    try {
+      const response = await fetch('/api/admin/halaqah/recalculate-quota', {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to recalculate quota');
+      }
+
+      toast.success(result.message || 'Quota recalculated successfully');
+      // Refresh data to show updated counts
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('[HalaqahManagementTab] Error recalculating quota:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to recalculate quota');
+    } finally {
+      setRecalculating(false);
     }
   };
 
@@ -444,6 +470,19 @@ export function HalaqahManagementTab() {
           >
             <RefreshCw className="w-3 h-3" />
             Refresh
+          </button>
+
+          <button
+            onClick={handleRecalculateQuota}
+            disabled={recalculating}
+            className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {recalculating ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Calculator className="w-3 h-3" />
+            )}
+            {recalculating ? 'Calculating...' : 'Recalculate Quota'}
           </button>
         </div>
 
