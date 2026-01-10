@@ -2,12 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { Batch } from '@/types/database'
 
-// Type for registration with nested batch
+// Type for Supabase query result with nested relations (batch comes as array)
+interface SupabaseRegistrationResult {
+  id: string
+  batch_id: string
+  batch?: Batch[] | null
+  [key: string]: any
+}
+
+// Type for processed registration with batch as object
 interface RegistrationWithBatch {
   id: string
   batch_id: string
   batch?: Batch | null
   [key: string]: any
+}
+
+// Helper to convert Supabase result to registration with batch
+function toRegistrationWithBatch(reg: SupabaseRegistrationResult): RegistrationWithBatch {
+  return {
+    ...reg,
+    batch: reg.batch?.[0] || null
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -97,7 +113,8 @@ export async function GET(request: NextRequest) {
     // Combine all registrations into a single array
     // FILTER: Only include registrations with batch status = 'open'
     const allRegistrations = [
-      ...((tikrarRegistrations || []) as RegistrationWithBatch[])
+      ...((tikrarRegistrations || []) as SupabaseRegistrationResult[])
+        .map(toRegistrationWithBatch)
         .filter(reg => reg.batch?.status === 'open')
         .map(reg => {
           // Find matching daftar ulang submission for this registration
@@ -113,7 +130,8 @@ export async function GET(request: NextRequest) {
             daftar_ulang: daftarUlang || null
           }
         }),
-      ...((muallimahRegistrations || []) as RegistrationWithBatch[])
+      ...((muallimahRegistrations || []) as SupabaseRegistrationResult[])
+        .map(toRegistrationWithBatch)
         .filter(reg => reg.batch?.status === 'open')
         .map(reg => ({
           ...reg,
@@ -122,7 +140,8 @@ export async function GET(request: NextRequest) {
           status: reg.status || 'pending',
           batch_name: reg.batch?.name || null
         })),
-      ...((musyrifahRegistrations || []) as RegistrationWithBatch[])
+      ...((musyrifahRegistrations || []) as SupabaseRegistrationResult[])
+        .map(toRegistrationWithBatch)
         .filter(reg => reg.batch?.status === 'open')
         .map(reg => ({
           ...reg,
