@@ -233,6 +233,81 @@ export async function submitDaftarUlang(
   }
 
   try {
+    // 6. CHECK QUOTA FOR SELECTED HALAQAH (only for submitted status)
+    // Fetch all submissions with 'submitted' status (draft doesn't count)
+    const { data: submittedSubmissions } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('ujian_halaqah_id, tashih_halaqah_id, user_id')
+      .eq('batch_id', registration.batch_id)
+      .eq('status', 'submitted')
+
+    // Fetch halaqah_students with 'active' or 'waitlist' status
+    const { data: halaqahStudents } = await supabase
+      .from('halaqah_students')
+      .select('halaqah_id, thalibah_id, status')
+      .in('status', ['active', 'waitlist'])
+
+    // Count students per halaqah using Set to avoid duplicates
+    const halaqahStudentMap = new Map<string, Set<string>>()
+
+    // Count from daftar_ulang_submissions (only submitted)
+    if (submittedSubmissions) {
+      for (const sub of submittedSubmissions) {
+        // Skip current user's existing submission when counting quota
+        if (sub.user_id === authUser.id) continue
+
+        const uniqueHalaqahIds: string[] = []
+        if (sub.ujian_halaqah_id) uniqueHalaqahIds.push(sub.ujian_halaqah_id)
+        if (sub.tashih_halaqah_id && !uniqueHalaqahIds.includes(sub.tashih_halaqah_id)) {
+          uniqueHalaqahIds.push(sub.tashih_halaqah_id)
+        }
+
+        for (const halaqahId of uniqueHalaqahIds) {
+          if (!halaqahStudentMap.has(halaqahId)) {
+            halaqahStudentMap.set(halaqahId, new Set())
+          }
+          halaqahStudentMap.get(halaqahId)!.add(sub.user_id)
+        }
+      }
+    }
+
+    // Count from halaqah_students (including waitlist)
+    if (halaqahStudents) {
+      for (const student of halaqahStudents) {
+        // Skip current user if they're already in halaqah_students
+        if (student.thalibah_id === authUser.id) continue
+
+        if (!halaqahStudentMap.has(student.halaqah_id)) {
+          halaqahStudentMap.set(student.halaqah_id, new Set())
+        }
+        halaqahStudentMap.get(student.halaqah_id)!.add(student.thalibah_id)
+      }
+    }
+
+    // Get max_students for selected halaqah
+    const selectedHalaqahIds = [data.ujian_halaqah_id]
+    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
+      selectedHalaqahIds.push(data.tashih_halaqah_id)
+    }
+
+    const { data: halaqahInfo } = await supabase
+      .from('halaqah')
+      .select('id, name, max_students')
+      .in('id', selectedHalaqahIds)
+
+    // Check if any selected halaqah is full
+    for (const halaqah of halaqahInfo || []) {
+      const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
+      const maxStudents = halaqah.max_students || 20
+
+      if (currentStudents >= maxStudents) {
+        return {
+          success: false,
+          error: `Maaf, kelas "${halaqah.name}" sudah penuh. Silakan pilih kelas lain.`
+        }
+      }
+    }
+
     // Check for existing submission
     const { data: existing, error: existingError } = await supabase
       .from('daftar_ulang_submissions')
@@ -279,7 +354,7 @@ export async function submitDaftarUlang(
       akad_files: data.akad_files || null,
       akad_submitted_at: new Date().toISOString(),
 
-      // Status
+      // Status - submitted status reduces quota
       status: 'submitted' as const,
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
