@@ -21,6 +21,13 @@ interface HalaqahWithRelations {
   mentors?: Array<{ mentor_id: string; role: string; is_primary: boolean }>;
   students_count?: number;
   waitlist_count?: number;
+  quota_details?: {
+    submitted: number;
+    draft: number;
+    active: number;
+    waitlist: number;
+    total_used: number;
+  };
 }
 
 // GET /api/halaqah - List all halaqah with filters
@@ -108,6 +115,15 @@ export async function GET(request: NextRequest) {
           ? new Set(submissions.map(s => s.user_id)).size
           : 0;
 
+        // Count draft submissions (for display purposes, does NOT reduce quota)
+        const { data: draftSubmissions } = await supabaseAdmin
+          .from('daftar_ulang_submissions')
+          .select('user_id')
+          .eq('status', 'draft')
+          .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
+
+        const uniqueDraftIds = new Set(draftSubmissions?.map(s => s.user_id) || []);
+
         // Combine counts: avoid double-counting users who exist in both tables
         const allStudentIds = new Set([
           ...(activeStudents || []).map(s => s.student_id),
@@ -126,6 +142,13 @@ export async function GET(request: NextRequest) {
           ...h,
           students_count: totalUniqueCount,
           waitlist_count: uniqueWaitlistCount,
+          quota_details: {
+            submitted: uniqueSubmissionCount,
+            draft: uniqueDraftIds.size,
+            active: uniqueActiveCount,
+            waitlist: uniqueWaitlistCount,
+            total_used: totalUniqueCount
+          },
           mentors: mentors || []
         } as HalaqahWithRelations;
       })
