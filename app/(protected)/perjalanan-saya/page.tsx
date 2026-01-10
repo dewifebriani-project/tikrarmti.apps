@@ -153,10 +153,14 @@ export default function PerjalananSaya() {
 
     // Debug log untuk daftar_ulang
     console.log('[PerjalananSaya] Registration debug:', {
+      totalRegistrations: registrations.length,
+      allRegistrations: registrations.map(r => ({ id: r.id, status: r.status })),
       registrationId: registration?.id,
       registrationStatus: registration?.status,
       hasAnyRegistration,
       hasActiveRegistration,
+      approved: !!approvedRegistration,
+      rejected: registrations.some(reg => reg.status === 'rejected'),
       hasDaftarUlang: !!registration?.daftar_ulang,
       daftarUlang: registration?.daftar_ulang,
       reEnrollmentCompleted: registration?.re_enrollment_completed

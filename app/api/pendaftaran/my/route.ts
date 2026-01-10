@@ -62,27 +62,7 @@ export async function GET(request: NextRequest) {
     const { data: tikrarById, error: errorById } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
-        id,
-        user_id,
-        batch_id,
-        program_id,
-        status,
-        full_name,
-        wa_phone,
-        address,
-        chosen_juz,
-        main_time_slot,
-        backup_time_slot,
-        exam_score,
-        written_quiz_submitted_at,
-        oral_submission_url,
-        oral_submitted_at,
-        oral_score,
-        oral_assessment_status,
-        selection_status,
-        re_enrollment_completed,
-        created_at,
-        updated_at,
+        *,
         program:programs(*),
         batch:batches(*)
       `)
@@ -98,27 +78,7 @@ export async function GET(request: NextRequest) {
       const { data: tikrarByEmail, error: errorByEmail } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
-          id,
-          user_id,
-          batch_id,
-          program_id,
-          status,
-          full_name,
-          wa_phone,
-          address,
-          chosen_juz,
-          main_time_slot,
-          backup_time_slot,
-          exam_score,
-          written_quiz_submitted_at,
-          oral_submission_url,
-          oral_submitted_at,
-          oral_score,
-          oral_assessment_status,
-          selection_status,
-          re_enrollment_completed,
-          created_at,
-          updated_at,
+          *,
           program:programs(*),
           batch:batches(*)
         `)
@@ -149,27 +109,7 @@ export async function GET(request: NextRequest) {
           const { data: tikrarByName, error: errorByName } = await supabaseAdmin
             .from('pendaftaran_tikrar_tahfidz')
             .select(`
-              id,
-              user_id,
-              batch_id,
-              program_id,
-              status,
-              full_name,
-              wa_phone,
-              address,
-              chosen_juz,
-              main_time_slot,
-              backup_time_slot,
-              exam_score,
-              written_quiz_submitted_at,
-              oral_submission_url,
-              oral_submitted_at,
-              oral_score,
-              oral_assessment_status,
-              selection_status,
-              re_enrollment_completed,
-              created_at,
-              updated_at,
+              *,
               program:programs(*),
               batch:batches(*)
             `)
