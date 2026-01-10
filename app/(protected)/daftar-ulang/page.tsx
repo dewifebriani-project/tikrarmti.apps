@@ -81,7 +81,6 @@ export default function DaftarUlangPage() {
     juz_adjustment_reason: string
     ujian_halaqah_id: string
     tashih_halaqah_id: string
-    is_tashih_umum: boolean
     partner_type: 'self_match' | 'system_match' | 'family' | 'tarteel' | ''
     partner_user_id: string
     partner_name: string
@@ -105,7 +104,6 @@ export default function DaftarUlangPage() {
     // Step 2: Halaqah
     ujian_halaqah_id: '',
     tashih_halaqah_id: '',
-    is_tashih_umum: false,
 
     // Step 3: Partner
     partner_type: '',
@@ -220,7 +218,6 @@ export default function DaftarUlangPage() {
           confirmed_address: formData.confirmed_address,
           ujian_halaqah_id: formData.ujian_halaqah_id,
           tashih_halaqah_id: formData.tashih_halaqah_id,
-          is_tashih_umum: formData.is_tashih_umum,
           partner_user_id: formData.partner_user_id,
           partner_name: formData.partner_name,
           partner_relationship: formData.partner_relationship,
@@ -260,8 +257,7 @@ export default function DaftarUlangPage() {
         toast.error('Pilih kelas ujian (wajib)')
         return
       }
-      // Tashih opsional - bisa pilih halaqah atau tashih umum atau tidak pilih sama sekali
-      // Tidak ada validasi wajib untuk tashih
+      // Tashih opsional
       setCurrentStep('partner')
     } else if (currentStep === 'partner') {
       if (!formData.partner_type) {
@@ -711,7 +707,6 @@ function HalaqahSelectionStep({
         ...formData,
         ujian_halaqah_id: newUjianId,
         tashih_halaqah_id: newUjianId,
-        is_tashih_umum: false
       })
     } else {
       const newUjianId = formData.ujian_halaqah_id === halaqahId ? '' : halaqahId
@@ -735,12 +730,6 @@ function HalaqahSelectionStep({
       return
     }
 
-    // If enabling tashih umum, clear specific halaqah
-    if (formData.is_tashih_umum) {
-      onChange({ ...formData, is_tashih_umum: false, tashih_halaqah_id: halaqahId })
-      return
-    }
-
     // If tashih_ujian, must select both
     if (isTashihUjianBoth(halaqah)) {
       // Check if there's already a separate ujian or tashih selected
@@ -754,7 +743,6 @@ function HalaqahSelectionStep({
         ...formData,
         ujian_halaqah_id: newTashihId,
         tashih_halaqah_id: newTashihId,
-        is_tashih_umum: false
       })
     } else {
       const newTashihId = formData.tashih_halaqah_id === halaqahId ? '' : halaqahId
@@ -1058,42 +1046,6 @@ function HalaqahSelectionStep({
         )}
       </div>
 
-      {/* Tashih Umum Option */}
-      <div className={`bg-gradient-to-r from-sky-50 to-blue-50 border-2 rounded-xl p-5 ${formData.tashih_halaqah_id ? 'border-gray-300 opacity-60' : 'border-sky-200'}`}>
-        <label className={`flex items-start space-x-4 ${formData.tashih_halaqah_id ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-          <input
-            type="checkbox"
-            checked={formData.is_tashih_umum}
-            disabled={formData.tashih_halaqah_id ? true : false}
-            onChange={(e) => onChange({
-              ...formData,
-              is_tashih_umum: e.target.checked,
-              tashih_halaqah_id: e.target.checked ? '' : formData.tashih_halaqah_id
-            })}
-            className="w-5 h-5 mt-0.5 text-sky-600 rounded focus:ring-sky-500 disabled:opacity-50"
-          />
-          <div>
-            <h4 className="font-semibold text-sky-900 flex items-center">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              Kelas Tashih Umum
-            </h4>
-            <p className="text-sm text-sky-700 mt-1">
-              Pilih ini jika Anda ingin bergabung di kelas tashih dengan waktu fleksibel. Ukhti akan mendapatkan Ustadzah yang berbeda setiap pekannya atau sesuai kesepakatan, memberikan fleksibilitas lebih bagi yang memiliki jadwal tidak tetap.
-            </p>
-            {formData.tashih_halaqah_id && (
-              <p className="text-xs text-orange-600 mt-2 flex items-center">
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Tidak bisa memilih Tashih Umum karena Anda sudah memilih kelas tashih
-              </p>
-            )}
-          </div>
-        </label>
-      </div>
-
       {/* Summary */}
       <div className="bg-gradient-to-br from-gray-50 to-slate-50 border-2 border-gray-200 rounded-xl p-5">
         <h4 className="font-bold text-gray-900 mb-3 flex items-center">
@@ -1113,12 +1065,10 @@ function HalaqahSelectionStep({
               )}
             </div>
           </div>
-          <div className={`p-3 rounded-lg ${(formData.is_tashih_umum || formData.tashih_halaqah_id) ? 'bg-blue-100 border border-blue-300' : 'bg-gray-100'}`}>
+          <div className={`p-3 rounded-lg ${formData.tashih_halaqah_id ? 'bg-blue-100 border border-blue-300' : 'bg-gray-100'}`}>
             <span className="text-xs text-gray-600 uppercase tracking-wide">Kelas Tashih</span>
-            <div className={`font-medium mt-1 ${(formData.is_tashih_umum || formData.tashih_halaqah_id) ? 'text-blue-800' : 'text-gray-400'}`}>
-              {formData.is_tashih_umum ? (
-                'Tashih Umum'
-              ) : formData.tashih_halaqah_id ? (
+            <div className={`font-medium mt-1 ${formData.tashih_halaqah_id ? 'text-blue-800' : 'text-gray-400'}`}>
+              {formData.tashih_halaqah_id ? (
                 halaqahData.find(h => h.id === formData.tashih_halaqah_id)?.name || '-'
               ) : (
                 'Belum dipilih'
@@ -1567,30 +1517,22 @@ function ReviewStep({
                 )
               })()}
             </div>
-            {formData.is_tashih_umum ? (
-              <div>
-                <span className="text-gray-600">Kelas Tashih</span>
-                <p className="font-medium">Tashih Umum</p>
-                <p className="text-gray-600 mt-1">Kelas tashih dengan waktu fleksibel</p>
-              </div>
-            ) : (
-              <div>
-                <span className="text-gray-600">Kelas Tashih</span>
-                <p className="font-medium">{getHalaqahName(formData.tashih_halaqah_id)}</p>
-                {(() => {
-                  const details = getHalaqahDetails(formData.tashih_halaqah_id)
-                  if (!details) return null
-                  return (
-                    <div className="mt-1 text-gray-600 space-y-1">
-                      <p>{details.schedule}</p>
-                      <p>Juz: {details.juz}</p>
-                      <p>Lokasi: {details.location}</p>
-                      <p>Muallimah: {details.muallimah}</p>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
+            <div>
+              <span className="text-gray-600">Kelas Tashih</span>
+              <p className="font-medium">{getHalaqahName(formData.tashih_halaqah_id)}</p>
+              {(() => {
+                const details = getHalaqahDetails(formData.tashih_halaqah_id)
+                if (!details) return null
+                return (
+                  <div className="mt-1 text-gray-600 space-y-1">
+                    <p>{details.schedule}</p>
+                    <p>Juz: {details.juz}</p>
+                    <p>Lokasi: {details.location}</p>
+                    <p>Muallimah: {details.muallimah}</p>
+                  </div>
+                )
+              })()}
+            </div>
           </div>
         </div>
 

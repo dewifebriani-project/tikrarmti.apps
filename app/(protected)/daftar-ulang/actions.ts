@@ -23,7 +23,6 @@ export interface DaftarUlangFormData {
   // Halaqah selection
   ujian_halaqah_id?: string
   tashih_halaqah_id?: string
-  is_tashih_umum?: boolean
 
   // Akad - Array of files
   akad_files?: Array<{ url: string; name: string }>
@@ -81,7 +80,6 @@ export async function saveDaftarUlangDraft(
       partner_notes: data.partner_notes || null,
       ujian_halaqah_id: data.ujian_halaqah_id || null,
       tashih_halaqah_id: data.tashih_halaqah_id || null,
-      is_tashih_umum: data.is_tashih_umum,
       akad_files: data.akad_files || null,
     }
 
@@ -175,13 +173,8 @@ export async function submitDaftarUlang(
     return { success: false, error: 'Pilih jenis pasangan belajar.' }
   }
 
-  if (!data.ujian_halaqah_id && !data.is_tashih_umum) {
+  if (!data.ujian_halaqah_id) {
     return { success: false, error: 'Pilih kelas ujian.' }
-  }
-
-  // If not using tashih umum, validate tashih halaqah
-  if (!data.is_tashih_umum && !data.tashih_halaqah_id) {
-    return { success: false, error: 'Pilih kelas tashih.' }
   }
 
   // If partner type is self_match, must have selected partner
@@ -250,7 +243,6 @@ export async function submitDaftarUlang(
       // Halaqah selection - Convert empty strings to null for UUID fields
       ujian_halaqah_id: data.ujian_halaqah_id || null,
       tashih_halaqah_id: data.tashih_halaqah_id || null,
-      is_tashih_umum: data.is_tashih_umum || false,
 
       // Akad
       akad_files: data.akad_files || null,
