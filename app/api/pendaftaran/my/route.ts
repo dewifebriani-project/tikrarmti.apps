@@ -69,10 +69,13 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
+    console.log('[API] Query by user_id result:', tikrarById?.length || 0, 'error:', errorById?.message)
+
     // If no results by user_id, try by email (for legacy data or user_id mismatches)
     // IMPORTANT: Use admin client to bypass RLS policies that block viewing by email
     if (!tikrarById || tikrarById.length === 0) {
       console.log('[API] No registrations found by user_id, trying by email...')
+      console.log('[API] User ID:', user.id)
       console.log('[API] User email for search:', user.email)
       const supabaseAdmin = createSupabaseAdmin()
 
