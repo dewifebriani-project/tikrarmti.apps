@@ -237,11 +237,13 @@ export default function DaftarUlangPage() {
 
     const timer = setTimeout(async () => {
       // Only save if we have meaningful data
+      // IMPORTANT: Draft saves partner data and akad files, but NOT halaqah selection
       const hasValidPartnerType = formData.partner_type !== ''
-      const hasHalaqahData = formData.ujian_halaqah_id || formData.tashih_halaqah_id
+      const hasAkadFiles = formData.akad_files && formData.akad_files.length > 0
 
-      if (hasValidPartnerType && hasHalaqahData) {
+      if (hasValidPartnerType || hasAkadFiles) {
         // Build data to save, excluding empty partner_type
+        // Note: Halaqah IDs are included here but will be set to null in saveDaftarUlangDraft
         const dataToSave: any = {
           confirmed_full_name: formData.confirmed_full_name,
           confirmed_chosen_juz: formData.confirmed_chosen_juz,
@@ -249,6 +251,7 @@ export default function DaftarUlangPage() {
           confirmed_backup_time_slot: formData.confirmed_backup_time_slot,
           confirmed_wa_phone: formData.confirmed_wa_phone,
           confirmed_address: formData.confirmed_address,
+          // These will be set to null in saveDaftarUlangDraft for draft status
           ujian_halaqah_id: formData.ujian_halaqah_id,
           tashih_halaqah_id: formData.tashih_halaqah_id,
           partner_user_id: formData.partner_user_id,

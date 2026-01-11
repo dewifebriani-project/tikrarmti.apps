@@ -65,6 +65,8 @@ export async function saveDaftarUlangDraft(
       .maybeSingle()
 
     // Convert empty strings to null for UUID and optional fields
+    // IMPORTANT: For draft status, do NOT save halaqah data - only save partner and akad data
+    // This ensures draft submissions don't accidentally reserve halaqah slots
     const cleanedData = {
       confirmed_full_name: data.confirmed_full_name,
       confirmed_chosen_juz: data.confirmed_chosen_juz,
@@ -78,8 +80,9 @@ export async function saveDaftarUlangDraft(
       partner_relationship: data.partner_relationship || null,
       partner_wa_phone: data.partner_wa_phone || null,
       partner_notes: data.partner_notes || null,
-      ujian_halaqah_id: data.ujian_halaqah_id || null,
-      tashih_halaqah_id: data.tashih_halaqah_id || null,
+      // DO NOT save halaqah data for draft - halaqah_id will be null
+      ujian_halaqah_id: null,
+      tashih_halaqah_id: null,
       akad_files: data.akad_files || null,
     }
 
