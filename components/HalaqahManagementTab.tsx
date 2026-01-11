@@ -571,13 +571,29 @@ export function HalaqahManagementTab() {
 
       // Tertiary sort: by selected column (if not day_of_week)
       if (sortColumn !== 'day_of_week') {
-        let aVal = a[sortColumn];
-        let bVal = b[sortColumn];
+        let aVal: any;
+        let bVal: any;
 
         // Handle nested properties
         if (sortColumn === 'name') {
           aVal = formatHalaqahName(a).toLowerCase();
           bVal = formatHalaqahName(b).toLowerCase();
+        } else if (sortColumn === 'muallimah_id') {
+          // Sort by muallimah name
+          aVal = a.muallimah?.full_name?.toLowerCase() || '';
+          bVal = b.muallimah?.full_name?.toLowerCase() || '';
+        } else if (sortColumn === '_count') {
+          // Sort by student count
+          aVal = a._count?.students || 0;
+          bVal = b._count?.students || 0;
+        } else if (sortColumn === 'status') {
+          // Custom status order
+          const statusOrder = { active: 1, inactive: 2, suspended: 3 };
+          aVal = statusOrder[a.status as keyof typeof statusOrder] || 999;
+          bVal = statusOrder[b.status as keyof typeof statusOrder] || 999;
+        } else {
+          aVal = a[sortColumn];
+          bVal = b[sortColumn];
         }
 
         if (aVal === bVal) return 0;
@@ -591,8 +607,8 @@ export function HalaqahManagementTab() {
         }
 
         return sortDirection === 'asc'
-          ? (aVal as any) > (bVal as any) ? 1 : -1
-          : (aVal as any) < (bVal as any) ? 1 : -1;
+          ? aVal > bVal ? 1 : -1
+          : aVal < bVal ? 1 : -1;
       }
 
       return 0;
@@ -871,14 +887,38 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Schedule
+                      <th
+                        onClick={() => handleSort('day_of_week')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          Schedule
+                          {sortColumn === 'day_of_week' && (
+                            sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Muallimah
+                      <th
+                        onClick={() => handleSort('muallimah_id')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          Muallimah
+                          {sortColumn === 'muallimah_id' && (
+                            sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          )}
+                        </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Thalibah
+                      <th
+                        onClick={() => handleSort('_count')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                      >
+                        <div className="flex items-center gap-1">
+                          Thalibah
+                          {sortColumn === '_count' && (
+                            sortDirection === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                          )}
+                        </div>
                       </th>
                       <th
                         onClick={() => handleSort('status')}
