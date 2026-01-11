@@ -41,6 +41,10 @@ interface HalaqahInfo {
   end_time?: string;
   muallimah_id?: string;
   muallimah_name?: string;
+  max_students?: number;
+  total_current_students?: number;
+  available_slots?: number;
+  is_full?: boolean;
 }
 
 interface HalaqahWithThalibah {
@@ -407,44 +411,63 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       const scheduleY = 30;
       let yPos = scheduleY;
 
-      if (halaqahData.halaqah.day_of_week !== undefined) {
-        doc.text(`Hari: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}`, 14, yPos);
+      // Hari - only show if day_of_week exists
+      if (halaqahData.halaqah.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
+        doc.text(`Jadwal: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}, ${halaqahData.halaqah.start_time || ''} - ${halaqahData.halaqah.end_time || ''}`, 14, yPos);
+        yPos += 7;
+      } else if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
+        // Fallback if only time is available
+        doc.text(`Jadwal: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 14, yPos);
         yPos += 7;
       }
-      if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
-        doc.text(`Waktu: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 14, yPos);
-        yPos += 7;
-      }
+
+      // Muallimah - add "Ustadzah" prefix
       if (halaqahData.halaqah.muallimah_name) {
-        doc.text(`Muallimah: ${halaqahData.halaqah.muallimah_name}`, 14, yPos);
+        doc.text(`Muallimah: Ustadzah ${halaqahData.halaqah.muallimah_name}`, 14, yPos);
         yPos += 7;
       }
 
-      // Total thalibah
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Total Thalibah: ${halaqahData.thalibah.length}`, 14, yPos);
-      yPos += 5;
+      // Max students and quota info
+      const maxStudents = halaqahData.halaqah.max_students || 20;
+      const availableSlots = halaqahData.halaqah.available_slots ?? (maxStudents - halaqahData.thalibah.length);
+      const isFull = halaqahData.halaqah.is_full ?? availableSlots <= 0;
 
-      // Table
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Total Thalibah: ${halaqahData.thalibah.length} / ${maxStudents}`, 14, yPos);
+      yPos += 7;
+
+      // Quota status with color indicator
+      doc.setFont('helvetica', 'normal');
+      if (isFull) {
+        doc.setTextColor(220, 38, 38); // Red
+        doc.text(`Status: PENUH`, 14, yPos);
+      } else if (availableSlots <= 3) {
+        doc.setTextColor(251, 146, 60); // Orange
+        doc.text(`Sisa Kuota: ${availableSlots} slot`, 14, yPos);
+      } else {
+        doc.setTextColor(34, 197, 94); // Green
+        doc.text(`Sisa Kuota: ${availableSlots} slot`, 14, yPos);
+      }
+      doc.setTextColor(0, 0, 0); // Reset to black
+      yPos += 7;
+
+      // Table - removed Partner columns, changed "Paket" to "Tashih & Ujian", removed Status column
       const tableData = halaqahData.thalibah.map((t, index) => [
         index + 1,
         t.full_name,
         t.confirmed_juz || '-',
         t.confirmed_time_slot || '-',
-        t.partner_name || '-',
-        t.partner_type || '-',
-        t.type === 'both' ? 'Paket' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
-        t.status === 'submitted' ? 'Submitted' : (t.status === 'approved' ? 'Approved' : 'Draft'),
+        t.type === 'both' ? 'Tashih & Ujian' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
         formatDate(t.submitted_at)
       ]);
 
       autoTable(doc, {
-        startY: yPos + 5,
-        head: [['No', 'Nama', 'Juz', 'Slot', 'Partner', 'Tipe Partner', 'Tipe', 'Status', 'Submitted']],
+        startY: yPos + 2,
+        head: [['No', 'Nama', 'Juz', 'Slot Waktu', 'Tipe', 'Submitted']],
         body: tableData,
         styles: {
-          fontSize: 8,
-          cellPadding: 2,
+          fontSize: 9,
+          cellPadding: 3,
         },
         headStyles: {
           fillColor: [34, 197, 94],
@@ -455,15 +478,12 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           fillColor: [240, 240, 240],
         },
         columnStyles: {
-          0: { cellWidth: 8 },  // No
-          1: { cellWidth: 40 }, // Nama
-          2: { cellWidth: 15 }, // Juz
-          3: { cellWidth: 20 }, // Slot
-          4: { cellWidth: 35 }, // Partner
-          5: { cellWidth: 20 }, // Tipe Partner
-          6: { cellWidth: 15 }, // Tipe
-          7: { cellWidth: 20 }, // Status
-          8: { cellWidth: 30 }, // Submitted
+          0: { cellWidth: 10 },  // No
+          1: { cellWidth: 55 }, // Nama
+          2: { cellWidth: 18 }, // Juz
+          3: { cellWidth: 30 }, // Slot Waktu
+          4: { cellWidth: 35 }, // Tipe
+          5: { cellWidth: 40 }, // Submitted
         },
       });
 
@@ -519,7 +539,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       // Generate table for each halaqah
       for (const halaqahData of halaqahListWithSortedThalibah) {
         // Check if we need a new page
-        if (yPos > pageHeight - 80) {
+        if (yPos > pageHeight - 100) {
           doc.addPage();
           yPos = 20;
         }
@@ -530,21 +550,48 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         doc.text(`${halaqahData.halaqah.name} (${halaqahData.thalibah.length} thalibah)`, 14, yPos);
         yPos += 7;
 
-        // Schedule info
+        // Schedule info - combined format
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        if (halaqahData.halaqah.day_of_week !== undefined) {
-          doc.text(`Hari: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}`, 16, yPos);
+
+        // Jadwal - only show if day_of_week exists
+        if (halaqahData.halaqah.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
+          doc.text(`Jadwal: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}, ${halaqahData.halaqah.start_time || ''} - ${halaqahData.halaqah.end_time || ''}`, 16, yPos);
+          yPos += 6;
+        } else if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
+          doc.text(`Jadwal: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 16, yPos);
           yPos += 6;
         }
-        if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
-          doc.text(`Waktu: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 16, yPos);
-          yPos += 6;
-        }
+
+        // Muallimah - add "Ustadzah" prefix
         if (halaqahData.halaqah.muallimah_name) {
-          doc.text(`Muallimah: ${halaqahData.halaqah.muallimah_name}`, 16, yPos);
+          doc.text(`Muallimah: Ustadzah ${halaqahData.halaqah.muallimah_name}`, 16, yPos);
           yPos += 6;
         }
+
+        // Max students and quota info
+        const maxStudents = halaqahData.halaqah.max_students || 20;
+        const availableSlots = halaqahData.halaqah.available_slots ?? (maxStudents - halaqahData.thalibah.length);
+        const isFull = halaqahData.halaqah.is_full ?? availableSlots <= 0;
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total: ${halaqahData.thalibah.length} / ${maxStudents}`, 16, yPos);
+        yPos += 6;
+
+        // Quota status with color indicator
+        doc.setFont('helvetica', 'normal');
+        if (isFull) {
+          doc.setTextColor(220, 38, 38); // Red
+          doc.text(`Status: PENUH`, 16, yPos);
+        } else if (availableSlots <= 3) {
+          doc.setTextColor(251, 146, 60); // Orange
+          doc.text(`Sisa: ${availableSlots} slot`, 16, yPos);
+        } else {
+          doc.setTextColor(34, 197, 94); // Green
+          doc.text(`Sisa: ${availableSlots} slot`, 16, yPos);
+        }
+        doc.setTextColor(0, 0, 0); // Reset to black
+        yPos += 6;
 
         // Check if we need a new page before table
         if (yPos > pageHeight - 60) {
@@ -552,19 +599,17 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           yPos = 20;
         }
 
-        // Table data
+        // Table data - removed Partner column, changed "Paket" to "Tashih & Ujian", removed Status column
         const tableData = halaqahData.thalibah.map((t, index) => [
           index + 1,
           t.full_name,
           t.confirmed_juz || '-',
-          t.partner_name || '-',
-          t.type === 'both' ? 'Paket' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
-          t.status === 'submitted' ? '✓' : (t.status === 'approved' ? '✓✓' : '-')
+          t.type === 'both' ? 'Tashih & Ujian' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
         ]);
 
         autoTable(doc, {
           startY: yPos,
-          head: [['No', 'Nama', 'Juz', 'Partner', 'Tipe', 'Status']],
+          head: [['No', 'Nama', 'Juz', 'Tipe']],
           body: tableData,
           styles: {
             fontSize: 8,
@@ -577,11 +622,9 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           },
           columnStyles: {
             0: { cellWidth: 10 },
-            1: { cellWidth: 50 },
-            2: { cellWidth: 15 },
-            3: { cellWidth: 40 },
-            4: { cellWidth: 20 },
-            5: { cellWidth: 20 },
+            1: { cellWidth: 65 },
+            2: { cellWidth: 18 },
+            3: { cellWidth: 30 },
           },
           didDrawPage: (data) => {
             yPos = (data.cursor?.y ?? 60) + 10;

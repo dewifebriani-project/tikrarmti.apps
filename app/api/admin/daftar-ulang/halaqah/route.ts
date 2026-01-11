@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         user:users!daftar_ulang_submissions_user_id_fkey(id, full_name, email),
-        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id),
-        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id)
+        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id, max_students),
+        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id, max_students)
       `)
       .in('status', ['submitted', 'approved']);
 
@@ -79,6 +79,10 @@ export async function GET(request: NextRequest) {
         start_time?: string;
         end_time?: string;
         muallimah_id?: string;
+        max_students?: number;
+        total_current_students?: number;
+        available_slots?: number;
+        is_full?: boolean;
       };
       type: 'ujian' | 'tashih';
       thalibah: Array<{
@@ -174,14 +178,25 @@ export async function GET(request: NextRequest) {
       (muallimahData || []).map(m => [m.id, m.full_name])
     );
 
-    // Add muallimah names to halaqah
-    const result = halaqahList.map(item => ({
-      ...item,
-      halaqah: {
-        ...item.halaqah,
-        muallimah_name: muallimahMap.get(item.halaqah.muallimah_id || '') || null
-      }
-    }));
+    // Add muallimah names to halaqah and calculate quota info
+    const result = halaqahList.map(item => {
+      const maxStudents = item.halaqah.max_students || 20;
+      const totalStudents = item.thalibah.length;
+      const availableSlots = maxStudents - totalStudents;
+      const isFull = availableSlots <= 0;
+
+      return {
+        ...item,
+        halaqah: {
+          ...item.halaqah,
+          muallimah_name: muallimahMap.get(item.halaqah.muallimah_id || '') || null,
+          max_students: maxStudents,
+          total_current_students: totalStudents,
+          available_slots: availableSlots,
+          is_full: isFull
+        }
+      };
+    });
 
     console.log('[Daftar Ulang Halaqah] Success, halaqah count:', result.length);
 
