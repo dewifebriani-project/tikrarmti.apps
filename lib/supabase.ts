@@ -179,26 +179,38 @@ export type Database = {
           user_id: string
           blok: string
           lokasi: string
-          masalah_tajwid: string | null
+          lokasi_detail: string | null
+          nama_pemeriksa: string | null
+          masalah_tajwid: string[] | null
+          catatan_tambahan: string | null
           waktu_tashih: string
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
           blok: string
           lokasi: string
-          masalah_tajwid?: string | null
+          lokasi_detail?: string | null
+          nama_pemeriksa?: string | null
+          masalah_tajwid?: string[] | null
+          catatan_tambahan?: string | null
           waktu_tashih: string
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           blok?: string
           lokasi?: string
-          masalah_tajwid?: string | null
-          waktu_tashih: string
+          lokasi_detail?: string | null
+          nama_pemeriksa?: string | null
+          masalah_tajwid?: string[] | null
+          catatan_tambahan?: string | null
+          waktu_tashih?: string
+          updated_at?: string
         }
       }
       progress_milestones: {
