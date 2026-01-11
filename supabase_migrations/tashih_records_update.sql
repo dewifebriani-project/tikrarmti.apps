@@ -53,7 +53,7 @@ CREATE POLICY "Users can view own tashih records"
   USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own tashih records"
-  ON public.tashi RECORDS FOR INSERT
+  ON public.tashih_records FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users can update own tashih records"
