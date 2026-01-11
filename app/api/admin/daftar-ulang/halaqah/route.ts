@@ -7,6 +7,7 @@ const supabaseAdmin = createSupabaseAdmin();
 /**
  * GET /api/admin/daftar-ulang/halaqah
  * Fetch thalibah grouped by halaqah for daftar ulang submissions
+ * Now uses shared quota calculation API for consistency with thalibah view
  */
 export async function GET(request: NextRequest) {
   try {
@@ -45,8 +46,15 @@ export async function GET(request: NextRequest) {
 
     console.log('[Daftar Ulang Halaqah] Fetching thalibah per halaqah, batch:', batchId);
 
-    // Fetch all daftar ulang submissions
-    let submissionsQuery = supabaseAdmin
+    if (!batchId || batchId === 'all') {
+      return NextResponse.json(
+        { error: 'batch_id is required' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch all daftar ulang submissions with halaqah details
+    const { data: submissions, error: submissionsError } = await supabaseAdmin
       .from('daftar_ulang_submissions')
       .select(`
         *,
@@ -54,13 +62,8 @@ export async function GET(request: NextRequest) {
         ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id, max_students),
         tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id, max_students)
       `)
+      .eq('batch_id', batchId)
       .in('status', ['submitted', 'approved']);
-
-    if (batchId && batchId !== 'all') {
-      submissionsQuery = submissionsQuery.eq('batch_id', batchId);
-    }
-
-    const { data: submissions, error: submissionsError } = await submissionsQuery;
 
     if (submissionsError) {
       console.error('[Daftar Ulang Halaqah] Error fetching submissions:', submissionsError);
@@ -69,6 +72,43 @@ export async function GET(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Call shared quota calculation API (without user_id, so all users are counted)
+    const quotaUrl = new URL('/api/shared/halaqah-quota', request.url);
+    quotaUrl.searchParams.set('batch_id', batchId);
+
+    const quotaResponse = await fetch(quotaUrl.toString(), {
+      headers: {
+        'Cookie': request.headers.get('Cookie') || ''
+      }
+    });
+
+    if (!quotaResponse.ok) {
+      const errorData = await quotaResponse.json();
+      return NextResponse.json(
+        { error: 'Failed to fetch quota data', details: errorData.error },
+        { status: quotaResponse.status }
+      );
+    }
+
+    const quotaData = await quotaResponse.json();
+
+    // Create a map of halaqah quota info for quick lookup
+    const halaqahQuotaMap = new Map<string, {
+      max_students: number;
+      total_current_students: number;
+      available_slots: number;
+      is_full: boolean;
+    }>();
+
+    (quotaData.data.halaqah || []).forEach((h: any) => {
+      halaqahQuotaMap.set(h.id, {
+        max_students: h.total_max_students,
+        total_current_students: h.total_current_students,
+        available_slots: h.available_slots,
+        is_full: h.is_full
+      });
+    });
 
     // Group submissions by halaqah
     const halaqahMap = new Map<string, {
@@ -83,6 +123,7 @@ export async function GET(request: NextRequest) {
         total_current_students?: number;
         available_slots?: number;
         is_full?: boolean;
+        muallimah_name?: string | null;
       };
       type: 'ujian' | 'tashih';
       thalibah: Array<{
@@ -103,14 +144,15 @@ export async function GET(request: NextRequest) {
       // Process Ujian Halaqah
       if (submission.ujian_halaqah) {
         const halaqahId = submission.ujian_halaqah.id;
-        if (!halaqahMap.has(`${halaqahId}-ujian`)) {
-          halaqahMap.set(`${halaqahId}-ujian`, {
+        const key = `${halaqahId}-ujian`;
+        if (!halaqahMap.has(key)) {
+          halaqahMap.set(key, {
             halaqah: submission.ujian_halaqah,
             type: 'ujian',
             thalibah: []
           });
         }
-        halaqahMap.get(`${halaqahId}-ujian`)!.thalibah.push({
+        halaqahMap.get(key)!.thalibah.push({
           id: submission.user.id,
           submission_id: submission.id, // Add submission_id for revert feature
           full_name: submission.confirmed_full_name || submission.user.full_name,
@@ -129,14 +171,15 @@ export async function GET(request: NextRequest) {
       // Process Tashih Halaqah (only if not tashih umum)
       if (submission.tashih_halaqah && !submission.is_tashih_umum) {
         const halaqahId = submission.tashih_halaqah.id;
-        if (!halaqahMap.has(`${halaqahId}-tashih`)) {
-          halaqahMap.set(`${halaqahId}-tashih`, {
+        const key = `${halaqahId}-tashih`;
+        if (!halaqahMap.has(key)) {
+          halaqahMap.set(key, {
             halaqah: submission.tashih_halaqah,
             type: 'tashih',
             thalibah: []
           });
         }
-        halaqahMap.get(`${halaqahId}-tashih`)!.thalibah.push({
+        halaqahMap.get(key)!.thalibah.push({
           id: submission.user.id,
           submission_id: submission.id, // Add submission_id for revert feature
           full_name: submission.confirmed_full_name || submission.user.full_name,
@@ -178,22 +221,24 @@ export async function GET(request: NextRequest) {
       (muallimahData || []).map(m => [m.id, m.full_name])
     );
 
-    // Add muallimah names to halaqah and calculate quota info
+    // Add muallimah names to halaqah and use quota info from shared API
     const result = halaqahList.map(item => {
-      const maxStudents = item.halaqah.max_students || 20;
-      const totalStudents = item.thalibah.length;
-      const availableSlots = maxStudents - totalStudents;
-      const isFull = availableSlots <= 0;
+      const quotaInfo = halaqahQuotaMap.get(item.halaqah.id) || {
+        max_students: item.halaqah.max_students || 20,
+        total_current_students: item.thalibah.length,
+        available_slots: (item.halaqah.max_students || 20) - item.thalibah.length,
+        is_full: item.thalibah.length >= (item.halaqah.max_students || 20)
+      };
 
       return {
         ...item,
         halaqah: {
           ...item.halaqah,
           muallimah_name: muallimahMap.get(item.halaqah.muallimah_id || '') || null,
-          max_students: maxStudents,
-          total_current_students: totalStudents,
-          available_slots: availableSlots,
-          is_full: isFull
+          max_students: quotaInfo.max_students,
+          total_current_students: quotaInfo.total_current_students,
+          available_slots: quotaInfo.available_slots,
+          is_full: quotaInfo.is_full
         }
       };
     });
