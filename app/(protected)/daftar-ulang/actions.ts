@@ -234,18 +234,38 @@ export async function submitDaftarUlang(
 
   try {
     // 6. CHECK QUOTA FOR SELECTED HALAQAH (only for submitted status)
-    // Fetch all submissions with 'submitted' status (draft doesn't count)
+    // Get the selected halaqah IDs first
+    const selectedHalaqahIds = [data.ujian_halaqah_id]
+    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
+      selectedHalaqahIds.push(data.tashih_halaqah_id)
+    }
+
+    // Get max_students for selected halaqah
+    const { data: halaqahInfo } = await supabase
+      .from('halaqah')
+      .select('id, name, max_students')
+      .in('id', selectedHalaqahIds)
+
+    if (!halaqahInfo || halaqahInfo.length === 0) {
+      return {
+        success: false,
+        error: 'Halaqah tidak ditemukan'
+      }
+    }
+
+    // Fetch all submissions with 'submitted' status for the selected halaqahs (draft doesn't count)
     const { data: submittedSubmissions } = await supabase
       .from('daftar_ulang_submissions')
       .select('ujian_halaqah_id, tashih_halaqah_id, user_id')
       .eq('batch_id', registration.batch_id)
       .eq('status', 'submitted')
 
-    // Fetch halaqah_students with 'active' status only (waitlist does NOT reduce quota)
+    // Fetch halaqah_students with 'active' status only for selected halaqahs (waitlist does NOT reduce quota)
     const { data: halaqahStudents } = await supabase
       .from('halaqah_students')
-      .select('halaqah_id, thalibah_id, status')
+      .select('halaqah_id, thalibah_id')
       .eq('status', 'active')
+      .in('halaqah_id', selectedHalaqahIds)
 
     // Count students per halaqah using Set to avoid duplicates
     const halaqahStudentMap = new Map<string, Set<string>>()
@@ -284,21 +304,18 @@ export async function submitDaftarUlang(
       }
     }
 
-    // Get max_students for selected halaqah
-    const selectedHalaqahIds = [data.ujian_halaqah_id]
-    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
-      selectedHalaqahIds.push(data.tashih_halaqah_id)
-    }
-
-    const { data: halaqahInfo } = await supabase
-      .from('halaqah')
-      .select('id, name, max_students')
-      .in('id', selectedHalaqahIds)
-
     // Check if any selected halaqah is full
-    for (const halaqah of halaqahInfo || []) {
+    for (const halaqah of halaqahInfo) {
       const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
       const maxStudents = halaqah.max_students || 20
+
+      console.log('[submitDaftarUlang] Quota check for halaqah:', {
+        halaqahId: halaqah.id,
+        halaqahName: halaqah.name,
+        currentStudents,
+        maxStudents,
+        isFull: currentStudents >= maxStudents
+      })
 
       if (currentStudents >= maxStudents) {
         return {
