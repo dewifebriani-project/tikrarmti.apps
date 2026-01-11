@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import {
@@ -14,12 +14,16 @@ import {
   RefreshCw,
   List,
   FolderTree,
-  Undo,
-  Loader2
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
 
 type DaftarUlangSubTab = 'submissions' | 'halaqah';
+
+type SortField = 'name' | 'juz' | 'halaqah' | 'status' | 'submitted_at';
+type SortOrder = 'asc' | 'desc';
 
 interface DaftarUlangSubmission {
   id: string;
@@ -94,7 +98,8 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<DaftarUlangSubmission | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('submitted_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const loadSubmissions = async () => {
     console.log('[DaftarUlangTab] Loading submissions...');
@@ -165,33 +170,55 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
     );
   };
 
-  const handleRevertToDraft = async (submissionId: string, thalibahName: string) => {
-    if (!confirm(`Revert submission for "${thalibahName}" back to draft?\n\nThis will allow them to re-select their halaqah. Their current submission will be saved as draft.`)) {
-      return;
-    }
+  // Sorted submissions for display
+  const sortedSubmissions = useMemo(() => {
+    const sorted = [...submissions].sort((a, b) => {
+      let compareValue = 0;
 
-    setRevertingId(submissionId);
-    try {
-      const response = await fetch('/api/admin/daftar-ulang/revert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submission_id: submissionId })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to revert submission');
+      switch (sortField) {
+        case 'name':
+          const aName = a.confirmed_full_name || a.user?.full_name || '';
+          const bName = b.confirmed_full_name || b.user?.full_name || '';
+          compareValue = aName.localeCompare(bName);
+          break;
+        case 'juz':
+          compareValue = (a.confirmed_chosen_juz || '').localeCompare(b.confirmed_chosen_juz || '');
+          break;
+        case 'halaqah':
+          const aHalaqah = a.ujian_halaqah?.name || a.tashih_halaqah?.name || '';
+          const bHalaqah = b.ujian_halaqah?.name || b.tashih_halaqah?.name || '';
+          compareValue = aHalaqah.localeCompare(bHalaqah);
+          break;
+        case 'status':
+          compareValue = a.status.localeCompare(b.status);
+          break;
+        case 'submitted_at':
+          const aDate = new Date(a.submitted_at || a.created_at).getTime();
+          const bDate = new Date(b.submitted_at || b.created_at).getTime();
+          compareValue = aDate - bDate;
+          break;
       }
 
-      toast.success(result.message || 'Submission reverted to draft successfully');
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error: any) {
-      console.error('[DaftarUlangTab] Error reverting submission:', error);
-      toast.error(error.message || 'Failed to revert submission');
-    } finally {
-      setRevertingId(null);
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
+
+    return sorted;
+  }, [submissions, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
     }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4" />;
+    }
+    return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
   const getPartnerLabel = (submission: DaftarUlangSubmission) => {
@@ -262,7 +289,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
               </div>
-            ) : submissions.length === 0 ? (
+            ) : sortedSubmissions.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">No submissions found</p>
@@ -272,23 +299,47 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Thalibah
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Thalibah
+                      {getSortIcon('name')}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Partner
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Halaqah
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('halaqah')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Halaqah
+                      {getSortIcon('halaqah')}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Akad Files
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Status
+                      {getSortIcon('status')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Submitted
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('submitted_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Submitted
+                      {getSortIcon('submitted_at')}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -296,7 +347,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {submissions.map((submission) => (
+                {sortedSubmissions.map((submission) => (
                   <tr key={submission.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -351,32 +402,13 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedSubmission(submission)}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
-                          title="View details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {submission.status === 'submitted' && (
-                          <button
-                            onClick={() => handleRevertToDraft(
-                              submission.id,
-                              submission.confirmed_full_name || submission.user?.full_name || 'Thalibah'
-                            )}
-                            disabled={revertingId === submission.id}
-                            className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Revert to draft"
-                          >
-                            {revertingId === submission.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Undo className="w-4 h-4" />
-                            )}
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        onClick={() => setSelectedSubmission(submission)}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                        title="View details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

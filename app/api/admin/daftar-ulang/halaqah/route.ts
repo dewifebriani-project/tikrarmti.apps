@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
       type: 'ujian' | 'tashih';
       thalibah: Array<{
         id: string;
+        submission_id: string;
         full_name: string;
         email: string;
         partner_name?: string;
@@ -107,6 +108,7 @@ export async function GET(request: NextRequest) {
         }
         halaqahMap.get(`${halaqahId}-ujian`)!.thalibah.push({
           id: submission.user.id,
+          submission_id: submission.id, // Add submission_id for revert feature
           full_name: submission.confirmed_full_name || submission.user.full_name,
           email: submission.user.email,
           partner_name: submission.partner_type === 'self_match' && submission.partner_user
@@ -132,6 +134,7 @@ export async function GET(request: NextRequest) {
         }
         halaqahMap.get(`${halaqahId}-tashih`)!.thalibah.push({
           id: submission.user.id,
+          submission_id: submission.id, // Add submission_id for revert feature
           full_name: submission.confirmed_full_name || submission.user.full_name,
           email: submission.user.email,
           partner_name: submission.partner_type === 'self_match' && submission.partner_user

@@ -1,28 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Users,
   Calendar,
   Clock,
-  MapPin,
-  FileText,
   RefreshCw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Undo,
+  Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 interface ThalibahInfo {
   id: string;
+  submission_id: string;
   full_name: string;
   email: string;
   partner_name?: string;
   partner_type?: string;
-  status: 'submitted' | 'approved';
+  status: 'draft' | 'submitted' | 'approved';
   submitted_at: string;
   confirmed_juz?: string;
   confirmed_time_slot?: string;
+  type: 'ujian' | 'tashih' | 'both';
 }
 
 interface HalaqahInfo {
@@ -37,9 +42,11 @@ interface HalaqahInfo {
 
 interface HalaqahWithThalibah {
   halaqah: HalaqahInfo;
-  type: 'ujian' | 'tashih';
   thalibah: ThalibahInfo[];
 }
+
+type SortField = 'name' | 'thalibah_count' | 'muallimah' | 'schedule';
+type SortOrder = 'asc' | 'desc';
 
 interface DaftarUlangHalaqahTabProps {
   batchId?: string;
@@ -48,10 +55,13 @@ interface DaftarUlangHalaqahTabProps {
 const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
 
 export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
-  const [halaqahList, setHalaqahList] = useState<HalaqahWithThalibah[]>([]);
+  const [rawData, setRawData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [expandedHalaqah, setExpandedHalaqah] = useState<Set<string>>(new Set());
+  const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const loadData = async () => {
     console.log('[DaftarUlangHalaqahTab] Loading halaqah data...');
@@ -71,10 +81,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       }
 
       if (result.data) {
-        console.log('[DaftarUlangHalaqahTab] Loaded', result.data.length, 'halaqah');
-        setHalaqahList(result.data);
+        console.log('[DaftarUlangHalaqahTab] Loaded', result.data.length, 'halaqah entries');
+        setRawData(result.data);
       } else {
-        setHalaqahList([]);
+        setRawData([]);
       }
     } catch (error: any) {
       console.error('[DaftarUlangHalaqahTab] Error:', error);
@@ -88,6 +98,125 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     loadData();
   }, [batchId, refreshTrigger]);
 
+  // Process raw data to combine ujian and tashih for same halaqah
+  const processedData = useMemo(() => {
+    // Group by halaqah ID
+    const halaqahMap = new Map<string, HalaqahWithThalibah>();
+
+    rawData.forEach((item) => {
+      const halaqahId = item.halaqah.id;
+      const type = item.type;
+
+      if (!halaqahMap.has(halaqahId)) {
+        halaqahMap.set(halaqahId, {
+          halaqah: item.halaqah,
+          thalibah: []
+        });
+      }
+
+      // Add thalibah with type info
+      item.thalibah.forEach((t: any) => ({
+        ...t,
+        type: type,
+        submission_id: t.id // Store submission_id for revert
+      })).forEach((t: ThalibahInfo) => {
+        // Check if this thalibah is already in the list (could be both ujian and tashih)
+        const existing = halaqahMap.get(halaqahId)!.thalibah.find(
+          (x) => x.id === t.id
+        );
+
+        if (existing) {
+          // If already exists, mark as 'both'
+          existing.type = 'both';
+        } else {
+          halaqahMap.get(halaqahId)!.thalibah.push(t);
+        }
+      });
+    });
+
+    return Array.from(halaqahMap.values());
+  }, [rawData]);
+
+  // Sort halaqah list
+  const sortedHalaqahList = useMemo(() => {
+    const sorted = [...processedData].sort((a, b) => {
+      let compareValue = 0;
+
+      switch (sortField) {
+        case 'name':
+          compareValue = a.halaqah.name.localeCompare(b.halaqah.name);
+          break;
+        case 'thalibah_count':
+          compareValue = a.thalibah.length - b.thalibah.length;
+          break;
+        case 'muallimah':
+          const aMuallimah = a.halaqah.muallimah_name || '';
+          const bMuallimah = b.halaqah.muallimah_name || '';
+          compareValue = aMuallimah.localeCompare(bMuallimah);
+          break;
+        case 'schedule':
+          // Sort by day of week, then by time
+          const aDay = a.halaqah.day_of_week ?? 99;
+          const bDay = b.halaqah.day_of_week ?? 99;
+          if (aDay !== bDay) {
+            compareValue = aDay - bDay;
+          } else {
+            compareValue = (a.halaqah.start_time || '').localeCompare(b.halaqah.start_time || '');
+          }
+          break;
+      }
+
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
+
+    return sorted;
+  }, [processedData, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4" />;
+    }
+    return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
+  };
+
+  const handleRevertToDraft = async (submissionId: string, thalibahName: string) => {
+    if (!confirm(`Revert submission for "${thalibahName}" back to draft?\n\nThis will allow them to re-select their halaqah.`)) {
+      return;
+    }
+
+    setRevertingId(submissionId);
+    try {
+      const response = await fetch('/api/admin/daftar-ulang/revert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: submissionId })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to revert submission');
+      }
+
+      toast.success(result.message || 'Submission reverted to draft successfully');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangHalaqahTab] Error reverting submission:', error);
+      toast.error(error.message || 'Failed to revert submission');
+    } finally {
+      setRevertingId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('id-ID', {
@@ -100,46 +229,48 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   };
 
   const getStatusBadge = (status: string) => {
-    const styles = {
+    const styles: Record<string, string> = {
+      draft: 'bg-gray-100 text-gray-800',
       submitted: 'bg-blue-100 text-blue-800',
       approved: 'bg-green-100 text-green-800',
     };
 
-    const labels = {
+    const labels: Record<string, string> = {
+      draft: 'Draft',
       submitted: 'Submitted',
       approved: 'Approved',
     };
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
-        {labels[status as keyof typeof labels] || status}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[status] || status}
       </span>
     );
   };
 
-  const toggleExpand = (key: string) => {
+  const getTypeBadge = (type: string) => {
+    if (type === 'both') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-50 border border-purple-200 text-purple-900">
+          Paket
+        </span>
+      );
+    }
+    return (
+      <span className="text-xs text-gray-500">
+        {type === 'ujian' ? 'Ujian' : 'Tashih'}
+      </span>
+    );
+  };
+
+  const toggleExpand = (halaqahId: string) => {
     const newExpanded = new Set(expandedHalaqah);
-    if (newExpanded.has(key)) {
-      newExpanded.delete(key);
+    if (newExpanded.has(halaqahId)) {
+      newExpanded.delete(halaqahId);
     } else {
-      newExpanded.add(key);
+      newExpanded.add(halaqahId);
     }
     setExpandedHalaqah(newExpanded);
-  };
-
-  const getTypeColor = (type: 'ujian' | 'tashih') => {
-    return type === 'ujian'
-      ? 'bg-purple-50 border-purple-200 text-purple-900'
-      : 'bg-orange-50 border-orange-200 text-orange-900';
-  };
-
-  const getTypeBadge = (type: 'ujian' | 'tashih') => {
-    const label = type === 'ujian' ? 'Ujian' : 'Tashih';
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(type)}`}>
-        {label}
-      </span>
-    );
   };
 
   return (
@@ -162,23 +293,22 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
           </div>
-        ) : halaqahList.length === 0 ? (
+        ) : sortedHalaqahList.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No halaqah found</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {halaqahList.map((item) => {
-              const key = `${item.halaqah.id}-${item.type}`;
-              const isExpanded = expandedHalaqah.has(key);
+            {sortedHalaqahList.map((item) => {
+              const isExpanded = expandedHalaqah.has(item.halaqah.id);
               const thalibahCount = item.thalibah.length;
 
               return (
-                <div key={key} className="hover:bg-gray-50">
+                <div key={item.halaqah.id} className="hover:bg-gray-50">
                   {/* Halaqah Header */}
                   <button
-                    onClick={() => toggleExpand(key)}
+                    onClick={() => toggleExpand(item.halaqah.id)}
                     className="w-full px-6 py-4 flex items-center justify-between text-left"
                   >
                     <div className="flex-1">
@@ -186,7 +316,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {item.halaqah.name}
                         </h3>
-                        {getTypeBadge(item.type)}
                         <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                           {thalibahCount} {thalibahCount === 1 ? 'thalibah' : 'thalibah'}
                         </span>
@@ -237,16 +366,22 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                                 Partner
                               </th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Tipe
+                              </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 Status
                               </th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 Submitted
                               </th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Actions
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {item.thalibah.map((thalibah) => (
-                              <tr key={thalibah.id} className="hover:bg-gray-50">
+                              <tr key={`${thalibah.id}-${thalibah.type}`} className="hover:bg-gray-50">
                                 <td className="px-4 py-3">
                                   <div>
                                     <p className="text-sm font-medium text-gray-900">
@@ -268,12 +403,34 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3">
+                                  {getTypeBadge(thalibah.type)}
+                                </td>
+                                <td className="px-4 py-3">
                                   {getStatusBadge(thalibah.status)}
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="text-xs text-gray-500">
                                     {formatDate(thalibah.submitted_at)}
                                   </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {thalibah.status === 'submitted' && (
+                                    <button
+                                      onClick={() => handleRevertToDraft(thalibah.submission_id, thalibah.full_name)}
+                                      disabled={revertingId === thalibah.submission_id}
+                                      className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                      title="Revert to draft"
+                                    >
+                                      {revertingId === thalibah.submission_id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Undo className="w-4 h-4" />
+                                          <span>Revert</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             ))}
