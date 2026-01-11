@@ -203,6 +203,16 @@ export async function GET(request: NextRequest) {
     console.log('Muallimah registrations:', muallimahRegistrations?.length || 0, 'error:', muallimahError?.message)
     console.log('Musyrifah registrations:', musyrifahRegistrations?.length || 0, 'error:', musyrifahError?.message)
     console.log('Daftar ulang submissions:', daftarUlangSubmissions?.length || 0, 'error:', daftarUlangError?.message)
+    console.log('Daftar ulang data:', daftarUlangSubmissions?.map((d: any) => ({
+      id: d.id,
+      user_id: d.user_id,
+      registration_id: d.registration_id,
+      status: d.status,
+      batch_id: d.batch_id,
+      has_ujian_halaqah: !!d.ujian_halaqah,
+      has_tashih_halaqah: !!d.tashih_halaqah,
+      akad_files_count: d.akad_files?.length || 0
+    })))
 
     // Combine all registrations into a single array
     // FILTER: Only include registrations with batch status = 'open' OR have completed daftar ulang
