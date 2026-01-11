@@ -996,11 +996,11 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                               item.halaqah.is_full
                                 ? 'bg-red-100 text-red-700'
-                                : item.halaqah.available_slots <= 3
+                                : (item.halaqah.available_slots ?? 999) <= 3
                                 ? 'bg-orange-100 text-orange-700'
                                 : 'bg-green-100 text-green-700'
                             }`}>
-                              {thalibahCount} / {item.halaqah.max_students || 20} {item.halaqah.is_full ? '(Penuh)' : `(Tersedia: ${item.halaqah.available_slots})`}
+                              {thalibahCount} / {item.halaqah.max_students || 20} {item.halaqah.is_full ? '(Penuh)' : `(Tersedia: ${item.halaqah.available_slots ?? 0})`}
                             </span>
                           </div>
 
