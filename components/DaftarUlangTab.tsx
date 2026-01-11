@@ -102,6 +102,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
   const [sortField, setSortField] = useState<SortField>('submitted_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [resettingAll, setResettingAll] = useState(false);
 
   const loadSubmissions = async () => {
     console.log('[DaftarUlangTab] Loading submissions...');
@@ -263,19 +264,78 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
     }
   };
 
+  const handleResetAllHalaqah = async () => {
+    // Count draft submissions with halaqah selection
+    const draftsWithHalaqah = submissions.filter(
+      s => s.status === 'draft' && (s.ujian_halaqah_id || s.tashih_halaqah_id)
+    );
+
+    if (draftsWithHalaqah.length === 0) {
+      toast.info('Tidak ada draft dengan pilihan halaqah untuk direset');
+      return;
+    }
+
+    if (!confirm(`Apakah Anda yakin ingin mereset pilihan halaqah untuk ${draftsWithHalaqah.length} draft submissions? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.`)) {
+      return;
+    }
+
+    setResettingAll(true);
+    try {
+      const response = await fetch('/api/admin/daftar-ulang/reset-all-halaqah', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reset all halaqah');
+      }
+
+      toast.success(`Berhasil mereset ${result.data?.reset_count || 0} halaqah selection`);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error resetting all halaqah:', error);
+      toast.error('Gagal mereset semua halaqah: ' + error.message);
+    } finally {
+      setResettingAll(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header & Sub-tabs */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang</h2>
-          <button
-            onClick={() => setRefreshTrigger(prev => prev + 1)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
-          >
-            <RefreshCw className="w-3 h-3" />
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleResetAllHalaqah}
+              disabled={resettingAll}
+              className="px-3 py-2 border border-orange-300 text-orange-600 rounded-md text-sm hover:bg-orange-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {resettingAll ? (
+                <>
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="w-3 h-3" />
+                  Reset All Halaqah
+                </>
+              )}
+            </button>
+            <button
+              onClick={() => setRefreshTrigger(prev => prev + 1)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Sub-tab Navigation */}
