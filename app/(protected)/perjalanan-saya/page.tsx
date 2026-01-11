@@ -1105,8 +1105,10 @@ export default function PerjalananSaya() {
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
                                 const isCompleted = registrationStatus.registration?.re_enrollment_completed === true;
+                                const hasSubmittedDaftarUlang = daftarUlang?.status === 'submitted';
 
-                                if (isCompleted && daftarUlang) {
+                                // Show daftar ulang info if completed OR if submitted (even if not yet marked completed)
+                                if ((isCompleted || hasSubmittedDaftarUlang) && daftarUlang) {
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1580,8 +1582,10 @@ export default function PerjalananSaya() {
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
                                 const isCompleted = registrationStatus.registration?.re_enrollment_completed === true;
+                                const hasSubmittedDaftarUlang = daftarUlang?.status === 'submitted';
 
-                                if (isCompleted && daftarUlang) {
+                                // Show daftar ulang info if completed OR if submitted (even if not yet marked completed)
+                                if ((isCompleted || hasSubmittedDaftarUlang) && daftarUlang) {
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
