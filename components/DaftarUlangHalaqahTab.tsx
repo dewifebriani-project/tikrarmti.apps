@@ -100,10 +100,21 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
   // Process raw data to combine ujian and tashih for same halaqah
   const processedData = useMemo(() => {
+    // Guard against undefined or null rawData
+    if (!rawData || !Array.isArray(rawData)) {
+      return [];
+    }
+
     // Group by halaqah ID
     const halaqahMap = new Map<string, HalaqahWithThalibah>();
 
     rawData.forEach((item) => {
+      // Guard against malformed items
+      if (!item || !item.halaqah || !item.halaqah.id) {
+        console.warn('[DaftarUlangHalaqahTab] Invalid item:', item);
+        return;
+      }
+
       const halaqahId = item.halaqah.id;
       const type = item.type;
 
@@ -114,11 +125,16 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         });
       }
 
+      // Guard against missing thalibah array
+      if (!item.thalibah || !Array.isArray(item.thalibah)) {
+        return;
+      }
+
       // Add thalibah with type info
       item.thalibah.forEach((t: any) => ({
         ...t,
         type: type,
-        submission_id: t.id // Store submission_id for revert
+        submission_id: t.submission_id || t.id // Use submission_id if available, else id
       })).forEach((t: ThalibahInfo) => {
         // Check if this thalibah is already in the list (could be both ujian and tashih)
         const existing = halaqahMap.get(halaqahId)!.thalibah.find(
