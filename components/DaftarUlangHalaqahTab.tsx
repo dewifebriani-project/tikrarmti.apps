@@ -970,7 +970,11 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         ) : halaqahListWithSortedThalibah.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No halaqah found</p>
+            <p className="text-gray-500">
+              {batchId === 'all'
+                ? 'Silakan pilih batch tertentu untuk melihat data per halaqah'
+                : 'Belum ada data halaqah untuk batch ini'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
