@@ -40,19 +40,37 @@ export async function POST(
       return NextResponse.json({ error: 'Halaqah not found' }, { status: 404 });
     }
 
-    // Count active students
-    const { count: activeCount } = await supabase
+    // Count active students from halaqah_students (ONLY active status counts, NOT waitlist)
+    const { data: activeStudents } = await supabase
       .from('halaqah_students')
-      .select('*', { count: 'exact', head: true })
+      .select('thalibah_id')
       .eq('halaqah_id', halaqahId)
       .eq('status', 'active');
 
-    // Count waitlist students
+    // Count submitted submissions from daftar_ulang_submissions (ONLY submitted status counts, NOT draft)
+    // Get all submissions for this halaqah (both ujian and tashih)
+    const { data: submittedSubmissions } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('user_id')
+      .eq('status', 'submitted')
+      .or(`ujian_halaqah_id.eq.${halaqahId},tashih_halaqah_id.eq.${halaqahId}`);
+
+    // Count waitlist students (waitlist does NOT reduce quota)
     const { count: waitlistCount } = await supabase
       .from('halaqah_students')
       .select('*', { count: 'exact', head: true })
       .eq('halaqah_id', halaqahId)
       .eq('status', 'waitlist');
+
+    // Calculate actual quota usage: active students + submitted submissions (unique users)
+    const activeStudentIds = new Set(activeStudents?.map(s => s.thalibah_id) || []);
+    const submittedUserIds = new Set(submittedSubmissions?.map(s => s.user_id) || []);
+
+    // Combine both sets to get unique count (use forEach for ES5 compatibility)
+    const allUserIds = new Set<string>();
+    activeStudentIds.forEach(id => allUserIds.add(id));
+    submittedUserIds.forEach(id => allUserIds.add(id));
+    const activeCount = allUserIds.size;
 
     // Check if student already enrolled
     const { data: existingEnrollment } = await supabase
