@@ -46,11 +46,13 @@ export async function GET(request: NextRequest) {
 
     console.log('[Daftar Ulang Halaqah] Fetching thalibah per halaqah, batch:', batchId);
 
+    // When batch_id is "all" or not provided, return empty result
+    // (Grouping by halaqah across all batches doesn't make sense)
     if (!batchId || batchId === 'all') {
-      return NextResponse.json(
-        { error: 'batch_id is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: true,
+        data: []
+      });
     }
 
     // Fetch all daftar ulang submissions with halaqah details
