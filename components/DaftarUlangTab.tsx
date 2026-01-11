@@ -13,7 +13,9 @@ import {
   Calendar,
   RefreshCw,
   List,
-  FolderTree
+  FolderTree,
+  Undo,
+  Loader2
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
 
@@ -92,6 +94,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<DaftarUlangSubmission | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [revertingId, setRevertingId] = useState<string | null>(null);
 
   const loadSubmissions = async () => {
     console.log('[DaftarUlangTab] Loading submissions...');
@@ -160,6 +163,35 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
         {labels[status as keyof typeof labels] || status}
       </span>
     );
+  };
+
+  const handleRevertToDraft = async (submissionId: string, thalibahName: string) => {
+    if (!confirm(`Revert submission for "${thalibahName}" back to draft?\n\nThis will allow them to re-select their halaqah. Their current submission will be saved as draft.`)) {
+      return;
+    }
+
+    setRevertingId(submissionId);
+    try {
+      const response = await fetch('/api/admin/daftar-ulang/revert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submission_id: submissionId })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to revert submission');
+      }
+
+      toast.success(result.message || 'Submission reverted to draft successfully');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error reverting submission:', error);
+      toast.error(error.message || 'Failed to revert submission');
+    } finally {
+      setRevertingId(null);
+    }
   };
 
   const getPartnerLabel = (submission: DaftarUlangSubmission) => {
@@ -319,12 +351,32 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => setSelectedSubmission(submission)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedSubmission(submission)}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          title="View details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {submission.status === 'submitted' && (
+                          <button
+                            onClick={() => handleRevertToDraft(
+                              submission.id,
+                              submission.confirmed_full_name || submission.user?.full_name || 'Thalibah'
+                            )}
+                            disabled={revertingId === submission.id}
+                            className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Revert to draft"
+                          >
+                            {revertingId === submission.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Undo className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
