@@ -176,7 +176,9 @@ export async function GET(request: NextRequest) {
       .from('daftar_ulang_submissions')
       .select(`
         *,
-        batch:batches(*)
+        batch:batches(*),
+        ujian_halaqah:halaqahs!daftar_ulang_submissions_ujian_halaqah_id_fkey(*),
+        tashih_halaqah:halaqahs!daftar_ulang_submissions_tashih_halaqah_id_fkey(*)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })

@@ -51,6 +51,20 @@ interface TikrarRegistration extends Pendaftaran {
     akad_files?: Array<{ url: string; name: string }>;
     submitted_at?: string;
     status?: string;
+    ujian_halaqah?: {
+      id: string;
+      name: string;
+      day_of_week: string;
+      start_time: string;
+      end_time: string;
+    } | null;
+    tashih_halaqah?: {
+      id: string;
+      name: string;
+      day_of_week: string;
+      start_time: string;
+      end_time: string;
+    } | null;
     [key: string]: any;
   } | null;
 }
@@ -1121,6 +1135,35 @@ export default function PerjalananSaya() {
                                         </div>
                                       )}
 
+                                      {/* Show halaqah information */}
+                                      {(daftarUlang.ujian_halaqah || daftarUlang.tashih_halaqah) && (
+                                        <div className="mt-2 space-y-2">
+                                          <p className={`text-xs ${styles.textColor} font-medium`}>Jadwal Halaqah:</p>
+
+                                          {/* Ujian Halaqah */}
+                                          {daftarUlang.ujian_halaqah && (
+                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                              <p className="text-xs font-semibold text-blue-800 mb-1">Ujian Halaqah</p>
+                                              <p className="text-xs text-blue-700">{daftarUlang.ujian_halaqah.name}</p>
+                                              <p className="text-xs text-blue-600">
+                                                {daftarUlang.ujian_halaqah.day_of_week}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          {/* Tashih Halaqah */}
+                                          {daftarUlang.tashih_halaqah && (
+                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
+                                              <p className="text-xs font-semibold text-purple-800 mb-1">Tashih Halaqah</p>
+                                              <p className="text-xs text-purple-700">{daftarUlang.tashih_halaqah.name}</p>
+                                              <p className="text-xs text-purple-600">
+                                                {daftarUlang.tashih_halaqah.day_of_week}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
+                                              </p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
                                       {daftarUlang.submitted_at && (
                                         <p className={`text-xs ${styles.textColor} mt-1`}>
                                           Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -1564,6 +1607,35 @@ export default function PerjalananSaya() {
                                               {file.name}
                                             </a>
                                           ))}
+                                        </div>
+                                      )}
+
+                                      {/* Show halaqah information */}
+                                      {(daftarUlang.ujian_halaqah || daftarUlang.tashih_halaqah) && (
+                                        <div className="mt-2 space-y-2">
+                                          <p className={`text-xs ${styles.textColor} font-medium`}>Jadwal Halaqah:</p>
+
+                                          {/* Ujian Halaqah */}
+                                          {daftarUlang.ujian_halaqah && (
+                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                                              <p className="text-xs font-semibold text-blue-800 mb-1">Ujian Halaqah</p>
+                                              <p className="text-xs text-blue-700">{daftarUlang.ujian_halaqah.name}</p>
+                                              <p className="text-xs text-blue-600">
+                                                {daftarUlang.ujian_halaqah.day_of_week}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
+                                              </p>
+                                            </div>
+                                          )}
+
+                                          {/* Tashih Halaqah */}
+                                          {daftarUlang.tashih_halaqah && (
+                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
+                                              <p className="text-xs font-semibold text-purple-800 mb-1">Tashih Halaqah</p>
+                                              <p className="text-xs text-purple-700">{daftarUlang.tashih_halaqah.name}</p>
+                                              <p className="text-xs text-purple-600">
+                                                {daftarUlang.tashih_halaqah.day_of_week}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
+                                              </p>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
 
