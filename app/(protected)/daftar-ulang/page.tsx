@@ -201,6 +201,36 @@ export default function DaftarUlangPage() {
     fetchData()
   }, [isAuthenticated, user?.id, router])
 
+  // Load existing submission data into form
+  // For draft status: reset halaqah selection but preserve akad files and partner data
+  useEffect(() => {
+    if (!existingSubmission) return
+
+    const isDraft = existingSubmission.status === 'draft'
+
+    setFormData(prev => ({
+      ...prev,
+      // For draft: reset halaqah selections so user always picks from current options
+      ujian_halaqah_id: isDraft ? '' : (existingSubmission.ujian_halaqah_id || ''),
+      tashih_halaqah_id: isDraft ? '' : (existingSubmission.tashih_halaqah_id || ''),
+      // Preserve partner data for both draft and submitted
+      partner_type: existingSubmission.partner_type || '',
+      partner_user_id: existingSubmission.partner_user_id || '',
+      partner_name: existingSubmission.partner_name || '',
+      partner_relationship: existingSubmission.partner_relationship || '',
+      partner_wa_phone: existingSubmission.partner_wa_phone || '',
+      partner_notes: existingSubmission.partner_notes || '',
+      // Preserve akad files for both draft and submitted
+      akad_files: existingSubmission.akad_files || [],
+    }))
+
+    // For draft status, start from halaqah step (not confirm)
+    // For submitted status, it will be set to 'success' in the fetchData useEffect above
+    if (isDraft) {
+      setCurrentStep('halaqah')
+    }
+  }, [existingSubmission])
+
   // Save draft on form data changes (debounced)
   useEffect(() => {
     if (!registrationData?.id) return
