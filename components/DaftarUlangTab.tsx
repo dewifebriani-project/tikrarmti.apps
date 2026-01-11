@@ -16,7 +16,8 @@ import {
   FolderTree,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  RotateCcw
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
 
@@ -100,6 +101,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sortField, setSortField] = useState<SortField>('submitted_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   const loadSubmissions = async () => {
     console.log('[DaftarUlangTab] Loading submissions...');
@@ -232,6 +234,33 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
       return 'System Match';
     }
     return '-';
+  };
+
+  const handleResetHalaqah = async (submissionId: string) => {
+    if (!confirm('Apakah Anda yakin ingin mereset pilihan halaqah untuk thalibah ini? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.')) {
+      return;
+    }
+
+    setResettingId(submissionId);
+    try {
+      const response = await fetch(`/api/admin/daftar-ulang/${submissionId}/reset-halaqah`, {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to reset halaqah');
+      }
+
+      toast.success('Halaqah berhasil direset');
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error resetting halaqah:', error);
+      toast.error('Gagal mereset halaqah: ' + error.message);
+    } finally {
+      setResettingId(null);
+    }
   };
 
   return (
@@ -402,13 +431,29 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => setSelectedSubmission(submission)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                        title="View details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedSubmission(submission)}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          title="View details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (
+                          <button
+                            onClick={() => handleResetHalaqah(submission.id)}
+                            disabled={resettingId === submission.id}
+                            className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50"
+                            title="Reset halaqah selection"
+                          >
+                            {resettingId === submission.id ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
