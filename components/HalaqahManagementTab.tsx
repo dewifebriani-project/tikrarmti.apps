@@ -20,7 +20,10 @@ import {
   ChevronLeft,
   ChevronRight,
   UserPlus,
-  Calculator
+  Calculator,
+  Download,
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
@@ -229,6 +232,199 @@ export function HalaqahManagementTab() {
       toast.error(error instanceof Error ? error.message : 'Failed to recalculate quota');
     } finally {
       setRecalculating(false);
+    }
+  };
+
+  const downloadExcel = async () => {
+    try {
+      toast.loading('Downloading Excel...', { id: 'download-excel' });
+
+      // Use the filtered and sorted data
+      const dataToExport = filteredAndSortedHalaqahs;
+
+      // Create CSV content
+      const headers = [
+        'No',
+        'Halaqah Name',
+        'Program',
+        'Batch',
+        'Muallimah',
+        'Class Type',
+        'Preferred Juz',
+        'Day',
+        'Time',
+        'Location',
+        'Max Students',
+        'Quota Used',
+        'Submitted',
+        'Draft',
+        'Active',
+        'Waitlist',
+        'Status',
+        'Created At'
+      ];
+
+      const rows = dataToExport.map((h, index) => {
+        const programName = h.program?.name || h.program?.batch?.name || '-';
+        const batchName = h.program?.batch?.name || '-';
+        const muallimahName = h.muallimah?.full_name || 'Not assigned';
+        const dayName = h.day_of_week ? getDayName(h.day_of_week) : '-';
+        const timeRange = h.start_time && h.end_time
+          ? `${h.start_time} - ${h.end_time}`
+          : (h.preferred_schedule ? formatSchedule(h.preferred_schedule).replace(/<[^>]*>/g, ' ') : '-');
+
+        return [
+          index + 1,
+          `"${h.name || '-'}"`,
+          `"${programName}"`,
+          `"${batchName}"`,
+          `"${muallimahName}"`,
+          `"${formatClassType(h.class_type || h.program?.class_type)}"`,
+          `"${h.preferred_juz || '-'}"`,
+          `"${dayName}"`,
+          `"${timeRange}"`,
+          `"${h.location || '-'}"`,
+          h.max_students || '-',
+          h.quota_details?.total_used || 0,
+          h.quota_details?.submitted || 0,
+          h.quota_details?.draft || 0,
+          h.quota_details?.active || 0,
+          h.quota_details?.waitlist || 0,
+          h.status,
+          new Date(h.created_at).toLocaleDateString('id-ID')
+        ].join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `halaqah-data-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Excel downloaded successfully', { id: 'download-excel' });
+    } catch (error) {
+      console.error('[HalaqahManagementTab] Error downloading Excel:', error);
+      toast.error('Failed to download Excel', { id: 'download-excel' });
+    }
+  };
+
+  const downloadPDF = async () => {
+    try {
+      toast.loading('Generating PDF...', { id: 'download-pdf' });
+
+      // Use the filtered and sorted data
+      const dataToExport = filteredAndSortedHalaqahs;
+
+      // Create HTML content for PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Halaqah Data</title>
+          <style>
+            body { font-family: Arial, sans-serif; font-size: 12px; }
+            h1 { text-align: center; color: #1f2937; }
+            .meta { text-align: center; color: #6b7280; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background-color: #065f46; color: white; padding: 8px; text-align: left; font-weight: bold; border: 1px solid #065f46; }
+            td { padding: 6px 8px; border: 1px solid #d1d5db; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .badge-active { background-color: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 9999px; font-size: 10px; }
+            .badge-inactive { background-color: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 9999px; font-size: 10px; }
+            .badge-suspended { background-color: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 9999px; font-size: 10px; }
+            .quota-details { font-size: 10px; color: #6b7280; }
+            @media print {
+              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Halaqah Data Report</h1>
+          <div class="meta">Generated on ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div class="meta">Total Halaqahs: ${dataToExport.length}</div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Halaqah Name</th>
+                <th>Program / Batch</th>
+                <th>Muallimah</th>
+                <th>Class Type</th>
+                <th>Schedule</th>
+                <th>Location</th>
+                <th>Quota</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dataToExport.map((h, index) => {
+                const programName = h.program?.name || '-';
+                const batchName = h.program?.batch?.name || '-';
+                const muallimahName = h.muallimah?.full_name || 'Not assigned';
+                const dayName = h.day_of_week ? getDayName(h.day_of_week) : '-';
+                const timeRange = h.start_time && h.end_time
+                  ? `${h.start_time} - ${h.end_time}`
+                  : (h.preferred_schedule ? formatSchedule(h.preferred_schedule).replace(/<[^>]*>/g, ' ') : '-');
+                const scheduleStr = h.day_of_week ? `${dayName}, ${timeRange}` : timeRange;
+                const statusBadge = `badge-${h.status}`;
+
+                return `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td><strong>${h.name || '-'}</strong></td>
+                    <td>${programName}<br><small>${batchName}</small></td>
+                    <td>${muallimahName}</td>
+                    <td>${formatClassType(h.class_type || h.program?.class_type)}</td>
+                    <td>${scheduleStr}</td>
+                    <td>${h.location || '-'}</td>
+                    <td>
+                      <div>${h.quota_details?.total_used || 0} / ${h.max_students || '-'}</div>
+                      <div class="quota-details">
+                        ✓ ${h.quota_details?.submitted || 0} | ○ ${h.quota_details?.draft || 0}<br>
+                        ✓ ${h.quota_details?.active || 0} | ⏱ ${h.quota_details?.waitlist || 0}
+                      </div>
+                    </td>
+                    <td><span class="${statusBadge}">${h.status}</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <div style="margin-top: 30px; text-align: center; color: #6b7280; font-size: 10px;">
+            Generated by Tikrar MTI Admin System
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Create a new window and print
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.focus();
+
+        // Wait for content to load then print
+        setTimeout(() => {
+          printWindow.print();
+          toast.success('PDF generated. Use the print dialog to save as PDF.', { id: 'download-pdf' });
+        }, 500);
+      } else {
+        toast.error('Failed to open print window. Please allow popups.', { id: 'download-pdf' });
+      }
+    } catch (error) {
+      console.error('[HalaqahManagementTab] Error generating PDF:', error);
+      toast.error('Failed to generate PDF', { id: 'download-pdf' });
     }
   };
 
@@ -497,6 +693,28 @@ export function HalaqahManagementTab() {
               <Calculator className="w-3 h-3" />
             )}
             {recalculating ? 'Calculating...' : 'Recalculate Quota'}
+          </button>
+
+          <div className="h-6 w-px bg-gray-300" />
+
+          <button
+            onClick={downloadExcel}
+            disabled={filteredAndSortedHalaqahs.length === 0}
+            className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Download as Excel (CSV)"
+          >
+            <FileSpreadsheet className="w-3 h-3" />
+            Excel
+          </button>
+
+          <button
+            onClick={downloadPDF}
+            disabled={filteredAndSortedHalaqahs.length === 0}
+            className="px-3 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Download as PDF"
+          >
+            <FileText className="w-3 h-3" />
+            PDF
           </button>
         </div>
 
