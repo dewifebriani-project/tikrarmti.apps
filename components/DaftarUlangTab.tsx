@@ -103,6 +103,8 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [resettingAll, setResettingAll] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState<{ total: number; totalPages: number } | null>(null);
 
   const loadSubmissions = async () => {
     console.log('[DaftarUlangTab] Loading submissions...');
@@ -112,6 +114,8 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
       // Build query params
       const params = new URLSearchParams();
       if (batchId) params.append('batch_id', batchId);
+      params.append('page', currentPage.toString());
+      params.append('limit', '50');
 
       const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
       const result = await response.json();
@@ -125,8 +129,10 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
       if (result.data) {
         console.log('[DaftarUlangTab] Loaded', result.data.length, 'submissions');
         setSubmissions(result.data);
+        setPagination(result.pagination || null);
       } else {
         setSubmissions([]);
+        setPagination(null);
       }
     } catch (error: any) {
       console.error('[DaftarUlangTab] Error loading submissions:', error);
@@ -138,7 +144,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
 
   useEffect(() => {
     loadSubmissions();
-  }, [batchId, refreshTrigger]);
+  }, [batchId, refreshTrigger, currentPage]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -210,7 +216,8 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
 
   // Statistics for submissions
   const submissionStats = useMemo(() => {
-    const total = submissions.length;
+    // Use pagination total for overall count, use current page data for breakdowns
+    const total = pagination?.total ?? submissions.length;
     const draft = submissions.filter(s => s.status === 'draft').length;
     const submitted = submissions.filter(s => s.status === 'submitted').length;
     const approved = submissions.filter(s => s.status === 'approved').length;
@@ -233,9 +240,10 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
       rejected,
       withHalaqah,
       withAkad,
-      juzCount
+      juzCount,
+      showing: submissions.length
     };
-  }, [submissions]);
+  }, [submissions, pagination]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -408,31 +416,31 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
               <p className="text-2xl font-bold text-gray-900">{submissionStats.total}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Draft</p>
+              <p className="text-xs text-gray-500 uppercase">Draft (halaman ini)</p>
               <p className="text-2xl font-bold text-gray-600">{submissionStats.draft}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Submitted</p>
+              <p className="text-xs text-gray-500 uppercase">Submitted (halaman ini)</p>
               <p className="text-2xl font-bold text-blue-600">{submissionStats.submitted}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Approved</p>
+              <p className="text-xs text-gray-500 uppercase">Approved (halaman ini)</p>
               <p className="text-2xl font-bold text-green-600">{submissionStats.approved}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Rejected</p>
+              <p className="text-xs text-gray-500 uppercase">Rejected (halaman ini)</p>
               <p className="text-2xl font-bold text-red-600">{submissionStats.rejected}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Dengan Halaqah</p>
+              <p className="text-xs text-gray-500 uppercase">Dengan Halaqah (halaman ini)</p>
               <p className="text-2xl font-bold text-purple-600">{submissionStats.withHalaqah}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Dengan Akad</p>
+              <p className="text-xs text-gray-500 uppercase">Dengan Akad (halaman ini)</p>
               <p className="text-2xl font-bold text-orange-600">{submissionStats.withAkad}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4 col-span-2 md:col-span-1">
-              <p className="text-xs text-gray-500 uppercase mb-1">Per Juz</p>
+              <p className="text-xs text-gray-500 uppercase mb-1">Per Juz (halaman ini)</p>
               <div className="text-xs space-y-1">
                 {Object.entries(submissionStats.juzCount).sort(([a], [b]) => a.localeCompare(b)).map(([juz, count]) => (
                   <div key={juz} className="flex justify-between">
@@ -592,6 +600,49 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+              <div className="text-sm text-gray-500">
+                Menampilkan {submissionStats.showing} dari {pagination.total} submissions
+                (Halaman {currentPage} dari {pagination.totalPages})
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Pertama
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Prev
+                </button>
+                <span className="px-3 py-1 text-sm">
+                  Halaman {currentPage} / {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                  disabled={currentPage === pagination.totalPages}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </button>
+                <button
+                  onClick={() => setCurrentPage(pagination.totalPages)}
+                  disabled={currentPage === pagination.totalPages}
+                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Terakhir
+                </button>
+              </div>
+            </div>
+          )}
         )}
       </div>
 
