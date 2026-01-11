@@ -131,11 +131,13 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       }
 
       // Add thalibah with type info
-      item.thalibah.forEach((t: any) => ({
+      const thalibahWithType = item.thalibah.map((t: any) => ({
         ...t,
         type: type,
         submission_id: t.submission_id || t.id // Use submission_id if available, else id
-      })).forEach((t: ThalibahInfo) => {
+      }));
+
+      thalibahWithType.forEach((t: ThalibahInfo) => {
         // Check if this thalibah is already in the list (could be both ujian and tashih)
         const existing = halaqahMap.get(halaqahId)!.thalibah.find(
           (x) => x.id === t.id
