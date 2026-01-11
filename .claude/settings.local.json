@@ -179,7 +179,9 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Update schedules API to use correct Supabase imports\n\nReplace deprecated createRouteHandlerClient with createServerClient\nand use supabaseAdmin for database queries to match existing patterns.\n\nChanges:\n- Import createServerClient from @/lib/supabase/server\n- Import createSupabaseAdmin from @/lib/supabase\n- Use supabaseAdmin for all database queries\n- Use consistent auth pattern with other API routes\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(vercel env ls)",
       "Bash(in the schema cache\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "Bash(printf '%s\\\\n' 'const fs = require\\(\"\"fs\"\"\\);' '' 'const newTypes =' ' `type ThalibahSortField = '\"''\"'name')",
+      "Bash('\"\"'\"''juz'' | ''\"'\"\"'partner' | '\"''\"'type')"
     ],
     "deny": [],
     "ask": []

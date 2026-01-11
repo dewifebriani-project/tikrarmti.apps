@@ -48,28 +48,11 @@ interface HalaqahWithThalibah {
 type SortField = 'name' | 'thalibah_count' | 'muallimah' | 'schedule';
 type SortOrder = 'asc' | 'desc';
 
-type ThalibahSortField = 'name' | 'juz' | 'partner' | 'type' | 'status' | 'submitted';
-type ThalibahSortOrder = 'asc' | 'desc';
-
 interface DaftarUlangHalaqahTabProps {
   batchId?: string;
 }
 
 const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
-
-// Status order for sorting (lower = higher priority)
-const STATUS_ORDER: Record<string, number> = {
-  submitted: 1,
-  draft: 2,
-  approved: 3,
-};
-
-// Type order for sorting (lower = higher priority)
-const TYPE_ORDER: Record<string, number> = {
-  both: 1,
-  ujian: 2,
-  tashih: 3,
-};
 
 export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [rawData, setRawData] = useState<any[]>([]);
@@ -79,8 +62,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [revertingId, setRevertingId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
-  const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
 
   const loadData = async () => {
     console.log('[DaftarUlangHalaqahTab] Loading halaqah data...');
@@ -209,59 +190,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     return sorted;
   }, [processedData, sortField, sortOrder]);
 
-  // Sort thalibah within each halaqah
-  const halaqahListWithSortedThalibah = useMemo(() => {
-    return sortedHalaqahList.map((halaqahData) => {
-      const sortedThalibah = [...halaqahData.thalibah].sort((a, b) => {
-        let compareValue = 0;
-
-        switch (thalibahSortField) {
-          case 'name':
-            compareValue = a.full_name.localeCompare(b.full_name);
-            break;
-          case 'juz':
-            const aJuz = a.confirmed_juz || '';
-            const bJuz = b.confirmed_juz || '';
-            const aNum = parseInt(aJuz.replace(/\D/g, '')) || 0;
-            const bNum = parseInt(bJuz.replace(/\D/g, '')) || 0;
-            if (aNum !== bNum) {
-              compareValue = aNum - bNum;
-            } else {
-              compareValue = aJuz.localeCompare(bJuz);
-            }
-            break;
-          case 'partner':
-            const aPartner = a.partner_name || '';
-            const bPartner = b.partner_name || '';
-            compareValue = aPartner.localeCompare(bPartner);
-            break;
-          case 'type':
-            const aTypeOrder = TYPE_ORDER[a.type] || 999;
-            const bTypeOrder = TYPE_ORDER[b.type] || 999;
-            compareValue = aTypeOrder - bTypeOrder;
-            break;
-          case 'status':
-            const aStatusOrder = STATUS_ORDER[a.status] || 999;
-            const bStatusOrder = STATUS_ORDER[b.status] || 999;
-            compareValue = aStatusOrder - bStatusOrder;
-            break;
-          case 'submitted':
-            const aDate = new Date(a.submitted_at).getTime();
-            const bDate = new Date(b.submitted_at).getTime();
-            compareValue = aDate - bDate;
-            break;
-        }
-
-        return thalibahSortOrder === 'asc' ? compareValue : -compareValue;
-      });
-
-      return {
-        ...halaqahData,
-        thalibah: sortedThalibah,
-      };
-    });
-  }, [sortedHalaqahList, thalibahSortField, thalibahSortOrder]);
-
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -276,22 +204,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       return <ArrowUpDown className="w-4 h-4" />;
     }
     return sortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
-  };
-
-  const handleThalibahSort = (field: ThalibahSortField) => {
-    if (thalibahSortField === field) {
-      setThalibahSortOrder(thalibahSortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setThalibahSortField(field);
-      setThalibahSortOrder('asc');
-    }
-  };
-
-  const getThalibahSortIcon = (field: ThalibahSortField) => {
-    if (thalibahSortField !== field) {
-      return <ArrowUpDown className="w-4 h-4" />;
-    }
-    return thalibahSortOrder === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
   const handleRevertToDraft = async (submissionId: string, thalibahName: string) => {
@@ -399,14 +311,14 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
           </div>
-        ) : halaqahListWithSortedThalibah.length === 0 ? (
+        ) : sortedHalaqahList.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No halaqah found</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {halaqahListWithSortedThalibah.map((item) => {
+            {sortedHalaqahList.map((item) => {
               const isExpanded = expandedHalaqah.has(item.halaqah.id);
               const thalibahCount = item.thalibah.length;
 
@@ -462,59 +374,23 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         <table className="w-full">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th
-                                onClick={() => handleThalibahSort('name')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Nama Thalibah
-                                  {getThalibahSortIcon('name')}
-                                </div>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Nama Thalibah
                               </th>
-                              <th
-                                onClick={() => handleThalibahSort('juz')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Juz
-                                  {getThalibahSortIcon('juz')}
-                                </div>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Juz
                               </th>
-                              <th
-                                onClick={() => handleThalibahSort('partner')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Partner
-                                  {getThalibahSortIcon('partner')}
-                                </div>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Partner
                               </th>
-                              <th
-                                onClick={() => handleThalibahSort('type')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Tipe
-                                  {getThalibahSortIcon('type')}
-                                </div>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Tipe
                               </th>
-                              <th
-                                onClick={() => handleThalibahSort('status')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Status
-                                  {getThalibahSortIcon('status')}
-                                </div>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Status
                               </th>
-                              <th
-                                onClick={() => handleThalibahSort('submitted')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Submitted
-                                  {getThalibahSortIcon('submitted')}
-                                </div>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                Submitted
                               </th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                                 Actions
