@@ -89,11 +89,16 @@ interface DaftarUlangSubmission {
   };
 }
 
+interface Batch {
+  id: string;
+  name: string;
+}
+
 interface DaftarUlangTabProps {
   batchId?: string;
 }
 
-export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
+export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps) {
   const [activeSubTab, setActiveSubTab] = useState<DaftarUlangSubTab>('submissions');
   const [submissions, setSubmissions] = useState<DaftarUlangSubmission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +111,22 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number } | null>(null);
 
+  // Local batch filter state
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [localBatchId, setLocalBatchId] = useState<string>(initialBatchId || 'all');
+
+  const loadBatches = async () => {
+    try {
+      const response = await fetch('/api/batch');
+      const result = await response.json();
+      if (result.success && result.data) {
+        setBatches(result.data);
+      }
+    } catch (error) {
+      console.error('[DaftarUlangTab] Error loading batches:', error);
+    }
+  };
+
   const loadSubmissions = async () => {
     console.log('[DaftarUlangTab] Loading submissions...');
     setLoading(true);
@@ -113,7 +134,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
     try {
       // Build query params
       const params = new URLSearchParams();
-      if (batchId) params.append('batch_id', batchId);
+      if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
       params.append('page', currentPage.toString());
       params.append('limit', '50');
 
@@ -142,9 +163,14 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
     }
   };
 
+  // Load batches on mount
+  useEffect(() => {
+    loadBatches();
+  }, []);
+
   useEffect(() => {
     loadSubmissions();
-  }, [batchId, refreshTrigger, currentPage]);
+  }, [localBatchId, refreshTrigger, currentPage]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -345,6 +371,31 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
     <div className="space-y-4">
       {/* Header & Sub-tabs */}
       <div className="space-y-4">
+        {/* Batch Filter */}
+        <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
+          <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+          <select
+            value={localBatchId}
+            onChange={(e) => {
+              setLocalBatchId(e.target.value);
+              setCurrentPage(1); // Reset to page 1 when batch changes
+            }}
+            className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="all">All Batches</option>
+            {batches.map((batch) => (
+              <option key={batch.id} value={batch.id}>
+                {batch.name}
+              </option>
+            ))}
+          </select>
+          {localBatchId !== 'all' && (
+            <span className="text-sm text-gray-500">
+              Showing data for: {batches.find(b => b.id === localBatchId)?.name}
+            </span>
+          )}
+        </div>
+
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang</h2>
           <div className="flex gap-2">
@@ -406,7 +457,7 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
 
       {/* Sub-tab Content */}
       {activeSubTab === 'halaqah' ? (
-        <DaftarUlangHalaqahTab batchId={batchId} />
+        <DaftarUlangHalaqahTab batchId={localBatchId} />
       ) : (
         <>
           {/* Statistics Cards */}
