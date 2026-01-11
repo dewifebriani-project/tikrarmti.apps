@@ -324,6 +324,23 @@ export default function DaftarUlangPage() {
       return
     }
 
+    // Validate halaqah quota - check if selected halaqah is still available
+    if (formData.ujian_halaqah_id) {
+      const ujianHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
+      if (ujianHalaqah?.is_full) {
+        toast.error(`Kelas ujian halaqah sudah penuh. Silakan pilih halaqah lain.`)
+        return
+      }
+    }
+
+    if (formData.tashih_halaqah_id) {
+      const tashihHalaqah = halaqahData.find(h => h.id === formData.tashih_halaqah_id)
+      if (tashihHalaqah?.is_full) {
+        toast.error(`Kelas tashih halaqah sudah penuh. Silakan pilih halaqah lain.`)
+        return
+      }
+    }
+
     setIsLoading(true)
     try {
       // Cast formData to DaftarUlangFormData (partner_type is validated above)
