@@ -53,12 +53,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Update to draft status
+    // Update to draft status and reset halaqah selection (but keep akad_files)
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('daftar_ulang_submissions')
       .update({
         status: 'draft',
         submitted_at: null,
+        ujian_halaqah_id: null,
+        tashih_halaqah_id: null,
+        // Keep akad_files intact - thalibah doesn't need to re-upload
         updated_at: new Date().toISOString()
       })
       .eq('id', submission_id)
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Submission for "${submission.confirmed_full_name}" has been reverted to draft. They can now re-select their halaqah.`,
+      message: `Submission for "${submission.confirmed_full_name}" has been reverted to draft. Halaqah selection has been reset. They can now re-select their halaqah (akad files preserved).`,
       data: updated
     });
 

@@ -492,6 +492,7 @@ export default function DaftarUlangPage() {
                 onUpload={handleAkadUpload}
                 onRemove={handleRemoveAkadFile}
                 isLoading={isLoading}
+                existingSubmission={existingSubmission}
               />
             )}
 
@@ -1616,12 +1617,14 @@ function AkadUploadStep({
   formData,
   onUpload,
   onRemove,
-  isLoading
+  isLoading,
+  existingSubmission
 }: {
   formData: any
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemove: (index: number) => void
   isLoading: boolean
+  existingSubmission?: any
 }) {
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
   const [isLoadingAkad, setIsLoadingAkad] = useState(true)
@@ -1717,6 +1720,24 @@ function AkadUploadStep({
             <div className="text-sm text-red-800">
               <p className="font-semibold">Gagal memuat intisari akad</p>
               <p className="mt-1">{akadError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Previously Uploaded Akad Files Info */}
+      {existingSubmission?.status === 'draft' &&
+       existingSubmission?.akad_files &&
+       existingSubmission.akad_files.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start space-x-3">
+            <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-semibold mb-1">Akad Sebelumnya Telah Tersimpan</p>
+              <p className="text-blue-700">
+                Anda sudah mengupload {existingSubmission.akad_files.length} file akad sebelumnya.
+                File-file tersebut masih tersimpan dan Anda tidak perlu mengupload ulang kecuali ingin menggantinya.
+              </p>
             </div>
           </div>
         </div>
