@@ -102,9 +102,10 @@ export function HalaqahManagementTab() {
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDay, setSelectedDay] = useState<string>('');
 
-  // Sort
-  const [sortColumn, setSortColumn] = useState<keyof Halaqah>('name');
+  // Sort - default to day_of_week then start_time
+  const [sortColumn, setSortColumn] = useState<keyof Halaqah>('day_of_week');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Pagination
@@ -547,34 +548,58 @@ export function HalaqahManagementTab() {
       );
     }
 
-    // Sort
+    // Day filter
+    if (selectedDay !== '') {
+      filtered = filtered.filter(h => h.day_of_week === parseInt(selectedDay));
+    }
+
+    // Sort - first by day_of_week, then by start_time, then by selected column
     filtered.sort((a, b) => {
-      let aVal = a[sortColumn];
-      let bVal = b[sortColumn];
-
-      // Handle nested properties
-      if (sortColumn === 'name') {
-        aVal = formatHalaqahName(a).toLowerCase();
-        bVal = formatHalaqahName(b).toLowerCase();
+      // Primary sort: always by day_of_week first
+      const aDay = a.day_of_week ?? 999;
+      const bDay = b.day_of_week ?? 999;
+      if (aDay !== bDay) {
+        return sortDirection === 'asc' ? aDay - bDay : bDay - aDay;
       }
 
-      if (aVal === bVal) return 0;
-      if (aVal === null || aVal === undefined) return 1;
-      if (bVal === null || bVal === undefined) return -1;
+      // Secondary sort: by start_time
+      const aTime = a.start_time ?? '23:59';
+      const bTime = b.start_time ?? '23:59';
+      if (aTime !== bTime) {
+        return sortDirection === 'asc' ? aTime.localeCompare(bTime) : bTime.localeCompare(aTime);
+      }
 
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
+      // Tertiary sort: by selected column (if not day_of_week)
+      if (sortColumn !== 'day_of_week') {
+        let aVal = a[sortColumn];
+        let bVal = b[sortColumn];
+
+        // Handle nested properties
+        if (sortColumn === 'name') {
+          aVal = formatHalaqahName(a).toLowerCase();
+          bVal = formatHalaqahName(b).toLowerCase();
+        }
+
+        if (aVal === bVal) return 0;
+        if (aVal === null || aVal === undefined) return 1;
+        if (bVal === null || bVal === undefined) return -1;
+
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return sortDirection === 'asc'
+            ? aVal.localeCompare(bVal)
+            : bVal.localeCompare(aVal);
+        }
+
         return sortDirection === 'asc'
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
+          ? (aVal as any) > (bVal as any) ? 1 : -1
+          : (aVal as any) < (bVal as any) ? 1 : -1;
       }
 
-      return sortDirection === 'asc'
-        ? (aVal as any) > (bVal as any) ? 1 : -1
-        : (aVal as any) < (bVal as any) ? 1 : -1;
+      return 0;
     });
 
     return filtered;
-  }, [halaqahs, searchQuery, sortColumn, sortDirection]);
+  }, [halaqahs, searchQuery, sortColumn, sortDirection, selectedDay]);
 
   // Pagination
   const totalPages = Math.ceil(filteredAndSortedHalaqahs.length / itemsPerPage);
@@ -586,7 +611,7 @@ export function HalaqahManagementTab() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedBatch, selectedProgram, selectedStatus]);
+  }, [searchQuery, selectedBatch, selectedProgram, selectedStatus, selectedDay]);
 
   return (
     <div className="space-y-6">
@@ -672,6 +697,21 @@ export function HalaqahManagementTab() {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
+          </select>
+
+          <select
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+          >
+            <option value="">All Days</option>
+            <option value="1">Senin</option>
+            <option value="2">Selasa</option>
+            <option value="3">Rabu</option>
+            <option value="4">Kamis</option>
+            <option value="5">Jumat</option>
+            <option value="6">Sabtu</option>
+            <option value="7">Ahad</option>
           </select>
 
           <button
