@@ -464,8 +464,9 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
                 <p className="text-gray-500">No submissions found</p>
               </div>
             ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th
@@ -599,52 +600,53 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
                 ))}
               </tbody>
             </table>
-          </div>
+              </div>
 
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-              <div className="text-sm text-gray-500">
-                Menampilkan {submissionStats.showing} dari {pagination.total} submissions
-                (Halaman {currentPage} dari {pagination.totalPages})
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Pertama
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Prev
-                </button>
-                <span className="px-3 py-1 text-sm">
-                  Halaman {currentPage} / {pagination.totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
-                  disabled={currentPage === pagination.totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Next
-                </button>
-                <button
-                  onClick={() => setCurrentPage(pagination.totalPages)}
-                  disabled={currentPage === pagination.totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Terakhir
-                </button>
-              </div>
-            </div>
-          )}
-        )}
-      </div>
+              {/* Pagination */}
+              {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-500">
+                    Menampilkan {submissionStats.showing} dari {pagination.total} submissions
+                    (Halaman {currentPage} dari {pagination.totalPages})
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Pertama
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Prev
+                    </button>
+                    <span className="px-3 py-1 text-sm">
+                      Halaman {currentPage} / {pagination.totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                      disabled={currentPage === pagination.totalPages}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Next
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(pagination.totalPages)}
+                      disabled={currentPage === pagination.totalPages}
+                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                    >
+                      Terakhir
+                    </button>
+                  </div>
+                </div>
+              )}
+              </>
+            )}
+          </div>
 
       {/* Detail Modal */}
       {selectedSubmission && (
