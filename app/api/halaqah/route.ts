@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const batchId = searchParams.get('batch_id');
+    const queryBatchId = searchParams.get('batch_id');
     const programId = searchParams.get('program_id');
     const muallimahId = searchParams.get('muallimah_id');
     const preferredJuz = searchParams.get('preferred_juz');
@@ -56,8 +56,8 @@ export async function GET(request: NextRequest) {
     if (status) {
       query = query.eq('status', status);
     }
-    if (batchId) {
-      query = query.eq('program.batch_id', batchId);
+    if (queryBatchId) {
+      query = query.eq('program.batch_id', queryBatchId);
     }
     if (programId) {
       query = query.eq('program_id', programId);
@@ -79,6 +79,8 @@ export async function GET(request: NextRequest) {
     // Only count: submitted status (NOT draft) + active status (NOT waitlist)
     const halaqahWithCounts = await Promise.all(
       (halaqah || []).map(async (h: any) => {
+        // Store queryBatchId for use in muallimah_registrations query
+        const batchIdParam = queryBatchId;
         // Count from halaqah_students table (actual joined students)
         // ONLY active status counts toward quota (waitlist does NOT reduce quota)
         const { data: activeStudents } = await supabaseAdmin
@@ -166,23 +168,67 @@ export async function GET(request: NextRequest) {
         }
 
         // Fetch class_type and preferred_schedule from muallimah_registrations
-        // Note: muallimah_registrations table uses 'user_id' and 'batch_id', not 'muallimah_id' and 'program_id'
-        // Need to get batch_id from programData
-        const batchId = programData?.batch?.id || programData?.batch_id;
+        // Note: muallimah_registrations table uses 'user_id' and 'batch_id'
+        // Try multiple strategies to get batch_id:
+
+        let muallimahReg = null;
+        let regError = null;
+
+        // Strategy 1: Get batch_id from program
+        let batchId = programData?.batch?.id || programData?.batch_id;
+
+        // Strategy 2: Use batch_id from query parameter (if filtering by batch)
+        if (!batchId && batchIdParam) {
+          batchId = batchIdParam;
+        }
+
+        // Strategy 3: Fetch the active batch as last resort
+        if (!batchId) {
+          const { data: activeBatch } = await supabaseAdmin
+            .from('batches')
+            .select('id')
+            .eq('status', 'active')
+            .maybeSingle();
+          batchId = activeBatch?.id;
+        }
 
         if (h.muallimah_id && batchId) {
           console.log('[Halaqah API] Fetching muallimah_reg for halaqah:', h.id, 'muallimah_id:', h.muallimah_id, 'batch_id:', batchId);
-          const { data: muallimahReg, error: regError } = await supabaseAdmin
+          const result = await supabaseAdmin
             .from('muallimah_registrations')
             .select('class_type, preferred_schedule')
             .eq('user_id', h.muallimah_id)
             .eq('batch_id', batchId)
             .maybeSingle();
 
+          muallimahReg = result.data;
+          regError = result.error;
+
           console.log('[Halaqah API] muallimah_reg result:', muallimahReg, 'error:', regError);
 
           if (muallimahReg) {
             // Use muallimah_registrations data if halaqah doesn't have its own data
+            if (!classType) classType = muallimahReg.class_type;
+            if (!preferredSchedule) preferredSchedule = muallimahReg.preferred_schedule;
+          }
+        } else if (h.muallimah_id && !batchId) {
+          // Fallback: If no batch_id, try to get any approved muallimah_registration for this user
+          console.log('[Halaqah API] No batch_id, fetching any approved muallimah_reg for user:', h.muallimah_id);
+          const result = await supabaseAdmin
+            .from('muallimah_registrations')
+            .select('class_type, preferred_schedule')
+            .eq('user_id', h.muallimah_id)
+            .eq('status', 'approved')
+            .order('submitted_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          muallimahReg = result.data;
+          regError = result.error;
+
+          console.log('[Halaqah API] fallback muallimah_reg result:', muallimahReg, 'error:', regError);
+
+          if (muallimahReg) {
             if (!classType) classType = muallimahReg.class_type;
             if (!preferredSchedule) preferredSchedule = muallimahReg.preferred_schedule;
           }
