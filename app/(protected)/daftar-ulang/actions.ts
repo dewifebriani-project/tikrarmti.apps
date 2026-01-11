@@ -328,7 +328,7 @@ export async function submitDaftarUlang(
     // Check for existing submission
     const { data: existing, error: existingError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('id, status')
+      .select('id, status, ujian_halaqah_id, tashih_halaqah_id')
       .eq('user_id', authUser.id)
       .eq('registration_id', registrationId)
       .maybeSingle()
@@ -341,6 +341,41 @@ export async function submitDaftarUlang(
       existingError: existingError?.message,
       existingErrorCode: existingError?.code
     })
+
+    // IMPORTANT: If converting from draft to submitted, RECHECK QUOTA
+    // This is necessary because quota may have become full since the draft was created
+    if (existing && existing.status === 'draft') {
+      // Check if the selected halaqahs have changed
+      const halaqahChanged =
+        existing.ujian_halaqah_id !== data.ujian_halaqah_id ||
+        existing.tashih_halaqah_id !== data.tashih_halaqah_id
+
+      // Re-check quota for the newly selected halaqahs
+      if (halaqahChanged) {
+        console.log('[submitDaftarUlang] Halaqah changed, rechecking quota...')
+
+        // Recalculate quota for NEWLY selected halaqahs only
+        for (const halaqah of halaqahInfo) {
+          const currentStudents = halaqahStudentMap.get(halaqah.id)?.size || 0
+          const maxStudents = halaqah.max_students || 20
+
+          console.log('[submitDaftarUlang] Recheck quota for halaqah:', {
+            halaqahId: halaqah.id,
+            halaqahName: halaqah.name,
+            currentStudents,
+            maxStudents,
+            isFull: currentStudents >= maxStudents
+          })
+
+          if (currentStudents >= maxStudents) {
+            return {
+              success: false,
+              error: `Maaf, kelas "${halaqah.name}" sudah penuh. Silakan pilih kelas lain.`
+            }
+          }
+        }
+      }
+    }
 
     const submissionData = {
       user_id: authUser.id,
