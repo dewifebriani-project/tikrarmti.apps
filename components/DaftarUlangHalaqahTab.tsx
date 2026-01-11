@@ -270,6 +270,67 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     });
   }, [sortedHalaqahList, thalibahSortField, thalibahSortOrder]);
 
+  // Statistics for halaqah
+  const halaqahStats = useMemo(() => {
+    const totalHalaqah = halaqahListWithSortedThalibah.length;
+    const totalThalibah = halaqahListWithSortedThalibah.reduce((sum, h) => sum + h.thalibah.length, 0);
+
+    // Count by type
+    let bothCount = 0;
+    let ujianCount = 0;
+    let tashihCount = 0;
+
+    halaqahListWithSortedThalibah.forEach(h => {
+      h.thalibah.forEach(t => {
+        if (t.type === 'both') bothCount++;
+        else if (t.type === 'ujian') ujianCount++;
+        else if (t.type === 'tashih') tashihCount++;
+      });
+    });
+
+    // Count by Juz
+    const juzCount: Record<string, number> = {};
+    halaqahListWithSortedThalibah.forEach(h => {
+      h.thalibah.forEach(t => {
+        const juz = t.confirmed_juz || 'Unknown';
+        juzCount[juz] = (juzCount[juz] || 0) + 1;
+      });
+    });
+
+    // Count by Muallimah
+    const muallimahCount: Record<string, number> = {};
+    halaqahListWithSortedThalibah.forEach(h => {
+      if (h.halaqah.muallimah_name) {
+        muallimahCount[h.halaqah.muallimah_name] = (muallimahCount[h.halaqah.muallimah_name] || 0) + h.thalibah.length;
+      }
+    });
+
+    // Count by Schedule (day of week)
+    const DAY_NAMES = ['', 'Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const scheduleCount: Record<string, number> = {};
+    halaqahListWithSortedThalibah.forEach(h => {
+      if (h.halaqah.day_of_week !== undefined && h.halaqah.day_of_week >= 1) {
+        const day = DAY_NAMES[h.halaqah.day_of_week];
+        scheduleCount[day] = (scheduleCount[day] || 0) + h.thalibah.length;
+      }
+    });
+
+    // Full halaqah count
+    const fullHalaqah = halaqahListWithSortedThalibah.filter(h => h.halaqah.is_full).length;
+
+    return {
+      totalHalaqah,
+      totalThalibah,
+      bothCount,
+      ujianCount,
+      tashihCount,
+      juzCount,
+      muallimahCount,
+      scheduleCount,
+      fullHalaqah
+    };
+  }, [halaqahListWithSortedThalibah]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -686,6 +747,87 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           </button>
         </div>
       </div>
+
+      {/* Statistics Cards */}
+      {!loading && halaqahListWithSortedThalibah.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase">Total Halaqah</p>
+            <p className="text-2xl font-bold text-gray-900">{halaqahStats.totalHalaqah}</p>
+            <p className="text-xs text-gray-500 mt-1">{halaqahStats.fullHalaqah} penuh</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase">Total Thalibah</p>
+            <p className="text-2xl font-bold text-blue-600">{halaqahStats.totalThalibah}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase">Tashih & Ujian</p>
+            <p className="text-2xl font-bold text-green-600">{halaqahStats.bothCount}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase">Hanya Ujian</p>
+            <p className="text-2xl font-bold text-purple-600">{halaqahStats.ujianCount}</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase">Hanya Tashih</p>
+            <p className="text-2xl font-bold text-orange-600">{halaqahStats.tashihCount}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Additional Stats: Juz, Schedule, Muallimah */}
+      {!loading && halaqahListWithSortedThalibah.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Per Juz */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase mb-2">Per Juz</p>
+            <div className="space-y-1">
+              {Object.entries(halaqahStats.juzCount)
+                .sort(([a], [b]) => {
+                  const aNum = parseInt(a.replace(/\D/g, '')) || 999;
+                  const bNum = parseInt(b.replace(/\D/g, '')) || 999;
+                  return aNum - bNum;
+                })
+                .map(([juz, count]) => (
+                  <div key={juz} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{juz}</span>
+                    <span className="font-medium">{count} thalibah</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Per Schedule */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase mb-2">Per Jadwal</p>
+            <div className="space-y-1">
+              {Object.entries(halaqahStats.scheduleCount)
+                .sort(([, a], [, b]) => b - a)
+                .map(([day, count]) => (
+                  <div key={day} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{day}</span>
+                    <span className="font-medium">{count} thalibah</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Per Muallimah */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <p className="text-xs text-gray-500 uppercase mb-2">Per Muallimah</p>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {Object.entries(halaqahStats.muallimahCount)
+                .sort(([, a], [, b]) => b - a)
+                .map(([muallimah, count]) => (
+                  <div key={muallimah} className="flex justify-between text-sm">
+                    <span className="text-gray-600 truncate flex-1">{muallimah}</span>
+                    <span className="font-medium ml-2">{count}</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="bg-white border border-gray-200 rounded-lg">

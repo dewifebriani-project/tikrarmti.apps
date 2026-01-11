@@ -208,6 +208,35 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
     return sorted;
   }, [submissions, sortField, sortOrder]);
 
+  // Statistics for submissions
+  const submissionStats = useMemo(() => {
+    const total = submissions.length;
+    const draft = submissions.filter(s => s.status === 'draft').length;
+    const submitted = submissions.filter(s => s.status === 'submitted').length;
+    const approved = submissions.filter(s => s.status === 'approved').length;
+    const rejected = submissions.filter(s => s.status === 'rejected').length;
+    const withHalaqah = submissions.filter(s => s.ujian_halaqah_id || s.tashih_halaqah_id).length;
+    const withAkad = submissions.filter(s => s.akad_files && s.akad_files.length > 0).length;
+
+    // Count by Juz
+    const juzCount: Record<string, number> = {};
+    submissions.forEach(s => {
+      const juz = s.confirmed_chosen_juz || 'Unknown';
+      juzCount[juz] = (juzCount[juz] || 0) + 1;
+    });
+
+    return {
+      total,
+      draft,
+      submitted,
+      approved,
+      rejected,
+      withHalaqah,
+      withAkad,
+      juzCount
+    };
+  }, [submissions]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -372,6 +401,49 @@ export function DaftarUlangTab({ batchId }: DaftarUlangTabProps) {
         <DaftarUlangHalaqahTab batchId={batchId} />
       ) : (
         <>
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Total</p>
+              <p className="text-2xl font-bold text-gray-900">{submissionStats.total}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Draft</p>
+              <p className="text-2xl font-bold text-gray-600">{submissionStats.draft}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Submitted</p>
+              <p className="text-2xl font-bold text-blue-600">{submissionStats.submitted}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Approved</p>
+              <p className="text-2xl font-bold text-green-600">{submissionStats.approved}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Rejected</p>
+              <p className="text-2xl font-bold text-red-600">{submissionStats.rejected}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Dengan Halaqah</p>
+              <p className="text-2xl font-bold text-purple-600">{submissionStats.withHalaqah}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 uppercase">Dengan Akad</p>
+              <p className="text-2xl font-bold text-orange-600">{submissionStats.withAkad}</p>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-4 col-span-2 md:col-span-1">
+              <p className="text-xs text-gray-500 uppercase mb-1">Per Juz</p>
+              <div className="text-xs space-y-1">
+                {Object.entries(submissionStats.juzCount).sort(([a], [b]) => a.localeCompare(b)).map(([juz, count]) => (
+                  <div key={juz} className="flex justify-between">
+                    <span className="text-gray-600">{juz}:</span>
+                    <span className="font-medium">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Submissions List View */}
           <div className="bg-white border border-gray-200 rounded-lg">
             {loading ? (
