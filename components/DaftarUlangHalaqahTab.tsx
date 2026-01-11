@@ -13,8 +13,11 @@ import {
   Loader2,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ThalibahInfo {
   id: string;
@@ -77,6 +80,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [expandedHalaqah, setExpandedHalaqah] = useState<Set<string>>(new Set());
   const [revertingId, setRevertingId] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
@@ -379,18 +383,265 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     setExpandedHalaqah(newExpanded);
   };
 
+  const downloadHalaqahPDF = async (halaqahId: string) => {
+    setDownloadingPDF(true);
+    try {
+      const halaqahData = halaqahListWithSortedThalibah.find(h => h.halaqah.id === halaqahId);
+      if (!halaqahData) {
+        toast.error('Halaqah not found');
+        return;
+      }
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Title
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Daftar Thalibah - ${halaqahData.halaqah.name}`, pageWidth / 2, 20, { align: 'center' });
+
+      // Schedule info
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const scheduleY = 30;
+      let yPos = scheduleY;
+
+      if (halaqahData.halaqah.day_of_week !== undefined) {
+        doc.text(`Hari: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}`, 14, yPos);
+        yPos += 7;
+      }
+      if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
+        doc.text(`Waktu: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 14, yPos);
+        yPos += 7;
+      }
+      if (halaqahData.halaqah.muallimah_name) {
+        doc.text(`Muallimah: ${halaqahData.halaqah.muallimah_name}`, 14, yPos);
+        yPos += 7;
+      }
+
+      // Total thalibah
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Total Thalibah: ${halaqahData.thalibah.length}`, 14, yPos);
+      yPos += 5;
+
+      // Table
+      const tableData = halaqahData.thalibah.map((t, index) => [
+        index + 1,
+        t.full_name,
+        t.confirmed_juz || '-',
+        t.confirmed_time_slot || '-',
+        t.partner_name || '-',
+        t.partner_type || '-',
+        t.type === 'both' ? 'Paket' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
+        t.status === 'submitted' ? 'Submitted' : (t.status === 'approved' ? 'Approved' : 'Draft'),
+        formatDate(t.submitted_at)
+      ]);
+
+      autoTable(doc, {
+        startY: yPos + 5,
+        head: [['No', 'Nama', 'Juz', 'Slot', 'Partner', 'Tipe Partner', 'Tipe', 'Status', 'Submitted']],
+        body: tableData,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [34, 197, 94],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [240, 240, 240],
+        },
+        columnStyles: {
+          0: { cellWidth: 8 },  // No
+          1: { cellWidth: 40 }, // Nama
+          2: { cellWidth: 15 }, // Juz
+          3: { cellWidth: 20 }, // Slot
+          4: { cellWidth: 35 }, // Partner
+          5: { cellWidth: 20 }, // Tipe Partner
+          6: { cellWidth: 15 }, // Tipe
+          7: { cellWidth: 20 }, // Status
+          8: { cellWidth: 30 }, // Submitted
+        },
+      });
+
+      // Footer with timestamp
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text(
+          `Dicetak pada ${new Date().toLocaleString('id-ID')}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+        doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
+      }
+
+      // Save PDF
+      const fileName = `daftar-thalibah-${halaqahData.halaqah.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+
+      toast.success('PDF berhasil diunduh');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Gagal membuat PDF');
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
+  const downloadAllPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Title
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Daftar Thalibah per Halaqah', pageWidth / 2, 20, { align: 'center' });
+
+      // Summary
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Total Halaqah: ${halaqahListWithSortedThalibah.length}`, 14, 30);
+      doc.text(`Total Thalibah: ${halaqahListWithSortedThalibah.reduce((sum, h) => sum + h.thalibah.length, 0)}`, 14, 37);
+      doc.text(`Tanggal Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 44);
+
+      let yPos = 55;
+
+      // Generate table for each halaqah
+      for (const halaqahData of halaqahListWithSortedThalibah) {
+        // Check if we need a new page
+        if (yPos > pageHeight - 80) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Halaqah header
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text(`${halaqahData.halaqah.name} (${halaqahData.thalibah.length} thalibah)`, 14, yPos);
+        yPos += 7;
+
+        // Schedule info
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        if (halaqahData.halaqah.day_of_week !== undefined) {
+          doc.text(`Hari: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}`, 16, yPos);
+          yPos += 6;
+        }
+        if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
+          doc.text(`Waktu: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 16, yPos);
+          yPos += 6;
+        }
+        if (halaqahData.halaqah.muallimah_name) {
+          doc.text(`Muallimah: ${halaqahData.halaqah.muallimah_name}`, 16, yPos);
+          yPos += 6;
+        }
+
+        // Check if we need a new page before table
+        if (yPos > pageHeight - 60) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Table data
+        const tableData = halaqahData.thalibah.map((t, index) => [
+          index + 1,
+          t.full_name,
+          t.confirmed_juz || '-',
+          t.partner_name || '-',
+          t.type === 'both' ? 'Paket' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
+          t.status === 'submitted' ? '✓' : (t.status === 'approved' ? '✓✓' : '-')
+        ]);
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [['No', 'Nama', 'Juz', 'Partner', 'Tipe', 'Status']],
+          body: tableData,
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+          },
+          headStyles: {
+            fillColor: [34, 197, 94],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+          },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 15 },
+            3: { cellWidth: 40 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 20 },
+          },
+          didDrawPage: (data) => {
+            yPos = (data.cursor?.y ?? 60) + 10;
+          },
+        });
+
+        // Add spacing between halaqah
+        yPos += 10;
+      }
+
+      // Footer with timestamp
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.text(
+          `Dicetak pada ${new Date().toLocaleString('id-ID')}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+        doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
+      }
+
+      // Save PDF
+      const fileName = `daftar-thalibah-all-halaqah-${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+
+      toast.success('PDF semua halaqah berhasil diunduh');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Gagal membuat PDF');
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Daftar Thalibah per Halaqah</h2>
-        <button
-          onClick={() => setRefreshTrigger(prev => prev + 1)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={downloadAllPDF}
+            disabled={downloadingPDF || halaqahListWithSortedThalibah.length === 0}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-3 h-3" />
+            {downloadingPDF ? 'Downloading...' : 'Download All'}
+          </button>
+          <button
+            onClick={() => setRefreshTrigger(prev => prev + 1)}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -413,47 +664,65 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
               return (
                 <div key={item.halaqah.id} className="hover:bg-gray-50">
                   {/* Halaqah Header */}
-                  <button
-                    onClick={() => toggleExpand(item.halaqah.id)}
-                    className="w-full px-6 py-4 flex items-center justify-between text-left"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {item.halaqah.name}
-                        </h3>
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                          {thalibahCount} {thalibahCount === 1 ? 'thalibah' : 'thalibah'}
-                        </span>
-                      </div>
+                  <div className="px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => toggleExpand(item.halaqah.id)}
+                        className="flex-1 flex items-center justify-between text-left"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {item.halaqah.name}
+                            </h3>
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                              {thalibahCount} {thalibahCount === 1 ? 'thalibah' : 'thalibah'}
+                            </span>
+                          </div>
 
-                      <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                        {item.halaqah.day_of_week !== undefined && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>{DAY_NAMES[item.halaqah.day_of_week]}</span>
+                          <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                            {item.halaqah.day_of_week !== undefined && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                <span>{DAY_NAMES[item.halaqah.day_of_week]}</span>
+                              </div>
+                            )}
+                            {item.halaqah.start_time && item.halaqah.end_time && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                <span>{item.halaqah.start_time} - {item.halaqah.end_time}</span>
+                              </div>
+                            )}
+                            {item.halaqah.muallimah_name && (
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                <span>{item.halaqah.muallimah_name}</span>
+                              </div>
+                            )}
                           </div>
+                        </div>
+                        {isExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-gray-400" />
                         )}
-                        {item.halaqah.start_time && item.halaqah.end_time && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{item.halaqah.start_time} - {item.halaqah.end_time}</span>
-                          </div>
-                        )}
-                        {item.halaqah.muallimah_name && (
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            <span>{item.halaqah.muallimah_name}</span>
-                          </div>
-                        )}
-                      </div>
+                      </button>
+
+                      {/* Download Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadHalaqahPDF(item.halaqah.id);
+                        }}
+                        disabled={downloadingPDF}
+                        className="ml-4 px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Download PDF"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden sm:inline">PDF</span>
+                      </button>
                     </div>
-                    {isExpanded ? (
-                      <ChevronUp className="w-5 h-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
-                    )}
-                  </button>
+                  </div>
 
                   {/* Thalibah List (Expanded) */}
                   {isExpanded && (
