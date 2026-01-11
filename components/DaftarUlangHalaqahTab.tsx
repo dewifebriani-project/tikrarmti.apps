@@ -724,6 +724,138 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     }
   };
 
+  const downloadHalaqahAsImage = async (halaqahId: string) => {
+    setDownloadingPDF(true);
+    try {
+      const halaqahData = halaqahListWithSortedThalibah.find(h => h.halaqah.id === halaqahId);
+      if (!halaqahData) {
+        toast.error('Halaqah not found');
+        return;
+      }
+
+      // Create a temporary canvas element
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        toast.error('Failed to create canvas');
+        return;
+      }
+
+      // Set canvas dimensions (higher quality)
+      const width = 1200;
+      const height = Math.max(800, 200 + halaqahData.thalibah.length * 50);
+      canvas.width = width;
+      canvas.height = height;
+
+      // Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // Header section
+      ctx.fillStyle = '#10b981'; // Green color
+      ctx.fillRect(20, 20, width - 40, 80);
+
+      // Title
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Daftar Thalibah - ${halaqahData.halaqah.name}`, width / 2, 50);
+
+      // Subtitle
+      ctx.font = '14px Arial';
+      ctx.fillText(`${halaqahData.thalibah.length} Thalibah`, width / 2, 80);
+
+      let yPos = 130;
+
+      // Muallimah info
+      if (halaqahData.halaqah.muallimah_name) {
+        ctx.fillStyle = '#374151';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Ustadzah: ${halaqahData.halaqah.muallimah_name}`, 40, yPos);
+        yPos += 30;
+      }
+
+      // Schedule info
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#4b5563';
+      if (halaqahData.halaqah.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
+        ctx.fillText(`Jadwal: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}, ${halaqahData.halaqah.start_time || ''} - ${halaqahData.halaqah.end_time || ''}`, 40, yPos);
+        yPos += 25;
+      }
+
+      // Quota info
+      const maxStudents = halaqahData.halaqah.max_students || 20;
+      const availableSlots = halaqahData.halaqah.available_slots ?? (maxStudents - halaqahData.thalibah.length);
+      const isFull = halaqahData.halaqah.is_full ?? availableSlots <= 0;
+
+      ctx.fillStyle = isFull ? '#dc2626' : (availableSlots <= 3 ? '#f97316' : '#10b981');
+      ctx.fillText(`Total: ${halaqahData.thalibah.length} / ${maxStudents} ${isFull ? '(PENUH)' : `(Tersedia: ${availableSlots})`}`, 40, yPos);
+      yPos += 40;
+
+      // Table header
+      ctx.fillStyle = '#f3f4f6';
+      ctx.fillRect(40, yPos, width - 80, 40);
+      yPos += 25;
+
+      ctx.fillStyle = '#374151';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText('No', 60, yPos);
+      ctx.fillText('Nama', 150, yPos);
+      ctx.fillText('Juz', 550, yPos);
+      ctx.fillText('Tipe', 700, yPos);
+      ctx.fillText('Partner', 850, yPos);
+      yPos += 30;
+
+      // Table rows
+      ctx.font = '13px Arial';
+      halaqahData.thalibah.forEach((t, index) => {
+        // Alternate row background
+        if (index % 2 === 0) {
+          ctx.fillStyle = '#f9fafb';
+          ctx.fillRect(40, yPos - 15, width - 80, 35);
+        }
+
+        ctx.fillStyle = '#374151';
+        ctx.fillText(`${index + 1}`, 60, yPos);
+        ctx.fillText(t.full_name, 150, yPos);
+        ctx.fillText(t.confirmed_juz || '-', 550, yPos);
+        ctx.fillText(t.type === 'both' ? 'Tashih & Ujian' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'), 700, yPos);
+        ctx.fillText(t.partner_name || '-', 850, yPos);
+        yPos += 35;
+      });
+
+      // Footer
+      yPos += 20;
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = 'italic 11px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Dicetak pada ${new Date().toLocaleString('id-ID')}`, width / 2, height - 20);
+
+      // Convert canvas to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error('Failed to generate image');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `daftar-thalibah-${halaqahData.halaqah.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('JPEG berhasil diunduh');
+      }, 'image/jpeg', 0.9);
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('Gagal membuat JPEG');
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -856,34 +988,44 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         className="flex-1 flex items-center justify-between text-left"
                       >
                         <div className="flex-1">
+                          {/* Title row with halaqah name and badge */}
                           <div className="flex items-center gap-3">
                             <h3 className="text-lg font-semibold text-gray-900">
                               {item.halaqah.name}
                             </h3>
-                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                              {thalibahCount} {thalibahCount === 1 ? 'thalibah' : 'thalibah'}
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                              item.halaqah.is_full
+                                ? 'bg-red-100 text-red-700'
+                                : item.halaqah.available_slots <= 3
+                                ? 'bg-orange-100 text-orange-700'
+                                : 'bg-green-100 text-green-700'
+                            }`}>
+                              {thalibahCount} / {item.halaqah.max_students || 20} {item.halaqah.is_full ? '(Penuh)' : `(Tersedia: ${item.halaqah.available_slots})`}
                             </span>
                           </div>
 
-                          <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                            {item.halaqah.day_of_week !== undefined && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                <span>{DAY_NAMES[item.halaqah.day_of_week]}</span>
-                              </div>
-                            )}
-                            {item.halaqah.start_time && item.halaqah.end_time && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span>{item.halaqah.start_time} - {item.halaqah.end_time}</span>
-                              </div>
-                            )}
+                          {/* Muallimah info row */}
+                          <div className="mt-2 flex items-center gap-2 text-sm">
                             {item.halaqah.muallimah_name && (
-                              <div className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
-                                <span>{item.halaqah.muallimah_name}</span>
-                              </div>
+                              <>
+                                <span className="font-medium text-gray-900">Ustadzah {item.halaqah.muallimah_name}</span>
+                                <span className="text-gray-400">/</span>
+                              </>
                             )}
+                            <div className="flex items-center gap-3 text-gray-600">
+                              {item.halaqah.day_of_week !== undefined && (
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>{DAY_NAMES[item.halaqah.day_of_week]}</span>
+                                </div>
+                              )}
+                              {item.halaqah.start_time && item.halaqah.end_time && (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{item.halaqah.start_time} - {item.halaqah.end_time}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                         {isExpanded ? (
@@ -893,19 +1035,35 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         )}
                       </button>
 
-                      {/* Download Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadHalaqahPDF(item.halaqah.id);
-                        }}
-                        disabled={downloadingPDF}
-                        className="ml-4 px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Download PDF"
-                      >
-                        <Download className="w-4 h-4" />
-                        <span className="hidden sm:inline">PDF</span>
-                      </button>
+                      {/* Download Buttons */}
+                      <div className="ml-4 flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadHalaqahPDF(item.halaqah.id);
+                          }}
+                          disabled={downloadingPDF}
+                          className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Download as PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span className="hidden sm:inline">PDF</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadHalaqahAsImage(item.halaqah.id);
+                          }}
+                          disabled={downloadingPDF}
+                          className="px-3 py-2 border border-blue-300 text-blue-600 rounded-md text-sm hover:bg-blue-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Download as JPEG"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="hidden sm:inline">JPEG</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
