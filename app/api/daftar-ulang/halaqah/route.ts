@@ -98,13 +98,13 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     // Fetch all submissions for this batch to count students per halaqah
-    // IMPORTANT: Count BOTH 'submitted' and 'draft' status - both take up quota
-    // Draft submissions are "reserving" a slot even if not yet submitted
+    // IMPORTANT: Only count 'submitted' and 'approved' status - 'draft' does NOT reduce quota
+    // This matches what admin sees in the per halaqah tab
     const { data: submissions } = await supabase
       .from('daftar_ulang_submissions')
       .select('ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, status, user_id')
       .eq('batch_id', registration.batch_id)
-      .in('status', ['submitted', 'draft'])
+      .in('status', ['submitted', 'approved'])
 
     // Fetch halaqah_students (assigned thalibah with active status only)
     // IMPORTANT: waitlist does NOT reduce quota, only active status counts
