@@ -33,11 +33,11 @@ CREATE TABLE public.tashih_records (
 
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-  -- Ensure one record per user per day
-  CONSTRAINT unique_tashih_per_day UNIQUE (user_id, DATE(waktu_tashih))
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure one record per user per day using unique index on computed date
+CREATE UNIQUE INDEX unique_tashih_per_day ON public.tashih_records(user_id, DATE(waktu_tashih));
 
 -- Create indexes for better query performance
 CREATE INDEX idx_tashih_records_user_id ON public.tashih_records(user_id);
