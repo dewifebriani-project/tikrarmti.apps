@@ -205,18 +205,22 @@ export async function GET(request: NextRequest) {
     console.log('Daftar ulang submissions:', daftarUlangSubmissions?.length || 0, 'error:', daftarUlangError?.message)
 
     // Combine all registrations into a single array
-    // FILTER: Only include registrations with batch status = 'open'
+    // FILTER: Only include registrations with batch status = 'open' OR have completed daftar ulang
     const allRegistrations: FinalRegistration[] = [
       ...((tikrarRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => {
-          const passes = reg.batch?.status === 'open'
-          console.log(`[Filter] Tikrar reg ${reg.id}: batch_status=${reg.batch?.status}, passes=${passes}`)
-          return passes
-        })
         .map(reg => {
-          // Find matching daftar ulang submission for this registration
+          // Find matching daftar ulang submission for this registration FIRST (before filter)
           const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
+          const hasCompletedDaftarUlang = daftarUlang?.status === 'submitted'
+
+          // Filter: Include if batch is open OR if user has completed daftar ulang
+          const passes = reg.batch?.status === 'open' || hasCompletedDaftarUlang
+
+          console.log(`[Filter] Tikrar reg ${reg.id}: batch_status=${reg.batch?.status}, has_daftar_ulang=${!!daftarUlang}, daftar_ulang_status=${daftarUlang?.status}, passes=${passes}`)
+
+          if (!passes) return null
+
           return {
             ...reg,
             registration_type: 'calon_thalibah',
@@ -227,7 +231,8 @@ export async function GET(request: NextRequest) {
             // Add daftar ulang data
             daftar_ulang: daftarUlang || null
           }
-        }),
+        })
+        .filter((reg): reg is NonNullable<typeof reg> => reg !== null),
       ...((muallimahRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
         .filter(reg => reg.batch?.status === 'open')
