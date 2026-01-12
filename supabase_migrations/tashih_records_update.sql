@@ -31,13 +31,16 @@ CREATE TABLE public.tashih_records (
   -- Timestamp
   waktu_tashih TIMESTAMP WITH TIME ZONE NOT NULL,
 
+  -- Computed date column for uniqueness (date only, without time)
+  tashih_date DATE GENERATED ALWAYS AS (DATE(waktu_tashih)) STORED,
+
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Ensure one record per user per day using unique index on computed date
-CREATE UNIQUE INDEX unique_tashih_per_day ON public.tashih_records(user_id, DATE(waktu_tashih));
+-- Ensure one record per user per day using unique index on generated column
+CREATE UNIQUE INDEX unique_tashih_per_day ON public.tashih_records(user_id, tashih_date);
 
 -- Create indexes for better query performance
 CREATE INDEX idx_tashih_records_user_id ON public.tashih_records(user_id);
@@ -101,3 +104,4 @@ COMMENT ON COLUMN public.tashih_records.nama_pemeriksa IS 'Nama pemeriksa when l
 COMMENT ON COLUMN public.tashih_records.masalah_tajwid IS 'JSONB array of tajwid issues found, e.g., ["mad", "qolqolah", "ghunnah"]';
 COMMENT ON COLUMN public.tashih_records.catatan_tambahan IS 'Additional notes about the tashih session';
 COMMENT ON COLUMN public.tashih_records.waktu_tashih IS 'Timestamp when the tashih was performed';
+COMMENT ON COLUMN public.tashih_records.tashih_date IS 'Computed date column from waktu_tashih, used to enforce one record per user per day';
