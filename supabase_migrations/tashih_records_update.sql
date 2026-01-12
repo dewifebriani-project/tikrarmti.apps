@@ -31,8 +31,8 @@ CREATE TABLE public.tashih_records (
   -- Timestamp
   waktu_tashih TIMESTAMP WITH TIME ZONE NOT NULL,
 
-  -- Computed date column for uniqueness (date only, without time)
-  tashih_date DATE GENERATED ALWAYS AS (DATE(waktu_tashih)) STORED,
+  -- Computed date column (stored as text to work with immutable operations)
+  tashih_date TEXT GENERATED ALWAYS AS (DATE_TRUNC('day', waktu_tashih AT TIME ZONE 'UTC')::TEXT) STORED,
 
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
