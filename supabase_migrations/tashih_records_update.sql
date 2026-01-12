@@ -29,23 +29,20 @@ CREATE TABLE public.tashih_records (
   catatan_tambahan TEXT,
 
   -- Timestamp
-  waktu_tashih TIMESTAMP WITH TIME ZONE NOT NULL,
-
-  -- Computed date column (stored as text to work with immutable operations)
-  tashih_date TEXT GENERATED ALWAYS AS (DATE_TRUNC('day', waktu_tashih AT TIME ZONE 'UTC')::TEXT) STORED,
+  waktu_tashih TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
   -- Metadata
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Ensure one record per user per day using unique index on generated column
-CREATE UNIQUE INDEX unique_tashih_per_day ON public.tashih_records(user_id, tashih_date);
-
 -- Create indexes for better query performance
 CREATE INDEX idx_tashih_records_user_id ON public.tashih_records(user_id);
 CREATE INDEX idx_tashih_records_waktu_tashih ON public.tashih_records(waktu_tashih DESC);
 CREATE INDEX idx_tashih_records_blok ON public.tashih_records(blok);
+
+-- Note: One record per user per day is enforced at application level
+-- The frontend checks for existing records before inserting/updating
 
 -- Enable Row Level Security
 ALTER TABLE public.tashih_records ENABLE ROW LEVEL SECURITY;
@@ -104,4 +101,3 @@ COMMENT ON COLUMN public.tashih_records.nama_pemeriksa IS 'Nama pemeriksa when l
 COMMENT ON COLUMN public.tashih_records.masalah_tajwid IS 'JSONB array of tajwid issues found, e.g., ["mad", "qolqolah", "ghunnah"]';
 COMMENT ON COLUMN public.tashih_records.catatan_tambahan IS 'Additional notes about the tashih session';
 COMMENT ON COLUMN public.tashih_records.waktu_tashih IS 'Timestamp when the tashih was performed';
-COMMENT ON COLUMN public.tashih_records.tashih_date IS 'Computed date column from waktu_tashih, used to enforce one record per user per day';
