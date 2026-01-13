@@ -1124,15 +1124,15 @@ async function performAssignment(
 }
 
 /**
- * Add or move thalibah to halaqah (Admin only)
+ * Add thalibah to halaqah by updating daftar_ulang_submissions (Admin only)
  *
- * This function handles:
- * 1. Adding thalibah from daftar_ulang_submissions to halaqah_students
- * 2. Moving thalibah from one halaqah to another
- * 3. Ensuring thalibah exists in enrolment table before adding to halaqah
+ * This function:
+ * 1. Verifies thalibah exists in enrolment table and has selection_status = 'selected'
+ * 2. Updates or creates daftar_ulang_submissions with the halaqah_id based on halaqahType
+ * 3. Does NOT use halaqah_students table - only updates daftar_ulang_submissions
  *
  * @param halaqahId - Target halaqah ID
- * @param thalibahIds - Array of thalibah (user) IDs to add/move
+ * @param thalibahIds - Array of thalibah (user) IDs to add
  * @param halaqahType - 'ujian', 'tashih', or 'both'
  * @returns Success status with results
  */
@@ -1260,74 +1260,95 @@ export async function addThalibahToHalaqah(params: {
           continue
         }
 
-        // Step 2: Check if thalibah is already in this halaqah
-        const { data: existingAssignment, error: checkError } = await supabaseAdmin
-          .from('halaqah_students')
-          .select('*')
-          .eq('halaqah_id', halaqahId)
-          .eq('thalibah_id', thalibahId)
-          .maybeSingle()
-
-        if (existingAssignment) {
-          console.warn('[addThalibahToHalaqah] Thalibah already in this halaqah:', enrolment.full_name)
-          results.failed.push({
-            thalibah_id: thalibahId,
-            name: enrolment.full_name,
-            reason: 'Already assigned to this halaqah'
-          })
-          continue
-        }
-
-        // Step 3: For moving - check if thalibah is in another halaqah
-        const { data: otherAssignments, error: otherError } = await supabaseAdmin
-          .from('halaqah_students')
-          .select('*')
-          .eq('thalibah_id', thalibahId)
-          .eq('status', 'active')
-          .neq('halaqah_id', halaqahId)
-
-        if (otherAssignments && otherAssignments.length > 0) {
-          console.log('[addThalibahToHalaqah] Transferring from', otherAssignments.length, 'other halaqah(s)')
-          // Mark old assignments as transferred
-          for (const oldAssignment of otherAssignments) {
-            await supabaseAdmin
-              .from('halaqah_students')
-              .update({
-                status: 'transferred',
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', oldAssignment.id)
-          }
-          console.log('[addThalibahToHalaqah] Transferred', thalibahId, 'from', otherAssignments.length, 'other halaqah(s)')
-        }
-
-        // Step 4: Create new assignment
-        const { data: newAssignment, error: assignError } = await supabaseAdmin
-          .from('halaqah_students')
-          .insert({
-            halaqah_id: halaqahId,
-            thalibah_id: thalibahId,
-            assigned_by: user.id,
-            status: 'active'
-          })
-          .select()
+        // Step 2: Update/create daftar_ulang_submissions with halaqah_id
+        // Get batch_id from halaqah (via program)
+        const { data: halaqahWithProgram } = await supabaseAdmin
+          .from('halaqah')
+          .select('program_id, programs!inner(batch_id)')
+          .eq('id', halaqahId)
           .single()
 
-        if (assignError) {
-          console.error('[addThalibahToHalaqah] Assignment error for', thalibahId, ':', assignError)
+        const batchId = halaqahWithProgram?.programs?.batch_id
+
+        if (!batchId) {
+          console.error('[addThalibahToHalaqah] Cannot find batch_id for halaqah:', halaqahId)
           results.failed.push({
             thalibah_id: thalibahId,
             name: enrolment.full_name,
-            reason: assignError.message
+            reason: 'Halaqah tidak memiliki batch'
           })
           continue
+        }
+
+        // Check if thalibah has a daftar_ulang_submission for this batch
+        const { data: existingSubmission } = await supabaseAdmin
+          .from('daftar_ulang_submissions')
+          .select('id, status')
+          .eq('user_id', thalibahId)
+          .eq('batch_id', batchId)
+          .maybeSingle()
+
+        const updateData: any = {
+          updated_at: new Date().toISOString()
+        }
+
+        // Update based on halaqahType
+        if (halaqahType === 'ujian') {
+          updateData.ujian_halaqah_id = halaqahId
+        } else if (halaqahType === 'tashih') {
+          updateData.tashih_halaqah_id = halaqahId
+        } else if (halaqahType === 'both') {
+          updateData.ujian_halaqah_id = halaqahId
+          updateData.tashih_halaqah_id = halaqahId
+        }
+
+        if (existingSubmission) {
+          // Update existing submission
+          const { error: updateError } = await supabaseAdmin
+            .from('daftar_ulang_submissions')
+            .update(updateData)
+            .eq('id', existingSubmission.id)
+
+          if (updateError) {
+            console.error('[addThalibahToHalaqah] Error updating daftar_ulang_submissions for', thalibahId, ':', updateError)
+            results.failed.push({
+              thalibah_id: thalibahId,
+              name: enrolment.full_name,
+              reason: updateError.message
+            })
+            continue
+          }
+
+          console.log('[addThalibahToHalaqah] Updated daftar_ulang_submissions for', enrolment.full_name)
+        } else {
+          // Create new submission with draft status
+          const { error: insertError } = await supabaseAdmin
+            .from('daftar_ulang_submissions')
+            .insert({
+              user_id: thalibahId,
+              registration_id: enrolment.id,
+              batch_id: batchId,
+              status: 'draft',
+              ...updateData,
+              created_at: new Date().toISOString()
+            })
+
+          if (insertError) {
+            console.error('[addThalibahToHalaqah] Error creating daftar_ulang_submissions for', thalibahId, ':', insertError)
+            results.failed.push({
+              thalibah_id: thalibahId,
+              name: enrolment.full_name,
+              reason: insertError.message
+            })
+            continue
+          }
+
+          console.log('[addThalibahToHalaqah] Created daftar_ulang_submissions for', enrolment.full_name)
         }
 
         results.success.push({
           thalibah_id: thalibahId,
-          name: enrolment.full_name,
-          assignment: newAssignment,
-          was_transferred: otherAssignments && otherAssignments.length > 0
+          name: enrolment.full_name
         })
 
         console.log('[addThalibahToHalaqah] Successfully added', enrolment.full_name, 'to', halaqah.name)
@@ -1388,11 +1409,7 @@ export async function addThalibahToHalaqah(params: {
  * Get enrolled thalibah that can be added to halaqah
  *
  * Returns ALL thalibah who are selected (selection_status = 'selected')
- * and DON'T already have a halaqah assignment in halaqah_students table.
- *
- * This is different from checking daftar_ulang_submissions because:
- * - Some thalibah may not have submitted daftar ulang yet
- * - Admin needs to see ALL eligible thalibah regardless of submission status
+ * and DON'T already have the specific halaqah_id in daftar_ulang_submissions table.
  *
  * @param batchId - Optional batch ID to filter thalibah
  * @returns List of eligible thalibah
@@ -1430,32 +1447,38 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
       }
     }
 
-    // Get the user IDs to check if they're in halaqah_students
+    // Get the user IDs to check their daftar_ulang_submissions
     const userIds = thalibahs.map(t => t.user_id)
 
-    // Fetch halaqah_students to check which thalibah already have assignments
-    let halaqahStudentsQuery = supabaseAdmin
-      .from('halaqah_students')
-      .select('thalibah_id, halaqah_id')
-      .in('thalibah_id', userIds)
-      .eq('status', 'active')
+    // Fetch submissions to check which thalibah already have halaqah assignments
+    let submissionsQuery = supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('user_id, ujian_halaqah_id, tashih_halaqah_id')
+      .in('user_id', userIds)
 
-    const { data: halaqahStudents, error: studentsError } = await halaqahStudentsQuery
-
-    if (studentsError) {
-      console.error('[getEligibleThalibahForHalaqah] Error fetching halaqah_students:', studentsError)
-      // Continue without student filtering
+    if (batchId && batchId !== 'all') {
+      submissionsQuery = submissionsQuery.eq('batch_id', batchId)
     }
 
-    // Create a set of thalibah_ids who already have halaqah assignments
+    const { data: submissions, error: submissionsError } = await submissionsQuery
+
+    if (submissionsError) {
+      console.error('[getEligibleThalibahForHalaqah] Error fetching submissions:', submissionsError)
+      // Continue without submission filtering
+    }
+
+    // Create a set of user_ids who already have halaqah assignments (either ujian or tashih)
     const thalibahWithHalaqah = new Set<string>()
-    if (halaqahStudents) {
-      halaqahStudents.forEach(student => {
-        thalibahWithHalaqah.add(student.thalibah_id)
+    if (submissions) {
+      submissions.forEach(sub => {
+        // If they have either ujian or tashih halaqah assigned
+        if (sub.ujian_halaqah_id || sub.tashih_halaqah_id) {
+          thalibahWithHalaqah.add(sub.user_id)
+        }
       })
     }
 
-    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'In halaqah_students:', thalibahWithHalaqah.size, 'batchId:', batchId)
+    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'With halaqah:', thalibahWithHalaqah.size, 'batchId:', batchId)
 
     // Filter out thalibah who already have halaqah assignments
     const eligibleThalibah = thalibahs.filter(t => !thalibahWithHalaqah.has(t.user_id))
