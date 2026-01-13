@@ -236,6 +236,14 @@ export async function submitDaftarUlang(
   }
 
   try {
+    // Debug log to see what data is being received
+    console.log('[submitDaftarUlang] Received data:', {
+      ujian_halaqah_id: data.ujian_halaqah_id,
+      tashih_halaqah_id: data.tashih_halaqah_id,
+      partner_type: data.partner_type,
+      has_akad_files: !!data.akad_files && data.akad_files.length > 0
+    })
+
     // 6. CHECK QUOTA FOR SELECTED HALAQAH (only for submitted status)
     // Get the selected halaqah IDs first
     const selectedHalaqahIds = [data.ujian_halaqah_id]

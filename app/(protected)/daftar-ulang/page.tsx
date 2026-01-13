@@ -212,6 +212,7 @@ export default function DaftarUlangPage() {
 
   // Load existing submission data into form
   // For draft status: reset halaqah selection but preserve akad files and partner data
+  // This ensures user always picks from current quota availability
   useEffect(() => {
     if (!existingSubmission) return
 
@@ -220,6 +221,7 @@ export default function DaftarUlangPage() {
     setFormData(prev => ({
       ...prev,
       // For draft: reset halaqah selections so user always picks from current options
+      // This prevents stale selections from when quota was available
       ujian_halaqah_id: isDraft ? '' : (existingSubmission.ujian_halaqah_id || ''),
       tashih_halaqah_id: isDraft ? '' : (existingSubmission.tashih_halaqah_id || ''),
       // Preserve partner data for both draft and submitted
@@ -366,6 +368,13 @@ export default function DaftarUlangPage() {
       return
     }
 
+    // Validate halaqah selection - ujian halaqah is required
+    if (!formData.ujian_halaqah_id || formData.ujian_halaqah_id === '') {
+      toast.error('Pilih kelas ujian halaqah')
+      setCurrentStep('halaqah')
+      return
+    }
+
     // Validate halaqah quota - check if selected halaqah is still available
     if (formData.ujian_halaqah_id) {
       const ujianHalaqah = halaqahData.find(h => h.id === formData.ujian_halaqah_id)
@@ -390,6 +399,15 @@ export default function DaftarUlangPage() {
         ...formData,
         partner_type: formData.partner_type as 'self_match' | 'system_match' | 'family' | 'tarteel'
       }
+
+      // Debug log to verify halaqah IDs are being sent
+      console.log('[handleSubmit] Submitting daftar ulang with data:', {
+        ujian_halaqah_id: submitData.ujian_halaqah_id,
+        tashih_halaqah_id: submitData.tashih_halaqah_id,
+        partner_type: submitData.partner_type,
+        akad_files_count: submitData.akad_files?.length
+      })
+
       const result = await submitDaftarUlang(registrationData.id, submitData)
 
       if (result.success) {
