@@ -36,6 +36,47 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // ===== CHECK RE-ENROLLMENT DATE =====
+    // Fetch batch data to check if re-enrollment is open
+    const { data: batch } = await supabase
+      .from('batches')
+      .select('id, re_enrollment_date, status')
+      .eq('id', registration.batch_id)
+      .single()
+
+    if (!batch) {
+      return NextResponse.json(
+        { error: 'Batch not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if re-enrollment has started
+    if (batch.re_enrollment_date) {
+      const now = new Date()
+      const reEnrollDate = new Date(batch.re_enrollment_date)
+
+      // Set reEnrollDate to start of day (00:00:00) for comparison
+      reEnrollDate.setHours(0, 0, 0, 0)
+      now.setHours(0, 0, 0, 0)
+
+      if (now < reEnrollDate) {
+        const formattedDate = reEnrollDate.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        })
+        return NextResponse.json(
+          {
+            error: 'Daftar ulang belum dibuka',
+            message: `Daftar ulang akan dibuka pada tanggal ${formattedDate}`
+          },
+          { status: 403 }
+        )
+      }
+    }
+    // ===== END CHECK RE-ENROLLMENT DATE =====
+
     // Calculate final juz placement based on exam score
     const examScore = registration.exam_score || null
     const chosenJuz = (registration.chosen_juz || '').toUpperCase()

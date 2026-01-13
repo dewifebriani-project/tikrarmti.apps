@@ -179,16 +179,25 @@ export default function DaftarUlangPage() {
 
         // Fetch halaqah data
         const halaqahResponse = await fetch('/api/daftar-ulang/halaqah')
-        if (halaqahResponse.ok) {
-          const halaqahDataResult = await halaqahResponse.json()
-          setHalaqahData(halaqahDataResult.data?.halaqah || [])
-          setExistingSubmission(halaqahDataResult.data?.existing_submission)
-
-          // Check if user already submitted daftar ulang
-          if (halaqahDataResult.data?.existing_submission?.status === 'submitted') {
-            setCurrentStep('success')
-            toast.success('Anda sudah melakukan daftar ulang!')
+        if (!halaqahResponse.ok) {
+          const errorData = await halaqahResponse.json()
+          if (halaqahResponse.status === 403) {
+            // Daftar ulang belum dibuka
+            toast.error(errorData.message || errorData.error || 'Daftar ulang belum dibuka')
+            router.push('/perjalanan-saya')
+            return
           }
+          throw new Error(errorData.error || 'Failed to fetch halaqah data')
+        }
+
+        const halaqahDataResult = await halaqahResponse.json()
+        setHalaqahData(halaqahDataResult.data?.halaqah || [])
+        setExistingSubmission(halaqahDataResult.data?.existing_submission)
+
+        // Check if user already submitted daftar ulang
+        if (halaqahDataResult.data?.existing_submission?.status === 'submitted') {
+          setCurrentStep('success')
+          toast.success('Anda sudah melakukan daftar ulang!')
         }
       } catch (error) {
         console.error('Fetch error:', error)
