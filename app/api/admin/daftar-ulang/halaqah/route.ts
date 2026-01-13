@@ -298,20 +298,47 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // If not found in either, add to ujian list (default)
+      // If not found in either, need to determine which type to add to
       if (!found) {
-        if (!halaqahMap.has(ujianKey)) {
-          halaqahMap.set(ujianKey, {
-            halaqah: hs.halaqah,
-            type: 'ujian',
-            thalibah: []
-          });
-        }
-
         // Get submission data for this thalibah (if exists)
         const submission = submissionMap.get(hs.thalibah_id);
         // Get enrolment data as fallback (if submission doesn't exist)
         const enrolment = enrolmentMap.get(hs.thalibah_id);
+
+        // Determine which type this halaqah assignment is for
+        // by checking if the halaqah_id matches ujian or tashih from submission
+        let targetType: 'ujian' | 'tashih' = 'ujian'; // Default
+        let targetKey = ujianKey;
+
+        if (submission) {
+          // Check which halaqah this assignment matches
+          if (submission.ujian_halaqah_id === halaqahId) {
+            targetType = 'ujian';
+            targetKey = ujianKey;
+          } else if (submission.tashih_halaqah_id === halaqahId && !submission.is_tashih_umum) {
+            targetType = 'tashih';
+            targetKey = tashihKey;
+          } else {
+            // If halaqah_id doesn't match either, default to ujian
+            // This can happen if admin adds to a different halaqah
+            console.log('[Daftar Ulang Halaqah] Warning: halaqah_id', halaqahId, 'does not match submission halaqahs for thalibah', hs.thalibah_id);
+            targetType = 'ujian';
+            targetKey = ujianKey;
+          }
+        } else {
+          // No submission - default to ujian
+          targetType = 'ujian';
+          targetKey = ujianKey;
+        }
+
+        // Create the halaqah entry if it doesn't exist
+        if (!halaqahMap.has(targetKey)) {
+          halaqahMap.set(targetKey, {
+            halaqah: hs.halaqah,
+            type: targetType,
+            thalibah: []
+          });
+        }
 
         // Use submission data if available, otherwise use enrolment data
         // This ensures consistency: if they have a submission, use its status/partner_type
@@ -325,16 +352,16 @@ export async function GET(request: NextRequest) {
         const submittedAt = submission?.submitted_at || submission?.created_at || hs.assigned_at || hs.created_at;
         const submissionId = submission?.id || hs.id; // Use submission id if available, else halaqah_students id
 
-        // Determine type based on submission data
-        // If they have both ujian and tashih halaqah in submission, or if it's a 'both' type
-        let halaqahType: 'ujian' | 'tashih' | 'both' = 'ujian';
+        // Determine the thalibah's type based on their submission
+        // This is different from the halaqah type - it's what the thalibah signed up for
+        let thalibahType: 'ujian' | 'tashih' | 'both' = 'ujian';
         if (submission?.ujian_halaqah_id && submission?.tashih_halaqah_id && !submission?.is_tashih_umum) {
-          halaqahType = 'both';
+          thalibahType = 'both';
         } else if (submission?.tashih_halaqah_id && !submission?.is_tashih_umum) {
-          halaqahType = 'tashih';
+          thalibahType = 'tashih';
         }
 
-        halaqahMap.get(ujianKey)!.thalibah.push({
+        halaqahMap.get(targetKey)!.thalibah.push({
           id: hs.thalibah.id,
           submission_id: submissionId,
           full_name: hs.thalibah.full_name,
@@ -347,7 +374,7 @@ export async function GET(request: NextRequest) {
           partner_type: partnerType,
           confirmed_juz: confirmedJuz,
           confirmed_time_slot: confirmedTimeSlot,
-          type: halaqahType
+          type: thalibahType
         });
       }
     });
