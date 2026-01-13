@@ -228,7 +228,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     });
 
     // Combine both maps
-    return Array.from([...ujianMap.values(), ...tashihMap.values()]);
+    const result: HalaqahWithThalibah[] = [];
+    ujianMap.forEach(entry => result.push(entry));
+    tashihMap.forEach(entry => result.push(entry));
+    return result;
   }, [submissions]);
 
   // Sort halaqah list
