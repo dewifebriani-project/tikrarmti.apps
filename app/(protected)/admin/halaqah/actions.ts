@@ -1431,11 +1431,17 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     const userIds = thalibahs.map(t => t.user_id)
 
     // Fetch submissions to check which thalibah already have halaqah assignments
-    const { data: submissions, error: submissionsError } = await supabaseAdmin
+    // Only filter by batch_id if we have a valid batchId (not 'all' or undefined)
+    let submissionsQuery = supabaseAdmin
       .from('daftar_ulang_submissions')
       .select('user_id, ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, status')
-      .eq('batch_id', batchId || '')
       .in('user_id', userIds)
+
+    if (batchId && batchId !== 'all') {
+      submissionsQuery = submissionsQuery.eq('batch_id', batchId)
+    }
+
+    const { data: submissions, error: submissionsError } = await submissionsQuery
 
     if (submissionsError) {
       console.error('[getEligibleThalibahForHalaqah] Error fetching submissions:', submissionsError)
@@ -1454,7 +1460,7 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
       })
     }
 
-    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'Submissions fetched:', submissions?.length || 0, 'With halaqah:', thalibahWithHalaqah.size)
+    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'Submissions fetched:', submissions?.length || 0, 'With halaqah:', thalibahWithHalaqah.size, 'batchId:', batchId)
 
     // Filter out thalibah who already have halaqah assignments
     const eligibleThalibah = thalibahs.filter(t => !thalibahWithHalaqah.has(t.user_id))
