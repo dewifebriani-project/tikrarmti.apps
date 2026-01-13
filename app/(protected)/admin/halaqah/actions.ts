@@ -1225,7 +1225,7 @@ export async function addThalibahToHalaqah(params: {
         // Step 1: Verify thalibah exists in enrolment table (pendaftaran_tikrar_tahfidz)
         const { data: enrolment, error: enrolmentError } = await supabaseAdmin
           .from('pendaftaran_tikrar_tahfidz')
-          .select('id, user_id, full_name, status, selection_status, re_enrollment_completed, chosen_juz')
+          .select('id, user_id, full_name, status, selection_status, re_enrollment_completed, chosen_juz, batch_id')
           .eq('user_id', thalibahId)
           .single()
 
@@ -1261,22 +1261,15 @@ export async function addThalibahToHalaqah(params: {
         }
 
         // Step 2: Update/create daftar_ulang_submissions with halaqah_id
-        // Get batch_id from halaqah (via program)
-        const { data: halaqahWithProgram } = await supabaseAdmin
-          .from('halaqah')
-          .select('program_id, programs!inner(batch_id)')
-          .eq('id', halaqahId)
-          .single()
-
-        // programs is an array, take the first one
-        const batchId = halaqahWithProgram?.programs?.[0]?.batch_id
+        // Use batch_id from enrolment record
+        const batchId = enrolment.batch_id
 
         if (!batchId) {
-          console.error('[addThalibahToHalaqah] Cannot find batch_id for halaqah:', halaqahId)
+          console.error('[addThalibahToHalaqah] Enrolment does not have batch_id:', thalibahId)
           results.failed.push({
             thalibah_id: thalibahId,
             name: enrolment.full_name,
-            reason: 'Halaqah tidak memiliki batch'
+            reason: 'Data enrolment tidak memiliki batch_id'
           })
           continue
         }
