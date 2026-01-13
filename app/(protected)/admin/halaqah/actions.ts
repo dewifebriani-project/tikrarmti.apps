@@ -1268,7 +1268,8 @@ export async function addThalibahToHalaqah(params: {
           .eq('id', halaqahId)
           .single()
 
-        const batchId = halaqahWithProgram?.programs?.batch_id
+        // programs is an array, take the first one
+        const batchId = halaqahWithProgram?.programs?.[0]?.batch_id
 
         if (!batchId) {
           console.error('[addThalibahToHalaqah] Cannot find batch_id for halaqah:', halaqahId)
