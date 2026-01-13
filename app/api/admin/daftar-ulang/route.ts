@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
         *,
         user:users!daftar_ulang_submissions_user_id_fkey(id, full_name, email),
         registration:pendaftaran_tikrar_tahfidz(id, chosen_juz, exam_score, main_time_slot, backup_time_slot),
-        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time),
-        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time),
+        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, max_students, muallimah_id),
+        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, max_students, muallimah_id),
         partner_user:users!daftar_ulang_submissions_partner_user_id_fkey(id, full_name, email)
       `)
       .order('created_at', { ascending: false });
@@ -79,6 +79,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch muallimah names for halaqah
+    const muallimahIds = new Set<string>();
+    data?.forEach((sub: any) => {
+      if (sub.ujian_halaqah?.muallimah_id) muallimahIds.add(sub.ujian_halaqah.muallimah_id);
+      if (sub.tashih_halaqah?.muallimah_id) muallimahIds.add(sub.tashih_halaqah.muallimah_id);
+    });
+
+    const muallimahNames: Record<string, string> = {};
+    if (muallimahIds.size > 0) {
+      const { data: muallimahs } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name')
+        .in('id', Array.from(muallimahIds));
+
+      muallimahs?.forEach((m: any) => {
+        muallimahNames[m.id] = m.full_name;
+      });
+    }
+
+    // Attach muallimah names to halaqah data
+    const dataWithMuallimah = data?.map((sub: any) => ({
+      ...sub,
+      ujian_halaqah: sub.ujian_halaqah ? {
+        ...sub.ujian_halaqah,
+        muallimah_name: sub.ujian_halaqah.muallimah_id ? muallimahNames[sub.ujian_halaqah.muallimah_id] : null
+      } : null,
+      tashih_halaqah: sub.tashih_halaqah ? {
+        ...sub.tashih_halaqah,
+        muallimah_name: sub.tashih_halaqah.muallimah_id ? muallimahNames[sub.tashih_halaqah.muallimah_id] : null
+      } : null
+    }));
+
     // Get total count
     let countQuery = supabaseAdmin
       .from('daftar_ulang_submissions')
@@ -94,11 +126,11 @@ export async function GET(request: NextRequest) {
     const { count } = await countQuery;
     const totalCount = count || 0;
 
-    console.log('[Daftar Ulang Admin] Success, submissions count:', data?.length || 0, 'total:', totalCount);
+    console.log('[Daftar Ulang Admin] Success, submissions count:', dataWithMuallimah?.length || 0, 'total:', totalCount);
 
     return NextResponse.json({
       success: true,
-      data: data || [],
+      data: dataWithMuallimah || [],
       pagination: {
         page,
         limit,

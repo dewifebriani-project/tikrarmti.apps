@@ -15,6 +15,7 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  FileText,
   UserPlus
 } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -41,24 +42,23 @@ interface HalaqahInfo {
   day_of_week?: number;
   start_time?: string;
   end_time?: string;
-  muallimah_id?: string;
-  muallimah_name?: string;
   max_students?: number;
-  total_current_students?: number;
+  muallimah_name?: string;
   available_slots?: number;
   is_full?: boolean;
 }
 
 interface HalaqahWithThalibah {
-  halaqah: HalaqahInfo;
+  halaqahId: string;
+  halaqah: HalaqahInfo | null;
   thalibah: ThalibahInfo[];
-  type: 'ujian' | 'tashih' | 'both';
+  type: 'ujian' | 'tashih';
 }
 
-type SortField = 'name' | 'thalibah_count' | 'muallimah' | 'schedule';
+type SortField = 'name' | 'thalibah_count' | 'schedule';
 type SortOrder = 'asc' | 'desc';
 
-type ThalibahSortField = 'name' | 'juz' | 'partner' | 'type' | 'status' | 'submitted';
+type ThalibahSortField = 'name' | 'juz' | 'partner' | 'status' | 'submitted';
 type ThalibahSortOrder = 'asc' | 'desc';
 
 interface DaftarUlangHalaqahTabProps {
@@ -74,56 +74,51 @@ const STATUS_ORDER: Record<string, number> = {
   approved: 3,
 };
 
-// Type order for sorting (lower = higher priority)
-const TYPE_ORDER: Record<string, number> = {
-  both: 1,
-  ujian: 2,
-  tashih: 3,
-};
-
 export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
-  const [rawData, setRawData] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [expandedHalaqah, setExpandedHalaqah] = useState<Set<string>>(new Set());
   const [revertingId, setRevertingId] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
-  const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
 
   // Add Thalibah Modal state
   const [showAddThalibahModal, setShowAddThalibahModal] = useState(false);
   const [selectedHalaqahForAdd, setSelectedHalaqahForAdd] = useState<HalaqahInfo | null>(null);
   const [selectedHalaqahType, setSelectedHalaqahType] = useState<'ujian' | 'tashih' | 'both'>('ujian');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
+  const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
 
   const loadData = async () => {
-    console.log('[DaftarUlangHalaqahTab] Loading halaqah data...');
+    console.log('[DaftarUlangHalaqahTab] Loading submissions...');
     setLoading(true);
 
     try {
       const params = new URLSearchParams();
-      if (batchId) params.append('batch_id', batchId);
+      if (batchId && batchId !== 'all') params.append('batch_id', batchId);
+      // Get all submissions without pagination limit
+      params.append('limit', '1000');
 
-      const response = await fetch(`/api/admin/daftar-ulang/halaqah?${params.toString()}`);
+      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
       const result = await response.json();
 
       if (!response.ok) {
         console.error('[DaftarUlangHalaqahTab] Failed to load:', result);
-        toast.error(result.error || 'Failed to load halaqah data');
+        toast.error(result.error || 'Failed to load data');
         return;
       }
 
       if (result.data) {
-        console.log('[DaftarUlangHalaqahTab] Loaded', result.data.length, 'halaqah entries');
-        setRawData(result.data);
+        console.log('[DaftarUlangHalaqahTab] Loaded', result.data.length, 'submissions');
+        setSubmissions(result.data);
       } else {
-        setRawData([]);
+        setSubmissions([]);
       }
     } catch (error: any) {
       console.error('[DaftarUlangHalaqahTab] Error:', error);
-      toast.error('Failed to load halaqah data: ' + error.message);
+      toast.error('Failed to load data: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -133,82 +128,108 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     loadData();
   }, [batchId, refreshTrigger]);
 
-  // Process raw data to combine ujian and tashih for same halaqah
+  // Process submissions to group by halaqah
   const processedData = useMemo(() => {
-    // Guard against undefined or null rawData
-    if (!rawData || !Array.isArray(rawData)) {
+    if (!submissions || !Array.isArray(submissions)) {
       return [];
     }
 
-    // Group by halaqah ID, tracking which types we've seen
-    const halaqahMap = new Map<string, {
-      halaqah: HalaqahInfo;
-      thalibah: ThalibahInfo[];
-      types: Set<'ujian' | 'tashih'>;
-    }>();
+    // Map to track halaqah by type
+    const ujianMap = new Map<string, HalaqahWithThalibah>();
+    const tashihMap = new Map<string, HalaqahWithThalibah>();
 
-    rawData.forEach((item) => {
-      // Guard against malformed items
-      if (!item || !item.halaqah || !item.halaqah.id) {
-        console.warn('[DaftarUlangHalaqahTab] Invalid item:', item);
-        return;
-      }
-
-      const halaqahId = item.halaqah.id;
-      const type = item.type as 'ujian' | 'tashih';
-
-      if (!halaqahMap.has(halaqahId)) {
-        halaqahMap.set(halaqahId, {
-          halaqah: item.halaqah,
-          thalibah: [],
-          types: new Set()
+    submissions.forEach((sub) => {
+      // Process ujian halaqah
+      if (sub.ujian_halaqah_id && sub.ujian_halaqah) {
+        const halaqahId = sub.ujian_halaqah_id;
+        if (!ujianMap.has(halaqahId)) {
+          const maxStudents = sub.ujian_halaqah.max_students || 20;
+          ujianMap.set(halaqahId, {
+            halaqahId,
+            halaqah: {
+              ...sub.ujian_halaqah,
+              max_students: maxStudents,
+              available_slots: maxStudents,  // Will be calculated after all thalibah are added
+              is_full: false
+            },
+            thalibah: [],
+            type: 'ujian'
+          });
+        }
+        const entry = ujianMap.get(halaqahId)!;
+        entry.thalibah.push({
+          id: sub.user_id,
+          submission_id: sub.id,
+          full_name: sub.confirmed_full_name || sub.user?.full_name || '-',
+          email: sub.user?.email || '-',
+          partner_name: sub.partner_user?.full_name || sub.partner_name || '-',
+          partner_type: sub.partner_type || '-',
+          status: sub.status,
+          submitted_at: sub.submitted_at || sub.created_at,
+          confirmed_juz: sub.confirmed_chosen_juz || '-',
+          confirmed_time_slot: sub.confirmed_main_time_slot || '-',
+          type: 'ujian'
         });
       }
 
-      const entry = halaqahMap.get(halaqahId)!;
-      entry.types.add(type);
-
-      // Guard against missing thalibah array
-      if (!item.thalibah || !Array.isArray(item.thalibah)) {
-        return;
-      }
-
-      // Add thalibah with type info
-      const thalibahWithType = item.thalibah.map((t: any) => ({
-        ...t,
-        type: type,
-        submission_id: t.submission_id || t.id // Use submission_id if available, else id
-      }));
-
-      thalibahWithType.forEach((t: ThalibahInfo) => {
-        // Check if this thalibah is already in the list (could be both ujian and tashih)
-        const existing = entry.thalibah.find(
-          (x) => x.id === t.id
-        );
-
+      // Process tashih halaqah (exclude umum)
+      if (sub.tashih_halaqah_id && sub.tashih_halaqah && !sub.is_tashih_umum) {
+        const halaqahId = sub.tashih_halaqah_id;
+        if (!tashihMap.has(halaqahId)) {
+          const maxStudents = sub.tashih_halaqah.max_students || 20;
+          tashihMap.set(halaqahId, {
+            halaqahId,
+            halaqah: {
+              ...sub.tashih_halaqah,
+              max_students: maxStudents,
+              available_slots: maxStudents,  // Will be calculated after all thalibah are added
+              is_full: false
+            },
+            thalibah: [],
+            type: 'tashih'
+          });
+        }
+        const entry = tashihMap.get(halaqahId)!;
+        // Check if this thalibah is already in ujian (for both type)
+        const existing = entry.thalibah.find(t => t.id === sub.user_id);
         if (existing) {
-          // If already exists, mark as 'both'
           existing.type = 'both';
         } else {
-          entry.thalibah.push(t);
+          entry.thalibah.push({
+            id: sub.user_id,
+            submission_id: sub.id,
+            full_name: sub.confirmed_full_name || sub.user?.full_name || '-',
+            email: sub.user?.email || '-',
+            partner_name: sub.partner_user?.full_name || sub.partner_name || '-',
+            partner_type: sub.partner_type || '-',
+            status: sub.status,
+            submitted_at: sub.submitted_at || sub.created_at,
+            confirmed_juz: sub.confirmed_chosen_juz || '-',
+            confirmed_time_slot: sub.confirmed_main_time_slot || '-',
+            type: 'tashih'
+          });
         }
-      });
-    });
-
-    // Convert to final format, determining the overall type
-    return Array.from(halaqahMap.values()).map(entry => {
-      let overallType: 'ujian' | 'tashih' | 'both' = 'both';
-      if (entry.types.size === 1) {
-        overallType = entry.types.has('ujian') ? 'ujian' : 'tashih';
       }
-
-      return {
-        halaqah: entry.halaqah,
-        thalibah: entry.thalibah,
-        type: overallType
-      };
     });
-  }, [rawData]);
+
+    // Calculate available slots and is_full status
+    ujianMap.forEach((entry) => {
+      if (entry.halaqah) {
+        entry.halaqah.available_slots = (entry.halaqah.max_students || 20) - entry.thalibah.length;
+        entry.halaqah.is_full = entry.halaqah.available_slots <= 0;
+      }
+    });
+
+    tashihMap.forEach((entry) => {
+      if (entry.halaqah) {
+        entry.halaqah.available_slots = (entry.halaqah.max_students || 20) - entry.thalibah.length;
+        entry.halaqah.is_full = entry.halaqah.available_slots <= 0;
+      }
+    });
+
+    // Combine both maps
+    return [...ujianMap.values(), ...tashihMap.values()];
+  }, [submissions]);
 
   // Sort halaqah list
   const sortedHalaqahList = useMemo(() => {
@@ -217,24 +238,22 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
       switch (sortField) {
         case 'name':
-          compareValue = a.halaqah.name.localeCompare(b.halaqah.name);
+          const aName = a.halaqah?.name || '';
+          const bName = b.halaqah?.name || '';
+          compareValue = aName.localeCompare(bName);
           break;
         case 'thalibah_count':
           compareValue = a.thalibah.length - b.thalibah.length;
           break;
-        case 'muallimah':
-          const aMuallimah = a.halaqah.muallimah_name || '';
-          const bMuallimah = b.halaqah.muallimah_name || '';
-          compareValue = aMuallimah.localeCompare(bMuallimah);
-          break;
         case 'schedule':
-          // Sort by day of week, then by time
-          const aDay = a.halaqah.day_of_week ?? 99;
-          const bDay = b.halaqah.day_of_week ?? 99;
+          const aDay = a.halaqah?.day_of_week ?? 99;
+          const bDay = b.halaqah?.day_of_week ?? 99;
           if (aDay !== bDay) {
             compareValue = aDay - bDay;
           } else {
-            compareValue = (a.halaqah.start_time || '').localeCompare(b.halaqah.start_time || '');
+            const aTime = a.halaqah?.start_time || '';
+            const bTime = b.halaqah?.start_time || '';
+            compareValue = aTime.localeCompare(bTime);
           }
           break;
       }
@@ -271,11 +290,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
             const bPartner = b.partner_name || '';
             compareValue = aPartner.localeCompare(bPartner);
             break;
-          case 'type':
-            const aTypeOrder = TYPE_ORDER[a.type] || 999;
-            const bTypeOrder = TYPE_ORDER[b.type] || 999;
-            compareValue = aTypeOrder - bTypeOrder;
-            break;
           case 'status':
             const aStatusOrder = STATUS_ORDER[a.status] || 999;
             const bStatusOrder = STATUS_ORDER[b.status] || 999;
@@ -298,7 +312,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     });
   }, [sortedHalaqahList, thalibahSortField, thalibahSortOrder]);
 
-  // Statistics for halaqah
+  // Statistics
   const halaqahStats = useMemo(() => {
     const totalHalaqah = halaqahListWithSortedThalibah.length;
     const totalThalibah = halaqahListWithSortedThalibah.reduce((sum, h) => sum + h.thalibah.length, 0);
@@ -325,26 +339,14 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       });
     });
 
-    // Count by Muallimah
-    const muallimahCount: Record<string, number> = {};
-    halaqahListWithSortedThalibah.forEach(h => {
-      if (h.halaqah.muallimah_name) {
-        muallimahCount[h.halaqah.muallimah_name] = (muallimahCount[h.halaqah.muallimah_name] || 0) + h.thalibah.length;
-      }
-    });
-
     // Count by Schedule (day of week)
-    const DAY_NAMES = ['', 'Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     const scheduleCount: Record<string, number> = {};
     halaqahListWithSortedThalibah.forEach(h => {
-      if (h.halaqah.day_of_week !== undefined && h.halaqah.day_of_week >= 1) {
+      if (h.halaqah?.day_of_week !== undefined && h.halaqah.day_of_week >= 1) {
         const day = DAY_NAMES[h.halaqah.day_of_week];
         scheduleCount[day] = (scheduleCount[day] || 0) + h.thalibah.length;
       }
     });
-
-    // Full halaqah count
-    const fullHalaqah = halaqahListWithSortedThalibah.filter(h => h.halaqah.is_full).length;
 
     return {
       totalHalaqah,
@@ -353,9 +355,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       ujianCount,
       tashihCount,
       juzCount,
-      muallimahCount,
       scheduleCount,
-      fullHalaqah
     };
   }, [halaqahListWithSortedThalibah]);
 
@@ -476,10 +476,9 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     setExpandedHalaqah(newExpanded);
   };
 
-  const handleAddThalibah = (halaqah: HalaqahInfo, type: 'ujian' | 'tashih' | 'both') => {
+  const handleAddThalibah = (halaqah: HalaqahInfo, type: 'ujian' | 'tashih') => {
     setSelectedHalaqahForAdd(halaqah);
-    // For 'both' type, default to 'ujian' but could add selection UI in the future
-    setSelectedHalaqahType(type === 'both' ? 'ujian' : type);
+    setSelectedHalaqahType(type);
     setShowAddThalibahModal(true);
   };
 
@@ -490,7 +489,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const downloadHalaqahPDF = async (halaqahId: string) => {
     setDownloadingPDF(true);
     try {
-      const halaqahData = halaqahListWithSortedThalibah.find(h => h.halaqah.id === halaqahId);
+      const halaqahData = halaqahListWithSortedThalibah.find(h => h.halaqahId === halaqahId);
       if (!halaqahData) {
         toast.error('Halaqah not found');
         return;
@@ -503,61 +502,37 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       // Title
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Daftar Thalibah - ${halaqahData.halaqah.name}`, pageWidth / 2, 20, { align: 'center' });
+      doc.text(`Daftar Thalibah - ${halaqahData.halaqah?.name || 'Halaqah'}`, pageWidth / 2, 20, { align: 'center' });
 
       // Schedule info
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      const scheduleY = 30;
-      let yPos = scheduleY;
+      let yPos = 30;
 
-      // Hari - only show if day_of_week exists
-      if (halaqahData.halaqah.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
+      // Day and time
+      if (halaqahData.halaqah?.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
         doc.text(`Jadwal: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}, ${halaqahData.halaqah.start_time || ''} - ${halaqahData.halaqah.end_time || ''}`, 14, yPos);
         yPos += 7;
-      } else if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
-        // Fallback if only time is available
-        doc.text(`Jadwal: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 14, yPos);
-        yPos += 7;
       }
 
-      // Muallimah - add "Ustadzah" prefix
-      if (halaqahData.halaqah.muallimah_name) {
-        doc.text(`Muallimah: Ustadzah ${halaqahData.halaqah.muallimah_name}`, 14, yPos);
-        yPos += 7;
-      }
-
-      // Max students and quota info
-      const maxStudents = halaqahData.halaqah.max_students || 20;
-      const availableSlots = halaqahData.halaqah.available_slots ?? (maxStudents - halaqahData.thalibah.length);
-      const isFull = halaqahData.halaqah.is_full ?? availableSlots <= 0;
-
+      // Total thalibah
+      const maxStudents = halaqahData.halaqah?.max_students || 20;
       doc.setFont('helvetica', 'bold');
       doc.text(`Total Thalibah: ${halaqahData.thalibah.length} / ${maxStudents}`, 14, yPos);
       yPos += 7;
 
-      // Quota status with color indicator
+      // Type
       doc.setFont('helvetica', 'normal');
-      if (isFull) {
-        doc.setTextColor(220, 38, 38); // Red
-        doc.text(`Status: PENUH`, 14, yPos);
-      } else if (availableSlots <= 3) {
-        doc.setTextColor(251, 146, 60); // Orange
-        doc.text(`Sisa Kuota: ${availableSlots} slot`, 14, yPos);
-      } else {
-        doc.setTextColor(34, 197, 94); // Green
-        doc.text(`Sisa Kuota: ${availableSlots} slot`, 14, yPos);
-      }
-      doc.setTextColor(0, 0, 0); // Reset to black
+      doc.text(`Tipe: ${halaqahData.type === 'ujian' ? 'Ujian' : 'Tashih'}`, 14, yPos);
       yPos += 7;
 
-      // Table - removed Partner columns, changed "Paket" to "Tashih & Ujian", removed Status column
+      // Table
       const tableData = halaqahData.thalibah.map((t, index) => [
         index + 1,
         t.full_name,
         t.confirmed_juz || '-',
         t.confirmed_time_slot || '-',
-        t.type === 'both' ? 'Tashih & Ujian' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
+        t.type === 'both' ? 'Paket' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
         formatDate(t.submitted_at)
       ]);
 
@@ -578,16 +553,16 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           fillColor: [240, 240, 240],
         },
         columnStyles: {
-          0: { cellWidth: 10 },  // No
-          1: { cellWidth: 55 }, // Nama
-          2: { cellWidth: 18 }, // Juz
-          3: { cellWidth: 30 }, // Slot Waktu
-          4: { cellWidth: 35 }, // Tipe
-          5: { cellWidth: 40 }, // Submitted
+          0: { cellWidth: 10 },
+          1: { cellWidth: 55 },
+          2: { cellWidth: 18 },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 40 },
         },
       });
 
-      // Footer with timestamp
+      // Footer
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -599,11 +574,9 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           pageHeight - 10,
           { align: 'center' }
         );
-        doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
       }
 
-      // Save PDF
-      const fileName = `daftar-thalibah-${halaqahData.halaqah.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = `daftar-thalibah-${halaqahData.halaqah?.name?.replace(/\s+/g, '-') || 'halaqah'}-${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
 
       toast.success('PDF berhasil diunduh');
@@ -622,99 +595,52 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
-      // Title
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('Daftar Thalibah per Halaqah', pageWidth / 2, 20, { align: 'center' });
 
-      // Summary
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(`Total Halaqah: ${halaqahListWithSortedThalibah.length}`, 14, 30);
       doc.text(`Total Thalibah: ${halaqahListWithSortedThalibah.reduce((sum, h) => sum + h.thalibah.length, 0)}`, 14, 37);
-      doc.text(`Tanggal Cetak: ${new Date().toLocaleString('id-ID')}`, 14, 44);
 
-      let yPos = 55;
+      let yPos = 50;
 
-      // Generate table for each halaqah
       for (const halaqahData of halaqahListWithSortedThalibah) {
-        // Check if we need a new page
-        if (yPos > pageHeight - 100) {
+        if (yPos > pageHeight - 80) {
           doc.addPage();
           yPos = 20;
         }
 
-        // Halaqah header
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text(`${halaqahData.halaqah.name} (${halaqahData.thalibah.length} thalibah)`, 14, yPos);
+        doc.text(`${halaqahData.halaqah?.name || 'Halaqah'} (${halaqahData.thalibah.length} thalibah)`, 14, yPos);
         yPos += 7;
 
-        // Schedule info - combined format
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-
-        // Jadwal - only show if day_of_week exists
-        if (halaqahData.halaqah.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
+        if (halaqahData.halaqah?.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
           doc.text(`Jadwal: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}, ${halaqahData.halaqah.start_time || ''} - ${halaqahData.halaqah.end_time || ''}`, 16, yPos);
           yPos += 6;
-        } else if (halaqahData.halaqah.start_time && halaqahData.halaqah.end_time) {
-          doc.text(`Jadwal: ${halaqahData.halaqah.start_time} - ${halaqahData.halaqah.end_time}`, 16, yPos);
-          yPos += 6;
         }
 
-        // Muallimah - add "Ustadzah" prefix
-        if (halaqahData.halaqah.muallimah_name) {
-          doc.text(`Muallimah: Ustadzah ${halaqahData.halaqah.muallimah_name}`, 16, yPos);
-          yPos += 6;
-        }
+        const tableData = halaqahData.thalibah.map((t, index) => [
+          index + 1,
+          t.full_name,
+          t.confirmed_juz || '-',
+          t.type === 'both' ? 'Paket' : t.type,
+        ]);
 
-        // Max students and quota info
-        const maxStudents = halaqahData.halaqah.max_students || 20;
-        const availableSlots = halaqahData.halaqah.available_slots ?? (maxStudents - halaqahData.thalibah.length);
-        const isFull = halaqahData.halaqah.is_full ?? availableSlots <= 0;
-
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Total: ${halaqahData.thalibah.length} / ${maxStudents}`, 16, yPos);
-        yPos += 6;
-
-        // Quota status with color indicator
-        doc.setFont('helvetica', 'normal');
-        if (isFull) {
-          doc.setTextColor(220, 38, 38); // Red
-          doc.text(`Status: PENUH`, 16, yPos);
-        } else if (availableSlots <= 3) {
-          doc.setTextColor(251, 146, 60); // Orange
-          doc.text(`Sisa: ${availableSlots} slot`, 16, yPos);
-        } else {
-          doc.setTextColor(34, 197, 94); // Green
-          doc.text(`Sisa: ${availableSlots} slot`, 16, yPos);
-        }
-        doc.setTextColor(0, 0, 0); // Reset to black
-        yPos += 6;
-
-        // Check if we need a new page before table
         if (yPos > pageHeight - 60) {
           doc.addPage();
           yPos = 20;
         }
 
-        // Table data - removed Partner column, changed "Paket" to "Tashih & Ujian", removed Status column
-        const tableData = halaqahData.thalibah.map((t, index) => [
-          index + 1,
-          t.full_name,
-          t.confirmed_juz || '-',
-          t.type === 'both' ? 'Tashih & Ujian' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'),
-        ]);
-
         autoTable(doc, {
           startY: yPos,
           head: [['No', 'Nama', 'Juz', 'Tipe']],
           body: tableData,
-          styles: {
-            fontSize: 8,
-            cellPadding: 2,
-          },
+          styles: { fontSize: 8, cellPadding: 2 },
           headStyles: {
             fillColor: [34, 197, 94],
             textColor: [255, 255, 255],
@@ -727,15 +653,13 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
             3: { cellWidth: 30 },
           },
           didDrawPage: (data) => {
-            yPos = (data.cursor?.y ?? 60) + 10;
+            yPos = (data.cursor?.y ?? 50) + 10;
           },
         });
 
-        // Add spacing between halaqah
         yPos += 10;
       }
 
-      // Footer with timestamp
       const pageCount = doc.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -747,10 +671,8 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           pageHeight - 10,
           { align: 'center' }
         );
-        doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth - 20, pageHeight - 10, { align: 'right' });
       }
 
-      // Save PDF
       const fileName = `daftar-thalibah-all-halaqah-${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
 
@@ -758,138 +680,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Gagal membuat PDF');
-    } finally {
-      setDownloadingPDF(false);
-    }
-  };
-
-  const downloadHalaqahAsImage = async (halaqahId: string) => {
-    setDownloadingPDF(true);
-    try {
-      const halaqahData = halaqahListWithSortedThalibah.find(h => h.halaqah.id === halaqahId);
-      if (!halaqahData) {
-        toast.error('Halaqah not found');
-        return;
-      }
-
-      // Create a temporary canvas element
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        toast.error('Failed to create canvas');
-        return;
-      }
-
-      // Set canvas dimensions (higher quality)
-      const width = 1200;
-      const height = Math.max(800, 200 + halaqahData.thalibah.length * 50);
-      canvas.width = width;
-      canvas.height = height;
-
-      // Background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
-
-      // Header section
-      ctx.fillStyle = '#10b981'; // Green color
-      ctx.fillRect(20, 20, width - 40, 80);
-
-      // Title
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Daftar Thalibah - ${halaqahData.halaqah.name}`, width / 2, 50);
-
-      // Subtitle
-      ctx.font = '14px Arial';
-      ctx.fillText(`${halaqahData.thalibah.length} Thalibah`, width / 2, 80);
-
-      let yPos = 130;
-
-      // Muallimah info
-      if (halaqahData.halaqah.muallimah_name) {
-        ctx.fillStyle = '#374151';
-        ctx.font = 'bold 16px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Ustadzah: ${halaqahData.halaqah.muallimah_name}`, 40, yPos);
-        yPos += 30;
-      }
-
-      // Schedule info
-      ctx.font = '14px Arial';
-      ctx.fillStyle = '#4b5563';
-      if (halaqahData.halaqah.day_of_week !== undefined && halaqahData.halaqah.day_of_week >= 1) {
-        ctx.fillText(`Jadwal: ${DAY_NAMES[halaqahData.halaqah.day_of_week]}, ${halaqahData.halaqah.start_time || ''} - ${halaqahData.halaqah.end_time || ''}`, 40, yPos);
-        yPos += 25;
-      }
-
-      // Quota info
-      const maxStudents = halaqahData.halaqah.max_students || 20;
-      const availableSlots = halaqahData.halaqah.available_slots ?? (maxStudents - halaqahData.thalibah.length);
-      const isFull = halaqahData.halaqah.is_full ?? availableSlots <= 0;
-
-      ctx.fillStyle = isFull ? '#dc2626' : (availableSlots <= 3 ? '#f97316' : '#10b981');
-      ctx.fillText(`Total: ${halaqahData.thalibah.length} / ${maxStudents} ${isFull ? '(PENUH)' : `(Tersedia: ${availableSlots})`}`, 40, yPos);
-      yPos += 40;
-
-      // Table header
-      ctx.fillStyle = '#f3f4f6';
-      ctx.fillRect(40, yPos, width - 80, 40);
-      yPos += 25;
-
-      ctx.fillStyle = '#374151';
-      ctx.font = 'bold 14px Arial';
-      ctx.fillText('No', 60, yPos);
-      ctx.fillText('Nama', 150, yPos);
-      ctx.fillText('Juz', 550, yPos);
-      ctx.fillText('Tipe', 700, yPos);
-      ctx.fillText('Partner', 850, yPos);
-      yPos += 30;
-
-      // Table rows
-      ctx.font = '13px Arial';
-      halaqahData.thalibah.forEach((t, index) => {
-        // Alternate row background
-        if (index % 2 === 0) {
-          ctx.fillStyle = '#f9fafb';
-          ctx.fillRect(40, yPos - 15, width - 80, 35);
-        }
-
-        ctx.fillStyle = '#374151';
-        ctx.fillText(`${index + 1}`, 60, yPos);
-        ctx.fillText(t.full_name, 150, yPos);
-        ctx.fillText(t.confirmed_juz || '-', 550, yPos);
-        ctx.fillText(t.type === 'both' ? 'Tashih & Ujian' : (t.type === 'ujian' ? 'Ujian' : 'Tashih'), 700, yPos);
-        ctx.fillText(t.partner_name || '-', 850, yPos);
-        yPos += 35;
-      });
-
-      // Footer
-      yPos += 20;
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = 'italic 11px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(`Dicetak pada ${new Date().toLocaleString('id-ID')}`, width / 2, height - 20);
-
-      // Convert canvas to blob and download
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          toast.error('Failed to generate image');
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `daftar-thalibah-${halaqahData.halaqah.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success('JPEG berhasil diunduh');
-      }, 'image/jpeg', 0.9);
-    } catch (error) {
-      console.error('Error generating image:', error);
-      toast.error('Gagal membuat JPEG');
     } finally {
       setDownloadingPDF(false);
     }
@@ -925,7 +715,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Total Halaqah</p>
             <p className="text-2xl font-bold text-gray-900">{halaqahStats.totalHalaqah}</p>
-            <p className="text-xs text-gray-500 mt-1">{halaqahStats.fullHalaqah} penuh</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Total Thalibah</p>
@@ -946,9 +735,9 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         </div>
       )}
 
-      {/* Additional Stats: Juz, Schedule, Muallimah */}
+      {/* Additional Stats */}
       {!loading && halaqahListWithSortedThalibah.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Per Juz */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase mb-2">Per Juz</p>
@@ -982,21 +771,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                 ))}
             </div>
           </div>
-
-          {/* Per Muallimah */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-xs text-gray-500 uppercase mb-2">Per Muallimah</p>
-            <div className="space-y-1 max-h-40 overflow-y-auto">
-              {Object.entries(halaqahStats.muallimahCount)
-                .sort(([, a], [, b]) => b - a)
-                .map(([muallimah, count]) => (
-                  <div key={muallimah} className="flex justify-between text-sm">
-                    <span className="text-gray-600 truncate flex-1">{muallimah}</span>
-                    <span className="font-medium ml-2">{count}</span>
-                  </div>
-                ))}
-            </div>
-          </div>
         </div>
       )}
 
@@ -1018,44 +792,42 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         ) : (
           <div className="divide-y divide-gray-200">
             {halaqahListWithSortedThalibah.map((item) => {
-              const isExpanded = expandedHalaqah.has(item.halaqah.id);
+              const isExpanded = expandedHalaqah.has(item.halaqahId);
               const thalibahCount = item.thalibah.length;
 
               return (
-                <div key={item.halaqah.id} className="hover:bg-gray-50">
+                <div key={item.halaqahId} className="hover:bg-gray-50">
                   {/* Halaqah Header */}
                   <div className="px-6 py-4">
                     <div className="flex items-center justify-between">
                       <button
-                        onClick={() => toggleExpand(item.halaqah.id)}
+                        onClick={() => toggleExpand(item.halaqahId)}
                         className="flex-1 flex items-center justify-between text-left"
                       >
                         <div className="flex-1">
-                          {/* Title row with halaqah name and badge */}
+                          {/* Title row */}
                           <div className="flex items-center gap-3">
                             <h3 className="text-lg font-semibold text-gray-900">
-                              {item.halaqah.name}
+                              {item.halaqah?.name || 'Unknown Halaqah'}
                             </h3>
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              item.halaqah.is_full
+                              thalibahCount >= (item.halaqah?.max_students || 20)
                                 ? 'bg-red-100 text-red-700'
-                                : (item.halaqah.available_slots ?? 999) <= 3
-                                ? 'bg-orange-100 text-orange-700'
                                 : 'bg-green-100 text-green-700'
                             }`}>
-                              {thalibahCount} / {item.halaqah.max_students || 20} {item.halaqah.is_full ? '(Penuh)' : `(Tersedia: ${item.halaqah.available_slots ?? 0})`}
+                              {thalibahCount} thalibah
+                            </span>
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 text-gray-700">
+                              {item.type === 'ujian' ? 'Ujian' : 'Tashih'}
                             </span>
                           </div>
 
-                          {/* Muallimah info row */}
-                          <div className="mt-2 flex items-center gap-2 text-sm">
-                            {item.halaqah.muallimah_name && (
-                              <>
-                                <span className="font-medium text-gray-900">Ustadzah {item.halaqah.muallimah_name}</span>
-                                <span className="text-gray-400">/</span>
-                              </>
-                            )}
-                            <div className="flex items-center gap-3 text-gray-600">
+                          {/* Schedule row */}
+                          {item.halaqah && (
+                            <div className="mt-2 flex items-center gap-3 text-sm text-gray-600">
+                              {item.halaqah.muallimah_name && (
+                                <span className="font-medium text-gray-700">Ustadzah {item.halaqah.muallimah_name}</span>
+                              )}
                               {item.halaqah.day_of_week !== undefined && (
                                 <div className="flex items-center gap-1">
                                   <Calendar className="w-4 h-4" />
@@ -1069,7 +841,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                                 </div>
                               )}
                             </div>
-                          </div>
+                          )}
                         </div>
                         {isExpanded ? (
                           <ChevronUp className="w-5 h-5 text-gray-400" />
@@ -1080,11 +852,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
                       {/* Action Buttons */}
                       <div className="ml-4 flex gap-2">
-                        {/* Add Thalibah Button - shown based on halaqah type */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAddThalibah(item.halaqah, item.type);
+                            handleAddThalibah(item.halaqah!, item.type);
                           }}
                           className="px-3 py-2 border border-green-300 text-green-600 rounded-md text-sm hover:bg-green-50 transition-colors flex items-center gap-1"
                           title="Add Thalibah"
@@ -1095,7 +866,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            downloadHalaqahPDF(item.halaqah.id);
+                            downloadHalaqahPDF(item.halaqahId);
                           }}
                           disabled={downloadingPDF}
                           className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1103,20 +874,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         >
                           <Download className="w-4 h-4" />
                           <span className="hidden sm:inline">PDF</span>
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadHalaqahAsImage(item.halaqah.id);
-                          }}
-                          disabled={downloadingPDF}
-                          className="px-3 py-2 border border-blue-300 text-blue-600 rounded-md text-sm hover:bg-blue-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Download as JPEG"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="hidden sm:inline">JPEG</span>
                         </button>
                       </div>
                     </div>
@@ -1154,15 +911,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                                 <div className="flex items-center gap-1">
                                   Partner
                                   {getThalibahSortIcon('partner')}
-                                </div>
-                              </th>
-                              <th
-                                onClick={() => handleThalibahSort('type')}
-                                className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none"
-                              >
-                                <div className="flex items-center gap-1">
-                                  Tipe
-                                  {getThalibahSortIcon('type')}
                                 </div>
                               </th>
                               <th
@@ -1210,9 +958,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                                     <p className="text-gray-900">{thalibah.partner_name || '-'}</p>
                                     <p className="text-xs text-gray-500">{thalibah.partner_type || '-'}</p>
                                   </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                  {getTypeBadge(thalibah.type)}
                                 </td>
                                 <td className="px-4 py-3">
                                   {getStatusBadge(thalibah.status)}
