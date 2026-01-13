@@ -78,11 +78,14 @@ export async function GET(request: NextRequest) {
     // Call shared quota calculation API (without user_id, so all users are counted)
     const quotaUrl = new URL('/api/shared/halaqah-quota', request.url);
     quotaUrl.searchParams.set('batch_id', batchId);
+    // Add cache-busting timestamp to ensure fresh data
+    quotaUrl.searchParams.set('_t', Date.now().toString());
 
     const quotaResponse = await fetch(quotaUrl.toString(), {
       headers: {
         'Cookie': request.headers.get('Cookie') || ''
-      }
+      },
+      cache: 'no-store'
     });
 
     if (!quotaResponse.ok) {
