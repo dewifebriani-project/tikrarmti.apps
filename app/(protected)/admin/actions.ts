@@ -22,7 +22,9 @@ import { logError, LogErrorContext } from '@/lib/logger'
 interface CreateUserData {
   email: string
   full_name?: string
+  nama_kunyah?: string
   role?: string
+  roles?: string[]
   phone?: string
   whatsapp?: string
   telegram?: string
@@ -36,6 +38,7 @@ interface CreateUserData {
   jenis_kelamin?: string
   pekerjaan?: string
   alasan_daftar?: string
+  is_active?: boolean
 }
 
 interface UpdateUserData extends Partial<CreateUserData> {
@@ -614,6 +617,96 @@ export async function getSystemLogsStats(filter: Omit<SystemLogFilter, 'limit' |
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch system logs statistics',
+    }
+  }
+}
+
+/**
+ * Reset user password to default (Admin only)
+ *
+ * @param userId User ID to reset password for
+ * @returns Success status and optional error
+ */
+export async function resetUserPassword(userId: string) {
+  try {
+    // CRITICAL: Verify admin role first
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    // Validate required fields
+    if (!userId) {
+      return {
+        success: false,
+        error: 'User ID is required'
+      }
+    }
+
+    // Get user email first
+    const { data: targetUser, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('id', userId)
+      .single()
+
+    if (fetchError || !targetUser) {
+      // Log database error
+      await logError(fetchError || new Error('User not found'), {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'resetUserPassword',
+        errorType: 'database',
+        context: { targetUserId: userId },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: fetchError?.message || 'User not found'
+      }
+    }
+
+    // Update password using admin client (auth.users table)
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      { password: 'MTI123!' }
+    )
+
+    if (updateError) {
+      // Log database error
+      await logError(updateError, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'resetUserPassword',
+        errorType: 'database',
+        context: { targetUserId: userId, targetUserEmail: targetUser.email },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: updateError.message
+      }
+    }
+
+    // Log password reset action
+    await logError(new Error(`Password reset for user ${targetUser.email}`), {
+      userId: user.id,
+      userEmail: user.email,
+      function: 'resetUserPassword',
+      errorType: 'runtime',
+      context: { targetUserId: userId, targetUserEmail: targetUser.email },
+    } as LogErrorContext)
+
+    return {
+      success: true,
+      message: 'Password reset to default: MTI123!'
+    }
+
+  } catch (error) {
+    // Log unexpected error
+    await logError(error, {
+      function: 'resetUserPassword',
+      errorType: 'runtime',
+      context: { userId },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to reset password'
     }
   }
 }

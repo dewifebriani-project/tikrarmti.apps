@@ -49,6 +49,8 @@ import { AnalysisTab } from '@/components/AnalysisTab';
 import { SystemLogsTab } from '@/components/SystemLogsTab';
 import { AdminPairingTab } from '@/components/AdminPairingTab';
 import { DaftarUlangTab } from '@/components/DaftarUlangTab';
+import { EditRoleModal } from '@/components/EditRoleModal';
+import { EditUserModal } from '@/components/EditUserModal';
 
 interface Batch {
   id: string;
@@ -2084,6 +2086,7 @@ function UsersTab({
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
@@ -2216,25 +2219,66 @@ function UsersTab({
       sortable: true,
       filterable: true,
       render: (user: any) => {
-        // Get first role for display (legacy support)
         // Handle both new format (roles array) and old format (role string)
-        const primaryRole = user.roles?.[0] || (user as any)?.role || '-';
+        const roles = user.roles || [(user as any)?.role].filter(Boolean);
+        const primaryRole = user.role || roles?.[0] || '-';
+
         const getRoleBadge = (role: string) => {
           switch (role) {
-            case 'admin': return 'bg-purple-100 text-purple-800';
-            case 'ustadzah': return 'bg-blue-100 text-blue-800';
-            case 'musyrifah': return 'bg-green-100 text-green-800';
-            case 'thalibah': return 'bg-yellow-100 text-yellow-800';
-            case 'calon_thalibah': return 'bg-gray-100 text-gray-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'admin': return 'bg-purple-100 text-purple-800 border-purple-300';
+            case 'muallimah': return 'bg-blue-100 text-blue-800 border-blue-300';
+            case 'ustadzah': return 'bg-blue-100 text-blue-800 border-blue-300';
+            case 'musyrifah': return 'bg-green-100 text-green-800 border-green-300';
+            case 'thalibah': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            case 'calon_thalibah': return 'bg-gray-100 text-gray-800 border-gray-300';
+            case 'pengurus': return 'bg-pink-100 text-pink-800 border-pink-300';
+            default: return 'bg-gray-100 text-gray-800 border-gray-300';
           }
         };
+
+        const formatRoleName = (role: string) => {
+          switch (role) {
+            case 'calon_thalibah': return 'Calon Thalibah';
+            case 'ustadzah': return 'Muallimah';
+            default: return role.charAt(0).toUpperCase() + role.slice(1);
+          }
+        };
+
         return (
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadge(primaryRole)}`}>
-            {primaryRole === 'calon_thalibah' ? 'Calon Thalibah' :
-             primaryRole === 'ustadzah' ? 'Muallimah' :
-             primaryRole.charAt(0).toUpperCase() + primaryRole.slice(1) || '-'}
-          </span>
+          <div className="flex flex-col gap-1.5">
+            {/* Primary role badge */}
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getRoleBadge(primaryRole)}`}>
+                {formatRoleName(primaryRole)}
+                {roles?.length > 1 && <span className="ml-1">+{roles.length - 1}</span>}
+              </span>
+            </div>
+
+            {/* Edit Role button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditRole(user);
+              }}
+              className="text-xs text-purple-600 hover:text-purple-800 underline"
+            >
+              Edit Roles
+            </button>
+
+            {/* Show all roles if multiple */}
+            {roles && roles.length > 1 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {roles.map((role: string) => (
+                  <span
+                    key={role}
+                    className={`px-1.5 py-0.5 text-[10px] font-medium rounded border ${getRoleBadge(role)}`}
+                  >
+                    {formatRoleName(role)}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         );
       },
     },
@@ -2409,35 +2453,14 @@ Tim Markaz Tikrar Indonesia`;
     },
   ];
 
-  const formFields: FormField[] = [
-    { name: 'full_name', label: 'Nama Lengkap (sesuai KTP)', type: 'text', required: true },
-    { name: 'nama_kunyah', label: 'Nama Kunyah/Panggilan', type: 'text', required: false },
-    { name: 'email', label: 'Email', type: 'email', required: true },
-    { name: 'phone', label: 'Phone', type: 'tel' },
-    {
-      name: 'role',
-      label: 'Role',
-      type: 'select',
-      required: true,
-      options: [
-        { value: 'admin', label: 'Admin' },
-        { value: 'ustadzah', label: 'Ustadzah' },
-        { value: 'musyrifah', label: 'Musyrifah' },
-        { value: 'thalibah', label: 'Thalibah' },
-        { value: 'calon_thalibah', label: 'Calon Thalibah' },
-      ]
-    },
-    { name: 'provinsi', label: 'Provinsi', type: 'text' },
-    { name: 'kota', label: 'Kota', type: 'text' },
-    { name: 'alamat', label: 'Alamat', type: 'textarea', rows: 3 },
-    { name: 'whatsapp', label: 'WhatsApp', type: 'tel' },
-    { name: 'telegram', label: 'Telegram', type: 'text' },
-    { name: 'is_active', label: 'Active', type: 'checkbox', defaultValue: true },
-  ];
-
   const handleEdit = (user: User) => {
     setSelectedUser(user);
     setShowModal(true);
+  };
+
+  const handleEditRole = (user: User) => {
+    setSelectedUser(user);
+    setShowRoleModal(true);
   };
 
   const handleDelete = (user: User) => {
@@ -2449,11 +2472,21 @@ Tim Markaz Tikrar Indonesia`;
     try {
       let result;
 
+      // Convert tanggal_lahir to ISO format if provided
+      const processedData = {
+        ...data,
+        ...(data.tanggal_lahir && {
+          tanggal_lahir: new Date(data.tanggal_lahir + 'T00:00:00.000Z').toISOString()
+        }),
+        // Handle provinsi based on negara
+        ...(data.negara !== 'Indonesia' && { provinsi: null }),
+      };
+
       if (selectedUser) {
         // Update existing user using Server Action (secure)
         result = await updateUser({
           id: selectedUser.id,
-          ...data
+          ...processedData
         } as any);
 
         if (!result.success) {
@@ -2462,7 +2495,7 @@ Tim Markaz Tikrar Indonesia`;
         toast.success('User updated successfully');
       } else {
         // Create new user using Server Action (secure)
-        result = await createUser(data as any);
+        result = await createUser(processedData as any);
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to create user');
@@ -2470,7 +2503,7 @@ Tim Markaz Tikrar Indonesia`;
         toast.success('User created successfully');
       }
 
-      onRefresh();
+      onUsersRefresh();
       setShowModal(false);
       setSelectedUser(null);
     } catch (error) {
@@ -2829,17 +2862,14 @@ Tim Markaz Tikrar Indonesia`;
         emptyIcon={<Users className="mx-auto h-12 w-12 text-gray-400" />}
       />
 
-      <AdminCrudModal
+      <EditUserModal
         isOpen={showModal}
         onClose={() => {
           setShowModal(false);
           setSelectedUser(null);
         }}
         onSubmit={handleSubmit}
-        title={selectedUser ? 'Edit User' : 'Add New User'}
-        fields={formFields}
-        initialData={selectedUser || {}}
-        isEditing={!!selectedUser}
+        user={selectedUser}
       />
 
       <AdminDeleteModal
@@ -2864,6 +2894,16 @@ Tim Markaz Tikrar Indonesia`;
           userId={selectedUser.id}
         />
       )}
+
+      <EditRoleModal
+        isOpen={showRoleModal}
+        onClose={() => {
+          setShowRoleModal(false);
+          setSelectedUser(null);
+        }}
+        onSuccess={onUsersRefresh}
+        user={selectedUser}
+      />
         </>
       )}
 
