@@ -93,6 +93,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch enrolment data (pendaftaran_tikrar_tahfidz) for manually added thalibah
+    // to get their chosen_juz and other info
+    const thalibahIds = halaqahStudents?.map(hs => hs.thalibah_id).filter(Boolean) || [];
+    const { data: enrolmentData } = await supabaseAdmin
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('id, user_id, chosen_juz, main_time_slot, batch_id')
+      .eq('batch_id', batchId)
+      .in('user_id', thalibahIds);
+
+    // Create a map for quick lookup of enrolment data by user_id
+    const enrolmentMap = new Map(
+      (enrolmentData || []).map(e => [e.user_id, e])
+    );
+
     console.log('[Daftar Ulang Halaqah] Fetched', submissions?.length || 0, 'submissions and', halaqahStudents?.length || 0, 'halaqah_students');
 
     // Call shared quota calculation API (without user_id, so all users are counted)
@@ -266,6 +280,10 @@ export async function GET(request: NextRequest) {
             thalibah: []
           });
         }
+
+        // Get enrolment data for this thalibah (if exists)
+        const enrolment = enrolmentMap.get(hs.thalibah_id);
+
         halaqahMap.get(ujianKey)!.thalibah.push({
           id: hs.thalibah.id,
           submission_id: hs.id, // Use halaqah_students id as submission_id
@@ -278,8 +296,9 @@ export async function GET(request: NextRequest) {
           // No partner info for manually assigned thalibah
           partner_name: undefined,
           partner_type: undefined,
-          confirmed_juz: undefined,
-          confirmed_time_slot: undefined
+          // Use enrolment data if available, otherwise undefined
+          confirmed_juz: enrolment?.chosen_juz || undefined,
+          confirmed_time_slot: enrolment?.main_time_slot || undefined
         });
       }
     });
