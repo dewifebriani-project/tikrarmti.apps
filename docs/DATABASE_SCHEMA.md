@@ -87,6 +87,9 @@ CREATE TABLE public.daftar_ulang_submissions (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   partner_wa_phone character varying,
+  pairing_status text DEFAULT 'pending'::text CHECK (pairing_status = ANY (ARRAY['pending'::text, 'paired'::text, 'rejected'::text])),
+  rejection_reason text,
+  akad_files jsonb DEFAULT '[]'::jsonb,
   CONSTRAINT daftar_ulang_submissions_pkey PRIMARY KEY (id),
   CONSTRAINT daftar_ulang_submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT daftar_ulang_submissions_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.pendaftaran_tikrar_tahfidz(id),
@@ -474,6 +477,24 @@ CREATE TABLE public.programs (
   CONSTRAINT programs_pkey PRIMARY KEY (id),
   CONSTRAINT programs_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id)
 );
+CREATE TABLE public.study_partners (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  batch_id uuid NOT NULL,
+  user_1_id uuid NOT NULL,
+  user_2_id uuid NOT NULL,
+  pairing_type text NOT NULL CHECK (pairing_type = ANY (ARRAY['self_match'::text, 'system_match'::text, 'family'::text, 'tarteel'::text])),
+  pairing_status text NOT NULL DEFAULT 'active'::text CHECK (pairing_status = ANY (ARRAY['active'::text, 'inactive'::text, 'paused'::text])),
+  paired_by uuid,
+  paired_at timestamp with time zone NOT NULL DEFAULT now(),
+  notes text,
+  CONSTRAINT study_partners_pkey PRIMARY KEY (id),
+  CONSTRAINT study_partners_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
+  CONSTRAINT study_partners_user_1_id_fkey FOREIGN KEY (user_1_id) REFERENCES public.users(id),
+  CONSTRAINT study_partners_user_2_id_fkey FOREIGN KEY (user_2_id) REFERENCES public.users(id),
+  CONSTRAINT study_partners_paired_by_fkey FOREIGN KEY (paired_by) REFERENCES public.users(id)
+);
 CREATE TABLE public.system_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -499,6 +520,21 @@ CREATE TABLE public.system_logs (
   sentry_sent boolean DEFAULT false,
   CONSTRAINT system_logs_pkey PRIMARY KEY (id),
   CONSTRAINT system_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.tashih_records (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  blok character varying NOT NULL,
+  lokasi character varying NOT NULL,
+  lokasi_detail text,
+  nama_pemeriksa character varying,
+  masalah_tajwid jsonb DEFAULT '[]'::jsonb,
+  catatan_tambahan text,
+  waktu_tashih timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT tashih_records_pkey PRIMARY KEY (id),
+  CONSTRAINT tashih_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -1171,6 +1171,7 @@ export async function addThalibahToHalaqah(params: {
     }
 
     console.log('[addThalibahToHalaqah] Adding', thalibahIds.length, 'thalibahs to halaqah', halaqahId, 'type:', halaqahType)
+    console.log('[addThalibahToHalaqah] Thalibah IDs:', thalibahIds)
 
     // Verify halaqah exists
     const { data: halaqah, error: halaqahError } = await supabaseAdmin
@@ -1180,11 +1181,14 @@ export async function addThalibahToHalaqah(params: {
       .single()
 
     if (halaqahError || !halaqah) {
+      console.error('[addThalibahToHalaqah] Halaqah not found:', halaqahError)
       return {
         success: false,
         error: 'Halaqah not found'
       }
     }
+
+    console.log('[addThalibahToHalaqah] Halaqah found:', halaqah.name)
 
     // Get current student count
     const { data: currentStudents, error: countError } = await supabaseAdmin
@@ -1196,6 +1200,8 @@ export async function addThalibahToHalaqah(params: {
     const currentCount = currentStudents?.length || 0
     const maxStudents = halaqah.max_students || 20
     const availableSlots = maxStudents - currentCount
+
+    console.log('[addThalibahToHalaqah] Current students:', currentCount, 'Max:', maxStudents, 'Available:', availableSlots)
 
     if (availableSlots < thalibahIds.length) {
       return {
@@ -1215,23 +1221,38 @@ export async function addThalibahToHalaqah(params: {
     // Process each thalibah
     for (const thalibahId of thalibahIds) {
       try {
+        console.log('[addThalibahToHalaqah] Processing thalibah:', thalibahId)
+
         // Step 1: Verify thalibah exists in enrolment table (pendaftaran_tikrar_tahfidz)
         const { data: enrolment, error: enrolmentError } = await supabaseAdmin
           .from('pendaftaran_tikrar_tahfidz')
-          .select('id, user_id, full_name, status, selection_status, re_enrollment_completed')
+          .select('id, user_id, full_name, status, selection_status, re_enrollment_completed, chosen_juz')
           .eq('user_id', thalibahId)
           .single()
 
-        if (enrolmentError || !enrolment) {
+        if (enrolmentError) {
+          console.error('[addThalibahToHalaqah] Enrolment error for', thalibahId, ':', enrolmentError)
           results.failed.push({
             thalibah_id: thalibahId,
-            reason: 'Thalibah not found in enrolment table'
+            reason: `Database error: ${enrolmentError.message}`
           })
           continue
         }
 
+        if (!enrolment) {
+          console.warn('[addThalibahToHalaqah] Thalibah not found in enrolment table:', thalibahId)
+          results.failed.push({
+            thalibah_id: thalibahId,
+            reason: 'Thalibah not found in enrolment table (pendaftaran_tikrar_tahfidz). Pastikan thalibah sudah mendaftar.'
+          })
+          continue
+        }
+
+        console.log('[addThalibahToHalaqah] Enrolment found:', enrolment.full_name, 're_enrollment_completed:', enrolment.re_enrollment_completed)
+
         // Verify thalibah has completed daftar ulang
         if (!enrolment.re_enrollment_completed) {
+          console.warn('[addThalibahToHalaqah] Thalibah has not completed daftar ulang:', enrolment.full_name)
           results.failed.push({
             thalibah_id: thalibahId,
             name: enrolment.full_name,
@@ -1249,6 +1270,7 @@ export async function addThalibahToHalaqah(params: {
           .maybeSingle()
 
         if (existingAssignment) {
+          console.warn('[addThalibahToHalaqah] Thalibah already in this halaqah:', enrolment.full_name)
           results.failed.push({
             thalibah_id: thalibahId,
             name: enrolment.full_name,
@@ -1266,6 +1288,7 @@ export async function addThalibahToHalaqah(params: {
           .neq('halaqah_id', halaqahId)
 
         if (otherAssignments && otherAssignments.length > 0) {
+          console.log('[addThalibahToHalaqah] Transferring from', otherAssignments.length, 'other halaqah(s)')
           // Mark old assignments as transferred
           for (const oldAssignment of otherAssignments) {
             await supabaseAdmin
@@ -1294,6 +1317,7 @@ export async function addThalibahToHalaqah(params: {
           .single()
 
         if (assignError) {
+          console.error('[addThalibahToHalaqah] Assignment error for', thalibahId, ':', assignError)
           results.failed.push({
             thalibah_id: thalibahId,
             name: enrolment.full_name,
@@ -1341,6 +1365,12 @@ export async function addThalibahToHalaqah(params: {
     // Revalidate admin halaqah page cache
     revalidatePath('/admin/halaqah')
     revalidatePath('/admin/daftar-ulang')
+
+    console.log('[addThalibahToHalaqah] Final results:', {
+      success: results.success.length,
+      failed: results.failed.length,
+      failed_details: results.failed
+    })
 
     return {
       success: true,

@@ -155,12 +155,19 @@ export function AddThalibahModal({
         toast.success(`Berhasil menambahkan ${data.success.length} thalibah ke ${halaqah.name}`);
       }
       if (data && data.failed && data.failed.length > 0) {
-        toast.error(`${data.failed.length} gagal ditambahkan. Cek console untuk detail.`);
+        // Show each failed reason
+        data.failed.forEach((failed: any) => {
+          const name = failed.name || failed.thalibah_id;
+          toast.error(`${name}: ${failed.reason}`);
+        });
         console.error('[AddThalibahModal] Failed:', data.failed);
       }
 
-      onSuccess();
-      onClose();
+      // Only close if at least one success
+      if (data && data.success && data.success.length > 0) {
+        onSuccess();
+        onClose();
+      }
     } catch (error: any) {
       console.error('[AddThalibahModal] Error adding thalibah:', error);
       toast.error('Gagal menambahkan thalibah: ' + error.message);
