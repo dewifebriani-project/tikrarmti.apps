@@ -75,6 +75,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch halaqah_students (manually assigned thalibah) with user details
+    const { data: halaqahStudents, error: halaqahStudentsError } = await supabaseAdmin
+      .from('halaqah_students')
+      .select(`
+        *,
+        thalibah:users!halaqah_students_thalibah_id_fkey(id, full_name, email),
+        halaqah:halaqah!halaqah_students_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, muallimah_id, max_students)
+      `)
+      .eq('status', 'active');
+
+    if (halaqahStudentsError) {
+      console.error('[Daftar Ulang Halaqah] Error fetching halaqah_students:', halaqahStudentsError);
+      return NextResponse.json(
+        { error: 'Failed to fetch halaqah students', details: halaqahStudentsError.message },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Daftar Ulang Halaqah] Fetched', submissions?.length || 0, 'submissions and', halaqahStudents?.length || 0, 'halaqah_students');
+
     // Call shared quota calculation API (without user_id, so all users are counted)
     const quotaUrl = new URL('/api/shared/halaqah-quota', request.url);
     quotaUrl.searchParams.set('batch_id', batchId);
@@ -197,6 +217,41 @@ export async function GET(request: NextRequest) {
           submitted_at: submission.submitted_at || submission.created_at,
           confirmed_juz: submission.confirmed_chosen_juz,
           confirmed_time_slot: submission.confirmed_main_time_slot
+        });
+      }
+    });
+
+    // Process halaqah_students (manually assigned thalibah)
+    // Use 'both' as the type since we don't know if they're for ujian or tashih
+    halaqahStudents?.forEach((hs: any) => {
+      if (!hs.halaqah) return;
+
+      const halaqahId = hs.halaqah.id;
+      const key = `${halaqahId}-ujian`; // Add to ujian by default for display
+
+      if (!halaqahMap.has(key)) {
+        halaqahMap.set(key, {
+          halaqah: hs.halaqah,
+          type: 'ujian',
+          thalibah: []
+        });
+      }
+
+      // Check if thalibah already exists (avoid duplicates)
+      const existing = halaqahMap.get(key)!.thalibah.find(t => t.id === hs.thalibah.id);
+      if (!existing) {
+        halaqahMap.get(key)!.thalibah.push({
+          id: hs.thalibah.id,
+          submission_id: hs.id, // Use halaqah_students id as submission_id
+          full_name: hs.thalibah.full_name,
+          email: hs.thalibah.email,
+          status: 'active', // Manually assigned
+          submitted_at: hs.assigned_at || hs.created_at,
+          // No partner info for manually assigned thalibah
+          partner_name: undefined,
+          partner_type: undefined,
+          confirmed_juz: undefined,
+          confirmed_time_slot: undefined
         });
       }
     });
