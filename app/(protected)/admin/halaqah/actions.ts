@@ -1108,8 +1108,7 @@ async function performAssignment(
         halaqah_id: halaqahId,
         thalibah_id: thalibahId,
         assigned_by: adminId,
-        status: 'active',
-        enrollment_type: 'new'
+        status: 'active'
       })
       .select()
       .single()
@@ -1309,9 +1308,7 @@ export async function addThalibahToHalaqah(params: {
             halaqah_id: halaqahId,
             thalibah_id: thalibahId,
             assigned_by: user.id,
-            status: 'active',
-            enrollment_type: 'transferred', // Mark as transferred since they're from enrolment
-            halaqah_type: halaqahType
+            status: 'active'
           })
           .select()
           .single()
