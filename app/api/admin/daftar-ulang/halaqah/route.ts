@@ -162,6 +162,8 @@ export async function GET(request: NextRequest) {
         submitted_at: string;
         confirmed_juz?: string;
         confirmed_time_slot?: string;
+        source?: 'submission' | 'halaqah_students';
+        halaqah_students_id?: string;
       }>;
     }>();
 
@@ -222,31 +224,57 @@ export async function GET(request: NextRequest) {
     });
 
     // Process halaqah_students (manually assigned thalibah)
-    // Use 'both' as the type since we don't know if they're for ujian or tashih
+    // These are thalibah added by admin via the Add feature
+    // They may or may not also have a daftar_ulang_submission
     halaqahStudents?.forEach((hs: any) => {
       if (!hs.halaqah) return;
 
       const halaqahId = hs.halaqah.id;
-      const key = `${halaqahId}-ujian`; // Add to ujian by default for display
 
-      if (!halaqahMap.has(key)) {
-        halaqahMap.set(key, {
-          halaqah: hs.halaqah,
-          type: 'ujian',
-          thalibah: []
-        });
+      // Try both ujian and tashih keys to check if thalibah already exists
+      const ujianKey = `${halaqahId}-ujian`;
+      const tashihKey = `${halaqahId}-tashih`;
+
+      let found = false;
+      // Check if already in ujian list
+      if (halaqahMap.has(ujianKey)) {
+        const existing = halaqahMap.get(ujianKey)!.thalibah.find(t => t.id === hs.thalibah.id);
+        if (existing) {
+          found = true;
+          // Mark as manually assigned (override status if needed)
+          existing.source = 'halaqah_students';
+          existing.halaqah_students_id = hs.id;
+        }
+      }
+      // Check if already in tashih list
+      if (!found && halaqahMap.has(tashihKey)) {
+        const existing = halaqahMap.get(tashihKey)!.thalibah.find(t => t.id === hs.thalibah.id);
+        if (existing) {
+          found = true;
+          // Mark as manually assigned (override status if needed)
+          existing.source = 'halaqah_students';
+          existing.halaqah_students_id = hs.id;
+        }
       }
 
-      // Check if thalibah already exists (avoid duplicates)
-      const existing = halaqahMap.get(key)!.thalibah.find(t => t.id === hs.thalibah.id);
-      if (!existing) {
-        halaqahMap.get(key)!.thalibah.push({
+      // If not found in either, add to ujian list (default)
+      if (!found) {
+        if (!halaqahMap.has(ujianKey)) {
+          halaqahMap.set(ujianKey, {
+            halaqah: hs.halaqah,
+            type: 'ujian',
+            thalibah: []
+          });
+        }
+        halaqahMap.get(ujianKey)!.thalibah.push({
           id: hs.thalibah.id,
           submission_id: hs.id, // Use halaqah_students id as submission_id
           full_name: hs.thalibah.full_name,
           email: hs.thalibah.email,
           status: 'active', // Manually assigned
           submitted_at: hs.assigned_at || hs.created_at,
+          source: 'halaqah_students', // Mark source
+          halaqah_students_id: hs.id,
           // No partner info for manually assigned thalibah
           partner_name: undefined,
           partner_type: undefined,
