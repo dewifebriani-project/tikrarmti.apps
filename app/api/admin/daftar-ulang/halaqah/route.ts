@@ -107,6 +107,32 @@ export async function GET(request: NextRequest) {
       (enrolmentData || []).map(e => [e.user_id, e])
     );
 
+    // Fetch daftar_ulang_submissions for manually added thalibah
+    // to get their partner_type, status, and other submission data
+    const { data: submissionData } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select(`
+        id,
+        user_id,
+        status,
+        partner_type,
+        partner_name,
+        confirmed_chosen_juz,
+        confirmed_main_time_slot,
+        ujian_halaqah_id,
+        tashih_halaqah_id,
+        is_tashih_umum,
+        submitted_at,
+        created_at
+      `)
+      .eq('batch_id', batchId)
+      .in('user_id', thalibahIds);
+
+    // Create a map for quick lookup of submission data by user_id
+    const submissionMap = new Map(
+      (submissionData || []).map(s => [s.user_id, s])
+    );
+
     console.log('[Daftar Ulang Halaqah] Fetched', submissions?.length || 0, 'submissions and', halaqahStudents?.length || 0, 'halaqah_students');
 
     // Call shared quota calculation API (without user_id, so all users are counted)
@@ -176,6 +202,7 @@ export async function GET(request: NextRequest) {
         submitted_at: string;
         confirmed_juz?: string;
         confirmed_time_slot?: string;
+        type?: 'ujian' | 'tashih' | 'both';
         source?: 'submission' | 'halaqah_students';
         halaqah_students_id?: string;
       }>;
@@ -281,24 +308,46 @@ export async function GET(request: NextRequest) {
           });
         }
 
-        // Get enrolment data for this thalibah (if exists)
+        // Get submission data for this thalibah (if exists)
+        const submission = submissionMap.get(hs.thalibah_id);
+        // Get enrolment data as fallback (if submission doesn't exist)
         const enrolment = enrolmentMap.get(hs.thalibah_id);
+
+        // Use submission data if available, otherwise use enrolment data
+        // This ensures consistency: if they have a submission, use its status/partner_type
+        const status = submission?.status || 'submitted'; // Default to submitted if no submission
+        const partnerType = submission?.partner_type;
+        const partnerName = submission?.partner_type === 'self_match' && submission?.partner_name
+          ? submission.partner_name
+          : submission?.partner_name;
+        const confirmedJuz = submission?.confirmed_chosen_juz || enrolment?.chosen_juz;
+        const confirmedTimeSlot = submission?.confirmed_main_time_slot || enrolment?.main_time_slot;
+        const submittedAt = submission?.submitted_at || submission?.created_at || hs.assigned_at || hs.created_at;
+        const submissionId = submission?.id || hs.id; // Use submission id if available, else halaqah_students id
+
+        // Determine type based on submission data
+        // If they have both ujian and tashih halaqah in submission, or if it's a 'both' type
+        let halaqahType: 'ujian' | 'tashih' | 'both' = 'ujian';
+        if (submission?.ujian_halaqah_id && submission?.tashih_halaqah_id && !submission?.is_tashih_umum) {
+          halaqahType = 'both';
+        } else if (submission?.tashih_halaqah_id && !submission?.is_tashih_umum) {
+          halaqahType = 'tashih';
+        }
 
         halaqahMap.get(ujianKey)!.thalibah.push({
           id: hs.thalibah.id,
-          submission_id: hs.id, // Use halaqah_students id as submission_id
+          submission_id: submissionId,
           full_name: hs.thalibah.full_name,
           email: hs.thalibah.email,
-          status: 'approved', // Show as approved since they're confirmed by admin
-          submitted_at: hs.assigned_at || hs.created_at,
-          source: 'halaqah_students', // Mark source
+          status: status,
+          submitted_at: submittedAt,
+          source: submission ? 'submission' : 'halaqah_students', // Mark source
           halaqah_students_id: hs.id,
-          // No partner info for manually assigned thalibah
-          partner_name: undefined,
-          partner_type: undefined,
-          // Use enrolment data if available, otherwise undefined
-          confirmed_juz: enrolment?.chosen_juz || undefined,
-          confirmed_time_slot: enrolment?.main_time_slot || undefined
+          partner_name: partnerName,
+          partner_type: partnerType,
+          confirmed_juz: confirmedJuz,
+          confirmed_time_slot: confirmedTimeSlot,
+          type: halaqahType
         });
       }
     });
