@@ -72,17 +72,24 @@ export function AddThalibahModal({
         params.append('batch_id', batchId);
       }
 
+      console.log('[AddThalibahModal] Loading eligible thalibah, batchId:', batchId);
       const response = await fetch(`/api/admin/daftar-ulang/halaqah/add-thalibah?${params.toString()}`);
       const result = await response.json();
+
+      console.log('[AddThalibahModal] Response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to load eligible thalibah');
       }
 
-      setEligibleThalibah(result.data || []);
+      // Ensure result.data is an array
+      const thalibahData = result.data || [];
+      console.log('[AddThalibahModal] Loaded', thalibahData.length, 'eligible thalibah');
+      setEligibleThalibah(thalibahData);
     } catch (error: any) {
       console.error('[AddThalibahModal] Error loading eligible thalibah:', error);
       toast.error('Gagal memuat daftar thalibah: ' + error.message);
+      setEligibleThalibah([]);
     } finally {
       setLoading(false);
     }
@@ -115,6 +122,14 @@ export function AddThalibahModal({
       return;
     }
 
+    const thalibahIdsArray = Array.from(selectedThalibahIds);
+    console.log('[AddThalibahModal] Adding thalibah:', {
+      halaqahId: halaqah.id,
+      halaqahName: halaqah.name,
+      halaqahType,
+      thalibahIds: thalibahIdsArray
+    });
+
     setSubmitting(true);
     try {
       const response = await fetch('/api/admin/daftar-ulang/halaqah/add-thalibah', {
@@ -122,12 +137,13 @@ export function AddThalibahModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           halaqahId: halaqah.id,
-          thalibahIds: Array.from(selectedThalibahIds),
+          thalibahIds: thalibahIdsArray,
           halaqahType
         })
       });
 
       const result = await response.json();
+      console.log('[AddThalibahModal] Add response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to add thalibah');
@@ -135,10 +151,10 @@ export function AddThalibahModal({
 
       // Show detailed results
       const { data } = result;
-      if (data.success.length > 0) {
+      if (data && data.success && data.success.length > 0) {
         toast.success(`Berhasil menambahkan ${data.success.length} thalibah ke ${halaqah.name}`);
       }
-      if (data.failed.length > 0) {
+      if (data && data.failed && data.failed.length > 0) {
         toast.error(`${data.failed.length} gagal ditambahkan. Cek console untuk detail.`);
         console.error('[AddThalibahModal] Failed:', data.failed);
       }
