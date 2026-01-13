@@ -1123,3 +1123,283 @@ async function performAssignment(
     return { success: false, error: error.message }
   }
 }
+
+/**
+ * Add or move thalibah to halaqah (Admin only)
+ *
+ * This function handles:
+ * 1. Adding thalibah from daftar_ulang_submissions to halaqah_students
+ * 2. Moving thalibah from one halaqah to another
+ * 3. Ensuring thalibah exists in enrolment table before adding to halaqah
+ *
+ * @param halaqahId - Target halaqah ID
+ * @param thalibahIds - Array of thalibah (user) IDs to add/move
+ * @param halaqahType - 'ujian', 'tashih', or 'both'
+ * @returns Success status with results
+ */
+export async function addThalibahToHalaqah(params: {
+  halaqahId: string
+  thalibahIds: string[]
+  halaqahType: 'ujian' | 'tashih' | 'both'
+}) {
+  try {
+    // CRITICAL: Verify admin role first
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { halaqahId, thalibahIds, halaqahType } = params
+
+    // Validate required fields
+    if (!halaqahId) {
+      return {
+        success: false,
+        error: 'Halaqah ID is required'
+      }
+    }
+
+    if (!thalibahIds || !Array.isArray(thalibahIds) || thalibahIds.length === 0) {
+      return {
+        success: false,
+        error: 'Thalibah IDs is required and must be a non-empty array'
+      }
+    }
+
+    if (!halaqahType) {
+      return {
+        success: false,
+        error: 'Halaqah type is required'
+      }
+    }
+
+    console.log('[addThalibahToHalaqah] Adding', thalibahIds.length, 'thalibahs to halaqah', halaqahId, 'type:', halaqahType)
+
+    // Verify halaqah exists
+    const { data: halaqah, error: halaqahError } = await supabaseAdmin
+      .from('halaqah')
+      .select('id, name, max_students')
+      .eq('id', halaqahId)
+      .single()
+
+    if (halaqahError || !halaqah) {
+      return {
+        success: false,
+        error: 'Halaqah not found'
+      }
+    }
+
+    // Get current student count
+    const { data: currentStudents, error: countError } = await supabaseAdmin
+      .from('halaqah_students')
+      .select('id', { count: 'exact', head: true })
+      .eq('halaqah_id', halaqahId)
+      .eq('status', 'active')
+
+    const currentCount = currentStudents?.length || 0
+    const maxStudents = halaqah.max_students || 20
+    const availableSlots = maxStudents - currentCount
+
+    if (availableSlots < thalibahIds.length) {
+      return {
+        success: false,
+        error: `Not enough capacity. Current: ${currentCount}/${maxStudents}, Available: ${availableSlots}, Requested: ${thalibahIds.length}`
+      }
+    }
+
+    const results: {
+      success: any[]
+      failed: any[]
+    } = {
+      success: [],
+      failed: []
+    }
+
+    // Process each thalibah
+    for (const thalibahId of thalibahIds) {
+      try {
+        // Step 1: Verify thalibah exists in enrolment table (pendaftaran_tikrar_tahfidz)
+        const { data: enrolment, error: enrolmentError } = await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .select('id, user_id, full_name, status, selection_status, re_enrollment_completed')
+          .eq('user_id', thalibahId)
+          .single()
+
+        if (enrolmentError || !enrolment) {
+          results.failed.push({
+            thalibah_id: thalibahId,
+            reason: 'Thalibah not found in enrolment table'
+          })
+          continue
+        }
+
+        // Verify thalibah has completed daftar ulang
+        if (!enrolment.re_enrollment_completed) {
+          results.failed.push({
+            thalibah_id: thalibahId,
+            name: enrolment.full_name,
+            reason: 'Thalibah has not completed daftar ulang'
+          })
+          continue
+        }
+
+        // Step 2: Check if thalibah is already in this halaqah
+        const { data: existingAssignment, error: checkError } = await supabaseAdmin
+          .from('halaqah_students')
+          .select('*')
+          .eq('halaqah_id', halaqahId)
+          .eq('thalibah_id', thalibahId)
+          .maybeSingle()
+
+        if (existingAssignment) {
+          results.failed.push({
+            thalibah_id: thalibahId,
+            name: enrolment.full_name,
+            reason: 'Already assigned to this halaqah'
+          })
+          continue
+        }
+
+        // Step 3: For moving - check if thalibah is in another halaqah
+        const { data: otherAssignments, error: otherError } = await supabaseAdmin
+          .from('halaqah_students')
+          .select('*')
+          .eq('thalibah_id', thalibahId)
+          .eq('status', 'active')
+          .neq('halaqah_id', halaqahId)
+
+        if (otherAssignments && otherAssignments.length > 0) {
+          // Mark old assignments as transferred
+          for (const oldAssignment of otherAssignments) {
+            await supabaseAdmin
+              .from('halaqah_students')
+              .update({
+                status: 'transferred',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', oldAssignment.id)
+          }
+          console.log('[addThalibahToHalaqah] Transferred', thalibahId, 'from', otherAssignments.length, 'other halaqah(s)')
+        }
+
+        // Step 4: Create new assignment
+        const { data: newAssignment, error: assignError } = await supabaseAdmin
+          .from('halaqah_students')
+          .insert({
+            halaqah_id: halaqahId,
+            thalibah_id: thalibahId,
+            assigned_by: user.id,
+            status: 'active',
+            enrollment_type: 'transferred', // Mark as transferred since they're from enrolment
+            halaqah_type: halaqahType
+          })
+          .select()
+          .single()
+
+        if (assignError) {
+          results.failed.push({
+            thalibah_id: thalibahId,
+            name: enrolment.full_name,
+            reason: assignError.message
+          })
+          continue
+        }
+
+        results.success.push({
+          thalibah_id: thalibahId,
+          name: enrolment.full_name,
+          assignment: newAssignment,
+          was_transferred: otherAssignments && otherAssignments.length > 0
+        })
+
+        console.log('[addThalibahToHalaqah] Successfully added', enrolment.full_name, 'to', halaqah.name)
+
+      } catch (error: any) {
+        console.error('[addThalibahToHalaqah] Error processing thalibah', thalibahId, ':', error)
+        results.failed.push({
+          thalibah_id: thalibahId,
+          reason: error.message || 'Unknown error'
+        })
+      }
+    }
+
+    // Audit log
+    const { ip, userAgent } = getRequestInfo()
+    await logAudit({
+      userId: user.id,
+      action: 'CREATE',
+      resource: 'halaqah_students',
+      details: {
+        halaqah_id: halaqahId,
+        halaqah_type: halaqahType,
+        total_requested: thalibahIds.length,
+        successful: results.success.length,
+        failed: results.failed.length
+      },
+      ipAddress: ip,
+      userAgent: userAgent,
+      level: 'INFO'
+    })
+
+    // Revalidate admin halaqah page cache
+    revalidatePath('/admin/halaqah')
+    revalidatePath('/admin/daftar-ulang')
+
+    return {
+      success: true,
+      data: results,
+      message: `Successfully added ${results.success.length} thalibah${results.failed.length > 0 ? `, ${results.failed.length} failed` : ''}`
+    }
+
+  } catch (error: any) {
+    console.error('[addThalibahToHalaqah] Exception:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to add thalibah to halaqah'
+    }
+  }
+}
+
+/**
+ * Get enrolled thalibah (completed daftar ulang) that can be added to halaqah
+ *
+ * @param batchId - Optional batch ID to filter thalibah
+ * @returns List of eligible thalibah
+ */
+export async function getEligibleThalibahForHalaqah(batchId?: string) {
+  try {
+    // CRITICAL: Verify admin role first
+    const { supabaseAdmin } = await verifyAdmin()
+
+    // Build query
+    let query = supabaseAdmin
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('id, user_id, full_name, chosen_juz, selection_status, re_enrollment_completed, batch_id')
+      .eq('re_enrollment_completed', true)
+      .eq('selection_status', 'selected')
+      .order('full_name', { ascending: true })
+
+    if (batchId && batchId !== 'all') {
+      query = query.eq('batch_id', batchId)
+    }
+
+    const { data: thalibahs, error } = await query
+
+    if (error) {
+      console.error('[getEligibleThalibahForHalaqah] Error:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      data: thalibahs || []
+    }
+
+  } catch (error: any) {
+    console.error('[getEligibleThalibahForHalaqah] Exception:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch eligible thalibah'
+    }
+  }
+}

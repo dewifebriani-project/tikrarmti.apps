@@ -14,10 +14,12 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Download
+  Download,
+  UserPlus
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AddThalibahModal } from './AddThalibahModal';
 
 interface ThalibahInfo {
   id: string;
@@ -50,6 +52,7 @@ interface HalaqahInfo {
 interface HalaqahWithThalibah {
   halaqah: HalaqahInfo;
   thalibah: ThalibahInfo[];
+  type: 'ujian' | 'tashih' | 'both';
 }
 
 type SortField = 'name' | 'thalibah_count' | 'muallimah' | 'schedule';
@@ -89,6 +92,11 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
   const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
+
+  // Add Thalibah Modal state
+  const [showAddThalibahModal, setShowAddThalibahModal] = useState(false);
+  const [selectedHalaqahForAdd, setSelectedHalaqahForAdd] = useState<HalaqahInfo | null>(null);
+  const [selectedHalaqahType, setSelectedHalaqahType] = useState<'ujian' | 'tashih' | 'both'>('ujian');
 
   const loadData = async () => {
     console.log('[DaftarUlangHalaqahTab] Loading halaqah data...');
@@ -132,8 +140,12 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       return [];
     }
 
-    // Group by halaqah ID
-    const halaqahMap = new Map<string, HalaqahWithThalibah>();
+    // Group by halaqah ID, tracking which types we've seen
+    const halaqahMap = new Map<string, {
+      halaqah: HalaqahInfo;
+      thalibah: ThalibahInfo[];
+      types: Set<'ujian' | 'tashih'>;
+    }>();
 
     rawData.forEach((item) => {
       // Guard against malformed items
@@ -143,14 +155,18 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       }
 
       const halaqahId = item.halaqah.id;
-      const type = item.type;
+      const type = item.type as 'ujian' | 'tashih';
 
       if (!halaqahMap.has(halaqahId)) {
         halaqahMap.set(halaqahId, {
           halaqah: item.halaqah,
-          thalibah: []
+          thalibah: [],
+          types: new Set()
         });
       }
+
+      const entry = halaqahMap.get(halaqahId)!;
+      entry.types.add(type);
 
       // Guard against missing thalibah array
       if (!item.thalibah || !Array.isArray(item.thalibah)) {
@@ -166,7 +182,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
       thalibahWithType.forEach((t: ThalibahInfo) => {
         // Check if this thalibah is already in the list (could be both ujian and tashih)
-        const existing = halaqahMap.get(halaqahId)!.thalibah.find(
+        const existing = entry.thalibah.find(
           (x) => x.id === t.id
         );
 
@@ -174,12 +190,24 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           // If already exists, mark as 'both'
           existing.type = 'both';
         } else {
-          halaqahMap.get(halaqahId)!.thalibah.push(t);
+          entry.thalibah.push(t);
         }
       });
     });
 
-    return Array.from(halaqahMap.values());
+    // Convert to final format, determining the overall type
+    return Array.from(halaqahMap.values()).map(entry => {
+      let overallType: 'ujian' | 'tashih' | 'both' = 'both';
+      if (entry.types.size === 1) {
+        overallType = entry.types.has('ujian') ? 'ujian' : 'tashih';
+      }
+
+      return {
+        halaqah: entry.halaqah,
+        thalibah: entry.thalibah,
+        type: overallType
+      };
+    });
   }, [rawData]);
 
   // Sort halaqah list
@@ -446,6 +474,17 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       newExpanded.add(halaqahId);
     }
     setExpandedHalaqah(newExpanded);
+  };
+
+  const handleAddThalibah = (halaqah: HalaqahInfo, type: 'ujian' | 'tashih' | 'both') => {
+    setSelectedHalaqahForAdd(halaqah);
+    // For 'both' type, default to 'ujian' but could add selection UI in the future
+    setSelectedHalaqahType(type === 'both' ? 'ujian' : type);
+    setShowAddThalibahModal(true);
+  };
+
+  const handleAddThalibahSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const downloadHalaqahPDF = async (halaqahId: string) => {
@@ -1039,8 +1078,20 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                         )}
                       </button>
 
-                      {/* Download Buttons */}
+                      {/* Action Buttons */}
                       <div className="ml-4 flex gap-2">
+                        {/* Add Thalibah Button - shown based on halaqah type */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddThalibah(item.halaqah, item.type);
+                          }}
+                          className="px-3 py-2 border border-green-300 text-green-600 rounded-md text-sm hover:bg-green-50 transition-colors flex items-center gap-1"
+                          title="Add Thalibah"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          <span className="hidden sm:inline">Add</span>
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1203,6 +1254,21 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           </div>
         )}
       </div>
+
+      {/* Add Thalibah Modal */}
+      {showAddThalibahModal && selectedHalaqahForAdd && (
+        <AddThalibahModal
+          isOpen={showAddThalibahModal}
+          onClose={() => {
+            setShowAddThalibahModal(false);
+            setSelectedHalaqahForAdd(null);
+          }}
+          onSuccess={handleAddThalibahSuccess}
+          halaqah={selectedHalaqahForAdd}
+          batchId={batchId || 'all'}
+          halaqahType={selectedHalaqahType}
+        />
+      )}
     </div>
   );
 }
