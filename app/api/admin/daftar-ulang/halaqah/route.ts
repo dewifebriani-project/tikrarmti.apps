@@ -289,7 +289,7 @@ export async function GET(request: NextRequest) {
           submission_id: hs.id, // Use halaqah_students id as submission_id
           full_name: hs.thalibah.full_name,
           email: hs.thalibah.email,
-          status: 'active', // Manually assigned
+          status: 'approved', // Show as approved since they're confirmed by admin
           submitted_at: hs.assigned_at || hs.created_at,
           source: 'halaqah_students', // Mark source
           halaqah_students_id: hs.id,
