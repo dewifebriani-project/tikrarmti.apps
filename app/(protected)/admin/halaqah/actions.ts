@@ -1446,15 +1446,15 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     const thalibahWithHalaqah = new Set<string>()
     if (submissions) {
       submissions.forEach(sub => {
-        // If they have either ujian or tashih halaqah assigned (and status is submitted/approved)
-        if ((sub.ujian_halaqah_id || (sub.tashih_halaqah_id && !sub.is_tashih_umum)) &&
-            (sub.status === 'submitted' || sub.status === 'approved')) {
+        // If they have either ujian or tashih halaqah assigned (any status)
+        // Draft submissions with halaqah selections should also be excluded
+        if (sub.ujian_halaqah_id || (sub.tashih_halaqah_id && !sub.is_tashih_umum)) {
           thalibahWithHalaqah.add(sub.user_id)
         }
       })
     }
 
-    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'With halaqah:', thalibahWithHalaqah.size)
+    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'Submissions fetched:', submissions?.length || 0, 'With halaqah:', thalibahWithHalaqah.size)
 
     // Filter out thalibah who already have halaqah assignments
     const eligibleThalibah = thalibahs.filter(t => !thalibahWithHalaqah.has(t.user_id))
