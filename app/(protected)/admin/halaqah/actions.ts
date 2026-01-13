@@ -1247,15 +1247,15 @@ export async function addThalibahToHalaqah(params: {
           continue
         }
 
-        console.log('[addThalibahToHalaqah] Enrolment found:', enrolment.full_name, 're_enrollment_completed:', enrolment.re_enrollment_completed)
+        console.log('[addThalibahToHalaqah] Enrolment found:', enrolment.full_name, 'selection_status:', enrolment.selection_status)
 
-        // Verify thalibah has completed daftar ulang
-        if (!enrolment.re_enrollment_completed) {
-          console.warn('[addThalibahToHalaqah] Thalibah has not completed daftar ulang:', enrolment.full_name)
+        // Verify thalibah is selected (passed selection)
+        if (enrolment.selection_status !== 'selected') {
+          console.warn('[addThalibahToHalaqah] Thalibah has not passed selection:', enrolment.full_name, 'status:', enrolment.selection_status)
           results.failed.push({
             thalibah_id: thalibahId,
             name: enrolment.full_name,
-            reason: 'Thalibah has not completed daftar ulang'
+            reason: `Thalibah has not passed selection (status: ${enrolment.selection_status})`
           })
           continue
         }
@@ -1385,10 +1385,14 @@ export async function addThalibahToHalaqah(params: {
 }
 
 /**
- * Get enrolled thalibah (completed daftar ulang) that can be added to halaqah
+ * Get enrolled thalibah that can be added to halaqah
  *
- * Only returns thalibah who DON'T already have a halaqah assignment
- * (either ujian_halaqah_id or tashih_halaqah_id is null/empty in their submission)
+ * Returns ALL thalibah who are selected (selection_status = 'selected')
+ * and DON'T already have a halaqah assignment in halaqah_students table.
+ *
+ * This is different from checking daftar_ulang_submissions because:
+ * - Some thalibah may not have submitted daftar ulang yet
+ * - Admin needs to see ALL eligible thalibah regardless of submission status
  *
  * @param batchId - Optional batch ID to filter thalibah
  * @returns List of eligible thalibah
@@ -1398,11 +1402,10 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     // CRITICAL: Verify admin role first
     const { supabaseAdmin } = await verifyAdmin()
 
-    // First, get thalibah who completed daftar ulang
+    // First, get ALL thalibah who are selected (regardless of re_enrollment_completed status)
     let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('id, user_id, full_name, chosen_juz, selection_status, re_enrollment_completed, batch_id')
-      .eq('re_enrollment_completed', true)
       .eq('selection_status', 'selected')
       .order('full_name', { ascending: true })
 
@@ -1427,40 +1430,32 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
       }
     }
 
-    // Get the user IDs to check their daftar_ulang_submissions
+    // Get the user IDs to check if they're in halaqah_students
     const userIds = thalibahs.map(t => t.user_id)
 
-    // Fetch submissions to check which thalibah already have halaqah assignments
-    // Only filter by batch_id if we have a valid batchId (not 'all' or undefined)
-    let submissionsQuery = supabaseAdmin
-      .from('daftar_ulang_submissions')
-      .select('user_id, ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, status')
-      .in('user_id', userIds)
+    // Fetch halaqah_students to check which thalibah already have assignments
+    let halaqahStudentsQuery = supabaseAdmin
+      .from('halaqah_students')
+      .select('thalibah_id, halaqah_id')
+      .in('thalibah_id', userIds)
+      .eq('status', 'active')
 
-    if (batchId && batchId !== 'all') {
-      submissionsQuery = submissionsQuery.eq('batch_id', batchId)
+    const { data: halaqahStudents, error: studentsError } = await halaqahStudentsQuery
+
+    if (studentsError) {
+      console.error('[getEligibleThalibahForHalaqah] Error fetching halaqah_students:', studentsError)
+      // Continue without student filtering
     }
 
-    const { data: submissions, error: submissionsError } = await submissionsQuery
-
-    if (submissionsError) {
-      console.error('[getEligibleThalibahForHalaqah] Error fetching submissions:', submissionsError)
-      // Continue without submission filtering
-    }
-
-    // Create a set of user_ids who already have halaqah assignments
+    // Create a set of thalibah_ids who already have halaqah assignments
     const thalibahWithHalaqah = new Set<string>()
-    if (submissions) {
-      submissions.forEach(sub => {
-        // If they have either ujian or tashih halaqah assigned (any status)
-        // Draft submissions with halaqah selections should also be excluded
-        if (sub.ujian_halaqah_id || (sub.tashih_halaqah_id && !sub.is_tashih_umum)) {
-          thalibahWithHalaqah.add(sub.user_id)
-        }
+    if (halaqahStudents) {
+      halaqahStudents.forEach(student => {
+        thalibahWithHalaqah.add(student.thalibah_id)
       })
     }
 
-    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'Submissions fetched:', submissions?.length || 0, 'With halaqah:', thalibahWithHalaqah.size, 'batchId:', batchId)
+    console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'In halaqah_students:', thalibahWithHalaqah.size, 'batchId:', batchId)
 
     // Filter out thalibah who already have halaqah assignments
     const eligibleThalibah = thalibahs.filter(t => !thalibahWithHalaqah.has(t.user_id))

@@ -233,8 +233,8 @@ export function AddThalibahModal({
           {/* Info */}
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Info:</strong> Hanya thalibah yang sudah menyelesaikan daftar ulang yang dapat ditambahkan.
-              Jika thalibah sudah berada di halaqah lain, mereka akan dipindahkan ke halaqah ini.
+              <strong>Info:</strong> Menampilkan semua thalibah yang lolos seleksi (selection_status = 'selected')
+              dan belum memiliki halaqah. Jika thalibah sudah berada di halaqah lain, mereka akan dipindahkan ke halaqah ini.
             </p>
           </div>
 
