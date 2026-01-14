@@ -113,6 +113,19 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number } | null>(null);
 
+  // Statistics state
+  const [stats, setStats] = useState<{
+    total: number;
+    draft: number;
+    submitted: number;
+    approved: number;
+    rejected: number;
+    withHalaqah: number;
+    withAkad: number;
+    juzCount: Record<string, number>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
   // Local batch filter state
   const [batches, setBatches] = useState<Batch[]>([]);
   const [localBatchId, setLocalBatchId] = useState<string>(initialBatchId || 'all');
@@ -130,6 +143,34 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       }
     } catch (error) {
       console.error('[DaftarUlangTab] Error loading batches:', error);
+    }
+  };
+
+  const loadStats = async () => {
+    console.log('[DaftarUlangTab] Loading statistics...');
+    setStatsLoading(true);
+
+    try {
+      // Build query params
+      const params = new URLSearchParams();
+      if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
+
+      const response = await fetch(`/api/admin/daftar-ulang/stats?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[DaftarUlangTab] Failed to load stats:', result);
+        return;
+      }
+
+      if (result.data) {
+        console.log('[DaftarUlangTab] Loaded stats:', result.data);
+        setStats(result.data);
+      }
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error loading stats:', error);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -173,6 +214,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   useEffect(() => {
     loadBatches();
   }, []);
+
+  // Load statistics when batch changes or refresh triggers
+  useEffect(() => {
+    loadStats();
+  }, [localBatchId, refreshTrigger]);
 
   useEffect(() => {
     loadSubmissions();
@@ -246,36 +292,28 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     return sorted;
   }, [submissions, sortField, sortOrder]);
 
-  // Statistics for submissions
+  // Statistics for submissions - use API stats for aggregate data
   const submissionStats = useMemo(() => {
-    // Use pagination total for overall count, use current page data for breakdowns
-    const total = pagination?.total ?? submissions.length;
-    const draft = submissions.filter(s => s.status === 'draft').length;
-    const submitted = submissions.filter(s => s.status === 'submitted').length;
-    const approved = submissions.filter(s => s.status === 'approved').length;
-    const rejected = submissions.filter(s => s.status === 'rejected').length;
-    const withHalaqah = submissions.filter(s => s.ujian_halaqah_id || s.tashih_halaqah_id).length;
-    const withAkad = submissions.filter(s => s.akad_files && s.akad_files.length > 0).length;
+    if (stats) {
+      return {
+        ...stats,
+        showing: submissions.length
+      };
+    }
 
-    // Count by Juz
-    const juzCount: Record<string, number> = {};
-    submissions.forEach(s => {
-      const juz = s.confirmed_chosen_juz || 'Unknown';
-      juzCount[juz] = (juzCount[juz] || 0) + 1;
-    });
-
+    // Fallback to current page data if stats not loaded yet
     return {
-      total,
-      draft,
-      submitted,
-      approved,
-      rejected,
-      withHalaqah,
-      withAkad,
-      juzCount,
+      total: pagination?.total ?? submissions.length,
+      draft: 0,
+      submitted: 0,
+      approved: 0,
+      rejected: 0,
+      withHalaqah: 0,
+      withAkad: 0,
+      juzCount: {},
       showing: submissions.length
     };
-  }, [submissions, pagination]);
+  }, [stats, submissions, pagination]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -503,41 +541,47 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <p className="text-xs text-gray-500 uppercase">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{submissionStats.total}</p>
+              <p className="text-2xl font-bold text-gray-900">{statsLoading ? '-' : submissionStats.total}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Draft (halaman ini)</p>
-              <p className="text-2xl font-bold text-gray-600">{submissionStats.draft}</p>
+              <p className="text-xs text-gray-500 uppercase">Draft</p>
+              <p className="text-2xl font-bold text-gray-600">{statsLoading ? '-' : submissionStats.draft}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Submitted (halaman ini)</p>
-              <p className="text-2xl font-bold text-blue-600">{submissionStats.submitted}</p>
+              <p className="text-xs text-gray-500 uppercase">Submitted</p>
+              <p className="text-2xl font-bold text-blue-600">{statsLoading ? '-' : submissionStats.submitted}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Approved (halaman ini)</p>
-              <p className="text-2xl font-bold text-green-600">{submissionStats.approved}</p>
+              <p className="text-xs text-gray-500 uppercase">Approved</p>
+              <p className="text-2xl font-bold text-green-600">{statsLoading ? '-' : submissionStats.approved}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Rejected (halaman ini)</p>
-              <p className="text-2xl font-bold text-red-600">{submissionStats.rejected}</p>
+              <p className="text-xs text-gray-500 uppercase">Rejected</p>
+              <p className="text-2xl font-bold text-red-600">{statsLoading ? '-' : submissionStats.rejected}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Dengan Halaqah (halaman ini)</p>
-              <p className="text-2xl font-bold text-purple-600">{submissionStats.withHalaqah}</p>
+              <p className="text-xs text-gray-500 uppercase">Dengan Halaqah</p>
+              <p className="text-2xl font-bold text-purple-600">{statsLoading ? '-' : submissionStats.withHalaqah}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Dengan Akad (halaman ini)</p>
-              <p className="text-2xl font-bold text-orange-600">{submissionStats.withAkad}</p>
+              <p className="text-xs text-gray-500 uppercase">Dengan Akad</p>
+              <p className="text-2xl font-bold text-orange-600">{statsLoading ? '-' : submissionStats.withAkad}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4 col-span-2 md:col-span-1">
-              <p className="text-xs text-gray-500 uppercase mb-1">Per Juz (halaman ini)</p>
+              <p className="text-xs text-gray-500 uppercase mb-1">Per Juz</p>
               <div className="text-xs space-y-1">
-                {Object.entries(submissionStats.juzCount).sort(([a], [b]) => a.localeCompare(b)).map(([juz, count]) => (
-                  <div key={juz} className="flex justify-between">
-                    <span className="text-gray-600">{juz}:</span>
-                    <span className="font-medium">{count}</span>
-                  </div>
-                ))}
+                {statsLoading ? (
+                  <p className="text-gray-400">Loading...</p>
+                ) : Object.keys(submissionStats.juzCount).length > 0 ? (
+                  Object.entries(submissionStats.juzCount).sort(([a], [b]) => a.localeCompare(b)).map(([juz, count]) => (
+                    <div key={juz} className="flex justify-between">
+                      <span className="text-gray-600">{juz}:</span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-400">No data</p>
+                )}
               </div>
             </div>
           </div>
