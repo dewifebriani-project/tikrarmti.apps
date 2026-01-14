@@ -35,9 +35,11 @@ export default function DashboardContent() {
   } : { registered: false }
 
   // Helper function to convert day number to Indonesian day name
-  const getDayNameFromNumber = (dayNum: number) => {
+  const getDayNameFromNumber = (dayNum: number | string | undefined) => {
     const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
-    return days[dayNum] || `${dayNum}`
+    if (dayNum === undefined) return ''
+    const num = typeof dayNum === 'string' ? parseInt(dayNum) : dayNum
+    return days[num] || `${dayNum}`
   }
 
   // Calculate stats with fallback

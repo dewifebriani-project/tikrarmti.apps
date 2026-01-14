@@ -46,27 +46,7 @@ interface TikrarRegistration extends Pendaftaran {
   exam_score?: number;
   written_quiz_submitted_at?: string;
   selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
-  daftar_ulang?: {
-    id: string;
-    akad_files?: Array<{ url: string; name: string }>;
-    submitted_at?: string;
-    status?: string;
-    ujian_halaqah?: {
-      id: string;
-      name: string;
-      day_of_week: string;
-      start_time: string;
-      end_time: string;
-    } | null;
-    tashih_halaqah?: {
-      id: string;
-      name: string;
-      day_of_week: string;
-      start_time: string;
-      end_time: string;
-    } | null;
-    [key: string]: any;
-  } | null;
+  // daftar_ulang is now inherited from Pendaftaran interface
 }
 
 export default function PerjalananSaya() {
@@ -573,9 +553,11 @@ export default function PerjalananSaya() {
     return slotLabels[slotValue] || `${slotValue} WIB`;
   };
 
-  const getDayNameFromNumber = (dayNum: number) => {
+  const getDayNameFromNumber = (dayNum: number | string | undefined) => {
     const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
-    return days[dayNum] || `${dayNum}`;
+    if (dayNum === undefined) return '';
+    const num = typeof dayNum === 'string' ? parseInt(dayNum) : dayNum;
+    return days[num] || `${dayNum}`;
   };
 
   const handleEditSuccess = () => {
@@ -887,167 +869,6 @@ export default function PerjalananSaya() {
                     {registrationStatus.registration?.status === 'pending' ? 'Menunggu Persetujuan' :
                      registrationStatus.registration?.status === 'approved' ? 'Disetujui' :
                      registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Daftar Ulang Status Card */}
-        {registrationStatus?.registration?.daftar_ulang && (
-          <Card className="bg-orange-50 border-orange-200">
-            <CardHeader className="pb-3 sm:pb-6">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl text-orange-900">
-                  <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 text-orange-900" />
-                  <span>Status Daftar Ulang</span>
-                </CardTitle>
-                <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
-                  registrationStatus.registration.re_enrollment_completed === true
-                    ? 'bg-green-100 text-green-800'
-                    : registrationStatus.registration.daftar_ulang?.status === 'submitted'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full mr-2 ${
-                    registrationStatus.registration.re_enrollment_completed === true
-                      ? 'bg-green-600'
-                      : registrationStatus.registration.daftar_ulang?.status === 'submitted'
-                      ? 'bg-yellow-600 animate-pulse'
-                      : 'bg-gray-600'
-                  }`}></span>
-                  {registrationStatus.registration.re_enrollment_completed === true
-                    ? 'Selesai'
-                    : registrationStatus.registration.daftar_ulang?.status === 'submitted'
-                    ? 'Dikirim'
-                    : 'Belum Dikirim'}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-3 sm:space-y-4">
-                {/* Submitted Date */}
-                {registrationStatus.registration.daftar_ulang.submitted_at && (
-                  <div className="bg-white rounded-lg p-3 border border-orange-200">
-                    <div className="flex items-start space-x-2">
-                      <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-600">Tanggal Dikirim</p>
-                        <p className="font-medium text-sm sm:text-base text-orange-800">
-                          {new Date(registrationStatus.registration.daftar_ulang.submitted_at).toLocaleDateString('id-ID', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Akad Files */}
-                {registrationStatus.registration.daftar_ulang.akad_files &&
-                 registrationStatus.registration.daftar_ulang.akad_files.length > 0 && (
-                  <div className="bg-white rounded-lg p-3 border border-orange-200">
-                    <div className="flex items-start space-x-2 mb-2">
-                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs sm:text-sm text-gray-600">File Akad</p>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 ml-6">
-                      {registrationStatus.registration.daftar_ulang.akad_files.map((file: { url: string; name: string }, idx: number) => (
-                        <a
-                          key={idx}
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span className="truncate">{file.name}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Halaqah Schedules */}
-                {(registrationStatus.registration.daftar_ulang.ujian_halaqah ||
-                  registrationStatus.registration.daftar_ulang.tashih_halaqah) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Ujian Halaqah */}
-                    {registrationStatus.registration.daftar_ulang.ujian_halaqah && (
-                      <div className="bg-white rounded-lg p-3 border border-orange-200">
-                        <div className="flex items-start space-x-2">
-                          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-grow">
-                            <p className="text-xs sm:text-sm text-gray-600">Ujian Halaqah</p>
-                            <p className="font-medium text-sm sm:text-base text-blue-800">
-                              {registrationStatus.registration.daftar_ulang.ujian_halaqah.name}
-                            </p>
-                            <p className="text-xs text-blue-600 mt-1">
-                              {registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week},{' '}
-                              {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} - {' '}
-                              {registrationStatus.registration.daftar_ulang.ujian_halaqah.end_time}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tashih Halaqah */}
-                    {registrationStatus.registration.daftar_ulang.tashih_halaqah && (
-                      <div className="bg-white rounded-lg p-3 border border-orange-200">
-                        <div className="flex items-start space-x-2">
-                          <Award className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-grow">
-                            <p className="text-xs sm:text-sm text-gray-600">Tashih Halaqah</p>
-                            <p className="font-medium text-sm sm:text-base text-purple-800">
-                              {registrationStatus.registration.daftar_ulang.tashih_halaqah.name}
-                            </p>
-                            <p className="text-xs text-purple-600 mt-1">
-                              {registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week},{' '}
-                              {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} - {' '}
-                              {registrationStatus.registration.daftar_ulang.tashih_halaqah.end_time}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Status Message */}
-                {registrationStatus.registration.re_enrollment_completed !== true &&
-                 registrationStatus.registration.daftar_ulang.status !== 'submitted' && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <div className="flex items-start space-x-2">
-                      <Info className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs sm:text-sm text-yellow-800">
-                        Daftar ulang belum dikirim. Silakan lengkapi formulir daftar ulang di menu.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Completion Badge */}
-                {registrationStatus.registration.re_enrollment_completed === true && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex items-start space-x-2">
-                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm sm:text-base font-medium text-green-800">
-                          Daftar ulang telah disetujui
-                        </p>
-                        <p className="text-xs text-green-600 mt-1">
-                          Anda dapat melanjutkan ke tahapan berikutnya
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>

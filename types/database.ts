@@ -10,6 +10,7 @@ export type MentorRole = 'ustadzah' | 'musyrifah';
 export type HalaqahStudentStatus = 'active' | 'transferred' | 'graduated' | 'dropped';
 export type PresensiStatus = 'hadir' | 'izin' | 'sakit' | 'alpha';
 export type JuzPart = 'A' | 'B';
+export type DaftarUlangStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 
 export interface JuzOption {
   id: string;
@@ -139,9 +140,76 @@ export interface Pendaftaran {
   re_enrollment_completed_at?: string;
   re_enrollment_confirmed_by?: string;
   selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
+  // Daftar ulang submission
+  daftar_ulang?: DaftarUlangSubmission;
   // Nested relations
   program?: Program;
   batch?: Batch;
+}
+
+export interface DaftarUlangSubmission {
+  id: string;
+  user_id: string;
+  batch_id: string;
+  registration_id: string;
+  status: DaftarUlangStatus;
+
+  // Confirmed data
+  confirmed_full_name?: string;
+  confirmed_chosen_juz?: string;
+  confirmed_main_time_slot?: string;
+  confirmed_backup_time_slot?: string;
+
+  // Partner
+  partner_type?: 'self_match' | 'system_match' | 'family' | 'tarteel';
+  partner_user_id?: string;
+  partner_name?: string;
+  partner_relationship?: string;
+  partner_wa_phone?: string;
+  partner_notes?: string;
+
+  // Halaqah
+  ujian_halaqah_id?: string;
+  tashih_halaqah_id?: string;
+  is_tashih_umum?: boolean;
+
+  // Akad
+  akad_files?: Array<{ url: string; name: string }>;
+  akad_submitted_at?: string;
+
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  submitted_at?: string;
+  reviewed_at?: string;
+
+  // Relations
+  user?: {
+    id: string;
+    full_name: string;
+    email: string;
+    whatsapp?: string;
+  };
+  partner_user?: {
+    id: string;
+    full_name: string;
+    email: string;
+    whatsapp?: string;
+  };
+  ujian_halaqah?: {
+    id: string;
+    name: string;
+    day_of_week?: string | number;
+    start_time?: string;
+    end_time?: string;
+  };
+  tashih_halaqah?: {
+    id: string;
+    name: string;
+    day_of_week?: string | number;
+    start_time?: string;
+    end_time?: string;
+  };
 }
 
 export interface HalaqahMentor {
