@@ -998,7 +998,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                  {thalibah.status === 'submitted' && (
+                                  {(thalibah.status === 'submitted' || thalibah.status === 'approved') && (
                                     <button
                                       onClick={() => handleRevertToDraft(thalibah.submission_id, thalibah.full_name)}
                                       disabled={revertingId === thalibah.submission_id}
