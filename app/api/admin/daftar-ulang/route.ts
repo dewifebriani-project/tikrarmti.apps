@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         user:users!daftar_ulang_submissions_user_id_fkey(id, full_name, email, whatsapp),
-        registration:pendaftaran_tikrar_tahfidz(id, chosen_juz, exam_score, main_time_slot, backup_time_slot),
+        registration:pendaftaran_tikrar_tahfidz(id, chosen_juz, exam_score, main_time_slot, backup_time_slot, birth_date),
         ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, max_students, muallimah_id),
         tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, max_students, muallimah_id),
         partner_user:users!daftar_ulang_submissions_partner_user_id_fkey(id, full_name, email, whatsapp)

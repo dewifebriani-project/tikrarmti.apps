@@ -292,7 +292,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         return {
           'No': index + 1,
           'Nama Lengkap': item.confirmed_full_name || user.full_name || '-',
-          'Usia': calculateAge(user.tanggal_lahir),
+          'Usia': calculateAge(user.tanggal_lahir || registration.birth_date),
           'Juz Code': getJuzCode(item.confirmed_chosen_juz),
           'Juz Pilihan': item.confirmed_chosen_juz || registration.chosen_juz || '-',
           'Halaqah Ujian': ujianHalaqah.name || '-',
@@ -385,7 +385,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         return [
           index + 1,
           item.confirmed_full_name || user.full_name || '-',
-          calculateAge(user.tanggal_lahir),
+          calculateAge(user.tanggal_lahir || registration.birth_date),
           getJuzCode(item.confirmed_chosen_juz),
           item.confirmed_chosen_juz || registration.chosen_juz || '-',
           ujianHalaqah.name || '-',
