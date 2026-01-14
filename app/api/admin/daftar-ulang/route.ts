@@ -127,6 +127,10 @@ export async function GET(request: NextRequest) {
     const totalCount = count || 0;
 
     console.log('[Daftar Ulang Admin] Success, submissions count:', dataWithMuallimah?.length || 0, 'total:', totalCount);
+    console.log('[Daftar Ulang Admin] Submissions by status:', dataWithMuallimah?.reduce((acc: any, s: any) => {
+      acc[s.status] = (acc[s.status] || 0) + 1;
+      return acc;
+    }, {}) || {});
 
     return NextResponse.json({
       success: true,
