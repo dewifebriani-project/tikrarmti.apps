@@ -17,9 +17,13 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  RotateCcw
+  RotateCcw,
+  FileSpreadsheet
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type DaftarUlangSubTab = 'submissions' | 'halaqah';
 
@@ -112,6 +116,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   const [resettingAll, setResettingAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number } | null>(null);
+
+  // Download state
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [allSubmissionsForDownload, setAllSubmissionsForDownload] = useState<any[]>([]);
 
   // Statistics state
   const [stats, setStats] = useState<{
@@ -207,6 +216,232 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       toast.error('Failed to load submissions: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load all submissions for download (with complete data from pendaftaran_tikrar_tahfidz)
+  const loadAllSubmissionsForDownload = async () => {
+    console.log('[DaftarUlangTab] Loading all submissions for download...');
+    try {
+      const params = new URLSearchParams();
+      if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
+      params.append('limit', '10000'); // Get all data
+
+      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[DaftarUlangTab] Failed to load submissions for download:', result);
+        toast.error(result.error || 'Failed to load data');
+        return [];
+      }
+
+      return result.data || [];
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error loading submissions for download:', error);
+      toast.error('Failed to load data: ' + error.message);
+      return [];
+    }
+  };
+
+  // Helper function to calculate age from birth date
+  const calculateAge = (birthDate: string | undefined) => {
+    if (!birthDate) return '-';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Helper function to get juz code from confirmed_chosen_juz
+  const getJuzCode = (confirmedChosenJuz: string | undefined) => {
+    if (!confirmedChosenJuz) return '-';
+    // Try to extract code from the juz string (e.g., "1A" -> "1A")
+    const match = confirmedChosenJuz.match(/(\d+[A-B]?)/i);
+    return match ? match[1].toUpperCase() : confirmedChosenJuz;
+  };
+
+  // Download Excel
+  const downloadExcel = async () => {
+    setDownloadingExcel(true);
+    try {
+      const data = await loadAllSubmissionsForDownload();
+      if (data.length === 0) {
+        toast.error('Tidak ada data untuk diunduh');
+        return;
+      }
+
+      // Sort data alphabetically by name
+      const sortedData = [...data].sort((a, b) => {
+        const aName = a.confirmed_full_name || a.user?.full_name || '';
+        const bName = b.confirmed_full_name || b.user?.full_name || '';
+        return aName.localeCompare(bName, 'id-ID');
+      });
+
+      // Prepare Excel data
+      const excelData = sortedData.map((item, index) => {
+        const user = item.user || {};
+        const registration = item.registration || {};
+        const ujianHalaqah = item.ujian_halaqah || {};
+        const tashihHalaqah = item.tashih_halaqah || {};
+
+        return {
+          'No': index + 1,
+          'Nama Lengkap': item.confirmed_full_name || user.full_name || '-',
+          'Usia': calculateAge(user.tanggal_lahir),
+          'Juz Code': getJuzCode(item.confirmed_chosen_juz),
+          'Juz Pilihan': item.confirmed_chosen_juz || registration.chosen_juz || '-',
+          'Halaqah Ujian': ujianHalaqah.name || '-',
+          'Halaqah Tashih': tashihHalaqah.name || (item.is_tashih_umum ? 'Umum' : '-'),
+          'Nomor WhatsApp': user.whatsapp || user.phone || '-',
+          'Email': user.email || '-',
+          'Status': item.status,
+          'Tanggal Submit': item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('id-ID') : '-',
+        };
+      });
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 5 },  // No
+        { wch: 30 }, // Nama Lengkap
+        { wch: 6 },  // Usia
+        { wch: 8 },  // Juz Code
+        { wch: 15 }, // Juz Pilihan
+        { wch: 25 }, // Halaqah Ujian
+        { wch: 25 }, // Halaqah Tashih
+        { wch: 15 }, // Nomor WhatsApp
+        { wch: 25 }, // Email
+        { wch: 12 }, // Status
+        { wch: 15 }, // Tanggal Submit
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Data Thalibah');
+
+      // Generate filename
+      const batchName = batches.find(b => b.id === localBatchId)?.name || 'all-batches';
+      const fileName = `daftar-ulang-${batchName}-${new Date().toISOString().split('T')[0]}.xlsx`;
+
+      // Download
+      XLSX.writeFile(wb, fileName);
+      toast.success('Excel berhasil diunduh');
+    } catch (error) {
+      console.error('[DaftarUlangTab] Error downloading Excel:', error);
+      toast.error('Gagal mengunduh Excel');
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
+
+  // Download PDF
+  const downloadPDF = async () => {
+    setDownloadingPDF(true);
+    try {
+      const data = await loadAllSubmissionsForDownload();
+      if (data.length === 0) {
+        toast.error('Tidak ada data untuk diunduh');
+        return;
+      }
+
+      // Sort data alphabetically by name
+      const sortedData = [...data].sort((a, b) => {
+        const aName = a.confirmed_full_name || a.user?.full_name || '';
+        const bName = b.confirmed_full_name || b.user?.full_name || '';
+        return aName.localeCompare(bName, 'id-ID');
+      });
+
+      const doc = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Title
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Data Thalibah Daftar Ulang', pageWidth / 2, 15, { align: 'center' });
+
+      // Batch info
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const batchName = batches.find(b => b.id === localBatchId)?.name || 'Semua Batch';
+      doc.text(`Batch: ${batchName}`, 14, 23);
+      doc.text(`Total: ${sortedData.length} thalibah`, 14, 28);
+      doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth - 14, 23, { align: 'right' });
+
+      // Table data
+      const tableData = sortedData.map((item, index) => {
+        const user = item.user || {};
+        const registration = item.registration || {};
+        const ujianHalaqah = item.ujian_halaqah || {};
+        const tashihHalaqah = item.tashih_halaqah || {};
+        const tashihName = item.is_tashih_umum ? 'Umum' : (tashihHalaqah.name || '-');
+
+        return [
+          index + 1,
+          item.confirmed_full_name || user.full_name || '-',
+          calculateAge(user.tanggal_lahir),
+          getJuzCode(item.confirmed_chosen_juz),
+          item.confirmed_chosen_juz || registration.chosen_juz || '-',
+          ujianHalaqah.name || '-',
+          tashihName,
+          user.whatsapp || user.phone || '-',
+        ];
+      });
+
+      // Generate table
+      autoTable(doc, {
+        startY: 35,
+        head: [['No', 'Nama', 'Usia', 'Juz Code', 'Juz', 'Halaqah Ujian', 'Halaqah Tashih', 'WhatsApp']],
+        body: tableData,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+        },
+        headStyles: {
+          fillColor: [34, 197, 94],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        columnStyles: {
+          0: { cellWidth: 10 },  // No
+          1: { cellWidth: 45 },  // Nama
+          2: { cellWidth: 10 },  // Usia
+          3: { cellWidth: 15 },  // Juz Code
+          4: { cellWidth: 20 },  // Juz
+          5: { cellWidth: 40 },  // Halaqah Ujian
+          6: { cellWidth: 40 },  // Halaqah Tashih
+          7: { cellWidth: 35 },  // WhatsApp
+        },
+        didDrawPage: (data) => {
+          // Add page number
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'italic');
+          doc.text(
+            `Halaman ${doc.getNumberOfPages()}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          );
+        },
+      });
+
+      // Generate filename
+      const batchNameClean = batchName.replace(/\s+/g, '-');
+      const fileName = `daftar-ulang-${batchNameClean}-${new Date().toISOString().split('T')[0]}.pdf`;
+
+      doc.save(fileName);
+      toast.success('PDF berhasil diunduh');
+    } catch (error) {
+      console.error('[DaftarUlangTab] Error downloading PDF:', error);
+      toast.error('Gagal mengunduh PDF');
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -499,6 +734,24 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
             >
               <RefreshCw className="w-3 h-3" />
               Refresh
+            </button>
+            <button
+              onClick={downloadExcel}
+              disabled={downloadingExcel}
+              className="px-3 py-2 border border-green-600 text-green-600 rounded-md text-sm hover:bg-green-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download Excel"
+            >
+              <FileSpreadsheet className="w-3 h-3" />
+              {downloadingExcel ? 'Downloading...' : 'Excel'}
+            </button>
+            <button
+              onClick={downloadPDF}
+              disabled={downloadingPDF}
+              className="px-3 py-2 border border-red-600 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download PDF"
+            >
+              <Download className="w-3 h-3" />
+              {downloadingPDF ? 'Downloading...' : 'PDF'}
             </button>
           </div>
         </div>
