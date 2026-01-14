@@ -23,6 +23,7 @@ interface HalaqahWithRelations {
   waitlist_count?: number;
   quota_details?: {
     submitted: number;
+    approved: number;
     draft: number;
     active: number;
     waitlist: number;
@@ -104,11 +105,11 @@ export async function GET(request: NextRequest) {
           : 0;
 
         // Count from daftar_ulang_submissions (pending submissions)
-        // ONLY submitted status counts toward quota (draft does NOT reduce quota)
+        // BOTH submitted AND approved status count toward quota (draft does NOT reduce quota)
         const { data: submissions } = await supabaseAdmin
           .from('daftar_ulang_submissions')
           .select('user_id')
-          .eq('status', 'submitted')
+          .in('status', ['submitted', 'approved'])
           .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
 
         // For tashih_ujian classes, a single user may select both ujian and tashih
@@ -125,6 +126,17 @@ export async function GET(request: NextRequest) {
           .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
 
         const uniqueDraftIds = new Set(draftSubmissions?.map(s => s.user_id) || []);
+
+        // Count approved submissions separately for display
+        const { data: approvedSubmissions } = await supabaseAdmin
+          .from('daftar_ulang_submissions')
+          .select('user_id')
+          .eq('status', 'approved')
+          .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
+
+        const uniqueApprovedCount = approvedSubmissions
+          ? new Set(approvedSubmissions.map(s => s.user_id)).size
+          : 0;
 
         // Combine counts: avoid double-counting users who exist in both tables
         const allStudentIds = new Set([
@@ -244,6 +256,7 @@ export async function GET(request: NextRequest) {
           waitlist_count: uniqueWaitlistCount,
           quota_details: {
             submitted: uniqueSubmissionCount,
+            approved: uniqueApprovedCount,
             draft: uniqueDraftIds.size,
             active: uniqueActiveCount,
             waitlist: uniqueWaitlistCount,

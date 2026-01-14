@@ -72,6 +72,7 @@ interface Halaqah {
   };
   quota_details?: {
     submitted: number;
+    approved: number;
     draft: number;
     active: number;
     waitlist: number;
@@ -198,6 +199,7 @@ export function HalaqahManagementTab() {
           },
           quota_details: h.quota_details || {
             submitted: 0,
+            approved: 0,
             draft: 0,
             active: 0,
             waitlist: 0,
@@ -259,6 +261,7 @@ export function HalaqahManagementTab() {
         'Location',
         'Max Students',
         'Quota Used',
+        'Approved',
         'Submitted',
         'Draft',
         'Active',
@@ -289,6 +292,7 @@ export function HalaqahManagementTab() {
           `"${h.location || '-'}"`,
           h.max_students || '-',
           h.quota_details?.total_used || 0,
+          h.quota_details?.approved || 0,
           h.quota_details?.submitted || 0,
           h.quota_details?.draft || 0,
           h.quota_details?.active || 0,
@@ -392,7 +396,7 @@ export function HalaqahManagementTab() {
                     <td>
                       <div>${h.quota_details?.total_used || 0} / ${h.max_students || '-'}</div>
                       <div class="quota-details">
-                        ✓ ${h.quota_details?.submitted || 0} | ○ ${h.quota_details?.draft || 0}<br>
+                        ✓ ${h.quota_details?.approved || 0} | ✓ ${h.quota_details?.submitted || 0} | ○ ${h.quota_details?.draft || 0}<br>
                         ✓ ${h.quota_details?.active || 0} | ⏱ ${h.quota_details?.waitlist || 0}
                       </div>
                     </td>
@@ -1020,6 +1024,10 @@ export function HalaqahManagementTab() {
                               <div className="flex justify-between gap-3">
                                 <span className="text-gray-500">Terpakai:</span>
                                 <span className="font-medium text-gray-900">{halaqah.quota_details?.total_used || 0}</span>
+                              </div>
+                              <div className="flex justify-between gap-3">
+                                <span className="text-green-600">✓ Approved:</span>
+                                <span className="font-medium text-green-700">{halaqah.quota_details?.approved || 0}</span>
                               </div>
                               <div className="flex justify-between gap-3">
                                 <span className="text-blue-600">✓ Submitted:</span>
