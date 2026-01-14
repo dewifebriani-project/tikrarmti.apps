@@ -232,8 +232,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     const halaqahMap = new Map<string, HalaqahWithThalibah>();
 
     // First, initialize ALL halaqah from database with empty thalibah list
+    // Use quota_details from API for accurate available_slots calculation
     allHalaqah.forEach((h: any) => {
       const maxStudents = h.max_students || 20;
+      const totalUsed = h.quota_details?.total_used || 0;
       halaqahMap.set(h.id, {
         halaqahId: h.id,
         halaqah: {
@@ -244,8 +246,9 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           end_time: h.end_time,
           max_students: maxStudents,
           muallimah_name: h.muallimah?.full_name || null,
-          available_slots: maxStudents,
-          is_full: false
+          // Use quota_details.total_used from API (includes approved + submitted + active)
+          available_slots: maxStudents - totalUsed,
+          is_full: totalUsed >= maxStudents
         },
         thalibah: [],
         type: 'ujian' // Will be updated based on actual usage
@@ -259,12 +262,11 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
         const halaqahId = sub.ujian_halaqah_id;
         const entry = halaqahMap.get(halaqahId);
         if (entry) {
-          // Update halaqah info with actual data
+          // Update halaqah basic info, but preserve available_slots from API
           entry.halaqah = {
-            ...sub.ujian_halaqah,
-            max_students: sub.ujian_halaqah.max_students || 20,
-            available_slots: (sub.ujian_halaqah.max_students || 20) - entry.thalibah.length,
-            is_full: false
+            ...entry.halaqah, // Preserve existing values including available_slots
+            ...sub.ujian_halaqah, // Override with submission halaqah data
+            // Keep the accurate available_slots from API, don't recalculate
           };
           entry.type = 'ujian';
         }
@@ -304,14 +306,12 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           existing.type = 'both';
           if (entry) {
             entry.type = 'both';
-            // Update halaqah info with tashih data
+            // Update halaqah info with tashih data, but preserve available_slots from API
             if (entry.halaqah) {
               entry.halaqah = {
-                ...entry.halaqah,
-                ...sub.tashih_halaqah,
-                max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
-                available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
-                is_full: false
+                ...entry.halaqah, // Preserve existing values including available_slots
+                ...sub.tashih_halaqah, // Override with tashih halaqah data
+                // Keep the accurate available_slots from API, don't recalculate
               };
             }
           }
@@ -320,21 +320,17 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           if (entry.type === 'ujian') {
             if (entry.halaqah) {
               entry.halaqah = {
-                ...entry.halaqah,
-                ...sub.tashih_halaqah,
-                max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
-                available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
-                is_full: false
+                ...entry.halaqah, // Preserve existing values including available_slots
+                ...sub.tashih_halaqah, // Override with tashih halaqah data
+                // Keep the accurate available_slots from API, don't recalculate
               };
             }
             entry.type = 'both';
           } else if (entry.halaqah) {
             entry.halaqah = {
-              ...entry.halaqah,
-              ...sub.tashih_halaqah,
-              max_students: sub.tashih_halaqah.max_students || 20,
-              available_slots: (sub.tashih_halaqah.max_students || 20) - entry.thalibah.length,
-              is_full: false
+              ...entry.halaqah, // Preserve existing values including available_slots
+              ...sub.tashih_halaqah, // Override with tashih halaqah data
+              // Keep the accurate available_slots from API, don't recalculate
             };
             entry.type = 'tashih';
           }
@@ -355,13 +351,8 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       }
     });
 
-    // Calculate available slots and is_full status
-    halaqahMap.forEach((entry) => {
-      if (entry.halaqah) {
-        entry.halaqah.available_slots = (entry.halaqah.max_students || 20) - entry.thalibah.length;
-        entry.halaqah.is_full = entry.halaqah.available_slots <= 0;
-      }
-    });
+    // Note: available_slots and is_full are already calculated correctly from API quota_details
+    // No need to recalculate here as it would be inaccurate (only counts loaded submissions)
 
     // Convert map to array
     const result: HalaqahWithThalibah[] = [];
