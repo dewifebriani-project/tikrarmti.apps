@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       .from('daftar_ulang_submissions')
       .select(`
         *,
-        user:users!daftar_ulang_submissions_user_id_fkey(id, full_name, email, whatsapp, phone, tanggal_lahir),
+        user:users!daftar_ulang_submissions_user_id_fkey(id, full_name, email, whatsapp),
         registration:pendaftaran_tikrar_tahfidz(id, chosen_juz, exam_score, main_time_slot, backup_time_slot),
         ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, max_students, muallimah_id),
         tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(id, name, day_of_week, start_time, end_time, max_students, muallimah_id),
@@ -143,10 +143,12 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Daftar Ulang Admin] Server error:', error);
+    console.error('[Daftar Ulang Admin] Error stack:', error?.stack);
+    console.error('[Daftar Ulang Admin] Error message:', error?.message);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error?.message },
       { status: 500 }
     );
   }
