@@ -78,6 +78,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   console.log('[DaftarUlangHalaqahTab] Component rendered with batchId:', batchId);
 
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [allHalaqah, setAllHalaqah] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [expandedHalaqah, setExpandedHalaqah] = useState<Set<string>>(new Set());
@@ -98,29 +99,43 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
 
   const loadData = async () => {
-    console.log('[DaftarUlangHalaqahTab] Loading submissions...');
+    console.log('[DaftarUlangHalaqahTab] Loading submissions and halaqah...');
     setLoading(true);
 
     try {
+      // Fetch submissions
       const params = new URLSearchParams();
       if (batchId && batchId !== 'all') params.append('batch_id', batchId);
       // Get all submissions without pagination limit
       params.append('limit', '1000');
 
-      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
-      const result = await response.json();
+      const [submissionsResponse, halaqahResponse] = await Promise.all([
+        fetch(`/api/admin/daftar-ulang?${params.toString()}`),
+        fetch(`/api/halaqah?${params.toString()}`)
+      ]);
 
-      if (!response.ok) {
-        console.error('[DaftarUlangHalaqahTab] Failed to load:', result);
-        toast.error(result.error || 'Failed to load data');
+      const submissionsResult = await submissionsResponse.json();
+      const halaqahResult = await halaqahResponse.json();
+
+      if (!submissionsResponse.ok) {
+        console.error('[DaftarUlangHalaqahTab] Failed to load submissions:', submissionsResult);
+        toast.error(submissionsResult.error || 'Failed to load data');
         return;
       }
 
-      if (result.data) {
-        console.log('[DaftarUlangHalaqahTab] Loaded', result.data.length, 'submissions');
-        setSubmissions(result.data);
+      if (submissionsResult.data) {
+        console.log('[DaftarUlangHalaqahTab] Loaded', submissionsResult.data.length, 'submissions');
+        setSubmissions(submissionsResult.data);
       } else {
         setSubmissions([]);
+      }
+
+      if (halaqahResponse.ok && halaqahResult.data) {
+        console.log('[DaftarUlangHalaqahTab] Loaded', halaqahResult.data.length, 'halaqah');
+        setAllHalaqah(halaqahResult.data);
+      } else {
+        console.log('[DaftarUlangHalaqahTab] No halaqah data');
+        setAllHalaqah([]);
       }
     } catch (error: any) {
       console.error('[DaftarUlangHalaqahTab] Error:', error);
@@ -140,7 +155,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       return [];
     }
 
-    console.log('[DaftarUlangHalaqahTab] Processing submissions:', submissions.length);
+    console.log('[DaftarUlangHalaqahTab] Processing submissions:', submissions.length, 'halaqah:', allHalaqah.length);
     console.log('[DaftarUlangHalaqahTab] Submissions by status:', submissions.reduce((acc, s) => {
       acc[s.status] = (acc[s.status] || 0) + 1;
       return acc;
@@ -166,22 +181,19 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     // Map to track halaqah groups by halaqah_id
     const halaqahMap = new Map<string, HalaqahWithThalibah>();
 
-    // First, collect all unique halaqah IDs from submissions
-    const allHalaqahIds = new Set<string>();
-    submissions.forEach((sub) => {
-      if (sub.ujian_halaqah_id) allHalaqahIds.add(sub.ujian_halaqah_id);
-      if (sub.tashih_halaqah_id) allHalaqahIds.add(sub.tashih_halaqah_id);
-    });
-
-    // Initialize all halaqah with empty thalibah list
-    allHalaqahIds.forEach((halaqahId) => {
-      const maxStudents = 20; // Default max_students
-      halaqahMap.set(halaqahId, {
-        halaqahId,
+    // First, initialize ALL halaqah from database with empty thalibah list
+    allHalaqah.forEach((h: any) => {
+      const maxStudents = h.max_students || 20;
+      halaqahMap.set(h.id, {
+        halaqahId: h.id,
         halaqah: {
-          id: halaqahId,
-          name: 'Unknown Halaqah',
+          id: h.id,
+          name: h.name || 'Unknown Halaqah',
+          day_of_week: h.day_of_week,
+          start_time: h.start_time,
+          end_time: h.end_time,
           max_students: maxStudents,
+          muallimah_name: h.muallimah?.full_name || null,
           available_slots: maxStudents,
           is_full: false
         },
@@ -305,7 +317,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     const result: HalaqahWithThalibah[] = [];
     halaqahMap.forEach(entry => result.push(entry));
     return result;
-  }, [submissions]);
+  }, [submissions, allHalaqah]);
 
   // Sort halaqah list
   const sortedHalaqahList = useMemo(() => {
