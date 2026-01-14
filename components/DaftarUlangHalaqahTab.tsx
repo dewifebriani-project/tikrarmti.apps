@@ -719,6 +719,16 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
   return (
     <div className="space-y-4">
+      {/* DEBUG INFO */}
+      <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-4 text-sm">
+        <p className="font-bold">DEBUG INFO:</p>
+        <p>batchId: {batchId || 'undefined/null'}</p>
+        <p>submissions.length: {submissions.length}</p>
+        <p>loading: {loading.toString()}</p>
+        <p>halaqahListWithSortedThalibah.length: {halaqahListWithSortedThalibah.length}</p>
+        <p>processedData.length: {processedData.length}</p>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Daftar Thalibah per Halaqah</h2>
