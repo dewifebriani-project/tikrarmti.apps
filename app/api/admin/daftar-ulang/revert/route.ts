@@ -46,10 +46,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
     }
 
-    // Only allow reverting from 'submitted' to 'draft'
-    if (submission.status !== 'submitted') {
+    // Only allow reverting from 'submitted' or 'approved' to 'draft'
+    if (submission.status !== 'submitted' && submission.status !== 'approved') {
       return NextResponse.json({
-        error: `Cannot revert submission with status "${submission.status}". Only "submitted" can be reverted to "draft".`
+        error: `Cannot revert submission with status "${submission.status}". Only "submitted" or "approved" can be reverted to "draft".`
       }, { status: 400 });
     }
 
