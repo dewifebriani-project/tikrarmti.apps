@@ -21,6 +21,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AddThalibahModal } from './AddThalibahModal';
+import { ManualCreateHalaqahModal } from './ManualCreateHalaqahModal';
 
 interface ThalibahInfo {
   id: string;
@@ -106,6 +107,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [showAddThalibahModal, setShowAddThalibahModal] = useState(false);
   const [selectedHalaqahForAdd, setSelectedHalaqahForAdd] = useState<HalaqahInfo | null>(null);
   const [selectedHalaqahType, setSelectedHalaqahType] = useState<'ujian' | 'tashih' | 'both'>('ujian');
+
+  // Manual Create Halaqah Modal state
+  const [showManualCreateModal, setShowManualCreateModal] = useState(false);
+
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
   const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
@@ -600,6 +605,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const handleManualCreateSuccess = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
   const downloadHalaqahPDF = async (halaqahId: string) => {
     setDownloadingPDF(true);
     try {
@@ -805,6 +814,15 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Daftar Thalibah per Halaqah</h2>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowManualCreateModal(true)}
+            disabled={!batchId || batchId === 'all'}
+            className="px-3 py-2 bg-green-900 text-white rounded-md text-sm hover:bg-green-800 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Create new halaqah manually"
+          >
+            <UserPlus className="w-3 h-3" />
+            <span className="hidden sm:inline">Create Halaqah</span>
+          </button>
           <button
             onClick={downloadAllPDF}
             disabled={downloadingPDF || halaqahListWithSortedThalibah.length === 0}
@@ -1189,6 +1207,15 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           halaqah={selectedHalaqahForAdd}
           batchId={batchId || 'all'}
           halaqahType={selectedHalaqahType}
+        />
+      )}
+
+      {/* Manual Create Halaqah Modal */}
+      {showManualCreateModal && (
+        <ManualCreateHalaqahModal
+          onClose={() => setShowManualCreateModal(false)}
+          onSuccess={handleManualCreateSuccess}
+          batchId={batchId}
         />
       )}
     </div>
