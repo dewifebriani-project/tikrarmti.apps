@@ -91,9 +91,33 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user's existing daftar ulang submission if any
+    // For submitted or approved status, include related halaqah and partner data
     const { data: existingSubmission } = await supabase
       .from('daftar_ulang_submissions')
-      .select('*')
+      .select(`
+        *,
+        ujian_halaqah_obj:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey (
+          id,
+          name,
+          day_of_week,
+          start_time,
+          end_time,
+          location
+        ),
+        tashih_halaqah_obj:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey (
+          id,
+          name,
+          day_of_week,
+          start_time,
+          end_time,
+          location
+        ),
+        partner_user_obj:users!daftar_ulang_submissions_partner_user_id_fkey (
+          id,
+          full_name,
+          whatsapp
+        )
+      `)
       .eq('user_id', user.id)
       .maybeSingle()
 

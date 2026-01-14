@@ -194,10 +194,16 @@ export default function DaftarUlangPage() {
         setHalaqahData(halaqahDataResult.data?.halaqah || [])
         setExistingSubmission(halaqahDataResult.data?.existing_submission)
 
-        // Check if user already submitted daftar ulang
-        if (halaqahDataResult.data?.existing_submission?.status === 'submitted') {
+        // Check if user already submitted daftar ulang OR approved
+        // Both statuses should show the success/info page and prevent form editing
+        const submissionStatus = halaqahDataResult.data?.existing_submission?.status
+        if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
           setCurrentStep('success')
-          toast.success('Anda sudah melakukan daftar ulang!')
+          if (submissionStatus === 'approved') {
+            toast.success('Alhamdulillah! Daftar ulang Anda telah disetujui.')
+          } else {
+            toast.success('Anda sudah melakukan daftar ulang!')
+          }
         }
       } catch (error) {
         console.error('Fetch error:', error)
@@ -1908,20 +1914,166 @@ function AkadUploadStep({
 function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const router = useRouter()
 
-  // Check if this is a previously submitted registration
-  const isPreviouslySubmitted = existingSubmission?.status === 'submitted'
+  // Check submission status
+  const submissionStatus = existingSubmission?.status
+  const isApproved = submissionStatus === 'approved'
+  const isSubmitted = submissionStatus === 'submitted'
 
   return (
     <div className="text-center py-8">
-      <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+      <CheckCircle className={`w-16 h-16 mx-auto mb-4 ${isApproved ? 'text-emerald-600' : 'text-green-600'}`} />
       <h2 className="text-2xl font-bold text-gray-900 mb-2">
-        {isPreviouslySubmitted ? 'Anda Sudah Daftar Ulang' : 'Alhamdulillah! Daftar Ulang Berhasil'}
+        {isApproved
+          ? 'Alhamdulillah! Daftar Ulang Anda Disetujui'
+          : isSubmitted
+          ? 'Anda Sudah Daftar Ulang'
+          : 'Alhamdulillah! Daftar Ulang Berhasil'}
       </h2>
       <p className="text-gray-600 mb-8">
-        {isPreviouslySubmitted
+        {isApproved
+          ? 'Selamat! Daftar ulang Anda telah disetujui. Berikut adalah informasi kelas yang akan Anda ikuti:'
+          : isSubmitted
           ? 'Data daftar ulang Anda sudah kami terima. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'
           : 'Data daftar ulang Anda berhasil dikirim. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'}
       </p>
+
+      {/* Show class info and partner details for approved status */}
+      {isApproved && (
+        <div className="max-w-2xl mx-auto mb-8 text-left">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
+            <h3 className="font-semibold text-emerald-900 mb-4 text-center">Informasi Kelas & Pasangan</h3>
+
+            {/* Class Information */}
+            <div className="space-y-4 mb-6">
+              <div className="bg-white rounded-lg p-4 border border-emerald-100">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                  <h4 className="font-medium text-gray-900">Kelas Ujian</h4>
+                </div>
+                {existingSubmission?.ujian_halaqah_obj ? (
+                  <div className="ml-7 text-sm text-gray-700 space-y-1">
+                    <p><span className="font-medium">Nama:</span> {existingSubmission.ujian_halaqah_obj.name || '-'}</p>
+                    {existingSubmission.ujian_halaqah_obj.day_of_week && existingSubmission.ujian_halaqah_obj.start_time && existingSubmission.ujian_halaqah_obj.end_time && (
+                      <p>
+                        <span className="font-medium">Jadwal:</span> {['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'][existingSubmission.ujian_halaqah_obj.day_of_week]} • {existingSubmission.ujian_halaqah_obj.start_time} - {existingSubmission.ujian_halaqah_obj.end_time} WIB
+                      </p>
+                    )}
+                    {existingSubmission.ujian_halaqah_obj.location && (
+                      <p><span className="font-medium">Lokasi:</span> {existingSubmission.ujian_halaqah_obj.location}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="ml-7 text-sm text-gray-500">Kelas ujian belum ditentukan</p>
+                )}
+              </div>
+
+              {existingSubmission?.tashih_halaqah_obj && (
+                <div className="bg-white rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-medium text-gray-900">Kelas Tashih</h4>
+                  </div>
+                  <div className="ml-7 text-sm text-gray-700 space-y-1">
+                    <p><span className="font-medium">Nama:</span> {existingSubmission.tashih_halaqah_obj.name || '-'}</p>
+                    {existingSubmission.tashih_halaqah_obj.day_of_week && existingSubmission.tashih_halaqah_obj.start_time && existingSubmission.tashih_halaqah_obj.end_time && (
+                      <p>
+                        <span className="font-medium">Jadwal:</span> {['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'][existingSubmission.tashih_halaqah_obj.day_of_week]} • {existingSubmission.tashih_halaqah_obj.start_time} - {existingSubmission.tashih_halaqah_obj.end_time} WIB
+                      </p>
+                    )}
+                    {existingSubmission.tashih_halaqah_obj.location && (
+                      <p><span className="font-medium">Lokasi:</span> {existingSubmission.tashih_halaqah_obj.location}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Akad Files */}
+            {existingSubmission?.akad_files && existingSubmission.akad_files.length > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-amber-100 mb-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <FileText className="w-5 h-5 text-amber-600" />
+                  <h4 className="font-medium text-gray-900">Akad Daftar Ulang</h4>
+                </div>
+                <div className="ml-7 space-y-2">
+                  {existingSubmission.akad_files.map((file: { url: string; name: string }, index: number) => (
+                    <a
+                      key={index}
+                      href={file.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>{file.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Partner Information */}
+            {existingSubmission?.partner_user_id || existingSubmission?.partner_name ? (
+              <div className="bg-white rounded-lg p-4 border border-purple-100">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Users className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-medium text-gray-900">Pasangan Belajar</h4>
+                </div>
+                <div className="ml-7 text-sm text-gray-700 space-y-1">
+                  {existingSubmission.partner_user_id && existingSubmission.partner_user_obj ? (
+                    <>
+                      <p><span className="font-medium">Nama:</span> {existingSubmission.partner_user_obj.full_name || '-'}</p>
+                      {existingSubmission.partner_user_obj.whatsapp && (
+                        <p>
+                          <span className="font-medium">WhatsApp:</span>{' '}
+                          <a
+                            href={`https://wa.me/${existingSubmission.partner_user_obj.whatsapp.replace(/^0/, '62').replace(/\+/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:underline"
+                          >
+                            {existingSubmission.partner_user_obj.whatsapp}
+                          </a>
+                        </p>
+                      )}
+                    </>
+                  ) : existingSubmission.partner_name ? (
+                    <>
+                      <p><span className="font-medium">Nama:</span> {existingSubmission.partner_name}</p>
+                      {existingSubmission.partner_relationship && (
+                        <p><span className="font-medium">Hubungan:</span> {existingSubmission.partner_relationship}</p>
+                      )}
+                      {existingSubmission.partner_wa_phone && (
+                        <p>
+                          <span className="font-medium">WhatsApp:</span>{' '}
+                          <a
+                            href={`https://wa.me/${existingSubmission.partner_wa_phone.replace(/^0/, '62').replace(/\+/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-600 hover:underline"
+                          >
+                            {existingSubmission.partner_wa_phone}
+                          </a>
+                        </p>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ) : existingSubmission?.partner_type === 'system_match' ? (
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  <h4 className="font-medium text-gray-900">Pasangan Belajar</h4>
+                </div>
+                <p className="ml-7 text-sm text-gray-700">
+                  <span className="font-medium">Tipe:</span> Dipasangkan oleh sistem
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         <Button
