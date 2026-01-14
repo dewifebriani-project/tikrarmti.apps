@@ -1937,17 +1937,17 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
           : 'Data daftar ulang Anda berhasil dikirim. Admin akan memverifikasi data Anda dalam 1-2 hari kerja.'}
       </p>
 
-      {/* Show class info and partner details for approved status */}
-      {isApproved && (
+      {/* Show class info and partner details for approved and submitted status */}
+      {(isApproved || isSubmitted) && (
         <div className="max-w-2xl mx-auto mb-8 text-left">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6">
-            <h3 className="font-semibold text-emerald-900 mb-4 text-center">Informasi Kelas & Pasangan</h3>
+          <div className={`${isApproved ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-6`}>
+            <h3 className={`font-semibold mb-4 text-center ${isApproved ? 'text-emerald-900' : 'text-blue-900'}`}>Informasi Kelas & Pasangan</h3>
 
             {/* Class Information */}
             <div className="space-y-4 mb-6">
-              <div className="bg-white rounded-lg p-4 border border-emerald-100">
+              <div className={`bg-white rounded-lg p-4 border ${isApproved ? 'border-emerald-100' : 'border-green-100'}`}>
                 <div className="flex items-center space-x-2 mb-2">
-                  <Calendar className="w-5 h-5 text-green-600" />
+                  <Calendar className={`w-5 h-5 ${isApproved ? 'text-emerald-600' : 'text-green-600'}`} />
                   <h4 className="font-medium text-gray-900">Kelas Ujian</h4>
                 </div>
                 {existingSubmission?.ujian_halaqah_obj ? (
@@ -1968,7 +1968,7 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
               </div>
 
               {existingSubmission?.tashih_halaqah_obj && (
-                <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className={`bg-white rounded-lg p-4 border ${isApproved ? 'border-blue-100' : 'border-indigo-100'}`}>
                   <div className="flex items-center space-x-2 mb-2">
                     <Calendar className="w-5 h-5 text-blue-600" />
                     <h4 className="font-medium text-gray-900">Kelas Tashih</h4>
