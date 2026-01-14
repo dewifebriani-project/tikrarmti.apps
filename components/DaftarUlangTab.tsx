@@ -67,15 +67,11 @@ interface DaftarUlangSubmission {
     id: string;
     full_name: string;
     email: string;
-    whatsapp?: string;
-    phone?: string;
   };
   partner_user?: {
     id: string;
     full_name: string;
     email: string;
-    whatsapp?: string;
-    phone?: string;
   };
   ujian_halaqah?: {
     id: string;
@@ -668,7 +664,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                     </td>
                     <td className="px-6 py-4">
                       {getWhatsAppButton(
-                        submission.user?.whatsapp || submission.user?.phone,
+                        undefined,
                         submission.confirmed_full_name || submission.user?.full_name
                       )}
                     </td>
