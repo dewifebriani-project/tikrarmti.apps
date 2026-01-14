@@ -1283,7 +1283,10 @@ export async function addThalibahToHalaqah(params: {
           .maybeSingle()
 
         const updateData: any = {
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          // Set status to approved when admin manually adds thalibah to halaqah
+          status: 'approved',
+          submitted_at: new Date().toISOString()
         }
 
         // Update based on halaqahType
@@ -1297,7 +1300,7 @@ export async function addThalibahToHalaqah(params: {
         }
 
         if (existingSubmission) {
-          // Update existing submission
+          // Update existing submission - set status to approved
           const { error: updateError } = await supabaseAdmin
             .from('daftar_ulang_submissions')
             .update(updateData)
