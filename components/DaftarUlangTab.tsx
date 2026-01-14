@@ -143,6 +143,8 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   // Per Juz state
   const [juzGroups, setJuzGroups] = useState<Record<string, any[]>>({});
   const [juzGroupsLoading, setJuzGroupsLoading] = useState(true);
+  const [juzSortField, setJuzSortField] = useState<'name' | 'status' | 'halaqah' | 'partner' | 'submitted_at'>('name');
+  const [juzSortOrder, setJuzSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const loadBatches = async () => {
     try {
@@ -546,6 +548,61 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     );
   };
 
+  // Sort juz submissions
+  const sortJuzSubmissions = (submissions: any[], field: typeof juzSortField, order: typeof juzSortOrder) => {
+    return [...submissions].sort((a, b) => {
+      let compareValue = 0;
+
+      switch (field) {
+        case 'name':
+          const aName = a.confirmed_full_name || a.user?.full_name || '';
+          const bName = b.confirmed_full_name || b.user?.full_name || '';
+          compareValue = aName.localeCompare(bName, 'id-ID');
+          break;
+        case 'status':
+          compareValue = a.status.localeCompare(b.status);
+          break;
+        case 'halaqah':
+          const aHalaqah = a.ujian_halaqah?.name || a.tashih_halaqah?.name || (a.is_tashih_umum ? 'Umum' : '') || 'zzz';
+          const bHalaqah = b.ujian_halaqah?.name || b.tashih_halaqah?.name || (b.is_tashih_umum ? 'Umum' : '') || 'zzz';
+          compareValue = aHalaqah.localeCompare(bHalaqah);
+          break;
+        case 'partner':
+          const aPartner = a.partner_name || a.partner_user?.full_name || 'zzz';
+          const bPartner = b.partner_name || b.partner_user?.full_name || 'zzz';
+          compareValue = aPartner.localeCompare(bPartner);
+          break;
+        case 'submitted_at':
+          const aDate = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
+          const bDate = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
+          compareValue = aDate - bDate;
+          break;
+        default:
+          compareValue = 0;
+      }
+
+      return order === 'asc' ? compareValue : -compareValue;
+    });
+  };
+
+  const handleJuzSort = (field: typeof juzSortField) => {
+    if (juzSortField === field) {
+      setJuzSortOrder(juzSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setJuzSortField(field);
+      setJuzSortOrder('asc');
+    }
+  };
+
+  const getJuzSortIcon = (field: typeof juzSortField) => {
+    if (juzSortField !== field) return null;
+    return juzSortOrder === 'asc' ? (
+      <ArrowUp className="w-3 h-3 inline ml-1" />
+    ) : (
+      <ArrowDown className="w-3 h-3 inline ml-1" />
+    );
+  };
+
   // Sorted submissions for display
   const sortedSubmissions = useMemo(() => {
     const sorted = [...submissions].sort((a, b) => {
@@ -908,17 +965,57 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                         <table className="w-full">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                              <th
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleJuzSort('name')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Nama
+                                  {getJuzSortIcon('name')}
+                                </div>
+                              </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">WhatsApp</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Halaqah</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Partner</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submit Date</th>
+                              <th
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleJuzSort('status')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Status
+                                  {getJuzSortIcon('status')}
+                                </div>
+                              </th>
+                              <th
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleJuzSort('halaqah')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Halaqah
+                                  {getJuzSortIcon('halaqah')}
+                                </div>
+                              </th>
+                              <th
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleJuzSort('partner')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Partner
+                                  {getJuzSortIcon('partner')}
+                                </div>
+                              </th>
+                              <th
+                                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                                onClick={() => handleJuzSort('submitted_at')}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Submit Date
+                                  {getJuzSortIcon('submitted_at')}
+                                </div>
+                              </th>
                               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {submissions.map((submission: any) => {
+                            {sortJuzSubmissions(submissions, juzSortField, juzSortOrder).map((submission: any) => {
                               const user = submission.user || {};
                               const ujianHalaqah = submission.ujian_halaqah || {};
                               const tashihHalaqah = submission.tashih_halaqah || {};
