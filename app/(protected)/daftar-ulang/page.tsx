@@ -254,8 +254,16 @@ export default function DaftarUlangPage() {
   }, [existingSubmission])
 
   // Save draft on form data changes (debounced)
+  // IMPORTANT: DO NOT save draft for submitted/approved status - this would overwrite halaqah data!
   useEffect(() => {
     if (!registrationData?.id) return
+
+    // Prevent auto-save for submitted/approved submissions
+    // This is critical to avoid overwriting halaqah_id with null
+    if (existingSubmission?.status === 'submitted' || existingSubmission?.status === 'approved') {
+      console.log('[Daftar Ulang] Skipping draft save for locked status:', existingSubmission.status)
+      return
+    }
 
     const timer = setTimeout(async () => {
       // Only save if we have meaningful data
@@ -298,7 +306,7 @@ export default function DaftarUlangPage() {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [formData, registrationData?.id])
+  }, [formData, registrationData?.id, existingSubmission?.status])
 
   const handleNext = () => {
 
