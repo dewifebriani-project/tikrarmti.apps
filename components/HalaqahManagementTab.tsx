@@ -30,6 +30,7 @@ import { HalaqahStudentsList } from '@/components/HalaqahStudentsList';
 import { AutoCreateHalaqahModal } from '@/components/AutoCreateHalaqahModal';
 import { EditHalaqahModal } from '@/components/EditHalaqahModal';
 import { AssignThalibahModal } from '@/components/AssignThalibahModal';
+import { ManualCreateHalaqahModal } from '@/components/ManualCreateHalaqahModal';
 import { formatSchedule, formatClassType } from '@/lib/format-utils';
 import { updateHalaqah, deleteHalaqah } from '@/app/(protected)/admin/halaqah/actions';
 
@@ -117,6 +118,7 @@ export function HalaqahManagementTab() {
   const [editingHalaqah, setEditingHalaqah] = useState<Halaqah | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAutoCreateModal, setShowAutoCreateModal] = useState(false);
+  const [showManualCreateModal, setShowManualCreateModal] = useState(false);
   const [showAssignThalibahModal, setShowAssignThalibahModal] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
 
@@ -647,6 +649,14 @@ export function HalaqahManagementTab() {
           >
             <UserPlus className="w-4 h-4" />
             Assign Thalibah
+          </button>
+          <button
+            onClick={() => setShowManualCreateModal(true)}
+            disabled={!selectedBatch}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Halaqah
           </button>
           <button
             onClick={() => setShowAutoCreateModal(true)}
@@ -1180,6 +1190,18 @@ export function HalaqahManagementTab() {
             setEditingHalaqah(null);
             setRefreshTrigger(prev => prev + 1);
           }}
+        />
+      )}
+
+      {/* Manual Create Halaqah Modal */}
+      {showManualCreateModal && (
+        <ManualCreateHalaqahModal
+          onClose={() => setShowManualCreateModal(false)}
+          onSuccess={() => {
+            setShowManualCreateModal(false);
+            setRefreshTrigger(prev => prev + 1);
+          }}
+          batchId={selectedBatch}
         />
       )}
     </div>

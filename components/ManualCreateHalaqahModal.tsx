@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Loader2, Users, Calendar, Clock, MapPin, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 interface Batch {
   id: string;
