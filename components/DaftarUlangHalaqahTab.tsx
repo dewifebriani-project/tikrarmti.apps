@@ -75,6 +75,8 @@ const STATUS_ORDER: Record<string, number> = {
 };
 
 export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
+  console.log('[DaftarUlangHalaqahTab] Component rendered with batchId:', batchId);
+
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
