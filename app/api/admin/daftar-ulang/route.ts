@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 2000);
     const offset = (page - 1) * limit;
     const batchId = searchParams.get('batch_id');
     const status = searchParams.get('status');

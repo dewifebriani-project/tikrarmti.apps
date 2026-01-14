@@ -121,6 +121,10 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       const result = await response.json();
       if (result.success && result.data) {
         setBatches(result.data);
+        // If no initial batchId, set to the latest batch
+        if (!initialBatchId && result.data.length > 0) {
+          setLocalBatchId(result.data[0].id);
+        }
       }
     } catch (error) {
       console.error('[DaftarUlangTab] Error loading batches:', error);
