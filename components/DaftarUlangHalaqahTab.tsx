@@ -86,6 +86,18 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
 
+  // Statistics state
+  const [stats, setStats] = useState<{
+    totalHalaqah: number;
+    totalThalibah: number;
+    bothCount: number;
+    ujianCount: number;
+    tashihCount: number;
+    juzCount: Record<string, number>;
+    scheduleCount: Record<string, number>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -97,6 +109,34 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [thalibahSortField, setThalibahSortField] = useState<ThalibahSortField>('submitted');
   const [thalibahSortOrder, setThalibahSortOrder] = useState<ThalibahSortOrder>('desc');
+
+  const loadStats = async () => {
+    console.log('[DaftarUlangHalaqahTab] Loading statistics...');
+    setStatsLoading(true);
+
+    try {
+      // Build query params
+      const params = new URLSearchParams();
+      if (batchId && batchId !== 'all') params.append('batch_id', batchId);
+
+      const response = await fetch(`/api/admin/daftar-ulang/stats/halaqah?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[DaftarUlangHalaqahTab] Failed to load stats:', result);
+        return;
+      }
+
+      if (result.data) {
+        console.log('[DaftarUlangHalaqahTab] Loaded stats:', result.data);
+        setStats(result.data);
+      }
+    } catch (error: any) {
+      console.error('[DaftarUlangHalaqahTab] Error loading stats:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const loadData = async () => {
     console.log('[DaftarUlangHalaqahTab] Loading submissions and halaqah...');
@@ -144,6 +184,11 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       setLoading(false);
     }
   };
+
+  // Load statistics when batch changes or refresh triggers
+  useEffect(() => {
+    loadStats();
+  }, [batchId, refreshTrigger]);
 
   useEffect(() => {
     loadData();
@@ -400,52 +445,23 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     });
   }, [sortedHalaqahList, thalibahSortField, thalibahSortOrder]);
 
-  // Statistics
+  // Statistics - use API stats for aggregate data
   const halaqahStats = useMemo(() => {
-    const totalHalaqah = halaqahListWithSortedThalibah.length;
-    const totalThalibah = halaqahListWithSortedThalibah.reduce((sum, h) => sum + h.thalibah.length, 0);
+    if (stats) {
+      return stats;
+    }
 
-    // Count by type
-    let bothCount = 0;
-    let ujianCount = 0;
-    let tashihCount = 0;
-
-    halaqahListWithSortedThalibah.forEach(h => {
-      h.thalibah.forEach(t => {
-        if (t.type === 'both') bothCount++;
-        else if (t.type === 'ujian') ujianCount++;
-        else if (t.type === 'tashih') tashihCount++;
-      });
-    });
-
-    // Count by Juz
-    const juzCount: Record<string, number> = {};
-    halaqahListWithSortedThalibah.forEach(h => {
-      h.thalibah.forEach(t => {
-        const juz = t.confirmed_juz || 'Unknown';
-        juzCount[juz] = (juzCount[juz] || 0) + 1;
-      });
-    });
-
-    // Count by Schedule (day of week)
-    const scheduleCount: Record<string, number> = {};
-    halaqahListWithSortedThalibah.forEach(h => {
-      if (h.halaqah?.day_of_week !== undefined && h.halaqah.day_of_week >= 1) {
-        const day = DAY_NAMES[h.halaqah.day_of_week];
-        scheduleCount[day] = (scheduleCount[day] || 0) + h.thalibah.length;
-      }
-    });
-
+    // Fallback to current page data if stats not loaded yet
     return {
-      totalHalaqah,
-      totalThalibah,
-      bothCount,
-      ujianCount,
-      tashihCount,
-      juzCount,
-      scheduleCount,
+      totalHalaqah: 0,
+      totalThalibah: 0,
+      bothCount: 0,
+      ujianCount: 0,
+      tashihCount: 0,
+      juzCount: {},
+      scheduleCount: {}
     };
-  }, [halaqahListWithSortedThalibah]);
+  }, [stats]);
 
   // Pagination for halaqah list
   const paginatedHalaqahList = useMemo(() => {
@@ -808,7 +824,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       </div>
 
       {/* Statistics Cards */}
-      {!loading && halaqahListWithSortedThalibah.length > 0 && (
+      {!statsLoading && halaqahListWithSortedThalibah.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase">Total Halaqah</p>
@@ -834,24 +850,28 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       )}
 
       {/* Additional Stats */}
-      {!loading && halaqahListWithSortedThalibah.length > 0 && (
+      {!statsLoading && halaqahListWithSortedThalibah.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Per Juz */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase mb-2">Per Juz</p>
             <div className="space-y-1">
-              {Object.entries(halaqahStats.juzCount)
-                .sort(([a], [b]) => {
-                  const aNum = parseInt(a.replace(/\D/g, '')) || 999;
-                  const bNum = parseInt(b.replace(/\D/g, '')) || 999;
-                  return aNum - bNum;
-                })
-                .map(([juz, count]) => (
-                  <div key={juz} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{juz}</span>
-                    <span className="font-medium">{count} thalibah</span>
-                  </div>
-                ))}
+              {Object.keys(halaqahStats.juzCount).length > 0 ? (
+                Object.entries(halaqahStats.juzCount)
+                  .sort(([a], [b]) => {
+                    const aNum = parseInt(a.replace(/\D/g, '')) || 999;
+                    const bNum = parseInt(b.replace(/\D/g, '')) || 999;
+                    return aNum - bNum;
+                  })
+                  .map(([juz, count]) => (
+                    <div key={juz} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{juz}</span>
+                      <span className="font-medium">{count} thalibah</span>
+                    </div>
+                  ))
+              ) : (
+                <p className="text-gray-400 text-sm">No data</p>
+              )}
             </div>
           </div>
 
@@ -859,14 +879,18 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <p className="text-xs text-gray-500 uppercase mb-2">Per Jadwal</p>
             <div className="space-y-1">
-              {Object.entries(halaqahStats.scheduleCount)
-                .sort(([, a], [, b]) => b - a)
-                .map(([day, count]) => (
-                  <div key={day} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{day}</span>
-                    <span className="font-medium">{count} thalibah</span>
-                  </div>
-                ))}
+              {Object.keys(halaqahStats.scheduleCount).length > 0 ? (
+                Object.entries(halaqahStats.scheduleCount)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([day, count]) => (
+                    <div key={day} className="flex justify-between text-sm">
+                      <span className="text-gray-600">{day}</span>
+                      <span className="font-medium">{count} thalibah</span>
+                    </div>
+                  ))
+              ) : (
+                <p className="text-gray-400 text-sm">No data</p>
+              )}
             </div>
           </div>
         </div>
