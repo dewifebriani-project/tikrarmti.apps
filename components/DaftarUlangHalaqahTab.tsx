@@ -134,6 +134,12 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       return [];
     }
 
+    console.log('[DaftarUlangHalaqahTab] Processing submissions:', submissions.length);
+    console.log('[DaftarUlangHalaqahTab] Submissions by status:', submissions.reduce((acc, s) => {
+      acc[s.status] = (acc[s.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>));
+
     // Map to track halaqah groups by halaqah_id
     const halaqahMap = new Map<string, HalaqahWithThalibah>();
 
@@ -825,7 +831,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
                               {thalibahCount} thalibah
                             </span>
                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 border border-gray-200 text-gray-700">
-                              {item.type === 'ujian' ? 'Ujian' : 'Tashih'}
+                              {item.type === 'both' ? 'Paket Lengkap' : (item.type === 'ujian' ? 'Ujian' : 'Tashih')}
                             </span>
                           </div>
 
