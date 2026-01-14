@@ -809,11 +809,48 @@ export default function PerjalananSaya() {
                         )}
                       </div>
                     )}
+
+                    {/* Class/Program Info - Only show if daftar ulang exists */}
+                    {registrationStatus.registration.daftar_ulang && (
+                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-start space-x-2">
+                          <Award className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-grow">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-2">Kelas & Program</p>
+                            <div className="space-y-2">
+                              {registrationStatus.registration.daftar_ulang.ujian_halaqah && (
+                                <div className="bg-white rounded p-2 border border-blue-100">
+                                  <p className="text-xs text-gray-600">Kelas Ujian</p>
+                                  <p className="font-medium text-sm text-blue-800">
+                                    {registrationStatus.registration.daftar_ulang.ujian_halaqah.name}
+                                  </p>
+                                  <p className="text-xs text-blue-600">
+                                    {registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week}, {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.ujian_halaqah.end_time}
+                                  </p>
+                                </div>
+                              )}
+                              {registrationStatus.registration.daftar_ulang.tashih_halaqah && (
+                                <div className="bg-white rounded p-2 border border-purple-100">
+                                  <p className="text-xs text-gray-600">Kelas Tashih</p>
+                                  <p className="font-medium text-sm text-purple-800">
+                                    {registrationStatus.registration.daftar_ulang.tashih_halaqah.name}
+                                  </p>
+                                  <p className="text-xs text-purple-600">
+                                    {registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week}, {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.tashih_halaqah.end_time}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 
                 {/* Status Badge / Edit Button */}
-                {registrationStatus.registration?.re_enrollment_completed !== true ? (
+                {!registrationStatus.registration?.re_enrollment_completed &&
+                 !registrationStatus.registration?.daftar_ulang ? (
                   <Button
                     size="sm"
                     variant="outline"

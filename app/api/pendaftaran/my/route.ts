@@ -171,14 +171,14 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
-    // Get user's daftar ulang submissions
+    // Get user's daftar ulang submissions with halaqah details
     const { data: daftarUlangSubmissions, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
       .select(`
         *,
         batch:batches(*),
-        ujian_halaqah:halaqahs!daftar_ulang_submissions_ujian_halaqah_id_fkey(*),
-        tashih_halaqah:halaqahs!daftar_ulang_submissions_tashih_halaqah_id_fkey(*)
+        ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(*),
+        tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(*)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
