@@ -243,26 +243,30 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           if (entry) {
             entry.type = 'both';
             // Update halaqah info with tashih data
-            entry.halaqah = {
-              ...entry.halaqah,
-              ...sub.tashih_halaqah,
-              max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
-              available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
-              is_full: false
-            };
+            if (entry.halaqah) {
+              entry.halaqah = {
+                ...entry.halaqah,
+                ...sub.tashih_halaqah,
+                max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
+                available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
+                is_full: false
+              };
+            }
           }
         } else if (entry) {
           // Update halaqah info if this is tashih-only
           if (entry.type === 'ujian') {
-            entry.halaqah = {
-              ...entry.halaqah,
-              ...sub.tashih_halaqah,
-              max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
-              available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
-              is_full: false
-            };
+            if (entry.halaqah) {
+              entry.halaqah = {
+                ...entry.halaqah,
+                ...sub.tashih_halaqah,
+                max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
+                available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
+                is_full: false
+              };
+            }
             entry.type = 'both';
-          } else {
+          } else if (entry.halaqah) {
             entry.halaqah = {
               ...entry.halaqah,
               ...sub.tashih_halaqah,
