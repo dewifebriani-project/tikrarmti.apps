@@ -85,6 +85,10 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Add Thalibah Modal state
   const [showAddThalibahModal, setShowAddThalibahModal] = useState(false);
   const [selectedHalaqahForAdd, setSelectedHalaqahForAdd] = useState<HalaqahInfo | null>(null);
@@ -389,6 +393,15 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       scheduleCount,
     };
   }, [halaqahListWithSortedThalibah]);
+
+  // Pagination for halaqah list
+  const paginatedHalaqahList = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return halaqahListWithSortedThalibah.slice(startIndex, endIndex);
+  }, [halaqahListWithSortedThalibah, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(halaqahListWithSortedThalibah.length / itemsPerPage);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -719,16 +732,6 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* DEBUG INFO */}
-      <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-4 text-sm">
-        <p className="font-bold">DEBUG INFO:</p>
-        <p>batchId: {batchId || 'undefined/null'}</p>
-        <p>submissions.length: {submissions.length}</p>
-        <p>loading: {loading.toString()}</p>
-        <p>halaqahListWithSortedThalibah.length: {halaqahListWithSortedThalibah.length}</p>
-        <p>processedData.length: {processedData.length}</p>
-      </div>
-
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Daftar Thalibah per Halaqah</h2>
@@ -833,7 +836,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {halaqahListWithSortedThalibah.map((item) => {
+            {paginatedHalaqahList.map((item) => {
               const isExpanded = expandedHalaqah.has(item.halaqahId);
               const thalibahCount = item.thalibah.length;
 
@@ -1041,6 +1044,61 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && halaqahListWithSortedThalibah.length > 0 && (
+        <div className="flex items-center justify-between bg-white px-6 py-4 border-t border-gray-200 rounded-b-lg">
+          <div className="text-sm text-gray-700">
+            Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, halaqahListWithSortedThalibah.length)} dari {halaqahListWithSortedThalibah.length} halaqah
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Awal
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              &lt;
+            </button>
+            <span className="px-3 py-1 text-sm">
+              Halaman {currentPage} dari {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              &gt;
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Akhir
+            </button>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="ml-4 px-3 py-1 border border-gray-300 rounded text-sm"
+            >
+              <option value="10">10 per halaman</option>
+              <option value="20">20 per halaman</option>
+              <option value="50">50 per halaman</option>
+              <option value="100">100 per halaman</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Add Thalibah Modal */}
       {showAddThalibahModal && selectedHalaqahForAdd && (
