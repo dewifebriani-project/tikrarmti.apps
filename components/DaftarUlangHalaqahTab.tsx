@@ -144,16 +144,17 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     const approvedSubmissions = submissions.filter(s => s.status === 'approved');
     console.log('[DaftarUlangHalaqahTab] Approved submissions:', approvedSubmissions.length);
     if (approvedSubmissions.length > 0) {
-      console.log('[DaftarUlangHalaqahTab] First approved submission:', {
-        id: approvedSubmissions[0].id,
-        user_id: approvedSubmissions[0].user_id,
-        status: approvedSubmissions[0].status,
-        ujian_halaqah_id: approvedSubmissions[0].ujian_halaqah_id,
-        tashih_halaqah_id: approvedSubmissions[0].tashih_halaqah_id,
-        ujian_halaqah: approvedSubmissions[0].ujian_halaqah,
-        tashih_halaqah: approvedSubmissions[0].tashih_halaqah,
-        batch_id: approvedSubmissions[0].batch_id,
-      });
+      console.log('[DaftarUlangHalaqahTab] All approved submissions:', approvedSubmissions.map(s => ({
+        id: s.id,
+        user_id: s.user_id,
+        full_name: s.user?.full_name || s.confirmed_full_name,
+        status: s.status,
+        ujian_halaqah_id: s.ujian_halaqah_id,
+        tashih_halaqah_id: s.tashih_halaqah_id,
+        has_ujian_halaqah: !!s.ujian_halaqah,
+        has_tashih_halaqah: !!s.tashih_halaqah,
+        batch_id: s.batch_id,
+      })));
     }
 
     // Map to track halaqah groups by halaqah_id
