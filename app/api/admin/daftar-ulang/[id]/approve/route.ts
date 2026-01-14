@@ -22,7 +22,7 @@ export async function POST(
 
     const { data: userData } = await supabase
       .from('users')
-      .select('role')
+      .select('role, roles')
       .eq('id', user.id)
       .single();
 
