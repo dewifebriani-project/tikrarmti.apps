@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch user's existing daftar ulang submission if any
     // For submitted or approved status, include related halaqah and partner data
-    const { data: existingSubmission } = await supabase
+    const { data: existingSubmission, error: submissionError } = await supabase
       .from('daftar_ulang_submissions')
       .select(`
         *,
@@ -120,6 +120,12 @@ export async function GET(request: NextRequest) {
       `)
       .eq('user_id', user.id)
       .maybeSingle()
+
+    // Debug log to check existing submission data from DB
+    console.log('[API Daftar Ulang] Existing submission from DB:', existingSubmission)
+    console.log('[API Daftar Ulang] ujian_halaqah_obj:', existingSubmission?.ujian_halaqah_obj)
+    console.log('[API Daftar Ulang] tashih_halaqah_obj:', existingSubmission?.tashih_halaqah_obj)
+    console.log('[API Daftar Ulang] submissionError:', submissionError)
 
     // Call shared quota calculation API
     // Pass user_id to exclude current user from count
