@@ -18,14 +18,15 @@ import {
   ArrowUp,
   ArrowDown,
   RotateCcw,
-  FileSpreadsheet
+  FileSpreadsheet,
+  BookOpen
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type DaftarUlangSubTab = 'submissions' | 'halaqah';
+type DaftarUlangSubTab = 'submissions' | 'halaqah' | 'per_juz';
 
 type SortField = 'name' | 'juz' | 'halaqah' | 'status' | 'submitted_at';
 type SortOrder = 'asc' | 'desc';
@@ -139,6 +140,10 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   const [batches, setBatches] = useState<Batch[]>([]);
   const [localBatchId, setLocalBatchId] = useState<string>(initialBatchId || 'all');
 
+  // Per Juz state
+  const [juzGroups, setJuzGroups] = useState<Record<string, any[]>>({});
+  const [juzGroupsLoading, setJuzGroupsLoading] = useState(true);
+
   const loadBatches = async () => {
     try {
       const response = await fetch('/api/batch');
@@ -216,6 +221,45 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       toast.error('Failed to load submissions: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadJuzGroups = async () => {
+    console.log('[DaftarUlangTab] Loading juz groups...');
+    setJuzGroupsLoading(true);
+
+    try {
+      const params = new URLSearchParams();
+      if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
+      params.append('limit', '10000'); // Get all data for grouping
+
+      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[DaftarUlangTab] Failed to load submissions for juz grouping:', result);
+        return;
+      }
+
+      const allSubmissions = result.data || [];
+
+      // Group by juz
+      const groups: Record<string, any[]> = {};
+      allSubmissions.forEach((sub: any) => {
+        const juz = sub.confirmed_chosen_juz || sub.registration?.chosen_juz || 'Unknown';
+        if (!groups[juz]) {
+          groups[juz] = [];
+        }
+        groups[juz].push(sub);
+      });
+
+      console.log('[DaftarUlangTab] Loaded juz groups:', Object.keys(groups).length, 'juz');
+      setJuzGroups(groups);
+    } catch (error: any) {
+      console.error('[DaftarUlangTab] Error loading juz groups:', error);
+      toast.error('Failed to load juz groups: ' + error.message);
+    } finally {
+      setJuzGroupsLoading(false);
     }
   };
 
@@ -455,9 +499,19 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     loadStats();
   }, [localBatchId, refreshTrigger]);
 
+  // Load submissions when batch changes or refresh triggers
   useEffect(() => {
-    loadSubmissions();
-  }, [localBatchId, refreshTrigger, currentPage]);
+    if (activeSubTab === 'submissions') {
+      loadSubmissions();
+    }
+  }, [localBatchId, refreshTrigger, currentPage, activeSubTab]);
+
+  // Load juz groups when batch changes or refresh triggers
+  useEffect(() => {
+    if (activeSubTab === 'per_juz') {
+      loadJuzGroups();
+    }
+  }, [localBatchId, refreshTrigger, activeSubTab]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -711,47 +765,51 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang</h2>
           <div className="flex gap-2">
-            <button
-              onClick={handleResetAllHalaqah}
-              disabled={resettingAll}
-              className="px-3 py-2 border border-orange-300 text-orange-600 rounded-md text-sm hover:bg-orange-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {resettingAll ? (
-                <>
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <RotateCcw className="w-3 h-3" />
-                  Reset All Halaqah
-                </>
-              )}
-            </button>
+            {activeSubTab === 'submissions' && (
+              <>
+                <button
+                  onClick={handleResetAllHalaqah}
+                  disabled={resettingAll}
+                  className="px-3 py-2 border border-orange-300 text-orange-600 rounded-md text-sm hover:bg-orange-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resettingAll ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Resetting...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3 h-3" />
+                      Reset All Halaqah
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={downloadExcel}
+                  disabled={downloadingExcel}
+                  className="px-3 py-2 border border-green-600 text-green-600 rounded-md text-sm hover:bg-green-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Download Excel"
+                >
+                  <FileSpreadsheet className="w-3 h-3" />
+                  {downloadingExcel ? 'Downloading...' : 'Excel'}
+                </button>
+                <button
+                  onClick={downloadPDF}
+                  disabled={downloadingPDF}
+                  className="px-3 py-2 border border-red-600 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Download PDF"
+                >
+                  <Download className="w-3 h-3" />
+                  {downloadingPDF ? 'Downloading...' : 'PDF'}
+                </button>
+              </>
+            )}
             <button
               onClick={() => setRefreshTrigger(prev => prev + 1)}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" />
               Refresh
-            </button>
-            <button
-              onClick={downloadExcel}
-              disabled={downloadingExcel}
-              className="px-3 py-2 border border-green-600 text-green-600 rounded-md text-sm hover:bg-green-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Download Excel"
-            >
-              <FileSpreadsheet className="w-3 h-3" />
-              {downloadingExcel ? 'Downloading...' : 'Excel'}
-            </button>
-            <button
-              onClick={downloadPDF}
-              disabled={downloadingPDF}
-              className="px-3 py-2 border border-red-600 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Download PDF"
-            >
-              <Download className="w-3 h-3" />
-              {downloadingPDF ? 'Downloading...' : 'PDF'}
             </button>
           </div>
         </div>
@@ -781,6 +839,17 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
               <FolderTree className="w-4 h-4" />
               Per Halaqah
             </button>
+            <button
+              onClick={() => setActiveSubTab('per_juz')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeSubTab === 'per_juz'
+                  ? 'border-green-600 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Per Juz
+            </button>
           </div>
         </nav>
       </div>
@@ -788,6 +857,130 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       {/* Sub-tab Content */}
       {activeSubTab === 'halaqah' ? (
         <DaftarUlangHalaqahTab batchId={localBatchId} />
+      ) : activeSubTab === 'per_juz' ? (
+        <>
+          {/* Per Juz View */}
+          {juzGroupsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            </div>
+          ) : Object.keys(juzGroups).length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500">Belum ada data per juz</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(juzGroups)
+                .sort(([a], [b]) => {
+                  const aNum = parseInt(a.replace(/\D/g, '')) || 999;
+                  const bNum = parseInt(b.replace(/\D/g, '')) || 999;
+                  return aNum - bNum;
+                })
+                .map(([juz, submissions]) => {
+                  const draftCount = submissions.filter((s: any) => s.status === 'draft').length;
+                  const submittedCount = submissions.filter((s: any) => s.status === 'submitted').length;
+                  const approvedCount = submissions.filter((s: any) => s.status === 'approved').length;
+                  const rejectedCount = submissions.filter((s: any) => s.status === 'rejected').length;
+                  const withHalaqah = submissions.filter((s: any) => s.ujian_halaqah_id || s.tashih_halaqah_id).length;
+
+                  return (
+                    <div key={juz} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                      {/* Juz Header */}
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <BookOpen className="w-5 h-5 text-green-600" />
+                            <h3 className="text-lg font-semibold text-gray-900">{juz}</h3>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-gray-600">Total: {submissions.length}</span>
+                            <span className="text-gray-400">|</span>
+                            <span className="text-blue-600">Submitted: {submittedCount}</span>
+                            <span className="text-green-600">Approved: {approvedCount}</span>
+                            <span className="text-purple-600">Dengan Halaqah: {withHalaqah}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Submissions Table for this Juz */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Halaqah</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Partner</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submit Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {submissions.map((submission: any) => {
+                              const user = submission.user || {};
+                              const ujianHalaqah = submission.ujian_halaqah || {};
+                              const tashihHalaqah = submission.tashih_halaqah || {};
+
+                              return (
+                                <tr key={submission.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3">
+                                    <div className="text-sm font-medium text-gray-900">
+                                      {submission.confirmed_full_name || user.full_name || '-'}
+                                    </div>
+                                    <div className="text-xs text-gray-500">{user.email || '-'}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {getStatusBadge(submission.status)}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm">
+                                    <div className="space-y-1">
+                                      {ujianHalaqah.name && (
+                                        <div className="text-gray-900">
+                                          <span className="text-xs text-gray-500">Ujian:</span> {ujianHalaqah.name}
+                                        </div>
+                                      )}
+                                      {tashihHalaqah.name && (
+                                        <div className="text-gray-900">
+                                          <span className="text-xs text-gray-500">Tashih:</span> {tashihHalaqah.name}
+                                        </div>
+                                      )}
+                                      {submission.is_tashih_umum && (
+                                        <div className="text-gray-900">
+                                          <span className="text-xs text-gray-500">Tashih:</span> Umum
+                                        </div>
+                                      )}
+                                      {!ujianHalaqah.name && !tashihHalaqah.name && !submission.is_tashih_umum && (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-900">
+                                    {submission.partner_name || submission.partner_user?.full_name || '-'}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-500">
+                                    {formatDate(submission.submitted_at || '')}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      onClick={() => setSelectedSubmission(submission)}
+                                      className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                    >
+                                      View
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </>
       ) : (
         <>
           {/* Statistics Cards */}
