@@ -1315,14 +1315,15 @@ export async function addThalibahToHalaqah(params: {
 
           console.log('[addThalibahToHalaqah] Updated daftar_ulang_submissions for', enrolment.full_name)
         } else {
-          // Create new submission with draft status
+          // Create new submission with approved status (admin manually added thalibah)
           const { error: insertError } = await supabaseAdmin
             .from('daftar_ulang_submissions')
             .insert({
               user_id: thalibahId,
               registration_id: enrolment.id,
               batch_id: batchId,
-              status: 'draft',
+              status: 'approved',
+              submitted_at: new Date().toISOString(),
               ...updateData,
               created_at: new Date().toISOString()
             })
