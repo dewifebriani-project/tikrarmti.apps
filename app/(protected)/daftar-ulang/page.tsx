@@ -194,6 +194,9 @@ export default function DaftarUlangPage() {
         setHalaqahData(halaqahDataResult.data?.halaqah || [])
         setExistingSubmission(halaqahDataResult.data?.existing_submission)
 
+        // Debug: log existing submission data
+        console.log('[Daftar Ulang] Existing submission:', halaqahDataResult.data?.existing_submission)
+
         // Check if user already submitted daftar ulang OR approved
         // Both statuses should show the success/info page and prevent form editing
         const submissionStatus = halaqahDataResult.data?.existing_submission?.status
@@ -1915,6 +1918,11 @@ function AkadUploadStep({
 
 function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const router = useRouter()
+
+  // Debug: log existing submission received by SuccessStep
+  console.log('[SuccessStep] Received existingSubmission:', existingSubmission)
+  console.log('[SuccessStep] ujian_halaqah_obj:', existingSubmission?.ujian_halaqah_obj)
+  console.log('[SuccessStep] tashih_halaqah_obj:', existingSubmission?.tashih_halaqah_obj)
 
   // Check submission status
   const submissionStatus = existingSubmission?.status
