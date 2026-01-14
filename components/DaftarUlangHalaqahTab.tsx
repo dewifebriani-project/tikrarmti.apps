@@ -166,33 +166,54 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
     // Map to track halaqah groups by halaqah_id
     const halaqahMap = new Map<string, HalaqahWithThalibah>();
 
+    // First, collect all unique halaqah IDs from submissions
+    const allHalaqahIds = new Set<string>();
+    submissions.forEach((sub) => {
+      if (sub.ujian_halaqah_id) allHalaqahIds.add(sub.ujian_halaqah_id);
+      if (sub.tashih_halaqah_id) allHalaqahIds.add(sub.tashih_halaqah_id);
+    });
+
+    // Initialize all halaqah with empty thalibah list
+    allHalaqahIds.forEach((halaqahId) => {
+      const maxStudents = 20; // Default max_students
+      halaqahMap.set(halaqahId, {
+        halaqahId,
+        halaqah: {
+          id: halaqahId,
+          name: 'Unknown Halaqah',
+          max_students: maxStudents,
+          available_slots: maxStudents,
+          is_full: false
+        },
+        thalibah: [],
+        type: 'ujian' // Will be updated based on actual usage
+      });
+    });
+
+    // Process submissions and add thalibah to halaqah
     submissions.forEach((sub) => {
       // Process ujian halaqah
       if (sub.ujian_halaqah_id && sub.ujian_halaqah) {
         const halaqahId = sub.ujian_halaqah_id;
-        if (!halaqahMap.has(halaqahId)) {
-          const maxStudents = sub.ujian_halaqah.max_students || 20;
-          halaqahMap.set(halaqahId, {
-            halaqahId,
-            halaqah: {
-              ...sub.ujian_halaqah,
-              max_students: maxStudents,
-              available_slots: maxStudents,
-              is_full: false
-            },
-            thalibah: [],
-            type: 'ujian' // Will be updated based on actual usage
-          });
+        const entry = halaqahMap.get(halaqahId);
+        if (entry) {
+          // Update halaqah info with actual data
+          entry.halaqah = {
+            ...sub.ujian_halaqah,
+            max_students: sub.ujian_halaqah.max_students || 20,
+            available_slots: (sub.ujian_halaqah.max_students || 20) - entry.thalibah.length,
+            is_full: false
+          };
+          entry.type = 'ujian';
         }
-        const entry = halaqahMap.get(halaqahId)!;
 
         // Check if this thalibah is already in this halaqah (for both types)
-        const existing = entry.thalibah.find(t => t.id === sub.user_id);
+        const existing = entry?.thalibah.find(t => t.id === sub.user_id);
         if (existing) {
           // Thalibah already exists (has both ujian and tashih in same halaqah)
           existing.type = 'both';
-          entry.type = 'both';
-        } else {
+          if (entry) entry.type = 'both';
+        } else if (entry) {
           entry.thalibah.push({
             id: sub.user_id,
             submission_id: sub.id,
@@ -204,7 +225,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
             submitted_at: sub.submitted_at || sub.created_at,
             confirmed_juz: sub.confirmed_chosen_juz || '-',
             confirmed_time_slot: sub.confirmed_main_time_slot || '-',
-            type: entry.type === 'tashih' ? 'both' : 'ujian'
+            type: 'ujian'
           });
         }
       }
@@ -212,29 +233,45 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
       // Process tashih halaqah (exclude umum)
       if (sub.tashih_halaqah_id && sub.tashih_halaqah && !sub.is_tashih_umum) {
         const halaqahId = sub.tashih_halaqah_id;
-        if (!halaqahMap.has(halaqahId)) {
-          const maxStudents = sub.tashih_halaqah.max_students || 20;
-          halaqahMap.set(halaqahId, {
-            halaqahId,
-            halaqah: {
-              ...sub.tashih_halaqah,
-              max_students: maxStudents,
-              available_slots: maxStudents,
-              is_full: false
-            },
-            thalibah: [],
-            type: 'tashih'
-          });
-        }
-        const entry = halaqahMap.get(halaqahId)!;
+        const entry = halaqahMap.get(halaqahId);
 
         // Check if this thalibah is already in this halaqah (for both types)
-        const existing = entry.thalibah.find(t => t.id === sub.user_id);
+        const existing = entry?.thalibah.find(t => t.id === sub.user_id);
         if (existing) {
           // Thalibah already exists (has both ujian and tashih in same halaqah)
           existing.type = 'both';
-          entry.type = 'both';
-        } else {
+          if (entry) {
+            entry.type = 'both';
+            // Update halaqah info with tashih data
+            entry.halaqah = {
+              ...entry.halaqah,
+              ...sub.tashih_halaqah,
+              max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
+              available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
+              is_full: false
+            };
+          }
+        } else if (entry) {
+          // Update halaqah info if this is tashih-only
+          if (entry.type === 'ujian') {
+            entry.halaqah = {
+              ...entry.halaqah,
+              ...sub.tashih_halaqah,
+              max_students: sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20,
+              available_slots: (sub.tashih_halaqah.max_students || entry.halaqah.max_students || 20) - entry.thalibah.length,
+              is_full: false
+            };
+            entry.type = 'both';
+          } else {
+            entry.halaqah = {
+              ...entry.halaqah,
+              ...sub.tashih_halaqah,
+              max_students: sub.tashih_halaqah.max_students || 20,
+              available_slots: (sub.tashih_halaqah.max_students || 20) - entry.thalibah.length,
+              is_full: false
+            };
+            entry.type = 'tashih';
+          }
           entry.thalibah.push({
             id: sub.user_id,
             submission_id: sub.id,
@@ -246,7 +283,7 @@ export function DaftarUlangHalaqahTab({ batchId }: DaftarUlangHalaqahTabProps) {
             submitted_at: sub.submitted_at || sub.created_at,
             confirmed_juz: sub.confirmed_chosen_juz || '-',
             confirmed_time_slot: sub.confirmed_main_time_slot || '-',
-            type: entry.type === 'ujian' ? 'both' : 'tashih'
+            type: 'tashih'
           });
         }
       }
