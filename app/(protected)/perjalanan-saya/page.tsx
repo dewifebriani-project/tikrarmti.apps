@@ -1298,6 +1298,14 @@ export default function PerjalananSaya() {
                                         </div>
                                       )}
 
+                                      {/* Show program/class info */}
+                                      {registrationStatus.registration?.program && (
+                                        <div className="mt-2">
+                                          <p className={`text-xs ${styles.textColor} font-medium`}>Kelas:</p>
+                                          <p className="text-xs text-green-700 font-semibold">{registrationStatus.registration.program.name}</p>
+                                        </div>
+                                      )}
+
                                       {/* Show halaqah information */}
                                       {(daftarUlang.ujian_halaqah || daftarUlang.tashih_halaqah) && (
                                         <div className="mt-2 space-y-2">
@@ -1772,6 +1780,14 @@ export default function PerjalananSaya() {
                                               {file.name}
                                             </a>
                                           ))}
+                                        </div>
+                                      )}
+
+                                      {/* Show program/class info */}
+                                      {registrationStatus.registration?.program && (
+                                        <div className="mt-2">
+                                          <p className={`text-xs ${styles.textColor} font-medium`}>Kelas:</p>
+                                          <p className="text-xs text-green-700 font-semibold">{registrationStatus.registration.program.name}</p>
                                         </div>
                                       )}
 
