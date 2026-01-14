@@ -219,15 +219,17 @@ export default function DaftarUlangPage() {
   // Load existing submission data into form
   // For draft status: reset halaqah selection but preserve akad files and partner data
   // This ensures user always picks from current quota availability
+  // For submitted/approved status: load all data but don't change step (it's set in fetchData)
   useEffect(() => {
     if (!existingSubmission) return
 
     const isDraft = existingSubmission.status === 'draft'
+    const isLocked = existingSubmission.status === 'submitted' || existingSubmission.status === 'approved'
 
     setFormData(prev => ({
       ...prev,
       // For draft: reset halaqah selections so user always picks from current options
-      // This prevents stale selections from when quota was available
+      // For locked (submitted/approved): load the actual selections
       ujian_halaqah_id: isDraft ? '' : (existingSubmission.ujian_halaqah_id || ''),
       tashih_halaqah_id: isDraft ? '' : (existingSubmission.tashih_halaqah_id || ''),
       // Preserve partner data for both draft and submitted
@@ -241,8 +243,8 @@ export default function DaftarUlangPage() {
       akad_files: existingSubmission.akad_files || [],
     }))
 
-    // For draft status, start from halaqah step (not confirm)
-    // For submitted status, it will be set to 'success' in the fetchData useEffect above
+    // Only change step for draft status
+    // For submitted/approved status, step is already set in fetchData
     if (isDraft) {
       setCurrentStep('halaqah')
     }
