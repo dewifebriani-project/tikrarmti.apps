@@ -573,6 +573,11 @@ export default function PerjalananSaya() {
     return slotLabels[slotValue] || `${slotValue} WIB`;
   };
 
+  const getDayNameFromNumber = (dayNum: number) => {
+    const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
+    return days[dayNum] || `${dayNum}`;
+  };
+
   const handleEditSuccess = () => {
     // Trigger SWR revalidation to refresh data
     window.location.reload();
@@ -825,7 +830,7 @@ export default function PerjalananSaya() {
                                     {registrationStatus.registration.daftar_ulang.ujian_halaqah.name}
                                   </p>
                                   <p className="text-xs text-blue-600">
-                                    {registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week}, {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.ujian_halaqah.end_time}
+                                    {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week)}, {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.ujian_halaqah.end_time}
                                   </p>
                                 </div>
                               )}
@@ -836,7 +841,7 @@ export default function PerjalananSaya() {
                                     {registrationStatus.registration.daftar_ulang.tashih_halaqah.name}
                                   </p>
                                   <p className="text-xs text-purple-600">
-                                    {registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week}, {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.tashih_halaqah.end_time}
+                                    {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week)}, {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.tashih_halaqah.end_time}
                                   </p>
                                 </div>
                               )}
@@ -1354,7 +1359,7 @@ export default function PerjalananSaya() {
                                               <p className="text-xs font-semibold text-blue-800 mb-1">Ujian Halaqah</p>
                                               <p className="text-xs text-blue-700">{daftarUlang.ujian_halaqah.name}</p>
                                               <p className="text-xs text-blue-600">
-                                                {daftarUlang.ujian_halaqah.day_of_week}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
+                                                {getDayNameFromNumber(daftarUlang.ujian_halaqah.day_of_week)}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
                                               </p>
                                             </div>
                                           )}
@@ -1365,7 +1370,7 @@ export default function PerjalananSaya() {
                                               <p className="text-xs font-semibold text-purple-800 mb-1">Tashih Halaqah</p>
                                               <p className="text-xs text-purple-700">{daftarUlang.tashih_halaqah.name}</p>
                                               <p className="text-xs text-purple-600">
-                                                {daftarUlang.tashih_halaqah.day_of_week}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
+                                                {getDayNameFromNumber(daftarUlang.tashih_halaqah.day_of_week)}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
                                               </p>
                                             </div>
                                           )}
@@ -1839,7 +1844,7 @@ export default function PerjalananSaya() {
                                               <p className="text-xs font-semibold text-blue-800 mb-1">Ujian Halaqah</p>
                                               <p className="text-xs text-blue-700">{daftarUlang.ujian_halaqah.name}</p>
                                               <p className="text-xs text-blue-600">
-                                                {daftarUlang.ujian_halaqah.day_of_week}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
+                                                {getDayNameFromNumber(daftarUlang.ujian_halaqah.day_of_week)}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
                                               </p>
                                             </div>
                                           )}
@@ -1850,7 +1855,7 @@ export default function PerjalananSaya() {
                                               <p className="text-xs font-semibold text-purple-800 mb-1">Tashih Halaqah</p>
                                               <p className="text-xs text-purple-700">{daftarUlang.tashih_halaqah.name}</p>
                                               <p className="text-xs text-purple-600">
-                                                {daftarUlang.tashih_halaqah.day_of_week}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
+                                                {getDayNameFromNumber(daftarUlang.tashih_halaqah.day_of_week)}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
                                               </p>
                                             </div>
                                           )}

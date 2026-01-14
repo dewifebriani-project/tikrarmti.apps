@@ -30,8 +30,15 @@ export default function DashboardContent() {
   const registrationStatus = hasRegistered ? {
     registered: true,
     batchId: registrations[0]?.batch_id,
-    status: registrations[0]?.status
+    status: registrations[0]?.status,
+    daftarUlang: registrations[0]?.daftar_ulang
   } : { registered: false }
+
+  // Helper function to convert day number to Indonesian day name
+  const getDayNameFromNumber = (dayNum: number) => {
+    const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
+    return days[dayNum] || `${dayNum}`
+  }
 
   // Calculate stats with fallback
   // Total target hari = 13 pekan × 4 hari per pekan = 52 hari target
@@ -223,6 +230,57 @@ export default function DashboardContent() {
                   Program Lainnya
                 </Button>
               </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Class/Program Info Card - Show only if daftar ulang exists */}
+      {registrationStatus.daftarUlang && (registrationStatus.daftarUlang.ujian_halaqah || registrationStatus.daftarUlang.tashih_halaqah) && (
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-medium text-blue-800 flex items-center gap-2">
+              <Award className="h-4 w-4 sm:h-5 sm:w-5" />
+              Kelas & Program
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-blue-700">
+              Kelas yang Ukuti ikuti berdasarkan daftar ulang
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {registrationStatus.daftarUlang.ujian_halaqah && (
+                <div className="bg-white rounded-lg p-3 border border-blue-200">
+                  <div className="flex items-start space-x-2">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-grow">
+                      <p className="text-xs sm:text-sm text-gray-600">Kelas Ujian</p>
+                      <p className="font-medium text-sm sm:text-base text-blue-800">
+                        {registrationStatus.daftarUlang.ujian_halaqah.name}
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        {getDayNameFromNumber(registrationStatus.daftarUlang.ujian_halaqah.day_of_week)}, {registrationStatus.daftarUlang.ujian_halaqah.start_time} - {registrationStatus.daftarUlang.ujian_halaqah.end_time}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {registrationStatus.daftarUlang.tashih_halaqah && (
+                <div className="bg-white rounded-lg p-3 border border-purple-200">
+                  <div className="flex items-start space-x-2">
+                    <Star className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-grow">
+                      <p className="text-xs sm:text-sm text-gray-600">Kelas Tashih</p>
+                      <p className="font-medium text-sm sm:text-base text-purple-800">
+                        {registrationStatus.daftarUlang.tashih_halaqah.name}
+                      </p>
+                      <p className="text-xs text-purple-600">
+                        {getDayNameFromNumber(registrationStatus.daftarUlang.tashih_halaqah.day_of_week)}, {registrationStatus.daftarUlang.tashih_halaqah.start_time} - {registrationStatus.daftarUlang.tashih_halaqah.end_time}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
