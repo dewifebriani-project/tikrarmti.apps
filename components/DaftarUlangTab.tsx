@@ -19,7 +19,9 @@ import {
   ArrowDown,
   RotateCcw,
   FileSpreadsheet,
-  BookOpen
+  BookOpen,
+  Search,
+  X
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from './DaftarUlangHalaqahTab';
 import * as XLSX from 'xlsx';
@@ -139,6 +141,9 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   // Local batch filter state
   const [batches, setBatches] = useState<Batch[]>([]);
   const [localBatchId, setLocalBatchId] = useState<string>(initialBatchId || 'all');
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Per Juz state
   const [juzGroups, setJuzGroups] = useState<Record<string, any[]>>({});
@@ -638,12 +643,28 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     return sorted;
   }, [submissions, sortField, sortOrder]);
 
+  // Filtered submissions based on search query
+  const filteredSubmissions = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return sortedSubmissions;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return sortedSubmissions.filter((submission) => {
+      const name = (submission.confirmed_full_name || submission.user?.full_name || '').toLowerCase();
+      const email = (submission.user?.email || '').toLowerCase();
+      const whatsapp = (submission.user?.whatsapp || submission.user?.phone || '').toLowerCase();
+
+      return name.includes(query) || email.includes(query) || whatsapp.includes(query);
+    });
+  }, [sortedSubmissions, searchQuery]);
+
   // Statistics for submissions - use API stats for aggregate data
   const submissionStats = useMemo(() => {
     if (stats) {
       return {
         ...stats,
-        showing: submissions.length
+        showing: filteredSubmissions.length
       };
     }
 
@@ -657,9 +678,9 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       withHalaqah: 0,
       withAkad: 0,
       juzCount: {},
-      showing: submissions.length
+      showing: filteredSubmissions.length
     };
-  }, [stats, submissions, pagination]);
+  }, [stats, submissions, pagination, filteredSubmissions]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -794,7 +815,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     <div className="space-y-4">
       {/* Header & Sub-tabs */}
       <div className="space-y-4">
-        {/* Batch Filter */}
+        {/* Batch Filter & Search */}
         <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
           <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
           <select
@@ -802,6 +823,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
             onChange={(e) => {
               setLocalBatchId(e.target.value);
               setCurrentPage(1); // Reset to page 1 when batch changes
+              setSearchQuery(''); // Clear search when batch changes
             }}
             className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
           >
@@ -816,6 +838,34 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
             <span className="text-sm text-gray-500">
               Showing data for: {batches.find(b => b.id === localBatchId)?.name}
             </span>
+          )}
+
+          {/* Search Input - Only show on submissions tab */}
+          {activeSubTab === 'submissions' && (
+            <div className="ml-auto relative w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset to page 1 when search changes
+                }}
+                placeholder="Cari nama, email, atau WhatsApp..."
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:ring-green-500 focus:border-green-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -1155,10 +1205,12 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
               </div>
-            ) : sortedSubmissions.length === 0 ? (
+            ) : filteredSubmissions.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No submissions found</p>
+                <p className="text-gray-500">
+                  {searchQuery ? 'Tidak ada submission yang cocok dengan pencarian' : 'No submissions found'}
+                </p>
               </div>
             ) : (
               <>
@@ -1217,7 +1269,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sortedSubmissions.map((submission) => (
+                {filteredSubmissions.map((submission) => (
                   <tr key={submission.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -1309,7 +1361,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
               </div>
 
               {/* Pagination */}
-              {pagination && pagination.totalPages > 1 && (
+              {!searchQuery && pagination && pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
                   <div className="text-sm text-gray-500">
                     Menampilkan {submissionStats.showing} dari {pagination.total} submissions
