@@ -449,17 +449,28 @@ export function AnalysisTab() {
   };
 
   const loadHalaqahAvailability = async (batchId: string) => {
-    setLoading(true);
+    console.log('[AnalysisTab] Loading halaqah availability for batch:', batchId);
     try {
       const response = await fetch(`/api/admin/analysis/halaqah-availability?batch_id=${batchId}`);
+      console.log('[AnalysisTab] Halaqah availability response status:', response.status);
+
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+          console.error('[AnalysisTab] Halaqah availability error:', errorData);
+        } catch (e) {
+          const responseText = await response.text();
+          console.error('[AnalysisTab] Halaqah availability response text:', responseText.substring(0, 500));
+          errorData = { error: `HTTP ${response.status}` };
+        }
         toast.error(errorData.error || 'Failed to load halaqah availability');
         setLoading(false);
         return;
       }
 
       const result = await response.json();
+      console.log('[AnalysisTab] Halaqah availability data:', result);
       setHalaqahData(result.data?.availability || []);
     } catch (error) {
       console.error('Error loading halaqah availability:', error);
