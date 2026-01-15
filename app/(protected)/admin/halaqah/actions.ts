@@ -320,19 +320,59 @@ export async function deleteHalaqah(halaqahId: string) {
       }
     }
 
-    // Delete halaqah using admin client (bypasses RLS)
+    console.log('[deleteHalaqah] Deleting halaqah:', halaqahId)
+
+    // Step 1: Delete from halaqah_mentors (has foreign key to halaqah)
+    const { error: mentorsError } = await supabaseAdmin
+      .from('halaqah_mentors')
+      .delete()
+      .eq('halaqah_id', halaqahId)
+
+    if (mentorsError) {
+      console.error('[deleteHalaqah] Error deleting mentors:', mentorsError)
+      // Continue anyway - this shouldn't block the deletion
+    }
+
+    // Step 2: Delete from halaqah_students (has foreign key to halaqah)
+    const { error: studentsError } = await supabaseAdmin
+      .from('halaqah_students')
+      .delete()
+      .eq('halaqah_id', halaqahId)
+
+    if (studentsError) {
+      console.error('[deleteHalaqah] Error deleting students:', studentsError)
+      // Continue anyway - this shouldn't block the deletion
+    }
+
+    // Step 3: Clear halaqah references from daftar_ulang_submissions
+    const { error: submissionsError } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .update({
+        ujian_halaqah_id: null,
+        tashih_halaqah_id: null
+      })
+      .or(`ujian_halaqah_id.eq.${halaqahId},tashih_halaqah_id.eq.${halaqahId}`)
+
+    if (submissionsError) {
+      console.error('[deleteHalaqah] Error clearing submissions:', submissionsError)
+      // Continue anyway - this shouldn't block the deletion
+    }
+
+    // Step 4: Finally delete the halaqah
     const { error } = await supabaseAdmin
       .from('halaqah')
       .delete()
       .eq('id', halaqahId)
 
     if (error) {
-      console.error('[deleteHalaqah] Error:', error)
+      console.error('[deleteHalaqah] Error deleting halaqah:', error)
       return {
         success: false,
         error: error.message
       }
     }
+
+    console.log('[deleteHalaqah] Successfully deleted halaqah:', halaqahId)
 
     // Audit log
     const { ip, userAgent } = getRequestInfo()
