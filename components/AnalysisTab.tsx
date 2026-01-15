@@ -307,6 +307,9 @@ export function AnalysisTab() {
       // Use the SAME logic as /api/shared/halaqah-quota for consistency
       const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
 
+      // Get batch halaqah IDs for filtering submissions
+      const batchHalaqahIds = batchHalaqahs.map(h => h.id);
+
       // Count students per halaqah using Set to track unique users per halaqah
       // This matches the logic in /api/shared/halaqah-quota
       const halaqahStudentMap = new Map<string, Set<string>>();
@@ -338,9 +341,6 @@ export function AnalysisTab() {
       });
 
       // Count from halaqah_students table (active students only)
-      // We need to query by batch halaqah IDs
-      const batchHalaqahIds = batchHalaqahs.map(h => h.id);
-
       // Since we only have student IDs without halaqah_id info in the current data,
       // we'll count from the students array (these are already filtered by batch halaqahs)
       const filledSlotsFromStudents = students?.length || 0;
