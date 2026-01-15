@@ -826,7 +826,7 @@ export function AnalysisTab() {
                                   <div className="space-y-1 text-xs">
                                     <div className="flex justify-between">
                                       <span className="text-gray-600">Hari:</span>
-                                      <span className="font-medium">{halaqah.day_of_week !== undefined && halaqah.day_of_week !== null ? `Hari ke-${halaqah.day_of_week}` : '-'}</span>
+                                      <span className="font-medium">{halaqah.day_name || '-'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                       <span className="text-gray-600">Waktu:</span>
