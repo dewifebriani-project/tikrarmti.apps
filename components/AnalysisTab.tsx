@@ -136,6 +136,7 @@ export function AnalysisTab() {
   const [analysis, setAnalysis] = useState<BatchAnalysis | null>(null);
   const [matchingData, setMatchingData] = useState<MatchingAnalysis[]>([]);
   const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     loadBatches();
@@ -154,7 +155,8 @@ export function AnalysisTab() {
 
   const loadBatches = async () => {
     try {
-      const response = await fetch('/api/admin/batches');
+      // Fetch all batches without pagination limit
+      const response = await fetch('/api/admin/batches?limit=1000');
       if (response.ok) {
         const result = await response.json();
         const activeBatches = (result.data || []).filter(
@@ -177,6 +179,7 @@ export function AnalysisTab() {
 
   const loadAnalysis = async (batchId: string) => {
     setLoading(true);
+    setAnalysisError(null);
     try {
       console.log('[AnalysisTab] Loading analysis for batch:', batchId);
 
@@ -186,7 +189,9 @@ export function AnalysisTab() {
       if (!analysisResponse.ok) {
         const errorData = await analysisResponse.json();
         console.error('[AnalysisTab] Failed to load analysis:', analysisResponse.status, errorData);
-        toast.error(errorData.error || 'Failed to load analysis data');
+        const errorMsg = errorData.error || 'Failed to load analysis data';
+        toast.error(errorMsg);
+        setAnalysisError(errorMsg);
         setLoading(false);
         return;
       }
@@ -196,7 +201,9 @@ export function AnalysisTab() {
 
       if (!analysisResult.success || !analysisResult.data) {
         console.error('[AnalysisTab] Invalid analysis response');
-        toast.error('Invalid analysis data received');
+        const errorMsg = 'Invalid analysis data received';
+        toast.error(errorMsg);
+        setAnalysisError(errorMsg);
         setLoading(false);
         return;
       }
@@ -385,9 +392,12 @@ export function AnalysisTab() {
       };
 
       setAnalysis(analysisData);
+      setAnalysisError(null);
     } catch (error) {
       console.error('Error loading analysis:', error);
-      toast.error('Failed to load analysis');
+      const errorMsg = 'Failed to load analysis';
+      toast.error(errorMsg);
+      setAnalysisError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -971,10 +981,20 @@ export function AnalysisTab() {
         </>
       )}
 
-      {!analysis && selectedBatchId && activeTab === 'overview' && (
+      {!analysis && selectedBatchId && activeTab === 'overview' && !loading && (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">Pilih batch untuk melihat analisis</p>
+          {analysisError ? (
+            <>
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 font-medium mb-2">Gagal memuat analisis</p>
+              <p className="text-gray-600 text-sm">{analysisError}</p>
+            </>
+          ) : (
+            <>
+              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Pilih batch untuk melihat analisis</p>
+            </>
+          )}
         </div>
       )}
     </div>
