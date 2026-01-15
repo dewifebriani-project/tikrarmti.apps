@@ -232,7 +232,10 @@ export async function GET(request: NextRequest) {
     // Build availability response grouped by juz
     const availability: any[] = [];
 
-    for (const [juzNumber, halaqahList] of juzMap.entries()) {
+    // Convert Map entries to array for iteration
+    const juzEntries = Array.from(juzMap.entries());
+
+    for (const [juzNumber, halaqahList] of juzEntries) {
       const totalHalaqah = halaqahList.length;
       const totalCapacity = halaqahList.reduce((sum, h) => sum + h.max_students, 0);
       const totalFilled = halaqahList.reduce((sum, h) => sum + h.current_students, 0);
