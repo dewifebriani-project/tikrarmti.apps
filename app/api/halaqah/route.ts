@@ -127,6 +127,17 @@ export async function GET(request: NextRequest) {
 
         const uniqueDraftIds = new Set(draftSubmissions?.map(s => s.user_id) || []);
 
+        // Count only submitted submissions (excluding approved) for display
+        const { data: submittedOnly } = await supabaseAdmin
+          .from('daftar_ulang_submissions')
+          .select('user_id')
+          .eq('status', 'submitted')
+          .or(`ujian_halaqah_id.eq.${h.id},tashih_halaqah_id.eq.${h.id}`);
+
+        const uniqueSubmittedCount = submittedOnly
+          ? new Set(submittedOnly.map(s => s.user_id)).size
+          : 0;
+
         // Count approved submissions separately for display
         const { data: approvedSubmissions } = await supabaseAdmin
           .from('daftar_ulang_submissions')
@@ -255,7 +266,7 @@ export async function GET(request: NextRequest) {
           students_count: totalUniqueCount,
           waitlist_count: uniqueWaitlistCount,
           quota_details: {
-            submitted: uniqueSubmissionCount,
+            submitted: uniqueSubmittedCount,
             approved: uniqueApprovedCount,
             draft: uniqueDraftIds.size,
             active: uniqueActiveCount,
