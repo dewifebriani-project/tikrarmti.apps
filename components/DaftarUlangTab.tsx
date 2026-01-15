@@ -653,7 +653,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     return sortedSubmissions.filter((submission) => {
       const name = (submission.confirmed_full_name || submission.user?.full_name || '').toLowerCase();
       const email = (submission.user?.email || '').toLowerCase();
-      const whatsapp = (submission.user?.whatsapp || submission.user?.phone || '').toLowerCase();
+      const whatsapp = (submission.user?.whatsapp || '').toLowerCase();
 
       return name.includes(query) || email.includes(query) || whatsapp.includes(query);
     });
