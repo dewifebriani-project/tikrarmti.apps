@@ -319,7 +319,7 @@ export function AnalysisTab() {
       console.log('[AnalysisTab] Capacity calculation:', {
         totalCapacity,
         filledSlotsFromStudents,
-        filledSlotsFromDaftarUlang: filledSlotsFromDaftarUlang.size,
+        filledSlotsFromDaftarUlang: filledSlotsFromDaftarUlang,
         totalFilledSlots: filledSlots
       });
 
