@@ -186,12 +186,19 @@ export function AnalysisTab() {
       // Use API endpoint to get analysis data (bypasses RLS)
       const analysisResponse = await fetch(`/api/admin/analysis?batch_id=${batchId}`);
 
+      console.log('[AnalysisTab] Analysis response status:', analysisResponse.status);
+      console.log('[AnalysisTab] Analysis response ok:', analysisResponse.ok);
+
       if (!analysisResponse.ok) {
         let errorData;
         try {
           errorData = await analysisResponse.json();
+          console.error('[AnalysisTab] Error response data:', errorData);
         } catch (e) {
-          errorData = { error: 'Unknown error' };
+          console.error('[AnalysisTab] Failed to parse error response:', e);
+          const responseText = await analysisResponse.text();
+          console.error('[AnalysisTab] Response text:', responseText.substring(0, 500));
+          errorData = { error: `HTTP ${analysisResponse.status}: ${responseText.substring(0, 100)}` };
         }
         console.error('[AnalysisTab] Failed to load analysis:', analysisResponse.status, errorData);
         const errorMsg = errorData.error || `Failed to load analysis data (${analysisResponse.status})`;
@@ -201,8 +208,20 @@ export function AnalysisTab() {
         return;
       }
 
-      const analysisResult = await analysisResponse.json();
-      console.log('[AnalysisTab] Analysis API result:', analysisResult);
+      let analysisResult;
+      try {
+        analysisResult = await analysisResponse.json();
+        console.log('[AnalysisTab] Analysis API result:', analysisResult);
+      } catch (e) {
+        console.error('[AnalysisTab] Failed to parse JSON response:', e);
+        const responseText = await analysisResponse.text();
+        console.error('[AnalysisTab] Response text:', responseText.substring(0, 500));
+        const errorMsg = 'Invalid JSON response from server';
+        toast.error(errorMsg);
+        setAnalysisError(errorMsg);
+        setLoading(false);
+        return;
+      }
 
       if (!analysisResult.success || !analysisResult.data) {
         console.error('[AnalysisTab] Invalid analysis response');
