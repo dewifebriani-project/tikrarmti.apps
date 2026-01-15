@@ -25,7 +25,6 @@ interface CreateUserData {
   nama_kunyah?: string
   role?: string
   roles?: string[]
-  phone?: string
   whatsapp?: string
   telegram?: string
   provinsi?: string
@@ -109,7 +108,6 @@ export async function createUser(data: CreateUserData) {
       email: data.email.toLowerCase().trim(),
       full_name: data.full_name || '',
       role: data.role || 'calon_thalibah',
-      phone: data.phone || null,
       whatsapp: data.whatsapp || null,
       telegram: data.telegram || null,
       provinsi: data.provinsi || null,

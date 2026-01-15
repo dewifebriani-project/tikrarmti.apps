@@ -121,7 +121,6 @@ export function EditUserModal({ isOpen, onClose, onSubmit, user }: EditUserModal
         email: user.email || '',
         role: user.role || 'calon_thalibah',
         roles: user.roles || [],
-        phone: user.phone || '',
         whatsapp: user.whatsapp || '',
         telegram: user.telegram || '',
         provinsi: user.provinsi || '',
@@ -295,17 +294,6 @@ export function EditUserModal({ isOpen, onClose, onSubmit, user }: EditUserModal
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
               </div>
             </div>
 
