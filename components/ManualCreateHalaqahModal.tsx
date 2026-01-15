@@ -18,6 +18,7 @@ interface Program {
 
 interface Muallimah {
   id: string;
+  user_id: string;
   full_name: string;
   email?: string;
   preferred_juz?: string;
@@ -133,12 +134,19 @@ export function ManualCreateHalaqahModal({ onClose, onSuccess, batchId }: Manual
     setLoading(true);
 
     try {
+      // Find the muallimah registration to get the user_id
+      const selectedMuallimahReg = muallimahs.find(m => m.id === formData.muallimah_id);
+      if (!selectedMuallimahReg) {
+        toast.error('Muallimah tidak ditemukan');
+        return;
+      }
+
       const response = await fetch('/api/halaqah', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           program_id: formData.program_id,
-          muallimah_id: formData.muallimah_id,
+          muallimah_id: selectedMuallimahReg.user_id, // Use user_id, not muallimah_registrations.id
           name: formData.name.trim(),
           description: formData.description.trim() || null,
           day_of_week: formData.day_of_week,
