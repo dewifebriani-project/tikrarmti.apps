@@ -137,6 +137,7 @@ export function AnalysisTab() {
   const [matchingData, setMatchingData] = useState<MatchingAnalysis[]>([]);
   const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisErrorDetails, setAnalysisErrorDetails] = useState<any>(null);
 
   useEffect(() => {
     loadBatches();
@@ -198,12 +199,13 @@ export function AnalysisTab() {
           console.error('[AnalysisTab] Failed to parse error response:', e);
           const responseText = await analysisResponse.text();
           console.error('[AnalysisTab] Response text:', responseText.substring(0, 500));
-          errorData = { error: `HTTP ${analysisResponse.status}: ${responseText.substring(0, 100)}` };
+          errorData = { error: `HTTP ${analysisResponse.status}`, details: responseText.substring(0, 200) };
         }
         console.error('[AnalysisTab] Failed to load analysis:', analysisResponse.status, errorData);
         const errorMsg = errorData.error || `Failed to load analysis data (${analysisResponse.status})`;
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
+        setAnalysisErrorDetails(errorData);
         setLoading(false);
         return;
       }
@@ -219,6 +221,7 @@ export function AnalysisTab() {
         const errorMsg = 'Invalid JSON response from server';
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
+        setAnalysisErrorDetails({ error: errorMsg, details: responseText.substring(0, 200) });
         setLoading(false);
         return;
       }
@@ -228,9 +231,13 @@ export function AnalysisTab() {
         const errorMsg = 'Invalid analysis data received';
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
+        setAnalysisErrorDetails({ error: errorMsg, result: analysisResult });
         setLoading(false);
         return;
       }
+
+      // Clear error details on success
+      setAnalysisErrorDetails(null);
 
       const { batch, muallimahs, thalibahs, halaqahs, students, daftarUlangSubmissions } = analysisResult.data;
 
@@ -538,13 +545,21 @@ export function AnalysisTab() {
 
         {/* DEBUG INFO - Temporary */}
         {selectedBatchId && (
-          <div className="mt-4 p-3 bg-gray-100 rounded text-xs font-mono">
+          <div className="mt-4 p-3 bg-gray-100 rounded text-xs font-mono overflow-auto max-h-40">
             <p><strong>DEBUG INFO:</strong></p>
             <p>Selected Batch ID: {selectedBatchId}</p>
             <p>Active Tab: {activeTab}</p>
             <p>Loading: {loading ? 'Yes' : 'No'}</p>
             <p>Analysis Loaded: {analysis ? 'Yes' : 'No'}</p>
             <p>Analysis Error: {analysisError || 'None'}</p>
+            {analysisErrorDetails && (
+              <>
+                <p className="mt-2 text-red-600"><strong>Error Details:</strong></p>
+                <pre className="text-xs bg-red-50 p-2 rounded overflow-auto">
+                  {JSON.stringify(analysisErrorDetails, null, 2)}
+                </pre>
+              </>
+            )}
           </div>
         )}
       </div>
