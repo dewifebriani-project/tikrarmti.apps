@@ -25,27 +25,38 @@ export async function GET(
     }
 
     const halaqahId = params.id
+    console.log('[Halaqah Students API] Fetching students for halaqah:', halaqahId)
 
     // Fetch the halaqah to verify the user has permission (muallimah or admin)
-    const { data: halaqah, error: halaqahError } = await supabase
+    // Use admin client to bypass RLS
+    const { data: halaqah, error: halaqahError } = await supabaseAdmin
       .from('halaqah')
       .select('id, muallimah_id')
       .eq('id', halaqahId)
-      .single()
+      .maybeSingle()
 
-    if (halaqahError || !halaqah) {
+    if (halaqahError) {
+      console.error('[Halaqah Students API] Error fetching halaqah:', halaqahError)
       return NextResponse.json(
-        { error: 'Halaqah not found' },
+        { error: 'Database error', details: halaqahError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!halaqah) {
+      console.log('[Halaqah Students API] Halaqah not found:', halaqahId)
+      return NextResponse.json(
+        { error: 'Halaqah not found', students: [], capacity: null },
         { status: 404 }
       )
     }
 
     // Check if user is the muallimah or admin
-    const { data: currentUser } = await supabase
+    const { data: currentUser } = await supabaseAdmin
       .from('users')
       .select('role, roles')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     const isAdmin = currentUser?.role === 'admin' || currentUser?.roles?.includes?.('admin')
     const isMuallimah = halaqah.muallimah_id === user.id
