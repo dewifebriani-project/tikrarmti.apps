@@ -424,11 +424,19 @@ export function AnalysisTab() {
 
       setAnalysis(analysisData);
       setAnalysisError(null);
+      setAnalysisErrorDetails(null);
     } catch (error) {
       console.error('Error loading analysis:', error);
       const errorMsg = 'Failed to load analysis';
+      const errorDetails = error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : { error: String(error) };
+      console.error('[AnalysisTab] Processing error details:', errorDetails);
       toast.error(errorMsg);
       setAnalysisError(errorMsg);
+      setAnalysisErrorDetails(errorDetails);
     } finally {
       setLoading(false);
     }
