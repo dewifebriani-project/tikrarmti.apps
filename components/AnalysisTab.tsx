@@ -535,6 +535,18 @@ export function AnalysisTab() {
             </option>
           ))}
         </select>
+
+        {/* DEBUG INFO - Temporary */}
+        {selectedBatchId && (
+          <div className="mt-4 p-3 bg-gray-100 rounded text-xs font-mono">
+            <p><strong>DEBUG INFO:</strong></p>
+            <p>Selected Batch ID: {selectedBatchId}</p>
+            <p>Active Tab: {activeTab}</p>
+            <p>Loading: {loading ? 'Yes' : 'No'}</p>
+            <p>Analysis Loaded: {analysis ? 'Yes' : 'No'}</p>
+            <p>Analysis Error: {analysisError || 'None'}</p>
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}
