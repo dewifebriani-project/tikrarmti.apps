@@ -5105,6 +5105,8 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [addUserForm, setAddUserForm] = useState({
     user_id: '',
     batch_id: '',
@@ -5420,6 +5422,8 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   // Handle user selection
   const handleUserSelect = (userId: string) => {
     setSelectedUserId(userId);
+    setShowUserDropdown(false);
+    setUserSearchQuery('');
     const user = users.find(u => u.id === userId);
     if (user) {
       // Format phone number to ensure it starts with 62
@@ -5451,6 +5455,15 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     }
   };
 
+  // Filter users based on search query
+  const filteredUsers = users.filter(user => {
+    const searchLower = userSearchQuery.toLowerCase();
+    return (
+      user.full_name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower)
+    );
+  });
+
   // Handle add user form submit
   const handleAddUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -5470,7 +5483,21 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to add muallimah');
+        // Show detailed error message
+        let errorMsg = result.error || 'Failed to add muallimah';
+        if (result.details) {
+          if (typeof result.details === 'string') {
+            errorMsg += ': ' + result.details;
+          } else if (result.details.formErrors) {
+            errorMsg += ': ' + Object.values(result.details.formErrors).flat().join(', ');
+          } else if (result.details.fieldErrors) {
+            const fieldErrors = Object.entries(result.details.fieldErrors)
+              .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
+              .join('; ');
+            errorMsg += ': ' + fieldErrors;
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       toast.success('Muallimah added successfully');
@@ -6292,29 +6319,58 @@ Tim Markaz Tikrar Indonesia`;
                   {/* User Selection */}
                   <div className="border-b border-gray-200 pb-4">
                     <h4 className="text-md font-semibold text-gray-900 mb-3">Step 1: Select User</h4>
-                    <div>
-                      <label htmlFor="user-select" className="block text-sm font-medium text-gray-700 mb-2">
-                        Select User <span className="text-red-500">*</span>
+                    <div className="relative">
+                      <label htmlFor="user-search" className="block text-sm font-medium text-gray-700 mb-2">
+                        Search User <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        id="user-select"
-                        value={selectedUserId}
-                        onChange={(e) => handleUserSelect(e.target.value)}
+                      <input
+                        type="text"
+                        id="user-search"
+                        value={userSearchQuery}
+                        onChange={(e) => {
+                          setUserSearchQuery(e.target.value);
+                          setShowUserDropdown(true);
+                        }}
+                        onFocus={() => {
+                          if (users.length === 0 && !loadingUsers) {
+                            loadUsers();
+                          }
+                          setShowUserDropdown(true);
+                        }}
+                        placeholder="Type name or email to search..."
                         disabled={loadingUsers}
-                        required
                         className="shadow-sm focus:ring-green-500 focus:border-green-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      >
-                        <option value="">-- Select a user --</option>
-                        {loadingUsers ? (
-                          <option disabled>Loading users...</option>
-                        ) : (
-                          users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.full_name || user.email} ({user.email})
-                            </option>
-                          ))
-                        )}
-                      </select>
+                      />
+                      {selectedUserId && (
+                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                          <p className="text-sm text-green-800">
+                            Selected: {users.find(u => u.id === selectedUserId)?.full_name || users.find(u => u.id === selectedUserId)?.email}
+                          </p>
+                        </div>
+                      )}
+                      {showUserDropdown && userSearchQuery && (
+                        <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                          {loadingUsers ? (
+                            <div className="px-4 py-2 text-gray-500">Loading users...</div>
+                          ) : filteredUsers.length === 0 ? (
+                            <div className="px-4 py-2 text-gray-500">No users found</div>
+                          ) : (
+                            filteredUsers.slice(0, 20).map((user) => (
+                              <button
+                                key={user.id}
+                                type="button"
+                                onClick={() => handleUserSelect(user.id)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:outline-none focus:bg-gray-100"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-gray-900">{user.full_name || 'No name'}</span>
+                                  <span className="text-sm text-gray-500">{user.email}</span>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
