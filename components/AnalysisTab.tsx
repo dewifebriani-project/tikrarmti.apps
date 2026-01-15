@@ -187,9 +187,14 @@ export function AnalysisTab() {
       const analysisResponse = await fetch(`/api/admin/analysis?batch_id=${batchId}`);
 
       if (!analysisResponse.ok) {
-        const errorData = await analysisResponse.json();
+        let errorData;
+        try {
+          errorData = await analysisResponse.json();
+        } catch (e) {
+          errorData = { error: 'Unknown error' };
+        }
         console.error('[AnalysisTab] Failed to load analysis:', analysisResponse.status, errorData);
-        const errorMsg = errorData.error || 'Failed to load analysis data';
+        const errorMsg = errorData.error || `Failed to load analysis data (${analysisResponse.status})`;
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
         setLoading(false);
@@ -987,7 +992,8 @@ export function AnalysisTab() {
             <>
               <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <p className="text-red-600 font-medium mb-2">Gagal memuat analisis</p>
-              <p className="text-gray-600 text-sm">{analysisError}</p>
+              <p className="text-gray-600 text-sm mb-2">{analysisError}</p>
+              <p className="text-gray-400 text-xs">Batch ID: {selectedBatchId}</p>
             </>
           ) : (
             <>
