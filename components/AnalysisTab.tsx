@@ -53,6 +53,7 @@ interface DaftarUlangSubmission {
   ujian_halaqah_id: string | null;
   tashih_halaqah_id: string | null;
   is_tashih_umum: boolean;
+  user_id: string;
 }
 
 interface BatchAnalysis {
@@ -265,33 +266,55 @@ export function AnalysisTab() {
       const halaqahWithoutProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id === null).length;
 
       // Calculate capacity - include BOTH halaqah_students AND daftar ulang submissions
+      // Use the SAME logic as /api/shared/halaqah-quota for consistency
       const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
 
-      // Count from halaqah_students table (active students)
-      const filledSlotsFromStudents = students?.length || 0;
+      // Count students per halaqah using Set to track unique users per halaqah
+      // This matches the logic in /api/shared/halaqah-quota
+      const halaqahStudentMap = new Map<string, Set<string>>();
 
       // Count from daftar_ulang_submissions (submitted + approved)
-      // For tashih_ujian classes, ujian_halaqah_id and tashih_halaqah_id may be the same
-      // We need to count unique users per halaqah
-      const batchHalaqahIds = batchHalaqahs.map(h => h.id);
-      const filledSlotsFromDaftarUlang = new Set<string>();
-
       daftarUlangList.forEach((submission: DaftarUlangSubmission) => {
-        // Add ujian halaqah if it belongs to this batch
+        // For tashih_ujian classes, ujian_halaqah_id and tashih_halaqah_id may be the same
+        // We need to count each user only once per halaqah, even if they selected both ujian and tashih
+        const uniqueHalaqahIds: string[] = [];
+
         if (submission.ujian_halaqah_id && batchHalaqahIds.includes(submission.ujian_halaqah_id)) {
-          // Use submission ID as key since we don't have user_id in this query
-          // Actually, we need to track unique users, but we don't have user_id here
-          // So we'll count submissions as a rough estimate
-          filledSlotsFromDaftarUlang.add(`${submission.ujian_halaqah_id}-ujian-${submission.id}`);
+          uniqueHalaqahIds.push(submission.ujian_halaqah_id);
+        }
+        if (submission.tashih_halaqah_id && !submission.is_tashih_umum && batchHalaqahIds.includes(submission.tashih_halaqah_id)) {
+          // Only add if not already in the list (for tashih_ujian case)
+          if (!uniqueHalaqahIds.includes(submission.tashih_halaqah_id)) {
+            uniqueHalaqahIds.push(submission.tashih_halaqah_id);
+          }
         }
 
-        // Add tashih halaqah if it belongs to this batch and is not tashih umum
-        if (submission.tashih_halaqah_id && !submission.is_tashih_umum && batchHalaqahIds.includes(submission.tashih_halaqah_id)) {
-          filledSlotsFromDaftarUlang.add(`${submission.tashih_halaqah_id}-tashih-${submission.id}`);
+        // Add user to each unique halaqah
+        for (let i = 0; i < uniqueHalaqahIds.length; i++) {
+          const halaqahId = uniqueHalaqahIds[i];
+          if (!halaqahStudentMap.has(halaqahId)) {
+            halaqahStudentMap.set(halaqahId, new Set());
+          }
+          halaqahStudentMap.get(halaqahId)!.add(submission.user_id);
         }
       });
 
-      const filledSlots = filledSlotsFromStudents + filledSlotsFromDaftarUlang.size;
+      // Count from halaqah_students table (active students only)
+      // We need to query by batch halaqah IDs
+      const batchHalaqahIds = batchHalaqahs.map(h => h.id);
+
+      // Since we only have student IDs without halaqah_id info in the current data,
+      // we'll count from the students array (these are already filtered by batch halaqahs)
+      const filledSlotsFromStudents = students?.length || 0;
+
+      // Count total unique students from daftar ulang submissions
+      let filledSlotsFromDaftarUlang = 0;
+      const halaqahEntries = Array.from(halaqahStudentMap.entries());
+      for (const [halaqahId, userSet] of halaqahEntries) {
+        filledSlotsFromDaftarUlang += userSet.size;
+      }
+
+      const filledSlots = filledSlotsFromStudents + filledSlotsFromDaftarUlang;
 
       console.log('[AnalysisTab] Capacity calculation:', {
         totalCapacity,

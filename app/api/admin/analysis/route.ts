@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     console.log('[Analysis API] Querying daftar_ulang_submissions for batch_id:', batchId);
     const { data: daftarUlangSubmissions, error: daftarUlangError } = await supabaseAdmin
       .from('daftar_ulang_submissions')
-      .select('id, status, ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum')
+      .select('id, status, ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum, user_id')
       .eq('batch_id', batchId)
       .in('status', ['submitted', 'approved']); // Only count submitted and approved for capacity
 
