@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       sample: muallimahs?.slice(0, 3)
     });
 
-    // Get thalibah stats for this batch
+    // Get thalibah stats for this batch (from pendaftaran_tikrar_tahfidz)
     console.log('[Analysis API] Querying thalibah for batch_id:', batchId);
     const { data: thalibahs, error: thalibahError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
@@ -103,6 +103,24 @@ export async function GET(request: NextRequest) {
       count: thalibahs?.length,
       sample: thalibahs?.slice(0, 3)
     });
+
+    // Get daftar ulang submissions for this batch (for accurate capacity calculation)
+    console.log('[Analysis API] Querying daftar_ulang_submissions for batch_id:', batchId);
+    const { data: daftarUlangSubmissions, error: daftarUlangError } = await supabaseAdmin
+      .from('daftar_ulang_submissions')
+      .select('id, status, ujian_halaqah_id, tashih_halaqah_id, is_tashih_umum')
+      .eq('batch_id', batchId)
+      .in('status', ['submitted', 'approved']); // Only count submitted and approved for capacity
+
+    if (daftarUlangError) {
+      console.error('[Analysis API] Error loading daftar ulang submissions:', daftarUlangError);
+      // Don't fail, just log and continue
+      console.log('[Analysis API] Continuing without daftar ulang data');
+    } else {
+      console.log('[Analysis API] Daftar ulang submissions result:', {
+        count: daftarUlangSubmissions?.length
+      });
+    }
 
     // Get all active halaqahs (not batch-specific, we'll filter later by muallimah)
     console.log('[Analysis API] Querying halaqah (all active)');
@@ -172,7 +190,8 @@ export async function GET(request: NextRequest) {
         batch_name: batchData.name,
         muallimah_count: muallimahs?.length || 0,
         thalibah_count: thalibahs?.length || 0,
-        halaqah_count: batchHalaqahs.length
+        halaqah_count: batchHalaqahs.length,
+        daftar_ulang_count: daftarUlangSubmissions?.length || 0
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
@@ -186,7 +205,8 @@ export async function GET(request: NextRequest) {
         muallimahs: muallimahs || [],
         thalibahs: thalibahs || [],
         halaqahs: halaqahs || [],
-        students: students || []
+        students: students || [],
+        daftarUlangSubmissions: daftarUlangSubmissions || []
       }
     });
 

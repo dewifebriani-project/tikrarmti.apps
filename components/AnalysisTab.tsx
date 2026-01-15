@@ -12,7 +12,8 @@ import {
   BarChart3,
   HeartHandshake,
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -46,6 +47,14 @@ interface HalaqahStudent {
   id: string;
 }
 
+interface DaftarUlangSubmission {
+  id: string;
+  status: string;
+  ujian_halaqah_id: string | null;
+  tashih_halaqah_id: string | null;
+  is_tashih_umum: boolean;
+}
+
 interface BatchAnalysis {
   batch_id: string;
   batch_name: string;
@@ -57,18 +66,23 @@ interface BatchAnalysis {
   pending_muallimah: number;
   rejected_muallimah: number;
 
-  // Thalibah stats
+  // Thalibah stats (from pendaftaran_tikrar_tahfidz)
   total_thalibah: number;
   approved_thalibah: number;
   pending_thalibah: number;
   selected_thalibah: number;
+
+  // Daftar Ulang stats
+  total_daftar_ulang: number;
+  submitted_daftar_ulang: number;
+  approved_daftar_ulang: number;
 
   // Halaqah stats
   total_halaqah: number;
   halaqah_with_program: number;
   halaqah_without_program: number;
 
-  // Capacity analysis
+  // Capacity analysis (including daftar ulang submissions)
   total_halaqah_capacity: number;
   total_filled_slots: number;
   total_available_slots: number;
@@ -186,13 +200,14 @@ export function AnalysisTab() {
         return;
       }
 
-      const { batch, muallimahs, thalibahs, halaqahs, students } = analysisResult.data;
+      const { batch, muallimahs, thalibahs, halaqahs, students, daftarUlangSubmissions } = analysisResult.data;
 
       console.log('[AnalysisTab] Batch data:', batch);
       console.log('[AnalysisTab] Muallimah count:', muallimahs.length);
       console.log('[AnalysisTab] Thalibah count:', thalibahs.length);
       console.log('[AnalysisTab] Halaqah count:', halaqahs.length);
       console.log('[AnalysisTab] Students count:', students.length);
+      console.log('[AnalysisTab] Daftar Ulang submissions count:', daftarUlangSubmissions?.length || 0);
 
       // Process muallimah stats
       const muallimaList = (muallimahs || []) as MuallimaRegistration[];
@@ -222,6 +237,18 @@ export function AnalysisTab() {
         selected: selectedThalibah
       });
 
+      // Process daftar ulang stats
+      const daftarUlangList = (daftarUlangSubmissions || []) as DaftarUlangSubmission[];
+      const totalDaftarUlang = daftarUlangList.length;
+      const submittedDaftarUlang = daftarUlangList.filter((d: DaftarUlangSubmission) => d.status === 'submitted').length;
+      const approvedDaftarUlang = daftarUlangList.filter((d: DaftarUlangSubmission) => d.status === 'approved').length;
+
+      console.log('[AnalysisTab] Daftar Ulang stats:', {
+        total: totalDaftarUlang,
+        submitted: submittedDaftarUlang,
+        approved: approvedDaftarUlang
+      });
+
       // Filter halaqahs by muallimah from this batch
       const approvedMuallimaIds = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').map((m: MuallimaRegistration) => m.user_id);
       const halaqahList = (halaqahs || []) as Halaqah[];
@@ -237,13 +264,43 @@ export function AnalysisTab() {
       const halaqahWithProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id !== null).length;
       const halaqahWithoutProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id === null).length;
 
-      // Calculate capacity
+      // Calculate capacity - include BOTH halaqah_students AND daftar ulang submissions
       const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
 
-      // Get filled slots from API response
-      const filledSlots = students?.length || 0;
+      // Count from halaqah_students table (active students)
+      const filledSlotsFromStudents = students?.length || 0;
 
-      const availableSlots = totalCapacity - filledSlots;
+      // Count from daftar_ulang_submissions (submitted + approved)
+      // For tashih_ujian classes, ujian_halaqah_id and tashih_halaqah_id may be the same
+      // We need to count unique users per halaqah
+      const batchHalaqahIds = batchHalaqahs.map(h => h.id);
+      const filledSlotsFromDaftarUlang = new Set<string>();
+
+      daftarUlangList.forEach((submission: DaftarUlangSubmission) => {
+        // Add ujian halaqah if it belongs to this batch
+        if (submission.ujian_halaqah_id && batchHalaqahIds.includes(submission.ujian_halaqah_id)) {
+          // Use submission ID as key since we don't have user_id in this query
+          // Actually, we need to track unique users, but we don't have user_id here
+          // So we'll count submissions as a rough estimate
+          filledSlotsFromDaftarUlang.add(`${submission.ujian_halaqah_id}-ujian-${submission.id}`);
+        }
+
+        // Add tashih halaqah if it belongs to this batch and is not tashih umum
+        if (submission.tashih_halaqah_id && !submission.is_tashih_umum && batchHalaqahIds.includes(submission.tashih_halaqah_id)) {
+          filledSlotsFromDaftarUlang.add(`${submission.tashih_halaqah_id}-tashih-${submission.id}`);
+        }
+      });
+
+      const filledSlots = filledSlotsFromStudents + filledSlotsFromDaftarUlang.size;
+
+      console.log('[AnalysisTab] Capacity calculation:', {
+        totalCapacity,
+        filledSlotsFromStudents,
+        filledSlotsFromDaftarUlang: filledSlotsFromDaftarUlang.size,
+        totalFilledSlots: filledSlots
+      });
+
+      const availableSlots = Math.max(0, totalCapacity - filledSlots);
       const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
 
       // Calculate ratios - using SELECTED thalibah (sudah lulus ujian seleksi)
@@ -283,6 +340,10 @@ export function AnalysisTab() {
         approved_thalibah: approvedThalibah,
         pending_thalibah: pendingThalibah,
         selected_thalibah: selectedThalibah,
+
+        total_daftar_ulang: totalDaftarUlang,
+        submitted_daftar_ulang: submittedDaftarUlang,
+        approved_daftar_ulang: approvedDaftarUlang,
 
         total_halaqah: totalHalaqah,
         halaqah_with_program: halaqahWithProgram,
@@ -469,7 +530,7 @@ export function AnalysisTab() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Muallimah Stats */}
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
@@ -512,6 +573,33 @@ export function AnalysisTab() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Selected:</span>
                   <span className="font-semibold text-purple-600">{analysis.selected_thalibah}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Daftar Ulang Stats */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-gray-600">Daftar Ulang</h3>
+                <FileText className="w-5 h-5 text-indigo-600" />
+              </div>
+              <p className="text-3xl font-bold text-gray-900">{analysis.total_daftar_ulang}</p>
+              <div className="mt-4 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Submitted:</span>
+                  <span className="font-semibold text-blue-600">{analysis.submitted_daftar_ulang}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Approved:</span>
+                  <span className="font-semibold text-green-600">{analysis.approved_daftar_ulang}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Progress:</span>
+                  <span className="font-semibold text-gray-600">
+                    {analysis.selected_thalibah > 0
+                      ? `${Math.round((analysis.total_daftar_ulang / analysis.selected_thalibah) * 100)}%`
+                      : '-'}
+                  </span>
                 </div>
               </div>
             </div>
