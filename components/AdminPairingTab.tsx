@@ -553,13 +553,35 @@ export function AdminPairingTab() {
                   </div>
                 </div>
                 <div className="border-t border-cyan-700 pt-3">
-                  <span className="text-cyan-400 mb-1 block">Partner Type Counts:</span>
+                  <span className="text-cyan-400 mb-1 block">Partner Type Counts (Unique Users):</span>
                   <pre className="text-gray-300 overflow-auto bg-gray-800 p-2 rounded text-xs">
                     {JSON.stringify(debugData.apiResponse.debug.partnerTypeCounts, null, 2)}
                   </pre>
                 </div>
+                {debugData.apiResponse.debug.selfMatchBreakdown && (
+                  <div className="border-t border-cyan-700 pt-3">
+                    <span className="text-cyan-400 mb-2 block font-bold">Self Match Breakdown:</span>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>
+                        <span className="text-yellow-400">Total Users:</span> {debugData.apiResponse.debug.selfMatchBreakdown.totalUsers}
+                      </div>
+                      <div>
+                        <span className="text-yellow-400">Mutual Pairs:</span> {debugData.apiResponse.debug.selfMatchBreakdown.mutualMatchPairs}
+                      </div>
+                      <div>
+                        <span className="text-yellow-400">Non-Mutual:</span> {debugData.apiResponse.debug.selfMatchBreakdown.nonMutualUsers}
+                      </div>
+                      <div>
+                        <span className="text-yellow-400">Entries Shown:</span> {debugData.apiResponse.debug.selfMatchBreakdown.totalEntriesShown}
+                      </div>
+                    </div>
+                    <div className="text-xs text-green-300 bg-green-900/30 p-2 rounded">
+                      {debugData.apiResponse.debug.selfMatchBreakdown.explanation}
+                    </div>
+                  </div>
+                )}
                 <div className="border-t border-cyan-700 pt-3 mt-3">
-                  <span className="text-cyan-400 mb-1 block">Final Counts:</span>
+                  <span className="text-cyan-400 mb-1 block">Final Counts (Entries Displayed):</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <span className="text-yellow-400">Self Match:</span> {debugData.apiResponse.debug.finalCounts.selfMatch}

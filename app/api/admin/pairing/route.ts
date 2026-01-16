@@ -259,7 +259,10 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log('[PAIRING API] Final counts - Self:', selfMatchRequests.length, 'System:', systemMatchRequests.length, 'Tarteel:', tarteelRequests.length, 'Family:', familyRequests.length)
+    // Count mutual matches vs non-mutual
+    const mutualMatchCount = selfMatchRequests.filter((r: any) => r.is_mutual_match).length
+    const nonMutualMatchCount = selfMatchRequests.length - mutualMatchCount
+    console.log('[PAIRING API] Final counts - Self:', selfMatchRequests.length, `(${mutualMatchCount} mutual + ${nonMutualMatchCount} non-mutual)`, 'System:', systemMatchRequests.length, 'Tarteel:', tarteelRequests.length, 'Family:', familyRequests.length)
 
     return NextResponse.json({
       success: true,
@@ -278,6 +281,13 @@ export async function GET(request: Request) {
           systemMatch: systemMatchRequests.length,
           tarteel: tarteelRequests.length,
           family: familyRequests.length,
+        },
+        selfMatchBreakdown: {
+          totalUsers: partnerTypeCounts.self_match,
+          mutualMatchPairs: mutualMatchCount,
+          nonMutualUsers: nonMutualMatchCount,
+          totalEntriesShown: selfMatchRequests.length,
+          explanation: `${partnerTypeCounts.self_match} unique users = ${mutualMatchCount} mutual pairs (${mutualMatchCount * 2} users) + ${nonMutualMatchCount} non-mutual users = ${selfMatchRequests.length} entries displayed`
         },
         logs: {
           totalSubmissionsCount: totalCount,
