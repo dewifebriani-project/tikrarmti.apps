@@ -51,6 +51,8 @@ export async function GET(request: Request) {
 
     if (countError) throw countError
 
+    console.log('[PAIRING API] Total submissions count:', totalCount)
+
     // Fetch paginated data for ALL partner types
     let query = supabase
       .from('daftar_ulang_submissions')
@@ -91,9 +93,9 @@ export async function GET(request: Request) {
       query = query.eq('batch_id', batchId)
     }
 
+    // Fetch ALL submissions without pagination for filtering
     const { data: submissions, error } = await query
       .order('submitted_at', { ascending: false })
-      .range(from, to)
 
     if (error) throw error
 
@@ -256,8 +258,9 @@ export async function GET(request: Request) {
       pagination: {
         page,
         limit,
-        total: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / limit),
+        total: uniqueSubmissionsArray.length, // Use unique users count
+        totalPages: 1, // All data shown on one page
+        originalTotal: totalCount || 0, // Original submission count for reference
       },
     })
   } catch (error: any) {
