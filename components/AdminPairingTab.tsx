@@ -351,24 +351,31 @@ export function AdminPairingTab() {
   }
 
   const handleFindMatches = async (user: SystemMatchRequest) => {
+    console.log('[FRONTEND] Finding matches for user:', user)
     setSelectedUser(user)
     setShowMatchModal(true)
     setMatchData(null)
     setSelectedMatch(null)
 
     try {
-      const response = await fetch(
-        `/api/admin/pairing/match?user_id=${user.user_id}&batch_id=${user.batch_id}`
-      )
+      const url = `/api/admin/pairing/match?user_id=${user.user_id}&batch_id=${user.batch_id}`
+      console.log('[FRONTEND] Fetching from:', url)
+
+      const response = await fetch(url)
+
+      console.log('[FRONTEND] Response status:', response.status, response.statusText)
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error('[FRONTEND] Error response:', errorText)
         throw new Error('Failed to find matches')
       }
 
       const result = await response.json()
+      console.log('[FRONTEND] Match API result:', result)
       setMatchData(result.data)
     } catch (error) {
-      console.error('Error finding matches:', error)
+      console.error('[FRONTEND] Error finding matches:', error)
       toast.error('Failed to find matches')
     }
   }
@@ -1276,7 +1283,18 @@ export function AdminPairingTab() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {matchData.total_matches === 0 ? (
+              {/* Debug Panel */}
+              <div className="mb-4 bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-[400px]">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-white">Debug Panel - Match API Data</h3>
+                  <span className="text-gray-400 text-xs">Raw Data</span>
+                </div>
+                <pre className="text-gray-300 whitespace-pre-wrap">
+                  {JSON.stringify(matchData, null, 2)}
+                </pre>
+              </div>
+
+              {!matchData || matchData.total_matches === 0 ? (
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">Tidak ada kandidat pasangan tersedia</p>
