@@ -121,10 +121,11 @@ export async function GET(request: Request) {
     const systemMatchRequests = []
 
     for (const submission of submissions || []) {
-      // Supabase returns nested relations as arrays
-      const users = submission.users as any
-      const registrations = submission.registrations as any
-      const batch = submission.batch as any
+      // Supabase returns nested relations - check if array or object
+      // Try both structures to handle different Supabase response formats
+      const users = (Array.isArray(submission.users) ? submission.users : (submission.users ? [submission.users] : [])) as any
+      const registrations = (Array.isArray(submission.registrations) ? submission.registrations : (submission.registrations ? [submission.registrations] : [])) as any
+      const batch = (Array.isArray(submission.batch) ? submission.batch : (submission.batch ? [submission.batch] : [])) as any
 
       // Use timezone from registration (pendaftaran_tikrar_tahfidz) if available,
       // otherwise fall back to zona_waktu from users table
