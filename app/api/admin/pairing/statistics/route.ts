@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       .from('daftar_ulang_submissions')
       .select('user_id, partner_type, status')
       .eq('batch_id', batchId)
-      .order('created_at', { ascending: true }) // Order by created_at to get latest submission first
+      .order('created_at', { ascending: false }) // Order by created_at DESC to get latest submission first
 
     if (allError) throw allError
 
