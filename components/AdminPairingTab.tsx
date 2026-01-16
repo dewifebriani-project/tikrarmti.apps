@@ -37,6 +37,7 @@ interface SystemMatchRequest {
   user_id: string
   user_name: string
   user_email: string
+  user_wa_phone: string
   user_zona_waktu: string
   chosen_juz: string
   main_time_slot: string
@@ -44,6 +45,11 @@ interface SystemMatchRequest {
   submitted_at: string
   batch_id: string
   batch_name: string
+  // Matching statistics
+  total_matches: number
+  zona_waktu_matches: number
+  same_juz_matches: number
+  cross_juz_matches: number
 }
 
 interface TarteelRequest {
@@ -156,6 +162,58 @@ export function AdminPairingTab() {
   const [showManualPairModal, setShowManualPairModal] = useState(false)
   const [manualPairUser1, setManualPairUser1] = useState<SelfMatchRequest | null>(null)
   const [manualPairUser2, setManualPairUser2] = useState<SelfMatchRequest | null>(null)
+
+  // Sorting state for System Match table
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof SystemMatchRequest | null
+    direction: 'asc' | 'desc'
+  }>({
+    key: null,
+    direction: 'asc'
+  })
+
+  // Sort function
+  const handleSort = (key: keyof SystemMatchRequest) => {
+    let direction: 'asc' | 'desc' = 'asc'
+    if (sortConfig.key === key) {
+      if (sortConfig.direction === 'asc') {
+        direction = 'desc'
+      } else {
+        // Reset to unsorted
+        setSortConfig({ key: null, direction: 'asc' })
+        return
+      }
+    }
+    setSortConfig({ key, direction })
+  }
+
+  // Get sorted data
+  const getSortedSystemMatchRequests = () => {
+    if (!sortConfig.key) return systemMatchRequests
+
+    const sorted = [...systemMatchRequests].sort((a, b) => {
+      const aValue = a[sortConfig.key!]
+      const bValue = b[sortConfig.key!]
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc'
+          ? aValue - bValue
+          : bValue - aValue
+      }
+
+      return 0
+    })
+
+    return sorted
+  }
+
+  const sortedSystemMatchRequests = getSortedSystemMatchRequests()
 
   useEffect(() => {
     loadBatches()
@@ -996,45 +1054,87 @@ export function AdminPairingTab() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Utama</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Cadangan</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_name')}>
+                      Nama {sortConfig.key === 'user_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_wa_phone')}>
+                      WhatsApp {sortConfig.key === 'user_wa_phone' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('chosen_juz')}>
+                      Juz {sortConfig.key === 'chosen_juz' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_zona_waktu')}>
+                      Zona Waktu {sortConfig.key === 'user_zona_waktu' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('main_time_slot')}>
+                      Waktu Utama {sortConfig.key === 'main_time_slot' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('backup_time_slot')}>
+                      Waktu Cadangan {sortConfig.key === 'backup_time_slot' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('total_matches')}>
+                      Total Matches {sortConfig.key === 'total_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('zona_waktu_matches')}>
+                      Zona Waktu {sortConfig.key === 'zona_waktu_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('same_juz_matches')}>
+                      Juz Sama {sortConfig.key === 'same_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('cross_juz_matches')}>
+                      Lintas Juz {sortConfig.key === 'cross_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {systemMatchRequests.map((request) => (
+                  {sortedSystemMatchRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                         {request.user_name}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {request.user_email}
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {request.user_wa_phone || '-'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                           {request.chosen_juz}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                           {request.user_zona_waktu || 'WIB'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
                         <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
                           {request.main_time_slot || '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
                         <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
                           {request.backup_time_slot || '-'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          request.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {request.total_matches}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center text-purple-600">
+                        {request.zona_waktu_matches}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center text-blue-600">
+                        {request.same_juz_matches}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center text-orange-600">
+                        {request.cross_juz_matches}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center">
                         <button
                           onClick={() => handleFindMatches(request)}
                           className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-sm mx-auto"

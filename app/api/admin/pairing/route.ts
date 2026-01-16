@@ -258,7 +258,18 @@ export async function GET(request: Request) {
           })
         }
       } else if (submission.partner_type === 'system_match') {
-        systemMatchRequests.push(requestData)
+        // Calculate matching statistics for this user
+        const matchStats = await calculateMatchingStatistics(
+          submission.user_id,
+          submission.batch_id,
+          registrations?.[0],
+          submissions
+        )
+
+        systemMatchRequests.push({
+          ...requestData,
+          ...matchStats
+        })
       } else if (submission.partner_type === 'tarteel') {
         tarteelRequests.push(requestData)
       } else if (submission.partner_type === 'family') {
@@ -323,4 +334,116 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * Calculate matching statistics for a system_match user
+ */
+async function calculateMatchingStatistics(
+  userId: string,
+  batchId: string,
+  userRegistration: any,
+  allSubmissions: any[]
+) {
+  const supabase = createClient()
+
+  // Get all other system_match users
+  const otherUsers = allSubmissions.filter(
+    s => s.partner_type === 'system_match' &&
+           s.status === 'submitted' &&
+           s.user_id !== userId
+  )
+
+  const otherUserIds = otherUsers.map(s => s.user_id)
+
+  // Fetch registration data for other users
+  const { data: otherRegistrations } = await supabase
+    .from('pendaftaran_tikrar_tahfidz')
+    .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
+    .eq('batch_id', batchId)
+    .in('user_id', otherUserIds)
+
+  // Create map for quick lookup
+  const regMap = new Map((otherRegistrations || []).map(r => [r.user_id, r]))
+
+  let zonaWaktuMatches = 0
+  let sameJuzMatches = 0
+  let crossJuzMatches = 0
+
+  const userTimezone = userRegistration?.timezone || 'WIB'
+  const userJuz = userRegistration?.chosen_juz
+
+  for (const otherUser of otherUsers) {
+    const otherReg = regMap.get(otherUser.user_id)
+    if (!otherReg) continue
+
+    const otherTimezone = otherReg.timezone || 'WIB'
+    const otherJuz = otherReg.chosen_juz
+
+    // Calculate score
+    let score = 0
+    if (userTimezone === otherTimezone) score += 50
+    if (userJuz === otherJuz) score += 50
+
+    // Check time slot overlap
+    const userMain = userRegistration?.main_time_slot
+    const otherMain = otherReg.main_time_slot
+    const userBackup = userRegistration?.backup_time_slot
+    const otherBackup = otherReg.backup_time_slot
+
+    if (
+      hasTimeOverlap(userMain, otherMain) ||
+      hasTimeOverlap(userMain, otherBackup) ||
+      hasTimeOverlap(userBackup, otherMain) ||
+      hasTimeOverlap(userBackup, otherBackup)
+    ) {
+      score += 10
+    }
+
+    // Categorize
+    if (score >= 100) {
+      // Perfect match - counts for both zona waktu and juz sama
+    } else if (score >= 80 && score < 100) {
+      zonaWaktuMatches++
+    } else if (score >= 60 && score < 80) {
+      sameJuzMatches++
+    } else {
+      crossJuzMatches++
+    }
+  }
+
+  // Total matches is the count of all candidates with score >= 50
+  const totalMatches = otherUsers.filter(otherUser => {
+    const otherReg = regMap.get(otherUser.user_id)
+    if (!otherReg) return false
+
+    const otherTimezone = otherReg.timezone || 'WIB'
+    const otherJuz = otherReg.chosen_juz
+
+    return userTimezone === otherTimezone || userJuz === otherJuz
+  }).length
+
+  return {
+    total_matches: totalMatches,
+    zona_waktu_matches: zonaWaktuMatches,
+    same_juz_matches: sameJuzMatches,
+    cross_juz_matches: crossJuzMatches,
+  }
+}
+
+/**
+ * Check if two time slots overlap
+ */
+function hasTimeSlotOverlap(slot1: string, slot2: string): boolean {
+  if (!slot1 || !slot2) return false
+
+  const parseSlot = (slot: string) => {
+    const [start, end] = slot.split('-').map(Number)
+    return { start, end }
+  }
+
+  const s1 = parseSlot(slot1)
+  const s2 = parseSlot(slot2)
+
+  return s1.start < s2.end && s2.start < s1.end
 }
