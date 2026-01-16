@@ -42,11 +42,11 @@ export async function GET(request: Request) {
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    // First, get total count for all partner types
+    // First, get total count for all partner types (both submitted and approved)
     const { count: totalCount, error: countError } = await supabase
       .from('daftar_ulang_submissions')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'submitted')
+      .in('status', ['submitted', 'approved'])
       .eq('batch_id', batchId || '')
 
     if (countError) throw countError
@@ -85,7 +85,7 @@ export async function GET(request: Request) {
           name
         )
       `)
-      .eq('status', 'submitted') // Only submitted daftar ulang
+      .in('status', ['submitted', 'approved']) // Get both submitted and approved daftar ulang
 
     if (batchId) {
       query = query.eq('batch_id', batchId)
