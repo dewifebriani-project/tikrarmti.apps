@@ -356,6 +356,15 @@ async function calculateMatchingStatistics(
 
   const otherUserIds = otherUsers.map(s => s.user_id)
 
+  // Fetch user data for timezone
+  const { data: usersData } = await supabase
+    .from('users')
+    .select('id, zona_waktu')
+    .in('id', otherUserIds)
+
+  // Create map for quick lookup
+  const userMap = new Map((usersData || []).map(u => [u.id, u.zona_waktu]))
+
   // Fetch registration data for other users
   const { data: otherRegistrations } = await supabase
     .from('pendaftaran_tikrar_tahfidz')
@@ -373,12 +382,33 @@ async function calculateMatchingStatistics(
   const userTimezone = userRegistration?.timezone || 'WIB'
   const userJuz = userRegistration?.chosen_juz
 
+  console.log('[CALCULATE STATS] User data:', {
+    userId,
+    userTimezone,
+    userJuz,
+    hasUserReg: !!userRegistration,
+    otherUsersCount: otherUsers.length,
+    otherUserIds,
+    usersFetched: usersData?.length || 0,
+    registrationsFetched: otherRegistrations?.length || 0,
+  })
+
   for (const otherUser of otherUsers) {
     const otherReg = regMap.get(otherUser.user_id)
-    if (!otherReg) continue
+    if (!otherReg) {
+      console.log('[CALCULATE STATS] Skipping - no registration data for:', otherUser.user_id)
+      continue
+    }
 
-    const otherTimezone = otherReg.timezone || 'WIB'
+    const otherTimezone = otherReg.timezone || userMap.get(otherUser.user_id) || 'WIB'
     const otherJuz = otherReg.chosen_juz
+
+    console.log('[CALCULATE STATS] Processing other user:', {
+      user_id: otherUser.user_id,
+      otherTimezone,
+      otherJuz,
+      hasReg: !!otherReg,
+    })
 
     // Calculate score
     let score = 0
@@ -400,6 +430,8 @@ async function calculateMatchingStatistics(
       score += 10
     }
 
+    console.log('[CALCULATE STATS] Score for', otherUser.user_id, ':', score, '- Reasons:', userTimezone === otherTimezone ? 'Zona' : userJuz === otherJuz ? 'Juz' : 'None')
+
     // Categorize
     if (score >= 100) {
       // Perfect match - counts for both zona waktu and juz sama
@@ -417,11 +449,18 @@ async function calculateMatchingStatistics(
     const otherReg = regMap.get(otherUser.user_id)
     if (!otherReg) return false
 
-    const otherTimezone = otherReg.timezone || 'WIB'
+    const otherTimezone = otherReg.timezone || userMap.get(otherUser.user_id) || 'WIB'
     const otherJuz = otherReg.chosen_juz
 
     return userTimezone === otherTimezone || userJuz === otherJuz
   }).length
+
+  console.log('[CALCULATE STATS] Final stats:', {
+    total_matches: totalMatches,
+    zona_waktu_matches: zonaWaktuMatches,
+    same_juz_matches: sameJuzMatches,
+    cross_juz_matches: crossJuzMatches,
+  })
 
   return {
     total_matches: totalMatches,
