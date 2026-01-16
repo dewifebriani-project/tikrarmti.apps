@@ -59,7 +59,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 }
 
 function DefaultErrorFallback({ error, reset, errorInfo }: { error?: Error; reset: () => void; errorInfo?: React.ErrorInfo }) {
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug, setShowDebug] = useState(true); // Auto-show debug panel
   const [storedErrorInfo, setStoredErrorInfo] = useState<any>(null);
 
   useEffect(() => {
@@ -167,15 +167,40 @@ function DefaultErrorFallback({ error, reset, errorInfo }: { error?: Error; rese
               )}
             </div>
 
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
-                alert('Debug info copied to clipboard');
-              }}
-              className="mt-3 w-full text-xs bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded"
-            >
-              Copy Debug Info
-            </button>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
+                  alert('Debug info copied to clipboard!');
+                }}
+                className="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded"
+              >
+                Copy to Clipboard
+              </button>
+              <button
+                onClick={() => {
+                  const blob = new Blob([JSON.stringify(debugInfo, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `error-debug-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex-1 text-xs bg-blue-700 hover:bg-blue-600 text-white py-2 px-3 rounded"
+              >
+                Download JSON
+              </button>
+            </div>
+
+            {/* Info untuk user */}
+            <div className="mt-3 p-2 bg-blue-900/30 border border-blue-700 rounded">
+              <p className="text-xs text-blue-300">
+                <strong>Tips:</strong> Debug info tersimpan di localStorage. Copy atau download info ini untuk dianalisis lebih lanjut.
+              </p>
+            </div>
           </div>
         )}
       </div>
