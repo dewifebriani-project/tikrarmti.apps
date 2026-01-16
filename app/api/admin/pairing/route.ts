@@ -42,17 +42,16 @@ export async function GET(request: Request) {
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    // First, get total count
+    // First, get total count for all partner types
     const { count: totalCount, error: countError } = await supabase
       .from('daftar_ulang_submissions')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'submitted')
-      .in('partner_type', ['self_match', 'system_match'])
       .eq('batch_id', batchId || '')
 
     if (countError) throw countError
 
-    // Fetch paginated data
+    // Fetch paginated data for ALL partner types
     let query = supabase
       .from('daftar_ulang_submissions')
       .select(`
@@ -87,7 +86,6 @@ export async function GET(request: Request) {
         )
       `)
       .eq('status', 'submitted') // Only submitted daftar ulang
-      .in('partner_type', ['self_match', 'system_match'])
 
     if (batchId) {
       query = query.eq('batch_id', batchId)
@@ -119,6 +117,8 @@ export async function GET(request: Request) {
     // 5. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
     const systemMatchRequests = []
+    const tarteelRequests = []
+    const familyRequests = []
 
     for (const submission of submissions || []) {
       // Supabase returns nested relations - check if array or object
@@ -222,6 +222,10 @@ export async function GET(request: Request) {
         }
       } else if (submission.partner_type === 'system_match') {
         systemMatchRequests.push(requestData)
+      } else if (submission.partner_type === 'tarteel') {
+        tarteelRequests.push(requestData)
+      } else if (submission.partner_type === 'family') {
+        familyRequests.push(requestData)
       }
     }
 
@@ -230,6 +234,8 @@ export async function GET(request: Request) {
       data: {
         self_match_requests: selfMatchRequests,
         system_match_requests: systemMatchRequests,
+        tarteel_requests: tarteelRequests,
+        family_requests: familyRequests,
       },
       pagination: {
         page,

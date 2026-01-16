@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight, Bug, ChevronDown } from 'lucide-react'
+import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight, Bug, ChevronDown, BookOpen, Home } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface SelfMatchRequest {
@@ -46,6 +46,46 @@ interface SystemMatchRequest {
   batch_name: string
 }
 
+interface TarteelRequest {
+  id: string
+  user_id: string
+  user_name: string
+  user_email: string
+  user_zona_waktu: string
+  user_wa_phone: string
+  chosen_juz: string
+  main_time_slot: string
+  backup_time_slot: string
+  partner_name: string
+  partner_relationship: string
+  partner_notes: string
+  partner_wa_phone: string
+  submitted_at: string
+  batch_id: string
+  batch_name: string
+  partner_type: string
+}
+
+interface FamilyRequest {
+  id: string
+  user_id: string
+  user_name: string
+  user_email: string
+  user_zona_waktu: string
+  user_wa_phone: string
+  chosen_juz: string
+  main_time_slot: string
+  backup_time_slot: string
+  partner_name: string
+  partner_relationship: string
+  partner_notes: string
+  partner_wa_phone: string
+  submitted_at: string
+  batch_id: string
+  batch_name: string
+  partner_type: string
+}
+
 interface MatchCandidate {
   user_id: string
   full_name: string
@@ -79,9 +119,11 @@ interface MatchData {
 
 export function AdminPairingTab() {
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'self' | 'system'>('self')
+  const [activeTab, setActiveTab] = useState<'self' | 'system' | 'tarteel' | 'family'>('self')
   const [selfMatchRequests, setSelfMatchRequests] = useState<SelfMatchRequest[]>([])
   const [systemMatchRequests, setSystemMatchRequests] = useState<SystemMatchRequest[]>([])
+  const [tarteelRequests, setTarteelRequests] = useState<TarteelRequest[]>([])
+  const [familyRequests, setFamilyRequests] = useState<FamilyRequest[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string>('')
   const [batches, setBatches] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -151,6 +193,8 @@ export function AdminPairingTab() {
 
       setSelfMatchRequests(result.data?.self_match_requests || [])
       setSystemMatchRequests(result.data?.system_match_requests || [])
+      setTarteelRequests(result.data?.tarteel_requests || [])
+      setFamilyRequests(result.data?.family_requests || [])
       setPagination(result.pagination || null)
 
       // Store debug data
@@ -158,6 +202,8 @@ export function AdminPairingTab() {
         apiResponse: result,
         selfMatchCount: result.data?.self_match_requests?.length || 0,
         systemMatchCount: result.data?.system_match_requests?.length || 0,
+        tarteelCount: result.data?.tarteel_requests?.length || 0,
+        familyCount: result.data?.family_requests?.length || 0,
         selfMatchRequests: result.data?.self_match_requests || [],
         timestamp: new Date().toISOString()
       })
@@ -346,6 +392,68 @@ export function AdminPairingTab() {
     }
   }
 
+  const handleApproveTarteel = async (request: TarteelRequest) => {
+    const toastId = toast.loading('Approving tarteel pairing...')
+
+    try {
+      const response = await fetch('/api/admin/pairing/approve-tarteel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: request.id,
+          user_id: request.user_id,
+          partner_name: request.partner_name,
+          partner_relationship: request.partner_relationship,
+          partner_notes: request.partner_notes,
+          partner_wa_phone: request.partner_wa_phone,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Tarteel pairing approved successfully!', { id: toastId })
+        loadPairingRequests()
+      } else {
+        toast.error(result.error || 'Failed to approve tarteel pairing', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error approving tarteel pairing:', error)
+      toast.error('Failed to approve tarteel pairing', { id: toastId })
+    }
+  }
+
+  const handleApproveFamily = async (request: FamilyRequest) => {
+    const toastId = toast.loading('Approving family pairing...')
+
+    try {
+      const response = await fetch('/api/admin/pairing/approve-family', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: request.id,
+          user_id: request.user_id,
+          partner_name: request.partner_name,
+          partner_relationship: request.partner_relationship,
+          partner_notes: request.partner_notes,
+          partner_wa_phone: request.partner_wa_phone,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Family pairing approved successfully!', { id: toastId })
+        loadPairingRequests()
+      } else {
+        toast.error(result.error || 'Failed to approve family pairing', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error approving family pairing:', error)
+      toast.error('Failed to approve family pairing', { id: toastId })
+    }
+  }
+
   if (loading && batches.length === 0) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -425,10 +533,10 @@ export function AdminPairingTab() {
       {/* Tab Navigation */}
       <div className="bg-white rounded-lg shadow">
         <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
+          <nav className="flex -mb-px overflow-x-auto">
             <button
               onClick={() => setActiveTab('self')}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'self'
                   ? 'border-green-900 text-green-900'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -439,7 +547,7 @@ export function AdminPairingTab() {
             </button>
             <button
               onClick={() => setActiveTab('system')}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'system'
                   ? 'border-green-900 text-green-900'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -447,6 +555,28 @@ export function AdminPairingTab() {
             >
               <HeartHandshake className="w-4 h-4" />
               Dipasangkan Sistem ({systemMatchRequests.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('tarteel')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'tarteel'
+                  ? 'border-green-900 text-green-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              Tarteel ({tarteelRequests.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('family')}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'family'
+                  ? 'border-green-900 text-green-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Home className="w-4 h-4" />
+              Family ({familyRequests.length})
             </button>
           </nav>
         </div>
@@ -661,6 +791,182 @@ export function AdminPairingTab() {
                       >
                         <Search className="w-4 h-4" />
                         Cari Pasangan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tarteel Requests */}
+      {activeTab === 'tarteel' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Request Pasangan Tarteel
+          </h3>
+
+          {tarteelRequests.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Tidak ada request pasangan tarteel</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {tarteelRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="border border-purple-200 rounded-lg p-4 hover:shadow-md transition-all bg-gradient-to-r from-purple-50 to-pink-50"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded font-medium">
+                          TARTEEL
+                        </span>
+                        <p className="font-semibold text-gray-900">{request.user_name}</p>
+                        <p className="text-sm text-gray-600">{request.user_email}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Juz Pilihan:</p>
+                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm font-medium">
+                            {request.chosen_juz}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Zona Waktu:</p>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">
+                            {request.user_zona_waktu || 'WIB'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-500 mb-1">Waktu Belajar:</p>
+                        <div className="flex flex-wrap gap-1 text-xs">
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
+                            Utama: {request.main_time_slot}
+                          </span>
+                          <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded">
+                            Cadangan: {request.backup_time_slot}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-3 bg-white rounded border border-purple-200">
+                        <p className="text-xs font-semibold text-purple-900 mb-2">Pasangan Tarteel:</p>
+                        <p className="text-sm text-gray-900 font-medium">{request.partner_name || '-'}</p>
+                        {request.partner_relationship && (
+                          <p className="text-xs text-gray-600">Hubungan: {request.partner_relationship}</p>
+                        )}
+                        {request.partner_notes && (
+                          <p className="text-xs text-gray-600 mt-1">Catatan: {request.partner_notes}</p>
+                        )}
+                        {request.partner_wa_phone && (
+                          <p className="text-xs text-gray-600 mt-1">WA: {request.partner_wa_phone}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="ml-4 flex flex-col gap-2">
+                      <button
+                        onClick={() => handleApproveTarteel(request)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Family Requests */}
+      {activeTab === 'family' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Request Pasangan Family
+          </h3>
+
+          {familyRequests.length === 0 ? (
+            <div className="text-center py-12">
+              <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Tidak ada request pasangan family</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {familyRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="border border-amber-200 rounded-lg p-4 hover:shadow-md transition-all bg-gradient-to-r from-amber-50 to-orange-50"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-1 bg-amber-600 text-white text-xs rounded font-medium">
+                          FAMILY
+                        </span>
+                        <p className="font-semibold text-gray-900">{request.user_name}</p>
+                        <p className="text-sm text-gray-600">{request.user_email}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Juz Pilihan:</p>
+                          <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-sm font-medium">
+                            {request.chosen_juz}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Zona Waktu:</p>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">
+                            {request.user_zona_waktu || 'WIB'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-500 mb-1">Waktu Belajar:</p>
+                        <div className="flex flex-wrap gap-1 text-xs">
+                          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
+                            Utama: {request.main_time_slot}
+                          </span>
+                          <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded">
+                            Cadangan: {request.backup_time_slot}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-3 bg-white rounded border border-amber-200">
+                        <p className="text-xs font-semibold text-amber-900 mb-2">Pasangan Family:</p>
+                        <p className="text-sm text-gray-900 font-medium">{request.partner_name || '-'}</p>
+                        {request.partner_relationship && (
+                          <p className="text-xs text-gray-600">Hubungan: {request.partner_relationship}</p>
+                        )}
+                        {request.partner_notes && (
+                          <p className="text-xs text-gray-600 mt-1">Catatan: {request.partner_notes}</p>
+                        )}
+                        {request.partner_wa_phone && (
+                          <p className="text-xs text-gray-600 mt-1">WA: {request.partner_wa_phone}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="ml-4 flex flex-col gap-2">
+                      <button
+                        onClick={() => handleApproveFamily(request)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Approve
                       </button>
                     </div>
                   </div>
