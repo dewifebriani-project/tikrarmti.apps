@@ -116,9 +116,12 @@ export async function GET(request: Request) {
     console.log('[PAIRING API] Filtered to unique users:', uniqueUserSubmissions.size, 'from', submissions?.length)
 
     // Count per partner type after filtering
-    const partnerTypeCounts = { self_match: 0, system_match: 0, tarteel: 0, family: 0 }
+    const partnerTypeCounts: Record<string, number> = { self_match: 0, system_match: 0, tarteel: 0, family: 0 }
     uniqueUserSubmissions.forEach((sub: any) => {
-      partnerTypeCounts[sub.partner_type] = (partnerTypeCounts[sub.partner_type] || 0) + 1
+      const type = sub.partner_type
+      if (type && partnerTypeCounts.hasOwnProperty(type)) {
+        partnerTypeCounts[type] = (partnerTypeCounts[type] || 0) + 1
+      }
     })
     console.log('[PAIRING API] Unique users per partner type:', JSON.stringify(partnerTypeCounts, null, 2))
 
