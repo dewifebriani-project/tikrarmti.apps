@@ -45,6 +45,9 @@ export async function GET(request: Request) {
 
     if (allError) throw allError
 
+    console.log('[STATS DEBUG] Total submissions fetched:', allSubmissions?.length)
+    console.log('[STATS DEBUG] Sample first 3 submissions:', JSON.stringify(allSubmissions?.slice(0, 3), null, 2))
+
     // Calculate statistics counting UNIQUE users per partner type and status
     const statistics = {
       selfMatch: { submitted: 0, approved: 0 },
@@ -69,6 +72,8 @@ export async function GET(request: Request) {
       }
     }
 
+    console.log('[STATS DEBUG] Unique users:', userSubmissions.size)
+
     // Count unique users per partner type and status
     userSubmissions.forEach((submission, userId) => {
       const partnerType = submission.partner_type
@@ -88,6 +93,8 @@ export async function GET(request: Request) {
         if (status === 'approved') statistics.family.approved++
       }
     })
+
+    console.log('[STATS DEBUG] Final statistics:', JSON.stringify(statistics, null, 2))
 
     return NextResponse.json({
       success: true,
