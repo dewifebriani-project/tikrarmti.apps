@@ -979,9 +979,12 @@ export function AdminPairingTab() {
       {/* System Match Requests */}
       {activeTab === 'system' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Request Dipasangkan Sistem
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Request Dipasangkan Sistem
+            </h3>
+            <span className="text-sm text-gray-600">{systemMatchRequests.length} permintaan</span>
+          </div>
 
           {systemMatchRequests.length === 0 ? (
             <div className="text-center py-12">
@@ -989,43 +992,61 @@ export function AdminPairingTab() {
               <p className="text-gray-600">Tidak ada request dipasangkan sistem</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {systemMatchRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zona Waktu</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Utama</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Cadangan</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {systemMatchRequests.map((request) => (
+                    <tr key={request.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                         {request.user_name}
-                      </p>
-                      <p className="text-sm text-gray-600">{request.user_email}</p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                          {request.user_zona_waktu || 'WIB'}
-                        </span>
-                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {request.user_email}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                           {request.chosen_juz}
                         </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">
-                          {request.main_time_slot}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          {request.user_zona_waktu || 'WIB'}
                         </span>
-                      </div>
-                    </div>
-
-                    <div className="ml-4">
-                      <button
-                        onClick={() => handleFindMatches(request)}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-sm"
-                      >
-                        <Search className="w-4 h-4" />
-                        Cari Pasangan
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                          {request.main_time_slot || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                          {request.backup_time_slot || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                        <button
+                          onClick={() => handleFindMatches(request)}
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-sm mx-auto"
+                        >
+                          <Search className="w-4 h-4" />
+                          Cari Pasangan
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
