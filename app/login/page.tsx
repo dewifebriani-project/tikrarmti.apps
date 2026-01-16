@@ -181,7 +181,18 @@ function LoginPageContent() {
         setNotificationType('success');
         setShowNotification(true);
 
-        // Update debug info with successful login
+        // Check if user profile exists, create if not
+        console.log('[Login Debug] Checking user profile for:', data.user.id);
+
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        console.log('[Login Debug] User profile check result:', { userData, userError });
+
+        // Update debug info with successful login (AFTER userData is declared)
         await collectDebugInfo();
         setDebugInfo((prev: any) => ({
           ...prev,
@@ -194,17 +205,6 @@ function LoginPageContent() {
             userError: userError,
           }
         }));
-
-        // Check if user profile exists, create if not
-        console.log('[Login Debug] Checking user profile for:', data.user.id);
-
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        console.log('[Login Debug] User profile check result:', { userData, userError });
 
         // Store debug info in localStorage before redirect
         const finalDebugInfo = {
