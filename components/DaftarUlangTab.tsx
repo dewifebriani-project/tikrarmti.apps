@@ -203,8 +203,14 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       // Build query params
       const params = new URLSearchParams();
       if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
-      params.append('page', currentPage.toString());
-      params.append('limit', '50');
+
+      // If searching, load all data. Otherwise use pagination.
+      if (searchQuery.trim()) {
+        params.append('limit', '10000'); // Load all data for search
+      } else {
+        params.append('page', currentPage.toString());
+        params.append('limit', '50');
+      }
 
       const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
       const result = await response.json();
@@ -218,7 +224,12 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       if (result.data) {
         console.log('[DaftarUlangTab] Loaded', result.data.length, 'submissions');
         setSubmissions(result.data);
-        setPagination(result.pagination || null);
+        // Only set pagination when not searching
+        if (!searchQuery.trim()) {
+          setPagination(result.pagination || null);
+        } else {
+          setPagination(null); // No pagination when searching
+        }
       } else {
         setSubmissions([]);
         setPagination(null);
@@ -506,12 +517,23 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     loadStats();
   }, [localBatchId, refreshTrigger]);
 
-  // Load submissions when batch changes or refresh triggers
+  // Load submissions when batch changes, page changes, or refresh triggers
   useEffect(() => {
     if (activeSubTab === 'submissions') {
       loadSubmissions();
     }
   }, [localBatchId, refreshTrigger, currentPage, activeSubTab]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (activeSubTab === 'submissions') {
+        loadSubmissions();
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Load juz groups when batch changes or refresh triggers
   useEffect(() => {
@@ -1361,7 +1383,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
               </div>
 
               {/* Pagination */}
-              {!searchQuery && pagination && pagination.totalPages > 1 && (
+              {!searchQuery && pagination && pagination.totalPages > 1 ? (
                 <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
                   <div className="text-sm text-gray-500">
                     Menampilkan {submissionStats.showing} dari {pagination.total} submissions
@@ -1399,6 +1421,12 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                     >
                       Terakhir
                     </button>
+                  </div>
+                </div>
+              ) : searchQuery && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                  <div className="text-sm text-gray-500">
+                    Menampilkan {filteredSubmissions.length} hasil pencarian dari seluruh data
                   </div>
                 </div>
               )}
