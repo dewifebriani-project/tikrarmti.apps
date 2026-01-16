@@ -392,10 +392,10 @@ async function calculateMatchingStatistics(
     const otherBackup = otherReg.backup_time_slot
 
     if (
-      hasTimeOverlap(userMain, otherMain) ||
-      hasTimeOverlap(userMain, otherBackup) ||
-      hasTimeOverlap(userBackup, otherMain) ||
-      hasTimeOverlap(userBackup, otherBackup)
+      hasTimeSlotOverlap(userMain, otherMain) ||
+      hasTimeSlotOverlap(userMain, otherBackup) ||
+      hasTimeSlotOverlap(userBackup, otherMain) ||
+      hasTimeSlotOverlap(userBackup, otherBackup)
     ) {
       score += 10
     }
