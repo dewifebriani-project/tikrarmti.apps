@@ -115,6 +115,13 @@ export async function GET(request: Request) {
 
     console.log('[PAIRING API] Filtered to unique users:', uniqueUserSubmissions.size, 'from', submissions?.length)
 
+    // Count per partner type after filtering
+    const partnerTypeCounts = { self_match: 0, system_match: 0, tarteel: 0, family: 0 }
+    uniqueUserSubmissions.forEach((sub: any) => {
+      partnerTypeCounts[sub.partner_type] = (partnerTypeCounts[sub.partner_type] || 0) + 1
+    })
+    console.log('[PAIRING API] Unique users per partner type:', JSON.stringify(partnerTypeCounts, null, 2))
+
     // Convert Map to Array for iteration
     const uniqueSubmissionsArray = Array.from(uniqueUserSubmissions.values())
 
@@ -137,6 +144,8 @@ export async function GET(request: Request) {
     const systemMatchRequests = []
     const tarteelRequests = []
     const familyRequests = []
+
+    console.log('[PAIRING API] Starting to process', uniqueSubmissionsArray.length, 'unique submissions')
 
     for (const submission of uniqueSubmissionsArray) {
       // Supabase returns nested relations - check if array or object
@@ -246,6 +255,8 @@ export async function GET(request: Request) {
         familyRequests.push(requestData)
       }
     }
+
+    console.log('[PAIRING API] Final counts - Self:', selfMatchRequests.length, 'System:', systemMatchRequests.length, 'Tarteel:', tarteelRequests.length, 'Family:', familyRequests.length)
 
     return NextResponse.json({
       success: true,
