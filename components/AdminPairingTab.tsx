@@ -129,6 +129,14 @@ export function AdminPairingTab() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState<any>(null)
 
+  // Statistics state
+  const [stats, setStats] = useState({
+    selfMatch: { submitted: 0, approved: 0 },
+    systemMatch: { submitted: 0, approved: 0 },
+    tarteel: { submitted: 0, approved: 0 },
+    family: { submitted: 0, approved: 0 },
+  })
+
   // Debug panel state
   const [showDebug, setShowDebug] = useState(false)
   const [debugData, setDebugData] = useState<any>(null)
@@ -215,6 +223,33 @@ export function AdminPairingTab() {
     }
   }
 
+  const loadStatistics = async () => {
+    if (!selectedBatchId) return
+
+    try {
+      const response = await fetch(`/api/admin/pairing/statistics?batch_id=${selectedBatchId}`)
+      if (!response.ok) {
+        // If API doesn't exist, we'll calculate stats from current data
+        return
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setStats(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading statistics:', error)
+      // Don't show toast for stats error, it's not critical
+    }
+  }
+
+  // Load statistics when batch changes
+  useEffect(() => {
+    if (selectedBatchId) {
+      loadStatistics()
+    }
+  }, [selectedBatchId])
+
   const handleApprove = async (request: SelfMatchRequest) => {
     // For mutual match, we need to approve both submissions
     const toastId = toast.loading('Approving pairing...')
@@ -259,6 +294,7 @@ export function AdminPairingTab() {
       }
 
       loadPairingRequests()
+      loadStatistics() // Refresh statistics after approve
     } catch (error) {
       console.error('Error approving pairing:', error)
       toast.error('Failed to approve pairing', { id: toastId })
@@ -287,6 +323,7 @@ export function AdminPairingTab() {
         setRejectReason('')
         setRejectingId('')
         loadPairingRequests()
+        loadStatistics() // Refresh statistics after reject
       } else {
         toast.error(result.error || 'Failed to reject request', { id: toastId })
       }
@@ -344,6 +381,7 @@ export function AdminPairingTab() {
         setMatchData(null)
         setSelectedMatch(null)
         loadPairingRequests()
+        loadStatistics() // Refresh statistics after reject
       } else {
         toast.error(result.error || 'Failed to create pairing', { id: toastId })
       }
@@ -383,6 +421,7 @@ export function AdminPairingTab() {
         setManualPairUser1(null)
         setManualPairUser2(null)
         loadPairingRequests()
+        loadStatistics() // Refresh statistics after reject
       } else {
         toast.error(result.error || 'Failed to create pairing', { id: toastId })
       }
@@ -414,6 +453,7 @@ export function AdminPairingTab() {
       if (result.success) {
         toast.success('Tarteel pairing approved successfully!', { id: toastId })
         loadPairingRequests()
+        loadStatistics() // Refresh statistics after reject
       } else {
         toast.error(result.error || 'Failed to approve tarteel pairing', { id: toastId })
       }
@@ -445,6 +485,7 @@ export function AdminPairingTab() {
       if (result.success) {
         toast.success('Family pairing approved successfully!', { id: toastId })
         loadPairingRequests()
+        loadStatistics() // Refresh statistics after reject
       } else {
         toast.error(result.error || 'Failed to approve family pairing', { id: toastId })
       }
@@ -528,6 +569,69 @@ export function AdminPairingTab() {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Self Match Stats */}
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-xs font-medium uppercase tracking-wide">Pilih Sendiri</p>
+              <p className="text-2xl font-bold mt-1">
+                {stats.selfMatch.approved}
+                <span className="text-blue-200 text-sm font-normal"> / {stats.selfMatch.submitted}</span>
+              </p>
+              <p className="text-blue-100 text-xs mt-1">Approved / Submitted</p>
+            </div>
+            <UserCheck className="w-8 h-8 text-blue-200 opacity-80" />
+          </div>
+        </div>
+
+        {/* System Match Stats */}
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-xs font-medium uppercase tracking-wide">Dipasangkan Sistem</p>
+              <p className="text-2xl font-bold mt-1">
+                {stats.systemMatch.approved}
+                <span className="text-green-200 text-sm font-normal"> / {stats.systemMatch.submitted}</span>
+              </p>
+              <p className="text-green-100 text-xs mt-1">Approved / Submitted</p>
+            </div>
+            <HeartHandshake className="w-8 h-8 text-green-200 opacity-80" />
+          </div>
+        </div>
+
+        {/* Tarteel Stats */}
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-xs font-medium uppercase tracking-wide">Tarteel</p>
+              <p className="text-2xl font-bold mt-1">
+                {stats.tarteel.approved}
+                <span className="text-purple-200 text-sm font-normal"> / {stats.tarteel.submitted}</span>
+              </p>
+              <p className="text-purple-100 text-xs mt-1">Approved / Submitted</p>
+            </div>
+            <BookOpen className="w-8 h-8 text-purple-200 opacity-80" />
+          </div>
+        </div>
+
+        {/* Family Stats */}
+        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg shadow-lg p-4 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-amber-100 text-xs font-medium uppercase tracking-wide">Family</p>
+              <p className="text-2xl font-bold mt-1">
+                {stats.family.approved}
+                <span className="text-amber-200 text-sm font-normal"> / {stats.family.submitted}</span>
+              </p>
+              <p className="text-amber-100 text-xs mt-1">Approved / Submitted</p>
+            </div>
+            <Home className="w-8 h-8 text-amber-200 opacity-80" />
+          </div>
+        </div>
       </div>
 
       {/* Tab Navigation */}
