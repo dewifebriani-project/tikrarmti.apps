@@ -19,6 +19,16 @@ interface Halaqah {
   zoom_link?: string;
   status: 'active' | 'inactive' | 'suspended';
   program_id: string | null;
+  program?: {
+    id: string;
+    name?: string;
+    class_type?: string;
+    batch_id: string;
+    batch?: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
 interface Program {
@@ -57,10 +67,22 @@ export function EditHalaqahModal({ halaqah, onClose, onSuccess }: EditHalaqahMod
 
   const loadPrograms = async () => {
     try {
-      const response = await fetch('/api/programs');
+      // Get batch_id from halaqah's program
+      const batchId = halaqah.program?.batch_id;
+
+      if (!batchId) {
+        console.log('[EditHalaqahModal] No batch_id found, skipping program load');
+        return;
+      }
+
+      const response = await fetch(`/api/programs?batch_id=${batchId}`);
       const result = await response.json();
+
       if (response.ok && result.data) {
+        console.log('[EditHalaqahModal] Loaded programs:', result.data);
         setPrograms(result.data);
+      } else {
+        console.error('[EditHalaqahModal] Failed to load programs:', result);
       }
     } catch (error) {
       console.error('Error loading programs:', error);

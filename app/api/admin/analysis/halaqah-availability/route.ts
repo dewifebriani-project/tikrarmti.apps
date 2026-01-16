@@ -270,7 +270,8 @@ export async function GET(request: NextRequest) {
           available_slots: h.available_slots,
           utilization_percent: h.utilization_percent,
           is_full: h.is_full,
-          muallimah_name: h.muallimah_name
+          muallimah_name: h.muallimah_name,
+          class_type: h.class_type
         }))
       };
 

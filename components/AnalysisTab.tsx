@@ -137,7 +137,6 @@ export function AnalysisTab() {
   const [matchingData, setMatchingData] = useState<MatchingAnalysis[]>([]);
   const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [analysisErrorDetails, setAnalysisErrorDetails] = useState<any>(null);
 
   useEffect(() => {
     loadBatches();
@@ -205,7 +204,6 @@ export function AnalysisTab() {
         const errorMsg = errorData.error || `Failed to load analysis data (${analysisResponse.status})`;
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
-        setAnalysisErrorDetails(errorData);
         setLoading(false);
         return;
       }
@@ -221,7 +219,6 @@ export function AnalysisTab() {
         const errorMsg = 'Invalid JSON response from server';
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
-        setAnalysisErrorDetails({ error: errorMsg, details: responseText.substring(0, 200) });
         setLoading(false);
         return;
       }
@@ -231,13 +228,9 @@ export function AnalysisTab() {
         const errorMsg = 'Invalid analysis data received';
         toast.error(errorMsg);
         setAnalysisError(errorMsg);
-        setAnalysisErrorDetails({ error: errorMsg, result: analysisResult });
         setLoading(false);
         return;
       }
-
-      // Clear error details on success
-      setAnalysisErrorDetails(null);
 
       const { batch, muallimahs, thalibahs, halaqahs, students, daftarUlangSubmissions } = analysisResult.data;
 
@@ -424,7 +417,6 @@ export function AnalysisTab() {
 
       setAnalysis(analysisData);
       setAnalysisError(null);
-      setAnalysisErrorDetails(null);
     } catch (error) {
       console.error('Error loading analysis:', error);
       const errorMsg = 'Failed to load analysis';
@@ -436,7 +428,6 @@ export function AnalysisTab() {
       console.error('[AnalysisTab] Processing error details:', errorDetails);
       toast.error(errorMsg);
       setAnalysisError(errorMsg);
-      setAnalysisErrorDetails(errorDetails);
     } finally {
       setLoading(false);
     }
@@ -550,26 +541,6 @@ export function AnalysisTab() {
             </option>
           ))}
         </select>
-
-        {/* DEBUG INFO - Temporary */}
-        {selectedBatchId && (
-          <div className="mt-4 p-3 bg-gray-100 rounded text-xs font-mono overflow-auto max-h-40">
-            <p><strong>DEBUG INFO:</strong></p>
-            <p>Selected Batch ID: {selectedBatchId}</p>
-            <p>Active Tab: {activeTab}</p>
-            <p>Loading: {loading ? 'Yes' : 'No'}</p>
-            <p>Analysis Loaded: {analysis ? 'Yes' : 'No'}</p>
-            <p>Analysis Error: {analysisError || 'None'}</p>
-            {analysisErrorDetails && (
-              <>
-                <p className="mt-2 text-red-600"><strong>Error Details:</strong></p>
-                <pre className="text-xs bg-red-50 p-2 rounded overflow-auto">
-                  {JSON.stringify(analysisErrorDetails, null, 2)}
-                </pre>
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Tab Navigation */}
@@ -924,7 +895,16 @@ export function AnalysisTab() {
                                                      halaqah.utilization_percent >= 70 ? 'yellow' : 'green';
                               return (
                                 <div key={idx} className="bg-white rounded-lg border p-4">
-                                  <p className="font-semibold text-gray-900 text-sm mb-2">{halaqah.name}</p>
+                                  <div className="flex items-start justify-between mb-2">
+                                    <p className="font-semibold text-gray-900 text-sm">{halaqah.name}</p>
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      halaqah.class_type === 'tahfidz' ? 'bg-purple-100 text-purple-700' :
+                                      halaqah.class_type === 'tashih' ? 'bg-blue-100 text-blue-700' :
+                                      'bg-green-100 text-green-700'
+                                    }`}>
+                                      {halaqah.class_type || 'tashih_ujian'}
+                                    </span>
+                                  </div>
 
                                   <div className="space-y-1 text-xs">
                                     <div className="flex justify-between">
