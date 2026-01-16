@@ -100,11 +100,24 @@ export async function GET(request: Request) {
     // DEBUG: Log the raw submission data to see structure
     console.log('[PAIRING API] Raw submissions data (first 2):', JSON.stringify(submissions?.slice(0, 2), null, 2))
 
-    // 4. Build a map of all self-match requests for mutual match detection
+    // 4. Filter to keep only the latest submission per user (same as statistics API)
+    const uniqueUserSubmissions = new Map<string, any>()
+
+    for (const submission of submissions || []) {
+      const userId = submission.user_id
+      // Only keep the latest submission for each user
+      if (!uniqueUserSubmissions.has(userId)) {
+        uniqueUserSubmissions.set(userId, submission)
+      }
+    }
+
+    console.log('[PAIRING API] Filtered to unique users:', uniqueUserSubmissions.size, 'from', submissions?.length)
+
+    // 5. Build a map of all self-match requests for mutual match detection
     const selfMatchMap = new Map<string, any>()
     const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
 
-    for (const submission of submissions || []) {
+    for (const submission of uniqueUserSubmissions.values()) {
       if (submission.partner_type === 'self_match' && submission.partner_user_id) {
         selfMatchMap.set(submission.user_id, {
           submission_id: submission.id,
@@ -114,13 +127,13 @@ export async function GET(request: Request) {
       }
     }
 
-    // 5. Transform data for frontend with mutual match detection
+    // 6. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
     const systemMatchRequests = []
     const tarteelRequests = []
     const familyRequests = []
 
-    for (const submission of submissions || []) {
+    for (const submission of uniqueUserSubmissions.values()) {
       // Supabase returns nested relations - check if array or object
       // Try both structures to handle different Supabase response formats
       const users = (Array.isArray(submission.users) ? submission.users : (submission.users ? [submission.users] : [])) as any
