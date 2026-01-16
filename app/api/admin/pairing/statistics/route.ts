@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     }
 
     // Count unique users per partner type and status
-    for (const [userId, submission] of userSubmissions.entries()) {
+    userSubmissions.forEach((submission, userId) => {
       const partnerType = submission.partner_type
       const status = submission.status
 
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         if (status === 'submitted') statistics.family.submitted++
         if (status === 'approved') statistics.family.approved++
       }
-    }
+    })
 
     return NextResponse.json({
       success: true,
