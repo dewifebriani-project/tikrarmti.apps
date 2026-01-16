@@ -205,7 +205,7 @@ export function AdminPairingTab() {
       setFamilyRequests(result.data?.family_requests || [])
       setPagination(result.pagination || null)
 
-      // Store debug data
+      // Store debug data with full API response
       setDebugData({
         apiResponse: result,
         selfMatchCount: result.data?.self_match_requests?.length || 0,
@@ -213,6 +213,7 @@ export function AdminPairingTab() {
         tarteelCount: result.data?.tarteel_requests?.length || 0,
         familyCount: result.data?.family_requests?.length || 0,
         selfMatchRequests: result.data?.self_match_requests || [],
+        pagination: result.pagination || null,
         timestamp: new Date().toISOString()
       })
     } catch (error) {
@@ -236,6 +237,11 @@ export function AdminPairingTab() {
       const result = await response.json()
       if (result.success) {
         setStats(result.data)
+        // Store statistics data in debug state
+        setDebugData((prev: any) => ({
+          ...prev,
+          statisticsResponse: result.data,
+        }))
       }
     } catch (error) {
       console.error('Error loading statistics:', error)
@@ -527,24 +533,66 @@ export function AdminPairingTab() {
 
       {/* Debug Panel */}
       {showDebug && debugData && (
-        <div className="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-96">
+        <div className="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-[600px]">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-white">Debug Panel</h3>
+            <h3 className="text-sm font-bold text-white">Debug Panel - Pairing API Data</h3>
             <span className="text-gray-400">{debugData.timestamp}</span>
           </div>
-          <div className="space-y-3">
-            <div>
-              <span className="text-yellow-400">Self Match Count:</span> {debugData.selfMatchCount}
+
+          <div className="space-y-4">
+            {/* Quick Counts */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-yellow-400">Self Match:</span> {debugData.selfMatchCount}
+              </div>
+              <div>
+                <span className="text-yellow-400">System Match:</span> {debugData.systemMatchCount}
+              </div>
+              <div>
+                <span className="text-yellow-400">Tarteel:</span> {debugData.tarteelCount}
+              </div>
+              <div>
+                <span className="text-yellow-400">Family:</span> {debugData.familyCount}
+              </div>
             </div>
-            <div>
-              <span className="text-yellow-400">System Match Count:</span> {debugData.systemMatchCount}
-            </div>
+
+            {/* Pagination Info */}
+            {debugData.pagination && (
+              <div className="border-t border-gray-700 pt-3">
+                <span className="text-cyan-400 mb-2 block">Pagination Info:</span>
+                <pre className="text-gray-300 overflow-auto bg-gray-800 p-2 rounded">
+                  {JSON.stringify(debugData.pagination, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* Statistics Response */}
+            {debugData.statisticsResponse && (
+              <div className="border-t border-gray-700 pt-3">
+                <span className="text-cyan-400 mb-2 block">Statistics API Response (/api/admin/pairing/statistics):</span>
+                <pre className="text-gray-300 overflow-auto bg-gray-800 p-2 rounded max-h-40">
+                  {JSON.stringify(debugData.statisticsResponse, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* Full API Response */}
             <div className="border-t border-gray-700 pt-3">
-              <span className="text-yellow-400 mb-2 block">Self Match Requests:</span>
-              <pre className="text-gray-300 overflow-auto">
-                {JSON.stringify(debugData.selfMatchRequests, null, 2)}
+              <span className="text-cyan-400 mb-2 block">Full API Response (/api/admin/pairing):</span>
+              <pre className="text-gray-300 overflow-auto bg-gray-800 p-2 rounded max-h-60">
+                {JSON.stringify(debugData.apiResponse, null, 2)}
               </pre>
             </div>
+
+            {/* Individual Requests */}
+            {debugData.selfMatchRequests && debugData.selfMatchRequests.length > 0 && (
+              <div className="border-t border-gray-700 pt-3">
+                <span className="text-cyan-400 mb-2 block">Self Match Requests ({debugData.selfMatchRequests.length}):</span>
+                <pre className="text-gray-300 overflow-auto bg-gray-800 p-2 rounded max-h-40">
+                  {JSON.stringify(debugData.selfMatchRequests, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         </div>
       )}
