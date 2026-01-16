@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
  *
  * Get pairing statistics for admin dashboard
  * Returns submitted and approved counts for each partner type
+ * Counts UNIQUE users (thalibah) not submissions
  */
 export async function GET(request: Request) {
   const supabase = createClient()
@@ -35,26 +36,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'batch_id is required' }, { status: 400 })
     }
 
-    // Get count of submitted submissions for each partner type
-    const { data: submittedStats, error: submittedError } = await supabase
+    // Get ALL daftar ulang submissions for this batch (to calculate total unique users)
+    const { data: allSubmissions, error: allError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('partner_type')
+      .select('user_id, partner_type, status')
       .eq('batch_id', batchId)
-      .eq('status', 'submitted')
+      .order('created_at', { ascending: true }) // Order by created_at to get latest submission first
 
-    if (submittedError) throw submittedError
+    if (allError) throw allError
 
-    // Get count of approved submissions for each partner type
-    const { data: approvedStats, error: approvedError } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('partner_type')
-      .eq('batch_id', batchId)
-      .eq('status', 'approved')
-
-    if (approvedError) throw approvedError
-
-    // Calculate statistics
-    const partnerTypes = ['self_match', 'system_match', 'tarteel', 'family']
+    // Calculate statistics counting UNIQUE users per partner type and status
     const statistics = {
       selfMatch: { submitted: 0, approved: 0 },
       systemMatch: { submitted: 0, approved: 0 },
@@ -62,29 +53,39 @@ export async function GET(request: Request) {
       family: { submitted: 0, approved: 0 },
     }
 
-    // Count submitted
-    for (const submission of submittedStats || []) {
-      if (submission.partner_type === 'self_match') {
-        statistics.selfMatch.submitted++
-      } else if (submission.partner_type === 'system_match') {
-        statistics.systemMatch.submitted++
-      } else if (submission.partner_type === 'tarteel') {
-        statistics.tarteel.submitted++
-      } else if (submission.partner_type === 'family') {
-        statistics.family.submitted++
+    // Track unique users - key: user_id, value: { partner_type, status }
+    const userSubmissions = new Map<string, { partner_type: string, status: string }>()
+
+    // Process submissions in order (latest first)
+    for (const submission of allSubmissions || []) {
+      const userId = submission.user_id
+
+      // Only keep the latest submission for each user
+      if (!userSubmissions.has(userId)) {
+        userSubmissions.set(userId, {
+          partner_type: submission.partner_type,
+          status: submission.status,
+        })
       }
     }
 
-    // Count approved
-    for (const submission of approvedStats || []) {
-      if (submission.partner_type === 'self_match') {
-        statistics.selfMatch.approved++
-      } else if (submission.partner_type === 'system_match') {
-        statistics.systemMatch.approved++
-      } else if (submission.partner_type === 'tarteel') {
-        statistics.tarteel.approved++
-      } else if (submission.partner_type === 'family') {
-        statistics.family.approved++
+    // Count unique users per partner type and status
+    for (const [userId, submission] of userSubmissions.entries()) {
+      const partnerType = submission.partner_type
+      const status = submission.status
+
+      if (partnerType === 'self_match') {
+        if (status === 'submitted') statistics.selfMatch.submitted++
+        if (status === 'approved') statistics.selfMatch.approved++
+      } else if (partnerType === 'system_match') {
+        if (status === 'submitted') statistics.systemMatch.submitted++
+        if (status === 'approved') statistics.systemMatch.approved++
+      } else if (partnerType === 'tarteel') {
+        if (status === 'submitted') statistics.tarteel.submitted++
+        if (status === 'approved') statistics.tarteel.approved++
+      } else if (partnerType === 'family') {
+        if (status === 'submitted') statistics.family.submitted++
+        if (status === 'approved') statistics.family.approved++
       }
     }
 
