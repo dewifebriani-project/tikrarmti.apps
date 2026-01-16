@@ -91,15 +91,21 @@ export async function POST(request: Request) {
 
     if (pairingError) throw pairingError
 
-    // 6. Update both submissions with pairing status
+    // 6. Update both submissions to approved status
     await supabase
       .from('daftar_ulang_submissions')
-      .update({ pairing_status: 'paired' })
+      .update({
+        status: 'approved',
+        pairing_status: 'paired'
+      })
       .eq('user_id', user_1_id)
 
     await supabase
       .from('daftar_ulang_submissions')
-      .update({ pairing_status: 'paired' })
+      .update({
+        status: 'approved',
+        pairing_status: 'paired'
+      })
       .eq('user_id', user_2_id)
 
     // 7. Revalidate paths

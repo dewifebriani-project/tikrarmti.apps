@@ -42,11 +42,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 3. Update submission with rejected status
+    // 3. Update submission: change partner_type to system_match
+    // This moves the user to the "Dipasangkan Sistem" tab
     const { error: updateError } = await supabase
       .from('daftar_ulang_submissions')
       .update({
-        pairing_status: 'rejected',
+        partner_type: 'system_match',
+        partner_user_id: null, // Clear the chosen partner
+        partner_name: null,
+        partner_relationship: null,
+        partner_notes: null,
+        pairing_status: null, // Reset pairing status
         rejection_reason: reason || null,
       })
       .eq('id', submission_id)
@@ -58,7 +64,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Pairing request rejected',
+      message: 'Pairing request rejected and moved to system match',
     })
   } catch (error: any) {
     console.error('Error rejecting pairing:', error)
