@@ -43,6 +43,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    console.log('[APPROVE] Starting approve process:', { submission_id, user_1_id, user_2_id })
+
     // 3. Verify the submission exists and is for self_match
     const { data: submission, error: submissionError } = await supabase
       .from('daftar_ulang_submissions')
@@ -50,6 +52,8 @@ export async function POST(request: Request) {
       .eq('id', submission_id)
       .eq('partner_type', 'self_match')
       .single()
+
+    console.log('[APPROVE] Submission lookup result:', { data: submission, error: submissionError })
 
     if (submissionError || !submission) {
       return NextResponse.json(
@@ -65,25 +69,38 @@ export async function POST(request: Request) {
       .or(`and(user_1_id.eq.${user_1_id},user_2_id.eq.${user_2_id}),and(user_1_id.eq.${user_2_id},user_2_id.eq.${user_1_id})`)
       .maybeSingle()
 
+    console.log('[APPROVE] Existing pairing check:', existingPairing)
+
     if (existingPairing) {
       // If pairing already exists, just update the submissions to approved
       console.log('[APPROVE] Pairing already exists, updating submissions to approved:', existingPairing)
 
-      await supabase
+      const { data: updateResult1, error: updateError1 } = await supabase
         .from('daftar_ulang_submissions')
         .update({
           status: 'approved',
           pairing_status: 'paired'
         })
         .eq('user_id', user_1_id)
+        .eq('batch_id', submission.batch_id) // Only update in current batch
+        .select()
 
-      await supabase
+      console.log('[APPROVE] User 1 update result:', { data: updateResult1, error: updateError1 })
+
+      const { data: updateResult2, error: updateError2 } = await supabase
         .from('daftar_ulang_submissions')
         .update({
           status: 'approved',
           pairing_status: 'paired'
         })
         .eq('user_id', user_2_id)
+        .eq('batch_id', submission.batch_id) // Only update in current batch
+        .select()
+
+      console.log('[APPROVE] User 2 update result:', { data: updateResult2, error: updateError2 })
+
+      if (updateError1) throw updateError1
+      if (updateError2) throw updateError2
 
       // Revalidate paths
       revalidatePath('/admin')
@@ -101,7 +118,9 @@ export async function POST(request: Request) {
       ? [user_1_id, user_2_id]
       : [user_2_id, user_1_id]
 
-    const { error: pairingError } = await supabase
+    console.log('[APPROVE] Creating new pairing:', { batch_id: submission.batch_id, user_1_id: smallerUserId, user_2_id: largerUserId })
+
+    const { data: pairingData, error: pairingError } = await supabase
       .from('study_partners')
       .insert({
         batch_id: submission.batch_id,
@@ -112,25 +131,39 @@ export async function POST(request: Request) {
         paired_by: user.id, // Admin who approved
         paired_at: new Date().toISOString(),
       })
+      .select()
+
+    console.log('[APPROVE] Pairing creation result:', { data: pairingData, error: pairingError })
 
     if (pairingError) throw pairingError
 
     // 6. Update both submissions to approved status
-    await supabase
+    const { data: updateResult3, error: updateError3 } = await supabase
       .from('daftar_ulang_submissions')
       .update({
         status: 'approved',
         pairing_status: 'paired'
       })
       .eq('user_id', user_1_id)
+      .eq('batch_id', submission.batch_id) // Only update in current batch
+      .select()
 
-    await supabase
+    console.log('[APPROVE] User 1 update result (new pairing):', { data: updateResult3, error: updateError3 })
+
+    const { data: updateResult4, error: updateError4 } = await supabase
       .from('daftar_ulang_submissions')
       .update({
         status: 'approved',
         pairing_status: 'paired'
       })
       .eq('user_id', user_2_id)
+      .eq('batch_id', submission.batch_id) // Only update in current batch
+      .select()
+
+    console.log('[APPROVE] User 2 update result (new pairing):', { data: updateResult4, error: updateError4 })
+
+    if (updateError3) throw updateError3
+    if (updateError4) throw updateError4
 
     // 7. Revalidate paths
     revalidatePath('/admin')

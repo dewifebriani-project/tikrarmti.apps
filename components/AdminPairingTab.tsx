@@ -261,32 +261,42 @@ export function AdminPairingTab() {
     const toastId = toast.loading('Approving pairing...')
 
     try {
+      console.log('[FRONTEND] Starting approve for request:', request)
+
       // Approve the first user's submission
+      const body1 = {
+        submission_id: request.id,
+        user_1_id: request.user_id,
+        user_2_id: request.partner_user_id,
+      }
+      console.log('[FRONTEND] Sending approve request 1:', body1)
+
       const response1 = await fetch('/api/admin/pairing/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          submission_id: request.id,
-          user_1_id: request.user_id,
-          user_2_id: request.partner_user_id,
-        }),
+        body: JSON.stringify(body1),
       })
 
       const result1 = await response1.json()
+      console.log('[FRONTEND] Approve response 1:', result1)
 
       // If mutual match, also approve the partner's submission
       if (request.is_mutual_match && request.partner_submission_id) {
+        const body2 = {
+          submission_id: request.partner_submission_id,
+          user_1_id: request.partner_user_id,
+          user_2_id: request.user_id,
+        }
+        console.log('[FRONTEND] Sending approve request 2 (mutual):', body2)
+
         const response2 = await fetch('/api/admin/pairing/approve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            submission_id: request.partner_submission_id,
-            user_1_id: request.partner_user_id,
-            user_2_id: request.user_id,
-          }),
+          body: JSON.stringify(body2),
         })
 
         const result2 = await response2.json()
+        console.log('[FRONTEND] Approve response 2:', result2)
 
         if (result1.success && result2.success) {
           toast.success('Mutual pairing approved successfully!', { id: toastId })
@@ -299,10 +309,11 @@ export function AdminPairingTab() {
         toast.error(result1.error || 'Failed to approve pairing', { id: toastId })
       }
 
+      console.log('[FRONTEND] Refreshing data after approve...')
       loadPairingRequests()
       loadStatistics() // Refresh statistics after approve
     } catch (error) {
-      console.error('Error approving pairing:', error)
+      console.error('[FRONTEND] Error approving pairing:', error)
       toast.error('Failed to approve pairing', { id: toastId })
     }
   }
@@ -1498,35 +1509,73 @@ function MatchSection({
           <div
             key={candidate.user_id}
             onClick={() => onSelectMatch(candidate)}
-            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+            className={`p-4 border rounded-lg cursor-pointer transition-all ${
               selectedMatch?.user_id === candidate.user_id
-                ? 'ring-2 ring-green-500 bg-green-50'
+                ? 'ring-2 ring-green-500 bg-green-50 shadow-lg'
                 : colorClasses[color]
-            } hover:bg-gray-50`}
+            } hover:shadow-md`}
           >
             <div className="flex items-start justify-between">
-              <div>
-                <p className="font-medium text-gray-900">{candidate.full_name}</p>
-                <p className="text-sm text-gray-600">{candidate.email}</p>
-                <div className="mt-2 flex flex-wrap gap-1 text-xs">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                    {candidate.zona_waktu || 'WIB'}
-                  </span>
-                  <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
-                    {candidate.chosen_juz}
-                  </span>
-                  <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded">
-                    {candidate.main_time_slot}
-                  </span>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900">{candidate.full_name}</p>
+                    <p className="text-sm text-gray-600">{candidate.email}</p>
+                  </div>
+                  <div className="ml-auto text-right">
+                    <div className="inline-flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-full font-bold">
+                      <span className="text-lg">{candidate.match_score}</span>
+                      <span className="text-xs">peluang</span>
+                    </div>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  {/* Left Column - Juz & Zona Waktu */}
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Juz:</p>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm font-medium">
+                        {candidate.chosen_juz}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Zona Waktu:</p>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">
+                        {candidate.zona_waktu || 'WIB'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Waktu Belajar */}
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Waktu Utama:</p>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm font-medium">
+                        {candidate.main_time_slot || '-'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Waktu Cadangan:</p>
+                      <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">
+                        {candidate.backup_time_slot || '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {candidate.match_reasons.length > 0 && (
-                  <div className="mt-2 text-xs text-gray-600">
-                    {candidate.match_reasons.join(' • ')}
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <p className="text-xs text-gray-600 flex flex-wrap gap-2">
+                      {candidate.match_reasons.map((reason, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                          {reason}
+                        </span>
+                      ))}
+                    </p>
                   </div>
                 )}
-              </div>
-              <div className="text-lg font-bold text-green-600">
-                {candidate.match_score}
               </div>
             </div>
           </div>
