@@ -132,14 +132,26 @@ export async function GET(request: Request) {
     if (candidatesError) throw candidatesError
 
     console.log('[MATCH API] Candidates found:', candidates?.length || 0)
+    console.log('[MATCH API] Raw candidates sample:', candidates?.[0])
 
     // 5. Calculate matches with scoring
     const matches = []
 
     for (const candidate of candidates || []) {
+      console.log('[MATCH API] Processing candidate raw:', candidate)
+
       // Supabase returns nested relations as arrays
       const users = candidate.users as any
       const registrations = candidate.registrations as any
+
+      console.log('[MATCH API] Candidate parsed:', {
+        users,
+        registrations,
+        hasUsers: !!users,
+        hasRegistrations: !!registrations,
+        usersLength: Array.isArray(users) ? users.length : 'not array',
+        registrationsLength: Array.isArray(registrations) ? registrations.length : 'not array',
+      })
 
       // Use timezone from registration if available, otherwise fall back to users.zona_waktu
       const candidateTimezone = registrations?.[0]?.timezone || users?.[0]?.zona_waktu || 'WIB'
