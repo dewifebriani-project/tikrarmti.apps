@@ -42,27 +42,35 @@ export async function GET(request: Request) {
   }
 
   try {
-    // 3. Fetch user data
+    // 3. Fetch user data from daftar_ulang_submissions (not pendaftaran_tikrar_tahfidz)
     const { data: userData, error: userError } = await supabase
-      .from('pendaftaran_tikrar_tahfidz')
+      .from('daftar_ulang_submissions')
       .select(`
         user_id,
-        full_name,
-        chosen_juz,
-        main_time_slot,
-        backup_time_slot,
-        timezone,
-        users!user_id (
+        batch_id,
+        registration_id,
+        partner_type,
+        users!daftar_ulang_submissions_user_id_fkey (
           id,
           full_name,
           email,
           zona_waktu,
           whatsapp
+        ),
+        registrations:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey (
+          user_id,
+          full_name,
+          chosen_juz,
+          main_time_slot,
+          backup_time_slot,
+          timezone
         )
       `)
       .eq('user_id', userId)
       .eq('batch_id', batchId)
       .single()
+
+    console.log('[MATCH API] User data lookup:', { data: userData, error: userError })
 
     if (userError || !userData) {
       return NextResponse.json(
@@ -72,8 +80,23 @@ export async function GET(request: Request) {
     }
 
     // Use timezone from registration if available, otherwise fall back to users.zona_waktu
-    const userDataUsers = userData.users as any
-    const userTimezone = (userData as any).timezone || userDataUsers?.[0]?.zona_waktu || 'WIB'
+    const userDataUsers = (Array.isArray(userData.users) ? userData.users : (userData.users ? [userData.users] : [])) as any
+    const userRegistrations = (Array.isArray(userData.registrations) ? userData.registrations : (userData.registrations ? [userData.registrations] : [])) as any
+
+    const userTimezone = userRegistrations?.[0]?.timezone || userDataUsers?.[0]?.zona_waktu || 'WIB'
+    const userChosenJuz = userRegistrations?.[0]?.chosen_juz || 'N/A'
+    const userMainTimeSlot = userRegistrations?.[0]?.main_time_slot || 'N/A'
+    const userBackupTimeSlot = userRegistrations?.[0]?.backup_time_slot || 'N/A'
+
+    console.log('[MATCH API] User parsed data:', {
+      user_id: userData.user_id,
+      userTimezone,
+      userChosenJuz,
+      userMainTimeSlot,
+      userBackupTimeSlot,
+      hasUsers: !!userData.users,
+      hasRegistrations: !!userData.registrations,
+    })
 
     // 4. Fetch all potential candidates (selected thalibah who requested system_match)
     const { data: candidates, error: candidatesError } = await supabase
@@ -103,6 +126,8 @@ export async function GET(request: Request) {
 
     if (candidatesError) throw candidatesError
 
+    console.log('[MATCH API] Candidates found:', candidates?.length || 0)
+
     // 5. Calculate matches with scoring
     const matches = []
 
@@ -125,18 +150,45 @@ export async function GET(request: Request) {
         backup_time_slot: registrations?.[0]?.backup_time_slot,
       }
 
-      // Calculate matching score
-      const score = calculateMatchScore(userData, candidateData)
+      console.log('[MATCH API] Processing candidate:', {
+        user_id: candidate.user_id,
+        full_name: candidateData.full_name,
+        chosen_juz: candidateData.chosen_juz,
+        zona_waktu: candidateData.zona_waktu,
+        main_time_slot: candidateData.main_time_slot,
+        backup_time_slot: candidateData.backup_time_slot,
+      })
+
+      // Calculate matching score - pass parsed user data
+      const score = calculateMatchScore(
+        {
+          chosen_juz: userChosenJuz,
+          zona_waktu: userTimezone,
+          main_time_slot: userMainTimeSlot,
+          backup_time_slot: userBackupTimeSlot,
+        },
+        candidateData
+      )
 
       matches.push({
         ...candidateData,
         match_score: score,
-        match_reasons: getMatchReasons(userData, candidateData),
+        match_reasons: getMatchReasons(
+          {
+            chosen_juz: userChosenJuz,
+            zona_waktu: userTimezone,
+            main_time_slot: userMainTimeSlot,
+            backup_time_slot: userBackupTimeSlot,
+          },
+          candidateData
+        ),
       })
     }
 
     // 6. Sort by score (highest first)
     matches.sort((a, b) => b.match_score - a.match_score)
+
+    console.log('[MATCH API] Total matches calculated:', matches.length)
 
     // 7. Group by match type
     const perfectMatches = matches.filter(m => m.match_score >= 100)
@@ -144,16 +196,23 @@ export async function GET(request: Request) {
     const juzMatches = matches.filter(m => m.match_score >= 60 && m.match_score < 80)
     const crossJuzMatches = matches.filter(m => m.match_score < 60)
 
+    console.log('[MATCH API] Match groups:', {
+      perfect: perfectMatches.length,
+      zona_waktu: zonaMatches.length,
+      same_juz: juzMatches.length,
+      cross_juz: crossJuzMatches.length,
+    })
+
     return NextResponse.json({
       success: true,
       data: {
         user: {
           user_id: userData.user_id,
-          full_name: userData.full_name,
-          chosen_juz: userData.chosen_juz,
+          full_name: userDataUsers?.[0]?.full_name || 'Unknown',
+          chosen_juz: userChosenJuz,
           zona_waktu: userTimezone,
-          main_time_slot: userData.main_time_slot,
-          backup_time_slot: userData.backup_time_slot,
+          main_time_slot: userMainTimeSlot,
+          backup_time_slot: userBackupTimeSlot,
         },
         matches: {
           perfect: perfectMatches,    // Zona waktu + Juz sama
@@ -185,7 +244,7 @@ export async function GET(request: Request) {
 function calculateMatchScore(user1: any, user2: any): number {
   let score = 0
 
-  const user1Zona = user1.users?.zona_waktu || user1.zona_waktu
+  const user1Zona = user1.zona_waktu
   const user2Zona = user2.zona_waktu
 
   const user1Juz = user1.chosen_juz
@@ -197,7 +256,7 @@ function calculateMatchScore(user1: any, user2: any): number {
   }
 
   // Priority 2: Juz option sama (+50 points)
-  if (user1Juz === user2Juz) {
+  if (user1Juz && user2Juz && user1Juz === user2Juz) {
     score += 50
   }
 
@@ -218,7 +277,7 @@ function calculateMatchScore(user1: any, user2: any): number {
 function getMatchReasons(user1: any, user2: any): string[] {
   const reasons = []
 
-  const user1Zona = user1.users?.zona_waktu || user1.zona_waktu
+  const user1Zona = user1.zona_waktu
   const user2Zona = user2.zona_waktu
 
   const user1Juz = user1.chosen_juz
@@ -228,7 +287,7 @@ function getMatchReasons(user1: any, user2: any): string[] {
     reasons.push(`Zona waktu sama: ${user1Zona}`)
   }
 
-  if (user1Juz === user2Juz) {
+  if (user1Juz && user2Juz && user1Juz === user2Juz) {
     reasons.push(`Juz sama: ${user1Juz}`)
   }
 
