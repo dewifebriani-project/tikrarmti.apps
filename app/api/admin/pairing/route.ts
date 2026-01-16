@@ -107,6 +107,12 @@ export async function GET(request: Request) {
 
     for (const submission of submissions || []) {
       const userId = submission.user_id
+
+      // Skip if already approved and paired (should not appear in pending list)
+      if (submission.status === 'approved' && submission.pairing_status === 'paired') {
+        continue
+      }
+
       // Only keep the latest submission for each user
       if (!uniqueUserSubmissions.has(userId)) {
         uniqueUserSubmissions.set(userId, submission)
