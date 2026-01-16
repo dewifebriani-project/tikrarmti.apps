@@ -61,15 +61,39 @@ export async function POST(request: Request) {
     // 4. Check if pairing already exists
     const { data: existingPairing } = await supabase
       .from('study_partners')
-      .select('id')
-      .or(`user_1_id.eq.${user_1_id},user_2_id.eq.${user_1_id},user_1_id.eq.${user_2_id},user_2_id.eq.${user_2_id}`)
+      .select('*')
+      .or(`and(user_1_id.eq.${user_1_id},user_2_id.eq.${user_2_id}),and(user_1_id.eq.${user_2_id},user_2_id.eq.${user_1_id})`)
       .maybeSingle()
 
     if (existingPairing) {
-      return NextResponse.json(
-        { error: 'Pairing already exists for these users' },
-        { status: 400 }
-      )
+      // If pairing already exists, just update the submissions to approved
+      console.log('[APPROVE] Pairing already exists, updating submissions to approved:', existingPairing)
+
+      await supabase
+        .from('daftar_ulang_submissions')
+        .update({
+          status: 'approved',
+          pairing_status: 'paired'
+        })
+        .eq('user_id', user_1_id)
+
+      await supabase
+        .from('daftar_ulang_submissions')
+        .update({
+          status: 'approved',
+          pairing_status: 'paired'
+        })
+        .eq('user_id', user_2_id)
+
+      // Revalidate paths
+      revalidatePath('/admin')
+      revalidatePath('/dashboard')
+
+      return NextResponse.json({
+        success: true,
+        message: 'Pairing already exists, submissions updated to approved',
+        already_paired: true,
+      })
     }
 
     // 5. Create the pairing (ensure user_1_id < user_2_id for unique constraint)
