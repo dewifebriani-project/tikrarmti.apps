@@ -83,6 +83,8 @@ export async function GET(request: Request) {
 
     // 4. Build a map of all self-match requests for mutual match detection
     const selfMatchMap = new Map<string, any>()
+    const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
+
     for (const submission of submissions || []) {
       if (submission.partner_type === 'self_match' && submission.partner_user_id) {
         selfMatchMap.set(submission.user_id, {
@@ -128,6 +130,11 @@ export async function GET(request: Request) {
       }
 
       if (submission.partner_type === 'self_match') {
+        // Skip if this is the second half of a mutual match (already processed)
+        if (processedMutualMatches.has(submission.user_id)) {
+          continue
+        }
+
         // Fetch partner details and check for mutual match
         if (submission.partner_user_id) {
           const { data: partnerUser } = await supabase
@@ -151,6 +158,8 @@ export async function GET(request: Request) {
           let partnerSubmissionId = null
           if (isMutualMatch && partnerChoice) {
             partnerSubmissionId = partnerChoice.submission_id
+            // Mark the partner as processed so we don't show them again
+            processedMutualMatches.add(submission.partner_user_id)
           }
 
           selfMatchRequests.push({
