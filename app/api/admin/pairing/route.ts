@@ -113,11 +113,14 @@ export async function GET(request: Request) {
 
     console.log('[PAIRING API] Filtered to unique users:', uniqueUserSubmissions.size, 'from', submissions?.length)
 
+    // Convert Map to Array for iteration
+    const uniqueSubmissionsArray = Array.from(uniqueUserSubmissions.values())
+
     // 5. Build a map of all self-match requests for mutual match detection
     const selfMatchMap = new Map<string, any>()
     const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
 
-    uniqueUserSubmissions.forEach((submission) => {
+    for (const submission of uniqueSubmissionsArray) {
       if (submission.partner_type === 'self_match' && submission.partner_user_id) {
         selfMatchMap.set(submission.user_id, {
           submission_id: submission.id,
@@ -125,7 +128,7 @@ export async function GET(request: Request) {
           batch_id: submission.batch_id
         })
       }
-    })
+    }
 
     // 6. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
@@ -133,7 +136,7 @@ export async function GET(request: Request) {
     const tarteelRequests = []
     const familyRequests = []
 
-    uniqueUserSubmissions.forEach((submission) => {
+    for (const submission of uniqueSubmissionsArray) {
       // Supabase returns nested relations - check if array or object
       // Try both structures to handle different Supabase response formats
       const users = (Array.isArray(submission.users) ? submission.users : (submission.users ? [submission.users] : [])) as any
@@ -240,7 +243,7 @@ export async function GET(request: Request) {
       } else if (submission.partner_type === 'family') {
         familyRequests.push(requestData)
       }
-    })
+    }
 
     return NextResponse.json({
       success: true,
