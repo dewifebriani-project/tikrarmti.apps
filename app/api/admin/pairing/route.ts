@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     const selfMatchMap = new Map<string, any>()
     const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
 
-    for (const submission of uniqueUserSubmissions.values()) {
+    uniqueUserSubmissions.forEach((submission) => {
       if (submission.partner_type === 'self_match' && submission.partner_user_id) {
         selfMatchMap.set(submission.user_id, {
           submission_id: submission.id,
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
           batch_id: submission.batch_id
         })
       }
-    }
+    })
 
     // 6. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
     const tarteelRequests = []
     const familyRequests = []
 
-    for (const submission of uniqueUserSubmissions.values()) {
+    uniqueUserSubmissions.forEach((submission) => {
       // Supabase returns nested relations - check if array or object
       // Try both structures to handle different Supabase response formats
       const users = (Array.isArray(submission.users) ? submission.users : (submission.users ? [submission.users] : [])) as any
@@ -240,7 +240,7 @@ export async function GET(request: Request) {
       } else if (submission.partner_type === 'family') {
         familyRequests.push(requestData)
       }
-    }
+    })
 
     return NextResponse.json({
       success: true,
