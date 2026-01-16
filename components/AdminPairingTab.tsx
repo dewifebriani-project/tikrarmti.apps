@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight } from 'lucide-react'
+import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight, Bug, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface SelfMatchRequest {
@@ -87,6 +87,10 @@ export function AdminPairingTab() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState<any>(null)
 
+  // Debug panel state
+  const [showDebug, setShowDebug] = useState(false)
+  const [debugData, setDebugData] = useState<any>(null)
+
   // Match modal state
   const [showMatchModal, setShowMatchModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<SystemMatchRequest | null>(null)
@@ -143,9 +147,20 @@ export function AdminPairingTab() {
       }
 
       const result = await response.json()
+      console.log('[AdminPairingTab] API Response:', result)
+
       setSelfMatchRequests(result.data?.self_match_requests || [])
       setSystemMatchRequests(result.data?.system_match_requests || [])
       setPagination(result.pagination || null)
+
+      // Store debug data
+      setDebugData({
+        apiResponse: result,
+        selfMatchCount: result.data?.self_match_requests?.length || 0,
+        systemMatchCount: result.data?.system_match_requests?.length || 0,
+        selfMatchRequests: result.data?.self_match_requests || [],
+        timestamp: new Date().toISOString()
+      })
     } catch (error) {
       console.error('Error loading pairing requests:', error)
       toast.error('Failed to load pairing requests')
@@ -352,7 +367,38 @@ export function AdminPairingTab() {
             Review dan set pasangan belajar berdasarkan request daftar ulang
           </p>
         </div>
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 text-sm"
+        >
+          <Bug className="w-4 h-4" />
+          {showDebug ? 'Hide Debug' : 'Show Debug'}
+        </button>
       </div>
+
+      {/* Debug Panel */}
+      {showDebug && debugData && (
+        <div className="bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-96">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-white">Debug Panel</h3>
+            <span className="text-gray-400">{debugData.timestamp}</span>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <span className="text-yellow-400">Self Match Count:</span> {debugData.selfMatchCount}
+            </div>
+            <div>
+              <span className="text-yellow-400">System Match Count:</span> {debugData.systemMatchCount}
+            </div>
+            <div className="border-t border-gray-700 pt-3">
+              <span className="text-yellow-400 mb-2 block">Self Match Requests:</span>
+              <pre className="text-gray-300 overflow-auto">
+                {JSON.stringify(debugData.selfMatchRequests, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Batch Selector */}
       <div className="bg-white rounded-lg shadow p-4">
