@@ -269,6 +269,28 @@ export async function GET(request: Request) {
         tarteel_requests: tarteelRequests,
         family_requests: familyRequests,
       },
+      debug: {
+        totalSubmissions: totalCount,
+        uniqueUsersCount: uniqueSubmissionsArray.length,
+        partnerTypeCounts: partnerTypeCounts,
+        finalCounts: {
+          selfMatch: selfMatchRequests.length,
+          systemMatch: systemMatchRequests.length,
+          tarteel: tarteelRequests.length,
+          family: familyRequests.length,
+        },
+        logs: {
+          totalSubmissionsCount: totalCount,
+          filteredToUniqueUsers: `${uniqueSubmissionsArray.length} from ${submissions?.length}`,
+          uniqueUsersPerPartnerType: partnerTypeCounts,
+          finalCounts: {
+            selfMatch: selfMatchRequests.length,
+            systemMatch: systemMatchRequests.length,
+            tarteel: tarteelRequests.length,
+            family: familyRequests.length,
+          },
+        },
+      },
       pagination: {
         page,
         limit,

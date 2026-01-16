@@ -540,6 +540,44 @@ export function AdminPairingTab() {
           </div>
 
           <div className="space-y-4">
+            {/* Debug Info from API */}
+            {debugData.apiResponse?.debug && (
+              <div className="border border-cyan-500 bg-cyan-900/20 p-3 rounded">
+                <span className="text-cyan-400 mb-2 block font-bold">Server Debug Logs:</span>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div>
+                    <span className="text-yellow-400">Total Submissions:</span> {debugData.apiResponse.debug.totalSubmissions}
+                  </div>
+                  <div>
+                    <span className="text-yellow-400">Unique Users:</span> {debugData.apiResponse.debug.uniqueUsersCount}
+                  </div>
+                </div>
+                <div className="border-t border-cyan-700 pt-3">
+                  <span className="text-cyan-400 mb-1 block">Partner Type Counts:</span>
+                  <pre className="text-gray-300 overflow-auto bg-gray-800 p-2 rounded text-xs">
+                    {JSON.stringify(debugData.apiResponse.debug.partnerTypeCounts, null, 2)}
+                  </pre>
+                </div>
+                <div className="border-t border-cyan-700 pt-3 mt-3">
+                  <span className="text-cyan-400 mb-1 block">Final Counts:</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-yellow-400">Self Match:</span> {debugData.apiResponse.debug.finalCounts.selfMatch}
+                    </div>
+                    <div>
+                      <span className="text-yellow-400">System Match:</span> {debugData.apiResponse.debug.finalCounts.systemMatch}
+                    </div>
+                    <div>
+                      <span className="text-yellow-400">Tarteel:</span> {debugData.apiResponse.debug.finalCounts.tarteel}
+                    </div>
+                    <div>
+                      <span className="text-yellow-400">Family:</span> {debugData.apiResponse.debug.finalCounts.family}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Quick Counts */}
             <div className="grid grid-cols-2 gap-2">
               <div>
