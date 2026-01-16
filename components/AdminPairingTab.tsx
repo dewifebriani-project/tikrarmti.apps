@@ -191,7 +191,7 @@ export function AdminPairingTab() {
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/pairing?batch_id=${selectedBatchId}&page=${currentPage}&limit=50`)
+      const response = await fetch(`/api/admin/pairing?batch_id=${selectedBatchId}&page=1&limit=1000`)
       if (!response.ok) {
         throw new Error('Failed to fetch pairing requests')
       }
