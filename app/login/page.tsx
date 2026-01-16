@@ -206,6 +206,22 @@ function LoginPageContent() {
 
         console.log('[Login Debug] User profile check result:', { userData, userError });
 
+        // Store debug info in localStorage before redirect
+        const finalDebugInfo = {
+          timestamp: new Date().toISOString(),
+          email: formData.email,
+          userId: data.user.id,
+          userEmail: data.user.email,
+          userData: userData,
+          userError: userError,
+          userErrorCode: userError?.code,
+          userErrorMessage: userError?.message,
+          userErrorDetails: userError?.details,
+          userErrorHint: userError?.hint,
+        };
+        localStorage.setItem('loginDebugInfo', JSON.stringify(finalDebugInfo));
+        console.log('[Login Debug] Stored debug info to localStorage:', finalDebugInfo);
+
         if (userError && userError.code === 'PGRST116') {
           // User not found in database, create profile
           console.log('Creating user profile for authenticated user:', data.user.email);
