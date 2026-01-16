@@ -84,6 +84,8 @@ export function AdminPairingTab() {
   const [systemMatchRequests, setSystemMatchRequests] = useState<SystemMatchRequest[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string>('')
   const [batches, setBatches] = useState<any[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pagination, setPagination] = useState<any>(null)
 
   // Match modal state
   const [showMatchModal, setShowMatchModal] = useState(false)
@@ -109,7 +111,7 @@ export function AdminPairingTab() {
     if (selectedBatchId) {
       loadPairingRequests()
     }
-  }, [selectedBatchId])
+  }, [selectedBatchId, currentPage])
 
   const loadBatches = async () => {
     try {
@@ -135,7 +137,7 @@ export function AdminPairingTab() {
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/pairing?batch_id=${selectedBatchId}`)
+      const response = await fetch(`/api/admin/pairing?batch_id=${selectedBatchId}&page=${currentPage}&limit=50`)
       if (!response.ok) {
         throw new Error('Failed to fetch pairing requests')
       }
@@ -143,6 +145,7 @@ export function AdminPairingTab() {
       const result = await response.json()
       setSelfMatchRequests(result.data?.self_match_requests || [])
       setSystemMatchRequests(result.data?.system_match_requests || [])
+      setPagination(result.pagination || null)
     } catch (error) {
       console.error('Error loading pairing requests:', error)
       toast.error('Failed to load pairing requests')
@@ -619,6 +622,51 @@ export function AdminPairingTab() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Menampilkan {Math.min(pagination.limit, pagination.total - (pagination.page - 1) * pagination.limit)} dari {pagination.total} requests
+              (Halaman {pagination.page} dari {pagination.totalPages})
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Pertama
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Sebelumnya
+              </button>
+              <span className="px-3 py-1 text-sm">
+                Hal {currentPage} / {pagination.totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+                disabled={currentPage === pagination.totalPages}
+                className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Selanjutnya
+              </button>
+              <button
+                onClick={() => setCurrentPage(pagination.totalPages)}
+                disabled={currentPage === pagination.totalPages}
+                className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Terakhir
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -34,9 +34,25 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const batchId = searchParams.get('batch_id')
   const status = searchParams.get('status')
+  const page = parseInt(searchParams.get('page') || '1')
+  const limit = parseInt(searchParams.get('limit') || '50')
 
   try {
-    // 3. Fetch all pairing requests (both self_match and system_match)
+    // 3. Fetch pairing requests with pagination
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+
+    // First, get total count
+    const { count: totalCount, error: countError } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'submitted')
+      .in('partner_type', ['self_match', 'system_match'])
+      .eq('batch_id', batchId || '')
+
+    if (countError) throw countError
+
+    // Fetch paginated data
     let query = supabase
       .from('daftar_ulang_submissions')
       .select(`
@@ -77,7 +93,9 @@ export async function GET(request: Request) {
       query = query.eq('batch_id', batchId)
     }
 
-    const { data: submissions, error } = await query.order('submitted_at', { ascending: false })
+    const { data: submissions, error } = await query
+      .order('submitted_at', { ascending: false })
+      .range(from, to)
 
     if (error) throw error
 
@@ -143,12 +161,17 @@ export async function GET(request: Request) {
             .eq('id', submission.partner_user_id)
             .single()
 
-          const { data: partnerRegistration } = await supabase
-            .from('pendaftaran_tikrar_tahfidz')
-            .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
-            .eq('user_id', submission.partner_user_id)
-            .eq('batch_id', submission.batch_id)
-            .single()
+          let partnerRegistration = null
+          if (partnerUser) {
+            const { data } = await supabase
+              .from('pendaftaran_tikrar_tahfidz')
+              .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
+              .eq('user_id', submission.partner_user_id)
+              .eq('batch_id', submission.batch_id)
+              .maybeSingle()
+
+            partnerRegistration = data
+          }
 
           // Check for mutual match: does the partner also choose this user?
           const partnerChoice = selfMatchMap.get(submission.partner_user_id)
@@ -170,9 +193,10 @@ export async function GET(request: Request) {
               email: partnerUser.email,
               zona_waktu: partnerRegistration?.timezone || partnerUser.zona_waktu || 'WIB',
               wa_phone: partnerUser.whatsapp,
-              chosen_juz: partnerRegistration?.chosen_juz,
-              main_time_slot: partnerRegistration?.main_time_slot,
-              backup_time_slot: partnerRegistration?.backup_time_slot,
+              chosen_juz: partnerRegistration?.chosen_juz || 'N/A',
+              main_time_slot: partnerRegistration?.main_time_slot || 'N/A',
+              backup_time_slot: partnerRegistration?.backup_time_slot || 'N/A',
+              is_registered_in_batch: !!partnerRegistration,
             } : null,
             is_mutual_match: isMutualMatch,
             partner_submission_id: partnerSubmissionId,
@@ -188,6 +212,12 @@ export async function GET(request: Request) {
       data: {
         self_match_requests: selfMatchRequests,
         system_match_requests: systemMatchRequests,
+      },
+      pagination: {
+        page,
+        limit,
+        total: totalCount || 0,
+        totalPages: Math.ceil((totalCount || 0) / limit),
       },
     })
   } catch (error: any) {
