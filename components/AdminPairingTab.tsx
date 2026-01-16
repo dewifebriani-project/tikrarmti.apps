@@ -1284,17 +1284,44 @@ export function AdminPairingTab() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {/* Debug Panel */}
-              <div className="mb-4 bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-[400px]">
+              <div className="mb-4 bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-[300px]">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-white">Debug Panel - Match API Data</h3>
-                  <span className="text-gray-400 text-xs">
-                    {matchData ? `Data Loaded (${matchData.total_matches} matches)` : 'No Data - matchData is null'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400 text-xs">
+                      {matchData ? `Data Loaded (${matchData.total_matches} matches)` : 'No Data - matchData is null'}
+                    </span>
+                    {matchData && (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(matchData, null, 2))
+                          toast.success('Debug data copied to clipboard!')
+                        }}
+                        className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600"
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <pre className="text-gray-300 whitespace-pre-wrap">
                   {matchData ? JSON.stringify(matchData, null, 2) : 'matchData is null - waiting for API response...'}
                 </pre>
               </div>
+
+              {/* User Info - Yang Dicari Pasangan */}
+              {matchData && matchData.user && (
+                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-2">Yang Dicari Pasangan:</h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="font-medium">Nama:</span> {matchData.user.full_name}</div>
+                    <div><span className="font-medium">Juz:</span> {matchData.user.chosen_juz}</div>
+                    <div><span className="font-medium">Zona Waktu:</span> {matchData.user.zona_waktu}</div>
+                    <div><span className="font-medium">Waktu Utama:</span> {matchData.user.main_time_slot}</div>
+                    <div><span className="font-medium">Waktu Cadangan:</span> {matchData.user.backup_time_slot}</div>
+                  </div>
+                </div>
+              )}
 
               {!matchData || matchData.total_matches === 0 ? (
                 <div className="text-center py-12">
@@ -1302,10 +1329,10 @@ export function AdminPairingTab() {
                   <p className="text-gray-600">Tidak ada kandidat pasangan tersedia</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* Perfect Matches */}
                   {matchData.matches.perfect.length > 0 && (
-                    <MatchSection
+                    <MatchTableSection
                       title="Perfect Match (Zona + Juz Sama)"
                       color="green"
                       candidates={matchData.matches.perfect}
@@ -1316,7 +1343,7 @@ export function AdminPairingTab() {
 
                   {/* Zona Waktu Matches */}
                   {matchData.matches.zona_waktu.length > 0 && (
-                    <MatchSection
+                    <MatchTableSection
                       title="Zona Waktu Sama"
                       color="purple"
                       candidates={matchData.matches.zona_waktu}
@@ -1327,7 +1354,7 @@ export function AdminPairingTab() {
 
                   {/* Same Juz Matches */}
                   {matchData.matches.same_juz.length > 0 && (
-                    <MatchSection
+                    <MatchTableSection
                       title="Juz Sama"
                       color="blue"
                       candidates={matchData.matches.same_juz}
@@ -1338,7 +1365,7 @@ export function AdminPairingTab() {
 
                   {/* Cross Juz Matches */}
                   {matchData.matches.cross_juz.length > 0 && (
-                    <MatchSection
+                    <MatchTableSection
                       title="Lintas Juz"
                       color="orange"
                       candidates={matchData.matches.cross_juz}
@@ -1600,6 +1627,106 @@ function MatchSection({
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// New table-based component for match candidates
+function MatchTableSection({
+  title,
+  color,
+  candidates,
+  selectedMatch,
+  onSelectMatch,
+}: {
+  title: string
+  color: 'green' | 'purple' | 'blue' | 'orange'
+  candidates: MatchCandidate[]
+  selectedMatch: MatchCandidate | null
+  onSelectMatch: (candidate: MatchCandidate) => void
+}) {
+  const colorClasses = {
+    green: { bg: 'bg-green-50', border: 'border-green-200', header: 'bg-green-100', text: 'text-green-800' },
+    purple: { bg: 'bg-purple-50', border: 'border-purple-200', header: 'bg-purple-100', text: 'text-purple-800' },
+    blue: { bg: 'bg-blue-50', border: 'border-blue-200', header: 'bg-blue-100', text: 'text-blue-800' },
+    orange: { bg: 'bg-orange-50', border: 'border-orange-200', header: 'bg-orange-100', text: 'text-orange-800' },
+  }
+
+  const colors = colorClasses[color]
+
+  return (
+    <div className={`border ${colors.border} rounded-lg overflow-hidden`}>
+      <h4 className={`${colors.header} ${colors.text} px-4 py-2 text-sm font-medium`}>{title} ({candidates.length})</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Pilih</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Nama</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Email</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Juz</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Zona</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Waktu Utama</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Waktu Cadangan</th>
+              <th className="px-4 py-2 text-center font-medium text-gray-700">Score</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {candidates.map((candidate) => (
+              <tr
+                key={candidate.user_id}
+                onClick={() => onSelectMatch(candidate)}
+                className={`cursor-pointer transition-colors ${
+                  selectedMatch?.user_id === candidate.user_id
+                    ? 'bg-green-100'
+                    : 'hover:bg-gray-50'
+                }`}
+              >
+                <td className="px-4 py-2">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    selectedMatch?.user_id === candidate.user_id
+                      ? 'border-green-600 bg-green-600'
+                      : 'border-gray-300'
+                  }`}>
+                    {selectedMatch?.user_id === candidate.user_id && (
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-2 font-medium text-gray-900">{candidate.full_name || '-'}</td>
+                <td className="px-4 py-2 text-gray-600 text-xs">{candidate.email || '-'}</td>
+                <td className="px-4 py-2">
+                  <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                    {candidate.chosen_juz || '-'}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                    {candidate.zona_waktu || 'WIB'}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                    {candidate.main_time_slot || '-'}
+                  </span>
+                </td>
+                <td className="px-4 py-2">
+                  <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                    {candidate.backup_time_slot || '-'}
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-center">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-600 text-white rounded-full text-xs font-bold">
+                    {candidate.match_score}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

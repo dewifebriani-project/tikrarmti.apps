@@ -104,77 +104,82 @@ export async function GET(request: Request) {
     })
 
     // 4. Fetch all potential candidates (selected thalibah who requested system_match)
-    const { data: candidates, error: candidatesError } = await supabase
+    const { data: submissions, error: submissionsError } = await supabase
       .from('daftar_ulang_submissions')
-      .select(`
-        user_id,
-        users!daftar_ulang_submissions_user_id_fkey (
-          id,
-          full_name,
-          email,
-          zona_waktu,
-          whatsapp
-        ),
-        registrations:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey (
-          user_id,
-          full_name,
-          chosen_juz,
-          main_time_slot,
-          backup_time_slot,
-          timezone
-        )
-      `)
+      .select('user_id')
       .eq('batch_id', batchId)
       .eq('partner_type', 'system_match')
       .eq('status', 'submitted')
       .neq('user_id', userId) // Exclude self
 
-    if (candidatesError) throw candidatesError
+    if (submissionsError) throw submissionsError
 
-    console.log('[MATCH API] Candidates found:', candidates?.length || 0)
-    console.log('[MATCH API] Raw candidates sample:', candidates?.[0])
+    console.log('[MATCH API] Submissions found:', submissions?.length || 0)
+
+    // Get all user_ids from submissions
+    const userIds = (submissions || []).map(s => s.user_id)
+    console.log('[MATCH API] User IDs to fetch:', userIds)
+
+    // Fetch user data for all candidates
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('id, full_name, email, zona_waktu, whatsapp')
+      .in('id', userIds)
+
+    if (usersError) throw usersError
+
+    console.log('[MATCH API] Users data fetched:', usersData?.length || 0)
+
+    // Fetch registration data for all candidates
+    const { data: registrationsData, error: registrationsError } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
+      .eq('batch_id', batchId)
+      .in('user_id', userIds)
+
+    if (registrationsError) throw registrationsError
+
+    console.log('[MATCH API] Registrations data fetched:', registrationsData?.length || 0)
+
+    // Create maps for quick lookup
+    const usersMap = new Map((usersData || []).map(u => [u.id, u]))
+    const registrationsMap = new Map((registrationsData || []).map(r => [r.user_id, r]))
 
     // 5. Calculate matches with scoring
     const matches = []
 
-    for (const candidate of candidates || []) {
-      console.log('[MATCH API] Processing candidate raw:', candidate)
-
-      // Supabase returns nested relations as arrays
-      const users = candidate.users as any
-      const registrations = candidate.registrations as any
-
-      console.log('[MATCH API] Candidate parsed:', {
-        users,
-        registrations,
-        hasUsers: !!users,
-        hasRegistrations: !!registrations,
-        usersLength: Array.isArray(users) ? users.length : 'not array',
-        registrationsLength: Array.isArray(registrations) ? registrations.length : 'not array',
-      })
-
-      // Use timezone from registration if available, otherwise fall back to users.zona_waktu
-      const candidateTimezone = registrations?.[0]?.timezone || users?.[0]?.zona_waktu || 'WIB'
-
-      const candidateData = {
-        user_id: candidate.user_id,
-        full_name: users?.[0]?.full_name,
-        email: users?.[0]?.email,
-        zona_waktu: candidateTimezone,
-        wa_phone: users?.[0]?.whatsapp,
-        chosen_juz: registrations?.[0]?.chosen_juz,
-        main_time_slot: registrations?.[0]?.main_time_slot,
-        backup_time_slot: registrations?.[0]?.backup_time_slot,
-      }
+    for (const submission of submissions || []) {
+      const user = usersMap.get(submission.user_id)
+      const registration = registrationsMap.get(submission.user_id)
 
       console.log('[MATCH API] Processing candidate:', {
-        user_id: candidate.user_id,
-        full_name: candidateData.full_name,
-        chosen_juz: candidateData.chosen_juz,
-        zona_waktu: candidateData.zona_waktu,
-        main_time_slot: candidateData.main_time_slot,
-        backup_time_slot: candidateData.backup_time_slot,
+        user_id: submission.user_id,
+        hasUser: !!user,
+        hasRegistration: !!registration,
+        user,
+        registration,
       })
+
+      if (!user) {
+        console.log('[MATCH API] Skipping candidate - no user data:', submission.user_id)
+        continue
+      }
+
+      // Use timezone from registration if available, otherwise fall back to users.zona_waktu
+      const candidateTimezone = registration?.timezone || user.zona_waktu || 'WIB'
+
+      const candidateData = {
+        user_id: submission.user_id,
+        full_name: user.full_name,
+        email: user.email,
+        zona_waktu: candidateTimezone,
+        wa_phone: user.whatsapp,
+        chosen_juz: registration?.chosen_juz || 'N/A',
+        main_time_slot: registration?.main_time_slot || 'N/A',
+        backup_time_slot: registration?.backup_time_slot || 'N/A',
+      }
+
+      console.log('[MATCH API] Candidate data prepared:', candidateData)
 
       // Calculate matching score - pass parsed user data
       const score = calculateMatchScore(
