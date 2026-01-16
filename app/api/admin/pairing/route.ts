@@ -99,6 +99,9 @@ export async function GET(request: Request) {
 
     if (error) throw error
 
+    // DEBUG: Log the raw submission data to see structure
+    console.log('[PAIRING API] Raw submissions data (first 2):', JSON.stringify(submissions?.slice(0, 2), null, 2))
+
     // 4. Build a map of all self-match requests for mutual match detection
     const selfMatchMap = new Map<string, any>()
     const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
@@ -127,6 +130,18 @@ export async function GET(request: Request) {
       // otherwise fall back to zona_waktu from users table
       const userTimezone = registrations?.[0]?.timezone || users?.[0]?.zona_waktu || 'WIB'
 
+      // DEBUG: Log individual submission structure
+      console.log('[PAIRING API] Processing submission:', {
+        submission_id: submission.id,
+        user_id: submission.user_id,
+        has_users: !!submission.users,
+        users_type: typeof submission.users,
+        users_value: submission.users,
+        has_registrations: !!submission.registrations,
+        registrations_type: typeof submission.registrations,
+        registrations_value: submission.registrations,
+      })
+
       const requestData = {
         id: submission.id,
         user_id: submission.user_id,
@@ -146,6 +161,8 @@ export async function GET(request: Request) {
         batch_id: submission.batch_id,
         batch_name: batch?.[0]?.name,
       }
+
+      console.log('[PAIRING API] requestData built:', JSON.stringify(requestData, null, 2))
 
       if (submission.partner_type === 'self_match') {
         // Skip if this is the second half of a mutual match (already processed)
