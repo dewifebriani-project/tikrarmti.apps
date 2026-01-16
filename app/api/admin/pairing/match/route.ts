@@ -11,6 +11,9 @@ import { NextResponse } from 'next/server'
  * - batch_id: Batch ID (required)
  */
 export async function GET(request: Request) {
+  console.log('[MATCH API] ========== MATCH API CALLED ==========')
+  console.log('[MATCH API] URL:', request.url)
+
   const supabase = createClient()
 
   // 1. Verify admin access
@@ -33,6 +36,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('user_id')
   const batchId = searchParams.get('batch_id')
+
+  console.log('[MATCH API] Query params:', { userId, batchId })
 
   if (!userId || !batchId) {
     return NextResponse.json(

@@ -1287,10 +1287,12 @@ export function AdminPairingTab() {
               <div className="mb-4 bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-[400px]">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-white">Debug Panel - Match API Data</h3>
-                  <span className="text-gray-400 text-xs">Raw Data</span>
+                  <span className="text-gray-400 text-xs">
+                    {matchData ? `Data Loaded (${matchData.total_matches} matches)` : 'No Data - matchData is null'}
+                  </span>
                 </div>
                 <pre className="text-gray-300 whitespace-pre-wrap">
-                  {JSON.stringify(matchData, null, 2)}
+                  {matchData ? JSON.stringify(matchData, null, 2) : 'matchData is null - waiting for API response...'}
                 </pre>
               </div>
 
