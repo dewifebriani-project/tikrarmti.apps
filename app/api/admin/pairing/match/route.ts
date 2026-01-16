@@ -51,6 +51,7 @@ export async function GET(request: Request) {
         chosen_juz,
         main_time_slot,
         backup_time_slot,
+        timezone,
         users!user_id (
           id,
           full_name,
@@ -70,6 +71,10 @@ export async function GET(request: Request) {
       )
     }
 
+    // Use timezone from registration if available, otherwise fall back to users.zona_waktu
+    const userDataUsers = userData.users as any
+    const userTimezone = (userData as any).timezone || userDataUsers?.[0]?.zona_waktu || 'WIB'
+
     // 4. Fetch all potential candidates (selected thalibah who requested system_match)
     const { data: candidates, error: candidatesError } = await supabase
       .from('daftar_ulang_submissions')
@@ -87,7 +92,8 @@ export async function GET(request: Request) {
           full_name,
           chosen_juz,
           main_time_slot,
-          backup_time_slot
+          backup_time_slot,
+          timezone
         )
       `)
       .eq('batch_id', batchId)
@@ -105,11 +111,14 @@ export async function GET(request: Request) {
       const users = candidate.users as any
       const registrations = candidate.registrations as any
 
+      // Use timezone from registration if available, otherwise fall back to users.zona_waktu
+      const candidateTimezone = registrations?.[0]?.timezone || users?.[0]?.zona_waktu || 'WIB'
+
       const candidateData = {
         user_id: candidate.user_id,
         full_name: users?.[0]?.full_name,
         email: users?.[0]?.email,
-        zona_waktu: users?.[0]?.zona_waktu,
+        zona_waktu: candidateTimezone,
         wa_phone: users?.[0]?.whatsapp,
         chosen_juz: registrations?.[0]?.chosen_juz,
         main_time_slot: registrations?.[0]?.main_time_slot,
@@ -135,9 +144,6 @@ export async function GET(request: Request) {
     const juzMatches = matches.filter(m => m.match_score >= 60 && m.match_score < 80)
     const crossJuzMatches = matches.filter(m => m.match_score < 60)
 
-    // userData.users is also returned as an array by Supabase
-    const userDataUsers = userData.users as any
-
     return NextResponse.json({
       success: true,
       data: {
@@ -145,7 +151,7 @@ export async function GET(request: Request) {
           user_id: userData.user_id,
           full_name: userData.full_name,
           chosen_juz: userData.chosen_juz,
-          zona_waktu: userDataUsers?.[0]?.zona_waktu,
+          zona_waktu: userTimezone,
           main_time_slot: userData.main_time_slot,
           backup_time_slot: userData.backup_time_slot,
         },

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight } from 'lucide-react'
+import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface SelfMatchRequest {
@@ -28,6 +28,8 @@ interface SelfMatchRequest {
   submitted_at: string
   batch_id: string
   batch_name: string
+  is_mutual_match: boolean
+  partner_submission_id: string | null
 }
 
 interface SystemMatchRequest {
@@ -94,6 +96,11 @@ export function AdminPairingTab() {
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingId, setRejectingId] = useState<string>('')
 
+  // Manual pairing modal state
+  const [showManualPairModal, setShowManualPairModal] = useState(false)
+  const [manualPairUser1, setManualPairUser1] = useState<SelfMatchRequest | null>(null)
+  const [manualPairUser2, setManualPairUser2] = useState<SelfMatchRequest | null>(null)
+
   useEffect(() => {
     loadBatches()
   }, [])
@@ -145,10 +152,12 @@ export function AdminPairingTab() {
   }
 
   const handleApprove = async (request: SelfMatchRequest) => {
+    // For mutual match, we need to approve both submissions
     const toastId = toast.loading('Approving pairing...')
 
     try {
-      const response = await fetch('/api/admin/pairing/approve', {
+      // Approve the first user's submission
+      const response1 = await fetch('/api/admin/pairing/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -158,14 +167,34 @@ export function AdminPairingTab() {
         }),
       })
 
-      const result = await response.json()
+      const result1 = await response1.json()
 
-      if (result.success) {
+      // If mutual match, also approve the partner's submission
+      if (request.is_mutual_match && request.partner_submission_id) {
+        const response2 = await fetch('/api/admin/pairing/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission_id: request.partner_submission_id,
+            user_1_id: request.partner_user_id,
+            user_2_id: request.user_id,
+          }),
+        })
+
+        const result2 = await response2.json()
+
+        if (result1.success && result2.success) {
+          toast.success('Mutual pairing approved successfully!', { id: toastId })
+        } else {
+          toast.error(result1.error || result2.error || 'Failed to approve pairing', { id: toastId })
+        }
+      } else if (result1.success) {
         toast.success('Pairing approved successfully!', { id: toastId })
-        loadPairingRequests()
       } else {
-        toast.error(result.error || 'Failed to approve pairing', { id: toastId })
+        toast.error(result1.error || 'Failed to approve pairing', { id: toastId })
       }
+
+      loadPairingRequests()
     } catch (error) {
       console.error('Error approving pairing:', error)
       toast.error('Failed to approve pairing', { id: toastId })
@@ -176,6 +205,7 @@ export function AdminPairingTab() {
     const toastId = toast.loading('Rejecting request...')
 
     try {
+      // Reject the submission and move to system match
       const response = await fetch('/api/admin/pairing/reject', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,7 +218,7 @@ export function AdminPairingTab() {
       const result = await response.json()
 
       if (result.success) {
-        toast.success('Request rejected', { id: toastId })
+        toast.success('Request rejected and moved to system match', { id: toastId })
         setShowRejectModal(false)
         setRejectReason('')
         setRejectingId('')
@@ -255,6 +285,45 @@ export function AdminPairingTab() {
       }
     } catch (error) {
       console.error('Error creating pairing:', error)
+      toast.error('Failed to create pairing', { id: toastId })
+    }
+  }
+
+  const openManualPairModal = (user: SelfMatchRequest) => {
+    setManualPairUser1(user)
+    setManualPairUser2(null)
+    setShowManualPairModal(true)
+  }
+
+  const handleManualPair = async () => {
+    if (!manualPairUser1 || !manualPairUser2) return
+
+    const toastId = toast.loading('Creating manual pairing...')
+
+    try {
+      const response = await fetch('/api/admin/pairing/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_1_id: manualPairUser1.user_id,
+          user_2_id: manualPairUser2.user_id,
+          batch_id: manualPairUser1.batch_id,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Manual pairing created successfully!', { id: toastId })
+        setShowManualPairModal(false)
+        setManualPairUser1(null)
+        setManualPairUser2(null)
+        loadPairingRequests()
+      } else {
+        toast.error(result.error || 'Failed to create pairing', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error creating manual pairing:', error)
       toast.error('Failed to create pairing', { id: toastId })
     }
   }
@@ -351,8 +420,19 @@ export function AdminPairingTab() {
               {selfMatchRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                  className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
+                    request.is_mutual_match ? 'border-green-300 bg-green-50/30' : 'border-gray-200'
+                  }`}
                 >
+                  {/* Mutual Match Badge */}
+                  {request.is_mutual_match && (
+                    <div className="mb-3 flex items-center gap-2 text-sm text-green-700 bg-green-100 px-3 py-1.5 rounded-full w-fit">
+                      <Heart className="w-4 h-4" />
+                      <span className="font-medium">Mutual Match!</span>
+                      <span className="text-green-600">Keduanya saling memilih</span>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-4">
@@ -363,7 +443,7 @@ export function AdminPairingTab() {
                           <p className="text-sm text-gray-600">{request.user_email}</p>
                           <div className="mt-2 flex flex-wrap gap-2 text-xs">
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                              {request.user_zona_waktu || 'Zona tidak diketahui'}
+                              {request.user_zona_waktu || 'WIB'}
                             </span>
                             <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
                               {request.chosen_juz}
@@ -387,7 +467,7 @@ export function AdminPairingTab() {
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2 text-xs">
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                              {request.partner_details?.zona_waktu || 'Zona tidak diketahui'}
+                              {request.partner_details?.zona_waktu || 'WIB'}
                             </span>
                             <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
                               {request.partner_details?.chosen_juz}
@@ -400,24 +480,37 @@ export function AdminPairingTab() {
                       </div>
                     </div>
 
-                    <div className="ml-4 flex gap-2">
-                      <button
-                        onClick={() => handleApprove(request)}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-sm"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRejectingId(request.id)
-                          setShowRejectModal(true)
-                        }}
-                        className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1 text-sm"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
+                    <div className="ml-4 flex flex-col gap-2">
+                      {request.is_mutual_match ? (
+                        <button
+                          onClick={() => handleApprove(request)}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Approve Match
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => openManualPairModal(request)}
+                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-sm"
+                            title="Pasangkan manual dengan thalibah lain"
+                          >
+                            <Users className="w-4 h-4" />
+                            Manual Pair
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRejectingId(request.id)
+                              setShowRejectModal(true)
+                            }}
+                            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1 text-sm"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Reject
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -454,7 +547,7 @@ export function AdminPairingTab() {
                       <p className="text-sm text-gray-600">{request.user_email}</p>
                       <div className="mt-2 flex flex-wrap gap-2 text-xs">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                          {request.user_zona_waktu || 'Zona tidak diketahui'}
+                          {request.user_zona_waktu || 'WIB'}
                         </span>
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
                           {request.chosen_juz}
@@ -494,7 +587,7 @@ export function AdminPairingTab() {
                     Pasangan untuk {selectedUser.user_name}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    {selectedUser.chosen_juz} • {selectedUser.user_zona_waktu || 'Zona tidak diketahui'}
+                    {selectedUser.chosen_juz} • {selectedUser.user_zona_waktu || 'WIB'}
                   </p>
                 </div>
                 <button
@@ -600,6 +693,9 @@ export function AdminPairingTab() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Reject Request
               </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Request ini akan dipindahkan ke tab "Dipasangkan Sistem" untuk dicarikan pasangan oleh admin.
+              </p>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -624,6 +720,88 @@ export function AdminPairingTab() {
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
                 Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Pair Modal */}
+      {showManualPairModal && manualPairUser1 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Pasangkan Manual
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Pilih pasangan untuk {manualPairUser1.user_name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowManualPairModal(false)
+                    setManualPairUser1(null)
+                    setManualPairUser2(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                <p className="font-medium text-gray-900">{manualPairUser1.user_name}</p>
+                <p className="text-sm text-gray-600">
+                  {manualPairUser1.user_zona_waktu} • {manualPairUser1.chosen_juz} • {manualPairUser1.main_time_slot}
+                </p>
+              </div>
+
+              <p className="text-sm font-medium text-gray-700 mb-3">Pilih pasangan:</p>
+
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {selfMatchRequests
+                  .filter(r => r.user_id !== manualPairUser1.user_id)
+                  .map((request) => (
+                    <div
+                      key={request.id}
+                      onClick={() => setManualPairUser2(request)}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        manualPairUser2?.id === request.id
+                          ? 'ring-2 ring-green-500 bg-green-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <p className="font-medium text-gray-900">{request.user_name}</p>
+                      <p className="text-sm text-gray-600">
+                        {request.user_zona_waktu} • {request.chosen_juz} • {request.main_time_slot}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowManualPairModal(false)
+                  setManualPairUser1(null)
+                  setManualPairUser2(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleManualPair}
+                disabled={!manualPairUser2}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Pasangkan
               </button>
             </div>
           </div>
@@ -673,7 +851,7 @@ function MatchSection({
                 <p className="text-sm text-gray-600">{candidate.email}</p>
                 <div className="mt-2 flex flex-wrap gap-1 text-xs">
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                    {candidate.zona_waktu || 'Zona tidak diketahui'}
+                    {candidate.zona_waktu || 'WIB'}
                   </span>
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded">
                     {candidate.chosen_juz}

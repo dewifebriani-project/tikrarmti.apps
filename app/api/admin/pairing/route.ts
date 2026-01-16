@@ -36,13 +36,14 @@ export async function GET(request: Request) {
   const status = searchParams.get('status')
 
   try {
-    // 3. Fetch pairing requests
+    // 3. Fetch all pairing requests (both self_match and system_match)
     let query = supabase
       .from('daftar_ulang_submissions')
       .select(`
         id,
         user_id,
         batch_id,
+        registration_id,
         status,
         partner_type,
         partner_user_id,
@@ -61,7 +62,8 @@ export async function GET(request: Request) {
           id,
           chosen_juz,
           main_time_slot,
-          backup_time_slot
+          backup_time_slot,
+          timezone
         ),
         batch:batches!daftar_ulang_submissions_batch_id_fkey (
           id,
@@ -69,18 +71,29 @@ export async function GET(request: Request) {
         )
       `)
       .eq('status', 'submitted') // Only submitted daftar ulang
+      .in('partner_type', ['self_match', 'system_match'])
 
     if (batchId) {
       query = query.eq('batch_id', batchId)
     }
 
-    // Filter by pairing status if provided
-    // We'll add a pairing_status column later, for now use partner_type
     const { data: submissions, error } = await query.order('submitted_at', { ascending: false })
 
     if (error) throw error
 
-    // 4. Transform data for frontend
+    // 4. Build a map of all self-match requests for mutual match detection
+    const selfMatchMap = new Map<string, any>()
+    for (const submission of submissions || []) {
+      if (submission.partner_type === 'self_match' && submission.partner_user_id) {
+        selfMatchMap.set(submission.user_id, {
+          submission_id: submission.id,
+          partner_user_id: submission.partner_user_id,
+          batch_id: submission.batch_id
+        })
+      }
+    }
+
+    // 5. Transform data for frontend with mutual match detection
     const selfMatchRequests = []
     const systemMatchRequests = []
 
@@ -90,12 +103,16 @@ export async function GET(request: Request) {
       const registrations = submission.registrations as any
       const batch = submission.batch as any
 
+      // Use timezone from registration (pendaftaran_tikrar_tahfidz) if available,
+      // otherwise fall back to zona_waktu from users table
+      const userTimezone = registrations?.[0]?.timezone || users?.[0]?.zona_waktu || 'WIB'
+
       const requestData = {
         id: submission.id,
         user_id: submission.user_id,
         user_name: users?.[0]?.full_name,
         user_email: users?.[0]?.email,
-        user_zona_waktu: users?.[0]?.zona_waktu,
+        user_zona_waktu: userTimezone,
         user_wa_phone: users?.[0]?.whatsapp,
         chosen_juz: registrations?.[0]?.chosen_juz,
         main_time_slot: registrations?.[0]?.main_time_slot,
@@ -111,7 +128,7 @@ export async function GET(request: Request) {
       }
 
       if (submission.partner_type === 'self_match') {
-        // Fetch partner details
+        // Fetch partner details and check for mutual match
         if (submission.partner_user_id) {
           const { data: partnerUser } = await supabase
             .from('users')
@@ -121,10 +138,20 @@ export async function GET(request: Request) {
 
           const { data: partnerRegistration } = await supabase
             .from('pendaftaran_tikrar_tahfidz')
-            .select('chosen_juz, main_time_slot, backup_time_slot')
+            .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
             .eq('user_id', submission.partner_user_id)
             .eq('batch_id', submission.batch_id)
             .single()
+
+          // Check for mutual match: does the partner also choose this user?
+          const partnerChoice = selfMatchMap.get(submission.partner_user_id)
+          const isMutualMatch = partnerChoice?.partner_user_id === submission.user_id
+
+          // Get partner's submission if mutual match exists
+          let partnerSubmissionId = null
+          if (isMutualMatch && partnerChoice) {
+            partnerSubmissionId = partnerChoice.submission_id
+          }
 
           selfMatchRequests.push({
             ...requestData,
@@ -132,12 +159,14 @@ export async function GET(request: Request) {
               id: partnerUser.id,
               full_name: partnerUser.full_name,
               email: partnerUser.email,
-              zona_waktu: partnerUser.zona_waktu,
+              zona_waktu: partnerRegistration?.timezone || partnerUser.zona_waktu || 'WIB',
               wa_phone: partnerUser.whatsapp,
               chosen_juz: partnerRegistration?.chosen_juz,
               main_time_slot: partnerRegistration?.main_time_slot,
               backup_time_slot: partnerRegistration?.backup_time_slot,
             } : null,
+            is_mutual_match: isMutualMatch,
+            partner_submission_id: partnerSubmissionId,
           })
         }
       } else if (submission.partner_type === 'system_match') {
