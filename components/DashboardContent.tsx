@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle } from 'lucide-react'
+import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle, Bug } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
@@ -15,6 +15,22 @@ export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
   // No need for client-side auth checks or redirects
   const { user, isLoading } = useAuth()
+
+  // Debug state
+  const [showDebug, setShowDebug] = useState(false)
+  const [loginDebugInfo, setLoginDebugInfo] = useState<any>(null)
+
+  // Load debug info from localStorage on mount
+  useEffect(() => {
+    try {
+      const debugInfo = localStorage.getItem('loginDebugInfo')
+      if (debugInfo) {
+        setLoginDebugInfo(JSON.parse(debugInfo))
+      }
+    } catch (error) {
+      console.error('[Dashboard Debug] Error reading localStorage:', error)
+    }
+  }, [])
 
   // SWR hooks for data fetching
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
@@ -386,6 +402,104 @@ export default function DashboardContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Debug Panel - Toggle Button */}
+      <div className="text-center">
+        <button
+          onClick={() => setShowDebug(!showDebug)}
+          className="text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 mx-auto"
+        >
+          <Bug className="w-3 h-3" />
+          {showDebug ? 'Hide Debug' : 'Show Debug'}
+        </button>
+      </div>
+
+      {/* Debug Panel - Login Error Info */}
+      {showDebug && (
+        <Card className="bg-gray-900 border-gray-700">
+          <CardHeader className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-green-400 flex items-center gap-2">
+                <Bug className="w-4 h-4" />
+                Login Debug Info
+              </CardTitle>
+              <div className="flex gap-2">
+                {loginDebugInfo && (
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('loginDebugInfo')
+                      setLoginDebugInfo(null)
+                    }}
+                    className="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={() => window.location.reload()}
+                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            {loginDebugInfo ? (
+              <div className="space-y-3">
+                <div className="text-xs text-gray-400">
+                  <span className="font-bold text-green-400">Timestamp:</span> {loginDebugInfo.timestamp}
+                </div>
+                <div className="text-xs text-gray-400">
+                  <span className="font-bold text-green-400">Email:</span> {loginDebugInfo.email}
+                </div>
+                <div className="text-xs text-gray-400">
+                  <span className="font-bold text-green-400">User ID:</span> {loginDebugInfo.userId}
+                </div>
+
+                {loginDebugInfo.userError && (
+                  <div className="mt-3 p-2 bg-red-900/30 border border-red-700 rounded">
+                    <div className="text-xs font-bold text-red-400 mb-1">Error Details:</div>
+                    <div className="text-xs text-red-300 space-y-1">
+                      <div><span className="font-bold">Code:</span> {loginDebugInfo.userErrorCode}</div>
+                      <div><span className="font-bold">Message:</span> {loginDebugInfo.userErrorMessage}</div>
+                      {loginDebugInfo.userErrorDetails && (
+                        <div><span className="font-bold">Details:</span> {JSON.stringify(loginDebugInfo.userErrorDetails)}</div>
+                      )}
+                      {loginDebugInfo.userErrorHint && (
+                        <div><span className="font-bold">Hint:</span> {loginDebugInfo.userErrorHint}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {loginDebugInfo.userData && (
+                  <div className="mt-3 p-2 bg-green-900/30 border border-green-700 rounded">
+                    <div className="text-xs font-bold text-green-400 mb-1">User Data:</div>
+                    <pre className="text-xs text-green-300 overflow-auto max-h-40 whitespace-pre-wrap">
+                      {JSON.stringify(loginDebugInfo.userData, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(loginDebugInfo, null, 2))
+                    alert('Debug info copied to clipboard')
+                  }}
+                  className="mt-2 w-full text-xs bg-gray-700 hover:bg-gray-600 text-white py-1 px-2 rounded"
+                >
+                  Copy Debug Info
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500 text-xs">
+                No debug info available. Login debug info is stored in localStorage when you log in.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
