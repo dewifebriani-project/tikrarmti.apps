@@ -499,6 +499,84 @@ export default function DaftarUlangPage() {
     )
   }
 
+  // If user already submitted or approved, show read-only info page (not the form)
+  const isSubmissionLocked = existingSubmission?.status === 'submitted' || existingSubmission?.status === 'approved'
+
+  if (isSubmissionLocked) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Status Daftar Ulang</h1>
+                <p className="text-gray-600">
+                  {existingSubmission?.status === 'approved'
+                    ? 'Alhamdulillah! Daftar ulang Anda telah disetujui.'
+                    : 'Daftar ulang Anda telah berhasil dikirim.'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/perjalanan-saya')}
+                className="flex items-center gap-2"
+              >
+                Ke Perjalanan Saya
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Info Card */}
+          <Card className={`mb-6 ${existingSubmission?.status === 'approved' ? 'border-emerald-200 bg-emerald-50' : 'border-blue-200 bg-blue-50'}`}>
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                {existingSubmission?.status === 'approved' ? (
+                  <CheckCircle className="w-8 h-8 text-emerald-600 flex-shrink-0 mt-1" />
+                ) : (
+                  <Clock className="w-8 h-8 text-blue-600 flex-shrink-0 mt-1" />
+                )}
+                <div className="flex-1">
+                  <h3 className={`text-lg font-semibold mb-2 ${existingSubmission?.status === 'approved' ? 'text-emerald-900' : 'text-blue-900'}`}>
+                    {existingSubmission?.status === 'approved'
+                      ? 'Pendaftaran Disetujui'
+                      : 'Menunggu Konfirmasi'}
+                  </h3>
+                  <p className={`text-sm mb-4 ${existingSubmission?.status === 'approved' ? 'text-emerald-800' : 'text-blue-800'}`}>
+                    {existingSubmission?.status === 'approved'
+                      ? 'Anda telah resmi terdaftar dalam program Tikrar Tahfidz. Silakan cek jadwal halaqah dan mulai persiapan.'
+                      : 'Daftar ulang Anda sedang diproses oleh admin. Anda akan menerima notifikasi setelah ada konfirmasi.'}
+                  </p>
+
+                  {/* Submission Details */}
+                  <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-2">Detail Pengajuan:</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Juz:</span>
+                        <span className="ml-2 font-medium">{existingSubmission?.confirmed_chosen_juz || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Status:</span>
+                        <span className={`ml-2 font-medium ${existingSubmission?.status === 'approved' ? 'text-emerald-600' : 'text-blue-600'}`}>
+                          {existingSubmission?.status === 'approved' ? 'Disetujui' : 'Menunggu Konfirmasi'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Show the success step with full details */}
+          <SuccessStep existingSubmission={existingSubmission} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
