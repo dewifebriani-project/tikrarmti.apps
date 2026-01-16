@@ -62,6 +62,7 @@ export async function GET(request: Request) {
         batch_id,
         registration_id,
         status,
+        pairing_status,
         partner_type,
         partner_user_id,
         partner_name,
