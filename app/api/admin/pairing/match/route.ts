@@ -212,14 +212,16 @@ export async function GET(request: Request) {
 
     console.log('[MATCH API] Total matches calculated:', matches.length)
 
-    // 7. Group by match type
-    const perfectMatches = matches.filter(m => m.match_score >= 100)
-    const zonaMatches = matches.filter(m => m.match_score >= 80 && m.match_score < 100)
-    const juzMatches = matches.filter(m => m.match_score >= 60 && m.match_score < 80)
-    const crossJuzMatches = matches.filter(m => m.match_score < 60)
+    // 7. Group by match type - updated thresholds for new scoring
+    const perfectMatches = matches.filter(m => m.match_score >= 110) // Zona + Juz + Waktu Utama cocok
+    const zonaJuzMatches = matches.filter(m => m.match_score >= 100 && m.match_score < 110) // Zona + Juz sama
+    const zonaMatches = matches.filter(m => m.match_score >= 50 && m.match_score < 100 && m.match_reasons.some(r => r.includes('Zona waktu'))) // Zona sama, juz beda
+    const juzMatches = matches.filter(m => m.match_score >= 50 && m.match_score < 100 && m.match_reasons.some(r => r.includes('Juz sama'))) // Juz sama, zona beda
+    const crossJuzMatches = matches.filter(m => m.match_score < 50) // Lintas juz dan zona
 
     console.log('[MATCH API] Match groups:', {
       perfect: perfectMatches.length,
+      zona_juz: zonaJuzMatches.length,
       zona_waktu: zonaMatches.length,
       same_juz: juzMatches.length,
       cross_juz: crossJuzMatches.length,
@@ -237,10 +239,11 @@ export async function GET(request: Request) {
           backup_time_slot: userBackupTimeSlot,
         },
         matches: {
-          perfect: perfectMatches,    // Zona waktu + Juz sama
-          zona_waktu: zonaMatches,    // Zona waktu sama, juz beda
-          same_juz: juzMatches,       // Juz sama, zona beda
-          cross_juz: crossJuzMatches, // Lintas juz dan zona
+          perfect: perfectMatches,      // Zona + Juz + Waktu Utama cocok
+          zona_juz: zonaJuzMatches,     // Zona + Juz sama (waktu beda)
+          zona_waktu: zonaMatches,      // Zona waktu sama, juz beda
+          same_juz: juzMatches,         // Juz sama, zona beda
+          cross_juz: crossJuzMatches,   // Lintas juz dan zona
         },
         total_matches: matches.length,
       },
@@ -258,10 +261,11 @@ export async function GET(request: Request) {
  * Calculate match score between two users
  *
  * Scoring:
- * - Perfect match (zona waktu + juz option sama): 100+
- * - Zona waktu sama, juz beda: 80-99
- * - Juz sama, zona waktu beda: 60-79
- * - Lintas juz, zona waktu beda: <60
+ * - Perfect match (zona waktu + juz option sama + waktu utama cocok): 110+
+ * - Zona waktu + juz sama (waktu utama beda): 100-109
+ * - Zona waktu sama, juz beda: 50
+ * - Juz sama, zona waktu beda: 50
+ * - Lintas juz, zona waktu beda: 0
  */
 function calculateMatchScore(user1: any, user2: any): number {
   let score = 0
@@ -282,12 +286,16 @@ function calculateMatchScore(user1: any, user2: any): number {
     score += 50
   }
 
-  // Priority 3: Time slot overlap (bonus +10 points)
-  if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot) ||
-      hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
+  // Priority 3: Waktu utama cocok (+10 points)
+  if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
+    score += 10
+  }
+
+  // Priority 4: Waktu cadangan cocok (+5 points)
+  if (hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
       hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
       hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)) {
-    score += 10
+    score += 5
   }
 
   return score
@@ -315,6 +323,12 @@ function getMatchReasons(user1: any, user2: any): string[] {
 
   if (hasTimeSlotOverlap(user1.main_time_slot, user2.main_time_slot)) {
     reasons.push('Waktu utama cocok')
+  } else if (
+    hasTimeSlotOverlap(user1.main_time_slot, user2.backup_time_slot) ||
+    hasTimeSlotOverlap(user1.backup_time_slot, user2.main_time_slot) ||
+    hasTimeSlotOverlap(user1.backup_time_slot, user2.backup_time_slot)
+  ) {
+    reasons.push('Waktu cadangan cocok')
   }
 
   return reasons

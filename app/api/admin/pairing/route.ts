@@ -393,6 +393,14 @@ async function calculateMatchingStatistics(
     registrationsFetched: otherRegistrations?.length || 0,
   })
 
+  // Counters for detailed statistics
+  let perfectMatches = 0 // Zona + Juz + Waktu Utama cocok
+  let zonaWaktuMatches = 0 // Zona sama, juz beda
+  let sameJuzMatches = 0 // Juz sama, zona beda
+  let crossJuzMatches = 0 // Lintas juz dan zona
+  let mainTimeMatches = 0 // Waktu utama cocok
+  let backupTimeMatches = 0 // Waktu cadangan cocok
+
   for (const otherUser of otherUsers) {
     const otherReg = regMap.get(otherUser.user_id)
     if (!otherReg) {
@@ -412,34 +420,53 @@ async function calculateMatchingStatistics(
 
     // Calculate score
     let score = 0
-    if (userTimezone === otherTimezone) score += 50
-    if (userJuz === otherJuz) score += 50
 
-    // Check time slot overlap
+    // Priority 1: Zona waktu sama (+50 points)
+    const zonaMatch = userTimezone === otherTimezone
+    if (zonaMatch) score += 50
+
+    // Priority 2: Juz option sama (+50 points)
+    const juzMatch = userJuz === otherJuz
+    if (juzMatch) score += 50
+
+    // Priority 3: Time slot overlap
     const userMain = userRegistration?.main_time_slot
     const otherMain = otherReg.main_time_slot
     const userBackup = userRegistration?.backup_time_slot
     const otherBackup = otherReg.backup_time_slot
 
-    if (
-      hasTimeSlotOverlap(userMain, otherMain) ||
-      hasTimeSlotOverlap(userMain, otherBackup) ||
-      hasTimeSlotOverlap(userBackup, otherMain) ||
-      hasTimeSlotOverlap(userBackup, otherBackup)
-    ) {
+    const mainTimeMatch = hasTimeSlotOverlap(userMain, otherMain)
+    const backupTimeMatch = hasTimeSlotOverlap(userMain, otherBackup) ||
+                            hasTimeSlotOverlap(userBackup, otherMain) ||
+                            hasTimeSlotOverlap(userBackup, otherBackup)
+
+    if (mainTimeMatch) {
       score += 10
+      mainTimeMatches++
+    }
+    if (backupTimeMatch) {
+      score += 5
+      backupTimeMatches++
     }
 
-    console.log('[CALCULATE STATS] Score for', otherUser.user_id, ':', score, '- Reasons:', userTimezone === otherTimezone ? 'Zona' : userJuz === otherJuz ? 'Juz' : 'None')
+    console.log('[CALCULATE STATS] Score for', otherUser.user_id, ':', score,
+                '- Zona:', zonaMatch, 'Juz:', juzMatch, 'Main:', mainTimeMatch, 'Backup:', backupTimeMatch)
 
-    // Categorize
-    if (score >= 100) {
-      // Perfect match - counts for both zona waktu and juz sama
-    } else if (score >= 80 && score < 100) {
+    // Categorize based on priority
+    if (zonaMatch && juzMatch && mainTimeMatch) {
+      // Perfect match: Zona + Juz + Waktu Utama cocok
+      perfectMatches++
+    } else if (zonaMatch && juzMatch) {
+      // Zona + Juz sama (tapi waktu utama tidak cocok)
       zonaWaktuMatches++
-    } else if (score >= 60 && score < 80) {
+    } else if (zonaMatch && !juzMatch) {
+      // Zona sama, juz beda
+      zonaWaktuMatches++
+    } else if (!zonaMatch && juzMatch) {
+      // Juz sama, zona beda
       sameJuzMatches++
     } else {
+      // Lintas juz dan zona
       crossJuzMatches++
     }
   }
@@ -457,16 +484,22 @@ async function calculateMatchingStatistics(
 
   console.log('[CALCULATE STATS] Final stats:', {
     total_matches: totalMatches,
+    perfect_matches: perfectMatches,
     zona_waktu_matches: zonaWaktuMatches,
     same_juz_matches: sameJuzMatches,
     cross_juz_matches: crossJuzMatches,
+    main_time_matches: mainTimeMatches,
+    backup_time_matches: backupTimeMatches,
   })
 
   return {
     total_matches: totalMatches,
+    perfect_matches: perfectMatches,
     zona_waktu_matches: zonaWaktuMatches,
     same_juz_matches: sameJuzMatches,
     cross_juz_matches: crossJuzMatches,
+    main_time_matches: mainTimeMatches,
+    backup_time_matches: backupTimeMatches,
   }
 }
 

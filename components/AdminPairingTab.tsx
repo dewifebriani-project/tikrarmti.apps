@@ -47,9 +47,12 @@ interface SystemMatchRequest {
   batch_name: string
   // Matching statistics
   total_matches: number
+  perfect_matches: number
   zona_waktu_matches: number
   same_juz_matches: number
   cross_juz_matches: number
+  main_time_matches: number
+  backup_time_matches: number
 }
 
 interface TarteelRequest {
@@ -115,10 +118,11 @@ interface MatchData {
     backup_time_slot: string
   }
   matches: {
-    perfect: MatchCandidate[]
-    zona_waktu: MatchCandidate[]
-    same_juz: MatchCandidate[]
-    cross_juz: MatchCandidate[]
+    perfect: MatchCandidate[]      // Zona + Juz + Waktu Utama cocok
+    zona_juz: MatchCandidate[]     // Zona + Juz sama (waktu beda)
+    zona_waktu: MatchCandidate[]   // Zona waktu sama, juz beda
+    same_juz: MatchCandidate[]     // Juz sama, zona beda
+    cross_juz: MatchCandidate[]    // Lintas juz dan zona
   }
   total_matches: number
 }
@@ -1054,37 +1058,37 @@ export function AdminPairingTab() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_name')}>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_name')}>
                       Nama {sortConfig.key === 'user_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_wa_phone')}>
-                      WhatsApp {sortConfig.key === 'user_wa_phone' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('chosen_juz')}>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('chosen_juz')}>
                       Juz {sortConfig.key === 'chosen_juz' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_zona_waktu')}>
-                      Zona Waktu {sortConfig.key === 'user_zona_waktu' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_zona_waktu')}>
+                      Zona {sortConfig.key === 'user_zona_waktu' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('main_time_slot')}>
-                      Waktu Utama {sortConfig.key === 'main_time_slot' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('perfect_matches')}>
+                      Perfect {sortConfig.key === 'perfect_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('backup_time_slot')}>
-                      Waktu Cadangan {sortConfig.key === 'backup_time_slot' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('main_time_matches')}>
+                      W. Utama {sortConfig.key === 'main_time_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('total_matches')}>
-                      Total Matches {sortConfig.key === 'total_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('backup_time_matches')}>
+                      W. Cadangan {sortConfig.key === 'backup_time_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('zona_waktu_matches')}>
-                      Zona Waktu {sortConfig.key === 'zona_waktu_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('zona_waktu_matches')}>
+                      Zona {sortConfig.key === 'zona_waktu_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('same_juz_matches')}>
-                      Juz Sama {sortConfig.key === 'same_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('same_juz_matches')}>
+                      Juz {sortConfig.key === 'same_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('cross_juz_matches')}>
-                      Lintas Juz {sortConfig.key === 'cross_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('cross_juz_matches')}>
+                      Lintas {sortConfig.key === 'cross_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
-                    <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('total_matches')}>
+                      Total {sortConfig.key === 'total_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aksi
                     </th>
                   </tr>
@@ -1092,55 +1096,63 @@ export function AdminPairingTab() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedSystemMatchRequests.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                         {request.user_name}
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
-                        {request.user_wa_phone || '-'}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
-                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                           {request.chosen_juz}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                           {request.user_zona_waktu || 'WIB'}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                          {request.main_time_slot || '-'}
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          request.perfect_matches > 0 ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {request.perfect_matches || 0}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600">
-                        <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                          {request.backup_time_slot || '-'}
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          request.main_time_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {request.main_time_matches || 0}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          request.backup_time_matches > 0 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {request.backup_time_matches || 0}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-purple-600">
+                        {request.zona_waktu_matches || 0}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-blue-600">
+                        {request.same_juz_matches || 0}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-orange-600">
+                        {request.cross_juz_matches || 0}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                           request.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                           {request.total_matches}
                         </span>
                       </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center text-purple-600">
-                        {request.zona_waktu_matches}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center text-blue-600">
-                        {request.same_juz_matches}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center text-orange-600">
-                        {request.cross_juz_matches}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-sm text-center">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
                         <button
                           onClick={() => handleFindMatches(request)}
-                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-sm mx-auto"
+                          className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs mx-auto"
                         >
-                          <Search className="w-4 h-4" />
-                          Cari Pasangan
+                          <Search className="w-3.5 h-3.5" />
+                          Cari
                         </button>
                       </td>
                     </tr>
@@ -1451,10 +1463,10 @@ export function AdminPairingTab() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Perfect Matches */}
+                  {/* Perfect Matches - Zona + Juz + Waktu Utama cocok */}
                   {matchData.matches.perfect.length > 0 && (
                     <MatchTableSection
-                      title="Perfect Match (Zona + Juz Sama)"
+                      title="Perfect Match (Zona + Juz + Waktu Utama Cocok)"
                       color="green"
                       candidates={matchData.matches.perfect}
                       selectedMatch={selectedMatch}
@@ -1462,10 +1474,21 @@ export function AdminPairingTab() {
                     />
                   )}
 
-                  {/* Zona Waktu Matches */}
+                  {/* Zona + Juz Matches - Zona + Juz sama tapi waktu beda */}
+                  {matchData.matches.zona_juz.length > 0 && (
+                    <MatchTableSection
+                      title="Zona + Juz Sama (Waktu Beda)"
+                      color="emerald"
+                      candidates={matchData.matches.zona_juz}
+                      selectedMatch={selectedMatch}
+                      onSelectMatch={setSelectedMatch}
+                    />
+                  )}
+
+                  {/* Zona Waktu Matches - Zona sama, juz beda */}
                   {matchData.matches.zona_waktu.length > 0 && (
                     <MatchTableSection
-                      title="Zona Waktu Sama"
+                      title="Zona Waktu Sama (Juz Beda)"
                       color="purple"
                       candidates={matchData.matches.zona_waktu}
                       selectedMatch={selectedMatch}
@@ -1473,10 +1496,10 @@ export function AdminPairingTab() {
                     />
                   )}
 
-                  {/* Same Juz Matches */}
+                  {/* Same Juz Matches - Juz sama, zona beda */}
                   {matchData.matches.same_juz.length > 0 && (
                     <MatchTableSection
-                      title="Juz Sama"
+                      title="Juz Sama (Zona Beda)"
                       color="blue"
                       candidates={matchData.matches.same_juz}
                       selectedMatch={selectedMatch}
@@ -1484,10 +1507,10 @@ export function AdminPairingTab() {
                     />
                   )}
 
-                  {/* Cross Juz Matches */}
+                  {/* Cross Juz Matches - Lintas juz dan zona */}
                   {matchData.matches.cross_juz.length > 0 && (
                     <MatchTableSection
-                      title="Lintas Juz"
+                      title="Lintas Juz & Zona"
                       color="orange"
                       candidates={matchData.matches.cross_juz}
                       selectedMatch={selectedMatch}
@@ -1762,13 +1785,14 @@ function MatchTableSection({
   onSelectMatch,
 }: {
   title: string
-  color: 'green' | 'purple' | 'blue' | 'orange'
+  color: 'green' | 'emerald' | 'purple' | 'blue' | 'orange'
   candidates: MatchCandidate[]
   selectedMatch: MatchCandidate | null
   onSelectMatch: (candidate: MatchCandidate) => void
 }) {
   const colorClasses = {
     green: { bg: 'bg-green-50', border: 'border-green-200', header: 'bg-green-100', text: 'text-green-800' },
+    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', header: 'bg-emerald-100', text: 'text-emerald-800' },
     purple: { bg: 'bg-purple-50', border: 'border-purple-200', header: 'bg-purple-100', text: 'text-purple-800' },
     blue: { bg: 'bg-blue-50', border: 'border-blue-200', header: 'bg-blue-100', text: 'text-blue-800' },
     orange: { bg: 'bg-orange-50', border: 'border-orange-200', header: 'bg-orange-100', text: 'text-orange-800' },
