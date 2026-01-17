@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 /**
  * GET /api/pendaftaran/all
  *
- * This API bypasses batch status filtering to show ALL registrations
- * Used for debugging perjalanan-saya page where muallimah users need to see their data
- * regardless of batch status
+ * API for perjalanan-saya page - shows thalibah registrations from OPEN batches
+ * Only queries pendaftaran_tikrar_tahfidz (thalibah registrations)
+ * muallimah_registrations and musyrifah_registrations are NOT included
+ * because they're unrelated to thalibah learning journey
  */
 export async function GET(request: NextRequest) {
   try {
@@ -22,13 +23,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get ALL registrations from all tables WITHOUT batch status filter
-    const [
-      directRegistrations,
-      muallimahRegistrations,
-      musyrifahRegistrations,
-      daftarUlangSubmissions
-    ] = await Promise.all([
+    // Get tikrar registrations and daftar ulang submissions
+    const [tikrarResult, daftarUlangResult] = await Promise.all([
       supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
@@ -39,41 +35,19 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false }),
 
       supabase
-        .from('muallimah_registrations')
-        .select('*, batch:batches(*)')
-        .eq('user_id', user.id)
-        .order('submitted_at', { ascending: false }),
-
-      supabase
-        .from('musyrifah_registrations')
-        .select(`
-          *,
-          program:programs(*),
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
-
-      supabase
         .from('daftar_ulang_submissions')
         .select(`
           *,
-          batch:batches(*),
-          ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(*),
-          tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(*)
+          batch:batches(*)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
     ])
 
-    // Combine all registrations
-    // NOTE: Only show registrations from OPEN batches (current active batch)
-    // perjalanan-saya page is for active thalibah journey, not history
-    // muallimah_registrations and musyrifah_registrations are NOT included here
-    // because they're unrelated to thalibah learning journey
+    // Combine registrations - only from OPEN batches (current active batch)
     const allRegistrations = [
-      // Only tikrar registrations from OPEN batches
-      ...(directRegistrations.data || [])
+      // Tikrar registrations from OPEN batches
+      ...(tikrarResult.data || [])
         .filter((reg: any) => reg.batch?.status === 'open')
         .map((reg: any) => ({
           ...reg,
@@ -82,8 +56,8 @@ export async function GET(request: NextRequest) {
           status: reg.status || 'pending',
           batch_name: reg.batch?.name || null
         })),
-      // Include daftar ulang submissions for completed re-enrollments
-      ...(daftarUlangSubmissions.data || [])
+      // Daftar ulang submissions from OPEN batches
+      ...(daftarUlangResult.data || [])
         .filter((submission: any) => submission.batch?.status === 'open')
         .map((submission: any) => ({
           ...submission,
