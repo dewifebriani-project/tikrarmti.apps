@@ -115,7 +115,8 @@ interface User {
   full_name?: string;
   nama_kunyah?: string;
   phone?: string;
-  role: string;
+  role?: string;
+  roles?: string[];
   is_active: boolean;
   created_at: string;
   updated_at?: string;
