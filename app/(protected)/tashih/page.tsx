@@ -194,7 +194,32 @@ export default function Tashih() {
         return
       }
 
-      // Priority 3: Check for Pra Tikrar (pendaftaran with status 'selected')
+      // Priority 3: Check for Pendaftaran with programs (approved status)
+      const { data: pendaftaranData } = await supabase
+        .from('pendaftaran')
+        .select(`
+          *,
+          program:programs(*),
+          batch:batches(*)
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['approved', 'pending'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (pendaftaranData && pendaftaranData.program) {
+        setUserProgramInfo({
+          programType: 'tikrar_tahfidz',
+          confirmedChosenJuz: null, // Will be determined later
+          batchStartDate: pendaftaranData.batch?.start_date || null,
+          batchId: pendaftaranData.batch_id || null,
+          tashihHalaqahId: null
+        })
+        return
+      }
+
+      // Priority 4: Check for Pra Tikrar (pendaftaran_tikrar_tahfidz with status 'selected')
       const { data: praTikrarReg } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
