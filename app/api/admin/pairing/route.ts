@@ -138,15 +138,41 @@ export async function GET(request: Request) {
     // 4.5. Fetch all existing pairings for this batch
     const { data: existingPairings } = await supabase
       .from('study_partners')
-      .select('user_1_id, user_2_id')
+      .select('id, user_1_id, user_2_id, user_3_id')
       .eq('batch_id', batchId || '')
       .eq('pairing_status', 'active')
 
-    // Create a map to quickly check if a user is already paired and who their partner is
-    const pairedUsersMap = new Map<string, string>() // user_id -> partner_user_id
+    // Create a map to quickly check if a user is already paired and their pairing info
+    const pairedUsersMap = new Map<string, { partnerId: string, partnerIds: string[], pairingId: string, hasSlot: boolean }>()
     for (const pairing of existingPairings || []) {
-      pairedUsersMap.set(pairing.user_1_id, pairing.user_2_id)
-      pairedUsersMap.set(pairing.user_2_id, pairing.user_1_id)
+      const allMembers = [pairing.user_1_id, pairing.user_2_id, pairing.user_3_id].filter(Boolean)
+      const hasSlot = !pairing.user_3_id // Has empty slot for 3rd member
+
+      // For user_1
+      pairedUsersMap.set(pairing.user_1_id, {
+        partnerId: pairing.user_2_id,
+        partnerIds: allMembers.filter((id: string) => id !== pairing.user_1_id),
+        pairingId: pairing.id,
+        hasSlot
+      })
+
+      // For user_2
+      pairedUsersMap.set(pairing.user_2_id, {
+        partnerId: pairing.user_1_id,
+        partnerIds: allMembers.filter((id: string) => id !== pairing.user_2_id),
+        pairingId: pairing.id,
+        hasSlot
+      })
+
+      // For user_3 if exists
+      if (pairing.user_3_id) {
+        pairedUsersMap.set(pairing.user_3_id, {
+          partnerId: pairing.user_1_id,
+          partnerIds: allMembers.filter((id: string) => id !== pairing.user_3_id),
+          pairingId: pairing.id,
+          hasSlot: false
+        })
+      }
     }
 
     console.log('[PAIRING API] Existing pairings:', pairedUsersMap.size, 'users already paired')
@@ -160,6 +186,28 @@ export async function GET(request: Request) {
 
     // Create a map of user_id -> full_name for paired users
     const pairedUserNamesMap = new Map((pairedUsersData || []).map(u => [u.id, u.full_name]))
+
+    // Fetch registration data for paired users (to get time slots)
+    const { data: pairedUsersRegistrations } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('user_id, main_time_slot')
+      .eq('batch_id', batchId || '')
+      .in('user_id', pairedUserIds)
+
+    const pairedUsersTimeMap = new Map((pairedUsersRegistrations || []).map(r => [r.user_id, r.main_time_slot]))
+
+    // Build list of pairings with available slots for UI
+    const pairingsWithSlots = (existingPairings || [])
+      .filter(p => !p.user_3_id)
+      .map(p => ({
+        id: p.id,
+        user_1_id: p.user_1_id,
+        user_2_id: p.user_2_id,
+        user_1_name: pairedUserNamesMap.get(p.user_1_id) || 'Unknown',
+        user_2_name: pairedUserNamesMap.get(p.user_2_id) || 'Unknown',
+        user_1_time: pairedUsersTimeMap.get(p.user_1_id) || null,
+        user_2_time: pairedUsersTimeMap.get(p.user_2_id) || null,
+      }))
 
     // 5. Build a map of all self-match requests for mutual match detection
     const selfMatchMap = new Map<string, any>()
@@ -285,8 +333,10 @@ export async function GET(request: Request) {
         }
       } else if (submission.partner_type === 'system_match') {
         // Check if this user is already paired
-        const partnerUserId = pairedUsersMap.get(submission.user_id)
-        const partnerName = partnerUserId ? (pairedUserNamesMap.get(partnerUserId) || 'Unknown') : null
+        const pairingInfo = pairedUsersMap.get(submission.user_id)
+        const partnerNames = pairingInfo
+          ? pairingInfo.partnerIds.map(id => pairedUserNamesMap.get(id) || 'Unknown')
+          : []
 
         // Calculate matching statistics for this user
         const matchStats = await calculateMatchingStatistics(
@@ -299,9 +349,12 @@ export async function GET(request: Request) {
 
         systemMatchRequests.push({
           ...requestData,
-          partner_name: partnerName,
-          partner_user_id: partnerUserId,
-          is_paired: !!partnerUserId,
+          partner_name: partnerNames.length > 0 ? partnerNames.join(', ') : null,
+          partner_names: partnerNames,
+          partner_user_id: pairingInfo?.partnerId || null,
+          partner_user_ids: pairingInfo?.partnerIds || [],
+          pairing_id: pairingInfo?.pairingId || null,
+          is_paired: !!pairingInfo,
           ...matchStats
         })
       } else if (submission.partner_type === 'tarteel') {
@@ -323,6 +376,7 @@ export async function GET(request: Request) {
         system_match_requests: systemMatchRequests,
         tarteel_requests: tarteelRequests,
         family_requests: familyRequests,
+        pairings_with_slots: pairingsWithSlots, // Pairings that can accept a 3rd member
       },
       debug: {
         totalSubmissions: totalCount,
@@ -378,7 +432,7 @@ async function calculateMatchingStatistics(
   batchId: string,
   userRegistration: any,
   allSubmissions: any[],
-  pairedUsersMap?: Map<string, string> // Map of users who are already paired
+  pairedUsersMap?: Map<string, { partnerId: string, partnerIds: string[], pairingId: string, hasSlot: boolean }> // Map of users who are already paired
 ) {
   const supabase = createClient()
 

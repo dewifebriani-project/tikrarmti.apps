@@ -56,8 +56,20 @@ interface SystemMatchRequest {
   // Pairing info
   is_paired: boolean
   partner_name: string | null
+  partner_names?: string[]
   partner_user_id: string | null
+  partner_user_ids?: string[]
   pairing_id?: string | null
+}
+
+interface PairingWithSlot {
+  id: string
+  user_1_id: string
+  user_2_id: string
+  user_1_name: string
+  user_2_name: string
+  user_1_time: string | null
+  user_2_time: string | null
 }
 
 interface TarteelRequest {
@@ -139,10 +151,12 @@ export function AdminPairingTab() {
   const [systemMatchRequests, setSystemMatchRequests] = useState<SystemMatchRequest[]>([])
   const [tarteelRequests, setTarteelRequests] = useState<TarteelRequest[]>([])
   const [familyRequests, setFamilyRequests] = useState<FamilyRequest[]>([])
+  const [pairingsWithSlots, setPairingsWithSlots] = useState<PairingWithSlot[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string>('')
   const [batches, setBatches] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState<any>(null)
+  const [addToPairModal, setAddToPairModal] = useState<{ userId: string, userName: string, mainTimeSlot: string } | null>(null)
 
   // Statistics state
   const [stats, setStats] = useState({
@@ -277,6 +291,7 @@ export function AdminPairingTab() {
       setSystemMatchRequests(result.data?.system_match_requests || [])
       setTarteelRequests(result.data?.tarteel_requests || [])
       setFamilyRequests(result.data?.family_requests || [])
+      setPairingsWithSlots(result.data?.pairings_with_slots || [])
       setPagination(result.pagination || null)
 
       // Store debug data with full API response
@@ -778,6 +793,35 @@ export function AdminPairingTab() {
     } catch (error) {
       console.error('Error creating bulk pairings:', error)
       toast.error('Failed to create bulk pairings', { id: toastId })
+    }
+  }
+
+  const handleAddToPair = async (pairingId: string, userId: string) => {
+    const toastId = toast.loading('Menambahkan ke pasangan...')
+
+    try {
+      const response = await fetch('/api/admin/pairing/add-to-pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pairing_id: pairingId,
+          user_id: userId,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Berhasil menambahkan ke pasangan', { id: toastId })
+        setAddToPairModal(null)
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Gagal menambahkan ke pasangan', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error adding to pair:', error)
+      toast.error('Gagal menambahkan ke pasangan', { id: toastId })
     }
   }
 
@@ -1387,13 +1431,29 @@ export function AdminPairingTab() {
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
                         {!request.is_paired ? (
-                          <button
-                            onClick={() => handleFindMatches(request)}
-                            className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs mx-auto"
-                          >
-                            <Search className="w-3.5 h-3.5" />
-                            Cari
-                          </button>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => handleFindMatches(request)}
+                              className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs"
+                            >
+                              <Search className="w-3.5 h-3.5" />
+                              Cari
+                            </button>
+                            {pairingsWithSlots.length > 0 && (
+                              <button
+                                onClick={() => setAddToPairModal({
+                                  userId: request.user_id,
+                                  userName: request.user_name,
+                                  mainTimeSlot: request.main_time_slot
+                                })}
+                                className="px-2 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-1 text-xs"
+                                title="Tambahkan ke pasangan yang sudah ada"
+                              >
+                                <Users className="w-3.5 h-3.5" />
+                                +Grup
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <div className="flex items-center justify-center gap-1">
                             <button
@@ -1902,6 +1962,85 @@ export function AdminPairingTab() {
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Pasangkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add to Pair Modal */}
+      {addToPairModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Tambah ke Pasangan</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Menambahkan <span className="font-medium">{addToPairModal.userName}</span> ke pasangan existing
+                  </p>
+                  <p className="text-xs text-purple-600 mt-1">
+                    Waktu utama: {addToPairModal.mainTimeSlot}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAddToPairModal(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 overflow-y-auto flex-1">
+              {pairingsWithSlots.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">Tidak ada pasangan yang tersedia</p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 mb-3">Pilih pasangan untuk dijadikan kelompok 3 orang:</p>
+                  {pairingsWithSlots.map((pairing) => {
+                    const timeMatch = pairing.user_1_time === addToPairModal.mainTimeSlot ||
+                                     pairing.user_2_time === addToPairModal.mainTimeSlot
+                    return (
+                      <button
+                        key={pairing.id}
+                        onClick={() => handleAddToPair(pairing.id, addToPairModal.userId)}
+                        className={`w-full p-3 border rounded-lg transition-colors text-left ${
+                          timeMatch
+                            ? 'border-green-300 bg-green-50 hover:bg-green-100'
+                            : 'border-gray-200 hover:bg-purple-50 hover:border-purple-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {pairing.user_1_name} & {pairing.user_2_name}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Waktu: {pairing.user_1_time || '-'} / {pairing.user_2_time || '-'}
+                              {timeMatch && (
+                                <span className="ml-2 text-green-600 font-medium">✓ Waktu cocok</span>
+                              )}
+                            </p>
+                          </div>
+                          <Users className={`w-5 h-5 ${timeMatch ? 'text-green-600' : 'text-purple-600'}`} />
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setAddToPairModal(null)}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Batal
               </button>
             </div>
           </div>
