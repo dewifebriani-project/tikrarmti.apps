@@ -41,11 +41,11 @@ export async function POST(request: NextRequest) {
     // Verify admin role
     const { data: adminUser, error: adminError } = await supabaseAdmin
       .from('users')
-      .select('id, role')
+      .select('id, roles')
       .eq('id', user.id)
       .single();
 
-    if (adminError || !adminUser || adminUser.role !== 'admin') {
+    if (adminError || !adminUser || !adminUser.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 

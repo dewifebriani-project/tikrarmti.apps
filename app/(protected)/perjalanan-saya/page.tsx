@@ -80,12 +80,9 @@ export default function PerjalananSaya() {
     if (typeof window !== 'undefined') {
       console.log('[PerjalananSai] Admin button debug:', {
         userRoles: user?.roles,
-        userRoleLegacy: (user as any)?.role,
         batchId,
         isAdmin: user?.roles?.includes('admin'),
-        isAdminLegacy: (user as any)?.role === 'admin',
-        isAdminWithFallback: user?.roles?.includes('admin') || (user as any)?.role === 'admin',
-        showButton: ((user?.roles?.includes('admin') || (user as any)?.role === 'admin')) && batchId
+        showButton: user?.roles?.includes('admin') && batchId
       });
     }
   }, [user, batchId]);

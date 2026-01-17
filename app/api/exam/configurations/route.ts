@@ -54,11 +54,11 @@ export async function POST(request: NextRequest) {
     // Check if user is admin
     const { data: userProfile } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (!userProfile || userProfile.role !== 'admin') {
+    if (!userProfile || !userProfile.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -149,11 +149,11 @@ export async function PUT(request: NextRequest) {
     // Check if user is admin
     const { data: userProfile } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (!userProfile || userProfile.role !== 'admin') {
+    if (!userProfile || !userProfile.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -238,11 +238,11 @@ export async function DELETE(request: NextRequest) {
     // Check if user is admin
     const { data: userProfile } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (!userProfile || userProfile.role !== 'admin') {
+    if (!userProfile || !userProfile.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

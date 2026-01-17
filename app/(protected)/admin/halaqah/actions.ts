@@ -71,11 +71,11 @@ async function verifyAdmin() {
   const supabaseAdmin = createSupabaseAdmin()
   const { data: userData, error: dbError } = await supabaseAdmin
     .from('users')
-    .select('role')
+    .select('roles')
     .eq('id', user.id)
     .single()
 
-  if (dbError || !userData || userData.role !== 'admin') {
+  if (dbError || !userData || !userData.roles?.includes('admin')) {
     throw new Error('Forbidden - Admin access required')
   }
 

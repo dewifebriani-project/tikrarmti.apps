@@ -2094,8 +2094,8 @@ function UsersTab({
   // Filter users by role based on actual registrations, supporting multi-role
   // A user can appear in multiple tabs if they have multiple roles/registrations
 
-  // Admin: role='admin'
-  const adminUsers = users.filter(u => u.role === 'admin');
+  // Admin: roles includes 'admin'
+  const adminUsers = users.filter(u => u.roles?.includes('admin'));
 
   // Thalibah: has tikrar registration with re_enrollment_completed=true (sudah daftar ulang)
   const thalibahUsers = users.filter(u => {
@@ -2802,11 +2802,11 @@ Tim Markaz Tikrar Indonesia`;
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-purple-800">Admin</h3>
               <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                {users.filter(u => u.role === 'admin').length}
+                {users.filter(u => u.roles?.includes('admin')).length}
               </span>
             </div>
             <p className="text-xs text-gray-600">
-              {users.length > 0 ? Math.round((users.filter(u => u.role === 'admin').length / users.length) * 100) : 0}% of all users
+              {users.length > 0 ? Math.round((users.filter(u => u.roles?.includes('admin')).length / users.length) * 100) : 0}% of all users
             </p>
           </div>
 

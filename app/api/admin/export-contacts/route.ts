@@ -74,11 +74,11 @@ export async function GET(request: NextRequest) {
     // Check if user is admin using admin client
     const { data: userData, error: userError } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
       .single();
 
-    if (userError || !userData || userData.role !== 'admin') {
+    if (userError || !userData || !userData.roles?.includes('admin')) {
       console.error('Admin check failed:', userError, userData);
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
