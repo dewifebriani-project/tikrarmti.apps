@@ -709,6 +709,78 @@ export function AdminPairingTab() {
     }
   }
 
+  const handleBulkPair = async () => {
+    if (!selectedBatchId) return
+
+    // Count unpaired users
+    const unpairedCount = systemMatchRequests.filter(r => !r.is_paired).length
+    if (unpairedCount < 2) {
+      toast.error('Butuh minimal 2 user yang belum berpasangan')
+      return
+    }
+
+    // Confirm with user
+    const confirmed = window.confirm(
+      `Pasangkan otomatis ${unpairedCount} user yang belum berpasangan?\n\n` +
+      `Sistem akan:\n` +
+      `• Mencari pasangan sesuai prioritas (Perfect Match dulu)\n` +
+      `• Membuat pasangan secara otomatis\n` +
+      `• Mengupdate status pairing untuk semua user\n\n` +
+      `Prioritas:\n` +
+      `1. Zona + Waktu Utama + Juz Sama (Perfect)\n` +
+      `2. Zona + Waktu Utama + Juz Beda\n` +
+      `3. Zona + Waktu Cadangan + Juz Sama\n` +
+      `4. Zona + Waktu Cadangan + Juz Beda\n` +
+      `5. Lintas Zona Waktu`
+    )
+
+    if (!confirmed) return
+
+    const toastId = toast.loading('Memasangkan otomatis...')
+
+    try {
+      const response = await fetch('/api/admin/pairing/bulk-pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: selectedBatchId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create bulk pairings')
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        const analysis = result.data.analysis || []
+        const perfectCount = analysis.filter((a: any) => a.match_type.includes('Priority 1')).length
+        const priority2Count = analysis.filter((a: any) => a.match_type.includes('Priority 2')).length
+        const priority3Count = analysis.filter((a: any) => a.match_type.includes('Priority 3')).length
+        const priority4Count = analysis.filter((a: any) => a.match_type.includes('Priority 4')).length
+        const priority5Count = analysis.filter((a: any) => a.match_type.includes('Priority 5')).length
+
+        toast.success(
+          `Berhasil membuat ${result.data.created_count} pasangan!\n` +
+          `• Perfect: ${perfectCount}\n` +
+          `• Priority 2: ${priority2Count}\n` +
+          `• Priority 3: ${priority3Count}\n` +
+          `• Priority 4: ${priority4Count}\n` +
+          `• Priority 5: ${priority5Count}`,
+          { id: toastId, duration: 5000 }
+        )
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Failed to create bulk pairings', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error creating bulk pairings:', error)
+      toast.error('Failed to create bulk pairings', { id: toastId })
+    }
+  }
+
   if (loading && batches.length === 0) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -1175,6 +1247,16 @@ export function AdminPairingTab() {
             </h3>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">{systemMatchRequests.length} permintaan</span>
+              {systemMatchRequests.some(r => !r.is_paired) && (
+                <button
+                  onClick={handleBulkPair}
+                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1.5 text-xs font-medium shadow-sm"
+                  title="Pasangkan otomatis sesuai prioritas"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Cari Pasangan Massal
+                </button>
+              )}
               {systemMatchRequests.some(r => r.is_paired) && (
                 <button
                   onClick={handleRevertAllPairings}
