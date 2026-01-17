@@ -67,9 +67,6 @@ export default function DaftarUlangPage() {
   const [existingSubmission, setExistingSubmission] = useState<any>(null)
   const [draftSaved, setDraftSaved] = useState(false)
 
-  // Debug info state
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-
   // Form data
   const [formData, setFormData] = useState<{
     confirmed_full_name: string
@@ -133,31 +130,10 @@ export default function DaftarUlangPage() {
 
         const regData = await regResponse.json()
 
-        // Collect debug info
-        setDebugInfo({
-          userId: user?.id,
-          userEmail: user?.email,
-          userRoles: user?.roles,
-          allRegistrations: regData.data || [],
-          timestamp: new Date().toISOString()
-        })
-
         // Only get registrations for thalibah (calon_thalibah), not muallimah or musyrifah
         const selectedRegistration = regData.data?.find(
           (r: any) => r.selection_status === 'selected' && r.role === 'calon_thalibah'
         )
-
-        console.log('[Daftar Ulang Debug] User ID:', user?.id)
-        console.log('[Daftar Ulang Debug] User Email:', user?.email)
-        console.log('[Daftar Ulang Debug] User Roles:', user?.roles)
-        console.log('[Daftar Ulang Debug] All Registrations:', regData.data)
-        console.log('[Daftar Ulang Debug] All Registrations with daftar_ulang:', regData.data?.map((r: any) => ({
-          id: r.id?.slice(0, 8),
-          role: r.role,
-          selection_status: r.selection_status,
-          daftar_ulang: r.daftar_ulang ? { id: r.daftar_ulang.id?.slice(0, 8), status: r.daftar_ulang.status } : null
-        })))
-        console.log('[Daftar Ulang Debug] Selected Registration:', selectedRegistration)
 
         if (!selectedRegistration) {
           console.log('[Daftar Ulang] No selected thalibah registration found')
@@ -649,115 +625,6 @@ export default function DaftarUlangPage() {
             })}
           </div>
         </div>
-
-        {/* Debug Panel */}
-        {debugInfo && (
-          <Card className="mb-6 bg-gray-50 border-gray-300">
-            <CardHeader>
-              <CardTitle className="text-sm font-mono">Debug Info - Daftar Ulang Access</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 text-xs font-mono">
-                <div>
-                  <span className="font-semibold">User ID: </span>
-                  <span className="ml-2">{debugInfo.userId}</span>
-                </div>
-                <div>
-                  <span className="font-semibold">User Email: </span>
-                  <span className="ml-2">{debugInfo.userEmail}</span>
-                </div>
-                <div>
-                  <span className="font-semibold">User Roles: </span>
-                  <span className="ml-2">{JSON.stringify(debugInfo.userRoles)}</span>
-                </div>
-                <div>
-                  <span className="font-semibold">Timestamp: </span>
-                  <span className="ml-2">{debugInfo.timestamp}</span>
-                </div>
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">All Registrations ({debugInfo.allRegistrations.length}):</div>
-                  <div className="ml-4 space-y-2">
-                    {debugInfo.allRegistrations.length === 0 ? (
-                      <div className="text-red-600">No registrations found</div>
-                    ) : (
-                      debugInfo.allRegistrations.map((reg: any, idx: number) => (
-                        <div key={idx} className="p-2 bg-white rounded border">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <span className="text-gray-500">ID: </span>
-                              <span className="text-xs">{reg.id?.slice(0, 8)}...</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Role: </span>
-                              <span className={`font-medium ${reg.role === 'calon_thalibah' ? 'text-green-600' : 'text-gray-600'}`}>
-                                {reg.role}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Status: </span>
-                              <span className={reg.status === 'selected' ? 'text-green-600 font-medium' : ''}>
-                                {reg.selection_status || reg.status}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Batch: </span>
-                              <span>{reg.batch?.name || reg.batch_name || 'N/A'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Batch Status: </span>
-                              <span className={reg.batch?.status === 'open' ? 'text-green-600' : 'text-gray-600'}>
-                                {reg.batch?.status || 'N/A'}
-                              </span>
-                            </div>
-                            <div className="col-span-2">
-                              <span className="text-gray-500">Has daftar_ulang: </span>
-                              <span className={`font-medium ${reg.daftar_ulang ? 'text-purple-600' : 'text-red-600'}`}>
-                                {reg.daftar_ulang ? 'YES' : 'NO'}
-                              </span>
-                              {reg.daftar_ulang && (
-                                <span className="ml-2 text-purple-600 text-xs">
-                                  (status: {reg.daftar_ulang.status}, reg_id: {reg.daftar_ulang.registration_id?.slice(0, 8)}...)
-                                </span>
-                              )}
-                            </div>
-                            <div className="col-span-2">
-                              <span className="text-gray-500">Pass Filter: </span>
-                              <span className={`font-medium ${
-                                reg.selection_status === 'selected' && reg.role === 'calon_thalibah' && reg.batch?.status === 'open'
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
-                              }`}>
-                                {reg.selection_status === 'selected' && reg.role === 'calon_thalibah' && reg.batch?.status === 'open'
-                                  ? 'YES ✓'
-                                  : 'NO ✗'}
-                              </span>
-                              <span className="text-gray-500 ml-2">
-                                (requires: selection_status=selected, role=calon_thalibah, batch=open)
-                              </span>
-                            </div>
-                            {reg.daftar_ulang && (
-                              <div className="col-span-2 bg-purple-50 p-2 rounded border border-purple-200">
-                                <span className="text-purple-700 font-medium">⚠ Daftar Ulang Submitted: </span>
-                                <span className="text-purple-600">
-                                  Status: {reg.daftar_ulang.status} | ID: {reg.daftar_ulang.id?.slice(0, 8)}...
-                                </span>
-                                {reg.daftar_ulang.status === 'submitted' || reg.daftar_ulang.status === 'approved' ? (
-                                  <span className="ml-2 text-amber-600 font-medium">
-                                    → Should show success page
-                                  </span>
-                                ) : null}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Step Content */}
         <Card>
