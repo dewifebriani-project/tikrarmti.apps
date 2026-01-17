@@ -257,7 +257,9 @@ export function AdminPairingTab() {
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/pairing?batch_id=${selectedBatchId}&page=1&limit=1000`)
+      const response = await fetch(`/api/admin/pairing?batch_id=${selectedBatchId}&page=1&limit=1000`, {
+        cache: 'no-store' // Disable cache to always get fresh data
+      })
       if (!response.ok) {
         throw new Error('Failed to fetch pairing requests')
       }
@@ -294,7 +296,9 @@ export function AdminPairingTab() {
     if (!selectedBatchId) return
 
     try {
-      const response = await fetch(`/api/admin/pairing/statistics?batch_id=${selectedBatchId}`)
+      const response = await fetch(`/api/admin/pairing/statistics?batch_id=${selectedBatchId}`, {
+        cache: 'no-store' // Disable cache to always get fresh data
+      })
       if (!response.ok) {
         // If API doesn't exist, we'll calculate stats from current data
         return
