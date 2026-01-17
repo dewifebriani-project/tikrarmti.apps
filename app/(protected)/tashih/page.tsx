@@ -682,8 +682,6 @@ export default function Tashih() {
         </CardContent>
       </Card>
 
-      }
-
       {/* Progress Status */}
       <Card className={cn(
         "border-2 transition-all duration-300",
