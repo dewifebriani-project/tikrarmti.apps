@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText, X } from 'lucide-react'
-import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad } from './actions'
+import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission } from './actions'
 
 type Step = 'confirm' | 'halaqah' | 'partner' | 'review' | 'akad' | 'success'
 
@@ -2004,6 +2004,7 @@ function AkadUploadStep({
 
 function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const router = useRouter()
+  const { user } = useAuth()
 
   // Debug: log existing submission received by SuccessStep
   console.log('[SuccessStep] Received existingSubmission:', existingSubmission)
@@ -2014,6 +2015,25 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const submissionStatus = existingSubmission?.status
   const isApproved = submissionStatus === 'approved'
   const isSubmitted = submissionStatus === 'submitted'
+
+  // Check if current user is admin
+  const isAdmin = user?.roles?.includes('admin') || false
+  const canApprove = isAdmin && isSubmitted
+
+  // Handle approve action
+  const handleApprove = async () => {
+    if (!existingSubmission?.id) return
+
+    const result = await approveDaftarUlangSubmission(existingSubmission.id)
+
+    if (result.success) {
+      toast.success(result.message || 'Pendaftaran berhasil disetujui')
+      // Refresh the page to show updated status
+      router.refresh()
+    } else {
+      toast.error(result.error || 'Gagal menyetujui pendaftaran')
+    }
+  }
 
   return (
     <div className="text-center py-8">
@@ -2172,6 +2192,21 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
       )}
 
       <div className="space-y-3">
+        {/* Show approve button for admin when status is submitted */}
+        {canApprove && (
+          <div className="mb-4">
+            <Button
+              onClick={handleApprove}
+              className="bg-emerald-600 hover:bg-emerald-700 w-full"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Setujui Daftar Ulang
+            </Button>
+            <p className="text-xs text-gray-500 mt-2">
+              Menyetujui akan mengubah status menjadi 'approved', mengubah role dari 'calon_thalibah' menjadi 'thalibah', dan menambahkan thalibah ke halaqah.
+            </p>
+          </div>
+        )}
         <Button
           onClick={() => router.push('/perjalanan-saya')}
           className="bg-green-600 hover:bg-green-700"

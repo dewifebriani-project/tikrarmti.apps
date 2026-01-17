@@ -591,3 +591,135 @@ export async function uploadAkad(formData: FormData) {
     }
   }
 }
+
+export async function approveDaftarUlangSubmission(submissionId: string) {
+  const supabase = createClient()
+  const {
+    data: { user: authUser },
+    error: authError
+  } = await supabase.auth.getUser()
+
+  if (authError || !authUser) {
+    return { success: false, error: 'Unauthorized. Silakan login kembali.' }
+  }
+
+  try {
+    // 1. Check if current user is admin
+    const { data: currentUser, error: userError } = await supabase
+      .from('users')
+      .select('roles')
+      .eq('id', authUser.id)
+      .single()
+
+    if (userError || !currentUser?.roles?.includes('admin')) {
+      return { success: false, error: 'Anda tidak memiliki akses untuk menyetujui pendaftaran.' }
+    }
+
+    // 2. Get the submission with registration data
+    const { data: submission, error: submissionError } = await supabase
+      .from('daftar_ulang_submissions')
+      .select(`
+        *,
+        registration:pendaftaran_tikrar_tahfidz(
+          id,
+          user_id
+        )
+      `)
+      .eq('id', submissionId)
+      .single()
+
+    if (submissionError || !submission) {
+      return { success: false, error: 'Data pendaftaran tidak ditemukan.' }
+    }
+
+    if (submission.status !== 'submitted') {
+      return { success: false, error: 'Status pendaftaran tidak valid untuk disetujui.' }
+    }
+
+    // 3. Update submission status to 'approved'
+    const { error: updateError } = await supabase
+      .from('daftar_ulang_submissions')
+      .update({
+        status: 'approved',
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: authUser.id
+      })
+      .eq('id', submissionId)
+
+    if (updateError) {
+      console.error('Error updating submission:', updateError)
+      return { success: false, error: 'Gagal mengupdate status pendaftaran.' }
+    }
+
+    // 4. Update user role: remove 'calon_thalibah', add 'thalibah'
+    const userId = submission.user_id
+    const { data: userData, error: userDataError } = await supabase
+      .from('users')
+      .select('roles')
+      .eq('id', userId)
+      .single()
+
+    if (userDataError) {
+      console.error('Error fetching user roles:', userDataError)
+      return { success: false, error: 'Gagal mengambil data user.' }
+    }
+
+    const newRoles = userData.roles.filter((r: string) => r !== 'calon_thalibah')
+    if (!newRoles.includes('thalibah')) {
+      newRoles.push('thalibah')
+    }
+
+    const { error: roleUpdateError } = await supabase
+      .from('users')
+      .update({ roles: newRoles })
+      .eq('id', userId)
+
+    if (roleUpdateError) {
+      console.error('Error updating user role:', roleUpdateError)
+      return { success: false, error: 'Gagal mengupdate role user.' }
+    }
+
+    // 5. Add to halaqah_students for ujian and tashih halaqah
+    const halaqahEntries = []
+
+    if (submission.ujian_halaqah_id) {
+      halaqahEntries.push({
+        halaqah_id: submission.ujian_halaqah_id,
+        thalibah_id: userId,
+        assigned_by: authUser.id,
+        status: 'active'
+      })
+    }
+
+    if (submission.tashih_halaqah_id) {
+      halaqahEntries.push({
+        halaqah_id: submission.tashih_halaqah_id,
+        thalibah_id: userId,
+        assigned_by: authUser.id,
+        status: 'active'
+      })
+    }
+
+    if (halaqahEntries.length > 0) {
+      const { error: halaqahError } = await supabase
+        .from('halaqah_students')
+        .insert(halaqahEntries)
+
+      if (halaqahError) {
+        console.error('Error inserting into halaqah_students:', halaqahError)
+        return { success: false, error: 'Gagal menambahkan thalibah ke halaqah.' }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Pendaftaran berhasil disetujui. Role user telah diupdate dan thalibah telah ditambahkan ke halaqah.'
+    }
+  } catch (error: any) {
+    console.error('Approve daftar ulang error:', error)
+    return {
+      success: false,
+      error: error?.message || 'Terjadi kesalahan saat menyetujui pendaftaran'
+    }
+  }
+}
