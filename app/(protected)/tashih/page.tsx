@@ -31,6 +31,7 @@ interface TashihBlock {
 interface TashihData {
   blok: string
   lokasi: string
+  lokasiDetail: string
   ustadzahId: string | null
   ustadzahName: string | null
   masalahTajwid: string[]
@@ -84,6 +85,7 @@ export default function Tashih() {
   const [tashihData, setTashihData] = useState<TashihData>({
     blok: '',
     lokasi: 'mti',
+    lokasiDetail: '',
     ustadzahId: null,
     ustadzahName: null,
     masalahTajwid: [],
@@ -354,6 +356,7 @@ export default function Tashih() {
         setTashihData({
           blok: data[0].blok,
           lokasi: data[0].lokasi,
+          lokasiDetail: data[0].lokasi_detail || '',
           ustadzahId: data[0].ustadzah_id || null,
           ustadzahName: data[0].nama_pemeriksa || null,
           masalahTajwid: data[0].masalah_tajwid || [],
@@ -394,6 +397,7 @@ export default function Tashih() {
         user_id: user.id,
         blok: tashihData.blok,
         lokasi: tashihData.lokasi,
+        lokasi_detail: tashihData.lokasiDetail || null,
         ustadzah_id: tashihData.ustadzahId,
         nama_pemeriksa: tashihData.ustadzahName,
         masalah_tajwid: tashihData.masalahTajwid,
@@ -442,6 +446,7 @@ export default function Tashih() {
     setTashihData({
       blok: '',
       lokasi: 'mti',
+      lokasiDetail: '',
       ustadzahId: null,
       ustadzahName: null,
       masalahTajwid: [],
@@ -839,90 +844,149 @@ export default function Tashih() {
               <span>Lokasi & Ustadzah</span>
             </CardTitle>
             <CardDescription>
-              Lokasi tashih di Markaz Tikrar Indonesia. Pilih ustadzah yang akan memeriksa bacaan.
+              Pilih lokasi tashih dan ustadzah yang akan memeriksa bacaan.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
-            {/* Location */}
-            <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-100 rounded-full">
-                  <School className="h-5 w-5 text-emerald-600" />
+            {/* Location Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Pilih Lokasi Tashih <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* MTI Option */}
+                <div
+                  onClick={() => setTashihData(prev => ({ ...prev, lokasi: 'mti', lokasiDetail: '' }))}
+                  className={cn(
+                    "p-4 border-2 rounded-xl cursor-pointer transition-all duration-200",
+                    "hover:shadow-md hover:scale-[1.02]",
+                    tashihData.lokasi === 'mti'
+                      ? "border-emerald-500 bg-gradient-to-br from-emerald-50 to-teal-50 shadow-lg ring-2 ring-emerald-200"
+                      : "border-gray-200 hover:border-emerald-300 bg-white"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-100 rounded-full">
+                      <School className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">Markaz Tikrar Indonesia</p>
+                      <p className="text-xs text-gray-600">MTI Jakarta</p>
+                    </div>
+                    {tashihData.lokasi === 'mti' && <CheckCircle className="h-6 w-6 text-emerald-600" />}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-emerald-800">Markaz Tikrar Indonesia (MTI)</p>
-                  <p className="text-sm text-gray-600">Markaz Tikrar Indonesia</p>
+
+                {/* Luar MTI Option */}
+                <div
+                  onClick={() => setTashihData(prev => ({ ...prev, lokasi: 'luar' }))}
+                  className={cn(
+                    "p-4 border-2 rounded-xl cursor-pointer transition-all duration-200",
+                    "hover:shadow-md hover:scale-[1.02]",
+                    tashihData.lokasi === 'luar'
+                      ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200"
+                      : "border-gray-200 hover:border-blue-300 bg-white"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-full">
+                      <MapPin className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">Luar MTI</p>
+                      <p className="text-xs text-gray-600">Lokasi lain</p>
+                    </div>
+                    {tashihData.lokasi === 'luar' && <CheckCircle className="h-6 w-6 text-blue-600" />}
+                  </div>
                 </div>
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
               </div>
             </div>
 
-            {/* Ustadzah Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pilih Ustadzah <span className="text-red-500">*</span>
-              </label>
-              {isLoadingMuallimah ? (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Memuat daftar ustadzah...</span>
-                </div>
-              ) : (
-                <div className="relative z-50">
-                  <button
-                    type="button"
-                    onClick={() => setIsUstadzahDropdownOpen(!isUstadzahDropdownOpen)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-left flex items-center justify-between"
-                  >
-                    <span>
-                      {tashihData.ustadzahName ? tashihData.ustadzahName : 'Pilih ustadzah...'}
-                    </span>
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                  {isUstadzahDropdownOpen && availableMuallimah.length > 0 && (
-                    <div id="ustadzah-dropdown" className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                      <div className="p-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
-                            setIsUstadzahDropdownOpen(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
-                        >
-                          Pilih ustadzah lain
-                        </button>
-                        {availableMuallimah.map((muallimah) => (
+            {/* Lokasi Detail for Luar MTI */}
+            {tashihData.lokasi === 'luar' && (
+              <div className="animate-fadeIn">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Lokasi <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={tashihData.lokasiDetail}
+                  onChange={(e) => setTashihData(prev => ({ ...prev, lokasiDetail: e.target.value }))}
+                  placeholder="Contoh: Masjid Al-Falah, Rumah Ibu Fatimah, dll."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  required={tashihData.lokasi === 'luar'}
+                />
+              </div>
+            )}
+
+            {/* Ustadzah Dropdown - Only for MTI */}
+            {tashihData.lokasi === 'mti' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pilih Ustadzah <span className="text-red-500">*</span>
+                </label>
+                {isLoadingMuallimah ? (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Memuat daftar ustadzah...</span>
+                  </div>
+                ) : (
+                  <div className="relative z-50">
+                    <button
+                      type="button"
+                      onClick={() => setIsUstadzahDropdownOpen(!isUstadzahDropdownOpen)}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-left flex items-center justify-between"
+                    >
+                      <span>
+                        {tashihData.ustadzahName ? tashihData.ustadzahName : 'Pilih ustadzah...'}
+                      </span>
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    {isUstadzahDropdownOpen && availableMuallimah.length > 0 && (
+                      <div id="ustadzah-dropdown" className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        <div className="p-2">
                           <button
-                            key={muallimah.id}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                              setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
                               setIsUstadzahDropdownOpen(false)
                             }}
-                            className={cn(
-                              "w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
-                              tashihData.ustadzahId === muallimah.id
-                                ? "bg-emerald-100 text-emerald-700 font-medium"
-                                : "hover:bg-gray-50"
-                            )}
+                            className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
                           >
-                            {muallimah.full_name}
-                            {muallimah.preferred_juz && (
-                              <span className="block text-xs text-gray-500">
-                                (Juz {muallimah.preferred_juz})
-                              </span>
-                            )}
+                            Pilih ustadzah lain
                           </button>
-                        ))}
+                          {availableMuallimah.map((muallimah) => (
+                            <button
+                              key={muallimah.id}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                                setIsUstadzahDropdownOpen(false)
+                              }}
+                              className={cn(
+                                "w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
+                                tashihData.ustadzahId === muallimah.id
+                                  ? "bg-emerald-100 text-emerald-700 font-medium"
+                                  : "hover:bg-gray-50"
+                              )}
+                            >
+                              {muallimah.full_name}
+                              {muallimah.preferred_juz && (
+                                <span className="block text-xs text-gray-500">
+                                  (Juz {muallimah.preferred_juz})
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
