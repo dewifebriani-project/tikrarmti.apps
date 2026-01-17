@@ -104,6 +104,7 @@ export default function Tashih() {
     batchId: null,
     tashihHalaqahId: null
   })
+  const [debugInfo, setDebugInfo] = useState<any>(null)
   const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
   const [availableMuallimah, setAvailableMuallimah] = useState<MuallimahOption[]>([])
@@ -162,6 +163,15 @@ export default function Tashih() {
       console.log('daftarUlangSubmission:', daftarUlangSubmission)
       console.log('daftarUlangError:', daftarUlangError)
 
+      // Collect debug info
+      setDebugInfo({
+        userId: user.id,
+        daftarUlangSubmission,
+        daftarUlangError,
+        praTikrarReg: null,
+        praTikrarError: null
+      })
+
       if (daftarUlangSubmission) {
         // Get confirmed_chosen_juz from pendaftaran_tikrar_tahfidz
         let confirmedJuz = null
@@ -187,7 +197,7 @@ export default function Tashih() {
 
       // Priority 2: Check for Pra Tikrar (pendaftaran_tikrar_tahfidz with status 'selected')
       // ONLY if NOT in daftar_ulang_submissions
-      const { data: praTikrarReg } = await supabase
+      const { data: praTikrarReg, error: praTikrarError } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
           *,
@@ -199,6 +209,16 @@ export default function Tashih() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+
+      console.log('praTikrarReg:', praTikrarReg)
+      console.log('praTikrarError:', praTikrarError)
+
+      // Update debug info
+      setDebugInfo(prev => ({
+        ...prev,
+        praTikrarReg,
+        praTikrarError
+      }))
 
       if (praTikrarReg) {
         setUserProgramInfo({
@@ -495,16 +515,75 @@ export default function Tashih() {
 
   if (!userProgramInfo.programType) {
     return (
-      <div className="text-center py-12">
-        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">Belum Terdaftar di Program Aktif</h2>
-        <p className="text-gray-600 mb-6">
-          Ukhti belum terdaftar di program Tahfidz Tikrar MTI atau Pra Tikrar yang aktif.
-          Silakan hubungi admin jika sudah mendaftar.
-        </p>
-        <Link href="/dashboard">
-          <Button>Kembali ke Dashboard</Button>
-        </Link>
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Belum Terdaftar di Program Aktif</h2>
+          <p className="text-gray-600 mb-6">
+            Ukhti belum terdaftar di program Tahfidz Tikrar MTI atau Pra Tikrar yang aktif.
+            Silakan hubungi admin jika sudah mendaftar.
+          </p>
+          <Link href="/dashboard">
+            <Button>Kembali ke Dashboard</Button>
+          </Link>
+        </div>
+
+        {/* Debug Panel */}
+        {debugInfo && (
+          <Card className="max-w-4xl mx-auto bg-gray-50 border-gray-300">
+            <CardHeader>
+              <CardTitle className="text-sm font-mono">Debug Info - Program Detection</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4 text-xs font-mono">
+                <div>
+                  <span className="font-semibold">User ID: </span>
+                  <span className="ml-2">{debugInfo.userId}</span>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
+                  <div className="ml-4 space-y-1">
+                    <div>
+                      <span className="text-gray-500">Data: </span>
+                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                        {JSON.stringify(debugInfo.daftarUlangSubmission, null, 2)}
+                      </pre>
+                    </div>
+                    {debugInfo.daftarUlangError && (
+                      <div>
+                        <span className="text-gray-500">Error: </span>
+                        <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
+                          {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
+                  <div className="ml-4 space-y-1">
+                    <div>
+                      <span className="text-gray-500">Data: </span>
+                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                        {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
+                      </pre>
+                    </div>
+                    {debugInfo.praTikrarError && (
+                      <div>
+                        <span className="text-gray-500">Error: </span>
+                        <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
+                          {JSON.stringify(debugInfo.praTikrarError, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     )
   }
