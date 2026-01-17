@@ -710,6 +710,17 @@ export default function DaftarUlangPage() {
                               </span>
                             </div>
                             <div className="col-span-2">
+                              <span className="text-gray-500">Has daftar_ulang: </span>
+                              <span className={`font-medium ${reg.daftar_ulang ? 'text-purple-600' : 'text-red-600'}`}>
+                                {reg.daftar_ulang ? 'YES' : 'NO'}
+                              </span>
+                              {reg.daftar_ulang && (
+                                <span className="ml-2 text-purple-600 text-xs">
+                                  (status: {reg.daftar_ulang.status}, reg_id: {reg.daftar_ulang.registration_id?.slice(0, 8)}...)
+                                </span>
+                              )}
+                            </div>
+                            <div className="col-span-2">
                               <span className="text-gray-500">Pass Filter: </span>
                               <span className={`font-medium ${
                                 reg.selection_status === 'selected' && reg.role === 'calon_thalibah' && reg.batch?.status === 'open'
