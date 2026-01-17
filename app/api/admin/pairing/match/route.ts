@@ -231,19 +231,49 @@ export async function GET(request: Request) {
 
     console.log('[MATCH API] Total matches calculated:', matches.length)
 
-    // 8. Group by match type - updated thresholds for new scoring
-    const perfectMatches = matches.filter(m => m.match_score >= 110) // Zona + Juz + Waktu Utama cocok
-    const zonaJuzMatches = matches.filter(m => m.match_score >= 100 && m.match_score < 110) // Zona + Juz sama
-    const zonaMatches = matches.filter(m => m.match_score >= 50 && m.match_score < 100 && m.match_reasons.some(r => r.includes('Zona waktu'))) // Zona sama, juz beda
-    const juzMatches = matches.filter(m => m.match_score >= 50 && m.match_score < 100 && m.match_reasons.some(r => r.includes('Juz sama'))) // Juz sama, zona beda
-    const crossJuzMatches = matches.filter(m => m.match_score < 50) // Lintas juz dan zona
+    // 8. Group by match type - NEW PRIORITY ORDER
+    // Priority 1: Zona Waktu + Waktu Utama + Juz Sama (Perfect match)
+    // Priority 2: Zona Waktu + Waktu Utama + Juz Beda
+    // Priority 3: Zona Waktu + Waktu Cadangan + Juz Sama
+    // Priority 4: Zona Waktu + Waktu Cadangan + Juz Beda
+    // Priority 5: Lintas zona waktu
+
+    const zonaWaktuUtamaJuzMatches = matches.filter(m =>
+      m.match_reasons.some(r => r.includes('Zona waktu sama')) &&
+      m.match_reasons.some(r => r.includes('Waktu utama cocok')) &&
+      m.match_reasons.some(r => r.includes('Juz sama'))
+    ) // Zona + Waktu Utama + Juz Sama
+
+    const zonaWaktuUtamaJuzBedaMatches = matches.filter(m =>
+      m.match_reasons.some(r => r.includes('Zona waktu sama')) &&
+      m.match_reasons.some(r => r.includes('Waktu utama cocok')) &&
+      !m.match_reasons.some(r => r.includes('Juz sama'))
+    ) // Zona + Waktu Utama + Juz Beda
+
+    const zonaWaktuCadanganJuzMatches = matches.filter(m =>
+      m.match_reasons.some(r => r.includes('Zona waktu sama')) &&
+      m.match_reasons.some(r => r.includes('Waktu cadangan cocok')) &&
+      m.match_reasons.some(r => r.includes('Juz sama')) &&
+      !m.match_reasons.some(r => r.includes('Waktu utama cocok'))
+    ) // Zona + Waktu Cadangan + Juz Sama (tanpa waktu utama)
+
+    const zonaWaktuCadanganJuzBedaMatches = matches.filter(m =>
+      m.match_reasons.some(r => r.includes('Zona waktu sama')) &&
+      m.match_reasons.some(r => r.includes('Waktu cadangan cocok')) &&
+      !m.match_reasons.some(r => r.includes('Juz sama')) &&
+      !m.match_reasons.some(r => r.includes('Waktu utama cocok'))
+    ) // Zona + Waktu Cadangan + Juz Beda (tanpa waktu utama)
+
+    const crossZonaMatches = matches.filter(m =>
+      !m.match_reasons.some(r => r.includes('Zona waktu sama'))
+    ) // Lintas zona waktu
 
     console.log('[MATCH API] Match groups:', {
-      perfect: perfectMatches.length,
-      zona_juz: zonaJuzMatches.length,
-      zona_waktu: zonaMatches.length,
-      same_juz: juzMatches.length,
-      cross_juz: crossJuzMatches.length,
+      zona_waktu_utama_juz: zonaWaktuUtamaJuzMatches.length,
+      zona_waktu_utama_juz_beda: zonaWaktuUtamaJuzBedaMatches.length,
+      zona_waktu_cadangan_juz: zonaWaktuCadanganJuzMatches.length,
+      zona_waktu_cadangan_juz_beda: zonaWaktuCadanganJuzBedaMatches.length,
+      cross_zona: crossZonaMatches.length,
     })
 
     return NextResponse.json({
@@ -258,11 +288,11 @@ export async function GET(request: Request) {
           backup_time_slot: userBackupTimeSlot,
         },
         matches: {
-          perfect: perfectMatches,      // Zona + Juz + Waktu Utama cocok
-          zona_juz: zonaJuzMatches,     // Zona + Juz sama (waktu beda)
-          zona_waktu: zonaMatches,      // Zona waktu sama, juz beda
-          same_juz: juzMatches,         // Juz sama, zona beda
-          cross_juz: crossJuzMatches,   // Lintas juz dan zona
+          zona_waktu_utama_juz: zonaWaktuUtamaJuzMatches,      // Zona + Waktu Utama + Juz Sama
+          zona_waktu_utama_juz_beda: zonaWaktuUtamaJuzBedaMatches, // Zona + Waktu Utama + Juz Beda
+          zona_waktu_cadangan_juz: zonaWaktuCadanganJuzMatches, // Zona + Waktu Cadangan + Juz Sama
+          zona_waktu_cadangan_juz_beda: zonaWaktuCadanganJuzBedaMatches, // Zona + Waktu Cadangan + Juz Beda
+          cross_zona: crossZonaMatches,   // Lintas zona waktu
         },
         total_matches: matches.length,
       },

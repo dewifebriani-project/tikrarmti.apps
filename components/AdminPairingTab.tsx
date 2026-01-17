@@ -123,11 +123,11 @@ interface MatchData {
     backup_time_slot: string
   }
   matches: {
-    perfect: MatchCandidate[]      // Zona + Juz + Waktu Utama cocok
-    zona_juz: MatchCandidate[]     // Zona + Juz sama (waktu beda)
-    zona_waktu: MatchCandidate[]   // Zona waktu sama, juz beda
-    same_juz: MatchCandidate[]     // Juz sama, zona beda
-    cross_juz: MatchCandidate[]    // Lintas juz dan zona
+    zona_waktu_utama_juz: MatchCandidate[]      // Zona + Waktu Utama + Juz Sama
+    zona_waktu_utama_juz_beda: MatchCandidate[]   // Zona + Waktu Utama + Juz Beda
+    zona_waktu_cadangan_juz: MatchCandidate[]     // Zona + Waktu Cadangan + Juz Sama
+    zona_waktu_cadangan_juz_beda: MatchCandidate[] // Zona + Waktu Cadangan + Juz Beda
+    cross_zona: MatchCandidate[]                  // Lintas zona waktu
   }
   total_matches: number
 }
@@ -1615,56 +1615,56 @@ export function AdminPairingTab() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Perfect Matches - Zona + Juz + Waktu Utama cocok */}
-                  {matchData.matches.perfect.length > 0 && (
+                  {/* Priority 1: Zona + Waktu Utama + Juz Sama */}
+                  {matchData.matches.zona_waktu_utama_juz.length > 0 && (
                     <MatchTableSection
-                      title="Perfect Match (Zona + Juz + Waktu Utama Cocok)"
+                      title="Priority 1: Zona + Waktu Utama + Juz Sama"
                       color="green"
-                      candidates={matchData.matches.perfect}
+                      candidates={matchData.matches.zona_waktu_utama_juz}
                       selectedMatch={selectedMatch}
                       onSelectMatch={setSelectedMatch}
                     />
                   )}
 
-                  {/* Zona + Juz Matches - Zona + Juz sama tapi waktu beda */}
-                  {matchData.matches.zona_juz.length > 0 && (
+                  {/* Priority 2: Zona + Waktu Utama + Juz Beda */}
+                  {matchData.matches.zona_waktu_utama_juz_beda.length > 0 && (
                     <MatchTableSection
-                      title="Zona + Juz Sama (Waktu Beda)"
+                      title="Priority 2: Zona + Waktu Utama + Juz Beda"
                       color="emerald"
-                      candidates={matchData.matches.zona_juz}
+                      candidates={matchData.matches.zona_waktu_utama_juz_beda}
                       selectedMatch={selectedMatch}
                       onSelectMatch={setSelectedMatch}
                     />
                   )}
 
-                  {/* Zona Waktu Matches - Zona sama, juz beda */}
-                  {matchData.matches.zona_waktu.length > 0 && (
+                  {/* Priority 3: Zona + Waktu Cadangan + Juz Sama */}
+                  {matchData.matches.zona_waktu_cadangan_juz.length > 0 && (
                     <MatchTableSection
-                      title="Zona Waktu Sama (Juz Beda)"
+                      title="Priority 3: Zona + Waktu Cadangan + Juz Sama"
                       color="purple"
-                      candidates={matchData.matches.zona_waktu}
+                      candidates={matchData.matches.zona_waktu_cadangan_juz}
                       selectedMatch={selectedMatch}
                       onSelectMatch={setSelectedMatch}
                     />
                   )}
 
-                  {/* Same Juz Matches - Juz sama, zona beda */}
-                  {matchData.matches.same_juz.length > 0 && (
+                  {/* Priority 4: Zona + Waktu Cadangan + Juz Beda */}
+                  {matchData.matches.zona_waktu_cadangan_juz_beda.length > 0 && (
                     <MatchTableSection
-                      title="Juz Sama (Zona Beda)"
+                      title="Priority 4: Zona + Waktu Cadangan + Juz Beda"
                       color="blue"
-                      candidates={matchData.matches.same_juz}
+                      candidates={matchData.matches.zona_waktu_cadangan_juz_beda}
                       selectedMatch={selectedMatch}
                       onSelectMatch={setSelectedMatch}
                     />
                   )}
 
-                  {/* Cross Juz Matches - Lintas juz dan zona */}
-                  {matchData.matches.cross_juz.length > 0 && (
+                  {/* Priority 5: Lintas Zona Waktu */}
+                  {matchData.matches.cross_zona.length > 0 && (
                     <MatchTableSection
-                      title="Lintas Juz & Zona"
+                      title="Priority 5: Lintas Zona Waktu"
                       color="orange"
-                      candidates={matchData.matches.cross_juz}
+                      candidates={matchData.matches.cross_zona}
                       selectedMatch={selectedMatch}
                       onSelectMatch={setSelectedMatch}
                     />
