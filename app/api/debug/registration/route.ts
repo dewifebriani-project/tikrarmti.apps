@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from('batches')
         .select('id, name, status, start_date, end_date')
-        .order('start_date', 'desc')
+        .order('start_date', { ascending: false })
     ])
 
     // Call the main API
