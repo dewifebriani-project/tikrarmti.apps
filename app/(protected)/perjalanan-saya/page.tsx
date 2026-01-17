@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { useMyRegistrations } from '@/hooks/useRegistrations';
+import { useMyRegistrations, useAllRegistrations } from '@/hooks/useRegistrations';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,8 +56,8 @@ export default function PerjalananSaya() {
   const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
   const [hasSessionError, setHasSessionError] = useState(false);
 
-  // SWR hooks for data fetching
-  const { registrations, isLoading: registrationsLoading, error: registrationsError } = useMyRegistrations();
+  // SWR hooks for data fetching - useAllRegistrations to show ALL registrations (no batch filter)
+  const { registrations, isLoading: registrationsLoading, error: registrationsError } = useAllRegistrations();
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
 

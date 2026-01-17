@@ -43,7 +43,7 @@ export interface PendaftaranForm {
 }
 
 /**
- * Hook for fetching user's registrations
+ * Hook for fetching user's registrations (with batch filter - for dashboard)
  */
 export function useMyRegistrations() {
   const { data, error, isLoading, mutate } = useSWR<Pendaftaran[]>(
@@ -54,6 +54,30 @@ export function useMyRegistrations() {
       dedupingInterval: 60000, // 1 minute cache
       refreshInterval: 30000, // 30 seconds
       fallbackData: [], // Empty array as fallback
+    }
+  )
+
+  return {
+    registrations: data || [],
+    isLoading,
+    isError: !!error,
+    error,
+    mutate,
+  }
+}
+
+/**
+ * Hook for fetching ALL user registrations (no batch filter - for perjalanan-saya)
+ */
+export function useAllRegistrations() {
+  const { data, error, isLoading, mutate } = useSWR<Pendaftaran[]>(
+    '/api/pendaftaran/all',
+    getFetcher,
+    {
+      revalidateOnFocus: true,
+      dedupingInterval: 60000,
+      refreshInterval: 30000,
+      fallbackData: [],
     }
   )
 

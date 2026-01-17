@@ -231,9 +231,9 @@ export default function Tashih() {
         return
       }
 
-      // No program found
+      // No program found - Default to Pra Tikrar
       setUserProgramInfo({
-        programType: null,
+        programType: 'pra_tahfidz',
         confirmedChosenJuz: null,
         batchStartDate: null,
         batchId: null,
