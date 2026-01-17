@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, QuranIcon } from 'lucide-react'
+import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, BookCopy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -46,7 +46,8 @@ interface TashihRecord {
 interface UserProgramInfo {
   programType: 'tikrar_tahfidz' | 'pra_tahfidz' | 'muallimah' | null
   chosenJuz: string | null
-  batchStartDate: string | null
+  batchOpeningClassDate: string | null
+  batchId: string | null
   tashihHalaqahId: string | null
   isTashihUmum: boolean | null
   ustadzahName: string | null
@@ -111,7 +112,8 @@ export default function Tashih() {
   const [userProgramInfo, setUserProgramInfo] = useState<UserProgramInfo>({
     programType: null,
     chosenJuz: null,
-    batchStartDate: null,
+    batchOpeningClassDate: null,
+    batchId: null,
     tashihHalaqahId: null,
     isTashihUmum: null,
     ustadzahName: null,
@@ -156,7 +158,8 @@ export default function Tashih() {
         setUserProgramInfo({
           programType: 'muallimah',
           chosenJuz: muallimahReg.preferred_juz,
-          batchStartDate: muallimahReg.batch?.start_date || null,
+          batchOpeningClassDate: muallimahReg.batch?.opening_class_date || null,
+          batchId: muallimahReg.batch_id || null,
           tashihHalaqahId: null,
           isTashihUmum: null,
           ustadzahName: null,
@@ -165,32 +168,28 @@ export default function Tashih() {
         return
       }
 
-      // Check for tikrar or pra-tahfidz registration
-      const { data: tikrarReg } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
+      // Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
+      const { data: daftarUlangSubmission } = await supabase
+        .from('daftar_ulang_submissions')
         .select(`
           *,
-          program:programs(*),
+          registration:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey(
+            chosen_juz,
+            program:programs(*)
+          ),
           batch:batches(*)
         `)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .in('status', ['submitted', 'approved'])
+        .order('submitted_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (tikrarReg) {
-        // Check daftar ulang for tashih halaqah info
-        const { data: daftarUlang } = await supabase
-          .from('daftar_ulang_submissions')
-          .select('tashih_halaqah_id, is_tashih_umum')
-          .eq('registration_id', tikrarReg.id)
-          .eq('status', 'approved')
-          .maybeSingle()
-
+      if (daftarUlangSubmission) {
         let ustadzahName = null
         let halaqahMentors = null
 
-        if (daftarUlang?.tashih_halaqah_id && !daftarUlang.is_tashih_umum) {
+        if (daftarUlangSubmission.tashih_halaqah_id && !daftarUlangSubmission.is_tashih_umum) {
           // Get halaqah info
           const { data: halaqah } = await supabase
             .from('halaqah')
@@ -203,7 +202,7 @@ export default function Tashih() {
                 is_primary
               )
             `)
-            .eq('id', daftarUlang.tashih_halaqah_id)
+            .eq('id', daftarUlangSubmission.tashih_halaqah_id)
             .maybeSingle()
 
           if (halaqah) {
@@ -216,15 +215,57 @@ export default function Tashih() {
         }
 
         setUserProgramInfo({
-          programType: tikrarReg.program?.class_type === 'pra_tahfidz' ? 'pra_tahfidz' : 'tikrar_tahfidz',
-          chosenJuz: tikrarReg.chosen_juz,
-          batchStartDate: tikrarReg.batch?.start_date || null,
-          tashihHalaqahId: daftarUlang?.tashih_halaqah_id || null,
-          isTashihUmum: daftarUlang?.is_tashih_umum || null,
+          programType: 'tikrar_tahfidz',
+          chosenJuz: daftarUlangSubmission.registration?.chosen_juz || null,
+          batchOpeningClassDate: daftarUlangSubmission.batch?.opening_class_date || null,
+          batchId: daftarUlangSubmission.batch_id || null,
+          tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null,
+          isTashihUmum: daftarUlangSubmission.is_tashih_umum || null,
           ustadzahName,
           halaqahMentors
         })
+        return
       }
+
+      // Check for Pra Tikrar (pendaftaran with status 'selected')
+      const { data: praTikrarReg } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select(`
+          *,
+          program:programs(*),
+          batch:batches(*)
+        `)
+        .eq('user_id', user.id)
+        .eq('selection_status', 'selected')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (praTikrarReg) {
+        setUserProgramInfo({
+          programType: 'pra_tahfidz',
+          chosenJuz: praTikrarReg.chosen_juz,
+          batchOpeningClassDate: praTikrarReg.batch?.opening_class_date || null,
+          batchId: praTikrarReg.batch_id || null,
+          tashihHalaqahId: null,
+          isTashihUmum: null,
+          ustadzahName: null,
+          halaqahMentors: null
+        })
+        return
+      }
+
+      // No program found
+      setUserProgramInfo({
+        programType: null,
+        chosenJuz: null,
+        batchOpeningClassDate: null,
+        batchId: null,
+        tashihHalaqahId: null,
+        isTashihUmum: null,
+        ustadzahName: null,
+        halaqahMentors: null
+      })
     } catch (error) {
       console.error('Error loading user program info:', error)
     }
@@ -425,14 +466,14 @@ export default function Tashih() {
 
   // Get min date for datetime input based on program type
   const getMinDateTime = () => {
-    if (userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.batchStartDate) {
-      return userProgramInfo.batchStartDate
+    if (userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.batchOpeningClassDate) {
+      return userProgramInfo.batchOpeningClassDate
     }
     // For pra_tahfidz and muallimah, no min date restriction
     return ''
   }
 
-  // Get max date (today)
+  // Get max date (today) - user cannot select future dates
   const getMaxDateTime = () => {
     return new Date().toISOString().slice(0, 16)
   }
@@ -595,7 +636,7 @@ export default function Tashih() {
         return {
           title: 'Tahfidz Tikrar MTI',
           description: 'Program Tahfidz dengan sistem Tikrar',
-          icon: <QuranIcon className="h-6 w-6" />,
+          icon: <BookCopy className="h-6 w-6" />,
           color: 'from-emerald-500 to-green-600'
         }
       case 'pra_tahfidz':
@@ -626,7 +667,7 @@ export default function Tashih() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-green-army mb-2">Tashih Bacaan</h1>
-            <p className="text-gray-600">Validasi bacaan Al-Quran Ukhti</p>
+            <p className="text-gray-600">Validasi bacaan Al-BookCopy Ukhti</p>
             {programDisplay && (
               <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-emerald-200">
                 <span className={cn(
@@ -722,7 +763,7 @@ export default function Tashih() {
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
             <CardTitle className="flex items-center gap-2 text-green-army">
-              <QuranIcon className="h-5 w-5" />
+              <BookCopy className="h-5 w-5" />
               <span>Pilih Juz yang Ditashih</span>
             </CardTitle>
             <CardDescription>
@@ -931,8 +972,10 @@ export default function Tashih() {
               <span>Waktu Tashih</span>
             </CardTitle>
             <CardDescription>
-              {userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.batchStartDate
-                ? `Dimulai dari tanggal ${new Date(userProgramInfo.batchStartDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`
+              {userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.batchOpeningClassDate
+                ? `Dimulai dari tanggal kelas dibuka (${new Date(userProgramInfo.batchOpeningClassDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}), maksimal hari ini`
+                : userProgramInfo.programType === 'tikrar_tahfidz'
+                ? 'Maksimal hari ini'
                 : 'Kapan Ukhti melakukan tashih bacaan'}
             </CardDescription>
           </CardHeader>
