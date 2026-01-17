@@ -868,7 +868,7 @@ export default function Tashih() {
                   <span>Memuat daftar ustadzah...</span>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="relative z-50">
                   <button
                     type="button"
                     onClick={() => setIsUstadzahDropdownOpen(!isUstadzahDropdownOpen)}
@@ -880,7 +880,7 @@ export default function Tashih() {
                     <ChevronDown className="h-4 w-4" />
                   </button>
                   {isUstadzahDropdownOpen && availableMuallimah.length > 0 && (
-                    <div id="ustadzah-dropdown" className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    <div id="ustadzah-dropdown" className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                       <div className="p-2">
                         <button
                           type="button"
