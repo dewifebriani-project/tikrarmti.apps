@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, BookCopy, ChevronDown } from 'lucide-react'
+import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, BookCopy, ChevronDown, ShieldCheck, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -144,6 +144,30 @@ export default function Tashih() {
 
       if (!user) {
         router.push('/login')
+        return
+      }
+
+      // Check user roles - admin and muallimah should have access
+      const { data: userData } = await supabase
+        .from('users')
+        .select('roles')
+        .eq('id', user.id)
+        .single()
+
+      const userRoles = userData?.roles || []
+      const isAdmin = userRoles.includes('admin')
+      const isMuallimah = userRoles.includes('muallimah')
+
+      // Admin and muallimah get full access to tashih
+      if (isAdmin || isMuallimah) {
+        setUserProgramInfo({
+          programType: isAdmin ? 'admin' : 'muallimah',
+          confirmedChosenJuz: null,
+          batchStartDate: null,
+          batchId: null,
+          tashihHalaqahId: null
+        })
+        setIsLoading(false)
         return
       }
 
@@ -705,6 +729,20 @@ export default function Tashih() {
           description: 'Program persiapan Tikrar Tahfidz',
           icon: <BookOpen className="h-6 w-6" />,
           color: 'from-blue-500 to-indigo-600'
+        }
+      case 'admin':
+        return {
+          title: 'Administrator',
+          description: 'Akses penuh ke halaman Tashih',
+          icon: <ShieldCheck className="h-6 w-6" />,
+          color: 'from-purple-500 to-violet-600'
+        }
+      case 'muallimah':
+        return {
+          title: 'Muallimah',
+          description: 'Akses muallimah ke halaman Tashih',
+          icon: <GraduationCap className="h-6 w-6" />,
+          color: 'from-amber-500 to-orange-600'
         }
       default:
         return null
