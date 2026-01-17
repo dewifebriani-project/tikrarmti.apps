@@ -95,6 +95,10 @@ export async function GET(request: NextRequest) {
       user_id: user.id,
       user_email: user.email,
       timestamp: new Date().toISOString(),
+      raw_tikrar_count: tikrarRegs?.length || 0,
+      raw_daftar_ulang_count: daftarUlangSubs?.length || 0,
+      tikrar_error: tikrarError?.message,
+      daftar_ulang_error: daftarUlangError?.message,
       ...analysis
     })
 
