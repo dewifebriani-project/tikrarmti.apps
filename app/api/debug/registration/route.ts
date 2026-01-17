@@ -58,30 +58,30 @@ export async function GET(request: NextRequest) {
         roles: user.user_metadata?.roles || []
       },
       registrationsByUserId: {
-        count: directRegistrations?.length || 0,
-        data: directRegistrations?.map((r: any) => ({
+        count: directRegistrations.data?.length || 0,
+        data: directRegistrations.data?.map((r: any) => ({
           id: r.id,
           status: r.status,
           selection_status: r.selection_status,
           batch_id: r.batch_id,
           batch_name: r.batch?.name || null,
           batch_status: r.batch?.status || null
-        }))
+        })) || []
       },
       muallimahRegistrations: {
-        count: muallimahRegistrations?.length || 0,
-        data: muallimahRegistrations?.map((r: any) => ({
+        count: muallimahRegistrations.data?.length || 0,
+        data: muallimahRegistrations.data?.map((r: any) => ({
           id: r.id,
           status: r.status,
           batch_id: r.batch_id,
           batch_name: r.batch?.name || null,
           batch_status: r.batch?.status || null,
           preferred_juz: r.preferred_juz
-        }))
+        })) || []
       },
       daftarUlangSubmissions: {
-        count: daftarUlangSubmissions?.length || 0,
-        data: daftarUlangSubmissions?.map((d: any) => ({
+        count: daftarUlangSubmissions.data?.length || 0,
+        data: daftarUlangSubmissions.data?.map((d: any) => ({
           id: d.id,
           status: d.status,
           registration_id: d.registration_id,
@@ -90,17 +90,17 @@ export async function GET(request: NextRequest) {
           tashih_halaqah_id: d.tashih_halaqah_id,
           ujian_halaqah_id: d.ujian_halaqah_id,
           akad_files_count: d.akad_files?.length || 0
-        }))
+        })) || []
       },
       allBatches: {
-        count: allBatches?.length || 0,
-        data: allBatches?.map((b: any) => ({
+        count: allBatches.data?.length || 0,
+        data: allBatches.data?.map((b: any) => ({
           id: b.id,
           name: b.name,
           status: b.status,
           start_date: b.start_date,
           end_date: b.end_date
-        }))
+        })) || []
       },
       apiResponse: {
         status: apiResponse.status,
