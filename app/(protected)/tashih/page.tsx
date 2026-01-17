@@ -147,7 +147,7 @@ export default function Tashih() {
       }
 
       // Priority 1: Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
-      const { data: daftarUlangSubmission } = await supabase
+      const { data: daftarUlangSubmission, error: daftarUlangError } = await supabase
         .from('daftar_ulang_submissions')
         .select(`
           *,
@@ -160,6 +160,7 @@ export default function Tashih() {
         .maybeSingle()
 
       console.log('daftarUlangSubmission:', daftarUlangSubmission)
+      console.log('daftarUlangError:', daftarUlangError)
 
       if (daftarUlangSubmission) {
         // Get confirmed_chosen_juz from pendaftaran_tikrar_tahfidz
@@ -497,7 +498,10 @@ export default function Tashih() {
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-gray-800 mb-2">Belum Terdaftar di Program Aktif</h2>
-        <p className="text-gray-600 mb-6">Ukhti belum terdaftar di program Tahfidz Tikrar MTI, Pra Tikrar, atau Kaderisasi Muallimah yang aktif.</p>
+        <p className="text-gray-600 mb-6">
+          Ukhti belum terdaftar di program Tahfidz Tikrar MTI atau Pra Tikrar yang aktif.
+          Silakan hubungi admin jika sudah mendaftar.
+        </p>
         <Link href="/dashboard">
           <Button>Kembali ke Dashboard</Button>
         </Link>
