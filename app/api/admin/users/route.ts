@@ -60,6 +60,15 @@ export async function GET(request: NextRequest) {
             selection_status,
             re_enrollment_completed
           ),
+          daftar_ulang_submissions:daftar_ulang_submissions!daftar_ulang_submissions_user_id_fkey(
+            id,
+            user_id,
+            batch_id,
+            registration_id,
+            status,
+            submitted_at,
+            reviewed_at
+          ),
           muallimah_registrations:muallimah_registrations!muallimah_registrations_user_id_fkey(
             id,
             batch_id,

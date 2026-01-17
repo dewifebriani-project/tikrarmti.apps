@@ -154,6 +154,15 @@ interface User {
       status: string;
     };
   }>;
+  daftar_ulang_submissions?: Array<{
+    id: string;
+    user_id: string;
+    batch_id: string;
+    registration_id: string;
+    status: string;
+    submitted_at: string;
+    reviewed_at?: string;
+  }>;
   muallimah_registrations?: Array<{
     id: string;
     batch_id: string;
@@ -2099,15 +2108,27 @@ function UsersTab({
   // Admin: roles includes 'admin'
   const adminUsers = users.filter(u => u.roles?.includes('admin'));
 
-  // Thalibah: has tikrar registration with re_enrollment_completed=true (sudah daftar ulang)
+  // Thalibah: has 'thalibah' role OR has re-enrolled registration OR has approved daftar_ulang submission
   const thalibahUsers = users.filter(u => {
+    // Check if user has thalibah role
+    const hasThalibahRole = u.roles?.includes('thalibah');
+    if (hasThalibahRole) return true;
+
+    // Check if user has re-enrolled registration
     const hasTikrar = u.tikrar_registrations && u.tikrar_registrations.length > 0;
-    if (!hasTikrar) return false;
-    // Check if user has at least one re-enrolled registration
-    const hasReEnrolled = u.tikrar_registrations!.some(reg =>
-      reg.re_enrollment_completed === true
-    );
-    return hasReEnrolled;
+    if (hasTikrar) {
+      const hasReEnrolled = u.tikrar_registrations!.some(reg =>
+        reg.re_enrollment_completed === true
+      );
+      if (hasReEnrolled) return true;
+    }
+
+    // Check if user has approved daftar_ulang submission
+    const hasApprovedDaftarUlang = u.daftar_ulang_submissions &&
+      u.daftar_ulang_submissions.some((sub: any) => sub.status === 'approved');
+    if (hasApprovedDaftarUlang) return true;
+
+    return false;
   });
 
   // Muallimah: has muallimah_registration OR role='ustadzah'
