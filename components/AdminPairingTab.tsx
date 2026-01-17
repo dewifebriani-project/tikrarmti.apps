@@ -1247,16 +1247,21 @@ export function AdminPairingTab() {
             </h3>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">{systemMatchRequests.length} permintaan</span>
-              {systemMatchRequests.some(r => !r.is_paired) && (
-                <button
-                  onClick={handleBulkPair}
-                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1.5 text-xs font-medium shadow-sm"
-                  title="Pasangkan otomatis sesuai prioritas"
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  Cari Pasangan Massal
-                </button>
-              )}
+              <button
+                onClick={handleBulkPair}
+                disabled={!systemMatchRequests.some(r => !r.is_paired)}
+                className={`px-3 py-1.5 text-white rounded-lg flex items-center gap-1.5 text-xs font-medium shadow-sm ${
+                  systemMatchRequests.some(r => !r.is_paired)
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-gray-400 cursor-not-allowed'
+                }`}
+                title={systemMatchRequests.some(r => !r.is_paired)
+                  ? "Pasangkan otomatis sesuai prioritas"
+                  : "Semua user sudah berpasangan"}
+              >
+                <Users className="w-3.5 h-3.5" />
+                Cari Pasangan Massal
+              </button>
               {systemMatchRequests.some(r => r.is_paired) && (
                 <button
                   onClick={handleRevertAllPairings}
