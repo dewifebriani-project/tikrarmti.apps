@@ -103,7 +103,23 @@ export async function GET(request: Request) {
       hasRegistrations: !!userData.registrations,
     })
 
-    // 4. Fetch all potential candidates (selected thalibah who requested system_match)
+    // 4. Fetch existing pairings to exclude already paired users
+    const { data: existingPairings } = await supabase
+      .from('study_partners')
+      .select('user_1_id, user_2_id')
+      .eq('batch_id', batchId)
+      .eq('pairing_status', 'active')
+
+    // Create a set of already paired user IDs
+    const pairedUserIds = new Set<string>()
+    for (const pairing of existingPairings || []) {
+      pairedUserIds.add(pairing.user_1_id)
+      pairedUserIds.add(pairing.user_2_id)
+    }
+
+    console.log('[MATCH API] Paired users to exclude:', pairedUserIds.size)
+
+    // 5. Fetch all potential candidates (selected thalibah who requested system_match)
     const { data: submissions, error: submissionsError } = await supabase
       .from('daftar_ulang_submissions')
       .select('user_id')
@@ -114,10 +130,13 @@ export async function GET(request: Request) {
 
     if (submissionsError) throw submissionsError
 
-    console.log('[MATCH API] Submissions found:', submissions?.length || 0)
+    // Filter out already paired users
+    const availableSubmissions = (submissions || []).filter(s => !pairedUserIds.has(s.user_id))
 
-    // Get all user_ids from submissions
-    const userIds = (submissions || []).map(s => s.user_id)
+    console.log('[MATCH API] Submissions found:', submissions?.length || 0, 'After filtering paired:', availableSubmissions.length)
+
+    // Get all user_ids from available submissions
+    const userIds = availableSubmissions.map(s => s.user_id)
     console.log('[MATCH API] User IDs to fetch:', userIds)
 
     // Fetch user data for all candidates
@@ -145,10 +164,10 @@ export async function GET(request: Request) {
     const usersMap = new Map((usersData || []).map(u => [u.id, u]))
     const registrationsMap = new Map((registrationsData || []).map(r => [r.user_id, r]))
 
-    // 5. Calculate matches with scoring
+    // 6. Calculate matches with scoring
     const matches = []
 
-    for (const submission of submissions || []) {
+    for (const submission of availableSubmissions) {
       const user = usersMap.get(submission.user_id)
       const registration = registrationsMap.get(submission.user_id)
 
@@ -207,12 +226,12 @@ export async function GET(request: Request) {
       })
     }
 
-    // 6. Sort by score (highest first)
+    // 7. Sort by score (highest first)
     matches.sort((a, b) => b.match_score - a.match_score)
 
     console.log('[MATCH API] Total matches calculated:', matches.length)
 
-    // 7. Group by match type - updated thresholds for new scoring
+    // 8. Group by match type - updated thresholds for new scoring
     const perfectMatches = matches.filter(m => m.match_score >= 110) // Zona + Juz + Waktu Utama cocok
     const zonaJuzMatches = matches.filter(m => m.match_score >= 100 && m.match_score < 110) // Zona + Juz sama
     const zonaMatches = matches.filter(m => m.match_score >= 50 && m.match_score < 100 && m.match_reasons.some(r => r.includes('Zona waktu'))) // Zona sama, juz beda

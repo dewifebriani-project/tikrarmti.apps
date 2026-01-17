@@ -53,6 +53,10 @@ interface SystemMatchRequest {
   cross_juz_matches: number
   main_time_matches: number
   backup_time_matches: number
+  // Pairing info
+  is_paired: boolean
+  partner_name: string | null
+  partner_user_id: string | null
 }
 
 interface TarteelRequest {
@@ -1061,6 +1065,9 @@ export function AdminPairingTab() {
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_name')}>
                       Nama {sortConfig.key === 'user_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pasangan
+                    </th>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('chosen_juz')}>
                       Juz {sortConfig.key === 'chosen_juz' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
@@ -1095,9 +1102,18 @@ export function AdminPairingTab() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {sortedSystemMatchRequests.map((request) => (
-                    <tr key={request.id} className="hover:bg-gray-50">
+                    <tr key={request.id} className={`hover:bg-gray-50 ${request.is_paired ? 'bg-green-50' : ''}`}>
                       <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                         {request.user_name}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm">
+                        {request.is_paired ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                            {request.partner_name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Belum ada</span>
+                        )}
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
                         <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
@@ -1147,13 +1163,17 @@ export function AdminPairingTab() {
                         </span>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
-                        <button
-                          onClick={() => handleFindMatches(request)}
-                          className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs mx-auto"
-                        >
-                          <Search className="w-3.5 h-3.5" />
-                          Cari
-                        </button>
+                        {!request.is_paired ? (
+                          <button
+                            onClick={() => handleFindMatches(request)}
+                            className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs mx-auto"
+                          >
+                            <Search className="w-3.5 h-3.5" />
+                            Cari
+                          </button>
+                        ) : (
+                          <span className="text-green-600 text-xs font-medium">Sudah berpasangan</span>
+                        )}
                       </td>
                     </tr>
                   ))}

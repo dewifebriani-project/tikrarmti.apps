@@ -135,6 +135,32 @@ export async function GET(request: Request) {
     // Convert Map to Array for iteration
     const uniqueSubmissionsArray = Array.from(uniqueUserSubmissions.values())
 
+    // 4.5. Fetch all existing pairings for this batch
+    const { data: existingPairings } = await supabase
+      .from('study_partners')
+      .select('user_1_id, user_2_id')
+      .eq('batch_id', batchId || '')
+      .eq('pairing_status', 'active')
+
+    // Create a map to quickly check if a user is already paired and who their partner is
+    const pairedUsersMap = new Map<string, string>() // user_id -> partner_user_id
+    for (const pairing of existingPairings || []) {
+      pairedUsersMap.set(pairing.user_1_id, pairing.user_2_id)
+      pairedUsersMap.set(pairing.user_2_id, pairing.user_1_id)
+    }
+
+    console.log('[PAIRING API] Existing pairings:', pairedUsersMap.size, 'users already paired')
+
+    // Fetch user data for all paired users to get their names
+    const pairedUserIds = Array.from(pairedUsersMap.keys())
+    const { data: pairedUsersData } = await supabase
+      .from('users')
+      .select('id, full_name')
+      .in('id', pairedUserIds)
+
+    // Create a map of user_id -> full_name for paired users
+    const pairedUserNamesMap = new Map((pairedUsersData || []).map(u => [u.id, u.full_name]))
+
     // 5. Build a map of all self-match requests for mutual match detection
     const selfMatchMap = new Map<string, any>()
     const processedMutualMatches = new Set<string>() // Track processed mutual matches to avoid duplicates
@@ -258,16 +284,24 @@ export async function GET(request: Request) {
           })
         }
       } else if (submission.partner_type === 'system_match') {
+        // Check if this user is already paired
+        const partnerUserId = pairedUsersMap.get(submission.user_id)
+        const partnerName = partnerUserId ? (pairedUserNamesMap.get(partnerUserId) || 'Unknown') : null
+
         // Calculate matching statistics for this user
         const matchStats = await calculateMatchingStatistics(
           submission.user_id,
           submission.batch_id,
           registrations?.[0],
-          submissions
+          submissions,
+          pairedUsersMap // Exclude already paired users from statistics
         )
 
         systemMatchRequests.push({
           ...requestData,
+          partner_name: partnerName,
+          partner_user_id: partnerUserId,
+          is_paired: !!partnerUserId,
           ...matchStats
         })
       } else if (submission.partner_type === 'tarteel') {
@@ -343,7 +377,8 @@ async function calculateMatchingStatistics(
   userId: string,
   batchId: string,
   userRegistration: any,
-  allSubmissions: any[]
+  allSubmissions: any[],
+  pairedUsersMap?: Map<string, string> // Map of users who are already paired
 ) {
   const supabase = createClient()
 
@@ -351,7 +386,8 @@ async function calculateMatchingStatistics(
   const otherUsers = allSubmissions.filter(
     s => s.partner_type === 'system_match' &&
            s.status === 'submitted' &&
-           s.user_id !== userId
+           s.user_id !== userId &&
+           !pairedUsersMap?.has(s.user_id) // Exclude already paired users
   )
 
   const otherUserIds = otherUsers.map(s => s.user_id)
