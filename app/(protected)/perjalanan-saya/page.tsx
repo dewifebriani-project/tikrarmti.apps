@@ -664,17 +664,37 @@ export default function PerjalananSaya() {
                       size="sm"
                       variant="outline"
                       onClick={async () => {
-                        console.log('Opening debug API...');
+                        console.log('=== PERJALANAN SAYA DEBUG ===');
                         try {
-                          // API handles auth server-side via cookies (no client-side auth check)
-                          // Follows arsitektur.md: No client-side auth checks
                           const response = await fetch('/api/debug/registration', {
                             credentials: 'include'
                           });
 
                           const data = await response.json();
-                          console.log('Debug data:', data);
-                          alert(`Debug info logged to console. User ID: ${data.userInfo?.id}, Email: ${data.userInfo?.email}, Registrations by user_id: ${data.registrationsByUserId?.count}, by email: ${data.registrationsByEmail?.count}`);
+                          console.log('=== DEBUG DATA ===');
+                          console.log('User Info:', data.userInfo);
+                          console.log('Tikrar Registrations:', data.tikrarRegistrations);
+                          console.log('Muallimah Registrations:', data.muallimahRegistrations);
+                          console.log('Musyrifah Registrations:', data.musyrifahRegistrations);
+                          console.log('Daftar Ulang Submissions:', data.daftarUlangSubmissions);
+                          console.log('All Batches:', data.allBatches);
+                          console.log('API Response:', data.apiResponse);
+                          console.log('Summary:', data.summary);
+
+                          const tikrarCount = data.tikrarRegistrations?.count || 0;
+                          const muallimahCount = data.muallimahRegistrations?.count || 0;
+                          const hasOpenBatch = data.summary?.hasOpenBatch;
+                          const hasAnyValidBatch = data.summary?.hasAnyValidBatch;
+
+                          let message = `User: ${data.userInfo?.email}\n`;
+                          message += `Roles: ${data.userInfo?.roles?.join(', ') || 'none'}\n\n`;
+                          message += `Tikrar Registrations: ${tikrarCount}\n`;
+                          message += `Muallimah Registrations: ${muallimahCount}\n`;
+                          message += `Has Open Batch: ${hasOpenBatch ? 'YES' : 'NO'}\n`;
+                          message += `Has Any Valid Batch: ${hasAnyValidBatch ? 'YES' : 'NO'}\n\n`;
+                          message += `Check browser console for full details.`;
+
+                          alert(message);
                         } catch (err) {
                           console.error('Debug error:', err);
                           alert('Error getting debug info. Check console.');
