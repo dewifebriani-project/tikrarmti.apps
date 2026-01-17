@@ -20,12 +20,17 @@ interface JuzOption {
   end_page: number
 }
 
+interface TashihBlock {
+  block_code: string
+  week_number: number
+  part: string
+  start_page: number
+  end_page: number
+}
+
 interface TashihData {
-  juzCode: string
   blok: string
   lokasi: string
-  lokasiDetail: string
-  namaPemeriksa: string
   masalahTajwid: string[]
   catatanTambahan: string
   waktuTashih: string
@@ -45,39 +50,13 @@ interface TashihRecord {
 
 interface UserProgramInfo {
   programType: 'tikrar_tahfidz' | 'pra_tahfidz' | 'muallimah' | null
-  chosenJuz: string | null
-  batchOpeningClassDate: string | null
+  confirmedChosenJuz: string | null
+  batchStartDate: string | null
   batchId: string | null
   tashihHalaqahId: string | null
-  isTashihUmum: boolean | null
   ustadzahName: string | null
   halaqahMentors: Array<{ name: string; role: string }> | null
 }
-
-// Generate block options from juz code and page
-const generateBlocksFromJuz = (juzCode: string, startPage: number, endPage: number): Array<{ id: string; name: string; description: string }> => {
-  const blocks: Array<{ id: string; name: string; description: string }> = []
-  const totalPages = endPage - startPage + 1
-  const pagesPerBlock = Math.ceil(totalPages / 4)
-
-  for (let i = 0; i < 4; i++) {
-    const blockStart = startPage + (i * pagesPerBlock)
-    const blockEnd = Math.min(startPage + ((i + 1) * pagesPerBlock) - 1, endPage)
-    const blockId = `${juzCode}${String.fromCharCode(97 + i)}` // H1a, H1b, H1c, H1d
-    blocks.push({
-      id: blockId,
-      name: blockId.toUpperCase(),
-      description: `Halaman ${blockStart}-${blockEnd}`
-    })
-  }
-
-  return blocks
-}
-
-const lokasiOptions = [
-  { id: 'mti', name: 'MTI', description: 'Markaz Tikrar Indonesia', icon: 'building' },
-  { id: 'luar', name: 'Luar MTI', description: 'Di luar Markaz Tikrar Indonesia', icon: 'mapPin' }
-]
 
 const masalahTajwidOptions = [
   { id: 'mad', name: 'Mad', description: 'Masalah panjang pendek', color: 'bg-blue-50' },
@@ -95,11 +74,8 @@ const masalahTajwidOptions = [
 export default function Tashih() {
   const router = useRouter()
   const [tashihData, setTashihData] = useState<TashihData>({
-    juzCode: '',
     blok: '',
-    lokasi: '',
-    lokasiDetail: '',
-    namaPemeriksa: '',
+    lokasi: 'mti', // Default to MTI only
     masalahTajwid: [],
     catatanTambahan: '',
     waktuTashih: new Date().toISOString().slice(0, 16)
@@ -111,28 +87,34 @@ export default function Tashih() {
   const [isValid, setIsValid] = useState(false)
   const [userProgramInfo, setUserProgramInfo] = useState<UserProgramInfo>({
     programType: null,
-    chosenJuz: null,
-    batchOpeningClassDate: null,
+    confirmedChosenJuz: null,
+    batchStartDate: null,
     batchId: null,
     tashihHalaqahId: null,
-    isTashihUmum: null,
     ustadzahName: null,
     halaqahMentors: null
   })
-  const [juzOptions, setJuzOptions] = useState<JuzOption[]>([])
+  const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
+  const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
 
-  // Load user program info and juz options on mount
+  // Load user program info on mount
   useEffect(() => {
     loadUserProgramInfo()
-    loadJuzOptions()
   }, [])
 
-  // Load today's tashih record
+  // Load blocks when user program info is available
   useEffect(() => {
-    if (userProgramInfo.programType !== null) {
-      loadTodayRecord()
+    if (userProgramInfo.programType && userProgramInfo.confirmedChosenJuz) {
+      loadAvailableBlocks()
     }
   }, [userProgramInfo])
+
+  // Load today's tashih record after blocks are loaded
+  useEffect(() => {
+    if (availableBlocks.length > 0 || userProgramInfo.programType) {
+      loadTodayRecord()
+    }
+  }, [availableBlocks])
 
   const loadUserProgramInfo = async () => {
     try {
@@ -155,13 +137,13 @@ export default function Tashih() {
         .maybeSingle()
 
       if (muallimahReg) {
+        // For muallimah, get preferred_juz as confirmed juz
         setUserProgramInfo({
           programType: 'muallimah',
-          chosenJuz: muallimahReg.preferred_juz,
-          batchOpeningClassDate: muallimahReg.batch?.opening_class_date || null,
+          confirmedChosenJuz: muallimahReg.preferred_juz,
+          batchStartDate: muallimahReg.batch?.start_date || null,
           batchId: muallimahReg.batch_id || null,
           tashihHalaqahId: null,
-          isTashihUmum: null,
           ustadzahName: null,
           halaqahMentors: null
         })
@@ -174,8 +156,7 @@ export default function Tashih() {
         .select(`
           *,
           registration:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey(
-            chosen_juz,
-            program:programs(*)
+            confirmed_chosen_juz
           ),
           batch:batches(*)
         `)
@@ -216,11 +197,10 @@ export default function Tashih() {
 
         setUserProgramInfo({
           programType: 'tikrar_tahfidz',
-          chosenJuz: daftarUlangSubmission.registration?.chosen_juz || null,
-          batchOpeningClassDate: daftarUlangSubmission.batch?.opening_class_date || null,
+          confirmedChosenJuz: daftarUlangSubmission.registration?.confirmed_chosen_juz || null,
+          batchStartDate: daftarUlangSubmission.batch?.start_date || null,
           batchId: daftarUlangSubmission.batch_id || null,
           tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null,
-          isTashihUmum: daftarUlangSubmission.is_tashih_umum || null,
           ustadzahName,
           halaqahMentors
         })
@@ -244,11 +224,10 @@ export default function Tashih() {
       if (praTikrarReg) {
         setUserProgramInfo({
           programType: 'pra_tahfidz',
-          chosenJuz: praTikrarReg.chosen_juz,
-          batchOpeningClassDate: praTikrarReg.batch?.opening_class_date || null,
+          confirmedChosenJuz: praTikrarReg.chosen_juz,
+          batchStartDate: praTikrarReg.batch?.start_date || null,
           batchId: praTikrarReg.batch_id || null,
           tashihHalaqahId: null,
-          isTashihUmum: null,
           ustadzahName: null,
           halaqahMentors: null
         })
@@ -258,36 +237,78 @@ export default function Tashih() {
       // No program found
       setUserProgramInfo({
         programType: null,
-        chosenJuz: null,
-        batchOpeningClassDate: null,
+        confirmedChosenJuz: null,
+        batchStartDate: null,
         batchId: null,
         tashihHalaqahId: null,
-        isTashihUmum: null,
         ustadzahName: null,
         halaqahMentors: null
       })
     } catch (error) {
       console.error('Error loading user program info:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const loadJuzOptions = async () => {
+  const loadAvailableBlocks = async () => {
+    if (!userProgramInfo.confirmedChosenJuz || !userProgramInfo.batchStartDate) {
+      return
+    }
+
     try {
       const supabase = createClient()
-      const { data, error } = await supabase
+
+      // Get juz info first
+      const { data: juzData } = await supabase
         .from('juz_options')
         .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
+        .eq('code', userProgramInfo.confirmedChosenJuz)
+        .single()
 
-      if (error) {
-        console.error('Error loading juz options:', error)
+      if (!juzData) {
+        console.error('Juz not found:', userProgramInfo.confirmedChosenJuz)
         return
       }
 
-      setJuzOptions(data || [])
+      setSelectedJuzInfo(juzData)
+
+      // Calculate current week number from batch start date
+      const batchStart = new Date(userProgramInfo.batchStartDate)
+      const today = new Date()
+      const weeksSinceStart = Math.floor((today.getTime() - batchStart.getTime()) / (7 * 24 * 60 * 60 * 1000))
+
+      // Calculate part offset (part A starts at week 1, part B starts at week 11)
+      const partOffset = juzData.part === 'B' ? 10 : 0
+      const currentWeek = weeksSinceStart + partOffset + 1
+
+      // Calculate total pages for this juz part
+      const totalPages = juzData.end_page - juzData.start_page + 1
+      const pagesPerBlock = Math.ceil(totalPages / (10 * 4)) // 10 weeks, 4 blocks per week
+
+      // Generate 4 blocks for current week (H1A, H1B, H1C, H1D or H11A, H11B, etc.)
+      const blocks: TashihBlock[] = []
+      const parts = ['A', 'B', 'C', 'D']
+
+      for (let i = 0; i < 4; i++) {
+        const part = parts[i]
+        const blockCode = `H${currentWeek}${part}`
+        const weekOffset = currentWeek - partOffset - 1
+        const blockStartPage = juzData.start_page + (weekOffset * 4 * pagesPerBlock) + (i * pagesPerBlock)
+        const blockEndPage = Math.min(blockStartPage + pagesPerBlock - 1, juzData.end_page)
+
+        blocks.push({
+          block_code: blockCode,
+          week_number: currentWeek,
+          part,
+          start_page: blockStartPage,
+          end_page: blockEndPage
+        })
+      }
+
+      setAvailableBlocks(blocks)
     } catch (error) {
-      console.error('Error loading juz options:', error)
+      console.error('Error loading available blocks:', error)
     }
   }
 
@@ -319,53 +340,23 @@ export default function Tashih() {
 
       if (data && data.length > 0) {
         setTodayRecord(data[0])
-        // Extract juz code from blok (e.g., H1a -> 1A)
-        const juzCode = data[0].blok ? data[0].blok.slice(1, -1).toUpperCase() : ''
         setTashihData({
-          juzCode,
           blok: data[0].blok,
           lokasi: data[0].lokasi,
-          lokasiDetail: data[0].lokasi_detail || '',
-          namaPemeriksa: data[0].nama_pemeriksa || '',
           masalahTajwid: data[0].masalah_tajwid || [],
           catatanTambahan: data[0].catatan_tambahan || '',
           waktuTashih: new Date(data[0].waktu_tashih).toISOString().slice(0, 16)
         })
-      } else if (userProgramInfo.chosenJuz) {
-        // Pre-fill juz code from user's registration
-        setTashihData(prev => ({
-          ...prev,
-          juzCode: userProgramInfo.chosenJuz || ''
-        }))
       }
     } catch (error) {
       console.error('Error loading tashih record:', error)
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  // Get block options based on selected juz
-  const blockOptions = useMemo(() => {
-    if (!tashihData.juzCode) return []
-
-    const selectedJuz = juzOptions.find(j => j.code === tashihData.juzCode)
-    if (!selectedJuz) return []
-
-    return generateBlocksFromJuz(selectedJuz.code, selectedJuz.start_page, selectedJuz.end_page)
-  }, [tashihData.juzCode, juzOptions])
-
-  // Get selected juz info
-  const selectedJuzInfo = useMemo(() => {
-    return juzOptions.find(j => j.code === tashihData.juzCode)
-  }, [tashihData.juzCode, juzOptions])
-
   const validateForm = () => {
     const valid = !!(
-      tashihData.juzCode &&
       tashihData.blok &&
       tashihData.lokasi &&
-      (tashihData.lokasi === 'luar' ? tashihData.namaPemeriksa && tashihData.lokasiDetail : true) &&
       tashihData.waktuTashih
     )
     setIsValid(valid)
@@ -390,8 +381,8 @@ export default function Tashih() {
         user_id: user.id,
         blok: tashihData.blok,
         lokasi: tashihData.lokasi,
-        lokasi_detail: tashihData.lokasi === 'luar' ? tashihData.lokasiDetail : null,
-        nama_pemeriksa: tashihData.lokasi === 'luar' ? tashihData.namaPemeriksa : null,
+        lokasi_detail: null, // Disabled for now
+        nama_pemeriksa: null, // Disabled for now
         masalah_tajwid: tashihData.masalahTajwid,
         catatan_tambahan: tashihData.catatanTambahan || null,
         waktu_tashih: new Date(tashihData.waktuTashih).toISOString()
@@ -400,7 +391,6 @@ export default function Tashih() {
       let error
 
       if (todayRecord) {
-        // Update existing record
         const { error: updateError } = await supabase
           .from('tashih_records')
           .update(recordData)
@@ -410,7 +400,6 @@ export default function Tashih() {
 
         error = updateError
       } else {
-        // Insert new record
         const { error: insertError } = await supabase
           .from('tashih_records')
           .insert(recordData)
@@ -438,11 +427,8 @@ export default function Tashih() {
 
   const resetForm = () => {
     setTashihData({
-      juzCode: userProgramInfo.chosenJuz || '',
       blok: '',
-      lokasi: '',
-      lokasiDetail: '',
-      namaPemeriksa: '',
+      lokasi: 'mti',
       masalahTajwid: [],
       catatanTambahan: '',
       waktuTashih: new Date().toISOString().slice(0, 16)
@@ -464,12 +450,11 @@ export default function Tashih() {
     validateForm()
   }, [tashihData])
 
-  // Get min date for datetime input based on program type
+  // Get min date for datetime input
   const getMinDateTime = () => {
-    if (userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.batchOpeningClassDate) {
-      return userProgramInfo.batchOpeningClassDate
+    if (userProgramInfo.batchStartDate) {
+      return userProgramInfo.batchStartDate
     }
-    // For pra_tahfidz and muallimah, no min date restriction
     return ''
   }
 
@@ -482,6 +467,19 @@ export default function Tashih() {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-green-army" />
+      </div>
+    )
+  }
+
+  if (!userProgramInfo.programType) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Belum Terdaftar di Program Aktif</h2>
+        <p className="text-gray-600 mb-6">Ukhti belum terdaftar di program Tahfidz Tikrar MTI, Pra Tikrar, atau Kaderisasi Muallimah yang aktif.</p>
+        <Link href="/dashboard">
+          <Button>Kembali ke Dashboard</Button>
+        </Link>
       </div>
     )
   }
@@ -538,36 +536,29 @@ export default function Tashih() {
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Juz & Blok:</span>
+                <span className="text-gray-600">Juz:</span>
                 <span className="font-semibold text-gray-800">
-                  {todayRecord.blok}
+                  {userProgramInfo.confirmedChosenJuz || '-'}
                   {selectedJuzInfo && (
                     <span className="text-gray-500 font-normal ml-2">({selectedJuzInfo.name})</span>
                   )}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-gray-600">Blok:</span>
+                <span className="font-semibold text-gray-800">{todayRecord.blok}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Lokasi:</span>
-                <span className={cn(
-                  "font-semibold px-3 py-1 rounded-full",
-                  todayRecord.lokasi === 'mti'
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-amber-100 text-amber-700"
-                )}>
-                  {todayRecord.lokasi === 'mti' ? 'MTI' : 'Luar MTI'}
+                <span className="font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  MTI
                 </span>
               </div>
-              {todayRecord.lokasi === 'luar' && (
-                <>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Detail Lokasi:</span>
-                    <span className="font-medium text-gray-800">{todayRecord.lokasi_detail}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Pemeriksa:</span>
-                    <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa}</span>
-                  </div>
-                </>
+              {userProgramInfo.ustadzahName && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Ustadzah:</span>
+                  <span className="font-medium text-gray-800">{userProgramInfo.ustadzahName}</span>
+                </div>
               )}
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Waktu:</span>
@@ -667,7 +658,7 @@ export default function Tashih() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-green-army mb-2">Tashih Bacaan</h1>
-            <p className="text-gray-600">Validasi bacaan Al-BookCopy Ukhti</p>
+            <p className="text-gray-600">Validasi bacaan Al-Quran Ukhti</p>
             {programDisplay && (
               <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-emerald-200">
                 <span className={cn(
@@ -690,17 +681,37 @@ export default function Tashih() {
         </div>
       </div>
 
+      {/* Juz Info Card */}
+      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-full">
+              <BookCopy className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-emerald-800">Juz Tashih Ukhti</h3>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Juz {userProgramInfo.confirmedChosenJuz}</span>
+                {selectedJuzInfo && (
+                  <span className="ml-2 text-gray-600">({selectedJuzInfo.name}, Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Halaqah Info Card */}
       {userProgramInfo.programType === 'tikrar_tahfidz' &&
        (userProgramInfo.ustadzahName || userProgramInfo.halaqahMentors) && (
-        <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-emerald-100 rounded-full">
-                <School className="h-5 w-5 text-emerald-600" />
+              <div className="p-2 bg-blue-100 rounded-full">
+                <School className="h-5 w-5 text-blue-600" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-emerald-800">Halaqah Tashih Ukhti</h3>
+                <h3 className="font-semibold text-blue-800">Halaqah Tashih Ukhti</h3>
                 {userProgramInfo.ustadzahName && (
                   <p className="text-sm text-gray-700">
                     <span className="font-medium">Ustadzah:</span> {userProgramInfo.ustadzahName}
@@ -724,33 +735,17 @@ export default function Tashih() {
       {/* Progress Status */}
       <Card className={cn(
         "border-2 transition-all duration-300",
-        todayRecord
-          ? "border-green-300 bg-gradient-to-r from-green-50 to-emerald-50"
-          : "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50"
+        "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50"
       )}>
         <CardContent className="p-5">
           <div className="flex items-center gap-4">
-            <div className={cn(
-              "w-12 h-12 rounded-full flex items-center justify-center shadow-md",
-              todayRecord
-                ? "bg-gradient-to-br from-green-400 to-green-600"
-                : "bg-gradient-to-br from-amber-400 to-orange-500"
-            )}>
-              {todayRecord ? (
-                <CheckCircle className="h-6 w-6 text-white" />
-              ) : (
-                <Clock className="h-6 w-6 text-white" />
-              )}
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-gradient-to-br from-amber-400 to-orange-500">
+              <Clock className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-lg text-gray-800">
-                {todayRecord ? 'Tashih Hari Ini Selesai' : 'Tashih Hari Ini Belum Selesai'}
-              </h3>
+              <h3 className="font-bold text-lg text-gray-800">Tashih Hari Ini Belum Selesai</h3>
               <p className="text-sm text-gray-600 mt-1">
-                {todayRecord
-                  ? 'Alhamdulillah, Ukhti dapat melanjutkan ke jurnal harian'
-                  : 'Lakukan tashih terlebih dahulu sebelum mengisi jurnal harian'
-                }
+                Lakukan tashih terlebih dahulu sebelum mengisi jurnal harian
               </p>
             </div>
           </div>
@@ -759,79 +754,35 @@ export default function Tashih() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Juz Selection */}
+        {/* Block Selection */}
         <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-green-army">
-              <BookCopy className="h-5 w-5" />
-              <span>Pilih Juz yang Ditashih</span>
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+            <CardTitle className="flex items-center gap-2 text-blue-700">
+              <BookOpen className="h-5 w-5" />
+              <span>Pilih Blok yang Ditashih</span>
             </CardTitle>
             <CardDescription>
-              {userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.chosenJuz
-                ? `Juz pendaftaran Ukhti: ${userProgramInfo.chosenJuz}`
-                : 'Pilih juz yang telah Ukhti tashih hari ini'}
+              {selectedJuzInfo && availableBlocks.length > 0
+                ? `Pekan ${availableBlocks[0].week_number} - ${selectedJuzInfo.name}`
+                : 'Memuat blok yang tersedia...'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {juzOptions.map((juz) => (
-                <div
-                  key={juz.id}
-                  onClick={() => {
-                    setTashihData(prev => ({ ...prev, juzCode: juz.code, blok: '' }))
-                  }}
-                  className={cn(
-                    "p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group",
-                    "hover:shadow-md hover:scale-105",
-                    tashihData.juzCode === juz.code
-                      ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
-                      : "border-gray-200 hover:border-green-300 bg-white"
-                  )}
-                >
-                  <div className="text-center">
-                    <div className={cn(
-                      "text-lg font-bold mb-1",
-                      tashihData.juzCode === juz.code ? "text-green-700" : "text-gray-700 group-hover:text-green-600"
-                    )}>
-                      {juz.name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Hal. {juz.start_page}-{juz.end_page}
-                    </div>
-                    {tashihData.juzCode === juz.code && (
-                      <div className="mt-2 text-green-600">
-                        <CheckCircle className="h-5 w-5 mx-auto" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Block Selection - Only show when juz is selected */}
-        {tashihData.juzCode && (
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-              <CardTitle className="flex items-center gap-2 text-blue-700">
-                <BookOpen className="h-5 w-5" />
-                <span>Pilih Blok yang Ditashih</span>
-              </CardTitle>
-              <CardDescription>
-                {selectedJuzInfo && `1 halaman dibagi menjadi 4 blok (${selectedJuzInfo.start_page}-${selectedJuzInfo.end_page})`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
+            {availableBlocks.length === 0 ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
+                <p className="text-gray-600">Memuat blok yang tersedia...</p>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {blockOptions.map((blok) => (
+                {availableBlocks.map((blok) => (
                   <div
-                    key={blok.id}
-                    onClick={() => setTashihData(prev => ({ ...prev, blok: blok.id }))}
+                    key={blok.block_code}
+                    onClick={() => setTashihData(prev => ({ ...prev, blok: blok.block_code }))}
                     className={cn(
                       "p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 group",
                       "hover:shadow-lg hover:scale-105 hover:-translate-y-1",
-                      tashihData.blok === blok.id
+                      tashihData.blok === blok.block_code
                         ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-xl ring-2 ring-blue-200"
                         : "border-gray-200 hover:border-blue-300 bg-white"
                     )}
@@ -839,17 +790,17 @@ export default function Tashih() {
                     <div className="text-center">
                       <div className={cn(
                         "text-2xl font-bold mb-2",
-                        tashihData.blok === blok.id ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600"
+                        tashihData.blok === blok.block_code ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600"
                       )}>
-                        {blok.name}
+                        {blok.block_code.toUpperCase()}
                       </div>
                       <div className={cn(
                         "text-sm",
-                        tashihData.blok === blok.id ? "text-blue-600 font-medium" : "text-gray-500 group-hover:text-blue-500"
+                        tashihData.blok === blok.block_code ? "text-blue-600 font-medium" : "text-gray-500 group-hover:text-blue-500"
                       )}>
-                        {blok.description}
+                        Hal. {blok.start_page}-{blok.end_page}
                       </div>
-                      {tashihData.blok === blok.id && (
+                      {tashihData.blok === blok.block_code && (
                         <div className="mt-3 text-blue-600">
                           <CheckCircle className="h-6 w-6 mx-auto" />
                         </div>
@@ -858,109 +809,38 @@ export default function Tashih() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Location Selection */}
+        {/* Location Selection - MTI Only */}
         <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-amber-700">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
+            <CardTitle className="flex items-center gap-2 text-emerald-700">
               <MapPin className="h-5 w-5" />
               <span>Lokasi Tashih</span>
             </CardTitle>
             <CardDescription>
-              Pilih lokasi Ukhti melakukan tashih bacaan
+              Lokasi tashih di Markaz Tikrar Indonesia
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {lokasiOptions.map((lokasi) => (
-                <div
-                  key={lokasi.id}
-                  onClick={() => setTashihData(prev => ({ ...prev, lokasi: lokasi.id }))}
-                  className={cn(
-                    "p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 group",
-                    "hover:shadow-lg hover:scale-105",
-                    tashihData.lokasi === lokasi.id
-                      ? "border-amber-500 bg-gradient-to-br from-amber-50 to-orange-50 shadow-xl ring-2 ring-amber-200"
-                      : "border-gray-200 hover:border-amber-300 bg-white"
+          <CardContent className="p-6">
+            <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-full">
+                  <School className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-emerald-800">Markaz Tikrar Indonesia (MTI)</p>
+                  {userProgramInfo.ustadzahName && (
+                    <p className="text-sm text-gray-700 mt-1">
+                      <span className="font-medium">Ustadzah:</span> {userProgramInfo.ustadzahName}
+                    </p>
                   )}
-                >
-                  <div className="text-center">
-                    <div className={cn(
-                      "text-xl font-bold mb-2",
-                      tashihData.lokasi === lokasi.id ? "text-amber-700" : "text-gray-700 group-hover:text-amber-600"
-                    )}>
-                      {lokasi.name}
-                    </div>
-                    <div className={cn(
-                      "text-sm",
-                      tashihData.lokasi === lokasi.id ? "text-amber-600 font-medium" : "text-gray-500 group-hover:text-amber-500"
-                    )}>
-                      {lokasi.description}
-                    </div>
-                    {tashihData.lokasi === lokasi.id && (
-                      <div className="mt-3 text-amber-600">
-                        <CheckCircle className="h-6 w-6 mx-auto" />
-                      </div>
-                    )}
-                  </div>
                 </div>
-              ))}
+                <CheckCircle className="h-6 w-6 text-emerald-600" />
+              </div>
             </div>
-
-            {tashihData.lokasi === 'luar' && (
-              <div className="space-y-4 p-5 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl">
-                <h4 className="font-semibold text-orange-800 flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Detail Lokasi Luar MTI
-                </h4>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nama Lembaga/Tempat
-                  </label>
-                  <input
-                    type="text"
-                    value={tashihData.lokasiDetail}
-                    onChange={(e) => setTashihData(prev => ({ ...prev, lokasiDetail: e.target.value }))}
-                    placeholder="Contoh: Masjid Al-Hikmah, Rumah Ustadz Ahmad"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nama Pemeriksa
-                  </label>
-                  <input
-                    type="text"
-                    value={tashihData.namaPemeriksa}
-                    onChange={(e) => setTashihData(prev => ({ ...prev, namaPemeriksa: e.target.value }))}
-                    placeholder="Nama ustadz/ah yang memeriksa bacaan"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Show ustadzah info if MTI location */}
-            {tashihData.lokasi === 'mti' && userProgramInfo.ustadzahName && (
-              <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 rounded-full">
-                    <User className="h-5 w-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Ustadzah Pemeriksa:</p>
-                    <p className="font-semibold text-emerald-800">{userProgramInfo.ustadzahName}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -972,10 +852,8 @@ export default function Tashih() {
               <span>Waktu Tashih</span>
             </CardTitle>
             <CardDescription>
-              {userProgramInfo.programType === 'tikrar_tahfidz' && userProgramInfo.batchOpeningClassDate
-                ? `Dimulai dari tanggal kelas dibuka (${new Date(userProgramInfo.batchOpeningClassDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}), maksimal hari ini`
-                : userProgramInfo.programType === 'tikrar_tahfidz'
-                ? 'Maksimal hari ini'
+              {userProgramInfo.batchStartDate
+                ? `Maksimal hari ini (dimulai dari ${new Date(userProgramInfo.batchStartDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})`
                 : 'Kapan Ukhti melakukan tashih bacaan'}
             </CardDescription>
           </CardHeader>
