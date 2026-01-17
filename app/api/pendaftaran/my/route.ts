@@ -215,21 +215,17 @@ export async function GET(request: NextRequest) {
     })))
 
     // Combine all registrations into a single array
-    // FILTER: Only include registrations with batch status = 'open' OR have completed daftar ulang
+    // NOTE: For perjalanan-saya page, show ALL registrations from valid batches (not draft)
+    // This allows muallimah users (who are also thalibah) to see their history
     const allRegistrations: FinalRegistration[] = [
       ...((tikrarRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
+        .filter(reg => reg.batch?.status !== 'draft') // Exclude draft batches
         .map(reg => {
-          // Find matching daftar ulang submission for this registration FIRST (before filter)
+          // Find matching daftar ulang submission for this registration
           const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
-          const hasCompletedDaftarUlang = daftarUlang?.status === 'submitted'
 
-          // Filter: Include if batch is open OR if user has completed daftar ulang
-          const passes = reg.batch?.status === 'open' || hasCompletedDaftarUlang
-
-          console.log(`[Filter] Tikrar reg ${reg.id}: batch_status=${reg.batch?.status}, has_daftar_ulang=${!!daftarUlang}, daftar_ulang_status=${daftarUlang?.status}, passes=${passes}`)
-
-          if (!passes) return null
+          console.log(`[Filter] Tikrar reg ${reg.id}: batch_status=${reg.batch?.status}, batch_name=${reg.batch?.name}`)
 
           return {
             ...reg,
@@ -241,11 +237,10 @@ export async function GET(request: NextRequest) {
             // Add daftar ulang data
             daftar_ulang: daftarUlang || null
           }
-        })
-        .filter((reg): reg is NonNullable<typeof reg> => reg !== null),
+        }),
       ...((muallimahRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => reg.batch?.status === 'open')
+        .filter(reg => reg.batch?.status !== 'draft') // Exclude draft batches
         .map(reg => ({
           ...reg,
           registration_type: 'muallimah',
@@ -255,7 +250,7 @@ export async function GET(request: NextRequest) {
         })),
       ...((musyrifahRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => reg.batch?.status === 'open')
+        .filter(reg => reg.batch?.status !== 'draft') // Exclude draft batches
         .map(reg => ({
           ...reg,
           registration_type: 'musyrifah',
