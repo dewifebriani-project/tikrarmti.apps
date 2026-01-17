@@ -147,7 +147,11 @@ export default function Tashih() {
         return
       }
 
-      // Priority 1: Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
+      // HALAMAN TASHIH HANYA UNTUK THALIBAH (SUDAH DAFTAR ULANG)
+      // Calon thalibah TIDAK BISA mengakses halaman ini
+      // Hanya user yang sudah submit daftar ulang (submitted/approved) yang bisa akses
+
+      // Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
       const { data: daftarUlangSubmission, error: daftarUlangError } = await supabase
         .from('daftar_ulang_submissions')
         .select(`
@@ -167,77 +171,41 @@ export default function Tashih() {
       setDebugInfo({
         userId: user.id,
         daftarUlangSubmission,
-        daftarUlangError,
-        praTikrarReg: null,
-        praTikrarError: null
+        daftarUlangError
       })
 
-      if (daftarUlangSubmission) {
-        // Get confirmed_chosen_juz from pendaftaran_tikrar_tahfidz
-        let confirmedJuz = null
-        if (daftarUlangSubmission.registration_id) {
-          const { data: registration } = await supabase
-            .from('pendaftaran_tikrar_tahfidz')
-            .select('confirmed_chosen_juz')
-            .eq('id', daftarUlangSubmission.registration_id)
-            .single()
-          confirmedJuz = registration?.confirmed_chosen_juz
-        }
-
-        console.log('Setting Tikrar Tahfidz with juz:', confirmedJuz)
+      if (!daftarUlangSubmission) {
+        // Tidak ada daftar ulang - user bukan thalibah, tidak bisa akses halaman tashih
+        console.log('Tidak ada daftar ulang submission - user belum daftar ulang')
         setUserProgramInfo({
-          programType: 'tikrar_tahfidz',
-          confirmedChosenJuz: confirmedJuz,
-          batchStartDate: daftarUlangSubmission.batch?.start_date || null,
-          batchId: daftarUlangSubmission.batch_id || null,
-          tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
-        })
-        return
-      }
-
-      // Priority 2: Check for Pra Tikrar (pendaftaran_tikrar_tahfidz with status 'selected')
-      // ONLY if NOT in daftar_ulang_submissions
-      const { data: praTikrarReg, error: praTikrarError } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select(`
-          *,
-          program:programs(*),
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('selection_status', 'selected')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      console.log('praTikrarReg:', praTikrarReg)
-      console.log('praTikrarError:', praTikrarError)
-
-      // Update debug info
-      setDebugInfo((prev: any) => ({
-        ...prev,
-        praTikrarReg,
-        praTikrarError
-      }))
-
-      if (praTikrarReg) {
-        setUserProgramInfo({
-          programType: 'pra_tahfidz',
-          confirmedChosenJuz: praTikrarReg.chosen_juz,
-          batchStartDate: praTikrarReg.batch?.start_date || null,
-          batchId: praTikrarReg.batch_id || null,
+          programType: null,
+          confirmedChosenJuz: null,
+          batchStartDate: null,
+          batchId: null,
           tashihHalaqahId: null
         })
+        setIsLoading(false)
         return
       }
 
-      // No program found - Default to Pra Tikrar
+      // Get confirmed_chosen_juz from daftar_ulang_submission atau registration
+      let confirmedJuz = daftarUlangSubmission.confirmed_chosen_juz
+      if (!confirmedJuz && daftarUlangSubmission.registration_id) {
+        const { data: registration } = await supabase
+          .from('pendaftaran_tikrar_tahfidz')
+          .select('confirmed_chosen_juz')
+          .eq('id', daftarUlangSubmission.registration_id)
+          .single()
+        confirmedJuz = registration?.confirmed_chosen_juz
+      }
+
+      console.log('Setting Tikrar Tahfidz with juz:', confirmedJuz)
       setUserProgramInfo({
-        programType: 'pra_tahfidz',
-        confirmedChosenJuz: null,
-        batchStartDate: null,
-        batchId: null,
-        tashihHalaqahId: null
+        programType: 'tikrar_tahfidz',
+        confirmedChosenJuz: confirmedJuz,
+        batchStartDate: daftarUlangSubmission.batch?.start_date || null,
+        batchId: daftarUlangSubmission.batch_id || null,
+        tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
       })
     } catch (error) {
       console.error('Error loading user program info:', error)
@@ -518,10 +486,10 @@ export default function Tashih() {
       <div className="space-y-6">
         <div className="text-center py-12">
           <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Belum Terdaftar di Program Aktif</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Halaman Khusus Thalibah</h2>
           <p className="text-gray-600 mb-6">
-            Ukhti belum terdaftar di program Tahfidz Tikrar MTI atau Pra Tikrar yang aktif.
-            Silakan hubungi admin jika sudah mendaftar.
+            Halaman Tashih hanya dapat diakses oleh thalibah yang sudah mendaftar ulang.
+            Silakan selesaikan proses daftar ulang terlebih dahulu.
           </p>
           <Link href="/dashboard">
             <Button>Kembali ke Dashboard</Button>
@@ -532,7 +500,7 @@ export default function Tashih() {
         {debugInfo && (
           <Card className="max-w-4xl mx-auto bg-gray-50 border-gray-300">
             <CardHeader>
-              <CardTitle className="text-sm font-mono">Debug Info - Program Detection</CardTitle>
+              <CardTitle className="text-sm font-mono">Debug Info - Daftar Ulang Detection</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4 text-xs font-mono">
@@ -542,7 +510,7 @@ export default function Tashih() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
+                  <div className="font-semibold mb-2 text-blue-600">daftar_ulang_submissions (submitted/approved)</div>
                   <div className="ml-4 space-y-1">
                     <div>
                       <span className="text-gray-500">Data: </span>
@@ -555,26 +523,6 @@ export default function Tashih() {
                         <span className="text-gray-500">Error: </span>
                         <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
                           {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
-                  <div className="ml-4 space-y-1">
-                    <div>
-                      <span className="text-gray-500">Data: </span>
-                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
-                      </pre>
-                    </div>
-                    {debugInfo.praTikrarError && (
-                      <div>
-                        <span className="text-gray-500">Error: </span>
-                        <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                          {JSON.stringify(debugInfo.praTikrarError, null, 2)}
                         </pre>
                       </div>
                     )}
@@ -689,29 +637,13 @@ export default function Tashih() {
     )
   }
 
-  // Get program type display info
-  const getProgramDisplay = () => {
-    switch (userProgramInfo.programType) {
-      case 'tikrar_tahfidz':
-        return {
-          title: 'Tahfidz Tikrar MTI',
-          description: 'Program Tahfidz dengan sistem Tikrar',
-          icon: <BookCopy className="h-6 w-6" />,
-          color: 'from-emerald-500 to-green-600'
-        }
-      case 'pra_tahfidz':
-        return {
-          title: 'Pra Tikrar',
-          description: 'Program persiapan Tikrar Tahfidz',
-          icon: <BookOpen className="h-6 w-6" />,
-          color: 'from-blue-500 to-indigo-600'
-        }
-      default:
-        return null
-    }
+  // Program display info - Hanya Tikrar Tahfidz untuk thalibah
+  const programDisplay = {
+    title: 'Tahfidz Tikrar MTI',
+    description: 'Program Tahfidz dengan sistem Tikrar',
+    icon: <BookCopy className="h-6 w-6" />,
+    color: 'from-emerald-500 to-green-600'
   }
-
-  const programDisplay = getProgramDisplay()
 
   return (
     <div className="space-y-6 animate-fadeInUp">
