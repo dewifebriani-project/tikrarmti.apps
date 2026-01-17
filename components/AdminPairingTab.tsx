@@ -1416,32 +1416,6 @@ export function AdminPairingTab() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {/* Debug Panel */}
-              <div className="mb-4 bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-[300px]">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold text-white">Debug Panel - Match API Data</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-400 text-xs">
-                      {matchData ? `Data Loaded (${matchData.total_matches} matches)` : 'No Data - matchData is null'}
-                    </span>
-                    {matchData && (
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(JSON.stringify(matchData, null, 2))
-                          toast.success('Debug data copied to clipboard!')
-                        }}
-                        className="px-2 py-1 bg-gray-700 text-white text-xs rounded hover:bg-gray-600"
-                      >
-                        Copy
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <pre className="text-gray-300 whitespace-pre-wrap">
-                  {matchData ? JSON.stringify(matchData, null, 2) : 'matchData is null - waiting for API response...'}
-                </pre>
-              </div>
-
               {/* User Info - Yang Dicari Pasangan */}
               {matchData && matchData.user && (
                 <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1456,7 +1430,12 @@ export function AdminPairingTab() {
                 </div>
               )}
 
-              {!matchData || matchData.total_matches === 0 ? (
+              {!matchData ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Mencari kandidat pasangan...</p>
+                </div>
+              ) : matchData.total_matches === 0 ? (
                 <div className="text-center py-12">
                   <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">Tidak ada kandidat pasangan tersedia</p>
