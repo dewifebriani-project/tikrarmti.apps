@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, BookCopy } from 'lucide-react'
+import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, BookCopy, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -31,9 +31,11 @@ interface TashihBlock {
 interface TashihData {
   blok: string
   lokasi: string
+  ustadzahId: string | null
+  ustadzahName: string | null
   masalahTajwid: string[]
   catatanTambahan: string
-  waktuTashih: string
+  tanggalTashih: string
 }
 
 interface TashihRecord {
@@ -42,6 +44,7 @@ interface TashihRecord {
   lokasi: string
   lokasi_detail: string | null
   nama_pemeriksa: string | null
+  ustadzah_id: string | null
   masalah_tajwid: string[] | null
   catatan_tambahan: string | null
   waktu_tashih: string
@@ -54,8 +57,13 @@ interface UserProgramInfo {
   batchStartDate: string | null
   batchId: string | null
   tashihHalaqahId: string | null
-  ustadzahName: string | null
-  halaqahMentors: Array<{ name: string; role: string }> | null
+}
+
+interface MuallimahOption {
+  id: string
+  user_id: string
+  full_name: string
+  preferred_juz: string
 }
 
 const masalahTajwidOptions = [
@@ -75,10 +83,12 @@ export default function Tashih() {
   const router = useRouter()
   const [tashihData, setTashihData] = useState<TashihData>({
     blok: '',
-    lokasi: 'mti', // Default to MTI only
+    lokasi: 'mti',
+    ustadzahId: null,
+    ustadzahName: null,
     masalahTajwid: [],
     catatanTambahan: '',
-    waktuTashih: new Date().toISOString().slice(0, 16)
+    tanggalTashih: new Date().toISOString().slice(0, 10)
   })
 
   const [todayRecord, setTodayRecord] = useState<TashihRecord | null>(null)
@@ -90,12 +100,12 @@ export default function Tashih() {
     confirmedChosenJuz: null,
     batchStartDate: null,
     batchId: null,
-    tashihHalaqahId: null,
-    ustadzahName: null,
-    halaqahMentors: null
+    tashihHalaqahId: null
   })
   const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
+  const [availableMuallimah, setAvailableMuallimah] = useState<MuallimahOption[]>([])
+  const [isLoadingMuallimah, setIsLoadingMuallimah] = useState(false)
 
   // Load user program info on mount
   useEffect(() => {
@@ -108,6 +118,13 @@ export default function Tashih() {
       loadAvailableBlocks()
     }
   }, [userProgramInfo])
+
+  // Load muallimah options when batch info is available
+  useEffect(() => {
+    if (userProgramInfo.batchId && userProgramInfo.confirmedChosenJuz) {
+      loadAvailableMuallimah()
+    }
+  }, [userProgramInfo.batchId, userProgramInfo.confirmedChosenJuz])
 
   // Load today's tashih record after blocks are loaded
   useEffect(() => {
@@ -143,9 +160,7 @@ export default function Tashih() {
           confirmedChosenJuz: muallimahReg.preferred_juz,
           batchStartDate: muallimahReg.batch?.start_date || null,
           batchId: muallimahReg.batch_id || null,
-          tashihHalaqahId: null,
-          ustadzahName: null,
-          halaqahMentors: null
+          tashihHalaqahId: null
         })
         return
       }
@@ -167,42 +182,33 @@ export default function Tashih() {
         .maybeSingle()
 
       if (daftarUlangSubmission) {
-        let ustadzahName = null
-        let halaqahMentors = null
-
-        if (daftarUlangSubmission.tashih_halaqah_id && !daftarUlangSubmission.is_tashih_umum) {
-          // Get halaqah info
-          const { data: halaqah } = await supabase
-            .from('halaqah')
-            .select(`
-              *,
-              muallimah:users!halaqah_muallimah_id_fkey(full_name),
-              mentors:halaqah_mentors(
-                mentor:users(full_name),
-                role,
-                is_primary
-              )
-            `)
-            .eq('id', daftarUlangSubmission.tashih_halaqah_id)
-            .maybeSingle()
-
-          if (halaqah) {
-            ustadzahName = halaqah.muallimah?.full_name || null
-            halaqahMentors = halaqah.mentors?.map((m: any) => ({
-              name: m.mentor.full_name,
-              role: m.role
-            })) || null
-          }
-        }
-
         setUserProgramInfo({
           programType: 'tikrar_tahfidz',
           confirmedChosenJuz: daftarUlangSubmission.registration?.confirmed_chosen_juz || null,
           batchStartDate: daftarUlangSubmission.batch?.start_date || null,
           batchId: daftarUlangSubmission.batch_id || null,
-          tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null,
-          ustadzahName,
-          halaqahMentors
+          tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
+        })
+        return
+      }
+
+      // Check for Muallimah Registrations (if not found in daftar ulang)
+      const { data: muallimahReg } = await supabase
+        .from('muallimah_registrations')
+        .select('*, batch:batches(*)')
+        .eq('user_id', user.id)
+        .in('status', ['approved', 'submitted'])
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (muallimahReg) {
+        setUserProgramInfo({
+          programType: 'tikrar_tahfidz', // Muallimah is part of Tikrar Tahfidz program
+          confirmedChosenJuz: muallimahReg.preferred_juz,
+          batchStartDate: muallimahReg.batch?.start_date || null,
+          batchId: muallimahReg.batch_id || null,
+          tashihHalaqahId: null
         })
         return
       }
@@ -227,9 +233,7 @@ export default function Tashih() {
           confirmedChosenJuz: praTikrarReg.chosen_juz,
           batchStartDate: praTikrarReg.batch?.start_date || null,
           batchId: praTikrarReg.batch_id || null,
-          tashihHalaqahId: null,
-          ustadzahName: null,
-          halaqahMentors: null
+          tashihHalaqahId: null
         })
         return
       }
@@ -240,9 +244,7 @@ export default function Tashih() {
         confirmedChosenJuz: null,
         batchStartDate: null,
         batchId: null,
-        tashihHalaqahId: null,
-        ustadzahName: null,
-        halaqahMentors: null
+        tashihHalaqahId: null
       })
     } catch (error) {
       console.error('Error loading user program info:', error)
@@ -312,6 +314,36 @@ export default function Tashih() {
     }
   }
 
+  const loadAvailableMuallimah = async () => {
+    if (!userProgramInfo.batchId || !userProgramInfo.confirmedChosenJuz) {
+      return
+    }
+
+    try {
+      setIsLoadingMuallimah(true)
+      const supabase = createClient()
+
+      // Get all muallimah with status approved or submitted for this batch
+      const { data: muallimahData } = await supabase
+        .from('muallimah_registrations')
+        .select('id, user_id, full_name, preferred_juz')
+        .eq('batch_id', userProgramInfo.batchId)
+        .in('status', ['approved', 'submitted'])
+        .order('full_name', { ascending: true })
+
+      if (!muallimahData) {
+        console.log('No muallimah found for batch:', userProgramInfo.batchId)
+        return
+      }
+
+      setAvailableMuallimah(muallimahData || [])
+    } catch (error) {
+      console.error('Error loading muallimah:', error)
+    } finally {
+      setIsLoadingMuallimah(false)
+    }
+  }
+
   const loadTodayRecord = async () => {
     try {
       const supabase = createClient()
@@ -343,9 +375,11 @@ export default function Tashih() {
         setTashihData({
           blok: data[0].blok,
           lokasi: data[0].lokasi,
+          ustadzahId: data[0].ustadzah_id || null,
+          ustadzahName: data[0].nama_pemeriksa || null,
           masalahTajwid: data[0].masalah_tajwid || [],
           catatanTambahan: data[0].catatan_tambahan || '',
-          waktuTashih: new Date(data[0].waktu_tashih).toISOString().slice(0, 16)
+          tanggalTashih: new Date(data[0].waktu_tashih).toISOString().slice(0, 10)
         })
       }
     } catch (error) {
@@ -357,7 +391,7 @@ export default function Tashih() {
     const valid = !!(
       tashihData.blok &&
       tashihData.lokasi &&
-      tashihData.waktuTashih
+      tashihData.tanggalTashih
     )
     setIsValid(valid)
     return valid
@@ -381,11 +415,11 @@ export default function Tashih() {
         user_id: user.id,
         blok: tashihData.blok,
         lokasi: tashihData.lokasi,
-        lokasi_detail: null, // Disabled for now
-        nama_pemeriksa: null, // Disabled for now
+        ustadzah_id: tashihData.ustadzahId,
+        nama_pemeriksa: tashihData.ustadzahName,
         masalah_tajwid: tashihData.masalahTajwid,
         catatan_tambahan: tashihData.catatanTambahan || null,
-        waktu_tashih: new Date(tashihData.waktuTashih).toISOString()
+        waktu_tashih: new Date(tashihData.tanggalTashih).toISOString()
       }
 
       let error
@@ -429,9 +463,11 @@ export default function Tashih() {
     setTashihData({
       blok: '',
       lokasi: 'mti',
+      ustadzahId: null,
+      ustadzahName: null,
       masalahTajwid: [],
       catatanTambahan: '',
-      waktuTashih: new Date().toISOString().slice(0, 16)
+      tanggalTashih: new Date().toISOString().slice(0, 10)
     })
     setTodayRecord(null)
     setIsValid(false)
@@ -450,17 +486,17 @@ export default function Tashih() {
     validateForm()
   }, [tashihData])
 
-  // Get min date for datetime input
-  const getMinDateTime = () => {
+  // Get min date for date input
+  const getMinDate = () => {
     if (userProgramInfo.batchStartDate) {
-      return userProgramInfo.batchStartDate
+      return userProgramInfo.batchStartDate.slice(0, 10)
     }
     return ''
   }
 
   // Get max date (today) - user cannot select future dates
-  const getMaxDateTime = () => {
-    return new Date().toISOString().slice(0, 16)
+  const getMaxDate = () => {
+    return new Date().toISOString().slice(0, 10)
   }
 
   if (isLoading) {
@@ -496,39 +532,6 @@ export default function Tashih() {
             Tashih bacaan Ukhti telah berhasil dicatat untuk hari ini
           </p>
 
-          {/* User Info Card */}
-          {(userProgramInfo.ustadzahName || userProgramInfo.halaqahMentors) && (
-            <div className="max-w-lg mx-auto mb-6">
-              <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <School className="h-5 w-5 text-emerald-600" />
-                    <h3 className="font-semibold text-emerald-800">Info Halaqah Tashih</h3>
-                  </div>
-                  {userProgramInfo.ustadzahName && (
-                    <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
-                      <User className="h-4 w-4 text-emerald-500" />
-                      <span className="font-medium">Ustadzah:</span>
-                      <span>{userProgramInfo.ustadzahName}</span>
-                    </div>
-                  )}
-                  {userProgramInfo.halaqahMentors && userProgramInfo.halaqahMentors.length > 0 && (
-                    <div className="text-sm text-gray-700">
-                      <span className="font-medium">Mentors:</span>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {userProgramInfo.halaqahMentors.map((mentor, idx) => (
-                          <span key={idx} className="px-2 py-0.5 bg-white rounded text-xs">
-                            {mentor.name} ({mentor.role})
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-green-200">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-5 w-5 text-green-600" />
@@ -554,22 +557,20 @@ export default function Tashih() {
                   MTI
                 </span>
               </div>
-              {userProgramInfo.ustadzahName && (
+              {todayRecord.ustadzah_id && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-gray-600">Ustadzah:</span>
-                  <span className="font-medium text-gray-800">{userProgramInfo.ustadzahName}</span>
+                  <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa || todayRecord.ustadzah_name || 'Belum dipilih'}</span>
                 </div>
               )}
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Waktu:</span>
+                <span className="text-gray-600">Tanggal:</span>
                 <span className="font-medium text-gray-800">
-                  {new Date(todayRecord.waktu_tashih).toLocaleString('id-ID', {
+                  {new Date(todayRecord.waktu_tashih).toLocaleDateString('id-ID', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                    day: 'numeric'
                   })}
                 </span>
               </div>
@@ -639,8 +640,8 @@ export default function Tashih() {
         }
       case 'muallimah':
         return {
-          title: 'Kaderisasi Muallimah',
-          description: 'Program pengkaderan Muallimah',
+          title: 'Tahfidz Tikrar Muallimah',
+          description: 'Program Tahfidz untuk Muallimah',
           icon: <School className="h-6 w-6" />,
           color: 'from-purple-500 to-pink-600'
         }
@@ -701,36 +702,7 @@ export default function Tashih() {
         </CardContent>
       </Card>
 
-      {/* Halaqah Info Card */}
-      {userProgramInfo.programType === 'tikrar_tahfidz' &&
-       (userProgramInfo.ustadzahName || userProgramInfo.halaqahMentors) && (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <School className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-blue-800">Halaqah Tashih Ukhti</h3>
-                {userProgramInfo.ustadzahName && (
-                  <p className="text-sm text-gray-700">
-                    <span className="font-medium">Ustadzah:</span> {userProgramInfo.ustadzahName}
-                  </p>
-                )}
-                {userProgramInfo.halaqahMentors && userProgramInfo.halaqahMentors.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {userProgramInfo.halaqahMentors.map((mentor, idx) => (
-                      <span key={idx} className="px-2 py-0.5 bg-white rounded text-xs text-gray-700">
-                        {mentor.name} ({mentor.role})
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      }
 
       {/* Progress Status */}
       <Card className={cn(
@@ -813,18 +785,19 @@ export default function Tashih() {
           </CardContent>
         </Card>
 
-        {/* Location Selection - MTI Only */}
+        {/* Location & Ustadzah Selection - MTI Only */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
             <CardTitle className="flex items-center gap-2 text-emerald-700">
               <MapPin className="h-5 w-5" />
-              <span>Lokasi Tashih</span>
+              <span>Lokasi & Ustadzah</span>
             </CardTitle>
             <CardDescription>
-              Lokasi tashih di Markaz Tikrar Indonesia
+              Lokasi tashih di Markaz Tikrar Indonesia. Pilih ustadzah yang akan memeriksa bacaan.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 space-y-4">
+            {/* Location */}
             <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-100 rounded-full">
@@ -832,38 +805,99 @@ export default function Tashih() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-emerald-800">Markaz Tikrar Indonesia (MTI)</p>
-                  {userProgramInfo.ustadzahName && (
-                    <p className="text-sm text-gray-700 mt-1">
-                      <span className="font-medium">Ustadzah:</span> {userProgramInfo.ustadzahName}
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-600">Markaz Tikrar Indonesia</p>
                 </div>
                 <CheckCircle className="h-6 w-6 text-emerald-600" />
               </div>
             </div>
+
+            {/* Ustadzah Dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pilih Ustadzah <span className="text-red-500">*</span>
+              </label>
+              {isLoadingMuallimah ? (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Memuat daftar ustadzah...</span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('ustadzah-dropdown')?.toggle?.()}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-left flex items-center justify-between"
+                  >
+                    <span>
+                      {tashihData.ustadzahName ? tashihData.ustadzahName : 'Pilih ustadzah...'}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {availableMuallimah.length > 0 && (
+                    <div id="ustadzah-dropdown" className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      <div className="p-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                        >
+                          Pilih ustadzah lain
+                        </button>
+                        {availableMuallimah.map((muallimah) => (
+                          <button
+                            key={muallimah.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                            }}
+                            className={cn(
+                              "w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
+                              tashihData.ustadzahId === muallimah.id
+                                ? "bg-emerald-100 text-emerald-700 font-medium"
+                                : "hover:bg-gray-50"
+                            )}
+                          >
+                            {muallimah.full_name}
+                            {muallimah.preferred_juz && (
+                              <span className="block text-xs text-gray-500">
+                                (Juz {muallimah.preferred_juz})
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Time Selection */}
+        {/* Date Selection */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50 border-b">
             <CardTitle className="flex items-center gap-2 text-violet-700">
               <Calendar className="h-5 w-5" />
-              <span>Waktu Tashih</span>
+              <span>Tanggal Tashih</span>
             </CardTitle>
             <CardDescription>
               {userProgramInfo.batchStartDate
                 ? `Maksimal hari ini (dimulai dari ${new Date(userProgramInfo.batchStartDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})`
-                : 'Kapan Ukhti melakukan tashih bacaan'}
+                : 'Pilih tanggal tashih'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <input
-              type="datetime-local"
-              value={tashihData.waktuTashih}
-              min={getMinDateTime()}
-              max={getMaxDateTime()}
-              onChange={(e) => setTashihData(prev => ({ ...prev, waktuTashih: e.target.value }))}
+              type="date"
+              value={tashihData.tanggalTashih}
+              min={getMinDate()}
+              max={getMaxDate()}
+              onChange={(e) => setTashihData(prev => ({ ...prev, tanggalTashih: e.target.value }))}
               className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all text-lg"
               required
             />
