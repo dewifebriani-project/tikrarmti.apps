@@ -109,11 +109,6 @@ export async function GET(request: Request) {
     for (const submission of submissions || []) {
       const userId = submission.user_id
 
-      // Skip if already approved and paired (should not appear in pending list)
-      if (submission.status === 'approved' && submission.pairing_status === 'paired') {
-        continue
-      }
-
       // Only keep the latest submission for each user
       if (!uniqueUserSubmissions.has(userId)) {
         uniqueUserSubmissions.set(userId, submission)
@@ -316,6 +311,12 @@ export async function GET(request: Request) {
             processedMutualMatches.add(submission.partner_user_id)
           }
 
+          // Check if this user is already paired (from study_partners table)
+          const selfPairingInfo = pairedUsersMap.get(submission.user_id)
+          const selfPartnerNames = selfPairingInfo
+            ? selfPairingInfo.partnerIds.map(id => pairedUserNamesMap.get(id) || 'Unknown')
+            : []
+
           selfMatchRequests.push({
             ...requestData,
             partner_details: partnerUser ? {
@@ -331,6 +332,11 @@ export async function GET(request: Request) {
             } : null,
             is_mutual_match: isMutualMatch,
             partner_submission_id: partnerSubmissionId,
+            // Pairing status from study_partners
+            is_paired: !!selfPairingInfo,
+            paired_partner_name: selfPartnerNames.length > 0 ? selfPartnerNames.join(', ') : null,
+            paired_partner_names: selfPartnerNames,
+            pairing_id: selfPairingInfo?.pairingId || null,
           })
         }
       } else if (submission.partner_type === 'system_match') {
@@ -360,9 +366,33 @@ export async function GET(request: Request) {
           ...matchStats
         })
       } else if (submission.partner_type === 'tarteel') {
-        tarteelRequests.push(requestData)
+        // Check if this user is already paired
+        const tarteelPairingInfo = pairedUsersMap.get(submission.user_id)
+        const tarteelPartnerNames = tarteelPairingInfo
+          ? tarteelPairingInfo.partnerIds.map(id => pairedUserNamesMap.get(id) || 'Unknown')
+          : []
+
+        tarteelRequests.push({
+          ...requestData,
+          is_paired: !!tarteelPairingInfo,
+          paired_partner_name: tarteelPartnerNames.length > 0 ? tarteelPartnerNames.join(', ') : null,
+          paired_partner_names: tarteelPartnerNames,
+          pairing_id: tarteelPairingInfo?.pairingId || null,
+        })
       } else if (submission.partner_type === 'family') {
-        familyRequests.push(requestData)
+        // Check if this user is already paired
+        const familyPairingInfo = pairedUsersMap.get(submission.user_id)
+        const familyPartnerNames = familyPairingInfo
+          ? familyPairingInfo.partnerIds.map(id => pairedUserNamesMap.get(id) || 'Unknown')
+          : []
+
+        familyRequests.push({
+          ...requestData,
+          is_paired: !!familyPairingInfo,
+          paired_partner_name: familyPartnerNames.length > 0 ? familyPartnerNames.join(', ') : null,
+          paired_partner_names: familyPartnerNames,
+          pairing_id: familyPairingInfo?.pairingId || null,
+        })
       }
     }
 

@@ -30,6 +30,11 @@ interface SelfMatchRequest {
   batch_name: string
   is_mutual_match: boolean
   partner_submission_id: string | null
+  // Pairing status from study_partners
+  is_paired?: boolean
+  paired_partner_name?: string | null
+  paired_partner_names?: string[]
+  pairing_id?: string | null
 }
 
 interface SystemMatchRequest {
@@ -92,6 +97,11 @@ interface TarteelRequest {
   batch_id: string
   batch_name: string
   partner_type: string
+  // Pairing status from study_partners
+  is_paired?: boolean
+  paired_partner_name?: string | null
+  paired_partner_names?: string[]
+  pairing_id?: string | null
 }
 
 interface FamilyRequest {
@@ -112,6 +122,11 @@ interface FamilyRequest {
   batch_id: string
   batch_name: string
   partner_type: string
+  // Pairing status from study_partners
+  is_paired?: boolean
+  paired_partner_name?: string | null
+  paired_partner_names?: string[]
+  pairing_id?: string | null
 }
 
 interface MatchCandidate {
@@ -1138,12 +1153,26 @@ export function AdminPairingTab() {
                 <div
                   key={request.id}
                   className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${
-                    request.is_mutual_match ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50' : 'border-gray-200'
+                    request.is_paired
+                      ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50'
+                      : request.is_mutual_match
+                        ? 'border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50'
+                        : 'border-gray-200'
                   }`}
                 >
-                  {/* Mutual Match Header */}
-                  {request.is_mutual_match && (
+                  {/* Paired Header */}
+                  {request.is_paired && (
                     <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-white">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="font-semibold text-sm">SUDAH DIPASANGKAN</span>
+                      </div>
+                      <span className="text-white/90 text-xs">Pasangan: {request.paired_partner_name}</span>
+                    </div>
+                  )}
+                  {/* Mutual Match Header (only if not yet paired) */}
+                  {!request.is_paired && request.is_mutual_match && (
+                    <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-4 py-2 flex items-center justify-between">
                       <div className="flex items-center gap-2 text-white">
                         <Heart className="w-4 h-4" />
                         <span className="font-semibold text-sm">MUTUAL MATCH</span>
@@ -1513,8 +1542,23 @@ export function AdminPairingTab() {
               {tarteelRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="border border-purple-200 rounded-lg p-4 hover:shadow-md transition-all bg-gradient-to-r from-purple-50 to-pink-50"
+                  className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${
+                    request.is_paired
+                      ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50'
+                      : 'border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50'
+                  }`}
                 >
+                  {/* Paired Header */}
+                  {request.is_paired && (
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-white">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="font-semibold text-sm">SUDAH DIPASANGKAN</span>
+                      </div>
+                      <span className="text-white/90 text-xs">Pasangan: {request.paired_partner_name}</span>
+                    </div>
+                  )}
+                  <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -1577,6 +1621,7 @@ export function AdminPairingTab() {
                       </button>
                     </div>
                   </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1601,8 +1646,23 @@ export function AdminPairingTab() {
               {familyRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="border border-amber-200 rounded-lg p-4 hover:shadow-md transition-all bg-gradient-to-r from-amber-50 to-orange-50"
+                  className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${
+                    request.is_paired
+                      ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50'
+                      : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50'
+                  }`}
                 >
+                  {/* Paired Header */}
+                  {request.is_paired && (
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-white">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="font-semibold text-sm">SUDAH DIPASANGKAN</span>
+                      </div>
+                      <span className="text-white/90 text-xs">Pasangan: {request.paired_partner_name}</span>
+                    </div>
+                  )}
+                  <div className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -1664,6 +1724,7 @@ export function AdminPairingTab() {
                         Approve
                       </button>
                     </div>
+                  </div>
                   </div>
                 </div>
               ))}
