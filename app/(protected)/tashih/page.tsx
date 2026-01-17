@@ -983,11 +983,6 @@ export default function Tashih() {
                     )}
                   >
                     <div className="font-medium">{muallimah.full_name}</div>
-                    {muallimah.preferred_juz && (
-                      <div className="text-xs text-gray-500">
-                        Juz {muallimah.preferred_juz}
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
