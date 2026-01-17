@@ -471,7 +471,7 @@ async function calculateMatchingStatistics(
   // Get all other system_match users
   const otherUsers = allSubmissions.filter(
     s => s.partner_type === 'system_match' &&
-           s.status === 'submitted' &&
+           (s.status === 'submitted' || s.status === 'approved') &&
            s.user_id !== userId &&
            !pairedUsersMap?.has(s.user_id) // Exclude already paired users
   )
