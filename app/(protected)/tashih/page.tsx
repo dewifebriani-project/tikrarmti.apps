@@ -214,7 +214,7 @@ export default function Tashih() {
       console.log('praTikrarError:', praTikrarError)
 
       // Update debug info
-      setDebugInfo(prev => ({
+      setDebugInfo((prev: any) => ({
         ...prev,
         praTikrarReg,
         praTikrarError
