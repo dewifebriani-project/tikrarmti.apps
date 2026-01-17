@@ -106,6 +106,7 @@ export default function Tashih() {
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
   const [availableMuallimah, setAvailableMuallimah] = useState<MuallimahOption[]>([])
   const [isLoadingMuallimah, setIsLoadingMuallimah] = useState(false)
+  const [isUstadzahDropdownOpen, setIsUstadzahDropdownOpen] = useState(false)
 
   // Load user program info on mount
   useEffect(() => {
@@ -803,7 +804,7 @@ export default function Tashih() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => document.getElementById('ustadzah-dropdown')?.toggle?.()}
+                    onClick={() => setIsUstadzahDropdownOpen(!isUstadzahDropdownOpen)}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all text-left flex items-center justify-between"
                   >
                     <span>
@@ -811,7 +812,7 @@ export default function Tashih() {
                     </span>
                     <ChevronDown className="h-4 w-4" />
                   </button>
-                  {availableMuallimah.length > 0 && (
+                  {isUstadzahDropdownOpen && availableMuallimah.length > 0 && (
                     <div id="ustadzah-dropdown" className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                       <div className="p-2">
                         <button
@@ -819,6 +820,7 @@ export default function Tashih() {
                           onClick={(e) => {
                             e.stopPropagation()
                             setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
+                            setIsUstadzahDropdownOpen(false)
                           }}
                           className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
                         >
@@ -831,6 +833,7 @@ export default function Tashih() {
                             onClick={(e) => {
                               e.stopPropagation()
                               setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                              setIsUstadzahDropdownOpen(false)
                             }}
                             className={cn(
                               "w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
