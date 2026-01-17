@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { NextResponse } from 'next/server'
 
 /**
  * Approve daftar ulang submission
@@ -7,13 +8,17 @@ import { revalidatePath } from 'next/cache'
  * - Changes user role from 'calon_thalibah' to 'thalibah'
  * - Adds thalibah to halaqah_students (ujian and/or tashih)
  */
-export async function approveDaftarUlang(submissionId: string) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: submissionId } = await params
   const supabase = createClient()
 
   // 1. Validasi Auth - hanya admin
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
   if (!authUser || authError) {
-    return { success: false, error: 'Unauthorized. Silakan login kembali.' }
+    return NextResponse.json({ success: false, error: 'Unauthorized. Silakan login kembali.' }, { status: 401 })
   }
 
   // Check if user is admin
@@ -24,7 +29,7 @@ export async function approveDaftarUlang(submissionId: string) {
     .single()
 
   if (userError || !currentUser || !currentUser.roles?.includes('admin')) {
-    return { success: false, error: 'Anda tidak memiliki akses untuk menyetujui daftar ulang.' }
+    return NextResponse.json({ success: false, error: 'Anda tidak memiliki akses untuk menyetujui daftar ulang.' }, { status: 403 })
   }
 
   try {
@@ -36,11 +41,11 @@ export async function approveDaftarUlang(submissionId: string) {
       .single()
 
     if (submissionError || !submission) {
-      return { success: false, error: 'Daftar ulang tidak ditemukan.' }
+      return NextResponse.json({ success: false, error: 'Daftar ulang tidak ditemukan.' }, { status: 404 })
     }
 
     if (submission.status !== 'submitted') {
-      return { success: false, error: 'Hanya submission dengan status submitted yang bisa disetujui.' }
+      return NextResponse.json({ success: false, error: 'Hanya submission dengan status submitted yang bisa disetujui.' }, { status: 400 })
     }
 
     // 3. Update daftar_ulang_submissions status to 'approved'
@@ -55,7 +60,7 @@ export async function approveDaftarUlang(submissionId: string) {
 
     if (updateError) {
       console.error('Error updating daftar ulang status:', updateError)
-      return { success: false, error: 'Gagal mengupdate status daftar ulang.' }
+      return NextResponse.json({ success: false, error: 'Gagal mengupdate status daftar ulang.' }, { status: 500 })
     }
 
     // 4. Update user role - add 'thalibah' role
@@ -110,7 +115,7 @@ export async function approveDaftarUlang(submissionId: string) {
 
       if (studentsError) {
         console.error('Error adding to halaqah_students:', studentsError)
-        return { success: false, error: 'Gagal menambahkan thalibah ke halaqah.' }
+        return NextResponse.json({ success: false, error: 'Gagal menambahkan thalibah ke halaqah.' }, { status: 500 })
       }
     }
 
@@ -119,16 +124,16 @@ export async function approveDaftarUlang(submissionId: string) {
     revalidatePath('/perjalanan-saya')
     revalidatePath('/daftar-ulang')
 
-    return {
+    return NextResponse.json({
       success: true,
       message: 'Daftar ulang berhasil disetujui! Thalibah telah ditambahkan ke halaqah.'
-    }
+    })
 
   } catch (error: any) {
     console.error('Approve daftar ulang error:', error)
-    return {
+    return NextResponse.json({
       success: false,
       error: error?.message || 'Terjadi kesalahan tidak terduga'
-    }
+    }, { status: 500 })
   }
 }
