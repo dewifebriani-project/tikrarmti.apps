@@ -628,8 +628,8 @@ export default function Tashih() {
         }
       case 'pra_tahfidz':
         return {
-          title: 'Pra Tahfidz',
-          description: 'Program persiapan Tahfidz',
+          title: 'Pra Tikrar',
+          description: 'Program persiapan Tikrar Tahfidz',
           icon: <BookOpen className="h-6 w-6" />,
           color: 'from-blue-500 to-indigo-600'
         }
