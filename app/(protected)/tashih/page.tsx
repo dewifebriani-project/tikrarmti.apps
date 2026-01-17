@@ -151,9 +151,6 @@ export default function Tashih() {
         .from('daftar_ulang_submissions')
         .select(`
           *,
-          registration:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey(
-            confirmed_chosen_juz
-          ),
           batch:batches(*)
         `)
         .eq('user_id', user.id)
@@ -162,10 +159,24 @@ export default function Tashih() {
         .limit(1)
         .maybeSingle()
 
+      console.log('daftarUlangSubmission:', daftarUlangSubmission)
+
       if (daftarUlangSubmission) {
+        // Get confirmed_chosen_juz from pendaftaran_tikrar_tahfidz
+        let confirmedJuz = null
+        if (daftarUlangSubmission.registration_id) {
+          const { data: registration } = await supabase
+            .from('pendaftaran_tikrar_tahfidz')
+            .select('confirmed_chosen_juz')
+            .eq('id', daftarUlangSubmission.registration_id)
+            .single()
+          confirmedJuz = registration?.confirmed_chosen_juz
+        }
+
+        console.log('Setting Tikrar Tahfidz with juz:', confirmedJuz)
         setUserProgramInfo({
           programType: 'tikrar_tahfidz',
-          confirmedChosenJuz: daftarUlangSubmission.registration?.confirmed_chosen_juz || null,
+          confirmedChosenJuz: confirmedJuz,
           batchStartDate: daftarUlangSubmission.batch?.start_date || null,
           batchId: daftarUlangSubmission.batch_id || null,
           tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
