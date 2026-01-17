@@ -540,7 +540,7 @@ export default function Tashih() {
               {todayRecord.ustadzah_id && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-gray-600">Ustadzah:</span>
-                  <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa || todayRecord.ustadzah_name || 'Belum dipilih'}</span>
+                  <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa || 'Belum dipilih'}</span>
                 </div>
               )}
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
