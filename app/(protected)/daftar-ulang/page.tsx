@@ -129,15 +129,17 @@ export default function DaftarUlangPage() {
         if (!regResponse.ok) throw new Error('Failed to fetch registration')
 
         const regData = await regResponse.json()
+        // Only get registrations for thalibah (calon_thalibah), not muallimah or musyrifah
         const selectedRegistration = regData.data?.find(
-          (r: any) => r.selection_status === 'selected'
+          (r: any) => r.selection_status === 'selected' && r.role === 'calon_thalibah'
         )
 
         if (!selectedRegistration) {
-          console.log('[Daftar Ulang] No selected registration found')
+          console.log('[Daftar Ulang] No selected thalibah registration found')
           console.log('[Daftar Ulang] User email:', user.email)
+          console.log('[Daftar Ulang] User roles:', user?.roles)
           console.log('[Daftar Ulang] All registrations:', regData.data)
-          toast.error('Tidak ditemukan data pendaftaran thalibah yang lolos seleksi. Pastikan Anda sudah mendaftar sebagai thalibah dan lolos seleksi.')
+          toast.error('Tidak ditemukan data pendaftaran thalibah yang lolos seleksi. Daftar ulang hanya untuk thalibah yang lolos seleksi.')
           router.push('/perjalanan-saya')
           return
         }
