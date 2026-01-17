@@ -70,6 +70,8 @@ interface PairingWithSlot {
   user_2_name: string
   user_1_time: string | null
   user_2_time: string | null
+  user_1_juz: string | null
+  user_2_juz: string | null
 }
 
 interface TarteelRequest {
@@ -156,7 +158,7 @@ export function AdminPairingTab() {
   const [batches, setBatches] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState<any>(null)
-  const [addToPairModal, setAddToPairModal] = useState<{ userId: string, userName: string, mainTimeSlot: string } | null>(null)
+  const [addToPairModal, setAddToPairModal] = useState<{ userId: string, userName: string, mainTimeSlot: string, chosenJuz: string } | null>(null)
 
   // Statistics state
   const [stats, setStats] = useState({
@@ -1373,11 +1375,20 @@ export function AdminPairingTab() {
                       <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                         {request.user_name}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm">
+                      <td className="px-2 py-2 text-sm">
                         {request.is_paired ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-                            {request.partner_name}
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {(request.partner_names || [request.partner_name]).filter(Boolean).map((name, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                {name}
+                              </span>
+                            ))}
+                            {(request.partner_names?.length || 0) >= 2 && (
+                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
+                                Grup 3
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-gray-400 text-xs">Belum ada</span>
                         )}
@@ -1444,7 +1455,8 @@ export function AdminPairingTab() {
                                 onClick={() => setAddToPairModal({
                                   userId: request.user_id,
                                   userName: request.user_name,
-                                  mainTimeSlot: request.main_time_slot
+                                  mainTimeSlot: request.main_time_slot,
+                                  chosenJuz: request.chosen_juz
                                 })}
                                 className="px-2 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-1 text-xs"
                                 title="Tambahkan ke pasangan yang sudah ada"
@@ -2000,17 +2012,33 @@ export function AdminPairingTab() {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600 mb-3">Pilih pasangan untuk dijadikan kelompok 3 orang:</p>
-                  {pairingsWithSlots.map((pairing) => {
-                    const timeMatch = pairing.user_1_time === addToPairModal.mainTimeSlot ||
-                                     pairing.user_2_time === addToPairModal.mainTimeSlot
-                    return (
+                  {/* Sort pairings: time match first, then juz match */}
+                  {[...pairingsWithSlots]
+                    .map(pairing => {
+                      const timeMatch = pairing.user_1_time === addToPairModal.mainTimeSlot ||
+                                       pairing.user_2_time === addToPairModal.mainTimeSlot
+                      const juzMatch = pairing.user_1_juz === addToPairModal.chosenJuz ||
+                                      pairing.user_2_juz === addToPairModal.chosenJuz
+                      return { ...pairing, timeMatch, juzMatch }
+                    })
+                    .sort((a, b) => {
+                      // Priority: time match > juz match > no match
+                      if (a.timeMatch && !b.timeMatch) return -1
+                      if (!a.timeMatch && b.timeMatch) return 1
+                      if (a.juzMatch && !b.juzMatch) return -1
+                      if (!a.juzMatch && b.juzMatch) return 1
+                      return 0
+                    })
+                    .map((pairing) => (
                       <button
                         key={pairing.id}
                         onClick={() => handleAddToPair(pairing.id, addToPairModal.userId)}
                         className={`w-full p-3 border rounded-lg transition-colors text-left ${
-                          timeMatch
+                          pairing.timeMatch
                             ? 'border-green-300 bg-green-50 hover:bg-green-100'
-                            : 'border-gray-200 hover:bg-purple-50 hover:border-purple-300'
+                            : pairing.juzMatch
+                              ? 'border-blue-300 bg-blue-50 hover:bg-blue-100'
+                              : 'border-gray-200 hover:bg-purple-50 hover:border-purple-300'
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -2018,18 +2046,29 @@ export function AdminPairingTab() {
                             <p className="font-medium text-gray-900">
                               {pairing.user_1_name} & {pairing.user_2_name}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Waktu: {pairing.user_1_time || '-'} / {pairing.user_2_time || '-'}
-                              {timeMatch && (
-                                <span className="ml-2 text-green-600 font-medium">✓ Waktu cocok</span>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              <span className="text-xs text-gray-500">
+                                Waktu: {pairing.user_1_time || '-'} / {pairing.user_2_time || '-'}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Juz: {pairing.user_1_juz || '-'} / {pairing.user_2_juz || '-'}
+                              </span>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              {pairing.timeMatch && (
+                                <span className="text-xs text-green-600 font-medium">✓ Waktu cocok</span>
                               )}
-                            </p>
+                              {pairing.juzMatch && (
+                                <span className="text-xs text-blue-600 font-medium">✓ Juz cocok</span>
+                              )}
+                            </div>
                           </div>
-                          <Users className={`w-5 h-5 ${timeMatch ? 'text-green-600' : 'text-purple-600'}`} />
+                          <Users className={`w-5 h-5 ${
+                            pairing.timeMatch ? 'text-green-600' : pairing.juzMatch ? 'text-blue-600' : 'text-purple-600'
+                          }`} />
                         </div>
                       </button>
-                    )
-                  })}
+                    ))}
                 </div>
               )}
             </div>
@@ -2091,7 +2130,14 @@ export function AdminPairingTab() {
                 <div className="space-y-6">
                   {/* Pairing Info */}
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-green-900 mb-2">Informasi Pasangan</h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-green-900">Informasi Pasangan</h4>
+                      {pairingDetail.pairing.is_group_of_3 && (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                          Grup 3 Orang
+                        </span>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <span className="text-green-700">Tipe Pairing:</span>{' '}
@@ -2114,55 +2160,49 @@ export function AdminPairingTab() {
                     </div>
                   </div>
 
-                  {/* Two Users Side by Side */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Users Grid - 2 or 3 columns */}
+                  <div className={`grid gap-4 ${pairingDetail.user_3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     {/* User 1 */}
                     <div className="border border-blue-200 rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
-                      <div className="bg-blue-600 text-white px-4 py-2 flex items-center gap-2">
-                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-bold text-sm">1</span>
+                      <div className="bg-blue-600 text-white px-3 py-2 flex items-center gap-2">
+                        <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-xs">1</span>
                         </div>
-                        <span className="font-semibold text-sm">Thalibah Pertama</span>
+                        <span className="font-semibold text-xs">Thalibah Pertama</span>
                       </div>
-                      <div className="p-4 space-y-3">
+                      <div className="p-3 space-y-2">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Nama Lengkap</p>
-                          <p className="font-semibold text-gray-900">{pairingDetail.user_1.full_name}</p>
+                          <p className="text-xs text-gray-500">Nama</p>
+                          <p className="font-semibold text-gray-900 text-sm">{pairingDetail.user_1.full_name}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Email</p>
-                          <p className="text-sm text-gray-700">{pairingDetail.user_1.email}</p>
+                          <p className="text-xs text-gray-500">Email</p>
+                          <p className="text-xs text-gray-700 truncate">{pairingDetail.user_1.email}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Juz</p>
-                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                              {pairingDetail.user_1.chosen_juz}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Zona Waktu</p>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                              {pairingDetail.user_1.zona_waktu}
-                            </span>
-                          </div>
+                        <div className="flex gap-2">
+                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                            Juz {pairingDetail.user_1.chosen_juz}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                            {pairingDetail.user_1.zona_waktu}
+                          </span>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Waktu Utama</p>
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                          <p className="text-xs text-gray-500">Waktu Utama</p>
+                          <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
                             {pairingDetail.user_1.main_time_slot}
                           </span>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Waktu Cadangan</p>
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                          <p className="text-xs text-gray-500">Waktu Cadangan</p>
+                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
                             {pairingDetail.user_1.backup_time_slot}
                           </span>
                         </div>
                         {pairingDetail.user_1.whatsapp && (
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">WhatsApp</p>
-                            <p className="text-sm text-gray-700">{pairingDetail.user_1.whatsapp}</p>
+                            <p className="text-xs text-gray-500">WhatsApp</p>
+                            <p className="text-xs text-gray-700">{pairingDetail.user_1.whatsapp}</p>
                           </div>
                         )}
                       </div>
@@ -2170,55 +2210,97 @@ export function AdminPairingTab() {
 
                     {/* User 2 */}
                     <div className="border border-purple-200 rounded-lg overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50">
-                      <div className="bg-purple-600 text-white px-4 py-2 flex items-center gap-2">
-                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-                          <span className="text-purple-600 font-bold text-sm">2</span>
+                      <div className="bg-purple-600 text-white px-3 py-2 flex items-center gap-2">
+                        <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-purple-600 font-bold text-xs">2</span>
                         </div>
-                        <span className="font-semibold text-sm">Thalibah Kedua</span>
+                        <span className="font-semibold text-xs">Thalibah Kedua</span>
                       </div>
-                      <div className="p-4 space-y-3">
+                      <div className="p-3 space-y-2">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Nama Lengkap</p>
-                          <p className="font-semibold text-gray-900">{pairingDetail.user_2.full_name}</p>
+                          <p className="text-xs text-gray-500">Nama</p>
+                          <p className="font-semibold text-gray-900 text-sm">{pairingDetail.user_2.full_name}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Email</p>
-                          <p className="text-sm text-gray-700">{pairingDetail.user_2.email}</p>
+                          <p className="text-xs text-gray-500">Email</p>
+                          <p className="text-xs text-gray-700 truncate">{pairingDetail.user_2.email}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Juz</p>
-                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                              {pairingDetail.user_2.chosen_juz}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Zona Waktu</p>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                              {pairingDetail.user_2.zona_waktu}
-                            </span>
-                          </div>
+                        <div className="flex gap-2">
+                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                            Juz {pairingDetail.user_2.chosen_juz}
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                            {pairingDetail.user_2.zona_waktu}
+                          </span>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Waktu Utama</p>
-                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                          <p className="text-xs text-gray-500">Waktu Utama</p>
+                          <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
                             {pairingDetail.user_2.main_time_slot}
                           </span>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Waktu Cadangan</p>
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                          <p className="text-xs text-gray-500">Waktu Cadangan</p>
+                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
                             {pairingDetail.user_2.backup_time_slot}
                           </span>
                         </div>
                         {pairingDetail.user_2.whatsapp && (
                           <div>
-                            <p className="text-xs text-gray-500 mb-1">WhatsApp</p>
-                            <p className="text-sm text-gray-700">{pairingDetail.user_2.whatsapp}</p>
+                            <p className="text-xs text-gray-500">WhatsApp</p>
+                            <p className="text-xs text-gray-700">{pairingDetail.user_2.whatsapp}</p>
                           </div>
                         )}
                       </div>
                     </div>
+
+                    {/* User 3 (if exists) */}
+                    {pairingDetail.user_3 && (
+                      <div className="border border-amber-200 rounded-lg overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50">
+                        <div className="bg-amber-600 text-white px-3 py-2 flex items-center gap-2">
+                          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                            <span className="text-amber-600 font-bold text-xs">3</span>
+                          </div>
+                          <span className="font-semibold text-xs">Thalibah Ketiga</span>
+                        </div>
+                        <div className="p-3 space-y-2">
+                          <div>
+                            <p className="text-xs text-gray-500">Nama</p>
+                            <p className="font-semibold text-gray-900 text-sm">{pairingDetail.user_3.full_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Email</p>
+                            <p className="text-xs text-gray-700 truncate">{pairingDetail.user_3.email}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                              Juz {pairingDetail.user_3.chosen_juz}
+                            </span>
+                            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                              {pairingDetail.user_3.zona_waktu}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Waktu Utama</p>
+                            <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                              {pairingDetail.user_3.main_time_slot}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Waktu Cadangan</p>
+                            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                              {pairingDetail.user_3.backup_time_slot}
+                            </span>
+                          </div>
+                          {pairingDetail.user_3.whatsapp && (
+                            <div>
+                              <p className="text-xs text-gray-500">WhatsApp</p>
+                              <p className="text-xs text-gray-700">{pairingDetail.user_3.whatsapp}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Match Analysis */}

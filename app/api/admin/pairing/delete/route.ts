@@ -202,7 +202,7 @@ export async function GET(request: Request) {
     const { data: pairing, error: findError } = await supabase
       .from('study_partners')
       .select('*')
-      .or(`user_1_id.eq.${userId},user_2_id.eq.${userId}`)
+      .or(`user_1_id.eq.${userId},user_2_id.eq.${userId},user_3_id.eq.${userId}`)
       .eq('batch_id', batchId)
       .eq('pairing_status', 'active')
       .maybeSingle()
@@ -216,33 +216,39 @@ export async function GET(request: Request) {
       )
     }
 
-    // 4. Get both users' details
-    const { data: user1Data } = await supabase
+    // 4. Get all users' details (including user_3 if exists)
+    const userIds = [pairing.user_1_id, pairing.user_2_id, pairing.user_3_id].filter(Boolean)
+
+    const { data: usersData } = await supabase
       .from('users')
       .select('id, full_name, email, zona_waktu, whatsapp')
-      .eq('id', pairing.user_1_id)
-      .single()
+      .in('id', userIds)
 
-    const { data: user2Data } = await supabase
-      .from('users')
-      .select('id, full_name, email, zona_waktu, whatsapp')
-      .eq('id', pairing.user_2_id)
-      .single()
+    const usersMap = new Map((usersData || []).map(u => [u.id, u]))
 
-    // 5. Get registration data for both users
-    const { data: user1Reg } = await supabase
+    // 5. Get registration data for all users
+    const { data: registrations } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
-      .eq('user_id', pairing.user_1_id)
+      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
       .eq('batch_id', batchId)
-      .maybeSingle()
+      .in('user_id', userIds)
 
-    const { data: user2Reg } = await supabase
-      .from('pendaftaran_tikrar_tahfidz')
-      .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
-      .eq('user_id', pairing.user_2_id)
-      .eq('batch_id', batchId)
-      .maybeSingle()
+    const regMap = new Map((registrations || []).map(r => [r.user_id, r]))
+
+    const buildUserData = (userId: string) => {
+      const userData = usersMap.get(userId)
+      const userReg = regMap.get(userId)
+      return {
+        id: userData?.id,
+        full_name: userData?.full_name,
+        email: userData?.email,
+        zona_waktu: userReg?.timezone || userData?.zona_waktu || 'WIB',
+        whatsapp: userData?.whatsapp,
+        chosen_juz: userReg?.chosen_juz || 'N/A',
+        main_time_slot: userReg?.main_time_slot || 'N/A',
+        backup_time_slot: userReg?.backup_time_slot || 'N/A',
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -252,27 +258,11 @@ export async function GET(request: Request) {
           pairing_type: pairing.pairing_type,
           paired_at: pairing.paired_at,
           paired_by: pairing.paired_by,
+          is_group_of_3: !!pairing.user_3_id,
         },
-        user_1: {
-          id: user1Data?.id,
-          full_name: user1Data?.full_name,
-          email: user1Data?.email,
-          zona_waktu: user1Reg?.timezone || user1Data?.zona_waktu || 'WIB',
-          whatsapp: user1Data?.whatsapp,
-          chosen_juz: user1Reg?.chosen_juz || 'N/A',
-          main_time_slot: user1Reg?.main_time_slot || 'N/A',
-          backup_time_slot: user1Reg?.backup_time_slot || 'N/A',
-        },
-        user_2: {
-          id: user2Data?.id,
-          full_name: user2Data?.full_name,
-          email: user2Data?.email,
-          zona_waktu: user2Reg?.timezone || user2Data?.zona_waktu || 'WIB',
-          whatsapp: user2Data?.whatsapp,
-          chosen_juz: user2Reg?.chosen_juz || 'N/A',
-          main_time_slot: user2Reg?.main_time_slot || 'N/A',
-          backup_time_slot: user2Reg?.backup_time_slot || 'N/A',
-        },
+        user_1: buildUserData(pairing.user_1_id),
+        user_2: buildUserData(pairing.user_2_id),
+        user_3: pairing.user_3_id ? buildUserData(pairing.user_3_id) : null,
       }
     })
   } catch (error: any) {
