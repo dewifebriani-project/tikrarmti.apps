@@ -72,7 +72,8 @@ export async function POST(
 
     if (userData?.roles) {
       const currentRoles = userData.roles.filter((r: string) => r !== 'calon_thalibah')
-      const newRoles = [...new Set([...currentRoles, 'thalibah'])] // Add thalibah if not exists
+      // Add 'thalibah' if not already present
+      const newRoles = Array.from(new Set([...currentRoles, 'thalibah']))
 
       const { error: roleUpdateError } = await supabase
         .from('users')
