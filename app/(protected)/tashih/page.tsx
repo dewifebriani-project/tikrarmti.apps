@@ -53,7 +53,7 @@ interface TashihRecord {
 }
 
 interface UserProgramInfo {
-  programType: 'tikrar_tahfidz' | 'pra_tahfidz' | null
+  programType: 'tikrar_tahfidz' | 'pra_tahfidz' | 'admin' | 'muallimah' | null
   confirmedChosenJuz: string | null
   batchStartDate: string | null
   batchId: string | null
