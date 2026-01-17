@@ -224,14 +224,6 @@ export async function GET(request: NextRequest) {
           // Find matching daftar ulang submission for this registration
           const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
 
-          // Debug: log registration matching
-          console.log(`[Match] Reg ID: ${reg.id?.slice(0, 8)}... | daftar_ulang found: ${daftarUlang ? 'YES' : 'NO'}`)
-          if (daftarUlangSubmissions && daftarUlangSubmissions.length > 0) {
-            console.log(`[Match] Available daftar_ulang reg_ids:`, daftarUlangSubmissions.map(d => d.registration_id?.slice(0, 8)))
-          }
-
-          console.log(`[Filter] Tikrar reg ${reg.id}: batch_status=${reg.batch?.status}, batch_name=${reg.batch?.name}`)
-
           return {
             ...reg,
             registration_type: 'calon_thalibah',
