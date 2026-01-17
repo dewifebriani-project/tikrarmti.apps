@@ -5101,6 +5101,10 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
   const [rejectReason, setRejectReason] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(false);
 
+  // Migration runner state
+  const [runningMigration, setRunningMigration] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<any>(null);
+
   // Add user modal states
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -5546,6 +5550,43 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Handle running the migration for auto-adding muallimah role
+  const handleRunMigration = async () => {
+    if (!confirm('This will run the migration to auto-add muallimah/musyrifah roles to all approved registrations. Continue?')) {
+      return;
+    }
+
+    setRunningMigration(true);
+    setMigrationResult(null);
+
+    try {
+      const response = await fetch('/api/admin/run-migration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          migrationName: '20260117_add_auto_role_trigger_for_muallimah_musyrifah'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || 'Failed to run migration');
+        setMigrationResult({ success: false, error: result.error });
+      } else {
+        toast.success('Migration completed! Check results below.');
+        setMigrationResult(result);
+        onRefresh(); // Refresh the data
+      }
+    } catch (error: any) {
+      console.error('Error running migration:', error);
+      toast.error(error.message || 'Failed to run migration');
+      setMigrationResult({ success: false, error: error.message });
+    } finally {
+      setRunningMigration(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters Section */}
@@ -5553,14 +5594,39 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
         {/* Header with Add button */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Muallimah Registrations</h2>
-          <button
-            onClick={handleOpenAddUserModal}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Existing User
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleRunMigration}
+              disabled={runningMigration}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${runningMigration ? 'animate-spin' : ''}`} />
+              {runningMigration ? 'Running...' : 'Run Role Migration'}
+            </button>
+            <button
+              onClick={handleOpenAddUserModal}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Existing User
+            </button>
+          </div>
         </div>
+
+        {/* Migration Result */}
+        {migrationResult && (
+          <div className={`p-4 rounded-md border ${migrationResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            <h3 className={`font-medium mb-2 ${migrationResult.success ? 'text-green-900' : 'text-red-900'}`}>
+              {migrationResult.success ? 'Migration Completed' : 'Migration Failed'}
+            </h3>
+            <pre className="text-xs overflow-auto max-h-40">
+              {JSON.stringify(migrationResult, null, 2)}
+            </pre>
+            {migrationResult.note && (
+              <p className="text-sm text-gray-600 mt-2">{migrationResult.note}</p>
+            )}
+          </div>
+        )}
 
         {/* Batch and Status Filters */}
         <div className="flex flex-wrap items-center gap-4">
