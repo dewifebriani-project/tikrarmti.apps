@@ -192,26 +192,6 @@ export default function Tashih() {
         return
       }
 
-      // Check for Muallimah Registrations (if not found in daftar ulang)
-      const { data: muallimahReg } = await supabase
-        .from('muallimah_registrations')
-        .select('*, batch:batches(*)')
-        .eq('user_id', user.id)
-        .in('status', ['approved', 'submitted'])
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (muallimahReg) {
-        setUserProgramInfo({
-          programType: 'tikrar_tahfidz', // Muallimah is part of Tikrar Tahfidz program
-          confirmedChosenJuz: muallimahReg.preferred_juz,
-          batchStartDate: muallimahReg.batch?.start_date || null,
-          batchId: muallimahReg.batch_id || null,
-          tashihHalaqahId: null
-        })
-        return
-      }
 
       // Check for Pra Tikrar (pendaftaran with status 'selected')
       const { data: praTikrarReg } = await supabase
