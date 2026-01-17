@@ -714,10 +714,17 @@ export default function Tashih() {
       {/* Day Selection Buttons */}
       <Card className="overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50 border-b">
-          <CardTitle className="flex items-center gap-2 text-cyan-700">
-            <Calendar className="h-5 w-5" />
-            <span>Pilih Hari</span>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-cyan-700">
+              <Calendar className="h-5 w-5" />
+              <span>Pilih Hari</span>
+            </CardTitle>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-cyan-700">
+                {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
           <CardDescription>
             Klik hari untuk melihat riwayat tashih atau mengisi tashih untuk hari tersebut
           </CardDescription>
@@ -916,32 +923,6 @@ export default function Tashih() {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Date Selection */}
-        <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-violet-700">
-              <Calendar className="h-5 w-5" />
-              <span>Tanggal Tashih</span>
-            </CardTitle>
-            <CardDescription>
-              {userProgramInfo.batchStartDate
-                ? `Maksimal hari ini (dimulai dari ${new Date(userProgramInfo.batchStartDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })})`
-                : 'Pilih tanggal tashih'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <input
-              type="date"
-              value={tashihData.tanggalTashih}
-              min={getMinDate()}
-              max={getMaxDate()}
-              onChange={(e) => setTashihData(prev => ({ ...prev, tanggalTashih: e.target.value }))}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition-all text-lg"
-              required
-            />
           </CardContent>
         </Card>
 
