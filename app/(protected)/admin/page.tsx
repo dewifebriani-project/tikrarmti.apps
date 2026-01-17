@@ -31,7 +31,8 @@ import {
   X,
   HelpCircle,
   RefreshCw,
-  HeartHandshake
+  HeartHandshake,
+  Info
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
