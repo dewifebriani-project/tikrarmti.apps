@@ -53,7 +53,7 @@ interface TashihRecord {
 }
 
 interface UserProgramInfo {
-  programType: 'tikrar_tahfidz' | 'pra_tahfidz' | 'muallimah' | null
+  programType: 'tikrar_tahfidz' | 'pra_tahfidz' | null
   confirmedChosenJuz: string | null
   batchStartDate: string | null
   batchId: string | null
@@ -184,28 +184,7 @@ export default function Tashih() {
         return
       }
 
-      // Priority 2: Check for Muallimah registrations (approved/submitted)
-      const { data: muallimahReg } = await supabase
-        .from('muallimah_registrations')
-        .select('*, batch:batches(*)')
-        .eq('user_id', user.id)
-        .in('status', ['approved', 'submitted'])
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (muallimahReg) {
-        setUserProgramInfo({
-          programType: 'muallimah',
-          confirmedChosenJuz: muallimahReg.preferred_juz,
-          batchStartDate: muallimahReg.batch?.start_date || null,
-          batchId: muallimahReg.batch_id || null,
-          tashihHalaqahId: null
-        })
-        return
-      }
-
-      // Priority 3: Check for Pra Tikrar (pendaftaran_tikrar_tahfidz with status 'selected')
+      // Priority 2: Check for Pra Tikrar (pendaftaran_tikrar_tahfidz with status 'selected')
       // ONLY if NOT in daftar_ulang_submissions
       const { data: praTikrarReg } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
@@ -643,13 +622,6 @@ export default function Tashih() {
           description: 'Program persiapan Tikrar Tahfidz',
           icon: <BookOpen className="h-6 w-6" />,
           color: 'from-blue-500 to-indigo-600'
-        }
-      case 'muallimah':
-        return {
-          title: 'Tahfidz Tikrar Muallimah',
-          description: 'Program Tahfidz untuk Muallimah',
-          icon: <School className="h-6 w-6" />,
-          color: 'from-purple-500 to-pink-600'
         }
       default:
         return null
