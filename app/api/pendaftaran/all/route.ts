@@ -68,28 +68,28 @@ export async function GET(request: NextRequest) {
 
     // Combine all registrations without filter - include ALL statuses
     const allRegistrations = [
-      ...(directRegistrations || []).map((reg: any) => ({
+      ...(directRegistrations.data || []).map((reg: any) => ({
         ...reg,
         registration_type: 'calon_thalibah',
         role: 'calon_thalibah',
         status: reg.status || 'pending',
         batch_name: reg.batch?.name || null
       })),
-      ...(muallimahRegistrations || []).map((reg: any) => ({
+      ...(muallimahRegistrations.data || []).map((reg: any) => ({
         ...reg,
         registration_type: 'muallimah',
         role: 'muallimah',
         status: reg.status || 'pending',
         batch_name: reg.batch?.name || null
       })),
-      ...(musyrifahRegistrations || []).map((reg: any) => ({
+      ...(musyrifahRegistrations.data || []).map((reg: any) => ({
         ...reg,
         registration_type: 'musyrifah',
         role: 'musyrifah',
         status: reg.status || 'pending',
         batch_name: reg.batch?.name || null
       })),
-      ...(daftarUlangSubmissions || []).map((submission: any) => ({
+      ...(daftarUlangSubmissions.data || []).map((submission: any) => ({
         ...submission,
         registration_type: 'daftar_ulang',
         role: 'thalibah', // As thalibah in daftar ulang
