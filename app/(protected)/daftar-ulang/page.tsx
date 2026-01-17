@@ -151,6 +151,12 @@ export default function DaftarUlangPage() {
         console.log('[Daftar Ulang Debug] User Email:', user?.email)
         console.log('[Daftar Ulang Debug] User Roles:', user?.roles)
         console.log('[Daftar Ulang Debug] All Registrations:', regData.data)
+        console.log('[Daftar Ulang Debug] All Registrations with daftar_ulang:', regData.data?.map((r: any) => ({
+          id: r.id?.slice(0, 8),
+          role: r.role,
+          selection_status: r.selection_status,
+          daftar_ulang: r.daftar_ulang ? { id: r.daftar_ulang.id?.slice(0, 8), status: r.daftar_ulang.status } : null
+        })))
         console.log('[Daftar Ulang Debug] Selected Registration:', selectedRegistration)
 
         if (!selectedRegistration) {
