@@ -62,8 +62,10 @@ interface UserProgramInfo {
 interface MuallimahOption {
   id: string
   user_id: string
-  full_name: string
   preferred_juz: string
+  user: {
+    full_name: string
+  }
 }
 
 const masalahTajwidOptions = [
@@ -144,29 +146,7 @@ export default function Tashih() {
         return
       }
 
-      // Check for muallimah registration first
-      const { data: muallimahReg } = await supabase
-        .from('muallimah_registrations')
-        .select('*, batch:batches(*)')
-        .eq('user_id', user.id)
-        .eq('status', 'approved')
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (muallimahReg) {
-        // For muallimah, get preferred_juz as confirmed juz
-        setUserProgramInfo({
-          programType: 'muallimah',
-          confirmedChosenJuz: muallimahReg.preferred_juz,
-          batchStartDate: muallimahReg.batch?.start_date || null,
-          batchId: muallimahReg.batch_id || null,
-          tashihHalaqahId: null
-        })
-        return
-      }
-
-      // Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
+      // Priority 1: Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
       const { data: daftarUlangSubmission } = await supabase
         .from('daftar_ulang_submissions')
         .select(`
@@ -193,8 +173,28 @@ export default function Tashih() {
         return
       }
 
+      // Priority 2: Check for Muallimah registrations (approved/submitted)
+      const { data: muallimahReg } = await supabase
+        .from('muallimah_registrations')
+        .select('*, batch:batches(*)')
+        .eq('user_id', user.id)
+        .in('status', ['approved', 'submitted'])
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-      // Check for Pra Tikrar (pendaftaran with status 'selected')
+      if (muallimahReg) {
+        setUserProgramInfo({
+          programType: 'muallimah',
+          confirmedChosenJuz: muallimahReg.preferred_juz,
+          batchStartDate: muallimahReg.batch?.start_date || null,
+          batchId: muallimahReg.batch_id || null,
+          tashihHalaqahId: null
+        })
+        return
+      }
+
+      // Priority 3: Check for Pra Tikrar (pendaftaran with status 'selected')
       const { data: praTikrarReg } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
@@ -305,12 +305,13 @@ export default function Tashih() {
       const supabase = createClient()
 
       // Get all muallimah with status approved or submitted for this batch
+      // Join with user_profiles to get the correct name
       const { data: muallimahData } = await supabase
         .from('muallimah_registrations')
-        .select('id, user_id, full_name, preferred_juz')
+        .select('id, user_id, preferred_juz, user:user_profiles(full_name)')
         .eq('batch_id', userProgramInfo.batchId)
         .in('status', ['approved', 'submitted'])
-        .order('full_name', { ascending: true })
+        .order('user.full_name', { ascending: true })
 
       if (!muallimahData) {
         console.log('No muallimah found for batch:', userProgramInfo.batchId)
@@ -478,6 +479,16 @@ export default function Tashih() {
   // Get max date (today) - user cannot select future dates
   const getMaxDate = () => {
     return new Date().toISOString().slice(0, 10)
+  }
+
+  // Get date for a given day index (0=Senin, 6=Ahad) of the current week
+  const getDayDate = (dayIndex: number) => {
+    const today = new Date()
+    const currentDay = today.getDay() // 0=Ahad, 1=Senin, ..., 6=Sabtu
+    const diff = (dayIndex + 1) - currentDay // Convert to 1=Senin, 7=Ahad
+    const targetDate = new Date(today)
+    targetDate.setDate(today.getDate() + diff)
+    return targetDate
   }
 
   if (isLoading) {
@@ -703,6 +714,58 @@ export default function Tashih() {
         </CardContent>
       </Card>
 
+      {/* Day Selection Buttons */}
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50 border-b">
+          <CardTitle className="flex items-center gap-2 text-cyan-700">
+            <Calendar className="h-5 w-5" />
+            <span>Pilih Hari</span>
+          </CardTitle>
+          <CardDescription>
+            Klik hari untuk melihat riwayat tashih atau mengisi tashih untuk hari tersebut
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-7 gap-2">
+            {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
+              const dayDate = getDayDate(index)
+              const isToday = new Date().toDateString() === dayDate.toDateString()
+              const dateString = dayDate.toISOString().split('T')[0]
+
+              return (
+                <button
+                  key={hari}
+                  type="button"
+                  onClick={() => setTashihData(prev => ({ ...prev, tanggalTashih: dateString }))}
+                  className={cn(
+                    "p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                    "hover:shadow-md hover:scale-105",
+                    tashihData.tanggalTashih === dateString
+                      ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                      : isToday
+                        ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                        : "border-gray-200 hover:border-cyan-300 bg-white"
+                  )}
+                >
+                  <div className={cn(
+                    "text-xs font-medium mb-1",
+                    tashihData.tanggalTashih === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                  )}>
+                    {hari}
+                  </div>
+                  <div className={cn(
+                    "text-sm font-bold",
+                    tashihData.tanggalTashih === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                  )}>
+                    {dayDate.getDate()}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Block Selection */}
@@ -832,7 +895,7 @@ export default function Tashih() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                              setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.user.full_name }))
                               setIsUstadzahDropdownOpen(false)
                             }}
                             className={cn(
@@ -842,7 +905,7 @@ export default function Tashih() {
                                 : "hover:bg-gray-50"
                             )}
                           >
-                            {muallimah.full_name}
+                            {muallimah.user.full_name}
                             {muallimah.preferred_juz && (
                               <span className="block text-xs text-gray-500">
                                 (Juz {muallimah.preferred_juz})
