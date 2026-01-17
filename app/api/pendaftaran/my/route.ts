@@ -215,12 +215,11 @@ export async function GET(request: NextRequest) {
     })))
 
     // Combine all registrations into a single array
-    // NOTE: For perjalanan-saya page, show ALL registrations from valid batches (not draft)
-    // This allows muallimah users (who are also thalibah) to see their history
+    // FILTER: Only include registrations from OPEN batches (active batch only)
     const allRegistrations: FinalRegistration[] = [
       ...((tikrarRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => reg.batch?.status !== 'draft') // Exclude draft batches
+        .filter(reg => reg.batch?.status === 'open') // Only open batches
         .map(reg => {
           // Find matching daftar ulang submission for this registration
           const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id)
@@ -240,7 +239,7 @@ export async function GET(request: NextRequest) {
         }),
       ...((muallimahRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => reg.batch?.status !== 'draft') // Exclude draft batches
+        .filter(reg => reg.batch?.status === 'open') // Only open batches
         .map(reg => ({
           ...reg,
           registration_type: 'muallimah',
@@ -250,7 +249,7 @@ export async function GET(request: NextRequest) {
         })),
       ...((musyrifahRegistrations || []) as SupabaseRegistrationResult[])
         .map(toRegistrationWithBatch)
-        .filter(reg => reg.batch?.status !== 'draft') // Exclude draft batches
+        .filter(reg => reg.batch?.status === 'open') // Only open batches
         .map(reg => ({
           ...reg,
           registration_type: 'musyrifah',

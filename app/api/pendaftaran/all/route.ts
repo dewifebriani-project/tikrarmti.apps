@@ -66,36 +66,32 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
     ])
 
-    // Combine all registrations without filter - include ALL statuses
+    // Combine all registrations
+    // NOTE: Only show registrations from OPEN batches (current active batch)
+    // perjalanan-saya page is for active thalibah journey, not history
+    // muallimah_registrations and musyrifah_registrations are NOT included here
+    // because they're unrelated to thalibah learning journey
     const allRegistrations = [
-      ...(directRegistrations.data || []).map((reg: any) => ({
-        ...reg,
-        registration_type: 'calon_thalibah',
-        role: 'calon_thalibah',
-        status: reg.status || 'pending',
-        batch_name: reg.batch?.name || null
-      })),
-      ...(muallimahRegistrations.data || []).map((reg: any) => ({
-        ...reg,
-        registration_type: 'muallimah',
-        role: 'muallimah',
-        status: reg.status || 'pending',
-        batch_name: reg.batch?.name || null
-      })),
-      ...(musyrifahRegistrations.data || []).map((reg: any) => ({
-        ...reg,
-        registration_type: 'musyrifah',
-        role: 'musyrifah',
-        status: reg.status || 'pending',
-        batch_name: reg.batch?.name || null
-      })),
-      ...(daftarUlangSubmissions.data || []).map((submission: any) => ({
-        ...submission,
-        registration_type: 'daftar_ulang',
-        role: 'thalibah', // As thalibah in daftar ulang
-        status: submission.status,
-        batch_name: submission.batch?.name || null
-      }))
+      // Only tikrar registrations from OPEN batches
+      ...(directRegistrations.data || [])
+        .filter((reg: any) => reg.batch?.status === 'open')
+        .map((reg: any) => ({
+          ...reg,
+          registration_type: 'calon_thalibah',
+          role: 'calon_thalibah',
+          status: reg.status || 'pending',
+          batch_name: reg.batch?.name || null
+        })),
+      // Include daftar ulang submissions for completed re-enrollments
+      ...(daftarUlangSubmissions.data || [])
+        .filter((submission: any) => submission.batch?.status === 'open')
+        .map((submission: any) => ({
+          ...submission,
+          registration_type: 'daftar_ulang',
+          role: 'thalibah',
+          status: submission.status,
+          batch_name: submission.batch?.name || null
+        }))
     ]
 
     // Sort by created_at/submitted_at descending
