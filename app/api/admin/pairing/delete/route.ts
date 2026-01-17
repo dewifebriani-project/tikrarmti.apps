@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
  * Delete a pairing to allow re-pairing
  *
  * Query params:
- * - user_id: User ID to delete pairing for
+ * - user_id: User ID to delete pairing for, or 'all' to delete all pairings
  * - batch_id: Batch ID
  */
 export async function DELETE(request: Request) {
@@ -43,6 +43,61 @@ export async function DELETE(request: Request) {
   }
 
   try {
+    // Check if deleting all pairings
+    if (userId === 'all') {
+      // 3. Fetch all active pairings for this batch
+      const { data: allPairings, error: fetchError } = await supabase
+        .from('study_partners')
+        .select('*')
+        .eq('batch_id', batchId)
+        .eq('pairing_status', 'active')
+
+      if (fetchError) throw fetchError
+
+      if (!allPairings || allPairings.length === 0) {
+        return NextResponse.json(
+          { error: 'No active pairings found for this batch' },
+          { status: 404 }
+        )
+      }
+
+      // 4. Delete all pairings
+      const pairingIds = allPairings.map(p => p.id)
+      const { error: deleteError } = await supabase
+        .from('study_partners')
+        .delete()
+        .in('id', pairingIds)
+
+      if (deleteError) throw deleteError
+
+      // 5. Update all submissions to remove pairing status
+      const allUserIds = new Set<string>()
+      allPairings.forEach(pairing => {
+        allUserIds.add(pairing.user_1_id)
+        allUserIds.add(pairing.user_2_id)
+      })
+
+      await supabase
+        .from('daftar_ulang_submissions')
+        .update({ pairing_status: null })
+        .eq('batch_id', batchId)
+        .in('user_id', Array.from(allUserIds))
+
+      // 6. Revalidate paths
+      revalidatePath('/admin')
+      revalidatePath('/dashboard')
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully deleted ${allPairings.length} pairing(s)`,
+        data: {
+          deleted_count: allPairings.length,
+          deleted_pairing_ids: pairingIds,
+        }
+      })
+    }
+
+    // Delete single pairing
     // 3. Find the pairing for this user
     const { data: pairing, error: findError } = await supabase
       .from('study_partners')

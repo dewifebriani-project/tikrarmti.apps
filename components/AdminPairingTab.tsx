@@ -661,6 +661,54 @@ export function AdminPairingTab() {
     }
   }
 
+  const handleRevertAllPairings = async () => {
+    if (!selectedBatchId) return
+
+    // Count paired users
+    const pairedCount = systemMatchRequests.filter(r => r.is_paired).length
+    if (pairedCount === 0) {
+      toast.error('Tidak ada pasangan untuk dihapus')
+      return
+    }
+
+    // Confirm with user
+    const confirmed = window.confirm(
+      `Anda yakin ingin menghapus SEMUA pasangan (${pairedCount} pasangan) untuk batch ini?\n\n` +
+      `Tindakan ini akan:\n` +
+      `• Menghapus semua pasangan yang ada\n` +
+      `• Mengatur ulang status pairing untuk semua thalibah\n` +
+      `• Memungkinkan Anda untuk memasangkan ulang dari awal`
+    )
+
+    if (!confirmed) return
+
+    const toastId = toast.loading('Menghapus semua pasangan...')
+
+    try {
+      const response = await fetch(`/api/admin/pairing/delete?user_id=all&batch_id=${selectedBatchId}`, {
+        method: 'DELETE',
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to revert all pairings')
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success(`Berhasil menghapus ${result.data.deleted_count} pasangan!`, { id: toastId })
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Failed to revert all pairings', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error reverting all pairings:', error)
+      toast.error('Failed to revert all pairings', { id: toastId })
+    }
+  }
+
   if (loading && batches.length === 0) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -1125,7 +1173,19 @@ export function AdminPairingTab() {
             <h3 className="text-lg font-semibold text-gray-900">
               Request Dipasangkan Sistem
             </h3>
-            <span className="text-sm text-gray-600">{systemMatchRequests.length} permintaan</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">{systemMatchRequests.length} permintaan</span>
+              {systemMatchRequests.some(r => r.is_paired) && (
+                <button
+                  onClick={handleRevertAllPairings}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1.5 text-xs font-medium shadow-sm"
+                  title="Hapus semua pasangan untuk batch ini"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Revert All
+                </button>
+              )}
+            </div>
           </div>
 
           {systemMatchRequests.length === 0 ? (
