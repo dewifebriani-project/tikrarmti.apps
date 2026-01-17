@@ -62,10 +62,8 @@ interface UserProgramInfo {
 interface MuallimahOption {
   id: string
   user_id: string
+  full_name: string
   preferred_juz: string
-  user: {
-    full_name: string
-  }
 }
 
 const masalahTajwidOptions = [
@@ -305,13 +303,12 @@ export default function Tashih() {
       const supabase = createClient()
 
       // Get all muallimah with status approved or submitted for this batch
-      // Join with user_profiles to get the correct name
       const { data: muallimahData } = await supabase
         .from('muallimah_registrations')
-        .select('id, user_id, preferred_juz, user:user_profiles(full_name)')
+        .select('id, user_id, full_name, preferred_juz')
         .eq('batch_id', userProgramInfo.batchId)
         .in('status', ['approved', 'submitted'])
-        .order('user.full_name', { ascending: true })
+        .order('full_name', { ascending: true })
 
       if (!muallimahData) {
         console.log('No muallimah found for batch:', userProgramInfo.batchId)
@@ -895,7 +892,7 @@ export default function Tashih() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.user.full_name }))
+                              setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
                               setIsUstadzahDropdownOpen(false)
                             }}
                             className={cn(
@@ -905,7 +902,7 @@ export default function Tashih() {
                                 : "hover:bg-gray-50"
                             )}
                           >
-                            {muallimah.user.full_name}
+                            {muallimah.full_name}
                             {muallimah.preferred_juz && (
                               <span className="block text-xs text-gray-500">
                                 (Juz {muallimah.preferred_juz})
