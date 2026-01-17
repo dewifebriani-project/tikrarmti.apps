@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight, Bug, ChevronDown, BookOpen, Home } from 'lucide-react'
+import { HeartHandshake, UserCheck, Users, CheckCircle, XCircle, Clock, Search, ChevronRight, Heart, ArrowRight, Bug, ChevronDown, BookOpen, Home, Eye, RotateCcw, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface SelfMatchRequest {
@@ -57,6 +57,7 @@ interface SystemMatchRequest {
   is_paired: boolean
   partner_name: string | null
   partner_user_id: string | null
+  pairing_id?: string | null
 }
 
 interface TarteelRequest {
@@ -170,6 +171,11 @@ export function AdminPairingTab() {
   const [showManualPairModal, setShowManualPairModal] = useState(false)
   const [manualPairUser1, setManualPairUser1] = useState<SelfMatchRequest | null>(null)
   const [manualPairUser2, setManualPairUser2] = useState<SelfMatchRequest | null>(null)
+
+  // Pairing detail modal state
+  const [showPairingDetailModal, setShowPairingDetailModal] = useState(false)
+  const [pairingDetail, setPairingDetail] = useState<any>(null)
+  const [loadingPairingDetail, setLoadingPairingDetail] = useState(false)
 
   // Sorting state for System Match table
   const [sortConfig, setSortConfig] = useState<{
@@ -586,6 +592,72 @@ export function AdminPairingTab() {
     } catch (error) {
       console.error('Error approving family pairing:', error)
       toast.error('Failed to approve family pairing', { id: toastId })
+    }
+  }
+
+  const handleViewPairingDetail = async (request: SystemMatchRequest) => {
+    setShowPairingDetailModal(true)
+    setLoadingPairingDetail(true)
+    setPairingDetail(null)
+
+    try {
+      const response = await fetch(`/api/admin/pairing/delete?user_id=${request.user_id}&batch_id=${request.batch_id}`, {
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error('Pairing not found')
+        } else {
+          throw new Error('Failed to fetch pairing details')
+        }
+        setShowPairingDetailModal(false)
+        return
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setPairingDetail(result.data)
+      } else {
+        toast.error(result.error || 'Failed to fetch pairing details')
+        setShowPairingDetailModal(false)
+      }
+    } catch (error) {
+      console.error('Error fetching pairing details:', error)
+      toast.error('Failed to fetch pairing details')
+      setShowPairingDetailModal(false)
+    } finally {
+      setLoadingPairingDetail(false)
+    }
+  }
+
+  const handleRevertPairing = async (request: SystemMatchRequest) => {
+    const toastId = toast.loading('Removing pairing...')
+
+    try {
+      const response = await fetch(`/api/admin/pairing/delete?user_id=${request.user_id}&batch_id=${request.batch_id}`, {
+        method: 'DELETE',
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to revert pairing')
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Pairing removed successfully! You can now re-pair this user.', { id: toastId })
+        setShowPairingDetailModal(false)
+        setPairingDetail(null)
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Failed to revert pairing', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error reverting pairing:', error)
+      toast.error('Failed to revert pairing', { id: toastId })
     }
   }
 
@@ -1176,7 +1248,24 @@ export function AdminPairingTab() {
                             Cari
                           </button>
                         ) : (
-                          <span className="text-green-600 text-xs font-medium">Sudah berpasangan</span>
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => handleViewPairingDetail(request)}
+                              className="px-2 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs"
+                              title="Lihat detail pasangan"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Detail
+                            </button>
+                            <button
+                              onClick={() => handleRevertPairing(request)}
+                              className="px-2 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-1 text-xs"
+                              title="Batalkan pasangan untuk pasangkan ulang"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Revert
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -1671,8 +1760,269 @@ export function AdminPairingTab() {
           </div>
         </div>
       )}
+
+      {/* Pairing Detail Modal */}
+      {showPairingDetailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <HeartHandshake className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Detail Pasangan</h3>
+                    <p className="text-sm text-gray-600">Informasi lengkap pasangan belajar</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPairingDetailModal(false)
+                    setPairingDetail(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingPairingDetail ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-900 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Memuat detail pasangan...</p>
+                </div>
+              ) : !pairingDetail ? (
+                <div className="text-center py-12">
+                  <Info className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Detail pasangan tidak tersedia</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Pairing Info */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-green-900 mb-2">Informasi Pasangan</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-green-700">Tipe Pairing:</span>{' '}
+                        <span className="font-medium">{pairingDetail.pairing.pairing_type}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-700">Tanggal Dibuat:</span>{' '}
+                        <span className="font-medium">
+                          {pairingDetail.pairing.paired_at
+                            ? new Date(pairingDetail.pairing.paired_at).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Two Users Side by Side */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* User 1 */}
+                    <div className="border border-blue-200 rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
+                      <div className="bg-blue-600 text-white px-4 py-2 flex items-center gap-2">
+                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-sm">1</span>
+                        </div>
+                        <span className="font-semibold text-sm">Thalibah Pertama</span>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Nama Lengkap</p>
+                          <p className="font-semibold text-gray-900">{pairingDetail.user_1.full_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Email</p>
+                          <p className="text-sm text-gray-700">{pairingDetail.user_1.email}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Juz</p>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                              {pairingDetail.user_1.chosen_juz}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Zona Waktu</p>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                              {pairingDetail.user_1.zona_waktu}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Waktu Utama</p>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                            {pairingDetail.user_1.main_time_slot}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Waktu Cadangan</p>
+                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                            {pairingDetail.user_1.backup_time_slot}
+                          </span>
+                        </div>
+                        {pairingDetail.user_1.whatsapp && (
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">WhatsApp</p>
+                            <p className="text-sm text-gray-700">{pairingDetail.user_1.whatsapp}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* User 2 */}
+                    <div className="border border-purple-200 rounded-lg overflow-hidden bg-gradient-to-br from-purple-50 to-pink-50">
+                      <div className="bg-purple-600 text-white px-4 py-2 flex items-center gap-2">
+                        <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
+                          <span className="text-purple-600 font-bold text-sm">2</span>
+                        </div>
+                        <span className="font-semibold text-sm">Thalibah Kedua</span>
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Nama Lengkap</p>
+                          <p className="font-semibold text-gray-900">{pairingDetail.user_2.full_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Email</p>
+                          <p className="text-sm text-gray-700">{pairingDetail.user_2.email}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Juz</p>
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                              {pairingDetail.user_2.chosen_juz}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Zona Waktu</p>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                              {pairingDetail.user_2.zona_waktu}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Waktu Utama</p>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                            {pairingDetail.user_2.main_time_slot}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Waktu Cadangan</p>
+                          <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                            {pairingDetail.user_2.backup_time_slot}
+                          </span>
+                        </div>
+                        {pairingDetail.user_2.whatsapp && (
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">WhatsApp</p>
+                            <p className="text-sm text-gray-700">{pairingDetail.user_2.whatsapp}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Match Analysis */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Analisis Kecocokan</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          pairingDetail.user_1.chosen_juz === pairingDetail.user_2.chosen_juz
+                            ? 'bg-green-500'
+                            : 'bg-red-500'
+                        }`}></div>
+                        <span>
+                          Juz: {pairingDetail.user_1.chosen_juz === pairingDetail.user_2.chosen_juz ? 'Sama ✓' : 'Beda'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          pairingDetail.user_1.zona_waktu === pairingDetail.user_2.zona_waktu
+                            ? 'bg-green-500'
+                            : 'bg-red-500'
+                        }`}></div>
+                        <span>
+                          Zona: {pairingDetail.user_1.zona_waktu === pairingDetail.user_2.zona_waktu ? 'Sama ✓' : 'Beda'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          hasTimeSlotOverlap(pairingDetail.user_1.main_time_slot, pairingDetail.user_2.main_time_slot)
+                            ? 'bg-green-500'
+                            : 'bg-red-500'
+                        }`}></div>
+                        <span>
+                          Waktu Utama: {hasTimeSlotOverlap(pairingDetail.user_1.main_time_slot, pairingDetail.user_2.main_time_slot) ? 'Cocok ✓' : 'Tidak cocok'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          hasTimeSlotOverlap(pairingDetail.user_1.main_time_slot, pairingDetail.user_2.backup_time_slot) ||
+                          hasTimeSlotOverlap(pairingDetail.user_1.backup_time_slot, pairingDetail.user_2.main_time_slot) ||
+                          hasTimeSlotOverlap(pairingDetail.user_1.backup_time_slot, pairingDetail.user_2.backup_time_slot)
+                            ? 'bg-green-500'
+                            : 'bg-gray-400'
+                        }`}></div>
+                        <span>
+                          Waktu Cadangan: {hasTimeSlotOverlap(pairingDetail.user_1.main_time_slot, pairingDetail.user_2.backup_time_slot) ||
+                          hasTimeSlotOverlap(pairingDetail.user_1.backup_time_slot, pairingDetail.user_2.main_time_slot) ||
+                          hasTimeSlotOverlap(pairingDetail.user_1.backup_time_slot, pairingDetail.user_2.backup_time_slot)
+                            ? 'Cocok ✓'
+                            : 'Tidak cocok'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowPairingDetailModal(false)
+                  setPairingDetail(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+// Helper function to check if two time slots overlap
+function hasTimeSlotOverlap(slot1: string, slot2: string): boolean {
+  if (!slot1 || !slot2) return false
+
+  const parseSlot = (slot: string) => {
+    const [start, end] = slot.split('-').map(Number)
+    return { start, end }
+  }
+
+  const s1 = parseSlot(slot1)
+  const s2 = parseSlot(slot2)
+
+  return s1.start < s2.end && s2.start < s1.end
 }
 
 function MatchSection({
