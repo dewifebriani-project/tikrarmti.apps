@@ -718,6 +718,19 @@ export default function DaftarUlangPage() {
                                 (requires: selection_status=selected, role=calon_thalibah, batch=open)
                               </span>
                             </div>
+                            {reg.daftar_ulang && (
+                              <div className="col-span-2 bg-purple-50 p-2 rounded border border-purple-200">
+                                <span className="text-purple-700 font-medium">⚠ Daftar Ulang Submitted: </span>
+                                <span className="text-purple-600">
+                                  Status: {reg.daftar_ulang.status} | ID: {reg.daftar_ulang.id?.slice(0, 8)}...
+                                </span>
+                                {reg.daftar_ulang.status === 'submitted' || reg.daftar_ulang.status === 'approved' ? (
+                                  <span className="ml-2 text-amber-600 font-medium">
+                                    → Should show success page
+                                  </span>
+                                ) : null}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))
