@@ -93,7 +93,7 @@ export function useAllRegistrations() {
 /**
  * Hook for fetching all registrations (admin only)
  */
-export function useAllRegistrations(params: RegistrationQueryParams = {}) {
+export function useAllRegistrationsAdmin(params: RegistrationQueryParams = {}) {
   // Build query string
   const queryString = new URLSearchParams()
 
