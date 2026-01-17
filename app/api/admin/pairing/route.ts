@@ -375,10 +375,6 @@ async function calculateMatchingStatistics(
   // Create map for quick lookup
   const regMap = new Map((otherRegistrations || []).map(r => [r.user_id, r]))
 
-  let zonaWaktuMatches = 0
-  let sameJuzMatches = 0
-  let crossJuzMatches = 0
-
   const userTimezone = userRegistration?.timezone || 'WIB'
   const userJuz = userRegistration?.chosen_juz
 
