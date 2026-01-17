@@ -931,7 +931,7 @@ export default function Tashih() {
                     <span>Memuat daftar ustadzah...</span>
                   </div>
                 ) : (
-                  <div className="relative z-50">
+                  <div className="relative">
                     <button
                       type="button"
                       onClick={() => setIsUstadzahDropdownOpen(!isUstadzahDropdownOpen)}
@@ -942,53 +942,67 @@ export default function Tashih() {
                       </span>
                       <ChevronDown className="h-4 w-4" />
                     </button>
-                    {isUstadzahDropdownOpen && availableMuallimah.length > 0 && (
-                      <div id="ustadzah-dropdown" className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                        <div className="p-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
-                              setIsUstadzahDropdownOpen(false)
-                            }}
-                            className="w-full px-3 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
-                          >
-                            Pilih ustadzah lain
-                          </button>
-                          {availableMuallimah.map((muallimah) => (
-                            <button
-                              key={muallimah.id}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
-                                setIsUstadzahDropdownOpen(false)
-                              }}
-                              className={cn(
-                                "w-full px-3 py-2 text-left text-sm rounded-lg transition-colors",
-                                tashihData.ustadzahId === muallimah.id
-                                  ? "bg-emerald-100 text-emerald-700 font-medium"
-                                  : "hover:bg-gray-50"
-                              )}
-                            >
-                              {muallimah.full_name}
-                              {muallimah.preferred_juz && (
-                                <span className="block text-xs text-gray-500">
-                                  (Juz {muallimah.preferred_juz})
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Ustadzah Dropdown List - Rendered outside card */}
+        {isUstadzahDropdownOpen && tashihData.lokasi === 'mti' && availableMuallimah.length > 0 && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setIsUstadzahDropdownOpen(false)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-96 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800">Pilih Ustadzah</h3>
+              </div>
+              <div className="p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
+                    setIsUstadzahDropdownOpen(false)
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg mb-1"
+                >
+                  Pilih ustadzah lain
+                </button>
+                {availableMuallimah.map((muallimah) => (
+                  <button
+                    key={muallimah.id}
+                    type="button"
+                    onClick={() => {
+                      setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                      setIsUstadzahDropdownOpen(false)
+                    }}
+                    className={cn(
+                      "w-full px-4 py-3 text-left rounded-lg transition-colors mb-1",
+                      tashihData.ustadzahId === muallimah.id
+                        ? "bg-emerald-100 text-emerald-700 font-medium"
+                        : "hover:bg-gray-50"
+                    )}
+                  >
+                    <div className="font-medium">{muallimah.full_name}</div>
+                    {muallimah.preferred_juz && (
+                      <div className="text-xs text-gray-500">
+                        Juz {muallimah.preferred_juz}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="p-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setIsUstadzahDropdownOpen(false)}
+                  className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition-colors"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tajwid Issues */}
         <Card className="overflow-hidden">
