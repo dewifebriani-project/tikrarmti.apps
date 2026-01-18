@@ -1567,7 +1567,7 @@ export function AdminPairingTab() {
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       W. Cadangan
                     </th>
-                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colSpan={4}>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colSpan={6}>
                       Analisis Kecocokan
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1589,6 +1589,12 @@ export function AdminPairingTab() {
                     </th>
                     <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('same_juz_matches')}>
                       Juz {getSortIndicator('same_juz_matches', sortConfigs)}
+                    </th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('main_time_matches')}>
+                      W. Utama {getSortIndicator('main_time_matches', sortConfigs)}
+                    </th>
+                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('backup_time_matches')}>
+                      W. Cadangan {getSortIndicator('backup_time_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('total_matches')}>
                       Total {getSortIndicator('total_matches', sortConfigs)}
@@ -1637,6 +1643,20 @@ export function AdminPairingTab() {
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-blue-600">
                         {request.same_juz_matches || 0}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          request.main_time_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {request.main_time_matches || 0}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
+                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                          request.backup_time_matches > 0 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {request.backup_time_matches || 0}
+                        </span>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
                         <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
