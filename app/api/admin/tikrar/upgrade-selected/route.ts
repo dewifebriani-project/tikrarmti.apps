@@ -73,9 +73,13 @@ export async function POST(request: Request) {
           newRoles.push('thalibah')
         }
 
+        // Update both roles (array) and role (varchar) for compatibility
         const { error: updateError } = await supabase
           .from('users')
-          .update({ roles: newRoles })
+          .update({
+            roles: newRoles,
+            role: 'thalibah' // Also update the legacy role column
+          })
           .eq('id', user.id)
 
         if (updateError) {
