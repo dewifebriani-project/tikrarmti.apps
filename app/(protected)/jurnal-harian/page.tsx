@@ -382,22 +382,6 @@ export default function JurnalHarianPage() {
     }))
   }
 
-  const incrementCounter = (stepId: string, maxCount?: number) => {
-    const counterKey = `${stepId}_count` as keyof typeof jurnalData
-    setJurnalData(prev => ({
-      ...prev,
-      [counterKey]: Math.min((prev[counterKey] as number || 0) + 1, maxCount || 999)
-    }))
-  }
-
-  const decrementCounter = (stepId: string) => {
-    const counterKey = `${stepId}_count` as keyof typeof jurnalData
-    setJurnalData(prev => ({
-      ...prev,
-      [counterKey]: Math.max((prev[counterKey] as number || 0) - 1, 0)
-    }))
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
