@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache'
  * Query params:
  * - user_id: User ID to delete pairing for, or 'all' to delete all pairings
  * - batch_id: Batch ID
+ * - pairing_type: Optional filter by pairing type ('system_match' for system match only, undefined for all)
  */
 export async function DELETE(request: Request) {
   const supabase = createClient()
@@ -34,6 +35,7 @@ export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('user_id')
   const batchId = searchParams.get('batch_id')
+  const pairingType = searchParams.get('pairing_type') // Optional: 'system_match' or undefined for all
 
   if (!userId || !batchId) {
     return NextResponse.json(
@@ -45,18 +47,28 @@ export async function DELETE(request: Request) {
   try {
     // Check if deleting all pairings
     if (userId === 'all') {
-      // 3. Fetch all active pairings for this batch
-      const { data: allPairings, error: fetchError } = await supabase
+      // 3. Fetch all active pairings for this batch (optionally filtered by pairing_type)
+      let query = supabase
         .from('study_partners')
         .select('*')
         .eq('batch_id', batchId)
         .eq('pairing_status', 'active')
 
+      // Add pairing_type filter if specified
+      if (pairingType === 'system_match') {
+        query = query.eq('pairing_type', 'system_match')
+      }
+
+      const { data: allPairings, error: fetchError } = await query
+
       if (fetchError) throw fetchError
 
       if (!allPairings || allPairings.length === 0) {
         return NextResponse.json(
-          { error: 'No active pairings found for this batch' },
+          { error: pairingType === 'system_match'
+            ? 'No active system_match pairings found for this batch'
+            : 'No active pairings found for this batch'
+          },
           { status: 404 }
         )
       }
@@ -75,6 +87,7 @@ export async function DELETE(request: Request) {
       allPairings.forEach(pairing => {
         allUserIds.add(pairing.user_1_id)
         allUserIds.add(pairing.user_2_id)
+        if (pairing.user_3_id) allUserIds.add(pairing.user_3_id)
       })
 
       await supabase
@@ -93,6 +106,7 @@ export async function DELETE(request: Request) {
         data: {
           deleted_count: allPairings.length,
           deleted_pairing_ids: pairingIds,
+          pairing_type: pairingType || 'all',
         }
       })
     }
@@ -102,12 +116,14 @@ export async function DELETE(request: Request) {
     const { data: pairing, error: findError } = await supabase
       .from('study_partners')
       .select('*')
-      .or(`user_1_id.eq.${userId},user_2_id.eq.${userId}`)
+      .or(`user_1_id.eq.${userId},user_2_id.eq.${userId},user_3_id.eq.${userId}`)
       .eq('batch_id', batchId)
       .eq('pairing_status', 'active')
-      .single()
+      .maybeSingle()
 
-    if (findError || !pairing) {
+    if (findError) throw findError
+
+    if (!pairing) {
       return NextResponse.json(
         { error: 'No active pairing found for this user' },
         { status: 404 }
@@ -122,7 +138,7 @@ export async function DELETE(request: Request) {
 
     if (deleteError) throw deleteError
 
-    // 5. Update both submissions to remove pairing status
+    // 5. Update all submissions to remove pairing status
     await supabase
       .from('daftar_ulang_submissions')
       .update({ pairing_status: null })
@@ -135,6 +151,14 @@ export async function DELETE(request: Request) {
       .eq('user_id', pairing.user_2_id)
       .eq('batch_id', batchId)
 
+    if (pairing.user_3_id) {
+      await supabase
+        .from('daftar_ulang_submissions')
+        .update({ pairing_status: null })
+        .eq('user_id', pairing.user_3_id)
+        .eq('batch_id', batchId)
+    }
+
     // 6. Revalidate paths
     revalidatePath('/admin')
     revalidatePath('/dashboard')
@@ -146,6 +170,7 @@ export async function DELETE(request: Request) {
         deleted_pairing_id: pairing.id,
         user_1_id: pairing.user_1_id,
         user_2_id: pairing.user_2_id,
+        user_3_id: pairing.user_3_id,
       }
     })
   } catch (error: any) {

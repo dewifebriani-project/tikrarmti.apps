@@ -880,28 +880,29 @@ export function AdminPairingTab() {
   const handleRevertAllPairings = async () => {
     if (!selectedBatchId) return
 
-    // Count paired users
+    // Count paired users (system match only)
     const pairedCount = systemMatchRequests.filter(r => r.is_paired).length
     if (pairedCount === 0) {
-      toast.error('Tidak ada pasangan untuk dihapus')
+      toast.error('Tidak ada pasangan sistem untuk dihapus')
       return
     }
 
     // Confirm with user
     const confirmed = window.confirm(
-      `Anda yakin ingin menghapus SEMUA pasangan (${pairedCount} pasangan) untuk batch ini?\n\n` +
+      `Anda yakin ingin menghapus SEMUA pasangan sistem (${pairedCount} pasangan) untuk batch ini?\n\n` +
       `Tindakan ini akan:\n` +
-      `• Menghapus semua pasangan yang ada\n` +
-      `• Mengatur ulang status pairing untuk semua thalibah\n` +
+      `• Menghapus semua pasangan dari sistem (dipasangkan sistem)\n` +
+      `• PASANGAN SELF MATCH TIDAK AKAN DIHAPUS\n` +
+      `• Mengatur ulang status pairing untuk thalibah terkait\n` +
       `• Memungkinkan Anda untuk memasangkan ulang dari awal`
     )
 
     if (!confirmed) return
 
-    const toastId = toast.loading('Menghapus semua pasangan...')
+    const toastId = toast.loading('Menghapus semua pasangan sistem...')
 
     try {
-      const response = await fetch(`/api/admin/pairing/delete?user_id=all&batch_id=${selectedBatchId}`, {
+      const response = await fetch(`/api/admin/pairing/delete?user_id=all&batch_id=${selectedBatchId}&pairing_type=system_match`, {
         method: 'DELETE',
         cache: 'no-store'
       })
