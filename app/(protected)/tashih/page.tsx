@@ -1,12 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, User, School, BookCopy, ChevronDown, ShieldCheck, GraduationCap } from 'lucide-react'
+import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, School, BookCopy, ChevronDown, ShieldCheck, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
@@ -81,7 +80,6 @@ const masalahTajwidOptions = [
 ]
 
 export default function Tashih() {
-  const router = useRouter()
   const [tashihData, setTashihData] = useState<TashihData>({
     blok: '',
     lokasi: 'mti',
@@ -153,9 +151,6 @@ export default function Tashih() {
      *
      * Priority 4: No registration at all
      *   → programType: 'pra_tikrar' (Pra Tikrar - default)
-     *
-     * Special: Admin/Muallimah roles bypass priorities 1-4
-     *   → programType: 'admin' or 'muallimah'
      */
     try {
       const supabase = createClient()
@@ -573,19 +568,6 @@ export default function Tashih() {
   useEffect(() => {
     validateForm()
   }, [tashihData])
-
-  // Get min date for date input
-  const getMinDate = () => {
-    if (userProgramInfo.batchStartDate) {
-      return userProgramInfo.batchStartDate.slice(0, 10)
-    }
-    return ''
-  }
-
-  // Get max date (today) - user cannot select future dates
-  const getMaxDate = () => {
-    return new Date().toISOString().slice(0, 10)
-  }
 
   // Get date for a given day index (0=Senin, 6=Ahad) of the current week
   const getDayDate = (dayIndex: number) => {
