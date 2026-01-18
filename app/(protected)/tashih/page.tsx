@@ -295,6 +295,14 @@ export default function Tashih() {
       })
     } catch (error) {
       console.error('Error loading user program info:', error)
+      // Even on error, set default to allow access to tashih page
+      setUserProgramInfo({
+        programType: 'pra_tahfidz',
+        confirmedChosenJuz: null,
+        batchStartDate: null,
+        batchId: null,
+        tashihHalaqahId: null
+      })
     } finally {
       setIsLoading(false)
     }
