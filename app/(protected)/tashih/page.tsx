@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, School, BookCopy, ChevronDown, ShieldCheck, GraduationCap } from 'lucide-react'
+import { CheckCircle, Clock, MapPin, BookOpen, AlertCircle, Calendar, Loader2, School, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { useAllRegistrations } from '@/hooks/useRegistrations'
 
 interface JuzOption {
   id: string
@@ -29,7 +30,7 @@ interface TashihBlock {
 
 interface TashihData {
   blok: string
-  lokasi: string
+  lokasi: 'mti' | 'luar'
   lokasiDetail: string
   ustadzahId: string | null
   ustadzahName: string | null
@@ -51,19 +52,31 @@ interface TashihRecord {
   created_at: string
 }
 
-interface UserProgramInfo {
-  programType: 'tikrar_tahfidz' | 'pra_tikrar' | 'admin' | 'muallimah' | null
-  confirmedChosenJuz: string | null
-  batchStartDate: string | null
-  batchId: string | null
-  tashihHalaqahId: string | null
-}
-
 interface MuallimahOption {
   id: string
   user_id: string
   full_name: string
   preferred_juz: string
+}
+
+interface RegistrationWithDaftarUlang {
+  id: string
+  chosen_juz: string
+  batch: {
+    id: string
+    name: string
+    start_date: string
+    status: string
+  }
+  daftar_ulang: {
+    id: string
+    status: string
+    confirmed_chosen_juz: string
+    tashih_halaqah?: {
+      id: string
+      name: string
+    }
+  } | null
 }
 
 const masalahTajwidOptions = [
@@ -79,7 +92,9 @@ const masalahTajwidOptions = [
   { id: 'lainnya', name: 'Lainnya', description: 'Masalah tajwid lainnya', color: 'bg-gray-50' }
 ]
 
-export default function Tashih() {
+export default function TashihPage() {
+  const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
+
   const [tashihData, setTashihData] = useState<TashihData>({
     blok: '',
     lokasi: 'mti',
@@ -92,301 +107,87 @@ export default function Tashih() {
   })
 
   const [todayRecord, setTodayRecord] = useState<TashihRecord | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isValid, setIsValid] = useState(false)
-  const [userProgramInfo, setUserProgramInfo] = useState<UserProgramInfo>({
-    programType: null,
-    confirmedChosenJuz: null,
-    batchStartDate: null,
-    batchId: null,
-    tashihHalaqahId: null
-  })
-  const [debugInfo, setDebugInfo] = useState<any>(null)
+
+  const [confirmedJuz, setConfirmedJuz] = useState<string | null>(null)
+  const [batchStartDate, setBatchStartDate] = useState<string | null>(null)
+  const [batchId, setBatchId] = useState<string | null>(null)
   const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
   const [availableMuallimah, setAvailableMuallimah] = useState<MuallimahOption[]>([])
   const [isLoadingMuallimah, setIsLoadingMuallimah] = useState(false)
   const [isUstadzahDropdownOpen, setIsUstadzahDropdownOpen] = useState(false)
-  const [showDebugPanel, setShowDebugPanel] = useState(true)
 
-  // Log for debugging
-  useEffect(() => {
-    console.log('[Tashih] State changed:', {
-      isLoading,
-      userProgramInfo,
-      debugInfo,
-      showDebugPanel,
-      todayRecord
-    })
-  }, [isLoading, userProgramInfo, debugInfo, showDebugPanel, todayRecord])
+  // Get active registration with daftar ulang
+  const activeRegistration = registrations.find((reg: any) =>
+    reg.batch?.status === 'open' &&
+    (reg.status === 'approved' || reg.selection_status === 'selected')
+  ) || registrations[0] as RegistrationWithDaftarUlang
 
-  // Load user program info on mount
-  useEffect(() => {
-    loadUserProgramInfo()
-  }, [])
+  // Determine juz to use: confirmed_chosen_juz from daftar_ulang, or chosen_juz from registration
+  const juzToUse = activeRegistration?.daftar_ulang?.confirmed_chosen_juz || activeRegistration?.chosen_juz || null
+  const isTikrarTahfidz = !!activeRegistration?.daftar_ulang &&
+    (activeRegistration.daftar_ulang.status === 'submitted' || activeRegistration.daftar_ulang.status === 'approved')
 
-  // Load blocks when user program info is available
+  // Load juz info and blocks when registration is available
   useEffect(() => {
-    if (userProgramInfo.programType && userProgramInfo.confirmedChosenJuz) {
-      loadAvailableBlocks()
+    if (juzToUse && activeRegistration?.batch?.start_date) {
+      setConfirmedJuz(juzToUse)
+      setBatchStartDate(activeRegistration.batch.start_date)
+      setBatchId(activeRegistration.batch.id)
+      loadBlocksAndJuzInfo(juzToUse, activeRegistration.batch.start_date)
     }
-  }, [userProgramInfo])
+  }, [juzToUse, activeRegistration])
 
-  // Load muallimah options when batch info is available
+  // Load muallimah when batch is available
   useEffect(() => {
-    if (userProgramInfo.batchId && userProgramInfo.confirmedChosenJuz) {
+    if (batchId && juzToUse) {
       loadAvailableMuallimah()
     }
-  }, [userProgramInfo.batchId, userProgramInfo.confirmedChosenJuz])
+  }, [batchId, juzToUse])
 
-  // Load today's tashih record after blocks are loaded
+  // Load today's record
   useEffect(() => {
-    if (availableBlocks.length > 0 || userProgramInfo.programType) {
+    if (confirmedJuz) {
       loadTodayRecord()
     }
-  }, [availableBlocks])
+  }, [confirmedJuz])
 
-  const loadUserProgramInfo = async () => {
-    /*
-     * PROGRAM DETECTION LOGIC - Using /api/pendaftaran/all (same as perjalanan-saya)
-     *
-     * Priority 1: daftar_ulang_submissions (status: submitted OR approved)
-     *   → programType: 'tikrar_tahfidz' (Tahfidz Tikrar MTI)
-     *   → confirmed_chosen_juz from daftar_ulang_submissions table
-     *
-     * Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')
-     *   → programType: 'pra_tikrar' (Pra Tikrar)
-     *   → chosen_juz from pendaftaran_tikrar_tahfidz table
-     *
-     * Priority 3: ANY pendaftaran_tikrar_tahfidz (even pending/not_selected)
-     *   → programType: 'pra_tikrar' (Pra Tikrar)
-     *
-     * Priority 4: No registration at all
-     *   → programType: 'pra_tikrar' (Pra Tikrar - default)
-     */
-    try {
-      const supabase = createClient()
-      // Get authenticated user
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        console.error('[Tashih Page] No user found')
-        setUserProgramInfo({
-          programType: 'pra_tikrar',
-          confirmedChosenJuz: null,
-          batchStartDate: null,
-          batchId: null,
-          tashihHalaqahId: null
-        })
-        setIsLoading(false)
-        return
-      }
-
-      // Check user roles - admin and muallimah should have access
-      const { data: userData } = await supabase
-        .from('users')
-        .select('roles')
-        .eq('id', user.id)
-        .single()
-
-      const userRoles = userData?.roles || []
-      const isAdmin = userRoles.includes('admin')
-      const isMuallimah = userRoles.includes('muallimah')
-
-      console.log('[Tashih] User roles:', userRoles)
-
-      // Initialize debug info
-      setDebugInfo({
-        userId: user.id,
-        userRoles: userRoles,
-        apiResponse: null,
-        apiError: null,
-        detectionResult: null
-      })
-
-      // Admin and muallimah get full access to tashih
-      if (isAdmin || isMuallimah) {
-        const programInfo = {
-          programType: (isAdmin ? 'admin' : 'muallimah') as 'admin' | 'muallimah',
-          confirmedChosenJuz: null,
-          batchStartDate: null,
-          batchId: null,
-          tashihHalaqahId: null
-        }
-        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: isAdmin ? 'admin' : 'muallimah', programInfo } }))
-        setUserProgramInfo(programInfo)
-        setIsLoading(false)
-        return
-      }
-
-      // Fetch registrations using the same API as perjalanan-saya
-      console.log('[Tashih] Fetching registrations from /api/pendaftaran/all...')
-      const response = await fetch('/api/pendaftaran/all')
-      const apiResult = await response.json()
-
-      console.log('[Tashih] API Response:', apiResult)
-
-      if (!response.ok || apiResult.error) {
-        console.error('[Tashih] API Error:', apiResult.error)
-        setDebugInfo((prev: any) => ({ ...prev, apiError: apiResult.error }))
-        throw new Error(apiResult.error || 'Failed to fetch registrations')
-      }
-
-      const registrations = apiResult.data || []
-      setDebugInfo((prev: any) => ({ ...prev, apiResponse: registrations }))
-
-      console.log('[Tashih] Registrations:', registrations)
-
-      // Find the active registration (first one from OPEN batch)
-      const registration = registrations.find((reg: any) =>
-        reg.batch?.status === 'open' &&
-        (reg.status === 'approved' || reg.selection_status === 'selected')
-      ) || registrations[0]
-
-      console.log('[Tashih] Selected registration:', registration)
-
-      if (!registration) {
-        console.log('[Tashih] ❌ NO REGISTRATION - Setting Pra Tikrar (default)')
-        const programInfo = {
-          programType: 'pra_tikrar' as const,
-          confirmedChosenJuz: null,
-          batchStartDate: null,
-          batchId: null,
-          tashihHalaqahId: null
-        }
-        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '4 - no registration', programInfo } }))
-        setUserProgramInfo(programInfo)
-        setIsLoading(false)
-        return
-      }
-
-      // Priority 1: Check for daftar ulang (Tahfidz Tikrar MTI)
-      const daftarUlang = registration.daftar_ulang
-      console.log('[Tashih] Daftar Ulang:', daftarUlang)
-
-      if (daftarUlang && (daftarUlang.status === 'submitted' || daftarUlang.status === 'approved')) {
-        // Use confirmed_chosen_juz from daftar_ulang_submissions table
-        const confirmedJuz = daftarUlang.confirmed_chosen_juz || registration.chosen_juz || null
-
-        console.log('[Tashih] ✅ Priority 1 MATCH - Daftar Ulang found')
-        console.log('[Tashih] confirmed_chosen_juz from daftar_ulang:', daftarUlang.confirmed_chosen_juz)
-        console.log('[Tashih] Using juz:', confirmedJuz)
-
-        const programInfo = {
-          programType: 'tikrar_tahfidz' as const,
-          confirmedChosenJuz: confirmedJuz,
-          batchStartDate: registration.batch?.start_date || null,
-          batchId: registration.batch_id || null,
-          tashihHalaqahId: daftarUlang.tashih_halaqah?.id || null
-        }
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          detectionResult: {
-            priority: '1 - daftar_ulang_submissions',
-            programInfo,
-            daftarUlangStatus: daftarUlang.status,
-            confirmedChosenJuz: daftarUlang.confirmed_chosen_juz
-          }
-        }))
-        setUserProgramInfo(programInfo)
-        setIsLoading(false)
-        return
-      }
-
-      console.log('[Tashih] ❌ Priority 1 NO MATCH - No daftar_ulang with submitted/approved status')
-
-      // Priority 2 & 3: Check for pendaftaran_tikrar_tahfidz
-      if (registration.selection_status === 'selected') {
-        console.log('[Tashih] ✅ Priority 2 MATCH - Selected registration with juz:', registration.chosen_juz)
-        const programInfo = {
-          programType: 'pra_tikrar' as const,
-          confirmedChosenJuz: registration.chosen_juz || null,
-          batchStartDate: registration.batch?.start_date || null,
-          batchId: registration.batch_id || null,
-          tashihHalaqahId: null
-        }
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          detectionResult: {
-            priority: '2 - selected registration',
-            programInfo,
-            selectionStatus: registration.selection_status
-          }
-        }))
-        setUserProgramInfo(programInfo)
-        setIsLoading(false)
-        return
-      }
-
-      console.log('[Tashih] ✅ Priority 3 MATCH - Any registration with juz:', registration.chosen_juz)
-      const programInfo = {
-        programType: 'pra_tikrar' as const,
-        confirmedChosenJuz: registration.chosen_juz || null,
-        batchStartDate: registration.batch?.start_date || null,
-        batchId: registration.batch_id || null,
-        tashihHalaqahId: null
-      }
-      setDebugInfo((prev: any) => ({
-        ...prev,
-        detectionResult: {
-          priority: '3 - any registration',
-          programInfo,
-          status: registration.status
-        }
-      }))
-      setUserProgramInfo(programInfo)
-    } catch (error) {
-      console.error('[Tashih] ❌ Error loading user program info:', error)
-      setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: 'ERROR', error: String(error) } }))
-      setUserProgramInfo({
-        programType: 'pra_tikrar',
-        confirmedChosenJuz: null,
-        batchStartDate: null,
-        batchId: null,
-        tashihHalaqahId: null
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const loadAvailableBlocks = async () => {
-    if (!userProgramInfo.confirmedChosenJuz || !userProgramInfo.batchStartDate) {
-      return
-    }
-
+  const loadBlocksAndJuzInfo = async (juzCode: string, startDate: string) => {
+    setIsLoadingBlocks(true)
     try {
       const supabase = createClient()
 
-      // Get juz info first
+      // Get juz info
       const { data: juzData } = await supabase
         .from('juz_options')
         .select('*')
-        .eq('code', userProgramInfo.confirmedChosenJuz)
+        .eq('code', juzCode)
         .single()
 
       if (!juzData) {
-        console.error('Juz not found:', userProgramInfo.confirmedChosenJuz)
+        console.error('Juz not found:', juzCode)
         return
       }
 
       setSelectedJuzInfo(juzData)
 
-      // Calculate current week number from batch start date
-      const batchStart = new Date(userProgramInfo.batchStartDate)
+      // Calculate current week
+      const batchStart = new Date(startDate)
       const today = new Date()
       const weeksSinceStart = Math.floor((today.getTime() - batchStart.getTime()) / (7 * 24 * 60 * 60 * 1000))
 
-      // Calculate part offset (part A starts at week 1, part B starts at week 11)
+      // Part offset
       const partOffset = juzData.part === 'B' ? 10 : 0
       const currentWeek = weeksSinceStart + partOffset + 1
 
-      // Calculate total pages for this juz part
+      // Calculate pages per block
       const totalPages = juzData.end_page - juzData.start_page + 1
-      const pagesPerBlock = Math.ceil(totalPages / (10 * 4)) // 10 weeks, 4 blocks per week
+      const pagesPerBlock = Math.ceil(totalPages / (10 * 4))
 
-      // Generate 4 blocks for current week (H1A, H1B, H1C, H1D or H11A, H11B, etc.)
+      // Generate 4 blocks for current week
       const blocks: TashihBlock[] = []
       const parts = ['A', 'B', 'C', 'D']
 
@@ -408,31 +209,25 @@ export default function Tashih() {
 
       setAvailableBlocks(blocks)
     } catch (error) {
-      console.error('Error loading available blocks:', error)
+      console.error('Error loading blocks:', error)
+    } finally {
+      setIsLoadingBlocks(false)
     }
   }
 
   const loadAvailableMuallimah = async () => {
-    if (!userProgramInfo.batchId || !userProgramInfo.confirmedChosenJuz) {
-      return
-    }
+    if (!batchId || !juzToUse) return
 
     try {
       setIsLoadingMuallimah(true)
       const supabase = createClient()
 
-      // Get all muallimah with status approved or submitted for this batch
       const { data: muallimahData } = await supabase
         .from('muallimah_registrations')
         .select('id, user_id, full_name, preferred_juz')
-        .eq('batch_id', userProgramInfo.batchId)
+        .eq('batch_id', batchId)
         .in('status', ['approved', 'submitted'])
         .order('full_name', { ascending: true })
-
-      if (!muallimahData) {
-        console.log('No muallimah found for batch:', userProgramInfo.batchId)
-        return
-      }
 
       setAvailableMuallimah(muallimahData || [])
     } catch (error) {
@@ -445,16 +240,10 @@ export default function Tashih() {
   const loadTodayRecord = async () => {
     try {
       const supabase = createClient()
-      // Protected Layout already ensures user is authenticated
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) {
-        // Don't redirect - ProtectedLayout will handle auth
-        console.warn('[Tashih Page] No user found in loadTodayRecord')
-        return
-      }
+      if (!user) return
 
-      // Get today's record
       const today = new Date().toISOString().split('T')[0]
       const { data, error } = await supabase
         .from('tashih_records')
@@ -466,7 +255,6 @@ export default function Tashih() {
 
       if (error) {
         console.error('Error loading tashih record:', error)
-        toast.error('Gagal memuat data tashih')
         return
       }
 
@@ -474,7 +262,7 @@ export default function Tashih() {
         setTodayRecord(data[0])
         setTashihData({
           blok: data[0].blok,
-          lokasi: data[0].lokasi,
+          lokasi: data[0].lokasi as 'mti' | 'luar',
           lokasiDetail: data[0].lokasi_detail || '',
           ustadzahId: data[0].ustadzah_id || null,
           ustadzahName: data[0].nama_pemeriksa || null,
@@ -492,7 +280,8 @@ export default function Tashih() {
     const valid = !!(
       tashihData.blok &&
       tashihData.lokasi &&
-      tashihData.tanggalTashih
+      tashihData.tanggalTashih &&
+      (tashihData.lokasi === 'luar' ? tashihData.lokasiDetail : true)
     )
     setIsValid(valid)
     return valid
@@ -589,18 +378,33 @@ export default function Tashih() {
     validateForm()
   }, [tashihData])
 
-  // Get date for a given day index (0=Senin, 6=Ahad) of the current week
+  // Get date for a given day index (0=Senin, 6=Ahad)
   const getDayDate = (dayIndex: number) => {
     const today = new Date()
-    const currentDay = today.getDay() // 0=Ahad, 1=Senin, ..., 6=Sabtu
-    const diff = (dayIndex + 1) - currentDay // Convert to 1=Senin, 7=Ahad
+    const currentDay = today.getDay()
+    const diff = (dayIndex + 1) - currentDay
     const targetDate = new Date(today)
     targetDate.setDate(today.getDate() + diff)
     return targetDate
   }
 
-  if (isLoading) {
-    console.log('[Tashih] Still loading...')
+  // Get dates for this week and previous week (2 weeks total)
+  const getTwoWeekDays = () => {
+    const days = []
+    for (let weekOffset = 0; weekOffset < 2; weekOffset++) {
+      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+        const today = new Date()
+        const currentDay = today.getDay()
+        const weekStartDiff = (dayIndex + 1) - currentDay
+        const targetDate = new Date(today)
+        targetDate.setDate(today.getDate() + weekStartDiff - (7 * weekOffset))
+        days.push(targetDate)
+      }
+    }
+    return days
+  }
+
+  if (registrationsLoading) {
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-green-army" />
@@ -608,10 +412,7 @@ export default function Tashih() {
     )
   }
 
-  console.log('[Tashih] Render state:', { isLoading, userProgramInfo, debugInfo, todayRecord })
-
-  if (!userProgramInfo.programType) {
-    console.log('[Tashih] No programType, showing error page')
+  if (!activeRegistration || !juzToUse) {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
@@ -619,73 +420,16 @@ export default function Tashih() {
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Belum Terdaftar di Program Aktif</h2>
           <p className="text-gray-600 mb-6">
             Ukhti belum terdaftar di program Tahfidz Tikrar MTI atau Pra Tikrar yang aktif.
-            Silakan hubungi admin jika sudah mendaftar.
           </p>
           <Link href="/dashboard">
             <Button>Kembali ke Dashboard</Button>
           </Link>
         </div>
-
-        {/* Debug Panel */}
-        {debugInfo && (
-          <Card className="max-w-4xl mx-auto bg-gray-50 border-gray-300">
-            <CardHeader>
-              <CardTitle className="text-sm font-mono">Debug Info - Program Detection</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 text-xs font-mono">
-                <div>
-                  <span className="font-semibold">User ID: </span>
-                  <span className="ml-2">{debugInfo.userId}</span>
-                </div>
-                {debugInfo.userRoles && (
-                  <div>
-                    <span className="font-semibold">User Roles: </span>
-                    <span className="ml-2">{JSON.stringify(debugInfo.userRoles)}</span>
-                  </div>
-                )}
-
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-green-600">Detection Result:</div>
-                  <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                    {JSON.stringify(debugInfo.detectionResult, null, 2)}
-                  </pre>
-                </div>
-
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Current Program Info:</div>
-                  <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                    {JSON.stringify(userProgramInfo, null, 2)}
-                  </pre>
-                </div>
-
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">API Response (/api/pendaftaran/all):</div>
-                  <div className="ml-4 space-y-1">
-                    <div>
-                      <span className="text-gray-500">Registrations: </span>
-                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {debugInfo.apiResponse ? JSON.stringify(debugInfo.apiResponse, null, 2) : 'null'}
-                      </pre>
-                    </div>
-                    {debugInfo.apiError && (
-                      <div>
-                        <span className="text-gray-500">Error: </span>
-                        <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                          {JSON.stringify(debugInfo.apiError, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     )
   }
 
+  // Show success if already submitted today
   if (todayRecord) {
     return (
       <div className="space-y-6 animate-fadeInUp">
@@ -707,7 +451,7 @@ export default function Tashih() {
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Juz:</span>
                 <span className="font-semibold text-gray-800">
-                  {userProgramInfo.confirmedChosenJuz || '-'}
+                  {confirmedJuz || '-'}
                   {selectedJuzInfo && (
                     <span className="text-gray-500 font-normal ml-2">({selectedJuzInfo.name})</span>
                   )}
@@ -720,16 +464,16 @@ export default function Tashih() {
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Lokasi:</span>
                 <span className="font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                  MTI
+                  {todayRecord.lokasi === 'mti' ? 'MTI' : 'Luar MTI'}
                 </span>
               </div>
-              {todayRecord.ustadzah_id && (
+              {todayRecord.nama_pemeriksa && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-gray-600">Ustadzah:</span>
-                  <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa || 'Belum dipilih'}</span>
+                  <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <div className="flex justify-between items-center py-2">
                 <span className="text-gray-600">Tanggal:</span>
                 <span className="font-medium text-gray-800">
                   {new Date(todayRecord.waktu_tashih).toLocaleDateString('id-ID', {
@@ -740,42 +484,12 @@ export default function Tashih() {
                   })}
                 </span>
               </div>
-              {todayRecord.masalah_tajwid && todayRecord.masalah_tajwid.length > 0 && (
-                <div className="py-2 border-b border-gray-100">
-                  <span className="text-gray-600 block mb-2">Masalah Tajwid:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {todayRecord.masalah_tajwid.map(masalahId => {
-                      const masalah = masalahTajwidOptions.find(m => m.id === masalahId)
-                      return masalah ? (
-                        <span key={masalahId} className={cn(
-                          "px-3 py-1 rounded-lg text-xs font-medium",
-                          masalah.color,
-                          "border border-current"
-                        )}>
-                          {masalah.name}
-                        </span>
-                      ) : null
-                    })}
-                  </div>
-                </div>
-              )}
-              {todayRecord.catatan_tambahan && (
-                <div className="py-2">
-                  <span className="text-gray-600 block mb-2">Catatan:</span>
-                  <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{todayRecord.catatan_tambahan}</p>
-                </div>
-              )}
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
             <Button onClick={resetForm} variant="outline" className="flex-1">
               Perbarui Tashih
             </Button>
-            <Link href="/jurnal-harian" className="flex-1">
-              <Button className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
-                Lanjut ke Jurnal Harian
-              </Button>
-            </Link>
             <Link href="/dashboard" className="flex-1">
               <Button variant="outline" className="w-full">
                 Kembali ke Dashboard
@@ -808,12 +522,12 @@ export default function Tashih() {
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-emerald-100 rounded-full">
-              <BookCopy className="h-5 w-5 text-emerald-600" />
+              <BookOpen className="h-5 w-5 text-emerald-600" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-emerald-800">Juz Tashih Ukhti</h3>
               <p className="text-sm text-gray-700">
-                <span className="font-medium">Juz {userProgramInfo.confirmedChosenJuz}</span>
+                <span className="font-medium">Juz {confirmedJuz}</span>
                 {selectedJuzInfo && (
                   <span className="ml-2 text-gray-600">({selectedJuzInfo.name}, Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
                 )}
@@ -824,10 +538,7 @@ export default function Tashih() {
       </Card>
 
       {/* Progress Status */}
-      <Card className={cn(
-        "border-2 transition-all duration-300",
-        "border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50"
-      )}>
+      <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
         <CardContent className="p-5">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-gradient-to-br from-amber-400 to-orange-500">
@@ -843,7 +554,7 @@ export default function Tashih() {
         </CardContent>
       </Card>
 
-      {/* Day Selection Buttons */}
+      {/* Day Selection - 2 Weeks */}
       <Card className="overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50 border-b">
           <div className="flex items-center justify-between">
@@ -862,42 +573,72 @@ export default function Tashih() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-7 gap-2">
-            {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
-              const dayDate = getDayDate(index)
-              const isToday = new Date().toDateString() === dayDate.toDateString()
-              const dateString = dayDate.toISOString().split('T')[0]
+          <div className="space-y-4">
+            <div className="text-sm font-medium text-gray-700 mb-3">Pekan Ini</div>
+            <div className="grid grid-cols-7 gap-2 mb-4">
+              {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
+                const dayDate = getDayDate(index)
+                const isToday = new Date().toDateString() === dayDate.toDateString()
+                const dateString = dayDate.toISOString().split('T')[0]
 
-              return (
-                <button
-                  key={hari}
-                  type="button"
-                  onClick={() => setTashihData(prev => ({ ...prev, tanggalTashih: dateString }))}
-                  className={cn(
-                    "p-3 border-2 rounded-xl transition-all duration-200 text-center",
-                    "hover:shadow-md hover:scale-105",
-                    tashihData.tanggalTashih === dateString
-                      ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
-                      : isToday
-                        ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                return (
+                  <button
+                    key={hari}
+                    type="button"
+                    onClick={() => setTashihData(prev => ({ ...prev, tanggalTashih: dateString }))}
+                    className={cn(
+                      "p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                      "hover:shadow-md hover:scale-105",
+                      tashihData.tanggalTashih === dateString
+                        ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                        : isToday
+                          ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                          : "border-gray-200 hover:border-cyan-300 bg-white"
+                    )}
+                  >
+                    <div className={cn(
+                      "text-xs font-medium mb-1",
+                      tashihData.tanggalTashih === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                    )}>
+                      {hari}
+                    </div>
+                    <div className={cn(
+                      "text-sm font-bold",
+                      tashihData.tanggalTashih === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                    )}>
+                      {dayDate.getDate()}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="text-sm font-medium text-gray-700 mb-3">Pekan Lalu</div>
+            <div className="grid grid-cols-7 gap-2">
+              {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
+                const dayDate = getDayDate(index)
+                dayDate.setDate(dayDate.getDate() - 7)
+                const dateString = dayDate.toISOString().split('T')[0]
+
+                return (
+                  <button
+                    key={`prev-${hari}`}
+                    type="button"
+                    onClick={() => setTashihData(prev => ({ ...prev, tanggalTashih: dateString }))}
+                    className={cn(
+                      "p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                      "hover:shadow-md hover:scale-105",
+                      tashihData.tanggalTashih === dateString
+                        ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
                         : "border-gray-200 hover:border-cyan-300 bg-white"
-                  )}
-                >
-                  <div className={cn(
-                    "text-xs font-medium mb-1",
-                    tashihData.tanggalTashih === dateString || isToday ? "text-cyan-700" : "text-gray-600"
-                  )}>
-                    {hari}
-                  </div>
-                  <div className={cn(
-                    "text-sm font-bold",
-                    tashihData.tanggalTashih === dateString || isToday ? "text-cyan-800" : "text-gray-800"
-                  )}>
-                    {dayDate.getDate()}
-                  </div>
-                </button>
-              )
-            })}
+                    )}
+                  >
+                    <div className="text-xs font-medium mb-1 text-gray-600">{hari}</div>
+                    <div className="text-sm font-bold text-gray-800">{dayDate.getDate()}</div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -914,14 +655,20 @@ export default function Tashih() {
             <CardDescription>
               {selectedJuzInfo && availableBlocks.length > 0
                 ? `Pekan ${availableBlocks[0].week_number} - ${selectedJuzInfo.name}`
-                : 'Memuat blok yang tersedia...'}
+                : isLoadingBlocks
+                  ? 'Memuat blok yang tersedia...'
+                  : 'Memuat blok yang tersedia dari juz yang confirmed juz'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
-            {availableBlocks.length === 0 ? (
+            {isLoadingBlocks ? (
               <div className="text-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
                 <p className="text-gray-600">Memuat blok yang tersedia...</p>
+              </div>
+            ) : availableBlocks.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Belum ada blok yang tersedia.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -963,7 +710,7 @@ export default function Tashih() {
           </CardContent>
         </Card>
 
-        {/* Location & Ustadzah Selection - MTI Only */}
+        {/* Location & Ustadzah Selection */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
             <CardTitle className="flex items-center gap-2 text-emerald-700">
@@ -1058,7 +805,7 @@ export default function Tashih() {
                     <span>Memuat daftar ustadzah...</span>
                   </div>
                 ) : (
-                  <div className="relative">
+                  <>
                     <button
                       type="button"
                       onClick={() => setIsUstadzahDropdownOpen(!isUstadzahDropdownOpen)}
@@ -1069,62 +816,62 @@ export default function Tashih() {
                       </span>
                       <ChevronDown className="h-4 w-4" />
                     </button>
-                  </div>
+
+                    {/* Dropdown Modal */}
+                    {isUstadzahDropdownOpen && availableMuallimah.length > 0 && (
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setIsUstadzahDropdownOpen(false)}>
+                        <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-96 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                          <div className="p-4 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-800">Pilih Ustadzah</h3>
+                          </div>
+                          <div className="p-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
+                                setIsUstadzahDropdownOpen(false)
+                              }}
+                              className="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg mb-1"
+                            >
+                              Pilih ustadzah lain
+                            </button>
+                            {availableMuallimah.map((muallimah) => (
+                              <button
+                                key={muallimah.id}
+                                type="button"
+                                onClick={() => {
+                                  setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
+                                  setIsUstadzahDropdownOpen(false)
+                                }}
+                                className={cn(
+                                  "w-full px-4 py-3 text-left rounded-lg transition-colors mb-1",
+                                  tashihData.ustadzahId === muallimah.id
+                                    ? "bg-emerald-100 text-emerald-700 font-medium"
+                                    : "hover:bg-gray-50"
+                                )}
+                              >
+                                <div className="font-medium">{muallimah.full_name}</div>
+                              </button>
+                            ))}
+                          </div>
+                          <div className="p-4 border-t border-gray-200">
+                            <button
+                              type="button"
+                              onClick={() => setIsUstadzahDropdownOpen(false)}
+                              className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition-colors"
+                            >
+                              Batal
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
-
-        {/* Ustadzah Dropdown List - Rendered outside card */}
-        {isUstadzahDropdownOpen && tashihData.lokasi === 'mti' && availableMuallimah.length > 0 && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" onClick={() => setIsUstadzahDropdownOpen(false)}>
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-96 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">Pilih Ustadzah</h3>
-              </div>
-              <div className="p-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTashihData(prev => ({ ...prev, ustadzahId: '', ustadzahName: null }))
-                    setIsUstadzahDropdownOpen(false)
-                  }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-600 hover:bg-gray-50 rounded-lg mb-1"
-                >
-                  Pilih ustadzah lain
-                </button>
-                {availableMuallimah.map((muallimah) => (
-                  <button
-                    key={muallimah.id}
-                    type="button"
-                    onClick={() => {
-                      setTashihData(prev => ({ ...prev, ustadzahId: muallimah.id, ustadzahName: muallimah.full_name }))
-                      setIsUstadzahDropdownOpen(false)
-                    }}
-                    className={cn(
-                      "w-full px-4 py-3 text-left rounded-lg transition-colors mb-1",
-                      tashihData.ustadzahId === muallimah.id
-                        ? "bg-emerald-100 text-emerald-700 font-medium"
-                        : "hover:bg-gray-50"
-                    )}
-                  >
-                    <div className="font-medium">{muallimah.full_name}</div>
-                  </button>
-                ))}
-              </div>
-              <div className="p-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setIsUstadzahDropdownOpen(false)}
-                  className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition-colors"
-                >
-                  Batal
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Tajwid Issues */}
         <Card className="overflow-hidden">
@@ -1219,85 +966,6 @@ export default function Tashih() {
           </Button>
         </div>
       </form>
-
-      {/* Debug Toggle Button */}
-      <div className="flex justify-center my-4">
-        <Button
-          type="button"
-          variant={showDebugPanel ? "default" : "outline"}
-          size="sm"
-          onClick={() => setShowDebugPanel(!showDebugPanel)}
-          className="text-xs"
-        >
-          {showDebugPanel ? 'Hide Debug' : 'Show Debug'}
-        </Button>
-      </div>
-
-      {/* Debug Panel */}
-      {showDebugPanel && (
-        <>
-          {console.log('[Tashih] Debug Panel rendering:', { debugInfo, userProgramInfo })}
-          <Card className="bg-yellow-50 border-yellow-300">
-          <CardHeader>
-            <CardTitle className="text-sm font-mono text-yellow-800">Debug Info - Program Detection</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 text-xs font-mono">
-              {!debugInfo || isLoading ? (
-                <div className="text-amber-600 font-semibold">Debug info not loaded yet. Click "Show Debug" again later.</div>
-              ) : (
-                <>
-                  <div>
-                    <span className="font-semibold">User ID: </span>
-                    <span className="ml-2">{debugInfo.userId}</span>
-                  </div>
-                  {debugInfo.userRoles && (
-                    <div>
-                      <span className="font-semibold">User Roles: </span>
-                      <span className="ml-2">{JSON.stringify(debugInfo.userRoles)}</span>
-                    </div>
-                  )}
-
-                  <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-green-600">Detection Result:</div>
-                    <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                      {JSON.stringify(debugInfo.detectionResult, null, 2)}
-                    </pre>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">Current Program Info:</div>
-                    <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                      {JSON.stringify(userProgramInfo, null, 2)}
-                    </pre>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">API Response (/api/pendaftaran/all):</div>
-                    <div className="ml-4 space-y-1">
-                      <div>
-                        <span className="text-gray-500">Registrations: </span>
-                        <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                          {debugInfo.apiResponse ? JSON.stringify(debugInfo.apiResponse, null, 2) : 'null'}
-                        </pre>
-                      </div>
-                      {debugInfo.apiError && (
-                        <div>
-                          <span className="text-gray-500">Error: </span>
-                          <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                            {JSON.stringify(debugInfo.apiError, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        </>
-      )}
     </div>
   )
 }
