@@ -357,6 +357,16 @@ export default function TashihPage() {
     validateForm()
   }, [tashihData])
 
+  // Get date for a given day index (0=Senin, 6=Ahad)
+  const getDayDate = (dayIndex: number) => {
+    const today = new Date()
+    const currentDay = today.getDay()
+    const diff = (dayIndex + 1) - currentDay
+    const targetDate = new Date(today)
+    targetDate.setDate(today.getDate() + diff)
+    return targetDate
+  }
+
   if (registrationsLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -569,7 +579,7 @@ export default function TashihPage() {
             <div className="text-sm font-medium text-gray-700 mb-3">Pekan Lalu</div>
             <div className="grid grid-cols-7 gap-2">
               {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
-                const dayDate = getDayDate(index)
+                const dayDate = new Date(getDayDate(index))
                 dayDate.setDate(dayDate.getDate() - 7)
                 const dateString = dayDate.toISOString().split('T')[0]
 
@@ -582,7 +592,7 @@ export default function TashihPage() {
                       "p-3 border-2 rounded-xl transition-all duration-200 text-center",
                       "hover:shadow-md hover:scale-105",
                       tashihData.tanggalTashih === dateString
-                        ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                        ? "border-cyan-500 bg-gradient-tobr from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
                         : "border-gray-200 hover:border-cyan-300 bg-white"
                     )}
                   >
