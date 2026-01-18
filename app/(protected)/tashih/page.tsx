@@ -138,6 +138,25 @@ export default function Tashih() {
   }, [availableBlocks])
 
   const loadUserProgramInfo = async () => {
+    /*
+     * PROGRAM DETECTION LOGIC - Priority Order (1-4)
+     *
+     * Priority 1: daftar_ulang_submissions (status: submitted OR approved)
+     *   → programType: 'tikrar_tahfidz' (Tahfidz Tikrar MTI)
+     *
+     * Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')
+     *   → programType: 'pra_tikrar' (Pra Tikrar)
+     *   * Note: Only checked if NOT in daftar_ulang_submissions
+     *
+     * Priority 3: ANY pendaftaran_tikrar_tahfidz (even pending/not_selected)
+     *   → programType: 'pra_tikrar' (Pra Tikrar)
+     *
+     * Priority 4: No registration at all
+     *   → programType: 'pra_tikrar' (Pra Tikrar - default)
+     *
+     * Special: Admin/Muallimah roles bypass priorities 1-4
+     *   → programType: 'admin' or 'muallimah'
+     */
     try {
       const supabase = createClient()
       // Protected Layout already ensures user is authenticated, no need to check again
@@ -232,8 +251,8 @@ export default function Tashih() {
         return
       }
 
-      // Priority 2: Check for Pra Tikrar (pendaftaran_tikrar_tahfidz with status 'selected')
-      // ONLY if NOT in daftar_ulang_submissions
+      // Priority 2: Check for pendaftaran_tikrar_tahfidz (selection_status: 'selected')
+      // ONLY checked if NOT in daftar_ulang_submissions (Priority 1 didn't match)
       const { data: praTikrarReg, error: praTikrarError } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
@@ -268,8 +287,8 @@ export default function Tashih() {
         return
       }
 
-      // Priority 3: Check for ANY registration (even pending/rejected/not_selected)
-      // This allows all registered users to access tashih
+      // Priority 3: Check for ANY registration (even pending/not_selected/rejected)
+      // Allows all registered users to access tashih regardless of status
       const { data: anyRegistration } = await supabase
         .from('pendaftaran_tikrar_tahfidz')
         .select(`
@@ -294,7 +313,7 @@ export default function Tashih() {
         return
       }
 
-      // No program found - Default to Pra Tikrar (open access for all users)
+      // Priority 4: No program found - Default to Pra Tikrar (open access)
       setUserProgramInfo({
         programType: 'pra_tikrar',
         confirmedChosenJuz: null,
