@@ -108,6 +108,7 @@ export default function Tashih() {
   const [availableMuallimah, setAvailableMuallimah] = useState<MuallimahOption[]>([])
   const [isLoadingMuallimah, setIsLoadingMuallimah] = useState(false)
   const [isUstadzahDropdownOpen, setIsUstadzahDropdownOpen] = useState(false)
+  const [showDebugPanel, setShowDebugPanel] = useState(true)
 
   // Load user program info on mount
   useEffect(() => {
@@ -810,6 +811,19 @@ export default function Tashih() {
 
   return (
     <div className="space-y-6 animate-fadeInUp">
+      {/* Debug Toggle Button */}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant={showDebugPanel ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowDebugPanel(!showDebugPanel)}
+          className="text-xs"
+        >
+          {showDebugPanel ? 'Hide Debug' : 'Show Debug'}
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1256,7 +1270,7 @@ export default function Tashih() {
       </form>
 
       {/* Debug Panel */}
-      {debugInfo && (
+      {showDebugPanel && debugInfo && (
         <>
           {console.log('[Tashih] Debug Panel rendering:', { debugInfo, userProgramInfo })}
           <Card className="bg-yellow-50 border-yellow-300">
