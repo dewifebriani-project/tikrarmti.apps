@@ -268,26 +268,38 @@ export function AdminPairingTab() {
 
     let birth: Date
 
+    // Handle ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
+    if (birthDate.includes('-') && !birthDate.includes('/')) {
+      // Check if it starts with YYYY (ISO format from database)
+      const isoMatch = birthDate.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (isoMatch) {
+        const year = parseInt(isoMatch[1], 10)
+        const month = parseInt(isoMatch[2], 10) - 1 // Month is 0-indexed in JS
+        const day = parseInt(isoMatch[3], 10)
+        birth = new Date(year, month, day)
+      } else {
+        birth = new Date(birthDate)
+      }
+    }
     // Handle DD/MM/YYYY format (common in Indonesia)
-    if (birthDate.includes('/')) {
+    else if (birthDate.includes('/')) {
       const parts = birthDate.split('/')
       if (parts.length === 3) {
         // Check if format is DD/MM/YYYY or MM/DD/YYYY
-        const day = parseInt(parts[0], 10)
-        const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed in JS
-        const year = parseInt(parts[2], 10)
+        const firstPart = parseInt(parts[0], 10)
+        const secondPart = parseInt(parts[1], 10)
+        const thirdPart = parseInt(parts[2], 10)
 
-        // If day > 12, assume it's DD/MM/YYYY format
-        if (day > 12) {
+        // If third part is 4 digits, it's YYYY
+        if (thirdPart >= 1000) {
+          // DD/MM/YYYY or MM/DD/YYYY
+          const day = firstPart > 12 ? firstPart : secondPart
+          const month = firstPart > 12 ? (secondPart - 1) : (firstPart - 1)
+          const year = thirdPart
           birth = new Date(year, month, day)
         } else {
-          // Try to parse normally first
-          const parsed = new Date(birthDate)
-          if (!isNaN(parsed.getTime())) {
-            birth = parsed
-          } else {
-            birth = new Date(year, month, day)
-          }
+          // Try parsing normally
+          birth = new Date(birthDate)
         }
       } else {
         birth = new Date(birthDate)
@@ -1869,6 +1881,7 @@ export function AdminPairingTab() {
                   <h4 className="text-sm font-semibold text-blue-900 mb-2">Yang Dicari Pasangan:</h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="font-medium">Nama:</span> {matchData.user.full_name}</div>
+                    <div><span className="font-medium">Usia:</span> {calculateAge(selectedUser.user_tanggal_lahir)}</div>
                     <div><span className="font-medium">Juz:</span> {matchData.user.chosen_juz}</div>
                     <div><span className="font-medium">Zona Waktu:</span> {matchData.user.zona_waktu}</div>
                     <div><span className="font-medium">Waktu Utama:</span> {matchData.user.main_time_slot}</div>
@@ -2291,6 +2304,10 @@ export function AdminPairingTab() {
                           <p className="font-semibold text-gray-900 text-sm">{pairingDetail.user_1.full_name}</p>
                         </div>
                         <div>
+                          <p className="text-xs text-gray-500">Usia</p>
+                          <p className="text-xs text-gray-700">{calculateAge(pairingDetail.user_1.tanggal_lahir)}</p>
+                        </div>
+                        <div>
                           <p className="text-xs text-gray-500">Email</p>
                           <p className="text-xs text-gray-700 truncate">{pairingDetail.user_1.email}</p>
                         </div>
@@ -2335,6 +2352,10 @@ export function AdminPairingTab() {
                         <div>
                           <p className="text-xs text-gray-500">Nama</p>
                           <p className="font-semibold text-gray-900 text-sm">{pairingDetail.user_2.full_name}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Usia</p>
+                          <p className="text-xs text-gray-700">{calculateAge(pairingDetail.user_2.tanggal_lahir)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">Email</p>
@@ -2382,6 +2403,10 @@ export function AdminPairingTab() {
                           <div>
                             <p className="text-xs text-gray-500">Nama</p>
                             <p className="font-semibold text-gray-900 text-sm">{pairingDetail.user_3.full_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Usia</p>
+                            <p className="text-xs text-gray-700">{calculateAge(pairingDetail.user_3.tanggal_lahir)}</p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Email</p>
@@ -2642,26 +2667,38 @@ function MatchTableSection({
 
     let birth: Date
 
+    // Handle ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
+    if (birthDate.includes('-') && !birthDate.includes('/')) {
+      // Check if it starts with YYYY (ISO format from database)
+      const isoMatch = birthDate.match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (isoMatch) {
+        const year = parseInt(isoMatch[1], 10)
+        const month = parseInt(isoMatch[2], 10) - 1 // Month is 0-indexed in JS
+        const day = parseInt(isoMatch[3], 10)
+        birth = new Date(year, month, day)
+      } else {
+        birth = new Date(birthDate)
+      }
+    }
     // Handle DD/MM/YYYY format (common in Indonesia)
-    if (birthDate.includes('/')) {
+    else if (birthDate.includes('/')) {
       const parts = birthDate.split('/')
       if (parts.length === 3) {
         // Check if format is DD/MM/YYYY or MM/DD/YYYY
-        const day = parseInt(parts[0], 10)
-        const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed in JS
-        const year = parseInt(parts[2], 10)
+        const firstPart = parseInt(parts[0], 10)
+        const secondPart = parseInt(parts[1], 10)
+        const thirdPart = parseInt(parts[2], 10)
 
-        // If day > 12, assume it's DD/MM/YYYY format
-        if (day > 12) {
+        // If third part is 4 digits, it's YYYY
+        if (thirdPart >= 1000) {
+          // DD/MM/YYYY or MM/DD/YYYY
+          const day = firstPart > 12 ? firstPart : secondPart
+          const month = firstPart > 12 ? (secondPart - 1) : (firstPart - 1)
+          const year = thirdPart
           birth = new Date(year, month, day)
         } else {
-          // Try to parse normally first
-          const parsed = new Date(birthDate)
-          if (!isNaN(parsed.getTime())) {
-            birth = parsed
-          } else {
-            birth = new Date(year, month, day)
-          }
+          // Try parsing normally
+          birth = new Date(birthDate)
         }
       } else {
         birth = new Date(birthDate)

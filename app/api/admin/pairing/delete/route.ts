@@ -221,7 +221,7 @@ export async function GET(request: Request) {
 
     const { data: usersData } = await supabase
       .from('users')
-      .select('id, full_name, email, zona_waktu, whatsapp')
+      .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
       .in('id', userIds)
 
     const usersMap = new Map((usersData || []).map(u => [u.id, u]))
@@ -244,6 +244,7 @@ export async function GET(request: Request) {
         email: userData?.email,
         zona_waktu: userReg?.timezone || userData?.zona_waktu || 'WIB',
         whatsapp: userData?.whatsapp,
+        tanggal_lahir: userData?.tanggal_lahir,
         chosen_juz: userReg?.chosen_juz || 'N/A',
         main_time_slot: userReg?.main_time_slot || 'N/A',
         backup_time_slot: userReg?.backup_time_slot || 'N/A',
