@@ -1151,9 +1151,13 @@ export default function PerjalananSaya() {
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
 
-                                // Show daftar ulang info if exists (with akad files, halaqah details)
-                                // Same logic for all users including admin (admin can also be thalibah)
-                                if (daftarUlang) {
+                                // Show daftar ulang info based on status
+                                // draft: belum selesai, submitted/approved: selesai
+                                const isSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
+                                const isDraft = daftarUlang?.status === 'draft';
+
+                                if (daftarUlang && isSubmittedOrApproved) {
+                                  // Show completed status for submitted or approved
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1224,6 +1228,21 @@ export default function PerjalananSaya() {
                                           Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </p>
                                       )}
+                                    </div>
+                                  );
+                                } else if (daftarUlang && isDraft) {
+                                  // Draft status - show as incomplete
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-start space-x-2">
+                                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
+                                        <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
+                                          Draft - Belum dikirim
+                                        </p>
+                                      </div>
+                                      <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                        Silakan lengkapi dan kirim formulir daftar ulang.
+                                      </p>
                                     </div>
                                   );
                                 } else {
@@ -1646,9 +1665,13 @@ export default function PerjalananSaya() {
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
 
-                                // Show daftar ulang info if exists (with akad files, halaqah details)
-                                // Same logic for all users including admin (admin can also be thalibah)
-                                if (daftarUlang) {
+                                // Show daftar ulang info based on status
+                                // draft: belum selesai, submitted/approved: selesai
+                                const isSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
+                                const isDraft = daftarUlang?.status === 'draft';
+
+                                if (daftarUlang && isSubmittedOrApproved) {
+                                  // Show completed status for submitted or approved
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1719,6 +1742,21 @@ export default function PerjalananSaya() {
                                           Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                                         </p>
                                       )}
+                                    </div>
+                                  );
+                                } else if (daftarUlang && isDraft) {
+                                  // Draft status - show as incomplete
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-start space-x-2">
+                                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
+                                        <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
+                                          Draft - Belum dikirim
+                                        </p>
+                                      </div>
+                                      <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                        Silakan lengkapi dan kirim formulir daftar ulang.
+                                      </p>
                                     </div>
                                   );
                                 } else {
