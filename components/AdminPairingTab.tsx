@@ -265,8 +265,41 @@ export function AdminPairingTab() {
   // Helper function to calculate age from birth date
   const calculateAge = (birthDate: string | null | undefined) => {
     if (!birthDate) return '-'
+
+    let birth: Date
+
+    // Handle DD/MM/YYYY format (common in Indonesia)
+    if (birthDate.includes('/')) {
+      const parts = birthDate.split('/')
+      if (parts.length === 3) {
+        // Check if format is DD/MM/YYYY or MM/DD/YYYY
+        const day = parseInt(parts[0], 10)
+        const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed in JS
+        const year = parseInt(parts[2], 10)
+
+        // If day > 12, assume it's DD/MM/YYYY format
+        if (day > 12) {
+          birth = new Date(year, month, day)
+        } else {
+          // Try to parse normally first
+          const parsed = new Date(birthDate)
+          if (!isNaN(parsed.getTime())) {
+            birth = parsed
+          } else {
+            birth = new Date(year, month, day)
+          }
+        }
+      } else {
+        birth = new Date(birthDate)
+      }
+    } else {
+      birth = new Date(birthDate)
+    }
+
+    // Check if date is valid
+    if (isNaN(birth.getTime())) return '-'
+
     const today = new Date()
-    const birth = new Date(birthDate)
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
@@ -2606,8 +2639,41 @@ function MatchTableSection({
   // Helper function to calculate age from birth date
   const calculateAge = (birthDate: string | null | undefined) => {
     if (!birthDate) return '-'
+
+    let birth: Date
+
+    // Handle DD/MM/YYYY format (common in Indonesia)
+    if (birthDate.includes('/')) {
+      const parts = birthDate.split('/')
+      if (parts.length === 3) {
+        // Check if format is DD/MM/YYYY or MM/DD/YYYY
+        const day = parseInt(parts[0], 10)
+        const month = parseInt(parts[1], 10) - 1 // Month is 0-indexed in JS
+        const year = parseInt(parts[2], 10)
+
+        // If day > 12, assume it's DD/MM/YYYY format
+        if (day > 12) {
+          birth = new Date(year, month, day)
+        } else {
+          // Try to parse normally first
+          const parsed = new Date(birthDate)
+          if (!isNaN(parsed.getTime())) {
+            birth = parsed
+          } else {
+            birth = new Date(year, month, day)
+          }
+        }
+      } else {
+        birth = new Date(birthDate)
+      }
+    } else {
+      birth = new Date(birthDate)
+    }
+
+    // Check if date is valid
+    if (isNaN(birth.getTime())) return '-'
+
     const today = new Date()
-    const birth = new Date(birthDate)
     let age = today.getFullYear() - birth.getFullYear()
     const monthDiff = today.getMonth() - birth.getMonth()
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
