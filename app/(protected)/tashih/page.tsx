@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useAllRegistrations } from '@/hooks/useRegistrations'
+import { useAuth } from '@/hooks/useAuth'
 
 interface JuzOption {
   id: string
@@ -75,6 +76,7 @@ const masalahTajwidOptions = [
 ]
 
 export default function TashihPage() {
+  const { user } = useAuth()
   const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
 
   const [tashihData, setTashihData] = useState<TashihData>({
@@ -141,10 +143,10 @@ export default function TashihPage() {
 
   // Load today's record
   useEffect(() => {
-    if (confirmedJuz) {
+    if (confirmedJuz && user) {
       loadTodayRecord()
     }
-  }, [confirmedJuz])
+  }, [confirmedJuz, user])
 
   const loadJuzInfo = async (juzCode: string) => {
     setIsLoadingBlocks(true)
@@ -231,11 +233,10 @@ export default function TashihPage() {
   }
 
   const loadTodayRecord = async () => {
+    if (!user) return
+
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) return
 
       const today = new Date().toISOString().split('T')[0]
       const { data, error } = await supabase
@@ -307,15 +308,14 @@ export default function TashihPage() {
     e.preventDefault()
     if (!validateForm()) return
 
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) {
-        toast.error('Silakan login terlebih dahulu')
-        return
-      }
 
       const recordData = {
         user_id: user.id,
