@@ -2112,7 +2112,7 @@ function UsersTab({
   // Admin: roles includes 'admin'
   const adminUsers = users.filter(u => u.roles?.includes('admin'));
 
-  // Thalibah: has 'thalibah' role OR has re-enrolled registration OR has approved daftar_ulang submission
+  // Thalibah: has 'thalibah' role OR has re-enrolled registration OR has daftar_ulang submission (submitted/approved)
   const thalibahUsers = users.filter(u => {
     // Check if user has thalibah role
     const hasThalibahRole = u.roles?.includes('thalibah');
@@ -2127,10 +2127,12 @@ function UsersTab({
       if (hasReEnrolled) return true;
     }
 
-    // Check if user has approved daftar_ulang submission
-    const hasApprovedDaftarUlang = u.daftar_ulang_submissions &&
-      u.daftar_ulang_submissions.some((sub: any) => sub.status === 'approved');
-    if (hasApprovedDaftarUlang) return true;
+    // Check if user has daftar_ulang submission (submitted OR approved)
+    const hasDaftarUlangSubmission = u.daftar_ulang_submissions &&
+      u.daftar_ulang_submissions.some((sub: any) =>
+        sub.status === 'submitted' || sub.status === 'approved'
+      );
+    if (hasDaftarUlangSubmission) return true;
 
     return false;
   });
