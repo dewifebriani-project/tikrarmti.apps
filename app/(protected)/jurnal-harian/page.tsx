@@ -425,7 +425,7 @@ export default function JurnalHarianPage() {
         tikrar_bi_an_nadzar_count: jurnalData.tikrar_bi_an_nadzar_completed ? 1 : 0,
         tasmi_record_count: jurnalData.tasmi_record_completed ? 1 : 0,
         simak_record_completed: jurnalData.simak_record_completed,
-        tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_completed ? 1 : 0,
+        tikrar_bi_al_ghaib_count: (jurnalData.tikrar_bi_al_ghaib_40x.length > 0 || jurnalData.tikrar_bi_al_ghaib_20x.length > 0) ? 1 : 0,
         tikrar_bi_al_ghaib_type: null,
         tikrar_bi_al_ghaib_40x: jurnalData.tikrar_bi_al_ghaib_40x.length > 0 ? jurnalData.tikrar_bi_al_ghaib_40x : null,
         tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_20x.length > 0 ? jurnalData.tikrar_bi_al_ghaib_20x : null,
