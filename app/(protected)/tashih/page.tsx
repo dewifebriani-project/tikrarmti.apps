@@ -255,8 +255,15 @@ export default function TashihPage() {
         setTodayRecord(data[0])
         // Map legacy 'halaqah' value to 'mti'
         const lokasiValue = data[0].lokasi === 'halaqah' ? 'mti' : data[0].lokasi as 'mti' | 'luar'
-        // Handle blok as array (new) or string (legacy)
-        const blokValue = Array.isArray(data[0].blok) ? data[0].blok : (data[0].blok ? [data[0].blok] : [])
+        // Handle blok: stored as comma-separated string in DB, convert to array
+        let blokValue: string[] = []
+        if (data[0].blok) {
+          if (typeof data[0].blok === 'string') {
+            blokValue = data[0].blok.split(',').filter((b: string) => b.trim())
+          } else if (Array.isArray(data[0].blok)) {
+            blokValue = data[0].blok
+          }
+        }
         setTashihData({
           blok: blokValue,
           lokasi: lokasiValue,
