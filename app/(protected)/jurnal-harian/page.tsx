@@ -405,6 +405,12 @@ export default function JurnalHarianPage() {
       return
     }
 
+    // Validate tarteel screenshot URL if tarteel_40 is selected
+    if (jurnalData.tikrar_bi_al_ghaib_40x.includes('tarteel_40') && !jurnalData.tarteel_screenshot_url) {
+      toast.error('Harap sertakan link screenshot Tarteel!')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const recordData = {
@@ -490,18 +496,24 @@ export default function JurnalHarianPage() {
   }
 
   const isStepCompleted = (step: JurnalStep): boolean => {
+    if (step.id === 'tikrar_bi_al_ghaib') {
+      return jurnalData.tikrar_bi_al_ghaib_40x.length > 0 || jurnalData.tikrar_bi_al_ghaib_20x.length > 0
+    }
     const fieldKey = `${step.id}_completed` as keyof typeof jurnalData
     return jurnalData[fieldKey] as boolean || false
   }
 
   const isTikrarGhaibCompleted = (): boolean => {
-    return jurnalData.tikrar_bi_al_ghaib_completed ||
-           (jurnalData.tikrar_bi_al_ghaib_40x.length > 0 || jurnalData.tikrar_bi_al_ghaib_20x.length > 0)
+    return jurnalData.tikrar_bi_al_ghaib_40x.length > 0 || jurnalData.tikrar_bi_al_ghaib_20x.length > 0
+  }
+
+  const isTikrarGhaibValid = (): boolean => {
+    const hasTarteel = jurnalData.tikrar_bi_al_ghaib_40x.includes('tarteel_40')
+    return !hasTarteel || (!!jurnalData.tarteel_screenshot_url && jurnalData.tarteel_screenshot_url.trim() !== '')
   }
 
   const requiredCompleted = jurnalStepsConfig.filter(step => isStepCompleted(step)).length
-  const totalCompleted = requiredCompleted + (isTikrarGhaibCompleted() ? 1 : 0)
-  const isAllRequiredCompleted = totalCompleted === 7
+  const isAllRequiredCompleted = requiredCompleted === 7 && isTikrarGhaibValid()
 
   if (isLoading || registrationsLoading) {
     return (
@@ -532,7 +544,7 @@ export default function JurnalHarianPage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Kurikulum Wajib:</span>
-                <span className="font-semibold text-green-600">{totalCompleted}/7 selesai</span>
+                <span className="font-semibold text-green-600">{requiredCompleted}/7 selesai</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Juz:</span>
@@ -582,7 +594,7 @@ export default function JurnalHarianPage() {
           <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 rounded-lg shadow-sm">
             <div className="text-right">
               <p className="text-xs text-gray-500">Progress</p>
-              <p className="text-base sm:text-lg font-bold text-green-army">{totalCompleted}/7</p>
+              <p className="text-base sm:text-lg font-bold text-green-army">{requiredCompleted}/7</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 relative">
               <svg className="transform -rotate-90 w-full h-full">
@@ -602,7 +614,7 @@ export default function JurnalHarianPage() {
                   stroke="currentColor"
                   strokeWidth="4"
                   fill="none"
-                  strokeDasharray={`${(totalCompleted / 7) * 100} 100`}
+                  strokeDasharray={`${(requiredCompleted / 7) * 100} 100`}
                   className="text-green-army transition-all duration-300"
                 />
               </svg>
@@ -644,7 +656,7 @@ export default function JurnalHarianPage() {
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
                 {isAllRequiredCompleted
                   ? 'Alhamdulillah, semua kurikulum wajib telah diselesaikan'
-                  : `${totalCompleted}/7 kurikulum wajib selesai`
+                  : `${requiredCompleted}/7 kurikulum wajib selesai`
                 }
               </p>
             </div>
@@ -808,6 +820,7 @@ export default function JurnalHarianPage() {
           <CardContent className="p-3 sm:p-6 space-y-4">
             {jurnalStepsConfig.map((step, index) => {
               const isCompleted = isStepCompleted(step)
+              const isTikrarGhaib = step.id === 'tikrar_bi_al_ghaib'
 
               return (
                 <div
@@ -832,18 +845,109 @@ export default function JurnalHarianPage() {
                       </div>
                       <p className="text-xs sm:text-sm text-gray-600">{step.description}</p>
 
-                      <button
-                        type="button"
-                        onClick={() => toggleStep(step.id)}
-                        className={cn(
-                          "mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation",
-                          isCompleted
-                            ? "bg-green-500 text-white hover:bg-green-600"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        )}
-                      >
-                        {isCompleted ? 'Selesai' : 'Belum Selesai'}
-                      </button>
+                      {/* Special UI for Tikrar Bil Ghaib */}
+                      {isTikrarGhaib && (
+                        <div className="mt-3 space-y-3">
+                          {/* 40x Options */}
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 mb-2">Tikrar 40x:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                { value: 'pasangan_40', label: 'Pasangan' },
+                                { value: 'keluarga_40', label: 'Keluarga' },
+                                { value: 'tarteel_40', label: 'Tarteel' }
+                              ].map((option) => (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => {
+                                    const isSelected = jurnalData.tikrar_bi_al_ghaib_40x.includes(option.value as any)
+                                    setJurnalData(prev => ({
+                                      ...prev,
+                                      tikrar_bi_al_ghaib_40x: isSelected
+                                        ? prev.tikrar_bi_al_ghaib_40x.filter(v => v !== option.value)
+                                        : [...prev.tikrar_bi_al_ghaib_40x, option.value as any]
+                                    }))
+                                  }}
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                    jurnalData.tikrar_bi_al_ghaib_40x.includes(option.value as any)
+                                      ? "bg-teal-500 text-white"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  )}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 20x Options */}
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 mb-2">Tikrar 20x:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                { value: 'pasangan_20', label: 'Pasangan' },
+                                { value: 'voice_note_20', label: 'Voice Note' }
+                              ].map((option) => (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() => {
+                                    const isSelected = jurnalData.tikrar_bi_al_ghaib_20x.includes(option.value as any)
+                                    setJurnalData(prev => ({
+                                      ...prev,
+                                      tikrar_bi_al_ghaib_20x: isSelected
+                                        ? prev.tikrar_bi_al_ghaib_20x.filter(v => v !== option.value)
+                                        : [...prev.tikrar_bi_al_ghaib_20x, option.value as any]
+                                    }))
+                                  }}
+                                  className={cn(
+                                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                    jurnalData.tikrar_bi_al_ghaib_20x.includes(option.value as any)
+                                      ? "bg-teal-500 text-white"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  )}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Tarteel Screenshot URL */}
+                          {jurnalData.tikrar_bi_al_ghaib_40x.includes('tarteel_40') && (
+                            <div>
+                              <label className="text-xs font-medium text-gray-700 mb-1 block">
+                                Link Screenshot Tarteel <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="url"
+                                value={jurnalData.tarteel_screenshot_url || ''}
+                                onChange={(e) => setJurnalData(prev => ({ ...prev, tarteel_screenshot_url: e.target.value }))}
+                                placeholder="Paste link screenshot Tarteel..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                required
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {!isTikrarGhaib && (
+                        <button
+                          type="button"
+                          onClick={() => toggleStep(step.id)}
+                          className={cn(
+                            "mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation",
+                            isCompleted
+                              ? "bg-green-500 text-white hover:bg-green-600"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          )}
+                        >
+                          {isCompleted ? 'Selesai' : 'Belum Selesai'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
