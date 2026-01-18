@@ -266,6 +266,9 @@ export function AdminPairingTab() {
   const calculateAge = (birthDate: string | null | undefined) => {
     if (!birthDate) return '-'
 
+    // Debug log
+    console.log('[calculateAge] Input:', birthDate, 'Type:', typeof birthDate)
+
     let birth: Date
 
     // Handle ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
@@ -277,8 +280,10 @@ export function AdminPairingTab() {
         const month = parseInt(isoMatch[2], 10) - 1 // Month is 0-indexed in JS
         const day = parseInt(isoMatch[3], 10)
         birth = new Date(year, month, day)
+        console.log('[calculateAge] ISO format parsed:', { year, month, day, birth })
       } else {
         birth = new Date(birthDate)
+        console.log('[calculateAge] Fallback to new Date():', birth)
       }
     }
     // Handle DD/MM/YYYY format (common in Indonesia)
@@ -297,19 +302,26 @@ export function AdminPairingTab() {
           const month = firstPart > 12 ? (secondPart - 1) : (firstPart - 1)
           const year = thirdPart
           birth = new Date(year, month, day)
+          console.log('[calculateAge] Slash format parsed:', { year, month, day, birth })
         } else {
           // Try parsing normally
           birth = new Date(birthDate)
+          console.log('[calculateAge] Fallback to new Date():', birth)
         }
       } else {
         birth = new Date(birthDate)
+        console.log('[calculateAge] Fallback to new Date():', birth)
       }
     } else {
       birth = new Date(birthDate)
+      console.log('[calculateAge] Fallback to new Date():', birth)
     }
 
     // Check if date is valid
-    if (isNaN(birth.getTime())) return '-'
+    if (isNaN(birth.getTime())) {
+      console.log('[calculateAge] Invalid date!')
+      return '-'
+    }
 
     const today = new Date()
     let age = today.getFullYear() - birth.getFullYear()
@@ -317,6 +329,8 @@ export function AdminPairingTab() {
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--
     }
+
+    console.log('[calculateAge] Result:', { birth, today, age })
     return age
   }
 
@@ -2665,6 +2679,9 @@ function MatchTableSection({
   const calculateAge = (birthDate: string | null | undefined) => {
     if (!birthDate) return '-'
 
+    // Debug log
+    console.log('[calculateAge] Input:', birthDate, 'Type:', typeof birthDate)
+
     let birth: Date
 
     // Handle ISO format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)
@@ -2676,8 +2693,10 @@ function MatchTableSection({
         const month = parseInt(isoMatch[2], 10) - 1 // Month is 0-indexed in JS
         const day = parseInt(isoMatch[3], 10)
         birth = new Date(year, month, day)
+        console.log('[calculateAge] ISO format parsed:', { year, month, day, birth })
       } else {
         birth = new Date(birthDate)
+        console.log('[calculateAge] Fallback to new Date():', birth)
       }
     }
     // Handle DD/MM/YYYY format (common in Indonesia)
@@ -2696,19 +2715,26 @@ function MatchTableSection({
           const month = firstPart > 12 ? (secondPart - 1) : (firstPart - 1)
           const year = thirdPart
           birth = new Date(year, month, day)
+          console.log('[calculateAge] Slash format parsed:', { year, month, day, birth })
         } else {
           // Try parsing normally
           birth = new Date(birthDate)
+          console.log('[calculateAge] Fallback to new Date():', birth)
         }
       } else {
         birth = new Date(birthDate)
+        console.log('[calculateAge] Fallback to new Date():', birth)
       }
     } else {
       birth = new Date(birthDate)
+      console.log('[calculateAge] Fallback to new Date():', birth)
     }
 
     // Check if date is valid
-    if (isNaN(birth.getTime())) return '-'
+    if (isNaN(birth.getTime())) {
+      console.log('[calculateAge] Invalid date!')
+      return '-'
+    }
 
     const today = new Date()
     let age = today.getFullYear() - birth.getFullYear()
@@ -2716,6 +2742,8 @@ function MatchTableSection({
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--
     }
+
+    console.log('[calculateAge] Result:', { birth, today, age })
     return age
   }
 
