@@ -21,12 +21,21 @@ interface JuzOption {
   end_page: number
 }
 
+interface TashihBlock {
+  block_code: string
+  week_number: number
+  part: string
+  start_page: number
+  end_page: number
+}
+
 interface JurnalRecord {
   id: string
   user_id: string
   tanggal_jurnal: string
   juz_code: string | null
   tanggal_setor: string
+  blok: string | null
   tashih_completed: boolean
   rabth_completed: boolean
   murajaah_count: number
@@ -36,6 +45,9 @@ interface JurnalRecord {
   simak_record_completed: boolean
   tikrar_bi_al_ghaib_count: number
   tikrar_bi_al_ghaib_type: 'sendiri' | 'pasangan' | 'voice_note' | null
+  tikrar_bi_al_ghaib_40x: string[] | null
+  tikrar_bi_al_ghaib_20x: string[] | null
+  tarteel_screenshot_url: string | null
   tafsir_completed: boolean
   menulis_completed: boolean
   catatan_tambahan: string | null
@@ -72,9 +84,7 @@ const jurnalStepsConfig: JurnalStep[] = [
     description: 'Ulangi hafalan blok kemarin sebanyak 5 kali tanpa melihat mushaf.',
     icon: <BookOpen className="h-5 w-5" />,
     color: 'bg-green-500',
-    required: true,
-    minCount: 5,
-    countLabel: 'kali'
+    required: true
   },
   {
     id: 'simak_murattal',
@@ -83,9 +93,7 @@ const jurnalStepsConfig: JurnalStep[] = [
     description: 'Dengarkan bacaan murattal dari qari terpercaya untuk blok hafalan hari ini.',
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-purple-500',
-    required: true,
-    minCount: 5,
-    countLabel: 'kali'
+    required: true
   },
   {
     id: 'tikrar_bi_an_nadzar',
@@ -94,9 +102,7 @@ const jurnalStepsConfig: JurnalStep[] = [
     description: 'Baca blok hafalan hari ini sambil melihat mushaf dengan saksama. Fokus pada setiap huruf, harakat, dan tata letak ayat.',
     icon: <BookOpen className="h-5 w-5" />,
     color: 'bg-orange-500',
-    required: true,
-    minCount: 40,
-    countLabel: 'kali'
+    required: true
   },
   {
     id: 'tasmi_record',
@@ -105,9 +111,7 @@ const jurnalStepsConfig: JurnalStep[] = [
     description: 'Rekam bacaan tanpa melihat mushaf. Usahakan mendapatkan 3 rekaman yang lancar tanpa kesalahan.',
     icon: <Mic className="h-5 w-5" />,
     color: 'bg-red-500',
-    required: true,
-    minCount: 3,
-    countLabel: 'rekaman'
+    required: true
   },
   {
     id: 'simak_record',
@@ -116,6 +120,15 @@ const jurnalStepsConfig: JurnalStep[] = [
     description: 'Dengarkan kembali rekaman terbaik sambil menyimak dengan mushaf untuk menemukan kesalahan.',
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-indigo-500',
+    required: true
+  },
+  {
+    id: 'tikrar_bi_al_ghaib',
+    name: 'Tikrar Bil Ghaib',
+    title: 'Tikrar Bil Ghaib (Tanpa Mushaf)',
+    description: 'Setorkan hafalan blok hari ini tanpa melihat mushaf untuk mengunci hafalan jangka panjang.',
+    icon: <Circle className="h-5 w-5" />,
+    color: 'bg-teal-500',
     required: true
   }
 ]
@@ -148,14 +161,18 @@ export default function JurnalHarianPage() {
   const [jurnalData, setJurnalData] = useState({
     tanggal_setor: new Date().toISOString().slice(0, 10),
     juz_code: '',
+    blok: '',
     rabth_completed: false,
-    murajaah_count: 0,
-    simak_murattal_count: 0,
-    tikrar_bi_an_nadzar_count: 0,
-    tasmi_record_count: 0,
+    murajaah_completed: false,
+    simak_murattal_completed: false,
+    tikrar_bi_an_nadzar_completed: false,
+    tasmi_record_completed: false,
     simak_record_completed: false,
-    tikrar_bi_al_ghaib_count: 0,
-    tikrar_bi_al_ghaib_type: 'sendiri' as 'sendiri' | 'pasangan' | 'voice_note' | null,
+    tikrar_bi_al_ghaib_completed: false,
+    tikrar_bi_al_ghaib_40x: [] as ('pasangan_40' | 'keluarga_40' | 'tarteel_40')[],
+    tikrar_bi_al_ghaib_20x: [] as ('pasangan_20' | 'voice_note_20')[],
+    tarteel_screenshot_url: null as string | null,
+    tarteel_file: null as File | null,
     tafsir_completed: false,
     menulis_completed: false,
     catatan_tambahan: ''
@@ -164,7 +181,7 @@ export default function JurnalHarianPage() {
   const [todayRecord, setTodayRecord] = useState<JurnalRecord | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [partnerType, setPartnerType] = useState<'self_match' | 'system_match' | 'family' | 'tarteel' | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Get active registration
   const activeRegistration = registrations.find((reg: any) =>
@@ -179,8 +196,9 @@ export default function JurnalHarianPage() {
   const batchId = activeRegistration?.batch?.id || null
   const batchStartDate = activeRegistration?.batch?.start_date || null
 
-  // Juz state
+  // Juz and blocks state
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
+  const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number>(1)
 
   // Load juz info
@@ -189,41 +207,6 @@ export default function JurnalHarianPage() {
       loadJuzInfo(juzToUse)
     }
   }, [juzToUse])
-
-  // Load partner type
-  useEffect(() => {
-    if (user && batchId) {
-      loadPartnerType()
-    }
-  }, [user, batchId])
-
-  const loadPartnerType = async () => {
-    if (!user || !batchId) return
-
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('daftar_ulang_submissions')
-        .select('partner_type')
-        .eq('user_id', user.id)
-        .eq('batch_id', batchId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (!error && data) {
-        setPartnerType(data.partner_type)
-        // Set default tikrar ghaib type based on partner type
-        if (data.partner_type === 'family' || data.partner_type === 'tarteel') {
-          setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_type: 'voice_note' }))
-        } else {
-          setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_type: 'sendiri' }))
-        }
-      }
-    } catch (error) {
-      console.error('Error loading partner type:', error)
-    }
-  }
 
   const loadJuzInfo = async (juzCode: string) => {
     try {
@@ -242,6 +225,45 @@ export default function JurnalHarianPage() {
       console.error('Error loading juz info:', error)
     }
   }
+
+  // Update blocks when week changes - for JURNAL, start from week 2
+  const updateBlocksForWeek = (weekNumber: number) => {
+    if (!selectedJuzInfo) return
+
+    // For jurnal, start from week 2 (week 1 is for tashih)
+    // So week 1 jurnal = batch week 2
+    const jurnalWeekNumber = weekNumber + 1
+
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = jurnalWeekNumber + blockOffset
+    const weekStartPage = selectedJuzInfo.start_page + (jurnalWeekNumber - 1)
+
+    const blocks: TashihBlock[] = []
+    const parts = ['A', 'B', 'C', 'D']
+
+    for (let i = 0; i < 4; i++) {
+      const part = parts[i]
+      const blockCode = `H${blockNumber}${part}`
+      const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
+
+      blocks.push({
+        block_code: blockCode,
+        week_number: blockNumber,
+        part,
+        start_page: blockPage,
+        end_page: blockPage
+      })
+    }
+
+    setAvailableBlocks(blocks)
+  }
+
+  // Add useEffect to update blocks when week/juz changes
+  useEffect(() => {
+    if (selectedJuzInfo && batchStartDate) {
+      updateBlocksForWeek(selectedWeekNumber)
+    }
+  }, [selectedWeekNumber, selectedJuzInfo, batchStartDate])
 
   // Get week number from date
   const getWeekNumberFromDate = (date: Date): number => {
@@ -328,14 +350,14 @@ export default function JurnalHarianPage() {
         setJurnalData({
           tanggal_setor: data[0].tanggal_setor || new Date().toISOString().slice(0, 10),
           juz_code: data[0].juz_code || '',
+          blok: data[0].blok || '',
           rabth_completed: data[0].rabth_completed || false,
-          murajaah_count: data[0].murajaah_count || 0,
-          simak_murattal_count: data[0].simak_murattal_count || 0,
-          tikrar_bi_an_nadzar_count: data[0].tikrar_bi_an_nadzar_count || 0,
-          tasmi_record_count: data[0].tasmi_record_count || 0,
+          murajaah_completed: data[0].murajaah_count > 0,
+          simak_murattal_completed: data[0].simak_murattal_count > 0,
+          tikrar_bi_an_nadzar_completed: data[0].tikrar_bi_an_nadzar_count > 0,
+          tasmi_record_completed: data[0].tasmi_record_count > 0,
           simak_record_completed: data[0].simak_record_completed || false,
-          tikrar_bi_al_ghaib_count: data[0].tikrar_bi_al_ghaib_count || 0,
-          tikrar_bi_al_ghaib_type: data[0].tikrar_bi_al_ghaib_type || 'sendiri',
+          tikrar_bi_al_ghaib_completed: data[0].tikrar_bi_al_ghaib_count > 0,
           tafsir_completed: data[0].tafsir_completed || false,
           menulis_completed: data[0].menulis_completed || false,
           catatan_tambahan: data[0].catatan_tambahan || ''
@@ -401,6 +423,7 @@ export default function JurnalHarianPage() {
         user_id: user.id,
         tanggal_setor: jurnalData.tanggal_setor,
         juz_code: jurnalData.juz_code || null,
+        blok: jurnalData.blok || null,
         tashih_completed: true,
         rabth_completed: jurnalData.rabth_completed,
         murajaah_count: jurnalData.murajaah_count,
@@ -456,6 +479,7 @@ export default function JurnalHarianPage() {
     setJurnalData({
       tanggal_setor: new Date().toISOString().slice(0, 10),
       juz_code: juzToUse || '',
+      blok: '',
       rabth_completed: false,
       murajaah_count: 0,
       simak_murattal_count: 0,
@@ -545,6 +569,10 @@ export default function JurnalHarianPage() {
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Juz:</span>
                 <span className="font-medium text-gray-800">{todayRecord.juz_code || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-gray-600">Blok:</span>
+                <span className="font-medium text-gray-800">{todayRecord.blok || '-'}</span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-gray-600">Tanggal:</span>
@@ -739,6 +767,62 @@ export default function JurnalHarianPage() {
                 })
               })()}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Blok Selection */}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-blue-700 text-lg sm:text-xl">
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span>Pilih Blok Jurnal</span>
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              {availableBlocks.length > 0
+                ? `Pekan Jurnal ${selectedWeekNumber} - ${selectedJuzInfo?.name || ''}`
+                : 'Pilih tanggal terlebih dahulu untuk menentukan blok'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-3 sm:p-6">
+            {availableBlocks.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Belum ada blok yang tersedia.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                {availableBlocks.map((blok) => {
+                  const isSelected = jurnalData.blok === blok.block_code
+                  return (
+                    <button
+                      key={blok.block_code}
+                      type="button"
+                      onClick={() => setJurnalData(prev => ({ ...prev, blok: blok.block_code }))}
+                      className={cn(
+                        "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
+                        "hover:shadow-lg hover:scale-105",
+                        isSelected
+                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200"
+                          : "border-gray-200 hover:border-blue-300 bg-white"
+                      )}
+                    >
+                      <div className="text-center">
+                        <div className={cn(
+                          "text-xl sm:text-2xl font-bold",
+                          isSelected ? "text-blue-700" : "text-gray-700"
+                        )}>
+                          {blok.block_code.toUpperCase()}
+                        </div>
+                        {isSelected && (
+                          <div className="mt-2 text-blue-600">
+                            <CheckCircle className="h-5 w-5 mx-auto" />
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
