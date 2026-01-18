@@ -172,10 +172,7 @@ export default function TashihPage() {
   const updateBlocksForWeek = (weekNumber: number) => {
     if (!selectedJuzInfo) return
 
-    // Part offset: Part B starts at week 11
-    const partOffset = selectedJuzInfo.part === 'B' ? 10 : 0
-    const displayWeekNumber = weekNumber + partOffset
-
+    // No offset - week number starts from 1 based on batch start date
     // Each week adds 1 page to the starting page
     // Week 1: starts at juz start_page
     // Week 2: starts at juz start_page + 1
@@ -189,13 +186,13 @@ export default function TashihPage() {
 
     for (let i = 0; i < 4; i++) {
       const part = parts[i]
-      const blockCode = `H${displayWeekNumber}${part}`
+      const blockCode = `H${weekNumber}${part}`
       // Each block is 1 page, incrementing from the week's start page
       const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
 
       blocks.push({
         block_code: blockCode,
-        week_number: displayWeekNumber,
+        week_number: weekNumber,
         part,
         start_page: blockPage,
         end_page: blockPage
@@ -548,7 +545,7 @@ export default function TashihPage() {
               <h3 className="font-semibold text-emerald-800">Juz Tashih Ukhti</h3>
               <p className="text-sm text-gray-700">
                 {selectedJuzInfo ? (
-                  <span className="font-medium">{selectedJuzInfo.name} (Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
+                  <span className="font-medium">Juz {selectedJuzInfo.juz_number} Part {selectedJuzInfo.part} (Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
                 ) : (
                   <span className="font-medium">{confirmedJuz}</span>
                 )}
@@ -599,11 +596,10 @@ export default function TashihPage() {
             {(() => {
               const currentWeek = getCurrentWeekNumber()
               const previousWeek = Math.max(1, currentWeek - 1)
+              // Show 2 weeks: previous week first, then current week
               const weeksToShow = currentWeek > 1 ? [previousWeek, currentWeek] : [currentWeek]
 
               return weeksToShow.map((weekNum) => {
-                const partOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
-                const displayWeekNumber = weekNum + partOffset
                 const isCurrentWeek = weekNum === currentWeek
 
                 return (
@@ -612,7 +608,7 @@ export default function TashihPage() {
                       "text-sm font-medium mb-3",
                       isCurrentWeek ? "text-cyan-700" : "text-gray-700"
                     )}>
-                      Pekan Tashih {displayWeekNumber}
+                      Pekan Tashih {weekNum}
                       {isCurrentWeek && <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>}
                     </div>
                     <div className="grid grid-cols-7 gap-2">
@@ -762,7 +758,6 @@ export default function TashihPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">Markaz Tikrar Indonesia</p>
-                      <p className="text-xs text-gray-600">MTI Jakarta</p>
                     </div>
                     {tashihData.lokasi === 'mti' && <CheckCircle className="h-6 w-6 text-emerald-600" />}
                   </div>
@@ -896,6 +891,11 @@ export default function TashihPage() {
             <CardTitle className="flex items-center gap-2 text-rose-700">
               <AlertCircle className="h-5 w-5" />
               <span>Masalah Tajwid yang Ditemukan</span>
+              {tashihData.masalahTajwid.length > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-rose-500 text-white text-xs font-bold rounded-full">
+                  {tashihData.masalahTajwid.length}
+                </span>
+              )}
             </CardTitle>
             <CardDescription>
               Pilih masalah tajwid yang perlu diperbaiki (opsional)
