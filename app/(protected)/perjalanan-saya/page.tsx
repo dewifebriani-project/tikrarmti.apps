@@ -1404,12 +1404,14 @@ export default function PerjalananSaya() {
                     const isLeftSide = index % 2 === 0;
 
                     // Check if this is the Daftar Ulang card and should be clickable
-                    // Clickable if: selected AND (not completed AND no daftar ulang exists)
+                    // NOT clickable if already submitted/approved (has daftar ulang)
+                    // CLICKABLE if selected/approved BUT no daftar ulang yet
                     const daftarUlang = registrationStatus.registration?.daftar_ulang;
+                    const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
                     const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
-                                            registrationStatus?.selectionStatus === 'selected' &&
+                                            (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
                                             !registrationStatus.registration?.re_enrollment_completed &&
-                                            !daftarUlang;
+                                            !hasSubmittedOrApproved;
 
                     const cardContent = (
                       <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
