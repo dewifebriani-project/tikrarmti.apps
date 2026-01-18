@@ -196,25 +196,33 @@ export default function Tashih() {
       const isAdmin = userRoles.includes('admin')
       const isMuallimah = userRoles.includes('muallimah')
 
+      console.log('[Tashih] User roles:', userRoles)
+
       // Initialize debug info with basic user data
-      setDebugInfo({
+      const initialDebugInfo = {
         userId: user.id,
+        userRoles: userRoles,
         daftarUlangSubmission: null,
         daftarUlangError: null,
         praTikrarReg: null,
-        praTikrarError: null
-      })
+        praTikrarError: null,
+        anyRegistration: null,
+        detectionResult: null
+      }
+      setDebugInfo(initialDebugInfo)
 
       // Open tashih for ALL users regardless of role or program status
       // Admin and muallimah get full access to tashih
       if (isAdmin || isMuallimah) {
-        setUserProgramInfo({
-          programType: isAdmin ? 'admin' : 'muallimah',
+        const programInfo = {
+          programType: (isAdmin ? 'admin' : 'muallimah') as 'admin' | 'muallimah',
           confirmedChosenJuz: null,
           batchStartDate: null,
           batchId: null,
           tashihHalaqahId: null
-        })
+        }
+        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: isAdmin ? 'admin' : 'muallimah', programInfo } }))
+        setUserProgramInfo(programInfo)
         setIsLoading(false)
         return
       }
@@ -232,8 +240,8 @@ export default function Tashih() {
         .limit(1)
         .maybeSingle()
 
-      console.log('daftarUlangSubmission:', daftarUlangSubmission)
-      console.log('daftarUlangError:', daftarUlangError)
+      console.log('[Tashih] Priority 1 - daftarUlangSubmission:', daftarUlangSubmission)
+      console.log('[Tashih] Priority 1 - daftarUlangError:', daftarUlangError)
 
       // Update debug info with Priority 1 results
       setDebugInfo((prev: any) => ({
@@ -246,7 +254,7 @@ export default function Tashih() {
         // confirmed_chosen_juz is in daftar_ulang_submissions table (final juz choice)
         const confirmedJuz = daftarUlangSubmission.confirmed_chosen_juz || null
 
-        console.log('[Tashih] Setting Tikrar Tahfidz with juz:', confirmedJuz)
+        console.log('[Tashih] ✅ Priority 1 MATCH - Setting Tikrar Tahfidz with juz:', confirmedJuz)
         const newProgramInfo = {
           programType: 'tikrar_tahfidz' as const,
           confirmedChosenJuz: confirmedJuz,
@@ -255,9 +263,13 @@ export default function Tashih() {
           tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
         }
         console.log('[Tashih] Setting programInfo to:', newProgramInfo)
+        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '1 - daftar_ulang_submissions', programInfo: newProgramInfo } }))
         setUserProgramInfo(newProgramInfo)
+        setIsLoading(false)
         return
       }
+
+      console.log('[Tashih] ❌ Priority 1 NO MATCH - No daftar_ulang_submissions with submitted/approved status')
 
       // Priority 2: Check for pendaftaran_tikrar_tahfidz (selection_status: 'selected')
       // ONLY checked if NOT in daftar_ulang_submissions (Priority 1 didn't match)
@@ -274,8 +286,8 @@ export default function Tashih() {
         .limit(1)
         .maybeSingle()
 
-      console.log('praTikrarReg:', praTikrarReg)
-      console.log('praTikrarError:', praTikrarError)
+      console.log('[Tashih] Priority 2 - praTikrarReg:', praTikrarReg)
+      console.log('[Tashih] Priority 2 - praTikrarError:', praTikrarError)
 
       // Update debug info
       setDebugInfo((prev: any) => ({
@@ -285,16 +297,21 @@ export default function Tashih() {
       }))
 
       if (praTikrarReg) {
-        console.log('[Tashih] Setting Pra Tikrar (Priority 2 - selected) with juz:', praTikrarReg.chosen_juz)
-        setUserProgramInfo({
-          programType: 'pra_tikrar',
+        console.log('[Tashih] ✅ Priority 2 MATCH - Setting Pra Tikrar (selected) with juz:', praTikrarReg.chosen_juz)
+        const programInfo = {
+          programType: 'pra_tikrar' as const,
           confirmedChosenJuz: praTikrarReg.chosen_juz,
           batchStartDate: praTikrarReg.batch?.start_date || null,
           batchId: praTikrarReg.batch_id || null,
           tashihHalaqahId: null
-        })
+        }
+        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '2 - pendaftaran selected', programInfo } }))
+        setUserProgramInfo(programInfo)
+        setIsLoading(false)
         return
       }
+
+      console.log('[Tashih] ❌ Priority 2 NO MATCH - No pendaftaran with selection_status=selected')
 
       // Priority 3: Check for ANY registration (even pending/not_selected/rejected)
       // Allows all registered users to access tashih regardless of status
@@ -310,29 +327,41 @@ export default function Tashih() {
         .limit(1)
         .maybeSingle()
 
+      console.log('[Tashih] Priority 3 - anyRegistration:', anyRegistration)
+
+      setDebugInfo((prev: any) => ({ ...prev, anyRegistration }))
+
       if (anyRegistration) {
-        console.log('[Tashih] Setting Pra Tikrar (Priority 3 - any registration) with juz:', anyRegistration.chosen_juz)
-        setUserProgramInfo({
-          programType: 'pra_tikrar',
+        console.log('[Tashih] ✅ Priority 3 MATCH - Setting Pra Tikrar (any registration) with juz:', anyRegistration.chosen_juz)
+        const programInfo = {
+          programType: 'pra_tikrar' as const,
           confirmedChosenJuz: anyRegistration.chosen_juz,
           batchStartDate: anyRegistration.batch?.start_date || null,
           batchId: anyRegistration.batch_id || null,
           tashihHalaqahId: null
-        })
+        }
+        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '3 - any registration', programInfo } }))
+        setUserProgramInfo(programInfo)
+        setIsLoading(false)
         return
       }
 
+      console.log('[Tashih] ❌ Priority 3 NO MATCH - No registration found')
+
       // Priority 4: No program found - Default to Pra Tikrar (open access)
-      console.log('[Tashih] Setting Pra Tikrar (Priority 4 - default)')
-      setUserProgramInfo({
-        programType: 'pra_tikrar',
+      console.log('[Tashih] ✅ Priority 4 DEFAULT - Setting Pra Tikrar (no registration)')
+      const programInfo = {
+        programType: 'pra_tikrar' as const,
         confirmedChosenJuz: null,
         batchStartDate: null,
         batchId: null,
         tashihHalaqahId: null
-      })
+      }
+      setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '4 - default', programInfo } }))
+      setUserProgramInfo(programInfo)
     } catch (error) {
-      console.error('Error loading user program info:', error)
+      console.error('[Tashih] ❌ Error loading user program info:', error)
+      setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: 'ERROR', error: String(error) } }))
       // Even on error, set default to allow access to tashih page
       setUserProgramInfo({
         programType: 'pra_tikrar',
@@ -633,14 +662,34 @@ export default function Tashih() {
                   <span className="font-semibold">User ID: </span>
                   <span className="ml-2">{debugInfo.userId}</span>
                 </div>
+                {debugInfo.userRoles && (
+                  <div>
+                    <span className="font-semibold">User Roles: </span>
+                    <span className="ml-2">{JSON.stringify(debugInfo.userRoles)}</span>
+                  </div>
+                )}
 
                 <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
+                  <div className="font-semibold mb-2 text-green-600">Detection Result:</div>
+                  <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                    {JSON.stringify(debugInfo.detectionResult, null, 2)}
+                  </pre>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="font-semibold mb-2 text-blue-600">Current Program Info:</div>
+                  <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                    {JSON.stringify(userProgramInfo, null, 2)}
+                  </pre>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions (submitted/approved)</div>
                   <div className="ml-4 space-y-1">
                     <div>
                       <span className="text-gray-500">Data: </span>
                       <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {JSON.stringify(debugInfo.daftarUlangSubmission, null, 2)}
+                        {debugInfo.daftarUlangSubmission ? JSON.stringify(debugInfo.daftarUlangSubmission, null, 2) : 'null'}
                       </pre>
                     </div>
                     {debugInfo.daftarUlangError && (
@@ -655,12 +704,12 @@ export default function Tashih() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
+                  <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')</div>
                   <div className="ml-4 space-y-1">
                     <div>
                       <span className="text-gray-500">Data: </span>
                       <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
+                        {debugInfo.praTikrarReg ? JSON.stringify(debugInfo.praTikrarReg, null, 2) : 'null'}
                       </pre>
                     </div>
                     {debugInfo.praTikrarError && (
@@ -671,6 +720,18 @@ export default function Tashih() {
                         </pre>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="font-semibold mb-2 text-blue-600">Priority 3: ANY pendaftaran_tikrar_tahfidz</div>
+                  <div className="ml-4 space-y-1">
+                    <div>
+                      <span className="text-gray-500">Data: </span>
+                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                        {debugInfo.anyRegistration ? JSON.stringify(debugInfo.anyRegistration, null, 2) : 'null'}
+                      </pre>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1290,13 +1351,26 @@ export default function Tashih() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4 text-xs font-mono">
-              {!debugInfo ? (
+              {!debugInfo || isLoading ? (
                 <div className="text-amber-600 font-semibold">Debug info not loaded yet. Click "Show Debug" again later.</div>
               ) : (
                 <>
                   <div>
                     <span className="font-semibold">User ID: </span>
                     <span className="ml-2">{debugInfo.userId}</span>
+                  </div>
+                  {debugInfo.userRoles && (
+                    <div>
+                      <span className="font-semibold">User Roles: </span>
+                      <span className="ml-2">{JSON.stringify(debugInfo.userRoles)}</span>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-4">
+                    <div className="font-semibold mb-2 text-green-600">Detection Result:</div>
+                    <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                      {JSON.stringify(debugInfo.detectionResult, null, 2)}
+                    </pre>
                   </div>
 
                   <div className="border-t pt-4">
@@ -1307,12 +1381,12 @@ export default function Tashih() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
+                    <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions (submitted/approved)</div>
                     <div className="ml-4 space-y-1">
                       <div>
                         <span className="text-gray-500">Data: </span>
                         <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                          {JSON.stringify(debugInfo.daftarUlangSubmission, null, 2)}
+                          {debugInfo.daftarUlangSubmission ? JSON.stringify(debugInfo.daftarUlangSubmission, null, 2) : 'null'}
                         </pre>
                       </div>
                       {debugInfo.daftarUlangError && (
@@ -1327,12 +1401,12 @@ export default function Tashih() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
+                    <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')</div>
                     <div className="ml-4 space-y-1">
                       <div>
                         <span className="text-gray-500">Data: </span>
                         <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                          {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
+                          {debugInfo.praTikrarReg ? JSON.stringify(debugInfo.praTikrarReg, null, 2) : 'null'}
                         </pre>
                       </div>
                       {debugInfo.praTikrarError && (
@@ -1343,6 +1417,18 @@ export default function Tashih() {
                           </pre>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="font-semibold mb-2 text-blue-600">Priority 3: ANY pendaftaran_tikrar_tahfidz</div>
+                    <div className="ml-4 space-y-1">
+                      <div>
+                        <span className="text-gray-500">Data: </span>
+                        <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                          {debugInfo.anyRegistration ? JSON.stringify(debugInfo.anyRegistration, null, 2) : 'null'}
+                        </pre>
+                      </div>
                     </div>
                   </div>
                 </>

@@ -7,7 +7,7 @@ import { useMyRegistrations, useAllRegistrations } from '@/hooks/useRegistration
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
@@ -49,12 +49,58 @@ interface TikrarRegistration extends Pendaftaran {
   // daftar_ulang is now inherited from Pendaftaran interface
 }
 
+// Pairing data interface
+interface PairingData {
+  pairing: {
+    id: string;
+    pairing_type: string;
+    paired_at: string;
+    is_group_of_3: boolean;
+    user_role: 'user_1' | 'user_2' | 'user_3' | null;
+  };
+  user_1: {
+    id: string;
+    full_name: string;
+    email: string;
+    zona_waktu: string;
+    whatsapp: string | null;
+    tanggal_lahir: string | null;
+    chosen_juz: string;
+    main_time_slot: string;
+    backup_time_slot: string;
+  };
+  user_2: {
+    id: string;
+    full_name: string;
+    email: string;
+    zona_waktu: string;
+    whatsapp: string | null;
+    tanggal_lahir: string | null;
+    chosen_juz: string;
+    main_time_slot: string;
+    backup_time_slot: string;
+  };
+  user_3: {
+    id: string;
+    full_name: string;
+    email: string;
+    zona_waktu: string;
+    whatsapp: string | null;
+    tanggal_lahir: string | null;
+    chosen_juz: string;
+    main_time_slot: string;
+    backup_time_slot: string;
+  } | null;
+}
+
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
   const [hasSessionError, setHasSessionError] = useState(false);
+  const [pairingData, setPairingData] = useState<PairingData | null>(null);
+  const [isLoadingPairing, setIsLoadingPairing] = useState(false);
 
   // SWR hooks for data fetching - useAllRegistrations to show ALL registrations (no batch filter)
   const { registrations, isLoading: registrationsLoading, error: registrationsError } = useAllRegistrations();
@@ -557,6 +603,84 @@ export default function PerjalananSaya() {
     return days[num] || `${dayNum}`;
   };
 
+  const calculateAge = (birthDate: string | null | undefined) => {
+    if (!birthDate) return '-';
+
+    let birth: Date;
+    // Try parsing ISO format (YYYY-MM-DD)
+    if (birthDate.includes('-')) {
+      const parts = birthDate.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // JS months are 0-indexed
+        const day = parseInt(parts[2]);
+        birth = new Date(year, month, day);
+      } else {
+        birth = new Date(birthDate);
+      }
+    } else if (birthDate.includes('/')) {
+      // Try parsing slash format (DD/MM/YYYY or YYYY/MM/DD)
+      const parts = birthDate.split('/');
+      if (parts.length === 3) {
+        // Assume DD/MM/YYYY format (common in Indonesia)
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1;
+        const year = parseInt(parts[2]);
+        birth = new Date(year, month, day);
+      } else {
+        birth = new Date(birthDate);
+      }
+    } else {
+      birth = new Date(birthDate);
+    }
+
+    if (isNaN(birth.getTime())) {
+      return '-';
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+
+    return age;
+  };
+
+  const fetchPairingData = async (currentBatchId: string | null) => {
+    if (!user || !currentBatchId) return;
+
+    setIsLoadingPairing(true);
+    try {
+      const response = await fetch(`/api/user/pairing?batch_id=${currentBatchId}`, {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch pairing data');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setPairingData(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching pairing data:', error);
+      setPairingData(null);
+    } finally {
+      setIsLoadingPairing(false);
+    }
+  };
+
+  // Fetch pairing data when batchId changes
+  useEffect(() => {
+    if (batchId && user) {
+      fetchPairingData(batchId);
+    }
+  }, [batchId, user]);
+
   const handleEditSuccess = () => {
     // Trigger SWR revalidation to refresh data
     window.location.reload();
@@ -842,6 +966,101 @@ export default function PerjalananSaya() {
                                   <p className="text-xs text-purple-600">
                                     {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week)}, {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.tashih_halaqah.end_time}
                                   </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Partner Info - Only show if user has been paired */}
+                    {!isLoadingPairing && pairingData && (
+                      <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-lg p-3 border border-rose-200">
+                        <div className="flex items-start space-x-2">
+                          <HeartHandshake className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-grow">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs sm:text-sm text-gray-600">Pasangan Belajar</p>
+                              {pairingData.pairing.is_group_of_3 && (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                                  Grup 3
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              {/* Partner 1 or 2 depending on current user's role */}
+                              {pairingData.pairing.user_role !== 'user_1' && (
+                                <div className="bg-white rounded p-2 border border-rose-100">
+                                  <p className="text-xs text-gray-600 mb-1">Thalibah Pertama</p>
+                                  <p className="font-medium text-sm text-rose-800">{pairingData.user_1.full_name}</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                      Juz {pairingData.user_1.chosen_juz}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                      {pairingData.user_1.zona_waktu}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                      {pairingData.user_1.main_time_slot}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                                      {pairingData.user_1.backup_time_slot}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-600 mt-1">Usia: {calculateAge(pairingData.user_1.tanggal_lahir)} tahun</p>
+                                  {pairingData.user_1.whatsapp && (
+                                    <p className="text-xs text-gray-600">WA: {pairingData.user_1.whatsapp}</p>
+                                  )}
+                                </div>
+                              )}
+                              {pairingData.pairing.user_role !== 'user_2' && (
+                                <div className="bg-white rounded p-2 border border-purple-100">
+                                  <p className="text-xs text-gray-600 mb-1">Thalibah Kedua</p>
+                                  <p className="font-medium text-sm text-purple-800">{pairingData.user_2.full_name}</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                      Juz {pairingData.user_2.chosen_juz}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                      {pairingData.user_2.zona_waktu}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                      {pairingData.user_2.main_time_slot}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                                      {pairingData.user_2.backup_time_slot}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-600 mt-1">Usia: {calculateAge(pairingData.user_2.tanggal_lahir)} tahun</p>
+                                  {pairingData.user_2.whatsapp && (
+                                    <p className="text-xs text-gray-600">WA: {pairingData.user_2.whatsapp}</p>
+                                  )}
+                                </div>
+                              )}
+                              {/* Third partner if exists */}
+                              {pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' && pairingData.user_3 && (
+                                <div className="bg-white rounded p-2 border border-amber-100">
+                                  <p className="text-xs text-gray-600 mb-1">Thalibah Ketiga</p>
+                                  <p className="font-medium text-sm text-amber-800">{pairingData.user_3.full_name}</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                      Juz {pairingData.user_3.chosen_juz}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                      {pairingData.user_3.zona_waktu}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                      {pairingData.user_3.main_time_slot}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                                      {pairingData.user_3.backup_time_slot}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-gray-600 mt-1">Usia: {calculateAge(pairingData.user_3.tanggal_lahir)} tahun</p>
+                                  {pairingData.user_3.whatsapp && (
+                                    <p className="text-xs text-gray-600">WA: {pairingData.user_3.whatsapp}</p>
+                                  )}
                                 </div>
                               )}
                             </div>
