@@ -110,6 +110,17 @@ export default function Tashih() {
   const [isUstadzahDropdownOpen, setIsUstadzahDropdownOpen] = useState(false)
   const [showDebugPanel, setShowDebugPanel] = useState(true)
 
+  // Log for debugging
+  useEffect(() => {
+    console.log('[Tashih] State changed:', {
+      isLoading,
+      userProgramInfo,
+      debugInfo,
+      showDebugPanel,
+      todayRecord
+    })
+  }, [isLoading, userProgramInfo, debugInfo, showDebugPanel, todayRecord])
+
   // Load user program info on mount
   useEffect(() => {
     loadUserProgramInfo()
@@ -1270,7 +1281,7 @@ export default function Tashih() {
       </form>
 
       {/* Debug Panel */}
-      {showDebugPanel && debugInfo && (
+      {showDebugPanel && (
         <>
           {console.log('[Tashih] Debug Panel rendering:', { debugInfo, userProgramInfo })}
           <Card className="bg-yellow-50 border-yellow-300">
@@ -1279,57 +1290,63 @@ export default function Tashih() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4 text-xs font-mono">
-              <div>
-                <span className="font-semibold">User ID: </span>
-                <span className="ml-2">{debugInfo.userId}</span>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-semibold mb-2 text-blue-600">Current Program Info:</div>
-                <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                  {JSON.stringify(userProgramInfo, null, 2)}
-                </pre>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
-                <div className="ml-4 space-y-1">
+              {!debugInfo ? (
+                <div className="text-amber-600 font-semibold">Debug info not loaded yet. Click "Show Debug" again later.</div>
+              ) : (
+                <>
                   <div>
-                    <span className="text-gray-500">Data: </span>
+                    <span className="font-semibold">User ID: </span>
+                    <span className="ml-2">{debugInfo.userId}</span>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="font-semibold mb-2 text-blue-600">Current Program Info:</div>
                     <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                      {JSON.stringify(debugInfo.daftarUlangSubmission, null, 2)}
+                      {JSON.stringify(userProgramInfo, null, 2)}
                     </pre>
                   </div>
-                  {debugInfo.daftarUlangError && (
-                    <div>
-                      <span className="text-gray-500">Error: </span>
-                      <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                        {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="border-t pt-4">
-                <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
-                <div className="ml-4 space-y-1">
-                  <div>
-                    <span className="text-gray-500">Data: </span>
-                    <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                      {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
-                    </pre>
-                  </div>
-                  {debugInfo.praTikrarError && (
-                    <div>
-                      <span className="text-gray-500">Error: </span>
-                      <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                        {JSON.stringify(debugInfo.praTikrarError, null, 2)}
-                      </pre>
+                  <div className="border-t pt-4">
+                    <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
+                    <div className="ml-4 space-y-1">
+                      <div>
+                        <span className="text-gray-500">Data: </span>
+                        <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                          {JSON.stringify(debugInfo.daftarUlangSubmission, null, 2)}
+                        </pre>
+                      </div>
+                      {debugInfo.daftarUlangError && (
+                        <div>
+                          <span className="text-gray-500">Error: </span>
+                          <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
+                            {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
+                          </pre>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
+                    <div className="ml-4 space-y-1">
+                      <div>
+                        <span className="text-gray-500">Data: </span>
+                        <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                          {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
+                        </pre>
+                      </div>
+                      {debugInfo.praTikrarError && (
+                        <div>
+                          <span className="text-gray-500">Error: </span>
+                          <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
+                            {JSON.stringify(debugInfo.praTikrarError, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
