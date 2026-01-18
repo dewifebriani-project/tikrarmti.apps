@@ -194,7 +194,11 @@ export function AdminPairingTab() {
   const [selectedUser, setSelectedUser] = useState<SystemMatchRequest | null>(null)
   const [matchData, setMatchData] = useState<MatchData | null>(null)
   const [selectedMatch, setSelectedMatch] = useState<MatchCandidate | null>(null)
-  const [matchSortConfig, setMatchSortConfig] = useState<{ key: keyof MatchCandidate; direction: 'asc' | 'desc' } | null>(null)
+  const [matchSortConfigs, setMatchSortConfigs] = useState<Array<{
+    key: keyof MatchCandidate
+    direction: 'asc' | 'desc'
+  }>>([])
+  const [matchFilters, setMatchFilters] = useState<Partial<Record<keyof MatchCandidate, string>>>({})
 
   // Reject modal state
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -211,51 +215,67 @@ export function AdminPairingTab() {
   const [pairingDetail, setPairingDetail] = useState<any>(null)
   const [loadingPairingDetail, setLoadingPairingDetail] = useState(false)
 
-  // Sorting state for System Match table
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof SystemMatchRequest | null
+  // Sorting state for System Match table (multiple sort support)
+  const [sortConfigs, setSortConfigs] = useState<Array<{
+    key: keyof SystemMatchRequest
     direction: 'asc' | 'desc'
-  }>({
-    key: null,
-    direction: 'asc'
-  })
+  }>>([])
+  const [systemFilters, setSystemFilters] = useState<Partial<Record<keyof SystemMatchRequest, string>>>({})
 
-  // Sort function
+  // Sort function for system match table (multiple sort)
   const handleSort = (key: keyof SystemMatchRequest) => {
-    let direction: 'asc' | 'desc' = 'asc'
-    if (sortConfig.key === key) {
-      if (sortConfig.direction === 'asc') {
-        direction = 'desc'
+    const existingIndex = sortConfigs.findIndex(c => c.key === key)
+    if (existingIndex >= 0) {
+      const existing = sortConfigs[existingIndex]
+      let newDirection: 'asc' | 'desc' | null = 'asc'
+      if (existing.direction === 'asc') {
+        newDirection = 'desc'
       } else {
-        // Reset to unsorted
-        setSortConfig({ key: null, direction: 'asc' })
-        return
+        // Remove this sort
+        newDirection = null
       }
+
+      if (newDirection) {
+        setSortConfigs(sortConfigs.map((c, i) => i === existingIndex ? { ...c, direction: newDirection } : c))
+      } else {
+        setSortConfigs(sortConfigs.filter((_, i) => i !== existingIndex))
+      }
+    } else {
+      // Add new sort
+      setSortConfigs([...sortConfigs, { key, direction: 'asc' }])
     }
-    setSortConfig({ key, direction })
   }
 
-  // Sort function for match modal
+  // Sort function for match modal (multiple sort)
   const handleMatchSort = (key: keyof MatchCandidate) => {
-    let direction: 'asc' | 'desc' = 'asc'
-    if (matchSortConfig?.key === key) {
-      if (matchSortConfig.direction === 'asc') {
-        direction = 'desc'
+    const existingIndex = matchSortConfigs?.findIndex(c => c.key === key) ?? -1
+    if (existingIndex >= 0) {
+      const existing = matchSortConfigs![existingIndex]
+      let newDirection: 'asc' | 'desc' | null = 'asc'
+      if (existing.direction === 'asc') {
+        newDirection = 'desc'
       } else {
-        // Reset to unsorted
-        setMatchSortConfig(null)
-        return
+        // Remove this sort
+        newDirection = null
       }
+
+      if (newDirection) {
+        setMatchSortConfigs(matchSortConfigs!.map((c, i) => i === existingIndex ? { ...c, direction: newDirection } : c))
+      } else {
+        setMatchSortConfigs(matchSortConfigs!.filter((_, i) => i !== existingIndex))
+      }
+    } else {
+      // Add new sort
+      setMatchSortConfigs([...(matchSortConfigs || []), { key, direction: 'asc' }])
     }
-    setMatchSortConfig({ key, direction })
   }
 
-  // Get sorted match candidates
+  // Get sorted match candidates with multiple sort support
   const getSortedMatchCandidates = () => {
     if (!matchData) return []
 
     // Combine all candidates from all priority groups
-    const allCandidates = [
+    let allCandidates = [
       ...matchData.matches.zona_waktu_utama_juz,
       ...matchData.matches.zona_waktu_utama_juz_beda,
       ...matchData.matches.zona_waktu_cadangan_juz,
@@ -263,50 +283,78 @@ export function AdminPairingTab() {
       ...matchData.matches.cross_zona,
     ]
 
-    if (!matchSortConfig?.key) return allCandidates
+    // Apply filters
+    Object.entries(matchFilters).forEach(([key, value]) => {
+      if (value) {
+        allCandidates = allCandidates.filter(c => {
+          const candidateValue = String(c[key as keyof MatchCandidate] || '').toLowerCase()
+          return candidateValue.includes(value.toLowerCase())
+        })
+      }
+    })
+
+    // Apply multiple sorts
+    if (matchSortConfigs.length === 0) return allCandidates
 
     const sorted = [...allCandidates].sort((a, b) => {
-      const aValue = a[matchSortConfig.key]
-      const bValue = b[matchSortConfig.key]
+      for (const config of matchSortConfigs) {
+        const aValue = a[config.key]
+        const bValue = b[config.key]
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return matchSortConfig.direction === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
+        let comparison = 0
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          comparison = config.direction === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue)
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+          comparison = config.direction === 'asc'
+            ? aValue - bValue
+            : bValue - aValue
+        }
+
+        if (comparison !== 0) return comparison
       }
-
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return matchSortConfig.direction === 'asc'
-          ? aValue - bValue
-          : bValue - aValue
-      }
-
       return 0
     })
 
     return sorted
   }
 
-  // Get sorted data
+  // Get sorted system match requests with multiple sort support
   const getSortedSystemMatchRequests = () => {
-    if (!sortConfig.key) return systemMatchRequests
+    let result = [...systemMatchRequests]
 
-    const sorted = [...systemMatchRequests].sort((a, b) => {
-      const aValue = a[sortConfig.key!]
-      const bValue = b[sortConfig.key!]
-
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue)
+    // Apply filters
+    Object.entries(systemFilters).forEach(([key, value]) => {
+      if (value) {
+        result = result.filter(r => {
+          const requestValue = String(r[key as keyof SystemMatchRequest] || '').toLowerCase()
+          return requestValue.includes(value.toLowerCase())
+        })
       }
+    })
 
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'asc'
-          ? aValue - bValue
-          : bValue - aValue
+    // Apply multiple sorts
+    if (sortConfigs.length === 0) return result
+
+    const sorted = [...result].sort((a, b) => {
+      for (const config of sortConfigs) {
+        const aValue = a[config.key]
+        const bValue = b[config.key]
+
+        let comparison = 0
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          comparison = config.direction === 'asc'
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue)
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+          comparison = config.direction === 'asc'
+            ? aValue - bValue
+            : bValue - aValue
+        }
+
+        if (comparison !== 0) return comparison
       }
-
       return 0
     })
 
@@ -314,6 +362,15 @@ export function AdminPairingTab() {
   }
 
   const sortedSystemMatchRequests = getSortedSystemMatchRequests()
+
+  // Helper function to get sort indicator for multiple sort
+  const getSortIndicator = <T extends string>(key: T, configs: Array<{ key: T; direction: 'asc' | 'desc' }>) => {
+    const index = configs.findIndex(c => c.key === key)
+    if (index < 0) return ''
+    const config = configs[index]
+    const arrow = config.direction === 'asc' ? '↑' : '↓'
+    return configs.length > 1 ? `${index + 1}${arrow}` : arrow
+  }
 
   // Helper function to calculate age from birth date
   const calculateAge = (birthDate: string | null | undefined) => {
@@ -1484,40 +1541,40 @@ export function AdminPairingTab() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_name')}>
-                      Nama {sortConfig.key === 'user_name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Nama {getSortIndicator('user_name', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Pasangan
                     </th>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('chosen_juz')}>
-                      Juz {sortConfig.key === 'chosen_juz' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Juz {getSortIndicator('chosen_juz', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_zona_waktu')}>
-                      Zona {sortConfig.key === 'user_zona_waktu' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Zona {getSortIndicator('user_zona_waktu', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('perfect_matches')}>
-                      Perfect {sortConfig.key === 'perfect_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Perfect {getSortIndicator('perfect_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('main_time_matches')}>
-                      W. Utama {sortConfig.key === 'main_time_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      W. Utama {getSortIndicator('main_time_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Usia
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('backup_time_matches')}>
-                      W. Cadangan {sortConfig.key === 'backup_time_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      W. Cadangan {getSortIndicator('backup_time_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('zona_waktu_matches')}>
-                      Zona {sortConfig.key === 'zona_waktu_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Zona {getSortIndicator('zona_waktu_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('same_juz_matches')}>
-                      Juz {sortConfig.key === 'same_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Juz {getSortIndicator('same_juz_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('cross_juz_matches')}>
-                      Lintas {sortConfig.key === 'cross_juz_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Lintas {getSortIndicator('cross_juz_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('total_matches')}>
-                      Total {sortConfig.key === 'total_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      Total {getSortIndicator('total_matches', sortConfigs)}
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aksi
@@ -1972,43 +2029,43 @@ export function AdminPairingTab() {
                             className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('full_name')}
                           >
-                            Nama {matchSortConfig?.key === 'full_name' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Nama {getSortIndicator('full_name', matchSortConfigs)}
                           </th>
                           <th
                             className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('tanggal_lahir')}
                           >
-                            Usia {matchSortConfig?.key === 'tanggal_lahir' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Usia {getSortIndicator('tanggal_lahir', matchSortConfigs)}
                           </th>
                           <th
                             className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('chosen_juz')}
                           >
-                            Juz {matchSortConfig?.key === 'chosen_juz' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Juz {getSortIndicator('chosen_juz', matchSortConfigs)}
                           </th>
                           <th
                             className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('zona_waktu')}
                           >
-                            Zona {matchSortConfig?.key === 'zona_waktu' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Zona {getSortIndicator('zona_waktu', matchSortConfigs)}
                           </th>
                           <th
                             className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('main_time_slot')}
                           >
-                            Waktu Utama {matchSortConfig?.key === 'main_time_slot' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Waktu Utama {getSortIndicator('main_time_slot', matchSortConfigs)}
                           </th>
                           <th
                             className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('backup_time_slot')}
                           >
-                            Waktu Cadangan {matchSortConfig?.key === 'backup_time_slot' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Waktu Cadangan {getSortIndicator('backup_time_slot', matchSortConfigs)}
                           </th>
                           <th
                             className="px-4 py-2 text-center font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
                             onClick={() => handleMatchSort('match_score')}
                           >
-                            Score {matchSortConfig?.key === 'match_score' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                            Score {getSortIndicator('match_score', matchSortConfigs)}
                           </th>
                         </tr>
                       </thead>
