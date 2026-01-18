@@ -2252,7 +2252,8 @@ function UsersTab({
       render: (user: any) => {
         // Handle both new format (roles array) and old format (role string)
         const roles = user.roles || [(user as any)?.role].filter(Boolean);
-        const primaryRole = user.role || roles?.[0] || '-';
+        // Prioritize roles array over role varchar for display
+        const primaryRole = roles?.[0] || user.role || '-';
 
         const getRoleBadge = (role: string) => {
           switch (role) {
