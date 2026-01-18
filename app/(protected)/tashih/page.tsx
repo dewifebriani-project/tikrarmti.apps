@@ -94,11 +94,13 @@ export default function TashihPage() {
 
   const [confirmedJuz, setConfirmedJuz] = useState<string | null>(null)
   const [batchId, setBatchId] = useState<string | null>(null)
+  const [batchStartDate, setBatchStartDate] = useState<string | null>(null)
   const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
   const [availableMuallimah, setAvailableMuallimah] = useState<MuallimahOption[]>([])
   const [isLoadingMuallimah, setIsLoadingMuallimah] = useState(false)
   const [isUstadzahDropdownOpen, setIsUstadzahDropdownOpen] = useState(false)
+  const [selectedWeekNumber, setSelectedWeekNumber] = useState<number>(1)
 
   // Get active registration with daftar ulang
   const activeRegistration = registrations.find((reg: any) =>
@@ -116,9 +118,17 @@ export default function TashihPage() {
     if (juzToUse && activeRegistration?.batch?.start_date) {
       setConfirmedJuz(juzToUse)
       setBatchId(activeRegistration.batch.id)
-      loadBlocksAndJuzInfo(juzToUse, activeRegistration.batch.start_date)
+      setBatchStartDate(activeRegistration.batch.start_date)
+      loadJuzInfo(juzToUse)
     }
   }, [juzToUse, activeRegistration])
+
+  // Update blocks when week changes or juz info is loaded
+  useEffect(() => {
+    if (selectedJuzInfo && batchStartDate) {
+      updateBlocksForWeek(selectedWeekNumber)
+    }
+  }, [selectedWeekNumber, selectedJuzInfo, batchStartDate])
 
   // Load muallimah when batch is available
   useEffect(() => {
@@ -134,7 +144,7 @@ export default function TashihPage() {
     }
   }, [confirmedJuz])
 
-  const loadBlocksAndJuzInfo = async (juzCode: string, startDate: string) => {
+  const loadJuzInfo = async (juzCode: string) => {
     setIsLoadingBlocks(true)
     try {
       const supabase = createClient()
@@ -152,46 +162,47 @@ export default function TashihPage() {
       }
 
       setSelectedJuzInfo(juzData)
-
-      // Calculate current week
-      const batchStart = new Date(startDate)
-      const today = new Date()
-      const weeksSinceStart = Math.floor((today.getTime() - batchStart.getTime()) / (7 * 24 * 60 * 60 * 1000))
-
-      // Part offset
-      const partOffset = juzData.part === 'B' ? 10 : 0
-      const currentWeek = weeksSinceStart + partOffset + 1
-
-      // Calculate pages per block
-      const totalPages = juzData.end_page - juzData.start_page + 1
-      const pagesPerBlock = Math.ceil(totalPages / (10 * 4))
-
-      // Generate 4 blocks for current week
-      const blocks: TashihBlock[] = []
-      const parts = ['A', 'B', 'C', 'D']
-
-      for (let i = 0; i < 4; i++) {
-        const part = parts[i]
-        const blockCode = `H${currentWeek}${part}`
-        const weekOffset = currentWeek - partOffset - 1
-        const blockStartPage = juzData.start_page + (weekOffset * 4 * pagesPerBlock) + (i * pagesPerBlock)
-        const blockEndPage = Math.min(blockStartPage + pagesPerBlock - 1, juzData.end_page)
-
-        blocks.push({
-          block_code: blockCode,
-          week_number: currentWeek,
-          part,
-          start_page: blockStartPage,
-          end_page: blockEndPage
-        })
-      }
-
-      setAvailableBlocks(blocks)
     } catch (error) {
-      console.error('Error loading blocks:', error)
+      console.error('Error loading juz info:', error)
     } finally {
       setIsLoadingBlocks(false)
     }
+  }
+
+  const updateBlocksForWeek = (weekNumber: number) => {
+    if (!selectedJuzInfo) return
+
+    // Part offset: Part B starts at week 11
+    const partOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const displayWeekNumber = weekNumber + partOffset
+
+    // Each week adds 1 page to the starting page
+    // Week 1: starts at juz start_page
+    // Week 2: starts at juz start_page + 1
+    // etc.
+    const weekStartPage = selectedJuzInfo.start_page + (weekNumber - 1)
+
+    // Generate 4 blocks for the selected week
+    // Each block is 1 page (total 4 pages per week = 4 blocks * 1 page)
+    const blocks: TashihBlock[] = []
+    const parts = ['A', 'B', 'C', 'D']
+
+    for (let i = 0; i < 4; i++) {
+      const part = parts[i]
+      const blockCode = `H${displayWeekNumber}${part}`
+      // Each block is 1 page, incrementing from the week's start page
+      const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
+
+      blocks.push({
+        block_code: blockCode,
+        week_number: displayWeekNumber,
+        part,
+        start_page: blockPage,
+        end_page: blockPage
+      })
+    }
+
+    setAvailableBlocks(blocks)
   }
 
   const loadAvailableMuallimah = async () => {
@@ -239,9 +250,11 @@ export default function TashihPage() {
 
       if (data && data.length > 0) {
         setTodayRecord(data[0])
+        // Map legacy 'halaqah' value to 'mti'
+        const lokasiValue = data[0].lokasi === 'halaqah' ? 'mti' : data[0].lokasi as 'mti' | 'luar'
         setTashihData({
           blok: data[0].blok,
-          lokasi: data[0].lokasi as 'mti' | 'luar',
+          lokasi: lokasiValue,
           lokasiDetail: data[0].lokasi_detail || '',
           ustadzahId: data[0].ustadzah_id || null,
           ustadzahName: data[0].nama_pemeriksa || null,
@@ -357,15 +370,59 @@ export default function TashihPage() {
     validateForm()
   }, [tashihData])
 
-  // Get date for a given day index (0=Senin, 6=Ahad)
-  const getDayDate = (dayIndex: number) => {
-    const today = new Date()
-    const currentDay = today.getDay()
-    const diff = (dayIndex + 1) - currentDay
-    const targetDate = new Date(today)
-    targetDate.setDate(today.getDate() + diff)
+  // Calculate week number from batch start date
+  const getWeekNumberFromDate = (date: Date): number => {
+    if (!batchStartDate) return 1
+    const startDate = new Date(batchStartDate)
+    const diffTime = date.getTime() - startDate.getTime()
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const weekNumber = Math.floor(diffDays / 7) + 1
+    return Math.max(1, weekNumber)
+  }
+
+  // Get start date of a week (Senin) based on week number from batch start
+  const getWeekStartDate = (weekNumber: number): Date => {
+    if (!batchStartDate) return new Date()
+    const startDate = new Date(batchStartDate)
+    // Adjust to Monday of the first week
+    const dayOfWeek = startDate.getDay()
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const firstMonday = new Date(startDate)
+    firstMonday.setDate(startDate.getDate() + daysToMonday)
+    // Add weeks
+    const weekStart = new Date(firstMonday)
+    weekStart.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
+    return weekStart
+  }
+
+  // Get date for a given day index within a week (0=Senin, 6=Ahad)
+  const getDayDateInWeek = (weekNumber: number, dayIndex: number): Date => {
+    const weekStart = getWeekStartDate(weekNumber)
+    const targetDate = new Date(weekStart)
+    targetDate.setDate(weekStart.getDate() + dayIndex)
     return targetDate
   }
+
+  // Handle date selection and update week number
+  const handleDateSelection = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0]
+    const weekNum = getWeekNumberFromDate(date)
+    setSelectedWeekNumber(weekNum)
+    setTashihData(prev => ({ ...prev, tanggalTashih: dateString, blok: '' }))
+  }
+
+  // Get current week number from today's date
+  const getCurrentWeekNumber = (): number => {
+    return getWeekNumberFromDate(new Date())
+  }
+
+  // Initialize selected week on first load
+  useEffect(() => {
+    if (batchStartDate) {
+      const currentWeek = getCurrentWeekNumber()
+      setSelectedWeekNumber(currentWeek)
+    }
+  }, [batchStartDate])
 
   if (registrationsLoading) {
     return (
@@ -490,9 +547,10 @@ export default function TashihPage() {
             <div className="flex-1">
               <h3 className="font-semibold text-emerald-800">Juz Tashih Ukhti</h3>
               <p className="text-sm text-gray-700">
-                <span className="font-medium">Juz {confirmedJuz}</span>
-                {selectedJuzInfo && (
-                  <span className="ml-2 text-gray-600">({selectedJuzInfo.name}, Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
+                {selectedJuzInfo ? (
+                  <span className="font-medium">{selectedJuzInfo.name} (Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
+                ) : (
+                  <span className="font-medium">{confirmedJuz}</span>
                 )}
               </p>
             </div>
@@ -536,72 +594,68 @@ export default function TashihPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="text-sm font-medium text-gray-700 mb-3">Pekan Ini</div>
-            <div className="grid grid-cols-7 gap-2 mb-4">
-              {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
-                const dayDate = getDayDate(index)
-                const isToday = new Date().toDateString() === dayDate.toDateString()
-                const dateString = dayDate.toISOString().split('T')[0]
+          <div className="space-y-6">
+            {/* Week selection - show previous week first, then current week */}
+            {(() => {
+              const currentWeek = getCurrentWeekNumber()
+              const previousWeek = Math.max(1, currentWeek - 1)
+              const weeksToShow = currentWeek > 1 ? [previousWeek, currentWeek] : [currentWeek]
+
+              return weeksToShow.map((weekNum) => {
+                const partOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
+                const displayWeekNumber = weekNum + partOffset
+                const isCurrentWeek = weekNum === currentWeek
 
                 return (
-                  <button
-                    key={hari}
-                    type="button"
-                    onClick={() => setTashihData(prev => ({ ...prev, tanggalTashih: dateString }))}
-                    className={cn(
-                      "p-3 border-2 rounded-xl transition-all duration-200 text-center",
-                      "hover:shadow-md hover:scale-105",
-                      tashihData.tanggalTashih === dateString
-                        ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
-                        : isToday
-                          ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
-                          : "border-gray-200 hover:border-cyan-300 bg-white"
-                    )}
-                  >
+                  <div key={weekNum}>
                     <div className={cn(
-                      "text-xs font-medium mb-1",
-                      tashihData.tanggalTashih === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                      "text-sm font-medium mb-3",
+                      isCurrentWeek ? "text-cyan-700" : "text-gray-700"
                     )}>
-                      {hari}
+                      Pekan Tashih {displayWeekNumber}
+                      {isCurrentWeek && <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>}
                     </div>
-                    <div className={cn(
-                      "text-sm font-bold",
-                      tashihData.tanggalTashih === dateString || isToday ? "text-cyan-800" : "text-gray-800"
-                    )}>
-                      {dayDate.getDate()}
+                    <div className="grid grid-cols-7 gap-2">
+                      {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
+                        const dayDate = getDayDateInWeek(weekNum, index)
+                        const isToday = new Date().toDateString() === dayDate.toDateString()
+                        const dateString = dayDate.toISOString().split('T')[0]
+
+                        return (
+                          <button
+                            key={`week${weekNum}-${hari}`}
+                            type="button"
+                            onClick={() => handleDateSelection(dayDate)}
+                            className={cn(
+                              "p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                              "hover:shadow-md hover:scale-105",
+                              tashihData.tanggalTashih === dateString
+                                ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                                : isToday
+                                  ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                                  : "border-gray-200 hover:border-cyan-300 bg-white"
+                            )}
+                          >
+                            <div className={cn(
+                              "text-xs font-medium mb-1",
+                              tashihData.tanggalTashih === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                            )}>
+                              {hari}
+                            </div>
+                            <div className={cn(
+                              "text-sm font-bold",
+                              tashihData.tanggalTashih === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                            )}>
+                              {dayDate.getDate()}
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
-                  </button>
+                  </div>
                 )
-              })}
-            </div>
-
-            <div className="text-sm font-medium text-gray-700 mb-3">Pekan Lalu</div>
-            <div className="grid grid-cols-7 gap-2">
-              {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
-                const dayDate = new Date(getDayDate(index))
-                dayDate.setDate(dayDate.getDate() - 7)
-                const dateString = dayDate.toISOString().split('T')[0]
-
-                return (
-                  <button
-                    key={`prev-${hari}`}
-                    type="button"
-                    onClick={() => setTashihData(prev => ({ ...prev, tanggalTashih: dateString }))}
-                    className={cn(
-                      "p-3 border-2 rounded-xl transition-all duration-200 text-center",
-                      "hover:shadow-md hover:scale-105",
-                      tashihData.tanggalTashih === dateString
-                        ? "border-cyan-500 bg-gradient-tobr from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
-                        : "border-gray-200 hover:border-cyan-300 bg-white"
-                    )}
-                  >
-                    <div className="text-xs font-medium mb-1 text-gray-600">{hari}</div>
-                    <div className="text-sm font-bold text-gray-800">{dayDate.getDate()}</div>
-                  </button>
-                )
-              })}
-            </div>
+              })
+            })()}
           </div>
         </CardContent>
       </Card>
@@ -617,10 +671,10 @@ export default function TashihPage() {
             </CardTitle>
             <CardDescription>
               {selectedJuzInfo && availableBlocks.length > 0
-                ? `Pekan ${availableBlocks[0].week_number} - ${selectedJuzInfo.name}`
+                ? `Pekan Tashih ${availableBlocks[0].week_number} - ${selectedJuzInfo.name}`
                 : isLoadingBlocks
                   ? 'Memuat blok yang tersedia...'
-                  : 'Memuat blok yang tersedia dari juz yang confirmed juz'}
+                  : 'Pilih tanggal terlebih dahulu untuk menentukan blok'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -658,7 +712,7 @@ export default function TashihPage() {
                         "text-sm",
                         tashihData.blok === blok.block_code ? "text-blue-600 font-medium" : "text-gray-500 group-hover:text-blue-500"
                       )}>
-                        Hal. {blok.start_page}-{blok.end_page}
+                        Hal. {blok.start_page === blok.end_page ? blok.start_page : `${blok.start_page}-${blok.end_page}`}
                       </div>
                       {tashihData.blok === blok.block_code && (
                         <div className="mt-3 text-blue-600">
