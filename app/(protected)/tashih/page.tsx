@@ -184,6 +184,15 @@ export default function Tashih() {
       const isAdmin = userRoles.includes('admin')
       const isMuallimah = userRoles.includes('muallimah')
 
+      // Initialize debug info with basic user data
+      setDebugInfo({
+        userId: user.id,
+        daftarUlangSubmission: null,
+        daftarUlangError: null,
+        praTikrarReg: null,
+        praTikrarError: null
+      })
+
       // Open tashih for ALL users regardless of role or program status
       // Admin and muallimah get full access to tashih
       if (isAdmin || isMuallimah) {
@@ -214,14 +223,12 @@ export default function Tashih() {
       console.log('daftarUlangSubmission:', daftarUlangSubmission)
       console.log('daftarUlangError:', daftarUlangError)
 
-      // Collect debug info
-      setDebugInfo({
-        userId: user.id,
+      // Update debug info with Priority 1 results
+      setDebugInfo((prev: any) => ({
+        ...prev,
         daftarUlangSubmission,
-        daftarUlangError,
-        praTikrarReg: null,
-        praTikrarError: null
-      })
+        daftarUlangError
+      }))
 
       if (daftarUlangSubmission) {
         // Get confirmed_chosen_juz from pendaftaran_tikrar_tahfidz
@@ -1247,6 +1254,70 @@ export default function Tashih() {
           </Button>
         </div>
       </form>
+
+      {/* Debug Panel */}
+      {debugInfo && (
+        <Card className="bg-yellow-50 border-yellow-300">
+          <CardHeader>
+            <CardTitle className="text-sm font-mono text-yellow-800">Debug Info - Program Detection</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 text-xs font-mono">
+              <div>
+                <span className="font-semibold">User ID: </span>
+                <span className="ml-2">{debugInfo.userId}</span>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="font-semibold mb-2 text-blue-600">Current Program Info:</div>
+                <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                  {JSON.stringify(userProgramInfo, null, 2)}
+                </pre>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions</div>
+                <div className="ml-4 space-y-1">
+                  <div>
+                    <span className="text-gray-500">Data: </span>
+                    <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                      {JSON.stringify(debugInfo.daftarUlangSubmission, null, 2)}
+                    </pre>
+                  </div>
+                  {debugInfo.daftarUlangError && (
+                    <div>
+                      <span className="text-gray-500">Error: </span>
+                      <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
+                        {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selected)</div>
+                <div className="ml-4 space-y-1">
+                  <div>
+                    <span className="text-gray-500">Data: </span>
+                    <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
+                      {JSON.stringify(debugInfo.praTikrarReg, null, 2)}
+                    </pre>
+                  </div>
+                  {debugInfo.praTikrarError && (
+                    <div>
+                      <span className="text-gray-500">Error: </span>
+                      <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
+                        {JSON.stringify(debugInfo.praTikrarError, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
