@@ -59,25 +59,6 @@ interface MuallimahOption {
   preferred_juz: string
 }
 
-interface RegistrationWithDaftarUlang {
-  id: string
-  chosen_juz: string
-  batch: {
-    id: string
-    name: string
-    start_date: string
-    status: string
-  }
-  daftar_ulang: {
-    id: string
-    status: string
-    confirmed_chosen_juz: string
-    tashih_halaqah?: {
-      id: string
-      name: string
-    }
-  } | null
-}
 
 const masalahTajwidOptions = [
   { id: 'mad', name: 'Mad', description: 'Masalah panjang pendek', color: 'bg-blue-50' },
@@ -112,7 +93,6 @@ export default function TashihPage() {
   const [isValid, setIsValid] = useState(false)
 
   const [confirmedJuz, setConfirmedJuz] = useState<string | null>(null)
-  const [batchStartDate, setBatchStartDate] = useState<string | null>(null)
   const [batchId, setBatchId] = useState<string | null>(null)
   const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
@@ -124,18 +104,17 @@ export default function TashihPage() {
   const activeRegistration = registrations.find((reg: any) =>
     reg.batch?.status === 'open' &&
     (reg.status === 'approved' || reg.selection_status === 'selected')
-  ) || registrations[0] as RegistrationWithDaftarUlang
+  ) || registrations[0]
 
   // Determine juz to use: confirmed_chosen_juz from daftar_ulang, or chosen_juz from registration
-  const juzToUse = activeRegistration?.daftar_ulang?.confirmed_chosen_juz || activeRegistration?.chosen_juz || null
-  const isTikrarTahfidz = !!activeRegistration?.daftar_ulang &&
-    (activeRegistration.daftar_ulang.status === 'submitted' || activeRegistration.daftar_ulang.status === 'approved')
+  const juzToUse = activeRegistration?.daftar_ulang?.confirmed_chosen_juz ||
+                      (activeRegistration as any)?.chosen_juz ||
+                      null
 
   // Load juz info and blocks when registration is available
   useEffect(() => {
     if (juzToUse && activeRegistration?.batch?.start_date) {
       setConfirmedJuz(juzToUse)
-      setBatchStartDate(activeRegistration.batch.start_date)
       setBatchId(activeRegistration.batch.id)
       loadBlocksAndJuzInfo(juzToUse, activeRegistration.batch.start_date)
     }
@@ -377,32 +356,6 @@ export default function TashihPage() {
   useEffect(() => {
     validateForm()
   }, [tashihData])
-
-  // Get date for a given day index (0=Senin, 6=Ahad)
-  const getDayDate = (dayIndex: number) => {
-    const today = new Date()
-    const currentDay = today.getDay()
-    const diff = (dayIndex + 1) - currentDay
-    const targetDate = new Date(today)
-    targetDate.setDate(today.getDate() + diff)
-    return targetDate
-  }
-
-  // Get dates for this week and previous week (2 weeks total)
-  const getTwoWeekDays = () => {
-    const days = []
-    for (let weekOffset = 0; weekOffset < 2; weekOffset++) {
-      for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-        const today = new Date()
-        const currentDay = today.getDay()
-        const weekStartDiff = (dayIndex + 1) - currentDay
-        const targetDate = new Date(today)
-        targetDate.setDate(today.getDate() + weekStartDiff - (7 * weekOffset))
-        days.push(targetDate)
-      }
-    }
-    return days
-  }
 
   if (registrationsLoading) {
     return (
