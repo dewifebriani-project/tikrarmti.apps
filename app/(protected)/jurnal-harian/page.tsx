@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, AlertCircle, Calendar, Loader2, BookOpen, Volume2, Mic, Edit, Circle, MapPin } from 'lucide-react'
+import { CheckCircle, Clock, AlertCircle, Calendar, Loader2, BookOpen, Volume2, Mic, Edit, Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -21,33 +21,23 @@ interface JuzOption {
   end_page: number
 }
 
-interface TashihBlock {
-  block_code: string
-  week_number: number
-  part: string
-  start_page: number
-  end_page: number
-}
-
 interface JurnalRecord {
   id: string
   user_id: string
   tanggal_jurnal: string
   juz_code: string | null
   tanggal_setor: string
-  blok: string | null
   tashih_completed: boolean
   rabth_completed: boolean
   murajaah_count: number
   simak_murattal_count: number
-  tikrar_bi_an_nadzar_completed: boolean
+  tikrar_bi_an_nadzar_count: number
   tasmi_record_count: number
   simak_record_completed: boolean
   tikrar_bi_al_ghaib_count: number
   tikrar_bi_al_ghaib_type: 'sendiri' | 'pasangan' | 'voice_note' | null
   tafsir_completed: boolean
   menulis_completed: boolean
-  total_duration_minutes: number
   catatan_tambahan: string | null
   created_at: string
   updated_at: string
@@ -56,71 +46,76 @@ interface JurnalRecord {
 interface JurnalStep {
   id: string
   name: string
+  title: string
   description: string
   icon: React.ReactNode
   color: string
   required: boolean
   minCount?: number
+  countLabel?: string
 }
 
 const jurnalStepsConfig: JurnalStep[] = [
   {
     id: 'rabth',
     name: 'Rabth',
-    description: 'Mengulang-ulang 10 blok terakhir (1x)',
+    title: 'Menyambung Hafalan',
+    description: 'Sebelum memulai hafalan baru, lakukan pemanasan dengan menyambungkan 10 blok hafalan terakhir sebanyak 1 kali tanpa melihat mushaf.',
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-blue-500',
     required: true
   },
   {
     id: 'murajaah',
-    name: 'Murajaah',
-    description: 'Dari hafalan tanpa mushaf (minimal 5x)',
+    name: 'Muraja\'ah Blok Terakhir',
+    title: 'Muraja\'ah Blok Terakhir',
+    description: 'Ulangi hafalan blok kemarin sebanyak 5 kali tanpa melihat mushaf.',
     icon: <BookOpen className="h-5 w-5" />,
     color: 'bg-green-500',
     required: true,
-    minCount: 5
+    minCount: 5,
+    countLabel: 'kali'
   },
   {
     id: 'simak_murattal',
     name: 'Simak Murattal',
-    description: 'Mendengarkan qari (minimal 3x)',
+    title: 'Simak Murattal',
+    description: 'Dengarkan bacaan murattal dari qari terpercaya untuk blok hafalan hari ini.',
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-purple-500',
     required: true,
-    minCount: 3
+    minCount: 5,
+    countLabel: 'kali'
   },
   {
     id: 'tikrar_bi_an_nadzar',
     name: 'Tikrar Bi An-Nadzar',
-    description: 'Dengan melihat mushaf',
+    title: 'Melihat Mushaf',
+    description: 'Baca blok hafalan hari ini sambil melihat mushaf dengan saksama. Fokus pada setiap huruf, harakat, dan tata letak ayat.',
     icon: <BookOpen className="h-5 w-5" />,
     color: 'bg-orange-500',
-    required: true
+    required: true,
+    minCount: 40,
+    countLabel: 'kali'
   },
   {
     id: 'tasmi_record',
-    name: 'Tasmi\' Record',
-    description: 'Recording dan evaluasi (minimal 3x)',
+    name: 'Tasmi\' via Rekaman',
+    title: 'Tasmi\' via Rekaman',
+    description: 'Rekam bacaan tanpa melihat mushaf. Usahakan mendapatkan 3 rekaman yang lancar tanpa kesalahan.',
     icon: <Mic className="h-5 w-5" />,
     color: 'bg-red-500',
     required: true,
-    minCount: 3
+    minCount: 3,
+    countLabel: 'rekaman'
   },
   {
     id: 'simak_record',
-    name: 'Simak Record',
-    description: 'Mendengarkan kembali recording',
+    name: 'Simak Rekaman Pribadi',
+    title: 'Simak Rekaman Pribadi',
+    description: 'Dengarkan kembali rekaman terbaik sambil menyimak dengan mushaf untuk menemukan kesalahan.',
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-indigo-500',
-    required: true
-  },
-  {
-    id: 'tikrar_bi_al_ghaib',
-    name: 'Tikrar Bi Al-Ghaib',
-    description: 'Tanpa Melihat Mushaf',
-    icon: <Circle className="h-5 w-5" />,
-    color: 'bg-teal-500',
     required: true
   }
 ]
@@ -128,16 +123,18 @@ const jurnalStepsConfig: JurnalStep[] = [
 const tambahanStepsConfig: JurnalStep[] = [
   {
     id: 'tafsir',
-    name: 'Tafsir',
-    description: 'Mempelajari makna ayat',
+    name: 'Membaca Tafsir',
+    title: 'Membaca Tafsir',
+    description: 'Pahami makna dan konteks ayat yang akan dihafal dengan membaca tafsir ringkas.',
     icon: <BookOpen className="h-5 w-5" />,
     color: 'bg-emerald-500',
     required: false
   },
   {
     id: 'menulis',
-    name: 'Menulis',
-    description: 'Latih menulis ayat',
+    name: 'Menulis Ayat',
+    title: 'Menulis Ayat',
+    description: 'Tulis kembali blok ayat yang sedang dihafal tanpa melihat mushaf.',
     icon: <Edit className="h-5 w-5" />,
     color: 'bg-pink-500',
     required: false
@@ -151,19 +148,17 @@ export default function JurnalHarianPage() {
   const [jurnalData, setJurnalData] = useState({
     tanggal_setor: new Date().toISOString().slice(0, 10),
     juz_code: '',
-    blok: '',
     rabth_completed: false,
     murajaah_count: 0,
     simak_murattal_count: 0,
-    tikrar_bi_an_nadzar_completed: false,
+    tikrar_bi_an_nadzar_count: 0,
     tasmi_record_count: 0,
     simak_record_completed: false,
     tikrar_bi_al_ghaib_count: 0,
     tikrar_bi_al_ghaib_type: 'sendiri' as 'sendiri' | 'pasangan' | 'voice_note' | null,
     tafsir_completed: false,
     menulis_completed: false,
-    catatan_tambahan: '',
-    total_duration_minutes: 0
+    catatan_tambahan: ''
   })
 
   const [todayRecord, setTodayRecord] = useState<JurnalRecord | null>(null)
@@ -184,9 +179,8 @@ export default function JurnalHarianPage() {
   const batchId = activeRegistration?.batch?.id || null
   const batchStartDate = activeRegistration?.batch?.start_date || null
 
-  // Juz and blocks state
+  // Juz state
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
-  const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number>(1)
 
   // Load juz info
@@ -202,13 +196,6 @@ export default function JurnalHarianPage() {
       loadPartnerType()
     }
   }, [user, batchId])
-
-  // Update blocks when week changes
-  useEffect(() => {
-    if (selectedJuzInfo && batchStartDate) {
-      updateBlocksForWeek(selectedWeekNumber)
-    }
-  }, [selectedWeekNumber, selectedJuzInfo, batchStartDate])
 
   const loadPartnerType = async () => {
     if (!user || !batchId) return
@@ -256,33 +243,6 @@ export default function JurnalHarianPage() {
     }
   }
 
-  const updateBlocksForWeek = (weekNumber: number) => {
-    if (!selectedJuzInfo) return
-
-    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
-    const blockNumber = weekNumber + blockOffset
-    const weekStartPage = selectedJuzInfo.start_page + (weekNumber - 1)
-
-    const blocks: TashihBlock[] = []
-    const parts = ['A', 'B', 'C', 'D']
-
-    for (let i = 0; i < 4; i++) {
-      const part = parts[i]
-      const blockCode = `H${blockNumber}${part}`
-      const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
-
-      blocks.push({
-        block_code: blockCode,
-        week_number: blockNumber,
-        part,
-        start_page: blockPage,
-        end_page: blockPage
-      })
-    }
-
-    setAvailableBlocks(blocks)
-  }
-
   // Get week number from date
   const getWeekNumberFromDate = (date: Date): number => {
     if (!batchStartDate) return 1
@@ -300,6 +260,42 @@ export default function JurnalHarianPage() {
       setSelectedWeekNumber(currentWeek)
     }
   }, [batchStartDate])
+
+  // Get start date of a week (Senin) based on week number from batch start
+  const getWeekStartDate = (weekNumber: number): Date => {
+    if (!batchStartDate) return new Date()
+    const startDate = new Date(batchStartDate)
+    // Adjust to Monday of the first week
+    const dayOfWeek = startDate.getDay()
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const firstMonday = new Date(startDate)
+    firstMonday.setDate(startDate.getDate() + daysToMonday)
+    // Add weeks
+    const weekStart = new Date(firstMonday)
+    weekStart.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
+    return weekStart
+  }
+
+  // Get date for a given day index within a week (0=Senin, 6=Ahad)
+  const getDayDateInWeek = (weekNumber: number, dayIndex: number): Date => {
+    const weekStart = getWeekStartDate(weekNumber)
+    const targetDate = new Date(weekStart)
+    targetDate.setDate(weekStart.getDate() + dayIndex)
+    return targetDate
+  }
+
+  // Handle date selection and update week number
+  const handleDateSelection = (date: Date) => {
+    const dateString = date.toISOString().split('T')[0]
+    const weekNum = getWeekNumberFromDate(date)
+    setSelectedWeekNumber(weekNum)
+    setJurnalData(prev => ({ ...prev, tanggal_setor: dateString }))
+  }
+
+  // Get current week number from today's date
+  const getCurrentWeekNumber = (): number => {
+    return getWeekNumberFromDate(new Date())
+  }
 
   // Load today's record
   useEffect(() => {
@@ -332,19 +328,17 @@ export default function JurnalHarianPage() {
         setJurnalData({
           tanggal_setor: data[0].tanggal_setor || new Date().toISOString().slice(0, 10),
           juz_code: data[0].juz_code || '',
-          blok: data[0].blok || '',
           rabth_completed: data[0].rabth_completed || false,
           murajaah_count: data[0].murajaah_count || 0,
           simak_murattal_count: data[0].simak_murattal_count || 0,
-          tikrar_bi_an_nadzar_completed: data[0].tikrar_bi_an_nadzar_completed || false,
+          tikrar_bi_an_nadzar_count: data[0].tikrar_bi_an_nadzar_count || 0,
           tasmi_record_count: data[0].tasmi_record_count || 0,
           simak_record_completed: data[0].simak_record_completed || false,
           tikrar_bi_al_ghaib_count: data[0].tikrar_bi_al_ghaib_count || 0,
           tikrar_bi_al_ghaib_type: data[0].tikrar_bi_al_ghaib_type || 'sendiri',
           tafsir_completed: data[0].tafsir_completed || false,
           menulis_completed: data[0].menulis_completed || false,
-          catatan_tambahan: data[0].catatan_tambahan || '',
-          total_duration_minutes: data[0].total_duration_minutes || 0
+          catatan_tambahan: data[0].catatan_tambahan || ''
         })
       }
     } catch (error) {
@@ -407,20 +401,18 @@ export default function JurnalHarianPage() {
         user_id: user.id,
         tanggal_setor: jurnalData.tanggal_setor,
         juz_code: jurnalData.juz_code || null,
-        blok: jurnalData.blok || null,
         tashih_completed: true,
         rabth_completed: jurnalData.rabth_completed,
         murajaah_count: jurnalData.murajaah_count,
         simak_murattal_count: jurnalData.simak_murattal_count,
-        tikrar_bi_an_nadzar_completed: jurnalData.tikrar_bi_an_nadzar_completed,
+        tikrar_bi_an_nadzar_count: jurnalData.tikrar_bi_an_nadzar_count,
         tasmi_record_count: jurnalData.tasmi_record_count,
         simak_record_completed: jurnalData.simak_record_completed,
         tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_count,
         tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_type,
         tafsir_completed: jurnalData.tafsir_completed,
         menulis_completed: jurnalData.menulis_completed,
-        catatan_tambahan: jurnalData.catatan_tambahan || null,
-        total_duration_minutes: jurnalData.total_duration_minutes
+        catatan_tambahan: jurnalData.catatan_tambahan || null
       }
 
       let error
@@ -464,34 +456,22 @@ export default function JurnalHarianPage() {
     setJurnalData({
       tanggal_setor: new Date().toISOString().slice(0, 10),
       juz_code: juzToUse || '',
-      blok: '',
       rabth_completed: false,
       murajaah_count: 0,
       simak_murattal_count: 0,
-      tikrar_bi_an_nadzar_completed: false,
+      tikrar_bi_an_nadzar_count: 0,
       tasmi_record_count: 0,
       simak_record_completed: false,
       tikrar_bi_al_ghaib_count: 0,
       tikrar_bi_al_ghaib_type: partnerType === 'family' || partnerType === 'tarteel' ? 'voice_note' : 'sendiri',
       tafsir_completed: false,
       menulis_completed: false,
-      catatan_tambahan: '',
-      total_duration_minutes: 0
+      catatan_tambahan: ''
     })
     setTodayRecord(null)
   }
 
   const isStepCompleted = (step: JurnalStep): boolean => {
-    if (step.id === 'tikrar_bi_al_ghaib') {
-      // Special handling for tikrar ghaib based on type
-      const count = jurnalData.tikrar_bi_al_ghaib_count
-      if (jurnalData.tikrar_bi_al_ghaib_type === 'sendiri') {
-        return count >= 40
-      } else if (jurnalData.tikrar_bi_al_ghaib_type === 'pasangan' || jurnalData.tikrar_bi_al_ghaib_type === 'voice_note') {
-        return count >= 20
-      }
-      return count >= 40
-    }
     if (step.minCount) {
       const counterKey = `${step.id}_count` as keyof typeof jurnalData
       return (jurnalData[counterKey] as number || 0) >= step.minCount
@@ -527,7 +507,9 @@ export default function JurnalHarianPage() {
   }
 
   const requiredCompleted = jurnalStepsConfig.filter(step => isStepCompleted(step)).length
-  const isAllRequiredCompleted = requiredCompleted === jurnalStepsConfig.length
+  const isTikrarGhaibCompleted = jurnalData.tikrar_bi_al_ghaib_count >= getTikrarGhaibMinCount()
+  const totalCompleted = requiredCompleted + (isTikrarGhaibCompleted ? 1 : 0)
+  const isAllRequiredCompleted = totalCompleted === 7
 
   if (isLoading || registrationsLoading) {
     return (
@@ -558,15 +540,11 @@ export default function JurnalHarianPage() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Kurikulum Wajib:</span>
-                <span className="font-semibold text-green-600">{requiredCompleted}/{jurnalStepsConfig.length} selesai</span>
+                <span className="font-semibold text-green-600">{totalCompleted}/7 selesai</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Juz:</span>
                 <span className="font-medium text-gray-800">{todayRecord.juz_code || '-'}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Blok:</span>
-                <span className="font-medium text-gray-800">{todayRecord.blok || '-'}</span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-gray-600">Tanggal:</span>
@@ -597,7 +575,7 @@ export default function JurnalHarianPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fadeInUp">
+    <div className="space-y-4 sm:space-y-6 animate-fadeInUp">
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 sm:p-6 border border-emerald-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -608,7 +586,7 @@ export default function JurnalHarianPage() {
           <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 rounded-lg shadow-sm">
             <div className="text-right">
               <p className="text-xs text-gray-500">Progress</p>
-              <p className="text-base sm:text-lg font-bold text-green-army">{requiredCompleted}/{jurnalStepsConfig.length}</p>
+              <p className="text-base sm:text-lg font-bold text-green-army">{totalCompleted}/7</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 relative">
               <svg className="transform -rotate-90 w-full h-full">
@@ -628,7 +606,7 @@ export default function JurnalHarianPage() {
                   stroke="currentColor"
                   strokeWidth="4"
                   fill="none"
-                  strokeDasharray={`${(requiredCompleted / jurnalStepsConfig.length) * 100} 100`}
+                  strokeDasharray={`${(totalCompleted / 7) * 100} 100`}
                   className="text-green-army transition-all duration-300"
                 />
               </svg>
@@ -670,7 +648,7 @@ export default function JurnalHarianPage() {
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
                 {isAllRequiredCompleted
                   ? 'Alhamdulillah, semua kurikulum wajib telah diselesaikan'
-                  : `${requiredCompleted}/${jurnalStepsConfig.length} kurikulum wajib selesai`
+                  : `${totalCompleted}/7 kurikulum wajib selesai`
                 }
               </p>
             </div>
@@ -680,76 +658,87 @@ export default function JurnalHarianPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        {/* Tanggal & Blok Selection */}
+        {/* Tanggal Selection - 2 Weeks */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50 border-b p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-cyan-700 text-lg sm:text-xl">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Pilih Tanggal Setor & Blok</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-cyan-700 text-lg sm:text-xl">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span>Pilih Tanggal Setor</span>
+              </CardTitle>
+              <div className="text-right">
+                <p className="text-xs sm:text-sm font-semibold text-cyan-700">
+                  {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
             <CardDescription className="text-xs sm:text-sm">
-              Pilih tanggal setor dan blok yang akan dijurnal hari ini
+              Klik hari untuk mengisi atau melihat jurnal harian pada tanggal tersebut
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 space-y-4">
-            {/* Tanggal Setor */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal Setor
-              </label>
-              <input
-                type="date"
-                value={jurnalData.tanggal_setor}
-                onChange={(e) => {
-                  const newDate = e.target.value
-                  setJurnalData(prev => ({ ...prev, tanggal_setor: newDate }))
-                  const weekNum = getWeekNumberFromDate(new Date(newDate))
-                  setSelectedWeekNumber(weekNum)
-                }}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all text-sm"
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
+          <CardContent className="p-3 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              {/* Week selection - show previous week first, then current week */}
+              {(() => {
+                const currentWeek = getCurrentWeekNumber()
+                const previousWeek = Math.max(1, currentWeek - 1)
+                // Show 2 weeks: previous week first, then current week
+                const weeksToShow = currentWeek > 1 ? [previousWeek, currentWeek] : [currentWeek]
 
-            {/* Blok Selection */}
-            {availableBlocks.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pilih Blok (Pekan {selectedWeekNumber})
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                  {availableBlocks.map((blok) => {
-                    const isSelected = jurnalData.blok === blok.block_code
-                    return (
-                      <button
-                        key={blok.block_code}
-                        type="button"
-                        onClick={() => setJurnalData(prev => ({ ...prev, blok: blok.block_code }))}
-                        className={cn(
-                          "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
-                          "hover:shadow-lg hover:scale-105",
-                          isSelected
-                            ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
-                            : "border-gray-200 hover:border-cyan-300 bg-white"
-                        )}
-                      >
-                        <div className="text-center">
-                          <div className={cn(
-                            "text-xl sm:text-2xl font-bold",
-                            isSelected ? "text-cyan-700" : "text-gray-700"
-                          )}>
-                            {blok.block_code.toUpperCase()}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Hal. {blok.start_page}
-                          </div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+                return weeksToShow.map((weekNum) => {
+                  const isCurrentWeek = weekNum === currentWeek
+
+                  return (
+                    <div key={weekNum}>
+                      <div className={cn(
+                        "text-xs sm:text-sm font-medium mb-2 sm:mb-3",
+                        isCurrentWeek ? "text-cyan-700" : "text-gray-700"
+                      )}>
+                        Pekan Jurnal {weekNum}
+                        {isCurrentWeek && <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                        {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Ah'].map((hari, index) => {
+                          const dayDate = getDayDateInWeek(weekNum, index)
+                          const isToday = new Date().toDateString() === dayDate.toDateString()
+                          const dateString = dayDate.toISOString().split('T')[0]
+
+                          return (
+                            <button
+                              key={`week${weekNum}-${hari}`}
+                              type="button"
+                              onClick={() => handleDateSelection(dayDate)}
+                              className={cn(
+                                "p-2 sm:p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                                "hover:shadow-md hover:scale-105",
+                                jurnalData.tanggal_setor === dateString
+                                  ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                                  : isToday
+                                    ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                                    : "border-gray-200 hover:border-cyan-300 bg-white"
+                              )}
+                            >
+                              <div className={cn(
+                                "text-xs font-medium mb-1",
+                                jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                              )}>
+                                {hari}
+                              </div>
+                              <div className={cn(
+                                "text-sm sm:text-base font-bold",
+                                jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                              )}>
+                                {dayDate.getDate()}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
           </CardContent>
         </Card>
 
@@ -758,122 +747,104 @@ export default function JurnalHarianPage() {
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-blue-700 text-lg sm:text-xl">
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Kurikulum Wajib</span>
+              <span>Kurikulum Wajib (7 Tahapan)</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              7 Tahap Kurikulum Wajib yang harus diselesaikan setiap hari
+              Tujuh tahapan harian yang disiplin untuk menghasilkan hafalan yang kuat dan mutqin
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {jurnalStepsConfig.map((step) => {
-                const isCompleted = isStepCompleted(step)
-                const currentCount = getCurrentCount(step)
+          <CardContent className="p-3 sm:p-6 space-y-4">
+            {jurnalStepsConfig.map((step, index) => {
+              const isCompleted = isStepCompleted(step)
+              const currentCount = getCurrentCount(step)
 
-                return (
-                  <div
-                    key={step.id}
-                    className={cn(
-                      "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
-                      isCompleted
-                        ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
-                        : "border-gray-200 hover:border-blue-300 bg-white"
-                    )}
-                  >
-                    <div className="flex items-start gap-2 sm:gap-3">
-                      <div className={cn("p-1.5 sm:p-2 rounded-lg text-white shrink-0", step.color)}>
-                        {step.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm">{step.name}</h3>
-                        <p className="text-xs text-gray-600 mt-0.5">{step.description}</p>
-
+              return (
+                <div
+                  key={step.id}
+                  className={cn(
+                    "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
+                    isCompleted
+                      ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
+                      : "border-gray-200 bg-white"
+                  )}
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{step.name}</h3>
                         {step.minCount ? (
-                          <div className="flex items-center gap-1 mt-2 sm:mt-3">
-                            <button
-                              type="button"
-                              onClick={() => decrementCounter(step.id)}
-                              className="p-1.5 sm:p-2 rounded-full hover:bg-gray-100 transition-colors touch-manipulation"
-                              disabled={currentCount === 0}
-                            >
-                              <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                            </button>
-                            <div className="flex items-center gap-0.5">
-                              {Array.from({ length: Math.min(step.minCount, 10) }).map((_, i) => (
-                                <div
-                                  key={i}
-                                  className={cn(
-                                    "w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center",
-                                    i < currentCount
-                                      ? "bg-green-500 text-white"
-                                      : "bg-gray-200"
-                                  )}
-                                >
-                                  {i < currentCount && i < 5 && (
-                                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
-                                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => incrementCounter(step.id, step.minCount)}
-                              className="p-1.5 sm:p-2 rounded-full hover:bg-gray-100 transition-colors touch-manipulation"
-                              disabled={currentCount >= step.minCount}
-                            >
-                              <CheckCircle className={cn(
-                                "h-4 w-4 sm:h-5 sm:w-5",
-                                currentCount >= step.minCount ? "text-green-500" : "text-gray-400"
-                              )} />
-                            </button>
-                            <span className="text-xs sm:text-sm font-medium text-gray-700 ml-1">
-                              {currentCount}/{step.minCount}
-                            </span>
-                          </div>
+                          <span className="text-xs font-medium text-gray-500">
+                            {currentCount}/{step.minCount} {step.countLabel}
+                          </span>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => toggleStep(step.id)}
-                            className={cn(
-                              "mt-2 sm:mt-3 px-3 py-1.5 rounded-lg text-sm font-medium transition-all w-full",
-                              isCompleted
-                                ? "bg-green-500 text-white hover:bg-green-600"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            )}
-                          >
-                            {isCompleted ? (
-                              <>
-                                <CheckCircle className="h-4 w-4 inline mr-1" />
-                                Selesai
-                              </>
-                            ) : (
-                              <>
-                                <Circle className="h-4 w-4 inline mr-1" />
-                                Belum
-                              </>
-                            )}
-                          </button>
+                          isCompleted && (
+                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                          )
                         )}
                       </div>
+                      <p className="text-xs sm:text-sm text-gray-600">{step.description}</p>
+
+                      {step.minCount ? (
+                        <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-2">
+                          {Array.from({ length: step.minCount }).map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                const newCount = i + 1
+                                const counterKey = `${step.id}_count` as keyof typeof jurnalData
+                                setJurnalData(prev => ({
+                                  ...prev,
+                                  [counterKey]: prev[counterKey] as number === newCount ? 0 : newCount
+                                }))
+                              }}
+                              className={cn(
+                                "flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-all flex items-center justify-center touch-manipulation",
+                                i < currentCount
+                                  ? "bg-green-500 border-green-600 text-white"
+                                  : "bg-white border-gray-300 text-gray-400 hover:border-green-400"
+                              )}
+                            >
+                              {i < currentCount && (
+                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleStep(step.id)}
+                          className={cn(
+                            "mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation",
+                            isCompleted
+                              ? "bg-green-500 text-white hover:bg-green-600"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          )}
+                        >
+                          {isCompleted ? 'Selesai' : 'Belum Selesai'}
+                        </button>
+                      )}
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
 
-        {/* Tikrar Bi Al-Ghaib Options */}
+        {/* Tikrar Bi Al-Ghaib */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-teal-50 to-emerald-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-teal-700 text-lg sm:text-xl">
               <Circle className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Tikrar Bi Al-Ghaib</span>
+              <span>Tikrar Bil Ghaib (Tanpa Mushaf)</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Pilih metode tikrar ghaib yang sesuai dengan pairing type Anda
+              Setorkan hafalan blok hari ini untuk mengunci hafalan jangka panjang
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 space-y-4">
@@ -953,32 +924,41 @@ export default function JurnalHarianPage() {
             </div>
 
             {/* Counter */}
-            <div className="flex items-center justify-center gap-2 sm:gap-4 p-4 bg-gray-50 rounded-xl">
-              <button
-                type="button"
-                onClick={() => decrementCounter('tikrar_bi_al_ghaib')}
-                className="p-2 sm:p-3 rounded-full bg-white border-2 border-gray-300 hover:bg-gray-50 transition-colors touch-manipulation"
-                disabled={jurnalData.tikrar_bi_al_ghaib_count === 0}
-              >
-                <Circle className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
-              </button>
-              <div className="text-center">
-                <p className="text-2xl sm:text-3xl font-bold text-teal-600">{jurnalData.tikrar_bi_al_ghaib_count}</p>
-                <p className="text-xs sm:text-sm text-gray-600">
-                  dari {getTikrarGhaibMinCount()}x {getTikrarGhaibLabel()}
-                </p>
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-700">Jumlah Setoran</span>
+                <span className="text-sm font-bold text-teal-600">
+                  {jurnalData.tikrar_bi_al_ghaib_count}/{getTikrarGhaibMinCount()}x
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => incrementCounter('tikrar_bi_al_ghaib', getTikrarGhaibMinCount())}
-                className="p-2 sm:p-3 rounded-full bg-white border-2 border-gray-300 hover:bg-gray-50 transition-colors touch-manipulation"
-                disabled={jurnalData.tikrar_bi_al_ghaib_count >= getTikrarGhaibMinCount()}
-              >
-                <CheckCircle className={cn(
-                  "h-5 w-5 sm:h-6 sm:w-6",
-                  jurnalData.tikrar_bi_al_ghaib_count >= getTikrarGhaibMinCount() ? "text-green-500" : "text-gray-400"
-                )} />
-              </button>
+              <div className="flex items-center justify-center gap-2 sm:gap-4 overflow-x-auto pb-2">
+                {Array.from({ length: getTikrarGhaibMinCount() }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      const newCount = i + 1
+                      setJurnalData(prev => ({
+                        ...prev,
+                        tikrar_bi_al_ghaib_count: prev.tikrar_bi_al_ghaib_count === newCount ? 0 : newCount
+                      }))
+                    }}
+                    className={cn(
+                      "flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-all flex items-center justify-center touch-manipulation",
+                      i < jurnalData.tikrar_bi_al_ghaib_count
+                        ? "bg-teal-500 border-teal-600 text-white"
+                        : "bg-white border-gray-300 text-gray-400 hover:border-teal-400"
+                    )}
+                  >
+                    {i < jurnalData.tikrar_bi_al_ghaib_count && (
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    )}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                {getTikrarGhaibLabel()}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -988,10 +968,10 @@ export default function JurnalHarianPage() {
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-purple-700 text-lg sm:text-xl">
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Kurikulum Tambahan (Pilihan)</span>
+              <span>Kurikulum Tambahan (Opsional)</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Tahap opsional untuk mendalami pemahaman
+              Tahapan tambahan untuk memperkuat dan memperdalam pemahaman hafalan
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
@@ -1009,15 +989,13 @@ export default function JurnalHarianPage() {
                         : "border-gray-200 hover:border-purple-300 bg-white"
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <div className={cn("p-1.5 sm:p-2 rounded-lg text-white shrink-0", step.color)}>
-                          {step.icon}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-gray-900 text-sm">{step.name}</h3>
-                          <p className="text-xs text-gray-600">{step.description}</p>
-                        </div>
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <div className={cn("p-1.5 sm:p-2 rounded-lg text-white shrink-0", step.color)}>
+                        {step.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm">{step.name}</h3>
+                        <p className="text-xs text-gray-600">{step.description}</p>
                       </div>
                       <button
                         type="button"
