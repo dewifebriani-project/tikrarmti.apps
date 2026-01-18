@@ -186,11 +186,11 @@ export async function GET(request: Request) {
     // Fetch registration data for paired users (to get time slots and juz)
     const { data: pairedUsersRegistrations } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, main_time_slot, chosen_juz')
+      .select('user_id, chosen_juz, main_time_slot, backup_time_slot, timezone')
       .eq('batch_id', batchId || '')
       .in('user_id', pairedUserIds)
 
-    const pairedUsersRegMap = new Map((pairedUsersRegistrations || []).map(r => [r.user_id, { time: r.main_time_slot, juz: r.chosen_juz }]))
+    const pairedUsersRegMap = new Map((pairedUsersRegistrations || []).map(r => [r.user_id, r]))
 
     // Build list of pairings with available slots for UI
     const pairingsWithSlots = (existingPairings || [])
@@ -201,10 +201,10 @@ export async function GET(request: Request) {
         user_2_id: p.user_2_id,
         user_1_name: pairedUserNamesMap.get(p.user_1_id) || 'Unknown',
         user_2_name: pairedUserNamesMap.get(p.user_2_id) || 'Unknown',
-        user_1_time: pairedUsersRegMap.get(p.user_1_id)?.time || null,
-        user_2_time: pairedUsersRegMap.get(p.user_2_id)?.time || null,
-        user_1_juz: pairedUsersRegMap.get(p.user_1_id)?.juz || null,
-        user_2_juz: pairedUsersRegMap.get(p.user_2_id)?.juz || null,
+        user_1_time: pairedUsersRegMap.get(p.user_1_id)?.main_time_slot || null,
+        user_2_time: pairedUsersRegMap.get(p.user_2_id)?.main_time_slot || null,
+        user_1_juz: pairedUsersRegMap.get(p.user_1_id)?.chosen_juz || null,
+        user_2_juz: pairedUsersRegMap.get(p.user_2_id)?.chosen_juz || null,
       }))
 
     // 5. Build a map of all self-match requests for mutual match detection
