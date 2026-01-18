@@ -1227,11 +1227,29 @@ export default function PerjalananSaya() {
                                     </div>
                                   );
                                 } else {
-                                  // No daftar ulang yet - show description
+                                  // No daftar ulang yet - show status indicating belum mendaftar ulang
+                                  const isEligible = registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved';
+
                                   return (
-                                    <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                      {item.description}
-                                    </p>
+                                    <div className="space-y-2">
+                                      {isEligible ? (
+                                        <>
+                                          <div className="flex items-start space-x-2">
+                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
+                                            <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
+                                              Belum mendaftar ulang
+                                            </p>
+                                          </div>
+                                          <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                            Silakan isi formulir daftar ulang untuk mengkonfirmasi keikutsertaan.
+                                          </p>
+                                        </>
+                                      ) : (
+                                        <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                          {item.description}
+                                        </p>
+                                      )}
+                                    </div>
                                   );
                                 }
                               })()
@@ -1704,11 +1722,29 @@ export default function PerjalananSaya() {
                                     </div>
                                   );
                                 } else {
-                                  // No daftar ulang yet - show description
+                                  // No daftar ulang yet - show status indicating belum mendaftar ulang
+                                  const isEligible = registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved';
+
                                   return (
-                                    <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                      {item.description}
-                                    </p>
+                                    <div className="space-y-2">
+                                      {isEligible ? (
+                                        <>
+                                          <div className="flex items-start space-x-2">
+                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
+                                            <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
+                                              Belum mendaftar ulang
+                                            </p>
+                                          </div>
+                                          <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                            Silakan isi formulir daftar ulang untuk mengkonfirmasi keikutsertaan.
+                                          </p>
+                                        </>
+                                      ) : (
+                                        <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
+                                          {item.description}
+                                        </p>
+                                      )}
+                                    </div>
                                   );
                                 }
                               })()
