@@ -66,6 +66,13 @@ interface SystemMatchRequest {
   partner_user_id: string | null
   partner_user_ids?: string[]
   pairing_id?: string | null
+  // Partner details for analysis (when paired)
+  partner_details?: {
+    chosen_juz: string
+    zona_waktu: string
+    main_time_slot: string
+    backup_time_slot: string
+  } | null
 }
 
 interface PairingWithSlot {
@@ -1570,40 +1577,12 @@ export function AdminPairingTab() {
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       W. Cadangan
                     </th>
-                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" colSpan={6}>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Analisis Kecocokan
                     </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aksi
                     </th>
-                  </tr>
-                  <tr className="bg-gray-100">
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('perfect_matches')}>
-                      Perfect {getSortIndicator('perfect_matches', sortConfigs)}
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('zona_waktu_matches')}>
-                      Zona {getSortIndicator('zona_waktu_matches', sortConfigs)}
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('same_juz_matches')}>
-                      Juz {getSortIndicator('same_juz_matches', sortConfigs)}
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('main_time_matches')}>
-                      W. Utama {getSortIndicator('main_time_matches', sortConfigs)}
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('backup_time_matches')}>
-                      W. Cadangan {getSortIndicator('backup_time_matches', sortConfigs)}
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => handleSort('total_matches')}>
-                      Total {getSortIndicator('total_matches', sortConfigs)}
-                    </th>
-                    <th></th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1653,39 +1632,8 @@ export function AdminPairingTab() {
                           {request.backup_time_slot || '-'}
                         </span>
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
-                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                          request.perfect_matches > 0 ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {request.perfect_matches || 0}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-purple-600">
-                        {request.zona_waktu_matches || 0}
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-blue-600">
-                        {request.same_juz_matches || 0}
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
-                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                          request.main_time_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {request.main_time_matches || 0}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
-                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
-                          request.backup_time_matches > 0 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {request.backup_time_matches || 0}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
-                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
-                          request.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {request.total_matches}
-                        </span>
+                      <td className="px-2 py-2 text-xs text-gray-700 min-w-[300px]">
+                        {renderMatchAnalysis(request)}
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
                         {!request.is_paired ? (
@@ -2736,6 +2684,41 @@ function hasTimeSlotOverlap(slot1: string, slot2: string): boolean {
   const s2 = parseSlot(slot2)
 
   return s1.start < s2.end && s2.start < s1.end
+}
+
+// Helper function to render match analysis text
+function renderMatchAnalysis(request: SystemMatchRequest): React.ReactNode {
+  if (!request.is_paired || !request.partner_details) {
+    return <span className="text-gray-400 text-xs">-</span>
+  }
+
+  const juzMatch = request.chosen_juz === request.partner_details.chosen_juz
+  const zonaMatch = request.user_zona_waktu === request.partner_details.zona_waktu
+  const mainTimeMatch = hasTimeSlotOverlap(request.main_time_slot, request.partner_details.main_time_slot)
+  const backupTimeMatch = hasTimeSlotOverlap(request.backup_time_slot, request.partner_details.backup_time_slot) ||
+                          hasTimeSlotOverlap(request.backup_time_slot, request.partner_details.main_time_slot) ||
+                          hasTimeSlotOverlap(request.main_time_slot, request.partner_details.backup_time_slot)
+
+  return (
+    <div className="flex flex-wrap gap-2 text-xs">
+      <span className={`flex items-center gap-1 ${juzMatch ? 'text-green-700' : 'text-red-700'}`}>
+        <span className={`w-2 h-2 rounded-full ${juzMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        Juz: {juzMatch ? 'Sama ✓' : 'Beda'}
+      </span>
+      <span className={`flex items-center gap-1 ${zonaMatch ? 'text-green-700' : 'text-red-700'}`}>
+        <span className={`w-2 h-2 rounded-full ${zonaMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        Zona: {zonaMatch ? 'Sama ✓' : 'Beda'}
+      </span>
+      <span className={`flex items-center gap-1 ${mainTimeMatch ? 'text-green-700' : 'text-red-700'}`}>
+        <span className={`w-2 h-2 rounded-full ${mainTimeMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        W. Utama: {mainTimeMatch ? 'Cocok ✓' : 'Tidak cocok'}
+      </span>
+      <span className={`flex items-center gap-1 ${backupTimeMatch ? 'text-green-700' : 'text-gray-500'}`}>
+        <span className={`w-2 h-2 rounded-full ${backupTimeMatch ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+        W. Cadangan: {backupTimeMatch ? 'Cocok ✓' : 'Tidak cocok'}
+      </span>
+    </div>
+  )
 }
 
 function MatchSection({

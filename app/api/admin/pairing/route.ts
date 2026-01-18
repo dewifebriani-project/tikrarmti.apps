@@ -358,6 +358,22 @@ export async function GET(request: Request) {
           pairedUsersMap // Exclude already paired users from statistics
         )
 
+        // Get partner details for analysis (when paired)
+        let partnerDetails = null
+        if (pairingInfo && pairingInfo.partnerIds.length > 0) {
+          // Get the first partner's details
+          const firstPartnerId = pairingInfo.partnerIds[0]
+          const partnerRegistration = pairedUsersRegMap.get(firstPartnerId)
+          if (partnerRegistration) {
+            partnerDetails = {
+              chosen_juz: partnerRegistration.chosen_juz || 'N/A',
+              zona_waktu: partnerRegistration.timezone || 'WIB',
+              main_time_slot: partnerRegistration.main_time_slot || 'N/A',
+              backup_time_slot: partnerRegistration.backup_time_slot || 'N/A',
+            }
+          }
+        }
+
         systemMatchRequests.push({
           ...requestData,
           partner_name: partnerNames.length > 0 ? partnerNames.join(', ') : null,
@@ -366,6 +382,7 @@ export async function GET(request: Request) {
           partner_user_ids: pairingInfo?.partnerIds || [],
           pairing_id: pairingInfo?.pairingId || null,
           is_paired: !!pairingInfo,
+          partner_details: partnerDetails,
           ...matchStats
         })
       } else if (submission.partner_type === 'tarteel') {
