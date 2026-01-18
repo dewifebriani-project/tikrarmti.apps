@@ -764,6 +764,21 @@ export default function PerjalananSaya() {
     }
   };
 
+  const getPairingTypeLabel = (pairingType: string) => {
+    switch (pairingType) {
+      case 'self_match':
+        return { label: 'Self Match', bgColor: 'bg-blue-100', textColor: 'text-blue-800' };
+      case 'family':
+        return { label: 'Family', bgColor: 'bg-pink-100', textColor: 'text-pink-800' };
+      case 'tarteel':
+        return { label: 'Tarteel', bgColor: 'bg-teal-100', textColor: 'text-teal-800' };
+      case 'system_match':
+        return { label: 'System Match', bgColor: 'bg-purple-100', textColor: 'text-purple-800' };
+      default:
+        return { label: pairingType, bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
+    }
+  };
+
   const fetchPairingData = async (currentBatchId: string | null) => {
     if (!user || !currentBatchId) return;
 
@@ -1097,11 +1112,21 @@ export default function PerjalananSaya() {
                           <div className="flex-grow w-full">
                             <div className="flex items-center justify-between mb-3">
                               <p className="text-xs sm:text-sm text-gray-600 font-medium">Pasangan Belajar</p>
-                              {pairingData.pairing.is_group_of_3 && (
-                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                                  Grup 3
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  const pairingTypeInfo = getPairingTypeLabel(pairingData.pairing.pairing_type);
+                                  return (
+                                    <span className={`px-2 py-0.5 ${pairingTypeInfo.bgColor} ${pairingTypeInfo.textColor} rounded text-xs font-medium`}>
+                                      {pairingTypeInfo.label}
+                                    </span>
+                                  );
+                                })()}
+                                {pairingData.pairing.is_group_of_3 && (
+                                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                                    Grup 3
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             {/* Partners Grid */}
