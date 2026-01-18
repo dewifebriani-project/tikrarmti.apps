@@ -2102,6 +2102,10 @@ function UsersTab({
   const [isExporting, setIsExporting] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
 
+  // Bulk upgrade state
+  const [upgradingUsers, setUpgradingUsers] = useState(false);
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
   // Filter users by role based on actual registrations, supporting multi-role
   // A user can appear in multiple tabs if they have multiple roles/registrations
 
@@ -2205,13 +2209,15 @@ function UsersTab({
     toast.success('Gmail Contacts opened. Click the Import icon to import your downloaded CSV file.');
   };
 
-  const columns: Column<User>[] = [
-    {
-      key: 'full_name',
-      label: 'Name',
-      sortable: true,
-      filterable: true,
-      render: (user) => (
+  // Build columns dynamically based on active sub-tab
+  const getColumns = (): Column<User>[] => {
+    const baseColumns: Column<User>[] = [
+      {
+        key: 'full_name',
+        label: 'Name',
+        sortable: true,
+        filterable: true,
+        render: (user) => (
         <div>
           <div
             className={`text-sm font-medium cursor-pointer hover:underline ${user.is_active ? 'text-blue-600' : 'text-gray-400 line-through'}`}
@@ -2476,6 +2482,30 @@ Tim Markaz Tikrar Indonesia`;
     },
   ];
 
+    // Add checkbox column for thalibah tab
+    if (activeSubTab === 'thalibah') {
+      return [
+        {
+          key: 'select',
+          label: '',
+          render: (user) => (
+            <input
+              type="checkbox"
+              checked={selectedUserIds.has(user.id)}
+              onChange={() => toggleUserSelection(user.id)}
+              className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+          ),
+        },
+        ...baseColumns,
+      ];
+    }
+
+    return baseColumns;
+  };
+
+  const columns = getColumns();
+
   const handleEdit = (user: User) => {
     setSelectedUser(user);
     setShowModal(true);
@@ -2611,6 +2641,68 @@ Tim Markaz Tikrar Indonesia`;
       console.error('Error downloading users:', error);
       alert('Failed to download users data. Please try again.');
     }
+  };
+
+  // Handle bulk upgrade selected/filtered users to thalibah
+  const handleBulkUpgrade = async () => {
+    if (!confirm('Upgrade selected users to thalibah role? This will remove calon_thalibah role and add thalibah role.')) {
+      return;
+    }
+
+    setUpgradingUsers(true);
+    try {
+      const response = await fetch('/api/admin/tikrar/upgrade-selected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: selectedUserIds.size > 0 ? Array.from(selectedUserIds) : undefined
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error || 'Failed to upgrade users');
+      } else {
+        const { success, failed, alreadyThalibah } = result.results || {};
+        toast.success(
+          `Upgraded ${success?.length || 0} users to thalibah` +
+          (failed?.length ? `, ${failed.length} failed` : '') +
+          (alreadyThalibah?.length ? `, ${alreadyThalibah.length} already thalibah` : '')
+        );
+        onUsersRefresh();
+        setSelectedUserIds(new Set());
+      }
+    } catch (error: any) {
+      console.error('Error upgrading users:', error);
+      toast.error(error.message || 'Failed to upgrade users');
+    } finally {
+      setUpgradingUsers(false);
+    }
+  };
+
+  // Toggle user selection
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select all visible users
+  const selectAllVisible = () => {
+    const newSet = new Set(filteredUsers.map((u: User) => u.id));
+    setSelectedUserIds(newSet);
+  };
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedUserIds(new Set());
   };
 
   return (
@@ -2750,6 +2842,61 @@ Tim Markaz Tikrar Indonesia`;
                 <Plus className="w-5 h-5 mr-2" />
                 Add User
               </button>
+            </div>
+          )}
+
+          {/* Action buttons for Thalibah tab */}
+          {activeSubTab === 'thalibah' && (
+            <div className="flex justify-between items-center bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="selectAll"
+                    checked={selectedUserIds.size === filteredUsers.length && filteredUsers.length > 0}
+                    onChange={(e) => e.target.checked ? selectAllVisible() : clearSelection()}
+                    className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="selectAll" className="text-sm font-medium text-gray-700">
+                    Select All ({filteredUsers.length})
+                  </label>
+                </div>
+                {selectedUserIds.size > 0 && (
+                  <span className="text-sm text-gray-600">
+                    {selectedUserIds.size} user{selectedUserIds.size > 1 ? 's' : ''} selected
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {selectedUserIds.size > 0 && (
+                  <button
+                    onClick={clearSelection}
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Clear Selection
+                  </button>
+                )}
+                <button
+                  onClick={handleBulkUpgrade}
+                  disabled={upgradingUsers || (selectedUserIds.size === 0 && filteredUsers.length > 0)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {upgradingUsers ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Upgrading...
+                    </>
+                  ) : (
+                    <>
+                      <GraduationCap className="w-4 h-4 mr-2" />
+                      {selectedUserIds.size > 0
+                        ? `Upgrade ${selectedUserIds.size} to Thalibah`
+                        : `Upgrade All (${thalibahUsers.length}) to Thalibah`
+                      }
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
