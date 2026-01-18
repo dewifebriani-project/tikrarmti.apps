@@ -358,6 +358,10 @@ export default function JurnalHarianPage() {
           tasmi_record_completed: data[0].tasmi_record_count > 0,
           simak_record_completed: data[0].simak_record_completed || false,
           tikrar_bi_al_ghaib_completed: data[0].tikrar_bi_al_ghaib_count > 0,
+          tikrar_bi_al_ghaib_40x: (data[0].tikrar_bi_al_ghaib_40x || []) as ('pasangan_40' | 'keluarga_40' | 'tarteel_40')[],
+          tikrar_bi_al_ghaib_20x: (data[0].tikrar_bi_al_ghaib_20x || []) as ('pasangan_20' | 'voice_note_20')[],
+          tarteel_screenshot_url: data[0].tarteel_screenshot_url || null,
+          tarteel_file: null,
           tafsir_completed: data[0].tafsir_completed || false,
           menulis_completed: data[0].menulis_completed || false,
           catatan_tambahan: data[0].catatan_tambahan || ''
@@ -426,13 +430,16 @@ export default function JurnalHarianPage() {
         blok: jurnalData.blok || null,
         tashih_completed: true,
         rabth_completed: jurnalData.rabth_completed,
-        murajaah_count: jurnalData.murajaah_count,
-        simak_murattal_count: jurnalData.simak_murattal_count,
-        tikrar_bi_an_nadzar_count: jurnalData.tikrar_bi_an_nadzar_count,
-        tasmi_record_count: jurnalData.tasmi_record_count,
+        murajaah_count: jurnalData.murajaah_completed ? 1 : 0,
+        simak_murattal_count: jurnalData.simak_murattal_completed ? 1 : 0,
+        tikrar_bi_an_nadzar_count: jurnalData.tikrar_bi_an_nadzar_completed ? 1 : 0,
+        tasmi_record_count: jurnalData.tasmi_record_completed ? 1 : 0,
         simak_record_completed: jurnalData.simak_record_completed,
-        tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_count,
-        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_type,
+        tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_completed ? 1 : 0,
+        tikrar_bi_al_ghaib_type: null,
+        tikrar_bi_al_ghaib_40x: jurnalData.tikrar_bi_al_ghaib_40x.length > 0 ? jurnalData.tikrar_bi_al_ghaib_40x : null,
+        tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_20x.length > 0 ? jurnalData.tikrar_bi_al_ghaib_20x : null,
+        tarteel_screenshot_url: jurnalData.tarteel_screenshot_url,
         tafsir_completed: jurnalData.tafsir_completed,
         menulis_completed: jurnalData.menulis_completed,
         catatan_tambahan: jurnalData.catatan_tambahan || null
@@ -481,13 +488,16 @@ export default function JurnalHarianPage() {
       juz_code: juzToUse || '',
       blok: '',
       rabth_completed: false,
-      murajaah_count: 0,
-      simak_murattal_count: 0,
-      tikrar_bi_an_nadzar_count: 0,
-      tasmi_record_count: 0,
+      murajaah_completed: false,
+      simak_murattal_completed: false,
+      tikrar_bi_an_nadzar_completed: false,
+      tasmi_record_completed: false,
       simak_record_completed: false,
-      tikrar_bi_al_ghaib_count: 0,
-      tikrar_bi_al_ghaib_type: partnerType === 'family' || partnerType === 'tarteel' ? 'voice_note' : 'sendiri',
+      tikrar_bi_al_ghaib_completed: false,
+      tikrar_bi_al_ghaib_40x: [] as ('pasangan_40' | 'keluarga_40' | 'tarteel_40')[],
+      tikrar_bi_al_ghaib_20x: [] as ('pasangan_20' | 'voice_note_20')[],
+      tarteel_screenshot_url: null as string | null,
+      tarteel_file: null as File | null,
       tafsir_completed: false,
       menulis_completed: false,
       catatan_tambahan: ''
@@ -496,43 +506,17 @@ export default function JurnalHarianPage() {
   }
 
   const isStepCompleted = (step: JurnalStep): boolean => {
-    if (step.minCount) {
-      const counterKey = `${step.id}_count` as keyof typeof jurnalData
-      return (jurnalData[counterKey] as number || 0) >= step.minCount
-    }
     const fieldKey = `${step.id}_completed` as keyof typeof jurnalData
     return jurnalData[fieldKey] as boolean || false
   }
 
-  const getCurrentCount = (step: JurnalStep): number => {
-    if (!step.minCount) return 0
-    const counterKey = `${step.id}_count` as keyof typeof jurnalData
-    return jurnalData[counterKey] as number || 0
-  }
-
-  const getTikrarGhaibMinCount = (): number => {
-    if (jurnalData.tikrar_bi_al_ghaib_type === 'sendiri') {
-      return 40
-    } else if (jurnalData.tikrar_bi_al_ghaib_type === 'pasangan' || jurnalData.tikrar_bi_al_ghaib_type === 'voice_note') {
-      return 20
-    }
-    return 40
-  }
-
-  const getTikrarGhaibLabel = (): string => {
-    if (jurnalData.tikrar_bi_al_ghaib_type === 'sendiri') {
-      return 'Sendiri (40x)'
-    } else if (jurnalData.tikrar_bi_al_ghaib_type === 'pasangan') {
-      return 'Dengan Pasangan (20x)'
-    } else if (jurnalData.tikrar_bi_al_ghaib_type === 'voice_note') {
-      return 'Voice Note (20x)'
-    }
-    return 'Sendiri (40x)'
+  const isTikrarGhaibCompleted = (): boolean => {
+    return jurnalData.tikrar_bi_al_ghaib_completed ||
+           (jurnalData.tikrar_bi_al_ghaib_40x.length > 0 || jurnalData.tikrar_bi_al_ghaib_20x.length > 0)
   }
 
   const requiredCompleted = jurnalStepsConfig.filter(step => isStepCompleted(step)).length
-  const isTikrarGhaibCompleted = jurnalData.tikrar_bi_al_ghaib_count >= getTikrarGhaibMinCount()
-  const totalCompleted = requiredCompleted + (isTikrarGhaibCompleted ? 1 : 0)
+  const totalCompleted = requiredCompleted + (isTikrarGhaibCompleted() ? 1 : 0)
   const isAllRequiredCompleted = totalCompleted === 7
 
   if (isLoading || registrationsLoading) {
@@ -840,7 +824,6 @@ export default function JurnalHarianPage() {
           <CardContent className="p-3 sm:p-6 space-y-4">
             {jurnalStepsConfig.map((step, index) => {
               const isCompleted = isStepCompleted(step)
-              const currentCount = getCurrentCount(step)
 
               return (
                 <div
@@ -859,191 +842,29 @@ export default function JurnalHarianPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{step.name}</h3>
-                        {step.minCount ? (
-                          <span className="text-xs font-medium text-gray-500">
-                            {currentCount}/{step.minCount} {step.countLabel}
-                          </span>
-                        ) : (
-                          isCompleted && (
-                            <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                          )
+                        {isCompleted && (
+                          <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                         )}
                       </div>
                       <p className="text-xs sm:text-sm text-gray-600">{step.description}</p>
 
-                      {step.minCount ? (
-                        <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-2">
-                          {Array.from({ length: step.minCount }).map((_, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => {
-                                const newCount = i + 1
-                                const counterKey = `${step.id}_count` as keyof typeof jurnalData
-                                setJurnalData(prev => ({
-                                  ...prev,
-                                  [counterKey]: prev[counterKey] as number === newCount ? 0 : newCount
-                                }))
-                              }}
-                              className={cn(
-                                "flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-all flex items-center justify-center touch-manipulation",
-                                i < currentCount
-                                  ? "bg-green-500 border-green-600 text-white"
-                                  : "bg-white border-gray-300 text-gray-400 hover:border-green-400"
-                              )}
-                            >
-                              {i < currentCount && (
-                                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => toggleStep(step.id)}
-                          className={cn(
-                            "mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation",
-                            isCompleted
-                              ? "bg-green-500 text-white hover:bg-green-600"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          )}
-                        >
-                          {isCompleted ? 'Selesai' : 'Belum Selesai'}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleStep(step.id)}
+                        className={cn(
+                          "mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation",
+                          isCompleted
+                            ? "bg-green-500 text-white hover:bg-green-600"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        )}
+                      >
+                        {isCompleted ? 'Selesai' : 'Belum Selesai'}
+                      </button>
                     </div>
                   </div>
                 </div>
               )
             })}
-          </CardContent>
-        </Card>
-
-        {/* Tikrar Bi Al-Ghaib */}
-        <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-teal-50 to-emerald-50 border-b p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-teal-700 text-lg sm:text-xl">
-              <Circle className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Tikrar Bil Ghaib (Tanpa Mushaf)</span>
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Setorkan hafalan blok hari ini untuk mengunci hafalan jangka panjang
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3 sm:p-6 space-y-4">
-            {/* Tikrar Ghaib Type Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Metode Setoran
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                {/* Sendiri - Always available */}
-                <button
-                  type="button"
-                  onClick={() => setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_type: 'sendiri', tikrar_bi_al_ghaib_count: 0 }))}
-                  className={cn(
-                    "p-3 sm:p-4 border-2 rounded-xl transition-all text-left",
-                    jurnalData.tikrar_bi_al_ghaib_type === 'sendiri'
-                      ? "border-teal-500 bg-gradient-to-br from-teal-50 to-emerald-50 ring-2 ring-teal-200"
-                      : "border-gray-200 hover:border-teal-300 bg-white"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <Circle className={cn(
-                      "h-4 w-4 sm:h-5 sm:w-5",
-                      jurnalData.tikrar_bi_al_ghaib_type === 'sendiri' ? "text-teal-600" : "text-gray-400"
-                    )} />
-                    <span className="font-medium text-sm">Sendiri (40x)</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1">Setoran mandiri</p>
-                </button>
-
-                {/* Pasangan - Available for self_match and system_match */}
-                {(partnerType === 'self_match' || partnerType === 'system_match' || !partnerType) && (
-                  <button
-                    type="button"
-                    onClick={() => setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_type: 'pasangan', tikrar_bi_al_ghaib_count: 0 }))}
-                    className={cn(
-                      "p-3 sm:p-4 border-2 rounded-xl transition-all text-left",
-                      jurnalData.tikrar_bi_al_ghaib_type === 'pasangan'
-                        ? "border-teal-500 bg-gradient-to-br from-teal-50 to-emerald-50 ring-2 ring-teal-200"
-                        : "border-gray-200 hover:border-teal-300 bg-white"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Circle className={cn(
-                        "h-4 w-4 sm:h-5 sm:w-5",
-                        jurnalData.tikrar_bi_al_ghaib_type === 'pasangan' ? "text-teal-600" : "text-gray-400"
-                      )} />
-                      <span className="font-medium text-sm">Pasangan (20x)</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">Dengan pasangan belajar</p>
-                  </button>
-                )}
-
-                {/* Voice Note - Available for family and tarteel */}
-                {(partnerType === 'family' || partnerType === 'tarteel' || !partnerType) && (
-                  <button
-                    type="button"
-                    onClick={() => setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_type: 'voice_note', tikrar_bi_al_ghaib_count: 0 }))}
-                    className={cn(
-                      "p-3 sm:p-4 border-2 rounded-xl transition-all text-left",
-                      jurnalData.tikrar_bi_al_ghaib_type === 'voice_note'
-                        ? "border-teal-500 bg-gradient-to-br from-teal-50 to-emerald-50 ring-2 ring-teal-200"
-                        : "border-gray-200 hover:border-teal-300 bg-white"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Circle className={cn(
-                        "h-4 w-4 sm:h-5 sm:w-5",
-                        jurnalData.tikrar_bi_al_ghaib_type === 'voice_note' ? "text-teal-600" : "text-gray-400"
-                      )} />
-                      <span className="font-medium text-sm">Voice Note (20x)</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">Via aplikasi Tarteel/keluarga</p>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Counter */}
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-700">Jumlah Setoran</span>
-                <span className="text-sm font-bold text-teal-600">
-                  {jurnalData.tikrar_bi_al_ghaib_count}/{getTikrarGhaibMinCount()}x
-                </span>
-              </div>
-              <div className="flex items-center justify-center gap-2 sm:gap-4 overflow-x-auto pb-2">
-                {Array.from({ length: getTikrarGhaibMinCount() }).map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      const newCount = i + 1
-                      setJurnalData(prev => ({
-                        ...prev,
-                        tikrar_bi_al_ghaib_count: prev.tikrar_bi_al_ghaib_count === newCount ? 0 : newCount
-                      }))
-                    }}
-                    className={cn(
-                      "flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-all flex items-center justify-center touch-manipulation",
-                      i < jurnalData.tikrar_bi_al_ghaib_count
-                        ? "bg-teal-500 border-teal-600 text-white"
-                        : "bg-white border-gray-300 text-gray-400 hover:border-teal-400"
-                    )}
-                  >
-                    {i < jurnalData.tikrar_bi_al_ghaib_count && (
-                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                    )}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                {getTikrarGhaibLabel()}
-              </p>
-            </div>
           </CardContent>
         </Card>
 
