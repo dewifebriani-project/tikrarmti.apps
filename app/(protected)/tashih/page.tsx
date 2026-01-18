@@ -53,7 +53,7 @@ interface TashihRecord {
 }
 
 interface UserProgramInfo {
-  programType: 'tikrar_tahfidz' | 'pra_tahfidz' | 'admin' | 'muallimah' | null
+  programType: 'tikrar_tahfidz' | 'pra_tikrar' | 'admin' | 'muallimah' | null
   confirmedChosenJuz: string | null
   batchStartDate: string | null
   batchId: string | null
@@ -149,7 +149,7 @@ export default function Tashih() {
         // Don't redirect - ProtectedLayout will handle auth
         // Just set default program info to allow page access
         setUserProgramInfo({
-          programType: 'pra_tahfidz',
+          programType: 'pra_tikrar',
           confirmedChosenJuz: null,
           batchStartDate: null,
           batchId: null,
@@ -259,7 +259,7 @@ export default function Tashih() {
 
       if (praTikrarReg) {
         setUserProgramInfo({
-          programType: 'pra_tahfidz',
+          programType: 'pra_tikrar',
           confirmedChosenJuz: praTikrarReg.chosen_juz,
           batchStartDate: praTikrarReg.batch?.start_date || null,
           batchId: praTikrarReg.batch_id || null,
@@ -285,7 +285,7 @@ export default function Tashih() {
       if (anyRegistration) {
         console.log('Found any registration, allowing access to tashih')
         setUserProgramInfo({
-          programType: 'pra_tahfidz',
+          programType: 'pra_tikrar',
           confirmedChosenJuz: anyRegistration.chosen_juz,
           batchStartDate: anyRegistration.batch?.start_date || null,
           batchId: anyRegistration.batch_id || null,
@@ -296,7 +296,7 @@ export default function Tashih() {
 
       // No program found - Default to Pra Tikrar (open access for all users)
       setUserProgramInfo({
-        programType: 'pra_tahfidz',
+        programType: 'pra_tikrar',
         confirmedChosenJuz: null,
         batchStartDate: null,
         batchId: null,
@@ -306,7 +306,7 @@ export default function Tashih() {
       console.error('Error loading user program info:', error)
       // Even on error, set default to allow access to tashih page
       setUserProgramInfo({
-        programType: 'pra_tahfidz',
+        programType: 'pra_tikrar',
         confirmedChosenJuz: null,
         batchStartDate: null,
         batchId: null,
@@ -772,7 +772,7 @@ export default function Tashih() {
           icon: <BookCopy className="h-6 w-6" />,
           color: 'from-emerald-500 to-green-600'
         }
-      case 'pra_tahfidz':
+      case 'pra_tikrar':
         return {
           title: 'Pra Tikrar',
           description: 'Program persiapan Tikrar Tahfidz',
