@@ -903,14 +903,14 @@ export default function PerjalananSaya() {
                   const styles = getStatusStyles(item.status);
 
                   // Check if this is the Daftar Ulang card and should be clickable
-                  // NOT clickable if already submitted/approved (has daftar ulang)
-                  // CLICKABLE if selected/approved BUT no daftar ulang yet
+                  // CLICKABLE for draft status OR no daftar ulang yet (user can complete/submit)
+                  // NOT clickable for submitted/approved (already completed)
                   const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                  const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
+                  const isCompleted = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
                   const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                           (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
                                           !registrationStatus.registration?.re_enrollment_completed &&
-                                          !hasSubmittedOrApproved;
+                                          !isCompleted;
 
                   const cardContent = (
                     <Card className={`${styles.cardBg} ${styles.cardBorder} transition-all duration-300 hover:shadow-md ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
