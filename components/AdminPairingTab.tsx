@@ -1552,6 +1552,9 @@ export function AdminPairingTab() {
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_name')}>
                       Nama {getSortIndicator('user_name', sortConfigs)}
                     </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pasangan
+                    </th>
                     <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('user_zona_waktu')}>
                       Zona {getSortIndicator('user_zona_waktu', sortConfigs)}
                     </th>
@@ -1575,6 +1578,7 @@ export function AdminPairingTab() {
                     </th>
                   </tr>
                   <tr className="bg-gray-100">
+                    <th></th>
                     <th></th>
                     <th></th>
                     <th></th>
@@ -1607,6 +1611,24 @@ export function AdminPairingTab() {
                     <tr key={request.id} className={`hover:bg-gray-50 ${request.is_paired ? 'bg-green-50' : ''}`}>
                       <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                         {request.user_name}
+                      </td>
+                      <td className="px-2 py-2 text-sm">
+                        {request.is_paired ? (
+                          <div className="flex flex-col gap-1">
+                            {(request.partner_names || [request.partner_name]).filter(Boolean).map((name, idx) => (
+                              <span key={idx} className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                {name}
+                              </span>
+                            ))}
+                            {(request.partner_names?.length || 0) >= 2 && (
+                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
+                                Grup 3
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Belum ada</span>
+                        )}
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
                         <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
