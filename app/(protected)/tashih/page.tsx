@@ -212,8 +212,7 @@ export default function Tashih() {
         .from('daftar_ulang_submissions')
         .select(`
           *,
-          batch:batches(*),
-          registration:pendaftaran_tikrar_tahfidz!inner(chosen_juz)
+          batch:batches(*)
         `)
         .eq('user_id', user.id)
         .in('status', ['submitted', 'approved'])
@@ -232,8 +231,8 @@ export default function Tashih() {
       }))
 
       if (daftarUlangSubmission) {
-        // Get chosen_juz from registration (pendaftaran_tikrar_tahfidz)
-        const confirmedJuz = daftarUlangSubmission.registration?.chosen_juz || null
+        // confirmed_chosen_juz is in daftar_ulang_submissions table (final juz choice)
+        const confirmedJuz = daftarUlangSubmission.confirmed_chosen_juz || null
 
         console.log('Setting Tikrar Tahfidz with juz:', confirmedJuz)
         setUserProgramInfo({
