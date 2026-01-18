@@ -149,14 +149,15 @@ export default function Tashih() {
 
   const loadUserProgramInfo = async () => {
     /*
-     * PROGRAM DETECTION LOGIC - Priority Order (1-4)
+     * PROGRAM DETECTION LOGIC - Using /api/pendaftaran/all (same as perjalanan-saya)
      *
      * Priority 1: daftar_ulang_submissions (status: submitted OR approved)
      *   → programType: 'tikrar_tahfidz' (Tahfidz Tikrar MTI)
+     *   → confirmed_chosen_juz from daftar_ulang_submissions table
      *
      * Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')
      *   → programType: 'pra_tikrar' (Pra Tikrar)
-     *   * Note: Only checked if NOT in daftar_ulang_submissions
+     *   → chosen_juz from pendaftaran_tikrar_tahfidz table
      *
      * Priority 3: ANY pendaftaran_tikrar_tahfidz (even pending/not_selected)
      *   → programType: 'pra_tikrar' (Pra Tikrar)
@@ -166,14 +167,11 @@ export default function Tashih() {
      */
     try {
       const supabase = createClient()
-      // Protected Layout already ensures user is authenticated, no need to check again
-      // This prevents the redirect-to-login issue that was happening
+      // Get authenticated user
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
         console.error('[Tashih Page] No user found')
-        // Don't redirect - ProtectedLayout will handle auth
-        // Just set default program info to allow page access
         setUserProgramInfo({
           programType: 'pra_tikrar',
           confirmedChosenJuz: null,
@@ -198,20 +196,15 @@ export default function Tashih() {
 
       console.log('[Tashih] User roles:', userRoles)
 
-      // Initialize debug info with basic user data
-      const initialDebugInfo = {
+      // Initialize debug info
+      setDebugInfo({
         userId: user.id,
         userRoles: userRoles,
-        daftarUlangSubmission: null,
-        daftarUlangError: null,
-        praTikrarReg: null,
-        praTikrarError: null,
-        anyRegistration: null,
+        apiResponse: null,
+        apiError: null,
         detectionResult: null
-      }
-      setDebugInfo(initialDebugInfo)
+      })
 
-      // Open tashih for ALL users regardless of role or program status
       // Admin and muallimah get full access to tashih
       if (isAdmin || isMuallimah) {
         const programInfo = {
@@ -227,142 +220,125 @@ export default function Tashih() {
         return
       }
 
-      // Priority 1: Check for daftar ulang submissions (Tahfidz Tikrar MTI) - submitted or approved
-      const { data: daftarUlangSubmission, error: daftarUlangError } = await supabase
-        .from('daftar_ulang_submissions')
-        .select(`
-          *,
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .in('status', ['submitted', 'approved'])
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      // Fetch registrations using the same API as perjalanan-saya
+      console.log('[Tashih] Fetching registrations from /api/pendaftaran/all...')
+      const response = await fetch('/api/pendaftaran/all')
+      const apiResult = await response.json()
 
-      console.log('[Tashih] Priority 1 - daftarUlangSubmission:', daftarUlangSubmission)
-      console.log('[Tashih] Priority 1 - daftarUlangError:', daftarUlangError)
+      console.log('[Tashih] API Response:', apiResult)
 
-      // Update debug info with Priority 1 results
-      setDebugInfo((prev: any) => ({
-        ...prev,
-        daftarUlangSubmission,
-        daftarUlangError
-      }))
+      if (!response.ok || apiResult.error) {
+        console.error('[Tashih] API Error:', apiResult.error)
+        setDebugInfo((prev: any) => ({ ...prev, apiError: apiResult.error }))
+        throw new Error(apiResult.error || 'Failed to fetch registrations')
+      }
 
-      if (daftarUlangSubmission) {
-        // confirmed_chosen_juz is in daftar_ulang_submissions table (final juz choice)
-        const confirmedJuz = daftarUlangSubmission.confirmed_chosen_juz || null
+      const registrations = apiResult.data || []
+      setDebugInfo((prev: any) => ({ ...prev, apiResponse: registrations }))
 
-        console.log('[Tashih] ✅ Priority 1 MATCH - Setting Tikrar Tahfidz with juz:', confirmedJuz)
-        const newProgramInfo = {
+      console.log('[Tashih] Registrations:', registrations)
+
+      // Find the active registration (first one from OPEN batch)
+      const registration = registrations.find((reg: any) =>
+        reg.batch?.status === 'open' &&
+        (reg.status === 'approved' || reg.selection_status === 'selected')
+      ) || registrations[0]
+
+      console.log('[Tashih] Selected registration:', registration)
+
+      if (!registration) {
+        console.log('[Tashih] ❌ NO REGISTRATION - Setting Pra Tikrar (default)')
+        const programInfo = {
+          programType: 'pra_tikrar' as const,
+          confirmedChosenJuz: null,
+          batchStartDate: null,
+          batchId: null,
+          tashihHalaqahId: null
+        }
+        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '4 - no registration', programInfo } }))
+        setUserProgramInfo(programInfo)
+        setIsLoading(false)
+        return
+      }
+
+      // Priority 1: Check for daftar ulang (Tahfidz Tikrar MTI)
+      const daftarUlang = registration.daftar_ulang
+      console.log('[Tashih] Daftar Ulang:', daftarUlang)
+
+      if (daftarUlang && (daftarUlang.status === 'submitted' || daftarUlang.status === 'approved')) {
+        // Use confirmed_chosen_juz from daftar_ulang_submissions table
+        const confirmedJuz = daftarUlang.confirmed_chosen_juz || registration.chosen_juz || null
+
+        console.log('[Tashih] ✅ Priority 1 MATCH - Daftar Ulang found')
+        console.log('[Tashih] confirmed_chosen_juz from daftar_ulang:', daftarUlang.confirmed_chosen_juz)
+        console.log('[Tashih] Using juz:', confirmedJuz)
+
+        const programInfo = {
           programType: 'tikrar_tahfidz' as const,
           confirmedChosenJuz: confirmedJuz,
-          batchStartDate: daftarUlangSubmission.batch?.start_date || null,
-          batchId: daftarUlangSubmission.batch_id || null,
-          tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
+          batchStartDate: registration.batch?.start_date || null,
+          batchId: registration.batch_id || null,
+          tashihHalaqahId: daftarUlang.tashih_halaqah?.id || null
         }
-        console.log('[Tashih] Setting programInfo to:', newProgramInfo)
-        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '1 - daftar_ulang_submissions', programInfo: newProgramInfo } }))
-        setUserProgramInfo(newProgramInfo)
-        setIsLoading(false)
-        return
-      }
-
-      console.log('[Tashih] ❌ Priority 1 NO MATCH - No daftar_ulang_submissions with submitted/approved status')
-
-      // Priority 2: Check for pendaftaran_tikrar_tahfidz (selection_status: 'selected')
-      // ONLY checked if NOT in daftar_ulang_submissions (Priority 1 didn't match)
-      const { data: praTikrarReg, error: praTikrarError } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select(`
-          *,
-          program:programs(*),
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .eq('selection_status', 'selected')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      console.log('[Tashih] Priority 2 - praTikrarReg:', praTikrarReg)
-      console.log('[Tashih] Priority 2 - praTikrarError:', praTikrarError)
-
-      // Update debug info
-      setDebugInfo((prev: any) => ({
-        ...prev,
-        praTikrarReg,
-        praTikrarError
-      }))
-
-      if (praTikrarReg) {
-        console.log('[Tashih] ✅ Priority 2 MATCH - Setting Pra Tikrar (selected) with juz:', praTikrarReg.chosen_juz)
-        const programInfo = {
-          programType: 'pra_tikrar' as const,
-          confirmedChosenJuz: praTikrarReg.chosen_juz,
-          batchStartDate: praTikrarReg.batch?.start_date || null,
-          batchId: praTikrarReg.batch_id || null,
-          tashihHalaqahId: null
-        }
-        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '2 - pendaftaran selected', programInfo } }))
+        setDebugInfo((prev: any) => ({
+          ...prev,
+          detectionResult: {
+            priority: '1 - daftar_ulang_submissions',
+            programInfo,
+            daftarUlangStatus: daftarUlang.status,
+            confirmedChosenJuz: daftarUlang.confirmed_chosen_juz
+          }
+        }))
         setUserProgramInfo(programInfo)
         setIsLoading(false)
         return
       }
 
-      console.log('[Tashih] ❌ Priority 2 NO MATCH - No pendaftaran with selection_status=selected')
+      console.log('[Tashih] ❌ Priority 1 NO MATCH - No daftar_ulang with submitted/approved status')
 
-      // Priority 3: Check for ANY registration (even pending/not_selected/rejected)
-      // Allows all registered users to access tashih regardless of status
-      const { data: anyRegistration } = await supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select(`
-          *,
-          program:programs(*),
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      console.log('[Tashih] Priority 3 - anyRegistration:', anyRegistration)
-
-      setDebugInfo((prev: any) => ({ ...prev, anyRegistration }))
-
-      if (anyRegistration) {
-        console.log('[Tashih] ✅ Priority 3 MATCH - Setting Pra Tikrar (any registration) with juz:', anyRegistration.chosen_juz)
+      // Priority 2 & 3: Check for pendaftaran_tikrar_tahfidz
+      if (registration.selection_status === 'selected') {
+        console.log('[Tashih] ✅ Priority 2 MATCH - Selected registration with juz:', registration.chosen_juz)
         const programInfo = {
           programType: 'pra_tikrar' as const,
-          confirmedChosenJuz: anyRegistration.chosen_juz,
-          batchStartDate: anyRegistration.batch?.start_date || null,
-          batchId: anyRegistration.batch_id || null,
+          confirmedChosenJuz: registration.chosen_juz || null,
+          batchStartDate: registration.batch?.start_date || null,
+          batchId: registration.batch_id || null,
           tashihHalaqahId: null
         }
-        setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '3 - any registration', programInfo } }))
+        setDebugInfo((prev: any) => ({
+          ...prev,
+          detectionResult: {
+            priority: '2 - selected registration',
+            programInfo,
+            selectionStatus: registration.selection_status
+          }
+        }))
         setUserProgramInfo(programInfo)
         setIsLoading(false)
         return
       }
 
-      console.log('[Tashih] ❌ Priority 3 NO MATCH - No registration found')
-
-      // Priority 4: No program found - Default to Pra Tikrar (open access)
-      console.log('[Tashih] ✅ Priority 4 DEFAULT - Setting Pra Tikrar (no registration)')
+      console.log('[Tashih] ✅ Priority 3 MATCH - Any registration with juz:', registration.chosen_juz)
       const programInfo = {
         programType: 'pra_tikrar' as const,
-        confirmedChosenJuz: null,
-        batchStartDate: null,
-        batchId: null,
+        confirmedChosenJuz: registration.chosen_juz || null,
+        batchStartDate: registration.batch?.start_date || null,
+        batchId: registration.batch_id || null,
         tashihHalaqahId: null
       }
-      setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: '4 - default', programInfo } }))
+      setDebugInfo((prev: any) => ({
+        ...prev,
+        detectionResult: {
+          priority: '3 - any registration',
+          programInfo,
+          status: registration.status
+        }
+      }))
       setUserProgramInfo(programInfo)
     } catch (error) {
       console.error('[Tashih] ❌ Error loading user program info:', error)
       setDebugInfo((prev: any) => ({ ...prev, detectionResult: { priority: 'ERROR', error: String(error) } }))
-      // Even on error, set default to allow access to tashih page
       setUserProgramInfo({
         programType: 'pra_tikrar',
         confirmedChosenJuz: null,
@@ -684,54 +660,22 @@ export default function Tashih() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions (submitted/approved)</div>
+                  <div className="font-semibold mb-2 text-blue-600">API Response (/api/pendaftaran/all):</div>
                   <div className="ml-4 space-y-1">
                     <div>
-                      <span className="text-gray-500">Data: </span>
+                      <span className="text-gray-500">Registrations: </span>
                       <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {debugInfo.daftarUlangSubmission ? JSON.stringify(debugInfo.daftarUlangSubmission, null, 2) : 'null'}
+                        {debugInfo.apiResponse ? JSON.stringify(debugInfo.apiResponse, null, 2) : 'null'}
                       </pre>
                     </div>
-                    {debugInfo.daftarUlangError && (
+                    {debugInfo.apiError && (
                       <div>
                         <span className="text-gray-500">Error: </span>
                         <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                          {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
+                          {JSON.stringify(debugInfo.apiError, null, 2)}
                         </pre>
                       </div>
                     )}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')</div>
-                  <div className="ml-4 space-y-1">
-                    <div>
-                      <span className="text-gray-500">Data: </span>
-                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {debugInfo.praTikrarReg ? JSON.stringify(debugInfo.praTikrarReg, null, 2) : 'null'}
-                      </pre>
-                    </div>
-                    {debugInfo.praTikrarError && (
-                      <div>
-                        <span className="text-gray-500">Error: </span>
-                        <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                          {JSON.stringify(debugInfo.praTikrarError, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <div className="font-semibold mb-2 text-blue-600">Priority 3: ANY pendaftaran_tikrar_tahfidz</div>
-                  <div className="ml-4 space-y-1">
-                    <div>
-                      <span className="text-gray-500">Data: </span>
-                      <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                        {debugInfo.anyRegistration ? JSON.stringify(debugInfo.anyRegistration, null, 2) : 'null'}
-                      </pre>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -843,44 +787,6 @@ export default function Tashih() {
     )
   }
 
-  // Get program type display info
-  const getProgramDisplay = () => {
-    switch (userProgramInfo.programType) {
-      case 'tikrar_tahfidz':
-        return {
-          title: 'Tahfidz Tikrar MTI',
-          description: 'Program Tahfidz dengan sistem Tikrar',
-          icon: <BookCopy className="h-6 w-6" />,
-          color: 'from-emerald-500 to-green-600'
-        }
-      case 'pra_tikrar':
-        return {
-          title: 'Pra Tikrar',
-          description: 'Program persiapan Tikrar Tahfidz',
-          icon: <BookOpen className="h-6 w-6" />,
-          color: 'from-blue-500 to-indigo-600'
-        }
-      case 'admin':
-        return {
-          title: 'Administrator',
-          description: 'Akses penuh ke halaman Tashih',
-          icon: <ShieldCheck className="h-6 w-6" />,
-          color: 'from-purple-500 to-violet-600'
-        }
-      case 'muallimah':
-        return {
-          title: 'Muallimah',
-          description: 'Akses muallimah ke halaman Tashih',
-          icon: <GraduationCap className="h-6 w-6" />,
-          color: 'from-amber-500 to-orange-600'
-        }
-      default:
-        return null
-    }
-  }
-
-  const programDisplay = getProgramDisplay()
-
   return (
     <div className="space-y-6 animate-fadeInUp">
       {/* Header */}
@@ -889,20 +795,6 @@ export default function Tashih() {
           <div>
             <h1 className="text-3xl font-bold text-green-army mb-2">Tashih Bacaan</h1>
             <p className="text-gray-600">Validasi bacaan Al-Quran Ukhti</p>
-            {programDisplay && (
-              <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-sm border border-emerald-200">
-                <span className={cn(
-                  "p-1.5 rounded-full bg-gradient-to-r text-white",
-                  programDisplay.color
-                )}>
-                  {programDisplay.icon}
-                </span>
-                <div>
-                  <p className="text-xs text-gray-500">Program</p>
-                  <p className="text-sm font-semibold text-gray-800">{programDisplay.title}</p>
-                </div>
-              </div>
-            )}
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow-sm">
             <AlertCircle className="h-4 w-4 text-amber-500" />
@@ -1381,54 +1273,22 @@ export default function Tashih() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">Priority 1: daftar_ulang_submissions (submitted/approved)</div>
+                    <div className="font-semibold mb-2 text-blue-600">API Response (/api/pendaftaran/all):</div>
                     <div className="ml-4 space-y-1">
                       <div>
-                        <span className="text-gray-500">Data: </span>
+                        <span className="text-gray-500">Registrations: </span>
                         <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                          {debugInfo.daftarUlangSubmission ? JSON.stringify(debugInfo.daftarUlangSubmission, null, 2) : 'null'}
+                          {debugInfo.apiResponse ? JSON.stringify(debugInfo.apiResponse, null, 2) : 'null'}
                         </pre>
                       </div>
-                      {debugInfo.daftarUlangError && (
+                      {debugInfo.apiError && (
                         <div>
                           <span className="text-gray-500">Error: </span>
                           <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                            {JSON.stringify(debugInfo.daftarUlangError, null, 2)}
+                            {JSON.stringify(debugInfo.apiError, null, 2)}
                           </pre>
                         </div>
                       )}
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">Priority 2: pendaftaran_tikrar_tahfidz (selection_status: 'selected')</div>
-                    <div className="ml-4 space-y-1">
-                      <div>
-                        <span className="text-gray-500">Data: </span>
-                        <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                          {debugInfo.praTikrarReg ? JSON.stringify(debugInfo.praTikrarReg, null, 2) : 'null'}
-                        </pre>
-                      </div>
-                      {debugInfo.praTikrarError && (
-                        <div>
-                          <span className="text-gray-500">Error: </span>
-                          <pre className="mt-1 p-2 bg-red-50 rounded border overflow-x-auto text-red-600">
-                            {JSON.stringify(debugInfo.praTikrarError, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="font-semibold mb-2 text-blue-600">Priority 3: ANY pendaftaran_tikrar_tahfidz</div>
-                    <div className="ml-4 space-y-1">
-                      <div>
-                        <span className="text-gray-500">Data: </span>
-                        <pre className="mt-1 p-2 bg-white rounded border overflow-x-auto">
-                          {debugInfo.anyRegistration ? JSON.stringify(debugInfo.anyRegistration, null, 2) : 'null'}
-                        </pre>
-                      </div>
                     </div>
                   </div>
                 </>
