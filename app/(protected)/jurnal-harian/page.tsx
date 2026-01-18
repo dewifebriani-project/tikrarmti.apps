@@ -863,50 +863,50 @@ export default function JurnalHarianPage() {
               Tahapan tambahan untuk memperkuat dan memperdalam pemahaman hafalan
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {tambahanStepsConfig.map((step) => {
-                const isCompleted = isStepCompleted(step)
+          <CardContent className="p-3 sm:p-6 space-y-4">
+            {tambahanStepsConfig.map((step) => {
+              const isCompleted = isStepCompleted(step)
 
-                return (
-                  <div
-                    key={step.id}
-                    className={cn(
-                      "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
-                      isCompleted
-                        ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
-                        : "border-gray-200 hover:border-purple-300 bg-white"
-                    )}
-                  >
-                    <div className="flex items-start gap-2 sm:gap-3">
-                      <div className={cn("p-1.5 sm:p-2 rounded-lg text-white shrink-0", step.color)}>
-                        {step.icon}
+              return (
+                <div
+                  key={step.id}
+                  className={cn(
+                    "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
+                    isCompleted
+                      ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
+                      : "border-gray-200 bg-white"
+                  )}
+                >
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className={cn("p-1.5 sm:p-2 rounded-lg text-white shrink-0", step.color)}>
+                      {step.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{step.name}</h3>
+                        {isCompleted && (
+                          <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm">{step.name}</h3>
-                        <p className="text-xs text-gray-600">{step.description}</p>
-                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600">{step.description}</p>
+
                       <button
                         type="button"
                         onClick={() => toggleStep(step.id)}
                         className={cn(
-                          "px-2 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all shrink-0 ml-2 touch-manipulation",
+                          "mt-2 px-4 py-2 rounded-lg text-sm font-medium transition-all touch-manipulation",
                           isCompleted
                             ? "bg-green-500 text-white hover:bg-green-600"
                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                         )}
                       >
-                        {isCompleted ? (
-                          <CheckCircle className="h-4 w-4" />
-                        ) : (
-                          <Circle className="h-4 w-4" />
-                        )}
+                        {isCompleted ? 'Selesai' : 'Belum Selesai'}
                       </button>
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
 
