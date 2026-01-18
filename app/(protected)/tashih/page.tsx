@@ -140,13 +140,22 @@ export default function Tashih() {
   const loadUserProgramInfo = async () => {
     try {
       const supabase = createClient()
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-      console.log('[Tashih Page] Auth check:', { user: user?.id, error: userError })
+      // Protected Layout already ensures user is authenticated, no need to check again
+      // This prevents the redirect-to-login issue that was happening
+      const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        console.error('[Tashih Page] No user found, redirecting to login')
-        router.push('/login')
+        console.error('[Tashih Page] No user found')
+        // Don't redirect - ProtectedLayout will handle auth
+        // Just set default program info to allow page access
+        setUserProgramInfo({
+          programType: 'pra_tahfidz',
+          confirmedChosenJuz: null,
+          batchStartDate: null,
+          batchId: null,
+          tashihHalaqahId: null
+        })
+        setIsLoading(false)
         return
       }
 
@@ -402,10 +411,12 @@ export default function Tashih() {
   const loadTodayRecord = async () => {
     try {
       const supabase = createClient()
+      // Protected Layout already ensures user is authenticated
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push('/login')
+        // Don't redirect - ProtectedLayout will handle auth
+        console.warn('[Tashih Page] No user found in loadTodayRecord')
         return
       }
 
