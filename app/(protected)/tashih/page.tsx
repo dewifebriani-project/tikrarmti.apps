@@ -158,6 +158,7 @@ export default function Tashih() {
       const isAdmin = userRoles.includes('admin')
       const isMuallimah = userRoles.includes('muallimah')
 
+      // Open tashih for ALL users regardless of role or program status
       // Admin and muallimah get full access to tashih
       if (isAdmin || isMuallimah) {
         setUserProgramInfo({
@@ -255,7 +256,33 @@ export default function Tashih() {
         return
       }
 
-      // No program found - Default to Pra Tikrar
+      // Priority 3: Check for ANY registration (even pending/rejected/not_selected)
+      // This allows all registered users to access tashih
+      const { data: anyRegistration } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select(`
+          *,
+          program:programs(*),
+          batch:batches(*)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (anyRegistration) {
+        console.log('Found any registration, allowing access to tashih')
+        setUserProgramInfo({
+          programType: 'pra_tahfidz',
+          confirmedChosenJuz: anyRegistration.chosen_juz,
+          batchStartDate: anyRegistration.batch?.start_date || null,
+          batchId: anyRegistration.batch_id || null,
+          tashihHalaqahId: null
+        })
+        return
+      }
+
+      // No program found - Default to Pra Tikrar (open access for all users)
       setUserProgramInfo({
         programType: 'pra_tahfidz',
         confirmedChosenJuz: null,
