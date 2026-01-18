@@ -903,13 +903,12 @@ export default function PerjalananSaya() {
                   const styles = getStatusStyles(item.status);
 
                   // Check if this is the Daftar Ulang card and should be clickable
-                  // Clickable if: selected AND (not completed OR not submitted/approved daftar ulang)
+                  // Clickable if: selected AND (not completed AND no daftar ulang exists)
                   const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                  const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
                   const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                           registrationStatus?.selectionStatus === 'selected' &&
                                           !registrationStatus.registration?.re_enrollment_completed &&
-                                          !hasSubmittedOrApproved;
+                                          !daftarUlang;
 
                   const cardContent = (
                     <Card className={`${styles.cardBg} ${styles.cardBorder} transition-all duration-300 hover:shadow-md ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
@@ -1149,10 +1148,10 @@ export default function PerjalananSaya() {
                               // Daftar Ulang - Show status and akad files
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                                const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
 
-                                // Show daftar ulang info if submitted or approved (with akad files, halaqah details)
-                                if (hasSubmittedOrApproved && daftarUlang) {
+                                // Show daftar ulang info if exists (with akad files, halaqah details)
+                                // Same logic for all users including admin (admin can also be thalibah)
+                                if (daftarUlang) {
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1226,7 +1225,7 @@ export default function PerjalananSaya() {
                                     </div>
                                   );
                                 } else {
-                                  // Not submitted/approved yet - show description
+                                  // No daftar ulang yet - show description
                                   return (
                                     <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
                                       {item.description}
@@ -1403,13 +1402,12 @@ export default function PerjalananSaya() {
                     const isLeftSide = index % 2 === 0;
 
                     // Check if this is the Daftar Ulang card and should be clickable
-                    // Clickable if: selected AND (not completed OR not submitted/approved daftar ulang)
+                    // Clickable if: selected AND (not completed AND no daftar ulang exists)
                     const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                    const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
                     const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                             registrationStatus?.selectionStatus === 'selected' &&
                                             !registrationStatus.registration?.re_enrollment_completed &&
-                                            !hasSubmittedOrApproved;
+                                            !daftarUlang;
 
                     const cardContent = (
                       <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
@@ -1625,10 +1623,10 @@ export default function PerjalananSaya() {
                               // Daftar Ulang - Show status and akad files
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                                const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
 
-                                // Show daftar ulang info if submitted or approved (with akad files, halaqah details)
-                                if (hasSubmittedOrApproved && daftarUlang) {
+                                // Show daftar ulang info if exists (with akad files, halaqah details)
+                                // Same logic for all users including admin (admin can also be thalibah)
+                                if (daftarUlang) {
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1702,7 +1700,7 @@ export default function PerjalananSaya() {
                                     </div>
                                   );
                                 } else {
-                                  // Not submitted/approved yet - show description
+                                  // No daftar ulang yet - show description
                                   return (
                                     <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
                                       {item.description}
