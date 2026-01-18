@@ -194,6 +194,7 @@ export function AdminPairingTab() {
   const [selectedUser, setSelectedUser] = useState<SystemMatchRequest | null>(null)
   const [matchData, setMatchData] = useState<MatchData | null>(null)
   const [selectedMatch, setSelectedMatch] = useState<MatchCandidate | null>(null)
+  const [matchSortConfig, setMatchSortConfig] = useState<{ key: keyof MatchCandidate; direction: 'asc' | 'desc' } | null>(null)
 
   // Reject modal state
   const [showRejectModal, setShowRejectModal] = useState(false)
@@ -232,6 +233,58 @@ export function AdminPairingTab() {
       }
     }
     setSortConfig({ key, direction })
+  }
+
+  // Sort function for match modal
+  const handleMatchSort = (key: keyof MatchCandidate) => {
+    let direction: 'asc' | 'desc' = 'asc'
+    if (matchSortConfig?.key === key) {
+      if (matchSortConfig.direction === 'asc') {
+        direction = 'desc'
+      } else {
+        // Reset to unsorted
+        setMatchSortConfig(null)
+        return
+      }
+    }
+    setMatchSortConfig({ key, direction })
+  }
+
+  // Get sorted match candidates
+  const getSortedMatchCandidates = () => {
+    if (!matchData) return []
+
+    // Combine all candidates from all priority groups
+    const allCandidates = [
+      ...matchData.matches.zona_waktu_utama_juz,
+      ...matchData.matches.zona_waktu_utama_juz_beda,
+      ...matchData.matches.zona_waktu_cadangan_juz,
+      ...matchData.matches.zona_waktu_cadangan_juz_beda,
+      ...matchData.matches.cross_zona,
+    ]
+
+    if (!matchSortConfig?.key) return allCandidates
+
+    const sorted = [...allCandidates].sort((a, b) => {
+      const aValue = a[matchSortConfig.key]
+      const bValue = b[matchSortConfig.key]
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return matchSortConfig.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return matchSortConfig.direction === 'asc'
+          ? aValue - bValue
+          : bValue - aValue
+      }
+
+      return 0
+    })
+
+    return sorted
   }
 
   // Get sorted data
@@ -1909,61 +1962,116 @@ export function AdminPairingTab() {
                   <p className="text-gray-600">Tidak ada kandidat pasangan tersedia</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {/* Priority 1: Zona + Waktu Utama + Juz Sama */}
-                  {matchData.matches.zona_waktu_utama_juz.length > 0 && (
-                    <MatchTableSection
-                      title="Priority 1: Zona + Waktu Utama + Juz Sama"
-                      color="green"
-                      candidates={matchData.matches.zona_waktu_utama_juz}
-                      selectedMatch={selectedMatch}
-                      onSelectMatch={setSelectedMatch}
-                    />
-                  )}
-
-                  {/* Priority 2: Zona + Waktu Utama + Juz Beda */}
-                  {matchData.matches.zona_waktu_utama_juz_beda.length > 0 && (
-                    <MatchTableSection
-                      title="Priority 2: Zona + Waktu Utama + Juz Beda"
-                      color="emerald"
-                      candidates={matchData.matches.zona_waktu_utama_juz_beda}
-                      selectedMatch={selectedMatch}
-                      onSelectMatch={setSelectedMatch}
-                    />
-                  )}
-
-                  {/* Priority 3: Zona + Waktu Cadangan + Juz Sama */}
-                  {matchData.matches.zona_waktu_cadangan_juz.length > 0 && (
-                    <MatchTableSection
-                      title="Priority 3: Zona + Waktu Cadangan + Juz Sama"
-                      color="purple"
-                      candidates={matchData.matches.zona_waktu_cadangan_juz}
-                      selectedMatch={selectedMatch}
-                      onSelectMatch={setSelectedMatch}
-                    />
-                  )}
-
-                  {/* Priority 4: Zona + Waktu Cadangan + Juz Beda */}
-                  {matchData.matches.zona_waktu_cadangan_juz_beda.length > 0 && (
-                    <MatchTableSection
-                      title="Priority 4: Zona + Waktu Cadangan + Juz Beda"
-                      color="blue"
-                      candidates={matchData.matches.zona_waktu_cadangan_juz_beda}
-                      selectedMatch={selectedMatch}
-                      onSelectMatch={setSelectedMatch}
-                    />
-                  )}
-
-                  {/* Priority 5: Lintas Zona Waktu */}
-                  {matchData.matches.cross_zona.length > 0 && (
-                    <MatchTableSection
-                      title="Priority 5: Lintas Zona Waktu"
-                      color="orange"
-                      candidates={matchData.matches.cross_zona}
-                      selectedMatch={selectedMatch}
-                      onSelectMatch={setSelectedMatch}
-                    />
-                  )}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-medium text-gray-700">Pilih</th>
+                          <th
+                            className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('full_name')}
+                          >
+                            Nama {matchSortConfig?.key === 'full_name' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th
+                            className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('tanggal_lahir')}
+                          >
+                            Usia {matchSortConfig?.key === 'tanggal_lahir' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th
+                            className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('chosen_juz')}
+                          >
+                            Juz {matchSortConfig?.key === 'chosen_juz' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th
+                            className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('zona_waktu')}
+                          >
+                            Zona {matchSortConfig?.key === 'zona_waktu' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th
+                            className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('main_time_slot')}
+                          >
+                            Waktu Utama {matchSortConfig?.key === 'main_time_slot' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th
+                            className="px-4 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('backup_time_slot')}
+                          >
+                            Waktu Cadangan {matchSortConfig?.key === 'backup_time_slot' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th
+                            className="px-4 py-2 text-center font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                            onClick={() => handleMatchSort('match_score')}
+                          >
+                            Score {matchSortConfig?.key === 'match_score' && (matchSortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {getSortedMatchCandidates().map((candidate) => (
+                          <tr
+                            key={candidate.user_id}
+                            onClick={() => setSelectedMatch(candidate)}
+                            className={`cursor-pointer transition-colors ${
+                              selectedMatch?.user_id === candidate.user_id
+                                ? 'bg-green-100'
+                                : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <td className="px-4 py-2">
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                selectedMatch?.user_id === candidate.user_id
+                                  ? 'border-green-600 bg-green-600'
+                                  : 'border-gray-300'
+                              }`}>
+                                {selectedMatch?.user_id === candidate.user_id && (
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 font-medium text-gray-900">{candidate.full_name || '-'}</td>
+                            <td className="px-4 py-2 text-gray-700">{calculateAge(candidate.tanggal_lahir)}</td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                {candidate.chosen_juz || '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                {candidate.zona_waktu || 'WIB'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                {candidate.main_time_slot || '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                                {candidate.backup_time_slot || '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                candidate.match_score >= 100 ? 'bg-green-100 text-green-800' :
+                                candidate.match_score >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-600'
+                              }`}>
+                                {candidate.match_score}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
