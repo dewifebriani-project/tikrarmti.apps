@@ -140,9 +140,12 @@ export default function Tashih() {
   const loadUserProgramInfo = async () => {
     try {
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+      console.log('[Tashih Page] Auth check:', { user: user?.id, error: userError })
 
       if (!user) {
+        console.error('[Tashih Page] No user found, redirecting to login')
         router.push('/login')
         return
       }
