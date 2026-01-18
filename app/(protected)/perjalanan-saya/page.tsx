@@ -51,6 +51,17 @@ interface TikrarRegistration extends Pendaftaran {
 
 // Pairing data interface
 interface PairingData {
+  current_user: {
+    id: string;
+    full_name: string;
+    email: string;
+    zona_waktu: string;
+    whatsapp: string | null;
+    tanggal_lahir: string | null;
+    chosen_juz: string;
+    main_time_slot: string;
+    backup_time_slot: string;
+  };
   pairing: {
     id: string;
     pairing_type: string;
@@ -649,6 +660,110 @@ export default function PerjalananSaya() {
     return age;
   };
 
+  const hasTimeSlotOverlap = (slot1: string, slot2: string): boolean => {
+    if (!slot1 || !slot2) return false;
+
+    const parseSlot = (slot: string) => {
+      const [start, end] = slot.split('-').map(Number);
+      return { start, end };
+    };
+
+    const s1 = parseSlot(slot1);
+    const s2 = parseSlot(slot2);
+
+    return s1.start < s2.end && s2.start < s1.end;
+  };
+
+  const renderCompatibilityAnalysis = (currentUser: any, partner: any, partnerLabel: string) => {
+    const juzMatch = currentUser.chosen_juz === partner.chosen_juz;
+    const zonaMatch = currentUser.zona_waktu === partner.zona_waktu;
+    const mainTimeMatch = hasTimeSlotOverlap(currentUser.main_time_slot, partner.main_time_slot);
+    const backupTimeMatch = hasTimeSlotOverlap(currentUser.backup_time_slot, partner.backup_time_slot) ||
+                            hasTimeSlotOverlap(currentUser.backup_time_slot, partner.main_time_slot) ||
+                            hasTimeSlotOverlap(currentUser.main_time_slot, partner.backup_time_slot);
+
+    return (
+      <div key={partnerLabel} className="space-y-1.5">
+        <p className="text-xs font-medium text-gray-700 mb-1.5">Kecocokan dengan {partnerLabel}:</p>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`w-1.5 h-1.5 rounded-full ${juzMatch ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+          <span className={juzMatch ? 'text-green-700' : 'text-amber-700'}>
+            Juz: {juzMatch ? 'Sama ✓' : 'Beda'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`w-1.5 h-1.5 rounded-full ${zonaMatch ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+          <span className={zonaMatch ? 'text-green-700' : 'text-amber-700'}>
+            Zona: {zonaMatch ? 'Sama ✓' : 'Beda'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`w-1.5 h-1.5 rounded-full ${mainTimeMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
+          <span className={mainTimeMatch ? 'text-green-700' : 'text-red-700'}>
+            W. Utama: {mainTimeMatch ? 'Cocok ✓' : 'Tidak cocok'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`w-1.5 h-1.5 rounded-full ${backupTimeMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
+          <span className={backupTimeMatch ? 'text-green-700' : 'text-red-700'}>
+            W. Cadangan: {backupTimeMatch ? 'Cocok ✓' : 'Tidak cocok'}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  const getMatchingAdvice = (currentUser: any, partners: any[]) => {
+    let hasPerfectMatches = false;
+    let hasSomeMatches = false;
+    let hasNoMatches = true;
+
+    for (const partner of partners) {
+      if (!partner) continue;
+
+      const juzMatch = currentUser.chosen_juz === partner.chosen_juz;
+      const zonaMatch = currentUser.zona_waktu === partner.zona_waktu;
+      const mainTimeMatch = hasTimeSlotOverlap(currentUser.main_time_slot, partner.main_time_slot);
+
+      if (juzMatch && zonaMatch && mainTimeMatch) {
+        hasPerfectMatches = true;
+        hasNoMatches = false;
+      } else if (juzMatch || zonaMatch || mainTimeMatch) {
+        hasSomeMatches = true;
+        hasNoMatches = false;
+      }
+    }
+
+    if (hasPerfectMatches) {
+      return {
+        icon: '✨',
+        title: 'Alhamdulillah, Kecocokan Baik!',
+        message: 'Ukhti mendapatkan pasangan dengan kecocokan yang baik. Semoga ikhtiar ini membawa keberkahan dalam menghafal dan mengamalkan Al-Qur\'an bersama.',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200',
+        textColor: 'text-green-800'
+      };
+    } else if (hasSomeMatches) {
+      return {
+        icon: '💪',
+        title: 'Sabar dan Ikhlas',
+        message: 'Wahai Ukhti yang mulia, sistem berpasangan ini ditentukan dengan logika berlapis untuk kebaikan bersama. Terimalah pasangan sebagai ujian kesabaran dan kesempatan untuk berbagi ilmu. Jangan ragu untuk berkomunikasi dengan pasangan mencari waktu yang sesuai.',
+        bgColor: 'bg-amber-50',
+        borderColor: 'border-amber-200',
+        textColor: 'text-amber-800'
+      };
+    } else {
+      return {
+        icon: '🤲',
+        title: 'Ujian Kesabaran',
+        message: 'Wahai Ukhti yang mulia, semua takdir Allah adalah yang terbaik. Sistem berpasangan ini ditentukan dengan logika berlapis. Perbedaan ini adalah kesempatan untuk belajar toleransi, berkomunikasi, dan mencari solusi bersama. Mari berikhtiar mencari waktu yang bisa disepakati bersama pasangan.',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-200',
+        textColor: 'text-orange-800'
+      };
+    }
+  };
+
   const fetchPairingData = async (currentBatchId: string | null) => {
     if (!user || !currentBatchId) return;
 
@@ -979,91 +1094,169 @@ export default function PerjalananSaya() {
                       <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-lg p-3 border border-rose-200">
                         <div className="flex items-start space-x-2">
                           <HeartHandshake className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-grow">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs sm:text-sm text-gray-600">Pasangan Belajar</p>
+                          <div className="flex-grow w-full">
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="text-xs sm:text-sm text-gray-600 font-medium">Pasangan Belajar</p>
                               {pairingData.pairing.is_group_of_3 && (
                                 <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
                                   Grup 3
                                 </span>
                               )}
                             </div>
-                            <div className="space-y-2">
+
+                            {/* Partners Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
                               {/* Partner 1 or 2 depending on current user's role */}
                               {pairingData.pairing.user_role !== 'user_1' && (
-                                <div className="bg-white rounded p-2 border border-rose-100">
+                                <div className="bg-white rounded-lg p-3 border border-rose-100">
                                   <p className="text-xs text-gray-600 mb-1">Thalibah Pertama</p>
-                                  <p className="font-medium text-sm text-rose-800">{pairingData.user_1.full_name}</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                  <p className="font-semibold text-sm text-rose-900 mb-2">{pairingData.user_1.full_name}</p>
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                                       Juz {pairingData.user_1.chosen_juz}
                                     </span>
-                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                                       {pairingData.user_1.zona_waktu}
                                     </span>
-                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
-                                      {pairingData.user_1.main_time_slot}
-                                    </span>
-                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                                      {pairingData.user_1.backup_time_slot}
-                                    </span>
                                   </div>
-                                  <p className="text-xs text-gray-600 mt-1">Usia: {calculateAge(pairingData.user_1.tanggal_lahir)} tahun</p>
+                                  <div className="space-y-1 mb-2">
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Clock className="w-3 h-3" />
+                                      <span>W. Utama: <span className="font-medium text-green-700">{pairingData.user_1.main_time_slot}</span></span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Clock className="w-3 h-3" />
+                                      <span>W. Cadangan: <span className="font-medium text-orange-700">{pairingData.user_1.backup_time_slot}</span></span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-600">Usia: {calculateAge(pairingData.user_1.tanggal_lahir)} tahun</p>
                                   {pairingData.user_1.whatsapp && (
-                                    <p className="text-xs text-gray-600">WA: {pairingData.user_1.whatsapp}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <p className="text-xs text-gray-600">WA: {pairingData.user_1.whatsapp}</p>
+                                      <a
+                                        href={`https://wa.me/${pairingData.user_1.whatsapp.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-green-600 hover:text-green-700"
+                                        title="Chat di WhatsApp"
+                                      >
+                                        <Phone className="w-3 h-3" />
+                                      </a>
+                                    </div>
                                   )}
                                 </div>
                               )}
                               {pairingData.pairing.user_role !== 'user_2' && (
-                                <div className="bg-white rounded p-2 border border-purple-100">
+                                <div className="bg-white rounded-lg p-3 border border-purple-100">
                                   <p className="text-xs text-gray-600 mb-1">Thalibah Kedua</p>
-                                  <p className="font-medium text-sm text-purple-800">{pairingData.user_2.full_name}</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                  <p className="font-semibold text-sm text-purple-900 mb-2">{pairingData.user_2.full_name}</p>
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                                       Juz {pairingData.user_2.chosen_juz}
                                     </span>
-                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                                       {pairingData.user_2.zona_waktu}
                                     </span>
-                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
-                                      {pairingData.user_2.main_time_slot}
-                                    </span>
-                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                                      {pairingData.user_2.backup_time_slot}
-                                    </span>
                                   </div>
-                                  <p className="text-xs text-gray-600 mt-1">Usia: {calculateAge(pairingData.user_2.tanggal_lahir)} tahun</p>
+                                  <div className="space-y-1 mb-2">
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Clock className="w-3 h-3" />
+                                      <span>W. Utama: <span className="font-medium text-green-700">{pairingData.user_2.main_time_slot}</span></span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Clock className="w-3 h-3" />
+                                      <span>W. Cadangan: <span className="font-medium text-orange-700">{pairingData.user_2.backup_time_slot}</span></span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-600">Usia: {calculateAge(pairingData.user_2.tanggal_lahir)} tahun</p>
                                   {pairingData.user_2.whatsapp && (
-                                    <p className="text-xs text-gray-600">WA: {pairingData.user_2.whatsapp}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <p className="text-xs text-gray-600">WA: {pairingData.user_2.whatsapp}</p>
+                                      <a
+                                        href={`https://wa.me/${pairingData.user_2.whatsapp.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-green-600 hover:text-green-700"
+                                        title="Chat di WhatsApp"
+                                      >
+                                        <Phone className="w-3 h-3" />
+                                      </a>
+                                    </div>
                                   )}
                                 </div>
                               )}
                               {/* Third partner if exists */}
                               {pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' && pairingData.user_3 && (
-                                <div className="bg-white rounded p-2 border border-amber-100">
+                                <div className="bg-white rounded-lg p-3 border border-amber-100 sm:col-span-2">
                                   <p className="text-xs text-gray-600 mb-1">Thalibah Ketiga</p>
-                                  <p className="font-medium text-sm text-amber-800">{pairingData.user_3.full_name}</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                  <p className="font-semibold text-sm text-amber-900 mb-2">{pairingData.user_3.full_name}</p>
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                                       Juz {pairingData.user_3.chosen_juz}
                                     </span>
-                                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                                       {pairingData.user_3.zona_waktu}
                                     </span>
-                                    <span className="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
-                                      {pairingData.user_3.main_time_slot}
-                                    </span>
-                                    <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
-                                      {pairingData.user_3.backup_time_slot}
-                                    </span>
                                   </div>
-                                  <p className="text-xs text-gray-600 mt-1">Usia: {calculateAge(pairingData.user_3.tanggal_lahir)} tahun</p>
+                                  <div className="space-y-1 mb-2">
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Clock className="w-3 h-3" />
+                                      <span>W. Utama: <span className="font-medium text-green-700">{pairingData.user_3.main_time_slot}</span></span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Clock className="w-3 h-3" />
+                                      <span>W. Cadangan: <span className="font-medium text-orange-700">{pairingData.user_3.backup_time_slot}</span></span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-600">Usia: {calculateAge(pairingData.user_3.tanggal_lahir)} tahun</p>
                                   {pairingData.user_3.whatsapp && (
-                                    <p className="text-xs text-gray-600">WA: {pairingData.user_3.whatsapp}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <p className="text-xs text-gray-600">WA: {pairingData.user_3.whatsapp}</p>
+                                      <a
+                                        href={`https://wa.me/${pairingData.user_3.whatsapp.replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-green-600 hover:text-green-700"
+                                        title="Chat di WhatsApp"
+                                      >
+                                        <Phone className="w-3 h-3" />
+                                      </a>
+                                    </div>
                                   )}
                                 </div>
                               )}
                             </div>
+
+                            {/* Compatibility Analysis */}
+                            <div className="bg-white rounded-lg p-3 border border-blue-100 mb-3">
+                              <p className="text-xs font-semibold text-gray-700 mb-2">Analisis Kecocokan</p>
+                              <div className="space-y-2">
+                                {pairingData.pairing.user_role !== 'user_1' && renderCompatibilityAnalysis(pairingData.current_user, pairingData.user_1, 'Thalibah Pertama')}
+                                {pairingData.pairing.user_role !== 'user_2' && renderCompatibilityAnalysis(pairingData.current_user, pairingData.user_2, 'Thalibah Kedua')}
+                                {pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' && pairingData.user_3 && renderCompatibilityAnalysis(pairingData.current_user, pairingData.user_3, 'Thalibah Ketiga')}
+                              </div>
+                            </div>
+
+                            {/* Advice Section */}
+                            {(() => {
+                              const partners = [
+                                pairingData.pairing.user_role !== 'user_1' ? pairingData.user_1 : null,
+                                pairingData.pairing.user_role !== 'user_2' ? pairingData.user_2 : null,
+                                pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' ? pairingData.user_3 : null
+                              ].filter(Boolean);
+                              const advice = getMatchingAdvice(pairingData.current_user, partners);
+                              return (
+                                <div className={`rounded-lg p-3 border ${advice.bgColor} ${advice.borderColor}`}>
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-lg sm:text-xl">{advice.icon}</span>
+                                    <div>
+                                      <p className={`text-xs sm:text-sm font-semibold ${advice.textColor} mb-1`}>{advice.title}</p>
+                                      <p className={`text-xs ${advice.textColor} leading-relaxed`}>{advice.message}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

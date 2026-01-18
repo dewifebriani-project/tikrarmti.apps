@@ -104,9 +104,13 @@ export async function GET(request: Request) {
                      pairing.user_2_id === user.id ? 'user_2' :
                      pairing.user_3_id === user.id ? 'user_3' : null
 
+    // 10. Get current user's data for comparison
+    const currentUserData = buildUserData(user.id)
+
     return NextResponse.json({
       success: true,
       data: {
+        current_user: currentUserData,
         pairing: {
           id: pairing.id,
           pairing_type: pairing.pairing_type,
