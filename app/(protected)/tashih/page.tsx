@@ -29,11 +29,12 @@ interface TashihBlock {
 }
 
 interface TashihData {
-  blok: string
+  blok: string[]
   lokasi: 'mti' | 'luar'
   lokasiDetail: string
   ustadzahId: string | null
   ustadzahName: string | null
+  jumlahKesalahanTajwid: number
   masalahTajwid: string[]
   catatanTambahan: string
   tanggalTashih: string
@@ -77,11 +78,12 @@ export default function TashihPage() {
   const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
 
   const [tashihData, setTashihData] = useState<TashihData>({
-    blok: '',
+    blok: [],
     lokasi: 'mti',
     lokasiDetail: '',
     ustadzahId: null,
     ustadzahName: null,
+    jumlahKesalahanTajwid: 0,
     masalahTajwid: [],
     catatanTambahan: '',
     tanggalTashih: new Date().toISOString().slice(0, 10)
@@ -253,12 +255,15 @@ export default function TashihPage() {
         setTodayRecord(data[0])
         // Map legacy 'halaqah' value to 'mti'
         const lokasiValue = data[0].lokasi === 'halaqah' ? 'mti' : data[0].lokasi as 'mti' | 'luar'
+        // Handle blok as array (new) or string (legacy)
+        const blokValue = Array.isArray(data[0].blok) ? data[0].blok : (data[0].blok ? [data[0].blok] : [])
         setTashihData({
-          blok: data[0].blok,
+          blok: blokValue,
           lokasi: lokasiValue,
           lokasiDetail: data[0].lokasi_detail || '',
           ustadzahId: data[0].ustadzah_id || null,
           ustadzahName: data[0].nama_pemeriksa || null,
+          jumlahKesalahanTajwid: data[0].jumlah_kesalahan_tajwid || 0,
           masalahTajwid: data[0].masalah_tajwid || [],
           catatanTambahan: data[0].catatan_tambahan || '',
           tanggalTashih: new Date(data[0].waktu_tashih).toISOString().slice(0, 10)
@@ -272,12 +277,23 @@ export default function TashihPage() {
   const validateForm = () => {
     const valid = !!(
       tashihData.blok &&
+      tashihData.blok.length > 0 &&
       tashihData.lokasi &&
       tashihData.tanggalTashih &&
       (tashihData.lokasi === 'luar' ? tashihData.lokasiDetail : true)
     )
     setIsValid(valid)
     return valid
+  }
+
+  // Toggle blok selection (multi-select)
+  const toggleBlok = (blockCode: string) => {
+    setTashihData(prev => ({
+      ...prev,
+      blok: prev.blok.includes(blockCode)
+        ? prev.blok.filter(b => b !== blockCode)
+        : [...prev.blok, blockCode]
+    }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -296,11 +312,12 @@ export default function TashihPage() {
 
       const recordData = {
         user_id: user.id,
-        blok: tashihData.blok,
+        blok: tashihData.blok.join(','), // Store as comma-separated string for DB compatibility
         lokasi: tashihData.lokasi,
         lokasi_detail: tashihData.lokasiDetail || null,
         ustadzah_id: tashihData.ustadzahId,
         nama_pemeriksa: tashihData.ustadzahName,
+        jumlah_kesalahan_tajwid: tashihData.jumlahKesalahanTajwid,
         masalah_tajwid: tashihData.masalahTajwid,
         catatan_tambahan: tashihData.catatanTambahan || null,
         waktu_tashih: new Date(tashihData.tanggalTashih).toISOString()
@@ -345,11 +362,12 @@ export default function TashihPage() {
 
   const resetForm = () => {
     setTashihData({
-      blok: '',
+      blok: [],
       lokasi: 'mti',
       lokasiDetail: '',
       ustadzahId: null,
       ustadzahName: null,
+      jumlahKesalahanTajwid: 0,
       masalahTajwid: [],
       catatanTambahan: '',
       tanggalTashih: new Date().toISOString().slice(0, 10)
@@ -409,7 +427,7 @@ export default function TashihPage() {
     const dateString = date.toISOString().split('T')[0]
     const weekNum = getWeekNumberFromDate(date)
     setSelectedWeekNumber(weekNum)
-    setTashihData(prev => ({ ...prev, tanggalTashih: dateString, blok: '' }))
+    setTashihData(prev => ({ ...prev, tanggalTashih: dateString, blok: [] as string[] }))
   }
 
   // Get current week number from today's date
@@ -688,40 +706,37 @@ export default function TashihPage() {
                 <p className="text-gray-500">Belum ada blok yang tersedia.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {availableBlocks.map((blok) => (
-                  <div
-                    key={blok.block_code}
-                    onClick={() => setTashihData(prev => ({ ...prev, blok: blok.block_code }))}
-                    className={cn(
-                      "p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 group",
-                      "hover:shadow-lg hover:scale-105 hover:-translate-y-1",
-                      tashihData.blok === blok.block_code
-                        ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-xl ring-2 ring-blue-200"
-                        : "border-gray-200 hover:border-blue-300 bg-white"
-                    )}
-                  >
-                    <div className="text-center">
-                      <div className={cn(
-                        "text-2xl font-bold mb-2",
-                        tashihData.blok === blok.block_code ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600"
-                      )}>
-                        {blok.block_code.toUpperCase()}
-                      </div>
-                      <div className={cn(
-                        "text-sm",
-                        tashihData.blok === blok.block_code ? "text-blue-600 font-medium" : "text-gray-500 group-hover:text-blue-500"
-                      )}>
-                        Hal. {blok.start_page === blok.end_page ? blok.start_page : `${blok.start_page}-${blok.end_page}`}
-                      </div>
-                      {tashihData.blok === blok.block_code && (
-                        <div className="mt-3 text-blue-600">
-                          <CheckCircle className="h-6 w-6 mx-auto" />
-                        </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {availableBlocks.map((blok) => {
+                  const isSelected = tashihData.blok.includes(blok.block_code)
+                  return (
+                    <div
+                      key={blok.block_code}
+                      onClick={() => toggleBlok(blok.block_code)}
+                      className={cn(
+                        "p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group",
+                        "hover:shadow-lg hover:scale-105",
+                        isSelected
+                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200"
+                          : "border-gray-200 hover:border-blue-300 bg-white"
                       )}
+                    >
+                      <div className="text-center">
+                        <div className={cn(
+                          "text-2xl font-bold",
+                          isSelected ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600"
+                        )}>
+                          {blok.block_code.toUpperCase()}
+                        </div>
+                        {isSelected && (
+                          <div className="mt-2 text-blue-600">
+                            <CheckCircle className="h-5 w-5 mx-auto" />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
@@ -889,6 +904,41 @@ export default function TashihPage() {
           </CardContent>
         </Card>
 
+        {/* Jumlah Kesalahan Tajwid */}
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
+            <CardTitle className="flex items-center gap-2 text-amber-700">
+              <AlertCircle className="h-5 w-5" />
+              <span>Jumlah Kesalahan Tajwid</span>
+            </CardTitle>
+            <CardDescription>
+              Masukkan jumlah kesalahan tajwid yang ditemukan saat tashih
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setTashihData(prev => ({ ...prev, jumlahKesalahanTajwid: Math.max(0, prev.jumlahKesalahanTajwid - 1) }))}
+                className="w-12 h-12 rounded-full border-2 border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-2xl font-bold text-gray-600 transition-colors"
+              >
+                -
+              </button>
+              <div className="flex-1 text-center">
+                <span className="text-4xl font-bold text-amber-600">{tashihData.jumlahKesalahanTajwid}</span>
+                <p className="text-sm text-gray-500 mt-1">kesalahan</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTashihData(prev => ({ ...prev, jumlahKesalahanTajwid: prev.jumlahKesalahanTajwid + 1 }))}
+                className="w-12 h-12 rounded-full border-2 border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center text-2xl font-bold text-gray-600 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tajwid Issues */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-rose-50 to-pink-50 border-b">
@@ -902,7 +952,7 @@ export default function TashihPage() {
               )}
             </CardTitle>
             <CardDescription>
-              Pilih masalah tajwid yang perlu diperbaiki (opsional)
+              Pilih jenis masalah tajwid yang ditemukan (opsional)
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
