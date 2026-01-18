@@ -1257,7 +1257,9 @@ export default function Tashih() {
 
       {/* Debug Panel */}
       {debugInfo && (
-        <Card className="bg-yellow-50 border-yellow-300">
+        <>
+          {console.log('[Tashih] Debug Panel rendering:', { debugInfo, userProgramInfo })}
+          <Card className="bg-yellow-50 border-yellow-300">
           <CardHeader>
             <CardTitle className="text-sm font-mono text-yellow-800">Debug Info - Program Detection</CardTitle>
           </CardHeader>
@@ -1317,6 +1319,7 @@ export default function Tashih() {
             </div>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   )
