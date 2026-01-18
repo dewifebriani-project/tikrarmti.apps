@@ -41,13 +41,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 3. Fetch all system_match users who are not yet paired
+    // 3. Fetch all system_match users who are not yet paired (both submitted and approved)
     const { data: submissions, error: submissionsError } = await supabase
       .from('daftar_ulang_submissions')
       .select('user_id, id, status')
       .eq('batch_id', batch_id)
       .eq('partner_type', 'system_match')
-      .eq('status', 'submitted')
+      .in('status', ['submitted', 'approved'])
 
     if (submissionsError) throw submissionsError
 
