@@ -74,7 +74,8 @@ export async function GET(request: Request) {
           full_name,
           email,
           zona_waktu,
-          whatsapp
+          whatsapp,
+          tanggal_lahir
         ),
         registrations:pendaftaran_tikrar_tahfidz!daftar_ulang_submissions_registration_id_fkey (
           id,
@@ -258,6 +259,7 @@ export async function GET(request: Request) {
         user_email: users?.[0]?.email,
         user_zona_waktu: userTimezone,
         user_wa_phone: users?.[0]?.whatsapp,
+        user_tanggal_lahir: users?.[0]?.tanggal_lahir,
         chosen_juz: registrations?.[0]?.chosen_juz,
         main_time_slot: registrations?.[0]?.main_time_slot,
         backup_time_slot: registrations?.[0]?.backup_time_slot,
@@ -283,7 +285,7 @@ export async function GET(request: Request) {
         if (submission.partner_user_id) {
           const { data: partnerUser } = await supabase
             .from('users')
-            .select('id, full_name, email, zona_waktu, whatsapp')
+            .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
             .eq('id', submission.partner_user_id)
             .single()
 
@@ -325,6 +327,7 @@ export async function GET(request: Request) {
               email: partnerUser.email,
               zona_waktu: partnerRegistration?.timezone || partnerUser.zona_waktu || 'WIB',
               wa_phone: partnerUser.whatsapp,
+              tanggal_lahir: partnerUser.tanggal_lahir,
               chosen_juz: partnerRegistration?.chosen_juz || 'N/A',
               main_time_slot: partnerRegistration?.main_time_slot || 'N/A',
               backup_time_slot: partnerRegistration?.backup_time_slot || 'N/A',

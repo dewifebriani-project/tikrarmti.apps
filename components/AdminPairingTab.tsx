@@ -44,6 +44,7 @@ interface SystemMatchRequest {
   user_email: string
   user_wa_phone: string
   user_zona_waktu: string
+  user_tanggal_lahir?: string | null
   chosen_juz: string
   main_time_slot: string
   backup_time_slot: string
@@ -135,6 +136,7 @@ interface MatchCandidate {
   email: string
   zona_waktu: string
   wa_phone: string
+  tanggal_lahir?: string | null
   chosen_juz: string
   main_time_slot: string
   backup_time_slot: string
@@ -259,6 +261,19 @@ export function AdminPairingTab() {
   }
 
   const sortedSystemMatchRequests = getSortedSystemMatchRequests()
+
+  // Helper function to calculate age from birth date
+  const calculateAge = (birthDate: string | null | undefined) => {
+    if (!birthDate) return '-'
+    const today = new Date()
+    const birth = new Date(birthDate)
+    let age = today.getFullYear() - birth.getFullYear()
+    const monthDiff = today.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  }
 
   useEffect(() => {
     loadBatches()
@@ -1378,6 +1393,9 @@ export function AdminPairingTab() {
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('main_time_matches')}>
                       W. Utama {sortConfig.key === 'main_time_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usia
+                    </th>
                     <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => handleSort('backup_time_matches')}>
                       W. Cadangan {sortConfig.key === 'backup_time_matches' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                     </th>
@@ -1452,6 +1470,9 @@ export function AdminPairingTab() {
                         }`}>
                           {request.backup_time_matches || 0}
                         </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-left">
+                        <span className="text-gray-700">{calculateAge(request.user_tanggal_lahir)}</span>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-purple-600">
                         {request.zona_waktu_matches || 0}
@@ -2582,6 +2603,19 @@ function MatchTableSection({
 
   const colors = colorClasses[color]
 
+  // Helper function to calculate age from birth date
+  const calculateAge = (birthDate: string | null | undefined) => {
+    if (!birthDate) return '-'
+    const today = new Date()
+    const birth = new Date(birthDate)
+    let age = today.getFullYear() - birth.getFullYear()
+    const monthDiff = today.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    return age
+  }
+
   return (
     <div className={`border ${colors.border} rounded-lg overflow-hidden`}>
       <h4 className={`${colors.header} ${colors.text} px-4 py-2 text-sm font-medium`}>{title} ({candidates.length})</h4>
@@ -2591,6 +2625,7 @@ function MatchTableSection({
             <tr>
               <th className="px-4 py-2 text-left font-medium text-gray-700">Pilih</th>
               <th className="px-4 py-2 text-left font-medium text-gray-700">Nama</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700">Usia</th>
               <th className="px-4 py-2 text-left font-medium text-gray-700">Email</th>
               <th className="px-4 py-2 text-left font-medium text-gray-700">Juz</th>
               <th className="px-4 py-2 text-left font-medium text-gray-700">Zona</th>
@@ -2624,6 +2659,7 @@ function MatchTableSection({
                   </div>
                 </td>
                 <td className="px-4 py-2 font-medium text-gray-900">{candidate.full_name || '-'}</td>
+                <td className="px-4 py-2 text-gray-700">{calculateAge(candidate.tanggal_lahir)}</td>
                 <td className="px-4 py-2 text-gray-600 text-xs">{candidate.email || '-'}</td>
                 <td className="px-4 py-2">
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">

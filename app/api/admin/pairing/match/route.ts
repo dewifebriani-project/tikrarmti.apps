@@ -142,7 +142,7 @@ export async function GET(request: Request) {
     // Fetch user data for all candidates
     const { data: usersData, error: usersError } = await supabase
       .from('users')
-      .select('id, full_name, email, zona_waktu, whatsapp')
+      .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
       .in('id', userIds)
 
     if (usersError) throw usersError
@@ -193,6 +193,7 @@ export async function GET(request: Request) {
         email: user.email,
         zona_waktu: candidateTimezone,
         wa_phone: user.whatsapp,
+        tanggal_lahir: user.tanggal_lahir,
         chosen_juz: registration?.chosen_juz || 'N/A',
         main_time_slot: registration?.main_time_slot || 'N/A',
         backup_time_slot: registration?.backup_time_slot || 'N/A',
