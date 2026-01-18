@@ -23,55 +23,75 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get tikrar registrations and daftar ulang submissions
-    const [tikrarResult, daftarUlangResult] = await Promise.all([
-      supabase
-        .from('pendaftaran_tikrar_tahfidz')
-        .select(`
-          *,
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
+    // Get tikrar registrations with daftar ulang data embedded (with halaqah details)
+    const { data: tikrarRegistrations, error: tikrarError } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select(`
+        *,
+        batch:batches(*),
+        program:programs(*),
+        daftar_ulang:daftar_ulang_submissions(
+          id,
+          user_id,
+          batch_id,
+          registration_id,
+          status,
+          submitted_at,
+          reviewed_at,
+          akad_files,
+          ujian_halaqah_id,
+          tashih_halaqah_id,
+          ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(
+            id,
+            name,
+            day_of_week,
+            start_time,
+            end_time,
+            location
+          ),
+          tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(
+            id,
+            name,
+            day_of_week,
+            start_time,
+            end_time,
+            location
+          )
+        )
+      `)
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
 
-      supabase
-        .from('daftar_ulang_submissions')
-        .select(`
-          *,
-          batch:batches(*)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-    ])
+    if (tikrarError) {
+      console.error('Error fetching tikrar registrations:', tikrarError)
+      throw tikrarError
+    }
 
-    // Combine registrations - only from OPEN batches (current active batch)
-    const allRegistrations = [
-      // Tikrar registrations from OPEN batches
-      ...(tikrarResult.data || [])
-        .filter((reg: any) => reg.batch?.status === 'open')
-        .map((reg: any) => ({
+    // Process registrations and embed daftar ulang data
+    const allRegistrations = (tikrarRegistrations || [])
+      .filter((reg: any) => reg.batch?.status === 'open') // Only from OPEN batches
+      .map((reg: any) => {
+        // Get daftar ulang submission for this batch
+        const daftarUlang = reg.daftar_ulang && Array.isArray(reg.daftar_ulang)
+          ? reg.daftar_ulang.find((du: any) => du.batch_id === reg.batch_id)
+          : null
+
+        return {
           ...reg,
           registration_type: 'calon_thalibah',
           role: 'calon_thalibah',
           status: reg.status || 'pending',
-          batch_name: reg.batch?.name || null
-        })),
-      // Daftar ulang submissions from OPEN batches
-      ...(daftarUlangResult.data || [])
-        .filter((submission: any) => submission.batch?.status === 'open')
-        .map((submission: any) => ({
-          ...submission,
-          registration_type: 'daftar_ulang',
-          role: 'thalibah',
-          status: submission.status,
-          batch_name: submission.batch?.name || null
-        }))
-    ]
+          batch_name: reg.batch?.name || null,
+          daftar_ulang: daftarUlang || null,
+          // For backwards compatibility, set re_enrollment_completed if daftar ulang is approved
+          re_enrollment_completed: daftarUlang?.status === 'approved' ? true : reg.re_enrollment_completed
+        }
+      })
 
-    // Sort by created_at/submitted_at descending
+    // Sort by created_at descending
     allRegistrations.sort((a, b) => {
-      const dateA = new Date(a.created_at || a.submitted_at || 0)
-      const dateB = new Date(b.created_at || b.submitted_at || 0)
+      const dateA = new Date(a.created_at || 0)
+      const dateB = new Date(b.created_at || 0)
       return dateB.getTime() - dateA.getTime()
     })
 

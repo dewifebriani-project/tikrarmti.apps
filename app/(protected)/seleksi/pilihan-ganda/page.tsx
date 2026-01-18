@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, AlertCircle, Clock, FileText, Loader2, Flag, X, Send, Save } from 'lucide-react';
+import { UserProfileCard } from '@/components/UserProfileCard';
 
 interface ExamQuestion {
   id: string;
@@ -529,6 +530,9 @@ export default function PilihanGandaPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+        {/* User Profile Card */}
+        <UserProfileCard userId={user?.id} showAlert={false} showTitle={false} />
+
         {!quizStarted ? (
           /* Start Quiz Screen */
           <Card className="bg-white shadow-lg">

@@ -903,9 +903,13 @@ export default function PerjalananSaya() {
                   const styles = getStatusStyles(item.status);
 
                   // Check if this is the Daftar Ulang card and should be clickable
+                  // Clickable if: selected AND (not completed OR not submitted/approved daftar ulang)
+                  const daftarUlang = registrationStatus.registration?.daftar_ulang;
+                  const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
                   const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                           registrationStatus?.selectionStatus === 'selected' &&
-                                          !registrationStatus.registration?.re_enrollment_completed;
+                                          !registrationStatus.registration?.re_enrollment_completed &&
+                                          !hasSubmittedOrApproved;
 
                   const cardContent = (
                     <Card className={`${styles.cardBg} ${styles.cardBorder} transition-all duration-300 hover:shadow-md ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
@@ -1145,11 +1149,10 @@ export default function PerjalananSaya() {
                               // Daftar Ulang - Show status and akad files
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                                const isCompleted = registrationStatus.registration?.re_enrollment_completed === true;
-                                const hasSubmittedDaftarUlang = daftarUlang?.status === 'submitted';
+                                const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
 
-                                // Show daftar ulang info if completed OR if submitted (even if not yet marked completed)
-                                if ((isCompleted || hasSubmittedDaftarUlang) && daftarUlang) {
+                                // Show daftar ulang info if submitted or approved (with akad files, halaqah details)
+                                if (hasSubmittedOrApproved && daftarUlang) {
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1222,20 +1225,8 @@ export default function PerjalananSaya() {
                                       )}
                                     </div>
                                   );
-                                } else if (registrationStatus?.registration?.re_enrollment_completed === true) {
-                                  // Completed but no daftar ulang data (shouldn't happen but handle gracefully)
-                                  return (
-                                    <div className="space-y-2">
-                                      <div className="flex items-start space-x-2">
-                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
-                                          Daftar ulang selesai ✓
-                                        </p>
-                                      </div>
-                                    </div>
-                                  );
                                 } else {
-                                  // Not completed yet
+                                  // Not submitted/approved yet - show description
                                   return (
                                     <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
                                       {item.description}
@@ -1412,9 +1403,13 @@ export default function PerjalananSaya() {
                     const isLeftSide = index % 2 === 0;
 
                     // Check if this is the Daftar Ulang card and should be clickable
+                    // Clickable if: selected AND (not completed OR not submitted/approved daftar ulang)
+                    const daftarUlang = registrationStatus.registration?.daftar_ulang;
+                    const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
                     const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                             registrationStatus?.selectionStatus === 'selected' &&
-                                            !registrationStatus.registration?.re_enrollment_completed;
+                                            !registrationStatus.registration?.re_enrollment_completed &&
+                                            !hasSubmittedOrApproved;
 
                     const cardContent = (
                       <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
@@ -1630,11 +1625,10 @@ export default function PerjalananSaya() {
                               // Daftar Ulang - Show status and akad files
                               (() => {
                                 const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                                const isCompleted = registrationStatus.registration?.re_enrollment_completed === true;
-                                const hasSubmittedDaftarUlang = daftarUlang?.status === 'submitted';
+                                const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
 
-                                // Show daftar ulang info if completed OR if submitted (even if not yet marked completed)
-                                if ((isCompleted || hasSubmittedDaftarUlang) && daftarUlang) {
+                                // Show daftar ulang info if submitted or approved (with akad files, halaqah details)
+                                if (hasSubmittedOrApproved && daftarUlang) {
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-start space-x-2">
@@ -1707,20 +1701,8 @@ export default function PerjalananSaya() {
                                       )}
                                     </div>
                                   );
-                                } else if (registrationStatus?.registration?.re_enrollment_completed === true) {
-                                  // Completed but no daftar ulang data (shouldn't happen but handle gracefully)
-                                  return (
-                                    <div className="space-y-2">
-                                      <div className="flex items-start space-x-2">
-                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
-                                          Daftar ulang selesai ✓
-                                        </p>
-                                      </div>
-                                    </div>
-                                  );
                                 } else {
-                                  // Not completed yet
+                                  // Not submitted/approved yet - show description
                                   return (
                                     <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
                                       {item.description}

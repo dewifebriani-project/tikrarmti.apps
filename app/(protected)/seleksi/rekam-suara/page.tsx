@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mic, Upload, CheckCircle, AlertCircle, Loader2, Play, Pause } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { UserProfileCard } from '@/components/UserProfileCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -407,7 +408,10 @@ export default function RekamSuaraPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
+      {/* User Profile Card */}
+      <UserProfileCard userId={user?.id} showAlert={false} showTitle={false} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl text-green-900">Rekam Suara - Tes Seleksi</CardTitle>

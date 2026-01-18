@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText, X } from 'lucide-react'
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission } from './actions'
+import { UserProfileCard } from '@/components/UserProfileCard'
 
 type Step = 'confirm' | 'halaqah' | 'partner' | 'review' | 'akad' | 'success'
 
@@ -505,7 +506,10 @@ export default function DaftarUlangPage() {
   if (isSubmissionLocked) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* User Profile Card */}
+          <UserProfileCard userId={user?.id} showAlert={false} showTitle={true} />
+
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -579,7 +583,10 @@ export default function DaftarUlangPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* User Profile Card */}
+        <UserProfileCard userId={user?.id} showAlert={false} showTitle={true} />
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Daftar Ulang Tikrar Tahfidz</h1>
