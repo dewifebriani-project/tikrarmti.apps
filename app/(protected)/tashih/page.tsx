@@ -234,14 +234,16 @@ export default function Tashih() {
         // confirmed_chosen_juz is in daftar_ulang_submissions table (final juz choice)
         const confirmedJuz = daftarUlangSubmission.confirmed_chosen_juz || null
 
-        console.log('Setting Tikrar Tahfidz with juz:', confirmedJuz)
-        setUserProgramInfo({
-          programType: 'tikrar_tahfidz',
+        console.log('[Tashih] Setting Tikrar Tahfidz with juz:', confirmedJuz)
+        const newProgramInfo = {
+          programType: 'tikrar_tahfidz' as const,
           confirmedChosenJuz: confirmedJuz,
           batchStartDate: daftarUlangSubmission.batch?.start_date || null,
           batchId: daftarUlangSubmission.batch_id || null,
           tashihHalaqahId: daftarUlangSubmission.tashih_halaqah_id || null
-        })
+        }
+        console.log('[Tashih] Setting programInfo to:', newProgramInfo)
+        setUserProgramInfo(newProgramInfo)
         return
       }
 
@@ -271,6 +273,7 @@ export default function Tashih() {
       }))
 
       if (praTikrarReg) {
+        console.log('[Tashih] Setting Pra Tikrar (Priority 2 - selected) with juz:', praTikrarReg.chosen_juz)
         setUserProgramInfo({
           programType: 'pra_tikrar',
           confirmedChosenJuz: praTikrarReg.chosen_juz,
@@ -296,7 +299,7 @@ export default function Tashih() {
         .maybeSingle()
 
       if (anyRegistration) {
-        console.log('Found any registration, allowing access to tashih')
+        console.log('[Tashih] Setting Pra Tikrar (Priority 3 - any registration) with juz:', anyRegistration.chosen_juz)
         setUserProgramInfo({
           programType: 'pra_tikrar',
           confirmedChosenJuz: anyRegistration.chosen_juz,
@@ -308,6 +311,7 @@ export default function Tashih() {
       }
 
       // Priority 4: No program found - Default to Pra Tikrar (open access)
+      console.log('[Tashih] Setting Pra Tikrar (Priority 4 - default)')
       setUserProgramInfo({
         programType: 'pra_tikrar',
         confirmedChosenJuz: null,
@@ -579,6 +583,7 @@ export default function Tashih() {
   }
 
   if (isLoading) {
+    console.log('[Tashih] Still loading...')
     return (
       <div className="flex justify-center items-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-green-army" />
@@ -586,7 +591,10 @@ export default function Tashih() {
     )
   }
 
+  console.log('[Tashih] Render state:', { isLoading, userProgramInfo, debugInfo, todayRecord })
+
   if (!userProgramInfo.programType) {
+    console.log('[Tashih] No programType, showing error page')
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
