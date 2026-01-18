@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     // 4. Fetch existing pairings to exclude already paired users
     const { data: existingPairings } = await supabase
       .from('study_partners')
-      .select('user_1_id, user_2_id')
+      .select('user_1_id, user_2_id, user_3_id')
       .eq('batch_id', batch_id)
       .eq('pairing_status', 'active')
 
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     for (const pairing of existingPairings || []) {
       pairedUserIds.add(pairing.user_1_id)
       pairedUserIds.add(pairing.user_2_id)
+      if (pairing.user_3_id) pairedUserIds.add(pairing.user_3_id)
     }
 
     // Filter out already paired users
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
     const usersMap = new Map((usersData || []).map(u => [u.id, u]))
     const registrationsMap = new Map((registrationsData || []).map(r => [r.user_id, r]))
 
-    // 6. Calculate all possible matches with scores
+    // 6. Group matches by priority level
     interface UserMatch {
       user1_id: string
       user2_id: string
@@ -109,9 +110,11 @@ export async function POST(request: Request) {
       juz_match: boolean
       main_time_match: boolean
       backup_time_match: boolean
+      priority: number
     }
 
-    const allMatches: UserMatch[] = []
+    // Priority buckets (1-8)
+    const priorityBuckets: UserMatch[][] = [[], [], [], [], [], [], [], []]
 
     for (let i = 0; i < availableUserIds.length; i++) {
       for (let j = i + 1; j < availableUserIds.length; j++) {
@@ -130,8 +133,7 @@ export async function POST(request: Request) {
         const user1Juz = reg1.chosen_juz
         const user2Juz = reg2.chosen_juz
 
-        // Calculate score
-        let score = 0
+        // Calculate match criteria
         const zonaMatch = user1Timezone === user2Timezone
         const juzMatch = user1Juz === user2Juz
         const mainTimeMatch = hasTimeSlotOverlap(reg1.main_time_slot, reg2.main_time_slot)
@@ -139,12 +141,48 @@ export async function POST(request: Request) {
                                hasTimeSlotOverlap(reg1.backup_time_slot, reg2.main_time_slot) ||
                                hasTimeSlotOverlap(reg1.backup_time_slot, reg2.backup_time_slot)
 
-        if (zonaMatch) score += 50
-        if (juzMatch) score += 50
-        if (mainTimeMatch) score += 10
-        if (backupTimeMatch) score += 5
+        // Determine priority and score
+        let priority = 0
+        let score = 0
 
-        allMatches.push({
+        if (zonaMatch && mainTimeMatch && juzMatch) {
+          // Priority 1: Zona Sama + Waktu Utama + Juz Sama
+          priority = 1
+          score = 150
+        } else if (zonaMatch && mainTimeMatch && !juzMatch) {
+          // Priority 2: Zona Sama + Waktu Utama + Juz Beda
+          priority = 2
+          score = 100
+        } else if (zonaMatch && !mainTimeMatch && backupTimeMatch && juzMatch) {
+          // Priority 3: Zona Sama + Waktu Cadangan + Juz Sama
+          priority = 3
+          score = 85
+        } else if (zonaMatch && !mainTimeMatch && backupTimeMatch && !juzMatch) {
+          // Priority 4: Zona Sama + Waktu Cadangan + Juz Beda
+          priority = 4
+          score = 70
+        } else if (!zonaMatch && mainTimeMatch && juzMatch) {
+          // Priority 5: Lintas Zona + Waktu Utama + Juz Sama
+          priority = 5
+          score = 60
+        } else if (!zonaMatch && mainTimeMatch && !juzMatch) {
+          // Priority 6: Lintas Zona + Waktu Utama + Juz Beda
+          priority = 6
+          score = 40
+        } else if (!zonaMatch && !mainTimeMatch && backupTimeMatch && juzMatch) {
+          // Priority 7: Lintas Zona + Waktu Cadangan + Juz Sama
+          priority = 7
+          score = 30
+        } else if (!zonaMatch && !mainTimeMatch && backupTimeMatch && !juzMatch) {
+          // Priority 8: Lintas Zona + Waktu Cadangan + Juz Beda
+          priority = 8
+          score = 20
+        } else {
+          // No valid match, skip
+          continue
+        }
+
+        const match: UserMatch = {
           user1_id: user1Id,
           user2_id: user2Id,
           score,
@@ -152,88 +190,106 @@ export async function POST(request: Request) {
           juz_match: juzMatch,
           main_time_match: mainTimeMatch,
           backup_time_match: backupTimeMatch,
-        })
+          priority,
+        }
+
+        // Add to corresponding priority bucket (index 0 = priority 1)
+        priorityBuckets[priority - 1].push(match)
       }
     }
 
-    // Sort by score (highest first)
-    allMatches.sort((a, b) => b.score - a.score)
+    // Log summary of matches per priority
+    for (let i = 0; i < 8; i++) {
+      console.log(`[BULK PAIR] Priority ${i + 1}: ${priorityBuckets[i].length} matches`)
+    }
 
-    console.log('[BULK PAIR] Total possible matches:', allMatches.length)
-
-    // 7. Create pairings in priority order, avoiding duplicate users
+    // 7. Create pairings by priority level (not greedy)
     const pairedUsers = new Set<string>()
     const createdPairings = []
     const pairingAnalysis = []
 
-    for (const match of allMatches) {
-      if (pairedUsers.has(match.user1_id) || pairedUsers.has(match.user2_id)) {
-        continue // Skip if either user is already paired
-      }
+    // Process each priority level in order
+    for (let priority = 1; priority <= 8; priority++) {
+      const bucket = priorityBuckets[priority - 1]
 
-      // Create the pairing
-      const [smallerUserId, largerUserId] = match.user1_id < match.user2_id
-        ? [match.user1_id, match.user2_id]
-        : [match.user2_id, match.user1_id]
+      // Shuffle within bucket to ensure fairness when multiple pairs have same priority
+      // (otherwise the first ones in the list would always get priority)
+      const shuffled = [...bucket].sort(() => Math.random() - 0.5)
 
-      const { error: pairingError } = await supabase
-        .from('study_partners')
-        .insert({
-          batch_id,
-          user_1_id: smallerUserId,
-          user_2_id: largerUserId,
-          pairing_type: 'system_match',
-          pairing_status: 'active',
-          paired_by: user.id,
-          paired_at: new Date().toISOString(),
+      for (const match of shuffled) {
+        if (pairedUsers.has(match.user1_id) || pairedUsers.has(match.user2_id)) {
+          continue // Skip if either user is already paired
+        }
+
+        // Create the pairing
+        const [smallerUserId, largerUserId] = match.user1_id < match.user2_id
+          ? [match.user1_id, match.user2_id]
+          : [match.user2_id, match.user1_id]
+
+        const { error: pairingError } = await supabase
+          .from('study_partners')
+          .insert({
+            batch_id,
+            user_1_id: smallerUserId,
+            user_2_id: largerUserId,
+            pairing_type: 'system_match',
+            pairing_status: 'active',
+            paired_by: user.id,
+            paired_at: new Date().toISOString(),
+          })
+
+        if (pairingError) {
+          console.error('[BULK PAIR] Error creating pairing:', pairingError)
+          continue
+        }
+
+        // Update both submissions
+        await supabase
+          .from('daftar_ulang_submissions')
+          .update({ pairing_status: 'paired' })
+          .eq('user_id', match.user1_id)
+          .eq('batch_id', batch_id)
+
+        await supabase
+          .from('daftar_ulang_submissions')
+          .update({ pairing_status: 'paired' })
+          .eq('user_id', match.user2_id)
+          .eq('batch_id', batch_id)
+
+        // Mark users as paired
+        pairedUsers.add(match.user1_id)
+        pairedUsers.add(match.user2_id)
+
+        createdPairings.push({
+          user_1_id: match.user1_id,
+          user_2_id: match.user2_id,
+          score: match.score,
         })
 
-      if (pairingError) {
-        console.error('[BULK PAIR] Error creating pairing:', pairingError)
-        continue
+        pairingAnalysis.push({
+          user1_name: usersMap.get(match.user1_id)?.full_name,
+          user2_name: usersMap.get(match.user2_id)?.full_name,
+          zona_match: match.zona_match,
+          juz_match: match.juz_match,
+          main_time_match: match.main_time_match,
+          backup_time_match: match.backup_time_match,
+          score: match.score,
+          match_type: getMatchType(match),
+        })
+
+        console.log('[BULK PAIR] Created pairing:', {
+          user1: usersMap.get(match.user1_id)?.full_name,
+          user2: usersMap.get(match.user2_id)?.full_name,
+          score: match.score,
+          priority,
+          match_type: getMatchType(match),
+        })
       }
-
-      // Update both submissions
-      await supabase
-        .from('daftar_ulang_submissions')
-        .update({ pairing_status: 'paired' })
-        .eq('user_id', match.user1_id)
-        .eq('batch_id', batch_id)
-
-      await supabase
-        .from('daftar_ulang_submissions')
-        .update({ pairing_status: 'paired' })
-        .eq('user_id', match.user2_id)
-        .eq('batch_id', batch_id)
-
-      // Mark users as paired
-      pairedUsers.add(match.user1_id)
-      pairedUsers.add(match.user2_id)
-
-      createdPairings.push({
-        user_1_id: match.user1_id,
-        user_2_id: match.user2_id,
-        score: match.score,
-      })
-
-      pairingAnalysis.push({
-        user1_name: usersMap.get(match.user1_id)?.full_name,
-        user2_name: usersMap.get(match.user2_id)?.full_name,
-        zona_match: match.zona_match,
-        juz_match: match.juz_match,
-        main_time_match: match.main_time_match,
-        backup_time_match: match.backup_time_match,
-        score: match.score,
-        match_type: getMatchType(match),
-      })
-
-      console.log('[BULK PAIR] Created pairing:', {
-        user1: usersMap.get(match.user1_id)?.full_name,
-        user2: usersMap.get(match.user2_id)?.full_name,
-        score: match.score,
-        match_type: getMatchType(match),
-      })
     }
+
+    // Log unpaired users
+    const unpairedUsers = availableUserIds.filter(id => !pairedUsers.has(id))
+    console.log('[BULK PAIR] Unpaired users:', unpairedUsers.length, unpairedUsers.map(id => usersMap.get(id)?.full_name))
 
     // 8. Revalidate paths
     revalidatePath('/admin')
@@ -244,6 +300,8 @@ export async function POST(request: Request) {
       message: `Successfully created ${createdPairings.length} pairing(s)`,
       data: {
         created_count: createdPairings.length,
+        total_users: availableUserIds.length,
+        unpaired_count: unpairedUsers.length,
         pairings: createdPairings,
         analysis: pairingAnalysis,
       }
@@ -259,18 +317,30 @@ export async function POST(request: Request) {
 
 function getMatchType(match: any): string {
   if (match.zona_match && match.juz_match && match.main_time_match) {
-    return 'Priority 1: Zona + Waktu Utama + Juz Sama'
+    return 'Priority 1: Zona Sama + Waktu Utama + Juz Sama'
   }
   if (match.zona_match && match.main_time_match && !match.juz_match) {
-    return 'Priority 2: Zona + Waktu Utama + Juz Beda'
+    return 'Priority 2: Zona Sama + Waktu Utama + Juz Beda'
   }
   if (match.zona_match && match.juz_match && !match.main_time_match && match.backup_time_match) {
-    return 'Priority 3: Zona + Waktu Cadangan + Juz Sama'
+    return 'Priority 3: Zona Sama + Waktu Cadangan + Juz Sama'
   }
   if (match.zona_match && match.backup_time_match && !match.main_time_match && !match.juz_match) {
-    return 'Priority 4: Zona + Waktu Cadangan + Juz Beda'
+    return 'Priority 4: Zona Sama + Waktu Cadangan + Juz Beda'
   }
-  return 'Priority 5: Lintas Zona Waktu'
+  if (!match.zona_match && match.main_time_match && match.juz_match) {
+    return 'Priority 5: Lintas Zona + Waktu Utama + Juz Sama'
+  }
+  if (!match.zona_match && match.main_time_match && !match.juz_match) {
+    return 'Priority 6: Lintas Zona + Waktu Utama + Juz Beda'
+  }
+  if (!match.zona_match && !match.main_time_match && match.backup_time_match && match.juz_match) {
+    return 'Priority 7: Lintas Zona + Waktu Cadangan + Juz Sama'
+  }
+  if (!match.zona_match && !match.main_time_match && match.backup_time_match && !match.juz_match) {
+    return 'Priority 8: Lintas Zona + Waktu Cadangan + Juz Beda'
+  }
+  return 'Unknown Priority'
 }
 
 function hasTimeSlotOverlap(slot1: string, slot2: string): boolean {

@@ -938,16 +938,16 @@ export function AdminPairingTab() {
     // Confirm with user
     const confirmed = window.confirm(
       `Pasangkan otomatis ${unpairedCount} user yang belum berpasangan?\n\n` +
-      `Sistem akan:\n` +
-      `• Mencari pasangan sesuai prioritas (Perfect Match dulu)\n` +
-      `• Membuat pasangan secara otomatis\n` +
-      `• Mengupdate status pairing untuk semua user\n\n` +
-      `Prioritas:\n` +
-      `1. Zona + Waktu Utama + Juz Sama (Perfect)\n` +
-      `2. Zona + Waktu Utama + Juz Beda\n` +
-      `3. Zona + Waktu Cadangan + Juz Sama\n` +
-      `4. Zona + Waktu Cadangan + Juz Beda\n` +
-      `5. Lintas Zona Waktu`
+      `Sistem akan memproses berdasarkan prioritas:\n\n` +
+      `1. Zona Sama + Waktu Utama + Juz Sama\n` +
+      `2. Zona Sama + Waktu Utama + Juz Beda\n` +
+      `3. Zona Sama + Waktu Cadangan + Juz Sama\n` +
+      `4. Zona Sama + Waktu Cadangan + Juz Beda\n` +
+      `5. Lintas Zona + Waktu Utama + Juz Sama\n` +
+      `6. Lintas Zona + Waktu Utama + Juz Beda\n` +
+      `7. Lintas Zona + Waktu Cadangan + Juz Sama\n` +
+      `8. Lintas Zona + Waktu Cadangan + Juz Beda\n\n` +
+      `User yang tidak dapat pasangan akan dibiarkan.`
     )
 
     if (!confirmed) return
@@ -971,20 +971,28 @@ export function AdminPairingTab() {
 
       if (result.success) {
         const analysis = result.data.analysis || []
-        const perfectCount = analysis.filter((a: any) => a.match_type.includes('Priority 1')).length
+        const priority1Count = analysis.filter((a: any) => a.match_type.includes('Priority 1')).length
         const priority2Count = analysis.filter((a: any) => a.match_type.includes('Priority 2')).length
         const priority3Count = analysis.filter((a: any) => a.match_type.includes('Priority 3')).length
         const priority4Count = analysis.filter((a: any) => a.match_type.includes('Priority 4')).length
         const priority5Count = analysis.filter((a: any) => a.match_type.includes('Priority 5')).length
+        const priority6Count = analysis.filter((a: any) => a.match_type.includes('Priority 6')).length
+        const priority7Count = analysis.filter((a: any) => a.match_type.includes('Priority 7')).length
+        const priority8Count = analysis.filter((a: any) => a.match_type.includes('Priority 8')).length
 
         toast.success(
-          `Berhasil membuat ${result.data.created_count} pasangan!\n` +
-          `• Perfect: ${perfectCount}\n` +
-          `• Priority 2: ${priority2Count}\n` +
-          `• Priority 3: ${priority3Count}\n` +
-          `• Priority 4: ${priority4Count}\n` +
-          `• Priority 5: ${priority5Count}`,
-          { id: toastId, duration: 5000 }
+          `Berhasil membuat ${result.data.created_count} pasangan dari ${result.data.total_users} user!\n` +
+          `User tanpa pasangan: ${result.data.unpaired_count}\n\n` +
+          `Pasangan per prioritas:\n` +
+          `• P1 (Zona+Utama+Juz): ${priority1Count}\n` +
+          `• P2 (Zona+Utama+Lintas): ${priority2Count}\n` +
+          `• P3 (Zona+Cadangan+Juz): ${priority3Count}\n` +
+          `• P4 (Zona+Cadangan+Lintas): ${priority4Count}\n` +
+          `• P5 (Lintas+Utama+Juz): ${priority5Count}\n` +
+          `• P6 (Lintas+Utama+Lintas): ${priority6Count}\n` +
+          `• P7 (Lintas+Cadangan+Juz): ${priority7Count}\n` +
+          `• P8 (Lintas+Cadangan+Lintas): ${priority8Count}`,
+          { id: toastId, duration: 8000 }
         )
         loadPairingRequests()
         loadStatistics()
