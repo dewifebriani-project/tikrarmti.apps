@@ -172,7 +172,11 @@ export default function TashihPage() {
   const updateBlocksForWeek = (weekNumber: number) => {
     if (!selectedJuzInfo) return
 
-    // No offset - week number starts from 1 based on batch start date
+    // Part B starts from H11, Part A starts from H1
+    // Block number = weekNumber for Part A, weekNumber + 10 for Part B
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = weekNumber + blockOffset
+
     // Each week adds 1 page to the starting page
     // Week 1: starts at juz start_page
     // Week 2: starts at juz start_page + 1
@@ -186,13 +190,13 @@ export default function TashihPage() {
 
     for (let i = 0; i < 4; i++) {
       const part = parts[i]
-      const blockCode = `H${weekNumber}${part}`
+      const blockCode = `H${blockNumber}${part}`
       // Each block is 1 page, incrementing from the week's start page
       const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
 
       blocks.push({
         block_code: blockCode,
-        week_number: weekNumber,
+        week_number: blockNumber,
         part,
         start_page: blockPage,
         end_page: blockPage
