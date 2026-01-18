@@ -107,9 +107,19 @@ export async function GET(request: Request) {
     // 10. Get current user's data for comparison
     const currentUserData = buildUserData(user.id)
 
+    // 11. Get submission data for family/tarteel partner details
+    const { data: submissionData } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('id, partner_name, partner_relationship, partner_notes, partner_wa_phone')
+      .eq('user_id', user.id)
+      .eq('batch_id', batchId)
+      .in('status', ['submitted', 'approved'])
+      .maybeSingle()
+
     return NextResponse.json({
       success: true,
       data: {
+        submission_id: submissionData?.id,
         current_user: currentUserData,
         pairing: {
           id: pairing.id,
@@ -121,6 +131,12 @@ export async function GET(request: Request) {
         user_1: buildUserData(pairing.user_1_id),
         user_2: buildUserData(pairing.user_2_id),
         user_3: pairing.user_3_id ? buildUserData(pairing.user_3_id) : null,
+        partner_details: submissionData ? {
+          partner_name: submissionData.partner_name,
+          partner_relationship: submissionData.partner_relationship,
+          partner_notes: submissionData.partner_notes,
+          partner_wa_phone: submissionData.partner_wa_phone,
+        } : null,
       }
     })
   } catch (error: any) {

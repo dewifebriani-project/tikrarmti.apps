@@ -51,6 +51,7 @@ interface TikrarRegistration extends Pendaftaran {
 
 // Pairing data interface
 interface PairingData {
+  submission_id?: string;
   current_user: {
     id: string;
     full_name: string;
@@ -102,6 +103,12 @@ interface PairingData {
     main_time_slot: string;
     backup_time_slot: string;
   } | null;
+  partner_details?: {
+    partner_name: string | null;
+    partner_relationship: string | null;
+    partner_notes: string | null;
+    partner_wa_phone: string | null;
+  } | null;
 }
 
 export default function PerjalananSaya() {
@@ -112,6 +119,14 @@ export default function PerjalananSaya() {
   const [hasSessionError, setHasSessionError] = useState(false);
   const [pairingData, setPairingData] = useState<PairingData | null>(null);
   const [isLoadingPairing, setIsLoadingPairing] = useState(false);
+  const [isEditPartnerModalOpen, setIsEditPartnerModalOpen] = useState(false);
+  const [editPartnerData, setEditPartnerData] = useState({
+    partner_name: '',
+    partner_relationship: '',
+    partner_notes: '',
+    partner_wa_phone: ''
+  });
+  const [isUpdatingPartner, setIsUpdatingPartner] = useState(false);
 
   // SWR hooks for data fetching - useAllRegistrations to show ALL registrations (no batch filter)
   const { registrations, isLoading: registrationsLoading, error: registrationsError } = useAllRegistrations();
@@ -779,6 +794,68 @@ export default function PerjalananSaya() {
     }
   };
 
+  const handleEditPartner = async () => {
+    if (!pairingData || !pairingData.submission_id) return;
+
+    const isFamily = pairingData.pairing.pairing_type === 'family';
+    const isTarteel = pairingData.pairing.pairing_type === 'tarteel';
+
+    if (!isFamily && !isTarteel) {
+      alert('Hanya pasangan Family dan Tarteel yang bisa diedit.');
+      return;
+    }
+
+    // Get current values
+    const currentName = pairingData.partner_details?.partner_name || '';
+    const currentRelationship = pairingData.partner_details?.partner_relationship || '';
+    const currentNotes = pairingData.partner_details?.partner_notes || '';
+    const currentPhone = pairingData.partner_details?.partner_wa_phone || '';
+
+    // Prompt for new values
+    const fieldLabel = isFamily ? 'keluarga' : 'Tarteel';
+    const newName = prompt(`Masukkan nama ${fieldLabel}:`, currentName);
+    if (newName === null) return; // User cancelled
+
+    const newRelationship = isFamily ? prompt('Masukkan hubungan:', currentRelationship) : currentRelationship;
+    if (isFamily && newRelationship === null) return;
+
+    const newNotes = prompt('Masukkan catatan:', currentNotes);
+    if (newNotes === null) return;
+
+    const newPhone = prompt('Masukkan nomor WhatsApp:', currentPhone);
+    if (newPhone === null) return;
+
+    // Update via API
+    setIsUpdatingPartner(true);
+    try {
+      const response = await fetch('/api/user/pairing/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: pairingData.submission_id,
+          partner_name: newName,
+          partner_relationship: newRelationship,
+          partner_notes: newNotes,
+          partner_wa_phone: newPhone,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        alert('Data pasangan berhasil diperbarui!');
+        // Refresh pairing data
+        fetchPairingData(batchId);
+      } else {
+        alert(result.error || 'Gagal memperbarui data pasangan.');
+      }
+    } catch (error) {
+      console.error('Error updating partner:', error);
+      alert('Terjadi kesalahan saat memperbarui data pasangan.');
+    } finally {
+      setIsUpdatingPartner(false);
+    }
+  };
+
   const fetchPairingData = async (currentBatchId: string | null) => {
     if (!user || !currentBatchId) return;
 
@@ -1283,6 +1360,20 @@ export default function PerjalananSaya() {
                               );
                             })()}
                           </div>
+
+                          {/* Edit Partner Button - Only for Family and Tarteel */}
+                          {(pairingData.pairing.pairing_type === 'family' || pairingData.pairing.pairing_type === 'tarteel') && (
+                            <button
+                              onClick={handleEditPartner}
+                              disabled={isUpdatingPartner}
+                              className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Edit className="w-4 h-4" />
+                              <span className="text-xs sm:text-sm font-medium">
+                                {isUpdatingPartner ? 'Menyimpan...' : `Edit Data ${pairingData.pairing.pairing_type === 'family' ? 'Keluarga' : 'Tarteel'}`}
+                              </span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
