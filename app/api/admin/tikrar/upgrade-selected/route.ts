@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 /**
  * Upgrade selected users to thalibah role
@@ -114,6 +115,10 @@ export async function POST(request: Request) {
         })
       }
     }
+
+    // Revalidate paths to refresh data
+    revalidatePath('/admin')
+    revalidatePath('/dashboard')
 
     return NextResponse.json({
       success: true,
