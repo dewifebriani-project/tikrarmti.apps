@@ -177,6 +177,7 @@ export default function JurnalHarianPage() {
     tikrar_bi_al_ghaib_completed: false,
     tikrar_bi_al_ghaib_type: null as 'pasangan_40' | 'keluarga_40' | 'tarteel_40' | null,
     tikrar_bi_al_ghaib_subtype: null as string | null,
+    tikrar_bi_al_ghaib_20x_multi: [] as string[],
     tarteel_screenshot_file: null as File | null,
     tafsir_completed: false,
     menulis_completed: false,
@@ -386,6 +387,7 @@ export default function JurnalHarianPage() {
           tikrar_bi_al_ghaib_completed: data[0].tikrar_bi_al_ghaib_count > 0,
           tikrar_bi_al_ghaib_type: tikrarType,
           tikrar_bi_al_ghaib_subtype: tikrarSubtype,
+          tikrar_bi_al_ghaib_20x_multi: data[0].tikrar_bi_al_ghaib_20x || [],
           tarteel_screenshot_file: null,
           tafsir_completed: data[0].tafsir_completed || false,
           menulis_completed: data[0].menulis_completed || false,
@@ -451,9 +453,9 @@ export default function JurnalHarianPage() {
         tasmi_record_count: jurnalData.tasmi_record_completed ? 1 : 0,
         simak_record_completed: jurnalData.simak_record_completed,
         tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_type ? 1 : 0,
-        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_subtype || jurnalData.tikrar_bi_al_ghaib_type,
-        tikrar_bi_al_ghaib_40x: (jurnalData.tikrar_bi_al_ghaib_type && !jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20')) ? [jurnalData.tikrar_bi_al_ghaib_type] : null,
-        tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20') ? [jurnalData.tikrar_bi_al_ghaib_subtype] : null,
+        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_20x_multi.length > 0 ? jurnalData.tikrar_bi_al_ghaib_20x_multi[0] : (jurnalData.tikrar_bi_al_ghaib_subtype || jurnalData.tikrar_bi_al_ghaib_type),
+        tikrar_bi_al_ghaib_40x: (jurnalData.tikrar_bi_al_ghaib_type && !jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20') && jurnalData.tikrar_bi_al_ghaib_20x_multi.length === 0) ? [jurnalData.tikrar_bi_al_ghaib_type] : null,
+        tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_20x_multi.length > 0 ? jurnalData.tikrar_bi_al_ghaib_20x_multi : (jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20') ? [jurnalData.tikrar_bi_al_ghaib_subtype] : null),
         tarteel_screenshot_url: null, // File upload will be handled separately
         tafsir_completed: jurnalData.tafsir_completed,
         menulis_completed: jurnalData.menulis_completed,
@@ -511,6 +513,7 @@ export default function JurnalHarianPage() {
       tikrar_bi_al_ghaib_completed: false,
       tikrar_bi_al_ghaib_type: null,
       tikrar_bi_al_ghaib_subtype: null,
+      tikrar_bi_al_ghaib_20x_multi: [],
       tarteel_screenshot_file: null,
       tafsir_completed: false,
       menulis_completed: false,
@@ -796,9 +799,7 @@ export default function JurnalHarianPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-                {availableBlocks
-                  .filter((blok) => blok.part === selectedJuzInfo?.part)
-                  .map((blok) => {
+                {availableBlocks.map((blok) => {
                   const isSelected = jurnalData.blok === blok.block_code
                   return (
                     <button
@@ -893,6 +894,7 @@ export default function JurnalHarianPage() {
                                       ...prev,
                                       tikrar_bi_al_ghaib_type: option.value as any,
                                       tikrar_bi_al_ghaib_subtype: null,
+                                      tikrar_bi_al_ghaib_20x_multi: [],
                                       tarteel_screenshot_file: option.value === 'tarteel_40' ? prev.tarteel_screenshot_file : null
                                     }))
                                   }}
@@ -922,7 +924,11 @@ export default function JurnalHarianPage() {
                                       key={option.value}
                                       type="button"
                                       onClick={() => {
-                                        setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_subtype: option.value as any }))
+                                        setJurnalData(prev => ({
+                                          ...prev,
+                                          tikrar_bi_al_ghaib_subtype: option.value as any,
+                                          tikrar_bi_al_ghaib_20x_multi: []
+                                        }))
                                       }}
                                       className={cn(
                                         "px-3 py-1 rounded-lg text-xs font-medium transition-all",
@@ -943,23 +949,32 @@ export default function JurnalHarianPage() {
                                   {[
                                     { value: 'pasangan_20_wa', label: 'WhatsApp Call (20x)' },
                                     { value: 'voice_note_20', label: 'Voice Note (20x)' }
-                                  ].map((option) => (
-                                    <button
-                                      key={option.value}
-                                      type="button"
-                                      onClick={() => {
-                                        setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_subtype: option.value as any }))
-                                      }}
-                                      className={cn(
-                                        "px-3 py-1 rounded-lg text-xs font-medium transition-all",
-                                        jurnalData.tikrar_bi_al_ghaib_subtype === option.value
-                                          ? "bg-teal-600 text-white"
-                                          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                                      )}
-                                    >
-                                      {option.label}
-                                    </button>
-                                  ))}
+                                  ].map((option) => {
+                                    const isSelected = jurnalData.tikrar_bi_al_ghaib_20x_multi.includes(option.value)
+                                    return (
+                                      <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => {
+                                          setJurnalData(prev => ({
+                                            ...prev,
+                                            tikrar_bi_al_ghaib_20x_multi: isSelected
+                                              ? prev.tikrar_bi_al_ghaib_20x_multi.filter(v => v !== option.value)
+                                              : [...prev.tikrar_bi_al_ghaib_20x_multi, option.value],
+                                            tikrar_bi_al_ghaib_subtype: null // Clear subtype when using 20x multi-select
+                                          }))
+                                        }}
+                                        className={cn(
+                                          "px-3 py-1 rounded-lg text-xs font-medium transition-all",
+                                          isSelected
+                                            ? "bg-teal-600 text-white"
+                                            : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                        )}
+                                      >
+                                        {option.label}
+                                      </button>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             </div>
