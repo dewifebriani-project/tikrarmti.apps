@@ -239,11 +239,14 @@ export default function TashihPage() {
       const supabase = createClient()
 
       const today = new Date().toISOString().split('T')[0]
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
+
       const { data, error } = await supabase
         .from('tashih_records')
         .select('*')
         .eq('user_id', user.id)
         .gte('waktu_tashih', today)
+        .lt('waktu_tashih', tomorrow)
         .order('waktu_tashih', { ascending: false })
         .limit(1)
 
