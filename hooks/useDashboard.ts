@@ -500,4 +500,85 @@ export function useSystemHealth() {
   }
 }
 
+/**
+ * Type for tashih block status
+ */
+export interface TashihBlockStatus {
+  block_code: string
+  week_number: number
+  part: string
+  start_page: number
+  end_page: number
+  is_completed: boolean
+  tashih_date?: string
+  tashih_count: number
+}
+
+export interface TashihStatusData {
+  juz_code: string
+  juz_info: {
+    id: string
+    code: string
+    name: string
+    juz_number: number
+    part: string
+    start_page: number
+    end_page: number
+  }
+  blocks: TashihBlockStatus[]
+  summary: {
+    total_blocks: number
+    completed_blocks: number
+    pending_blocks: number
+  }
+}
+
+/**
+ * Hook for fetching tashih block status for dashboard
+ */
+export function useTashihStatus() {
+  const { data, error, isLoading, mutate } = useSWR<TashihStatusData | null>(
+    '/api/dashboard/tashih-status',
+    async (url: string): Promise<TashihStatusData | null> => {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        })
+
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 401) {
+            // No active registration or not authorized
+            return null
+          }
+          throw new Error('Failed to fetch tashih status')
+        }
+
+        const result = await response.json()
+        return result.data || null
+      } catch (error) {
+        console.error('Error fetching tashih status:', error)
+        return null
+      }
+    },
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 60000, // 1 minute
+      dedupingInterval: 120000, // 2 minutes
+      fallbackData: null,
+    }
+  )
+
+  return {
+    tashihStatus: data || null,
+    isLoading,
+    isError: !!error,
+    error,
+    mutate,
+  }
+}
+
 export default useDashboardStats

@@ -7,9 +7,10 @@ import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, File
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
-import { useDashboardStats } from '@/hooks/useDashboard'
+import { useDashboardStats, useTashihStatus } from '@/hooks/useDashboard'
 import { useMyRegistrations } from '@/hooks/useRegistrations'
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
+import { cn } from '@/lib/utils'
 
 export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
@@ -36,6 +37,7 @@ export default function DashboardContent() {
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
   const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
+  const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus()
 
   // Combined loading state
   // Note: User data is guaranteed by server layout, no need to check !user here
@@ -345,6 +347,138 @@ export default function DashboardContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tashih Block Status Card - Show for active thalibah */}
+      {hasRegistered && tashihStatus && (
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-emerald-800">
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                Status Tashih Blok
+              </CardTitle>
+              <Link href="/tashih">
+                <Button variant="outline" size="sm" className="text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                  Buka Halaman Tashih
+                </Button>
+              </Link>
+            </div>
+            <CardDescription className="text-xs sm:text-sm text-emerald-700">
+              Progress tashih untuk Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part} ({tashihStatus.juz_info.name})
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-blue-800">{tashihStatus.summary.total_blocks}</div>
+                <div className="text-[10px] sm:text-xs text-blue-600">Total Blok</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-green-800">{tashihStatus.summary.completed_blocks}</div>
+                <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
+              </div>
+              <div className="text-center p-3 bg-amber-50 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-amber-800">{tashihStatus.summary.pending_blocks}</div>
+                <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
+                <span className="text-gray-600">Progress Tashih</span>
+                <span className="font-medium text-gray-800">
+                  {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
+                <div
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Block Grid - Group by week */}
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {(() => {
+                // Group blocks by week_number
+                const blocksByWeek = new Map<number, typeof tashihStatus.blocks>()
+                tashihStatus.blocks.forEach(block => {
+                  const weekNum = block.week_number
+                  if (!blocksByWeek.has(weekNum)) {
+                    blocksByWeek.set(weekNum, [])
+                  }
+                  blocksByWeek.get(weekNum)!.push(block)
+                })
+
+                // Sort weeks and create UI
+                const sortedWeeks = Array.from(blocksByWeek.keys()).sort((a, b) => a - b)
+
+                return sortedWeeks.map(weekNum => {
+                  const weekBlocks = blocksByWeek.get(weekNum)!
+                  const completedInWeek = weekBlocks.filter(b => b.is_completed).length
+
+                  return (
+                    <div key={weekNum} className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-700">Pekan {weekNum}</span>
+                          <span className="text-xs text-gray-500">({completedInWeek}/4 selesai)</span>
+                        </div>
+                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className="bg-emerald-500 h-1.5 rounded-full"
+                            style={{ width: `${(completedInWeek / 4) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {weekBlocks.map(block => (
+                          <Link
+                            key={block.block_code}
+                            href="/tashih"
+                            className={cn(
+                              "p-2 border-2 rounded-lg text-center transition-all duration-200 hover:shadow-md",
+                              block.is_completed
+                                ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
+                                : "border-gray-300 hover:border-emerald-400 hover:bg-emerald-50 cursor-pointer"
+                            )}
+                            title={block.is_completed ? `Sudah ditashih${block.tashih_date ? `: ${new Date(block.tashih_date).toLocaleDateString('id-ID')}` : ''}` : 'Belum ditashih - Klik untuk tashih'}
+                          >
+                            <div className={cn(
+                              "text-xs sm:text-sm font-bold",
+                              block.is_completed ? "text-emerald-700" : "text-gray-600"
+                            )}>
+                              {block.block_code}
+                            </div>
+                            {block.is_completed && (
+                              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 border-2 border-emerald-400 bg-emerald-50 rounded"></div>
+                <span>Sudah ditashih</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 border-2 border-gray-300 rounded"></div>
+                <span>Belum ditashih</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions - Consistent across all devices */}
       <Card>
