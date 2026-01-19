@@ -290,7 +290,8 @@ export default function JurnalHarianPage() {
     }
   }, [batchStartDate])
 
-  // Get start date of a week (Senin) based on week number from batch start
+  // Get start date of a jurnal week (Senin) based on week number from batch start
+  // Jurnal starts H+7 from batch start (week 1 = days 7-13)
   const getWeekStartDate = (weekNumber: number): Date => {
     if (!batchStartDate) return new Date()
     const startDate = new Date(batchStartDate)
@@ -299,9 +300,9 @@ export default function JurnalHarianPage() {
     const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
     const firstMonday = new Date(startDate)
     firstMonday.setDate(startDate.getDate() + daysToMonday)
-    // Add weeks
+    // For jurnal: add 7 days (H+7) + (weekNumber - 1) weeks
     const weekStart = new Date(firstMonday)
-    weekStart.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
+    weekStart.setDate(firstMonday.getDate() + 7 + (weekNumber - 1) * 7)
     return weekStart
   }
 
