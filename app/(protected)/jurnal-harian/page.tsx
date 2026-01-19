@@ -716,65 +716,54 @@ export default function JurnalHarianPage() {
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
             <div className="space-y-4 sm:space-y-6">
-              {/* Week selection - show previous week first, then current week */}
+              {/* Week selection - show only current active week */}
               {(() => {
                 const currentWeek = getCurrentWeekNumber()
-                const previousWeek = Math.max(1, currentWeek - 1)
-                // Show 2 weeks: previous week first, then current week
-                const weeksToShow = currentWeek > 1 ? [previousWeek, currentWeek] : [currentWeek]
 
-                return weeksToShow.map((weekNum) => {
-                  const isCurrentWeek = weekNum === currentWeek
-
-                  return (
-                    <div key={weekNum}>
-                      <div className={cn(
-                        "text-xs sm:text-sm font-medium mb-2 sm:mb-3",
-                        isCurrentWeek ? "text-cyan-700" : "text-gray-700"
-                      )}>
-                        Pekan Jurnal {weekNum}
-                        {isCurrentWeek && <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>}
-                      </div>
-                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                        {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Ah'].map((hari, index) => {
-                          const dayDate = getDayDateInWeek(weekNum, index)
-                          const isToday = new Date().toDateString() === dayDate.toDateString()
-                          const dateString = dayDate.toISOString().split('T')[0]
-
-                          return (
-                            <button
-                              key={`week${weekNum}-${hari}`}
-                              type="button"
-                              onClick={() => handleDateSelection(dayDate)}
-                              className={cn(
-                                "p-2 sm:p-3 border-2 rounded-xl transition-all duration-200 text-center",
-                                "hover:shadow-md hover:scale-105",
-                                jurnalData.tanggal_setor === dateString
-                                  ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
-                                  : isToday
-                                    ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
-                                    : "border-gray-200 hover:border-cyan-300 bg-white"
-                              )}
-                            >
-                              <div className={cn(
-                                "text-xs font-medium mb-1",
-                                jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-700" : "text-gray-600"
-                              )}>
-                                {hari}
-                              </div>
-                              <div className={cn(
-                                "text-sm sm:text-base font-bold",
-                                jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-800" : "text-gray-800"
-                              )}>
-                                {dayDate.getDate()}
-                              </div>
-                            </button>
-                          )
-                        })}
-                      </div>
+                return (
+                  <div key={currentWeek}>
+                    <div className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 text-cyan-700">
+                      Pekan Jurnal {currentWeek}
                     </div>
-                  )
-                })
+                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                      {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Ah'].map((hari, index) => {
+                        const dayDate = getDayDateInWeek(currentWeek, index)
+                        const isToday = new Date().toDateString() === dayDate.toDateString()
+                        const dateString = dayDate.toISOString().split('T')[0]
+
+                        return (
+                          <button
+                            key={`week${currentWeek}-${hari}`}
+                            type="button"
+                            onClick={() => handleDateSelection(dayDate)}
+                            className={cn(
+                              "p-2 sm:p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                              "hover:shadow-md hover:scale-105",
+                              jurnalData.tanggal_setor === dateString
+                                ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                                : isToday
+                                  ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                                  : "border-gray-200 hover:border-cyan-300 bg-white"
+                            )}
+                          >
+                            <div className={cn(
+                              "text-xs font-medium mb-1",
+                              jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                            )}>
+                              {hari}
+                            </div>
+                            <div className={cn(
+                              "text-sm sm:text-base font-bold",
+                              jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                            )}>
+                              {dayDate.getDate()}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
               })()}
             </div>
           </CardContent>
