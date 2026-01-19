@@ -96,7 +96,7 @@ const jurnalStepsConfig: JurnalStep[] = [
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-purple-500',
     required: true,
-    countLabel: '1x'
+    countLabel: '3x'
   },
   {
     id: 'tikrar_bi_an_nadzar',
@@ -106,13 +106,13 @@ const jurnalStepsConfig: JurnalStep[] = [
     icon: <BookOpen className="h-5 w-5" />,
     color: 'bg-orange-500',
     required: true,
-    countLabel: '1x'
+    countLabel: '40x'
   },
   {
     id: 'tasmi_record',
-    name: 'Tasmi\' via Rekaman',
-    title: 'Tasmi\' via Rekaman',
-    description: 'Rekam bacaan tanpa melihat mushaf. Usahakan mendapatkan 3 rekaman yang lancar tanpa kesalahan.',
+    name: 'Rekam Hafalan',
+    title: 'Rekam Hafalan',
+    description: 'Wajib mendapatkan 3 rekaman yang lancar tanpa kesalahan.',
     icon: <Mic className="h-5 w-5" />,
     color: 'bg-red-500',
     required: true,
@@ -122,7 +122,7 @@ const jurnalStepsConfig: JurnalStep[] = [
     id: 'simak_record',
     name: 'Simak Rekaman Pribadi',
     title: 'Simak Rekaman Pribadi',
-    description: 'Dengarkan kembali rekaman terbaik sambil menyimak dengan mushaf untuk menemukan kesalahan.',
+    description: 'Dengarkan kembali rekaman terbaik sambil menyimak dengan mushaf untuk menemukan kesalahan. Jika ada kesalahan maka ulangi kembali rekam.',
     icon: <Volume2 className="h-5 w-5" />,
     color: 'bg-indigo-500',
     required: true,
@@ -175,7 +175,7 @@ export default function JurnalHarianPage() {
     tasmi_record_completed: false,
     simak_record_completed: false,
     tikrar_bi_al_ghaib_completed: false,
-    tikrar_bi_al_ghaib_type: null as 'pasangan_40' | 'keluarga_40' | 'tarteel_40' | 'pasangan_20' | 'voice_note_20' | null,
+    tikrar_bi_al_ghaib_type: null as 'pasangan_40' | 'keluarga_40' | 'tarteel_40' | null,
     tikrar_bi_al_ghaib_subtype: null as string | null,
     tarteel_screenshot_file: null as File | null,
     tafsir_completed: false,
@@ -354,11 +354,22 @@ export default function JurnalHarianPage() {
       if (data && data.length > 0) {
         setTodayRecord(data[0])
         // Determine tikrar type from arrays (for backward compatibility)
-        let tikrarType: any = null
+        let tikrarType: 'pasangan_40' | 'keluarga_40' | 'tarteel_40' | null = null
+        let tikrarSubtype: string | null = null
+
         if (data[0].tikrar_bi_al_ghaib_40x && data[0].tikrar_bi_al_ghaib_40x.length > 0) {
-          tikrarType = data[0].tikrar_bi_al_ghaib_40x[0]
+          const type40 = data[0].tikrar_bi_al_ghaib_40x[0]
+          if (type40 === 'pasangan_40' || type40 === 'keluarga_40' || type40 === 'tarteel_40') {
+            tikrarType = type40
+          }
         } else if (data[0].tikrar_bi_al_ghaib_20x && data[0].tikrar_bi_al_ghaib_20x.length > 0) {
-          tikrarType = data[0].tikrar_bi_al_ghaib_20x[0]
+          // Old format: pasangan_20 or voice_note_20 were main types
+          // New format: they're subtypes under pasangan_40
+          const type20 = data[0].tikrar_bi_al_ghaib_20x[0]
+          if (type20 === 'pasangan_20' || type20 === 'voice_note_20') {
+            tikrarType = 'pasangan_40'
+            tikrarSubtype = type20
+          }
         }
 
         setJurnalData({
@@ -373,7 +384,7 @@ export default function JurnalHarianPage() {
           simak_record_completed: data[0].simak_record_completed || false,
           tikrar_bi_al_ghaib_completed: data[0].tikrar_bi_al_ghaib_count > 0,
           tikrar_bi_al_ghaib_type: tikrarType,
-          tikrar_bi_al_ghaib_subtype: null,
+          tikrar_bi_al_ghaib_subtype: tikrarSubtype,
           tarteel_screenshot_file: null,
           tafsir_completed: data[0].tafsir_completed || false,
           menulis_completed: data[0].menulis_completed || false,
@@ -439,9 +450,9 @@ export default function JurnalHarianPage() {
         tasmi_record_count: jurnalData.tasmi_record_completed ? 1 : 0,
         simak_record_completed: jurnalData.simak_record_completed,
         tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_type ? 1 : 0,
-        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_type,
-        tikrar_bi_al_ghaib_40x: jurnalData.tikrar_bi_al_ghaib_type?.endsWith('_40') ? [jurnalData.tikrar_bi_al_ghaib_type] : null,
-        tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_type?.endsWith('_20') ? [jurnalData.tikrar_bi_al_ghaib_type] : null,
+        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_subtype || jurnalData.tikrar_bi_al_ghaib_type,
+        tikrar_bi_al_ghaib_40x: (jurnalData.tikrar_bi_al_ghaib_type && !jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20')) ? [jurnalData.tikrar_bi_al_ghaib_type] : null,
+        tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20') ? [jurnalData.tikrar_bi_al_ghaib_subtype] : null,
         tarteel_screenshot_url: null, // File upload will be handled separately
         tafsir_completed: jurnalData.tafsir_completed,
         menulis_completed: jurnalData.menulis_completed,
@@ -871,9 +882,7 @@ export default function JurnalHarianPage() {
                               {[
                                 { value: 'pasangan_40', label: 'Pasangan (40x)' },
                                 { value: 'keluarga_40', label: 'Keluarga (40x)' },
-                                { value: 'tarteel_40', label: 'Tarteel (40x)' },
-                                { value: 'pasangan_20', label: 'Pasangan (20x)' },
-                                { value: 'voice_note_20', label: 'Voice Note (20x)' }
+                                { value: 'tarteel_40', label: 'Tarteel (40x)' }
                               ].map((option) => (
                                 <button
                                   key={option.value}
@@ -882,6 +891,7 @@ export default function JurnalHarianPage() {
                                     setJurnalData(prev => ({
                                       ...prev,
                                       tikrar_bi_al_ghaib_type: option.value as any,
+                                      tikrar_bi_al_ghaib_subtype: null,
                                       tarteel_screenshot_file: option.value === 'tarteel_40' ? prev.tarteel_screenshot_file : null
                                     }))
                                   }}
@@ -900,29 +910,57 @@ export default function JurnalHarianPage() {
 
                           {/* Sub-options for Pasangan (40x) */}
                           {jurnalData.tikrar_bi_al_ghaib_type === 'pasangan_40' && (
-                            <div className="ml-4 pl-3 border-l-2 border-teal-200">
-                              <p className="text-xs text-gray-600 mb-2">Tikran dengan pasangan:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {[
-                                  { value: 'pasangan_40', label: '1 pasangan' },
-                                  { value: 'pasangan_40_double', label: '2 pasangan' }
-                                ].map((option) => (
-                                  <button
-                                    key={option.value}
-                                    type="button"
-                                    onClick={() => {
-                                      setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_subtype: option.value as any }))
-                                    }}
-                                    className={cn(
-                                      "px-3 py-1 rounded-lg text-xs font-medium transition-all",
-                                      jurnalData.tikrar_bi_al_ghaib_subtype === option.value
-                                        ? "bg-teal-600 text-white"
-                                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                                    )}
-                                  >
-                                    {option.label}
-                                  </button>
-                                ))}
+                            <div className="ml-4 pl-3 border-l-2 border-teal-200 space-y-3">
+                              <div>
+                                <p className="text-xs text-gray-600 mb-2">Tikrar dengan pasangan (40x):</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {[
+                                    { value: 'pasangan_40_single', label: '1 pasangan' },
+                                    { value: 'pasangan_40_double', label: '2 pasangan' }
+                                  ].map((option) => (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_subtype: option.value as any }))
+                                      }}
+                                      className={cn(
+                                        "px-3 py-1 rounded-lg text-xs font-medium transition-all",
+                                        jurnalData.tikrar_bi_al_ghaib_subtype === option.value
+                                          ? "bg-teal-600 text-white"
+                                          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                      )}
+                                    >
+                                      {option.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-xs text-gray-600 mb-2">Atau tikrar (20x):</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {[
+                                    { value: 'pasangan_20', label: 'Pasangan (20x)' },
+                                    { value: 'voice_note_20', label: 'Voice Note (20x)' }
+                                  ].map((option) => (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() => {
+                                        setJurnalData(prev => ({ ...prev, tikrar_bi_al_ghaib_subtype: option.value as any }))
+                                      }}
+                                      className={cn(
+                                        "px-3 py-1 rounded-lg text-xs font-medium transition-all",
+                                        jurnalData.tikrar_bi_al_ghaib_subtype === option.value
+                                          ? "bg-teal-600 text-white"
+                                          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                      )}
+                                    >
+                                      {option.label}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -933,10 +971,12 @@ export default function JurnalHarianPage() {
                               <p className="text-xs text-gray-600 mb-2">Tikrar dengan keluarga:</p>
                               <div className="flex flex-wrap gap-2">
                                 {[
+                                  { value: 'keluarga_40_suami', label: 'Suami' },
                                   { value: 'keluarga_40_ayah', label: 'Ayah' },
                                   { value: 'keluarga_40_ibu', label: 'Ibu' },
                                   { value: 'keluarga_40_kakak', label: 'Kakak' },
-                                  { value: 'keluarga_40_adik', label: 'Adik' }
+                                  { value: 'keluarga_40_adik', label: 'Adik' },
+                                  { value: 'keluarga_40_saudara', label: 'Saudara' }
                                 ].map((option) => (
                                   <button
                                     key={option.value}
