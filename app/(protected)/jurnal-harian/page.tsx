@@ -366,9 +366,10 @@ export default function JurnalHarianPage() {
           // Old format: pasangan_20 or voice_note_20 were main types
           // New format: they're subtypes under pasangan_40
           const type20 = data[0].tikrar_bi_al_ghaib_20x[0]
-          if (type20 === 'pasangan_20' || type20 === 'voice_note_20') {
+          if (type20 === 'pasangan_20' || type20 === 'pasangan_20_wa' || type20 === 'voice_note_20') {
             tikrarType = 'pasangan_40'
-            tikrarSubtype = type20
+            // Map old pasangan_20 to new pasangan_20_wa for backward compatibility
+            tikrarSubtype = type20 === 'pasangan_20' ? 'pasangan_20_wa' : type20
           }
         }
 
@@ -912,11 +913,10 @@ export default function JurnalHarianPage() {
                           {jurnalData.tikrar_bi_al_ghaib_type === 'pasangan_40' && (
                             <div className="ml-4 pl-3 border-l-2 border-teal-200 space-y-3">
                               <div>
-                                <p className="text-xs text-gray-600 mb-2">Tikrar dengan pasangan (40x):</p>
+                                <p className="text-xs text-gray-600 mb-2">Tikrar 40x:</p>
                                 <div className="flex flex-wrap gap-2">
                                   {[
-                                    { value: 'pasangan_40_single', label: '1 pasangan' },
-                                    { value: 'pasangan_40_double', label: '2 pasangan' }
+                                    { value: 'pasangan_40_wa', label: 'WhatsApp Call (40x)' }
                                   ].map((option) => (
                                     <button
                                       key={option.value}
@@ -938,10 +938,10 @@ export default function JurnalHarianPage() {
                               </div>
 
                               <div>
-                                <p className="text-xs text-gray-600 mb-2">Atau tikrar (20x):</p>
+                                <p className="text-xs text-gray-600 mb-2">Tikrar 20x:</p>
                                 <div className="flex flex-wrap gap-2">
                                   {[
-                                    { value: 'pasangan_20', label: 'Pasangan (20x)' },
+                                    { value: 'pasangan_20_wa', label: 'WhatsApp Call (20x)' },
                                     { value: 'voice_note_20', label: 'Voice Note (20x)' }
                                   ].map((option) => (
                                     <button
