@@ -654,25 +654,40 @@ export default function TashihPage() {
                             className={cn(
                               "p-3 border-2 rounded-xl transition-all duration-200 text-center",
                               "hover:shadow-md hover:scale-105",
+                              // Selected date - most prominent
                               tashihData.tanggalTashih === dateString
                                 ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
                                 : isToday
-                                  ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                                  ? "border-amber-400 bg-amber-50 hover:border-amber-500 shadow-sm" // Different color for today (not selected)
                                   : "border-gray-200 hover:border-cyan-300 bg-white"
                             )}
                           >
                             <div className={cn(
                               "text-xs font-medium mb-1",
-                              tashihData.tanggalTashih === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                              tashihData.tanggalTashih === dateString
+                                ? "text-cyan-700"
+                                : isToday
+                                  ? "text-amber-700"
+                                  : "text-gray-600"
                             )}>
                               {hari}
                             </div>
                             <div className={cn(
                               "text-sm font-bold",
-                              tashihData.tanggalTashih === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                              tashihData.tanggalTashih === dateString
+                                ? "text-cyan-800"
+                                : isToday
+                                  ? "text-amber-800"
+                                  : "text-gray-800"
                             )}>
                               {dayDate.getDate()}
                             </div>
+                            {/* Show indicator for today */}
+                            {isToday && tashihData.tanggalTashih !== dateString && (
+                              <div className="mt-1">
+                                <div className="w-2 h-2 bg-amber-400 rounded-full mx-auto"></div>
+                              </div>
+                            )}
                           </button>
                         )
                       })}
