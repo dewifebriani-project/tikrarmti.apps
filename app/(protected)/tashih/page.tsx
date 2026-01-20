@@ -280,7 +280,7 @@ export default function TashihPage() {
 
       // Get today's record for editing (if exists)
       const today = new Date().toISOString().split('T')[0]
-      const todayRec = data?.find(r => r.waktu_tashih.startsWith(today))
+      const todayRec = data?.find((r: TashihRecord) => r.waktu_tashih.startsWith(today))
       setTodayRecord(todayRec || null)
 
       // If all 4 blocks completed, load the most recent record for display
