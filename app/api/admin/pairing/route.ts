@@ -144,21 +144,23 @@ export async function GET(request: Request) {
       const allMembers = [pairing.user_1_id, pairing.user_2_id, pairing.user_3_id].filter(Boolean)
       const hasSlot = !pairing.user_3_id // Has empty slot for 3rd member
 
-      // For user_1
+      // For user_1 - always exists
       pairedUsersMap.set(pairing.user_1_id, {
-        partnerId: pairing.user_2_id,
+        partnerId: pairing.user_2_id || pairing.user_3_id || '',
         partnerIds: allMembers.filter((id: string) => id !== pairing.user_1_id),
         pairingId: pairing.id,
         hasSlot
       })
 
-      // For user_2
-      pairedUsersMap.set(pairing.user_2_id, {
-        partnerId: pairing.user_1_id,
-        partnerIds: allMembers.filter((id: string) => id !== pairing.user_2_id),
-        pairingId: pairing.id,
-        hasSlot
-      })
+      // For user_2 - skip if null (tarteel/family pairings)
+      if (pairing.user_2_id) {
+        pairedUsersMap.set(pairing.user_2_id, {
+          partnerId: pairing.user_1_id,
+          partnerIds: allMembers.filter((id: string) => id !== pairing.user_2_id),
+          pairingId: pairing.id,
+          hasSlot
+        })
+      }
 
       // For user_3 if exists
       if (pairing.user_3_id) {
