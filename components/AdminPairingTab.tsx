@@ -1760,9 +1760,12 @@ export function AdminPairingTab() {
       {/* Tarteel Requests */}
       {activeTab === 'tarteel' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Request Pasangan Tarteel
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Request Pasangan Tarteel
+            </h3>
+            <span className="text-sm text-gray-600">{tarteelRequests.length} permintaan</span>
+          </div>
 
           {tarteelRequests.length === 0 ? (
             <div className="text-center py-12">
@@ -1770,101 +1773,147 @@ export function AdminPairingTab() {
               <p className="text-gray-600">Tidak ada request pasangan tarteel</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {tarteelRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${
-                    request.is_paired
-                      ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50'
-                      : 'border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50'
-                  }`}
-                >
-                  {/* Paired Header */}
-                  {request.is_paired && (
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-white">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="font-semibold text-sm">SUDAH DIPASANGKAN</span>
-                      </div>
-                      <span className="text-white/90 text-xs">Pasangan: {request.paired_partner_name}</span>
-                    </div>
-                  )}
-                  <div className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded font-medium">
-                          TARTEEL
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nama
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pasangan Tarteel
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Zona
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Juz
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usia
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      W. Utama
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      W. Cadangan
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Detail Pasangan
+                    </th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {tarteelRequests.map((request) => (
+                    <tr key={request.id} className={`hover:bg-gray-50 ${request.is_paired ? 'bg-green-50' : ''}`}>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {request.user_name}
+                      </td>
+                      <td className="px-2 py-2 text-sm">
+                        {request.is_paired ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                              {request.paired_partner_name}
+                            </span>
+                            {(request.paired_partner_names?.length || 0) >= 2 && (
+                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
+                                Grup 3
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Belum dipasangkan</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          {request.user_zona_waktu || 'WIB'}
                         </span>
-                        <p className="font-semibold text-gray-900">{request.user_name}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 mt-3">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">Juz Pilihan:</p>
-                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm font-medium">
-                            {request.chosen_juz}
-                          </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                          {request.chosen_juz}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-left">
+                        <span className="text-gray-700">{calculateAge(request.user_tanggal_lahir)}</span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                          {request.main_time_slot || '-'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                          {request.backup_time_slot || '-'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-sm text-gray-700 max-w-xs">
+                        <div className="space-y-1">
+                          <div>
+                            <span className="text-xs text-gray-500">Nama:</span>
+                            <p className="text-xs font-medium truncate">{request.partner_name || '-'}</p>
+                          </div>
+                          {request.partner_relationship && (
+                            <div>
+                              <span className="text-xs text-gray-500">Hubungan:</span>
+                              <p className="text-xs">{request.partner_relationship}</p>
+                            </div>
+                          )}
+                          {request.partner_notes && (
+                            <div>
+                              <span className="text-xs text-gray-500">Catatan:</span>
+                              <p className="text-xs truncate" title={request.partner_notes}>{request.partner_notes.substring(0, 50)}{request.partner_notes.length > 50 ? '...' : ''}</p>
+                            </div>
+                          )}
+                          {request.partner_wa_phone && (
+                            <div>
+                              <span className="text-xs text-gray-500">WA:</span>
+                              <p className="text-xs text-green-700">{request.partner_wa_phone}</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">Zona Waktu:</p>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">
-                            {request.user_zona_waktu || 'WIB'}
+                      </td>
+                      <td className="px-2 py-2 text-center text-xs">
+                        {request.is_paired ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                            Dipasangkan
                           </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <p className="text-xs text-gray-500 mb-1">Waktu Belajar:</p>
-                        <div className="flex flex-wrap gap-1 text-xs">
-                          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
-                            Utama: {request.main_time_slot}
+                        ) : (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                            Menunggu
                           </span>
-                          <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded">
-                            Cadangan: {request.backup_time_slot}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 p-3 bg-white rounded border border-purple-200">
-                        <p className="text-xs font-semibold text-purple-900 mb-2">Pasangan Tarteel:</p>
-                        <p className="text-sm text-gray-900 font-medium">{request.partner_name || '-'}</p>
-                        {request.partner_relationship && (
-                          <p className="text-xs text-gray-600">Hubungan: {request.partner_relationship}</p>
                         )}
-                        {request.partner_notes && (
-                          <p className="text-xs text-gray-600 mt-1">Catatan: {request.partner_notes}</p>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-center text-sm">
+                        {!request.is_paired ? (
+                          <button
+                            onClick={() => handleApproveTarteel(request)}
+                            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs font-medium shadow-sm"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Approve
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleRevertTarteelPairing(request)}
+                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1 text-xs font-medium shadow-sm"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Revert
+                          </button>
                         )}
-                        {request.partner_wa_phone && (
-                          <p className="text-xs text-gray-600 mt-1">WA: {request.partner_wa_phone}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="ml-4 flex flex-col gap-2">
-                      {!request.is_paired ? (
-                        <button
-                          onClick={() => handleApproveTarteel(request)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Approve
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleRevertTarteelPairing(request)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2 text-sm font-medium shadow-sm"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          Revert
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -1872,10 +1921,12 @@ export function AdminPairingTab() {
 
       {/* Family Requests */}
       {activeTab === 'family' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Request Pasangan Family
-          </h3>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Request Pasangan Family
+            </h3>
+          </div>
 
           {familyRequests.length === 0 ? (
             <div className="text-center py-12">
@@ -1883,101 +1934,147 @@ export function AdminPairingTab() {
               <p className="text-gray-600">Tidak ada request pasangan family</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {familyRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className={`border rounded-lg overflow-hidden hover:shadow-md transition-all ${
-                    request.is_paired
-                      ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50'
-                      : 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50'
-                  }`}
-                >
-                  {/* Paired Header */}
-                  {request.is_paired && (
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-white">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="font-semibold text-sm">SUDAH DIPASANGKAN</span>
-                      </div>
-                      <span className="text-white/90 text-xs">Pasangan: {request.paired_partner_name}</span>
-                    </div>
-                  )}
-                  <div className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-amber-600 text-white text-xs rounded font-medium">
-                          FAMILY
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nama
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pasangan Family
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Zona
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Juz
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usia
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      W. Utama
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      W. Cadangan
+                    </th>
+                    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Detail Pasangan
+                    </th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {familyRequests.map((request) => (
+                    <tr key={request.id} className={`hover:bg-gray-50 ${request.is_paired ? 'bg-green-50' : ''}`}>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {request.user_name}
+                      </td>
+                      <td className="px-2 py-2 text-sm">
+                        {request.is_paired ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                              {request.paired_partner_name}
+                            </span>
+                            {(request.paired_partner_names?.length || 0) >= 2 && (
+                              <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
+                                Grup 3
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Belum dipasangkan</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          {request.user_zona_waktu || 'WIB'}
                         </span>
-                        <p className="font-semibold text-gray-900">{request.user_name}</p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 mt-3">
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">Juz Pilihan:</p>
-                          <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-sm font-medium">
-                            {request.chosen_juz}
-                          </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                          {request.chosen_juz}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-left">
+                        <span className="text-gray-700">{calculateAge(request.user_tanggal_lahir)}</span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
+                          {request.main_time_slot || '-'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded text-xs font-medium">
+                          {request.backup_time_slot || '-'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-sm text-gray-700 max-w-xs">
+                        <div className="space-y-1">
+                          <div>
+                            <span className="text-xs text-gray-500">Nama:</span>
+                            <p className="text-xs font-medium truncate">{request.partner_name || '-'}</p>
+                          </div>
+                          {request.partner_relationship && (
+                            <div>
+                              <span className="text-xs text-gray-500">Hubungan:</span>
+                              <p className="text-xs">{request.partner_relationship}</p>
+                            </div>
+                          )}
+                          {request.partner_notes && (
+                            <div>
+                              <span className="text-xs text-gray-500">Catatan:</span>
+                              <p className="text-xs truncate" title={request.partner_notes}>{request.partner_notes.substring(0, 50)}{request.partner_notes.length > 50 ? '...' : ''}</p>
+                            </div>
+                          )}
+                          {request.partner_wa_phone && (
+                            <div>
+                              <span className="text-xs text-gray-500">WA:</span>
+                              <p className="text-xs text-green-700">{request.partner_wa_phone}</p>
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">Zona Waktu:</p>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium">
-                            {request.user_zona_waktu || 'WIB'}
+                      </td>
+                      <td className="px-2 py-2 text-center text-xs">
+                        {request.is_paired ? (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                            Dipasangkan
                           </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <p className="text-xs text-gray-500 mb-1">Waktu Belajar:</p>
-                        <div className="flex flex-wrap gap-1 text-xs">
-                          <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded">
-                            Utama: {request.main_time_slot}
+                        ) : (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                            Menunggu
                           </span>
-                          <span className="px-2 py-0.5 bg-orange-100 text-orange-800 rounded">
-                            Cadangan: {request.backup_time_slot}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 p-3 bg-white rounded border border-amber-200">
-                        <p className="text-xs font-semibold text-amber-900 mb-2">Pasangan Family:</p>
-                        <p className="text-sm text-gray-900 font-medium">{request.partner_name || '-'}</p>
-                        {request.partner_relationship && (
-                          <p className="text-xs text-gray-600">Hubungan: {request.partner_relationship}</p>
                         )}
-                        {request.partner_notes && (
-                          <p className="text-xs text-gray-600 mt-1">Catatan: {request.partner_notes}</p>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap text-center text-sm">
+                        {!request.is_paired ? (
+                          <button
+                            onClick={() => handleApproveFamily(request)}
+                            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs font-medium shadow-sm mx-auto"
+                          >
+                            <CheckCircle className="w-3 h-3" />
+                            Approve
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleRevertFamilyPairing(request)}
+                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1 text-xs font-medium shadow-sm mx-auto"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            Revert
+                          </button>
                         )}
-                        {request.partner_wa_phone && (
-                          <p className="text-xs text-gray-600 mt-1">WA: {request.partner_wa_phone}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="ml-4 flex flex-col gap-2">
-                      {!request.is_paired ? (
-                        <button
-                          onClick={() => handleApproveFamily(request)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Approve
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleRevertFamilyPairing(request)}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2 text-sm font-medium shadow-sm"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          Revert
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
