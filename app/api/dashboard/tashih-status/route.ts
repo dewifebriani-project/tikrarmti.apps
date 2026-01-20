@@ -35,9 +35,9 @@ export async function GET() {
       .select(`
         id,
         status,
-        daftar_ulang,
         batch_id,
-        chosen_juz
+        chosen_juz,
+        daftar_ulang->>confirmed_chosen_juz
       `)
       .eq('user_id', user.id)
       .eq('status', 'approved')
@@ -47,9 +47,9 @@ export async function GET() {
       .select(`
         id,
         status,
-        daftar_ulang,
         batch_id,
-        chosen_juz
+        chosen_juz,
+        daftar_ulang->>confirmed_chosen_juz
       `)
       .eq('user_id', user.id)
       .eq('status', 'selected')
@@ -71,8 +71,8 @@ export async function GET() {
       console.log('[Tashih Status] First registration data:', JSON.stringify({
         id: registrations[0].id,
         status: registrations[0].status,
-        has_daftar_ulang: !!registrations[0].daftar_ulang,
         chosen_juz: registrations[0].chosen_juz,
+        confirmed_chosen_juz: registrations[0].confirmed_chosen_juz,
         batch_id: registrations[0].batch_id
       }))
     }
@@ -118,11 +118,11 @@ export async function GET() {
       )
     }
 
-    // Get juz from daftar_ulang.confirmed_chosen_juz or chosen_juz
-    const juzCode = activeRegistration.daftar_ulang?.confirmed_chosen_juz ||
+    // Get juz from confirmed_chosen_juz (already selected) or chosen_juz
+    const juzCode = activeRegistration.confirmed_chosen_juz ||
                     activeRegistration.chosen_juz
 
-    console.log('[Tashih Status] Juz code:', juzCode, 'from daftar_ulang:', activeRegistration.daftar_ulang?.confirmed_chosen_juz, 'from chosen_juz:', activeRegistration.chosen_juz)
+    console.log('[Tashih Status] Juz code:', juzCode, 'from confirmed_chosen_juz:', activeRegistration.confirmed_chosen_juz, 'from chosen_juz:', activeRegistration.chosen_juz)
 
     if (!juzCode) {
       console.log('[Tashih Status] No juz assigned for registration:', activeRegistration.id)
@@ -148,9 +148,6 @@ export async function GET() {
         { status: 404 }
       )
     }
-
-    // Get batch start date
-    const batchStartDate = batch?.start_date
 
     // Generate all blocks for this juz (13 weeks, 4 blocks per week = 52 blocks total)
     const allBlocks: TashihBlockStatus[] = []
