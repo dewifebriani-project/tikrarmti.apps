@@ -39,7 +39,10 @@ export async function GET(request: NextRequest) {
         chosen_juz
       `)
       .eq('user_id', user.id)
-      .in('status', ['approved', 'selected'])
+      .or('status.eq.approved,status.eq.selected')
+
+    console.log('[Tashih Status] Registrations query error:', regError)
+    console.log('[Tashih Status] Registrations result:', registrations?.length || 0)
 
     if (regError) {
       console.error('Error fetching registrations:', regError)
@@ -57,17 +60,30 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('[Tashih Status] Registrations:', registrations.length, 'first reg:', registrations[0]?.id)
+    console.log('[Tashih Status] Registrations:', registrations?.length || 0)
+
+    if (!registrations || registrations.length === 0) {
+      console.log('[Tashih Status] No registrations found for user:', user.id)
+      return NextResponse.json(
+        { success: false, error: 'No active registration found' },
+        { status: 404 }
+      )
+    }
+
+    console.log('[Tashih Status] First reg ID:', registrations[0]?.id)
 
     // Get batch info separately
     const batchIds = registrations.map(r => r.batch_id).filter(Boolean)
+
+    // Build OR clause for batch IDs
+    const batchIdConditions = batchIds.map(id => `id.eq.${id}`).join(',')
     const { data: batches } = await supabase
       .from('batches')
       .select('id, start_date, status')
-      .in('id', batchIds as string[])
+      .or(batchIdConditions)
 
-    console.log('[Tashih Status] Batches fetched:', batches?.length || 0, 'batchIds:', batchIds)
-    console.log('[Tashih Status] Batches data:', batches)
+    console.log('[Tashih Status] Batch IDs:', batchIds)
+    console.log('[Tashih Status] Batches fetched:', batches?.length || 0)
 
     // Find active registration
     const activeRegistration = registrations.find((reg: any) => {
@@ -155,6 +171,8 @@ export async function GET(request: NextRequest) {
       .select('blok, waktu_tashih')
       .eq('user_id', user.id)
       .order('waktu_tashih', { ascending: true })
+
+    console.log('[Tashih Status] Tashih records:', tashihRecords?.length || 0, 'error:', tashihError)
 
     if (!tashihError && tashihRecords) {
       // Create a map to track completion status and count
