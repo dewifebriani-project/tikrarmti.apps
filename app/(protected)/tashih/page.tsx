@@ -92,6 +92,7 @@ export default function TashihPage() {
   })
 
   const [todayRecord, setTodayRecord] = useState<TashihRecord | null>(null)
+  const [weekRecords, setWeekRecords] = useState<TashihRecord[]>([])
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isValid, setIsValid] = useState(false)
@@ -141,12 +142,12 @@ export default function TashihPage() {
     }
   }, [batchId, juzToUse])
 
-  // Load today's record
+  // Load week's records when week number changes
   useEffect(() => {
-    if (confirmedJuz && user) {
-      loadTodayRecord()
+    if (confirmedJuz && user && selectedWeekNumber) {
+      loadWeekRecords()
     }
-  }, [confirmedJuz, user])
+  }, [confirmedJuz, user, selectedWeekNumber])
 
   const loadJuzInfo = async (juzCode: string) => {
     setIsLoadingBlocks(true)
@@ -232,56 +233,107 @@ export default function TashihPage() {
     }
   }
 
-  const loadTodayRecord = async () => {
-    if (!user) return
+  const loadWeekRecords = async () => {
+    if (!user || !batchStartDate) return
 
     try {
       const supabase = createClient()
 
-      const today = new Date().toISOString().split('T')[0]
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0]
+      // Get week start and end dates
+      const weekStart = getWeekStartDate(selectedWeekNumber)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 7) // Add 7 days for end of week
 
       const { data, error } = await supabase
         .from('tashih_records')
         .select('*')
         .eq('user_id', user.id)
-        .gte('waktu_tashih', today)
-        .lt('waktu_tashih', tomorrow)
+        .gte('waktu_tashih', weekStart.toISOString())
+        .lt('waktu_tashih', weekEnd.toISOString())
         .order('waktu_tashih', { ascending: false })
-        .limit(1)
 
       if (error) {
-        console.error('Error loading tashih record:', error)
+        console.error('Error loading week tashih records:', error)
         return
       }
 
-      if (data && data.length > 0) {
-        setTodayRecord(data[0])
+      setWeekRecords(data || [])
+
+      // Get unique blocks for this week
+      const weekBlocks = new Set<string>()
+      if (data) {
+        data.forEach(record => {
+          if (record.blok) {
+            const blocks: string[] = typeof record.blok === 'string'
+              ? record.blok.split(',').map(b => b.trim()).filter(b => b)
+              : (Array.isArray(record.blok) ? record.blok : [])
+            blocks.forEach(block => weekBlocks.add(block))
+          }
+        })
+      }
+
+      // Check if all 4 blocks for this week are completed
+      const blockOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
+      const blockNumber = selectedWeekNumber + blockOffset
+      const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+      const allBlocksCompleted = expectedBlocks.every(block => weekBlocks.has(block))
+
+      // Get today's record for editing (if exists)
+      const today = new Date().toISOString().split('T')[0]
+      const todayRec = data?.find(r => r.waktu_tashih.startsWith(today))
+      setTodayRecord(todayRec || null)
+
+      // If all 4 blocks completed, load the most recent record for display
+      if (allBlocksCompleted && data && data.length > 0) {
+        const mostRecent = data[0]
+        setTodayRecord(mostRecent)
         // Map legacy 'halaqah' value to 'mti'
-        const lokasiValue = data[0].lokasi === 'halaqah' ? 'mti' : data[0].lokasi as 'mti' | 'luar'
+        const lokasiValue = mostRecent.lokasi === 'halaqah' ? 'mti' : mostRecent.lokasi as 'mti' | 'luar'
         // Handle blok: stored as comma-separated string in DB, convert to array
         let blokValue: string[] = []
-        if (data[0].blok) {
-          if (typeof data[0].blok === 'string') {
-            blokValue = data[0].blok.split(',').filter((b: string) => b.trim())
-          } else if (Array.isArray(data[0].blok)) {
-            blokValue = data[0].blok
+        if (mostRecent.blok) {
+          if (typeof mostRecent.blok === 'string') {
+            blokValue = mostRecent.blok.split(',').filter((b: string) => b.trim())
+          } else if (Array.isArray(mostRecent.blok)) {
+            blokValue = mostRecent.blok
           }
         }
         setTashihData({
           blok: blokValue,
           lokasi: lokasiValue,
-          lokasiDetail: data[0].lokasi_detail || '',
-          ustadzahId: data[0].ustadzah_id || null,
-          ustadzahName: data[0].nama_pemeriksa || null,
-          jumlahKesalahanTajwid: data[0].jumlah_kesalahan_tajwid || 0,
-          masalahTajwid: data[0].masalah_tajwid || [],
-          catatanTambahan: data[0].catatan_tambahan || '',
-          tanggalTashih: new Date(data[0].waktu_tashih).toISOString().slice(0, 10)
+          lokasiDetail: mostRecent.lokasi_detail || '',
+          ustadzahId: mostRecent.ustadzah_id || null,
+          ustadzahName: mostRecent.nama_pemeriksa || null,
+          jumlahKesalahanTajwid: mostRecent.jumlah_kesalahan_tajwid || 0,
+          masalahTajwid: mostRecent.masalah_tajwid || [],
+          catatanTambahan: mostRecent.catatan_tambahan || '',
+          tanggalTashih: new Date(mostRecent.waktu_tashih).toISOString().slice(0, 10)
+        })
+      } else if (todayRec) {
+        // Load today's record for editing if week is not complete
+        const lokasiValue = todayRec.lokasi === 'halaqah' ? 'mti' : todayRec.lokasi as 'mti' | 'luar'
+        let blokValue: string[] = []
+        if (todayRec.blok) {
+          if (typeof todayRec.blok === 'string') {
+            blokValue = todayRec.blok.split(',').filter((b: string) => b.trim())
+          } else if (Array.isArray(todayRec.blok)) {
+            blokValue = todayRec.blok
+          }
+        }
+        setTashihData({
+          blok: blokValue,
+          lokasi: lokasiValue,
+          lokasiDetail: todayRec.lokasi_detail || '',
+          ustadzahId: todayRec.ustadzah_id || null,
+          ustadzahName: todayRec.nama_pemeriksa || null,
+          jumlahKesalahanTajwid: todayRec.jumlah_kesalahan_tajwid || 0,
+          masalahTajwid: todayRec.masalah_tajwid || [],
+          catatanTambahan: todayRec.catatan_tambahan || '',
+          tanggalTashih: new Date(todayRec.waktu_tashih).toISOString().slice(0, 10)
         })
       }
     } catch (error) {
-      console.error('Error loading tashih record:', error)
+      console.error('Error loading week tashih records:', error)
     }
   }
 
@@ -333,35 +385,22 @@ export default function TashihPage() {
         waktu_tashih: new Date(tashihData.tanggalTashih).toISOString()
       }
 
-      let error
+      // Always insert new record - each tashih submission creates a new record
+      // This allows tracking progress throughout the week
+      const { error: insertError } = await supabase
+        .from('tashih_records')
+        .insert(recordData)
+        .select()
+        .single()
 
-      if (todayRecord) {
-        const { error: updateError } = await supabase
-          .from('tashih_records')
-          .update(recordData)
-          .eq('id', todayRecord.id)
-          .select()
-          .single()
-
-        error = updateError
-      } else {
-        const { error: insertError } = await supabase
-          .from('tashih_records')
-          .insert(recordData)
-          .select()
-          .single()
-
-        error = insertError
-      }
-
-      if (error) {
-        console.error('Error saving tashih record:', error)
-        toast.error('Gagal menyimpan data tashih: ' + error.message)
+      if (insertError) {
+        console.error('Error saving tashih record:', insertError)
+        toast.error('Gagal menyimpan data tashih: ' + insertError.message)
         return
       }
 
       toast.success('Tashih berhasil disimpan!')
-      await loadTodayRecord()
+      await loadWeekRecords()
     } catch (error) {
       console.error('Error saving tashih:', error)
       toast.error('Terjadi kesalahan saat menyimpan')
@@ -383,6 +422,7 @@ export default function TashihPage() {
       tanggalTashih: new Date().toISOString().slice(0, 10)
     })
     setTodayRecord(null)
+    setWeekRecords([])
     setIsValid(false)
   }
 
@@ -445,6 +485,50 @@ export default function TashihPage() {
     return getWeekNumberFromDate(new Date())
   }
 
+  // Check if current week's 4 blocks are completed
+  const isWeekCompleted = (): boolean => {
+    if (!selectedJuzInfo) return false
+
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = selectedWeekNumber + blockOffset
+    const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+
+    // Get all unique blocks from week records
+    const weekBlocks = new Set<string>()
+    weekRecords.forEach(record => {
+      if (record.blok) {
+        const blocks: string[] = typeof record.blok === 'string'
+          ? record.blok.split(',').map(b => b.trim()).filter(b => b)
+          : (Array.isArray(record.blok) ? record.blok : [])
+        blocks.forEach(block => weekBlocks.add(block))
+      }
+    })
+
+    return expectedBlocks.every(block => weekBlocks.has(block))
+  }
+
+  // Get completed blocks count for current week
+  const getWeekCompletedBlocksCount = (): number => {
+    if (!selectedJuzInfo) return 0
+
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = selectedWeekNumber + blockOffset
+    const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+
+    // Get all unique blocks from week records
+    const weekBlocks = new Set<string>()
+    weekRecords.forEach(record => {
+      if (record.blok) {
+        const blocks: string[] = typeof record.blok === 'string'
+          ? record.blok.split(',').map(b => b.trim()).filter(b => b)
+          : (Array.isArray(record.blok) ? record.blok : [])
+        blocks.forEach(block => weekBlocks.add(block))
+      }
+    })
+
+    return expectedBlocks.filter(block => weekBlocks.has(block)).length
+  }
+
   // Initialize selected week on first load
   useEffect(() => {
     if (batchStartDate) {
@@ -478,23 +562,26 @@ export default function TashihPage() {
     )
   }
 
-  // Show success if already submitted today
-  if (todayRecord) {
+  // Show success if week's 4 blocks are completed
+  const weekCompleted = isWeekCompleted()
+  const completedCount = getWeekCompletedBlocksCount()
+
+  if (weekCompleted) {
     return (
       <div className="space-y-6 animate-fadeInUp">
         <div className="text-center py-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full mb-6 shadow-lg">
             <CheckCircle className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-green-army mb-2">Alhamdulillah, Tashih Selesai!</h1>
+          <h1 className="text-3xl font-bold text-green-army mb-2">Alhamdulillah, Tashih Pekan Ini Selesai!</h1>
           <p className="text-gray-600 mb-8">
-            Tashih bacaan Ukhti telah berhasil dicatat untuk hari ini
+            Semua 4 blok untuk pekan {selectedWeekNumber} telah berhasil ditashih
           </p>
 
           <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-green-200">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-5 w-5 text-green-600" />
-              <h3 className="font-semibold text-gray-800">Detail Tashih Hari Ini</h3>
+              <h3 className="font-semibold text-gray-800">Detail Tashih Pekan {selectedWeekNumber}</h3>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -507,36 +594,45 @@ export default function TashihPage() {
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Blok:</span>
-                <span className="font-semibold text-gray-800">{todayRecord.blok}</span>
+                <span className="text-gray-600">Blok Selesai:</span>
+                <span className="font-semibold text-gray-800">{completedCount}/4 blok</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Lokasi:</span>
+                <span className="text-gray-600">Status:</span>
                 <span className="font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
-                  {todayRecord.lokasi === 'mti' ? 'MTI' : 'Luar MTI'}
+                  Selesai
                 </span>
               </div>
-              {todayRecord.nama_pemeriksa && (
+              {todayRecord?.nama_pemeriksa && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-gray-600">Ustadzah:</span>
+                  <span className="text-gray-600">Ustadzah Terakhir:</span>
                   <span className="font-medium text-gray-800">{todayRecord.nama_pemeriksa}</span>
                 </div>
               )}
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Tanggal:</span>
+                <span className="text-gray-600">Pekan:</span>
                 <span className="font-medium text-gray-800">
-                  {new Date(todayRecord.waktu_tashih).toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  Pekan {selectedWeekNumber}
                 </span>
               </div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Button onClick={resetForm} variant="outline" className="flex-1">
+            <Button onClick={() => {
+              setTodayRecord(null)
+              setWeekRecords([])
+              setTashihData({
+                blok: [],
+                lokasi: 'mti',
+                lokasiDetail: '',
+                ustadzahId: null,
+                ustadzahName: null,
+                jumlahKesalahanTajwid: 0,
+                masalahTajwid: [],
+                catatanTambahan: '',
+                tanggalTashih: new Date().toISOString().slice(0, 10)
+              })
+            }} variant="outline" className="flex-1">
               Perbarui Tashih
             </Button>
             <Link href="/dashboard" className="flex-1">
@@ -595,10 +691,23 @@ export default function TashihPage() {
               <Clock className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-lg text-gray-800">Tashih Hari Ini Belum Selesai</h3>
+              <h3 className="font-bold text-lg text-gray-800">
+                Progress Tashih Pekan {selectedWeekNumber}: {completedCount}/4 Blok
+              </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Lakukan tashih terlebih dahulu sebelum mengisi jurnal harian
+                {completedCount === 0
+                  ? 'Belum ada blok yang ditashih minggu ini'
+                  : completedCount < 4
+                    ? `${4 - completedCount} blok lagi untuk menyelesaikan pekan ini`
+                    : 'Semua blok pekan ini sudah selesai!'
+                }
               </p>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(completedCount / 4) * 100}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         </CardContent>
