@@ -29,7 +29,8 @@ export async function GET() {
     }
 
     // Get user's active registration with daftar ulang
-    const { data: registrations, error: regError } = await supabase
+    // Use two separate queries and combine results
+    const { data: approvedRegs, error: approvedError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
         id,
@@ -39,9 +40,23 @@ export async function GET() {
         chosen_juz
       `)
       .eq('user_id', user.id)
-      .or('status.eq.approved,status.eq.selected')
+      .eq('status', 'approved')
 
-    console.log('[Tashih Status] Registrations query error:', regError)
+    const { data: selectedRegs, error: selectedError } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select(`
+        id,
+        status,
+        daftar_ulang,
+        batch_id,
+        chosen_juz
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'selected')
+
+    const registrations = [...(approvedRegs || []), ...(selectedRegs || [])]
+
+    console.log('[Tashih Status] Registrations query error:', { approvedError, selectedError })
     console.log('[Tashih Status] Registrations result:', registrations?.length || 0)
 
     if (registrations && registrations.length > 0) {
@@ -49,14 +64,13 @@ export async function GET() {
         id: registrations[0].id,
         status: registrations[0].status,
         has_daftar_ulang: !!registrations[0].daftar_ulang,
-        daftar_ulang: registrations[0].daftar_ulang,
         chosen_juz: registrations[0].chosen_juz,
         batch_id: registrations[0].batch_id
       }))
     }
 
-    if (regError) {
-      console.error('Error fetching registrations:', regError)
+    if (approvedError || selectedError) {
+      console.error('Error fetching registrations:', { approvedError, selectedError })
       return NextResponse.json(
         { success: false, error: 'Failed to fetch registrations' },
         { status: 500 }
@@ -71,41 +85,22 @@ export async function GET() {
       )
     }
 
-    console.log('[Tashih Status] Registrations:', registrations?.length || 0)
-
-    if (!registrations || registrations.length === 0) {
-      console.log('[Tashih Status] No registrations found for user:', user.id)
-      return NextResponse.json(
-        { success: false, error: 'No active registration found' },
-        { status: 404 }
-      )
+    // Get batch info separately using the batch_id from first registration
+    const batchId = registrations[0]?.batch_id
+    let batch = null
+    if (batchId) {
+      const { data: batchData } = await supabase
+        .from('batches')
+        .select('id, start_date, status')
+        .eq('id', batchId)
+        .single()
+      batch = batchData
     }
 
-    console.log('[Tashih Status] First reg ID:', registrations[0]?.id)
+    console.log('[Tashih Status] Batch:', batch?.id, batch?.status)
 
-    // Get batch info separately
-    const batchIds = registrations.map(r => r.batch_id).filter(Boolean)
-
-    // Build OR clause for batch IDs
-    const batchIdConditions = batchIds.map(id => `id.eq.${id}`).join(',')
-    const { data: batches } = await supabase
-      .from('batches')
-      .select('id, start_date, status')
-      .or(batchIdConditions)
-
-    console.log('[Tashih Status] Batch IDs:', batchIds)
-    console.log('[Tashih Status] Batches fetched:', batches?.length || 0)
-
-    // Find active registration
-    const activeRegistration = registrations.find((reg: any) => {
-      const batch = batches?.find(b => b.id === reg.batch_id)
-      const isMatch = batch?.status === 'open' &&
-        (reg.status === 'approved' || (reg as any).selection_status === 'selected')
-      console.log('[Tashih Status] Checking reg:', reg.id, 'batch status:', batch?.status, 'reg status:', reg.status, 'selection_status:', (reg as any).selection_status, 'isMatch:', isMatch)
-      return isMatch
-    }) || registrations[0]
-
-    console.log('[Tashih Status] Active registration:', activeRegistration?.id)
+    // Use first registration as active registration
+    const activeRegistration = registrations[0]
 
     if (!activeRegistration) {
       return NextResponse.json(
@@ -146,7 +141,6 @@ export async function GET() {
     }
 
     // Get batch start date
-    const batch = batches?.find(b => b.id === activeRegistration.batch_id)
     const batchStartDate = batch?.start_date
 
     // Generate all blocks for this juz (13 weeks, 4 blocks per week = 52 blocks total)
