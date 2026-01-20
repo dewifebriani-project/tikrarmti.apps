@@ -59,6 +59,14 @@ export async function GET() {
     console.log('[Tashih Status] Registrations query error:', { approvedError, selectedError })
     console.log('[Tashih Status] Registrations result:', registrations?.length || 0)
 
+    // Log detailed error for debugging
+    if (approvedError) {
+      console.error('[Tashih Status] Approved query error:', JSON.stringify(approvedError, Object.keys(approvedError)))
+    }
+    if (selectedError) {
+      console.error('[Tashih Status] Selected query error:', JSON.stringify(selectedError, Object.keys(selectedError)))
+    }
+
     if (registrations && registrations.length > 0) {
       console.log('[Tashih Status] First registration data:', JSON.stringify({
         id: registrations[0].id,
@@ -69,10 +77,11 @@ export async function GET() {
       }))
     }
 
-    if (approvedError || selectedError) {
+    // Only return error if BOTH queries fail (user might only have one type of registration)
+    if (approvedError && selectedError) {
       console.error('Error fetching registrations:', { approvedError, selectedError })
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch registrations' },
+        { success: false, error: 'Failed to fetch registrations', details: { approvedError, selectedError } },
         { status: 500 }
       )
     }
