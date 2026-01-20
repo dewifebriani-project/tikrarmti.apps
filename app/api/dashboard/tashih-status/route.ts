@@ -66,12 +66,19 @@ export async function GET(request: NextRequest) {
       .select('id, start_date, status')
       .in('id', batchIds as string[])
 
+    console.log('[Tashih Status] Batches fetched:', batches?.length || 0, 'batchIds:', batchIds)
+    console.log('[Tashih Status] Batches data:', batches)
+
     // Find active registration
     const activeRegistration = registrations.find((reg: any) => {
       const batch = batches?.find(b => b.id === reg.batch_id)
-      return batch?.status === 'open' &&
+      const isMatch = batch?.status === 'open' &&
         (reg.status === 'approved' || (reg as any).selection_status === 'selected')
+      console.log('[Tashih Status] Checking reg:', reg.id, 'batch status:', batch?.status, 'reg status:', reg.status, 'selection_status:', (reg as any).selection_status, 'isMatch:', isMatch)
+      return isMatch
     }) || registrations[0]
+
+    console.log('[Tashih Status] Active registration:', activeRegistration?.id)
 
     if (!activeRegistration) {
       return NextResponse.json(
@@ -101,7 +108,10 @@ export async function GET(request: NextRequest) {
       .eq('code', juzCode)
       .single()
 
+    console.log('[Tashih Status] Juz info query result:', 'juzInfo:', juzInfo ? 'found' : 'null', 'error:', juzError)
+
     if (juzError || !juzInfo) {
+      console.log('[Tashih Status] Juz not found or error, juzCode was:', juzCode)
       return NextResponse.json(
         { success: false, error: 'Juz not found' },
         { status: 404 }
