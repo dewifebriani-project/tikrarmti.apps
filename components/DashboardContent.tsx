@@ -52,6 +52,17 @@ export default function DashboardContent() {
     daftarUlang: registrations[0]?.daftar_ulang
   } : { registered: false }
 
+  // Debug logging for tashih status
+  useEffect(() => {
+    console.log('[Dashboard] tashihStatus:', {
+      hasRegistered,
+      hasTashihStatus: !!tashihStatus,
+      isLoading: tashihLoading,
+      error: tashihError,
+      registrationsCount: registrations.length
+    })
+  }, [hasRegistered, tashihStatus, tashihLoading, tashihError, registrations.length])
+
   // Helper function to convert day number to Indonesian day name
   const getDayNameFromNumber = (dayNum: number | string | undefined) => {
     const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']

@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
+    console.log('[Tashih Status] User:', user?.id, userError)
+
     if (userError || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -48,11 +50,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (!registrations || registrations.length === 0) {
+      console.log('[Tashih Status] No registrations found for user:', user.id)
       return NextResponse.json(
         { success: false, error: 'No active registration found' },
         { status: 404 }
       )
     }
+
+    console.log('[Tashih Status] Registrations:', registrations.length, 'first reg:', registrations[0]?.id)
 
     // Get batch info separately
     const batchIds = registrations.map(r => r.batch_id).filter(Boolean)
@@ -79,7 +84,10 @@ export async function GET(request: NextRequest) {
     const juzCode = activeRegistration.daftar_ulang?.confirmed_chosen_juz ||
                     activeRegistration.chosen_juz
 
+    console.log('[Tashih Status] Juz code:', juzCode, 'from daftar_ulang:', activeRegistration.daftar_ulang?.confirmed_chosen_juz, 'from chosen_juz:', activeRegistration.chosen_juz)
+
     if (!juzCode) {
+      console.log('[Tashih Status] No juz assigned for registration:', activeRegistration.id)
       return NextResponse.json(
         { success: false, error: 'No juz assigned' },
         { status: 404 }
@@ -180,6 +188,12 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    console.log('[Tashih Status] Returning data:', {
+      juz_code: juzCode,
+      total_blocks: allBlocks.length,
+      completed: allBlocks.filter(b => b.is_completed).length
+    })
+
     return NextResponse.json({
       success: true,
       data: {
@@ -195,7 +209,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Tashih status error:', error)
+    console.error('[Tashih Status] Error:', error)
     return NextResponse.json(
       {
         success: false,

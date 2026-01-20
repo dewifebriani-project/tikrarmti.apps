@@ -541,6 +541,7 @@ export function useTashihStatus() {
     '/api/dashboard/tashih-status',
     async (url: string): Promise<TashihStatusData | null> => {
       try {
+        console.log('[useTashihStatus] Fetching...')
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -549,18 +550,22 @@ export function useTashihStatus() {
           credentials: 'include',
         })
 
+        console.log('[useTashihStatus] Response status:', response.status)
+
         if (!response.ok) {
           if (response.status === 404 || response.status === 401) {
             // No active registration or not authorized
+            console.log('[useTashihStatus] No active registration, returning null')
             return null
           }
           throw new Error('Failed to fetch tashih status')
         }
 
         const result = await response.json()
+        console.log('[useTashihStatus] Result:', result.success ? 'success' : 'failed', 'data:', result.data ? 'found' : 'null')
         return result.data || null
       } catch (error) {
-        console.error('Error fetching tashih status:', error)
+        console.error('[useTashihStatus] Error:', error)
         return null
       }
     },
@@ -571,6 +576,8 @@ export function useTashihStatus() {
       fallbackData: null,
     }
   )
+
+  console.log('[useTashihStatus] State:', { isLoading, isError: !!error, hasData: !!data })
 
   return {
     tashihStatus: data || null,
