@@ -94,6 +94,7 @@ interface TarteelRequest {
   user_email: string
   user_zona_waktu: string
   user_wa_phone: string
+  user_tanggal_lahir?: string | null
   chosen_juz: string
   main_time_slot: string
   backup_time_slot: string
@@ -119,6 +120,7 @@ interface FamilyRequest {
   user_email: string
   user_zona_waktu: string
   user_wa_phone: string
+  user_tanggal_lahir?: string | null
   chosen_juz: string
   main_time_slot: string
   backup_time_slot: string
