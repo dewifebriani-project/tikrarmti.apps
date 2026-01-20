@@ -619,8 +619,7 @@ export default function TashihPage() {
               </div>
             </div>
           </div>
-        </Card>
-      )}
+        </div>
 
       {/* Tashih Block Status Card - Full detail */}
       {!tashihStatusLoading && tashihStatus && (
@@ -747,33 +746,32 @@ export default function TashihPage() {
       )}
 
       <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Button onClick={() => {
-              setTodayRecord(null)
-              setWeekRecords([])
-              setTashihData({
-                blok: [],
-                lokasi: 'mti',
-                lokasiDetail: '',
-                ustadzahId: null,
-                ustadzahName: null,
-                jumlahKesalahanTajwid: 0,
-                masalahTajwid: [],
-                catatanTambahan: '',
-                tanggalTashih: new Date().toISOString().slice(0, 10)
-              })
-            }} variant="outline" className="flex-1">
-              Perbarui Tashih
-            </Button>
-            <Link href="/dashboard" className="flex-1">
-              <Button variant="outline" className="w-full">
-                Kembali ke Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <Button onClick={() => {
+          setTodayRecord(null)
+          setWeekRecords([])
+          setTashihData({
+            blok: [],
+            lokasi: 'mti',
+            lokasiDetail: '',
+            ustadzahId: null,
+            ustadzahName: null,
+            jumlahKesalahanTajwid: 0,
+            masalahTajwid: [],
+            catatanTambahan: '',
+            tanggalTashih: new Date().toISOString().slice(0, 10)
+          })
+        }} variant="outline" className="flex-1">
+          Perbarui Tashih
+        </Button>
+        <Link href="/dashboard" className="flex-1">
+          <Button variant="outline" className="w-full">
+            Kembali ke Dashboard
+          </Button>
+        </Link>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <div className="space-y-6 animate-fadeInUp">
