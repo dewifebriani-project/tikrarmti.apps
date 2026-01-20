@@ -224,6 +224,14 @@ export function AdminPairingTab() {
   const [pairingDetail, setPairingDetail] = useState<any>(null)
   const [loadingPairingDetail, setLoadingPairingDetail] = useState(false)
 
+  // Partner Type Change modal state
+  const [showPartnerTypeModal, setShowPartnerTypeModal] = useState(false)
+  const [partnerTypeUser, setPartnerTypeUser] = useState<any>(null)
+  const [newPartnerType, setNewPartnerType] = useState<'family' | 'tarteel' | 'system_match' | null>(null)
+  const [partnerName, setPartnerName] = useState('')
+  const [partnerRelationship, setPartnerRelationship] = useState('')
+  const [partnerNotes, setPartnerNotes] = useState('')
+
   // Sorting state for System Match table (multiple sort support)
   const [sortConfigs, setSortConfigs] = useState<Array<{
     key: keyof SystemMatchRequest
@@ -1001,6 +1009,52 @@ export function AdminPairingTab() {
     }
   }
 
+  // Handler for opening partner type change modal
+  const handleChangePartnerType = (user: any, toType: 'family' | 'tarteel' | 'system_match') => {
+    setPartnerTypeUser(user)
+    setNewPartnerType(toType)
+    setPartnerName(user.partner_name || '')
+    setPartnerRelationship(user.partner_relationship || '')
+    setPartnerNotes(user.partner_notes || '')
+    setShowPartnerTypeModal(true)
+  }
+
+  // Handler for confirming partner type change
+  const handleConfirmPartnerTypeChange = async () => {
+    if (!partnerTypeUser || !newPartnerType) return
+
+    const toastId = toast.loading('Mengubah tipe partner...')
+
+    try {
+      const response = await fetch('/api/admin/pairing/change-partner-type', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submission_id: partnerTypeUser.id,
+          user_id: partnerTypeUser.user_id,
+          new_partner_type: newPartnerType,
+          partner_name: newPartnerType !== 'system_match' ? partnerName : null,
+          partner_relationship: newPartnerType === 'family' ? partnerRelationship : null,
+          partner_notes: newPartnerType !== 'system_match' ? partnerNotes : null,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Tipe partner berhasil diubah!', { id: toastId })
+        setShowPartnerTypeModal(false)
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Gagal mengubah tipe partner', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error changing partner type:', error)
+      toast.error('Gagal mengubah tipe partner', { id: toastId })
+    }
+  }
+
   const handleBulkPair = async () => {
     if (!selectedBatchId) return
 
@@ -1705,7 +1759,7 @@ export function AdminPairingTab() {
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-center">
                         {!request.is_paired ? (
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
                             <button
                               onClick={() => handleFindMatches(request)}
                               className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs"
@@ -1728,9 +1782,25 @@ export function AdminPairingTab() {
                                 +Grup
                               </button>
                             )}
+                            <button
+                              onClick={() => handleChangePartnerType(request, 'family')}
+                              className="px-2 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-1 text-xs"
+                              title="Pindah ke Family"
+                            >
+                              <Heart className="w-3.5 h-3.5" />
+                              Family
+                            </button>
+                            <button
+                              onClick={() => handleChangePartnerType(request, 'tarteel')}
+                              className="px-2 py-1.5 bg-purple-700 text-white rounded-lg hover:bg-purple-800 flex items-center gap-1 text-xs"
+                              title="Pindah ke Tarteel"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              Tarteel
+                            </button>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
                             <button
                               onClick={() => handleViewPairingDetail(request)}
                               className="px-2 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs"
@@ -1895,21 +1965,33 @@ export function AdminPairingTab() {
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center text-sm">
                         {!request.is_paired ? (
-                          <button
-                            onClick={() => handleApproveTarteel(request)}
-                            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs font-medium shadow-sm"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Approve
-                          </button>
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            <button
+                              onClick={() => handleApproveTarteel(request)}
+                              className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs font-medium shadow-sm"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleChangePartnerType(request, 'system_match')}
+                              className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs font-medium shadow-sm"
+                              title="Pindah ke System Match"
+                            >
+                              <HeartHandshake className="w-3.5 h-3.5" />
+                              System
+                            </button>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => handleRevertTarteelPairing(request)}
-                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1 text-xs font-medium shadow-sm"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Revert
-                          </button>
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            <button
+                              onClick={() => handleRevertTarteelPairing(request)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1 text-xs font-medium shadow-sm"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Revert
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -2056,21 +2138,33 @@ export function AdminPairingTab() {
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap text-center text-sm">
                         {!request.is_paired ? (
-                          <button
-                            onClick={() => handleApproveFamily(request)}
-                            className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs font-medium shadow-sm mx-auto"
-                          >
-                            <CheckCircle className="w-3 h-3" />
-                            Approve
-                          </button>
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            <button
+                              onClick={() => handleApproveFamily(request)}
+                              className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1 text-xs font-medium shadow-sm"
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleChangePartnerType(request, 'system_match')}
+                              className="px-2 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 text-xs font-medium shadow-sm"
+                              title="Pindah ke System Match"
+                            >
+                              <HeartHandshake className="w-3 h-3" />
+                              System
+                            </button>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => handleRevertFamilyPairing(request)}
-                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1 text-xs font-medium shadow-sm mx-auto"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            Revert
-                          </button>
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            <button
+                              onClick={() => handleRevertFamilyPairing(request)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1 text-xs font-medium shadow-sm"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Revert
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -2847,6 +2941,114 @@ export function AdminPairingTab() {
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Partner Type Change Modal */}
+      {showPartnerTypeModal && partnerTypeUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Ubah Tipe Partner
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Untuk: <span className="font-medium">{partnerTypeUser.user_name}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPartnerTypeModal(false)
+                    setPartnerTypeUser(null)
+                    setNewPartnerType(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  {newPartnerType === 'family' && 'User akan dipindahkan ke Family. Pasangan adalah keluarga di luar aplikasi.'}
+                  {newPartnerType === 'tarteel' && 'User akan dipindahkan ke Tarteel. Pasangan adalah akun Tarteel di luar aplikasi.'}
+                  {newPartnerType === 'system_match' && 'User akan dipindahkan ke System Match untuk dipasangkan dengan user lain di sistem.'}
+                </p>
+              </div>
+
+              {newPartnerType !== 'system_match' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nama Pasangan {newPartnerType === 'family' ? 'Keluarga' : 'Tarteel'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={partnerName}
+                      onChange={(e) => setPartnerName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder={newPartnerType === 'family' ? 'Contoh: Ibu/Suami/Kakak' : 'Username akun Tarteel'}
+                    />
+                  </div>
+
+                  {newPartnerType === 'family' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Hubungan Keluarga
+                      </label>
+                      <input
+                        type="text"
+                        value={partnerRelationship}
+                        onChange={(e) => setPartnerRelationship(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Contoh: Ibu, Suami, Kakak, Adik"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Catatan (Opsional)
+                    </label>
+                    <textarea
+                      value={partnerNotes}
+                      onChange={(e) => setPartnerNotes(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      rows={2}
+                      placeholder="Catatan tambahan..."
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowPartnerTypeModal(false)
+                  setPartnerTypeUser(null)
+                  setNewPartnerType(null)
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmPartnerTypeChange}
+                disabled={newPartnerType !== 'system_match' && !partnerName.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Ubah Tipe Partner
               </button>
             </div>
           </div>
