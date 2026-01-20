@@ -262,7 +262,7 @@ export default function TashihPage() {
       // Get unique blocks for this week
       const weekBlocks = new Set<string>()
       if (data) {
-        data.forEach(record => {
+        data.forEach((record: TashihRecord) => {
           if (record.blok) {
             const blocks: string[] = typeof record.blok === 'string'
               ? record.blok.split(',').map(b => b.trim()).filter(b => b)
@@ -495,7 +495,7 @@ export default function TashihPage() {
 
     // Get all unique blocks from week records
     const weekBlocks = new Set<string>()
-    weekRecords.forEach(record => {
+    weekRecords.forEach((record: TashihRecord) => {
       if (record.blok) {
         const blocks: string[] = typeof record.blok === 'string'
           ? record.blok.split(',').map(b => b.trim()).filter(b => b)
@@ -517,7 +517,7 @@ export default function TashihPage() {
 
     // Get all unique blocks from week records
     const weekBlocks = new Set<string>()
-    weekRecords.forEach(record => {
+    weekRecords.forEach((record: TashihRecord) => {
       if (record.blok) {
         const blocks: string[] = typeof record.blok === 'string'
           ? record.blok.split(',').map(b => b.trim()).filter(b => b)
