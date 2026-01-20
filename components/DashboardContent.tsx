@@ -645,6 +645,108 @@ export default function DashboardContent() {
           </CardContent>
         </Card>
       )}
+
+      {/* Debug Panel - Tashih Status */}
+      {showDebug && (
+        <Card className="bg-gray-900 border-gray-700">
+          <CardHeader className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-cyan-400 flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Tashih Status Debug
+              </CardTitle>
+              <button
+                onClick={() => tashihMutate?.()}
+                className="text-xs bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 rounded"
+              >
+                Refresh
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-gray-400">hasRegistered:</div>
+                <div className={hasRegistered ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                  {hasRegistered ? "TRUE" : "FALSE"}
+                </div>
+
+                <div className="text-gray-400">registrationsCount:</div>
+                <div className="text-white font-bold">{registrations.length}</div>
+
+                <div className="text-gray-400">hasTashihStatus:</div>
+                <div className={tashihStatus ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                  {tashihStatus ? "TRUE" : "FALSE"}
+                </div>
+
+                <div className="text-gray-400">isLoading:</div>
+                <div className={tashihLoading ? "text-amber-400 font-bold" : "text-gray-500"}>
+                  {tashihLoading ? "TRUE" : "FALSE"}
+                </div>
+
+                <div className="text-gray-400">isError:</div>
+                <div className={tashihError ? "text-red-400 font-bold" : "text-gray-500"}>
+                  {tashihError ? "TRUE" : "FALSE"}
+                </div>
+              </div>
+
+              {registrations.length > 0 && (
+                <div className="mt-3 p-2 bg-blue-900/30 border border-blue-700 rounded">
+                  <div className="text-xs font-bold text-blue-400 mb-1">First Registration:</div>
+                  <div className="text-xs text-blue-300 space-y-1">
+                    <div><span className="font-bold">ID:</span> {registrations[0]?.id}</div>
+                    <div><span className="font-bold">Status:</span> {registrations[0]?.status}</div>
+                    <div><span className="font-bold">Batch ID:</span> {registrations[0]?.batch_id}</div>
+                    <div><span className="font-bold">Chosen Juz:</span> {(registrations[0] as any)?.chosen_juz || 'null'}</div>
+                    <div><span className="font-bold">Confirmed Juz (daftar_ulang):</span> {registrations[0]?.daftar_ulang?.confirmed_chosen_juz || 'null'}</div>
+                  </div>
+                </div>
+              )}
+
+              {tashihStatus && (
+                <div className="mt-3 p-2 bg-green-900/30 border border-green-700 rounded">
+                  <div className="text-xs font-bold text-green-400 mb-1">Tashih Status Data:</div>
+                  <div className="text-xs text-green-300 space-y-1">
+                    <div><span className="font-bold">Juz Code:</span> {tashihStatus.juz_code}</div>
+                    <div><span className="font-bold">Juz Number:</span> {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part}</div>
+                    <div><span className="font-bold">Total Blocks:</span> {tashihStatus.summary.total_blocks}</div>
+                    <div><span className="font-bold">Completed:</span> {tashihStatus.summary.completed_blocks}</div>
+                    <div><span className="font-bold">Pending:</span> {tashihStatus.summary.pending_blocks}</div>
+                  </div>
+                </div>
+              )}
+
+              {tashihError && (
+                <div className="mt-3 p-2 bg-red-900/30 border border-red-700 rounded">
+                  <div className="text-xs font-bold text-red-400 mb-1">Error:</div>
+                  <div className="text-xs text-red-300">
+                    {String(tashihError)}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  const debugData = {
+                    hasRegistered,
+                    registrationsCount: registrations.length,
+                    firstRegistration: registrations[0],
+                    hasTashihStatus: !!tashihStatus,
+                    tashihLoading,
+                    tashihError: tashihError ? String(tashihError) : null,
+                    tashihStatus: tashihStatus
+                  }
+                  navigator.clipboard.writeText(JSON.stringify(debugData, null, 2))
+                  alert('Tashih debug info copied to clipboard')
+                }}
+                className="mt-2 w-full text-xs bg-gray-700 hover:bg-gray-600 text-white py-1 px-2 rounded"
+              >
+                Copy Tashih Debug
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
