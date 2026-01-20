@@ -29,59 +29,35 @@ export async function GET() {
     }
 
     // Get user's active registration with daftar ulang
-    // Use two separate queries and combine results
-    const { data: approvedRegs, error: approvedError } = await supabase
+    // Use the same pattern as /api/pendaftaran/all - fetch daftar_ulang_submissions via foreign key
+    const { data: registrations, error: regsError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
         id,
         status,
         batch_id,
         chosen_juz,
-        daftar_ulang->>confirmed_chosen_juz
+        batch:batches(id, start_date, status),
+        daftar_ulang:daftar_ulang_submissions(
+          id,
+          user_id,
+          batch_id,
+          registration_id,
+          confirmed_chosen_juz,
+          status
+        )
       `)
       .eq('user_id', user.id)
-      .eq('status', 'approved')
+      .in('status', ['approved', 'selected'])
 
-    const { data: selectedRegs, error: selectedError } = await supabase
-      .from('pendaftaran_tikrar_tahfidz')
-      .select(`
-        id,
-        status,
-        batch_id,
-        chosen_juz,
-        daftar_ulang->>confirmed_chosen_juz
-      `)
-      .eq('user_id', user.id)
-      .eq('status', 'selected')
-
-    const registrations = [...(approvedRegs || []), ...(selectedRegs || [])]
-
-    console.log('[Tashih Status] Registrations query error:', { approvedError, selectedError })
+    console.log('[Tashih Status] Registrations query error:', regsError)
     console.log('[Tashih Status] Registrations result:', registrations?.length || 0)
 
     // Log detailed error for debugging
-    if (approvedError) {
-      console.error('[Tashih Status] Approved query error:', JSON.stringify(approvedError, Object.keys(approvedError)))
-    }
-    if (selectedError) {
-      console.error('[Tashih Status] Selected query error:', JSON.stringify(selectedError, Object.keys(selectedError)))
-    }
-
-    if (registrations && registrations.length > 0) {
-      console.log('[Tashih Status] First registration data:', JSON.stringify({
-        id: registrations[0].id,
-        status: registrations[0].status,
-        chosen_juz: registrations[0].chosen_juz,
-        confirmed_chosen_juz: registrations[0].confirmed_chosen_juz,
-        batch_id: registrations[0].batch_id
-      }))
-    }
-
-    // Only return error if BOTH queries fail (user might only have one type of registration)
-    if (approvedError && selectedError) {
-      console.error('Error fetching registrations:', { approvedError, selectedError })
+    if (regsError) {
+      console.error('[Tashih Status] Query error:', JSON.stringify(regsError, Object.keys(regsError)))
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch registrations', details: { approvedError, selectedError } },
+        { success: false, error: 'Failed to fetch registrations', details: regsError },
         { status: 500 }
       )
     }
@@ -94,22 +70,33 @@ export async function GET() {
       )
     }
 
-    // Get batch info separately using the batch_id from first registration
-    const batchId = registrations[0]?.batch_id
-    let batch = null
-    if (batchId) {
-      const { data: batchData } = await supabase
-        .from('batches')
-        .select('id, start_date, status')
-        .eq('id', batchId)
-        .single()
-      batch = batchData
+    // Process registrations and embed daftar ulang data (same pattern as /api/pendaftaran/all)
+    const processedRegistrations = registrations
+      .map((reg: any) => {
+        // Get daftar ulang submission for this batch
+        const daftarUlang = reg.daftar_ulang && Array.isArray(reg.daftar_ulang)
+          ? reg.daftar_ulang.find((du: any) => du.batch_id === reg.batch_id)
+          : null
+
+        return {
+          ...reg,
+          daftar_ulang: daftarUlang || null
+        }
+      })
+
+    if (processedRegistrations.length > 0) {
+      console.log('[Tashih Status] First registration data:', JSON.stringify({
+        id: processedRegistrations[0].id,
+        status: processedRegistrations[0].status,
+        chosen_juz: processedRegistrations[0].chosen_juz,
+        confirmed_chosen_juz: processedRegistrations[0].daftar_ulang?.confirmed_chosen_juz,
+        batch_id: processedRegistrations[0].batch_id,
+        batch_status: processedRegistrations[0].batch?.status
+      }))
     }
 
-    console.log('[Tashih Status] Batch:', batch?.id, batch?.status)
-
     // Use first registration as active registration
-    const activeRegistration = registrations[0]
+    const activeRegistration = processedRegistrations[0]
 
     if (!activeRegistration) {
       return NextResponse.json(
@@ -118,11 +105,11 @@ export async function GET() {
       )
     }
 
-    // Get juz from confirmed_chosen_juz (already selected) or chosen_juz
-    const juzCode = activeRegistration.confirmed_chosen_juz ||
+    // Get juz from confirmed_chosen_juz from daftar_ulang, or chosen_juz from registration
+    const juzCode = activeRegistration.daftar_ulang?.confirmed_chosen_juz ||
                     activeRegistration.chosen_juz
 
-    console.log('[Tashih Status] Juz code:', juzCode, 'from confirmed_chosen_juz:', activeRegistration.confirmed_chosen_juz, 'from chosen_juz:', activeRegistration.chosen_juz)
+    console.log('[Tashih Status] Juz code:', juzCode, 'from daftar_ulang.confirmed_chosen_juz:', activeRegistration.daftar_ulang?.confirmed_chosen_juz, 'from chosen_juz:', activeRegistration.chosen_juz)
 
     if (!juzCode) {
       console.log('[Tashih Status] No juz assigned for registration:', activeRegistration.id)
