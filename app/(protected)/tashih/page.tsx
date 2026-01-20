@@ -619,101 +619,8 @@ export default function TashihPage() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Button onClick={() => {
-              setTodayRecord(null)
-              setWeekRecords([])
-              setTashihData({
-                blok: [],
-                lokasi: 'mti',
-                lokasiDetail: '',
-                ustadzahId: null,
-                ustadzahName: null,
-                jumlahKesalahanTajwid: 0,
-                masalahTajwid: [],
-                catatanTambahan: '',
-                tanggalTashih: new Date().toISOString().slice(0, 10)
-              })
-            }} variant="outline" className="flex-1">
-              Perbarui Tashih
-            </Button>
-            <Link href="/dashboard" className="flex-1">
-              <Button variant="outline" className="w-full">
-                Kembali ke Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6 animate-fadeInUp">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-100">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-green-army mb-2">Tashih Bacaan</h1>
-            <p className="text-gray-600">Validasi bacaan Al-Quran Ukhti</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow-sm">
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-            <span>Prasyarat wajib sebelum jurnal harian</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Juz Info Card */}
-      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-100 rounded-full">
-              <BookOpen className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-emerald-800">Juz Tashih Ukhti</h3>
-              <p className="text-sm text-gray-700">
-                {selectedJuzInfo ? (
-                  <span className="font-medium">Juz {selectedJuzInfo.juz_number} Part {selectedJuzInfo.part} (Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
-                ) : (
-                  <span className="font-medium">{confirmedJuz}</span>
-                )}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Progress Status */}
-      <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-gradient-to-br from-amber-400 to-orange-500">
-              <Clock className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-lg text-gray-800">
-                Progress Tashih Pekan {selectedWeekNumber}: {completedCount}/4 Blok
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {completedCount === 0
-                  ? 'Belum ada blok yang ditashih minggu ini'
-                  : completedCount < 4
-                    ? `${4 - completedCount} blok lagi untuk menyelesaikan pekan ini`
-                    : 'Semua blok pekan ini sudah selesai!'
-                }
-              </p>
-              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(completedCount / 4) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </Card>
+      )}
 
       {/* Tashih Block Status Card - Full detail */}
       {!tashihStatusLoading && tashihStatus && (
@@ -838,6 +745,102 @@ export default function TashihPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <Button onClick={() => {
+              setTodayRecord(null)
+              setWeekRecords([])
+              setTashihData({
+                blok: [],
+                lokasi: 'mti',
+                lokasiDetail: '',
+                ustadzahId: null,
+                ustadzahName: null,
+                jumlahKesalahanTajwid: 0,
+                masalahTajwid: [],
+                catatanTambahan: '',
+                tanggalTashih: new Date().toISOString().slice(0, 10)
+              })
+            }} variant="outline" className="flex-1">
+              Perbarui Tashih
+            </Button>
+            <Link href="/dashboard" className="flex-1">
+              <Button variant="outline" className="w-full">
+                Kembali ke Dashboard
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 animate-fadeInUp">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-6 border border-emerald-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-green-army mb-2">Tashih Bacaan</h1>
+            <p className="text-gray-600">Validasi bacaan Al-Quran Ukhti</p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg shadow-sm">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <span>Prasyarat wajib sebelum jurnal harian</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Juz Info Card */}
+      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 rounded-full">
+              <BookOpen className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-emerald-800">Juz Tashih Ukhti</h3>
+              <p className="text-sm text-gray-700">
+                {selectedJuzInfo ? (
+                  <span className="font-medium">Juz {selectedJuzInfo.juz_number} Part {selectedJuzInfo.part} (Hal. {selectedJuzInfo.start_page}-{selectedJuzInfo.end_page})</span>
+                ) : (
+                  <span className="font-medium">{confirmedJuz}</span>
+                )}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Progress Status */}
+      <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
+        <CardContent className="p-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-md bg-gradient-to-br from-amber-400 to-orange-500">
+              <Clock className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg text-gray-800">
+                Progress Tashih Pekan {selectedWeekNumber}: {completedCount}/4 Blok
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {completedCount === 0
+                  ? 'Belum ada blok yang ditashih minggu ini'
+                  : completedCount < 4
+                    ? `${4 - completedCount} blok lagi untuk menyelesaikan pekan ini`
+                    : 'Semua blok pekan ini sudah selesai!'
+                }
+              </p>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(completedCount / 4) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Day Selection - 2 Weeks */}
       <Card className="overflow-hidden">
