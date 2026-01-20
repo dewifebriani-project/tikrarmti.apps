@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export interface TashihBlockStatus {
@@ -12,7 +12,7 @@ export interface TashihBlockStatus {
   tashih_count: number
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = createClient()
 
@@ -43,6 +43,17 @@ export async function GET(request: NextRequest) {
 
     console.log('[Tashih Status] Registrations query error:', regError)
     console.log('[Tashih Status] Registrations result:', registrations?.length || 0)
+
+    if (registrations && registrations.length > 0) {
+      console.log('[Tashih Status] First registration data:', JSON.stringify({
+        id: registrations[0].id,
+        status: registrations[0].status,
+        has_daftar_ulang: !!registrations[0].daftar_ulang,
+        daftar_ulang: registrations[0].daftar_ulang,
+        chosen_juz: registrations[0].chosen_juz,
+        batch_id: registrations[0].batch_id
+      }))
+    }
 
     if (regError) {
       console.error('Error fetching registrations:', regError)
