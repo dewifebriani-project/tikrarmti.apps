@@ -119,13 +119,13 @@ export async function GET(request: Request) {
 
     console.log('[MATCH API] Paired users to exclude:', pairedUserIds.size)
 
-    // 5. Fetch all potential candidates (selected thalibah who requested system_match)
+    // 5. Fetch all potential candidates - ALL submissions regardless of partner_type
+    // We want to show ALL users who haven't been paired yet
     const { data: submissions, error: submissionsError } = await supabase
       .from('daftar_ulang_submissions')
       .select('user_id')
       .eq('batch_id', batchId)
-      .eq('partner_type', 'system_match')
-      .eq('status', 'submitted')
+      .in('status', ['submitted', 'approved']) // Include both submitted and approved
       .neq('user_id', userId) // Exclude self
 
     if (submissionsError) throw submissionsError

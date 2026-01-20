@@ -884,6 +884,72 @@ export function AdminPairingTab() {
     }
   }
 
+  const handleRevertTarteelPairing = async (request: TarteelRequest) => {
+    if (!request.is_paired || !request.pairing_id) {
+      toast.error('This request has not been paired yet')
+      return
+    }
+
+    const toastId = toast.loading('Removing tarteel pairing...')
+
+    try {
+      const response = await fetch(`/api/admin/pairing/delete?user_id=${request.user_id}&batch_id=${request.batch_id}`, {
+        method: 'DELETE',
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to revert tarteel pairing')
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Tarteel pairing removed successfully!', { id: toastId })
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Failed to revert tarteel pairing', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error reverting tarteel pairing:', error)
+      toast.error('Failed to revert tarteel pairing', { id: toastId })
+    }
+  }
+
+  const handleRevertFamilyPairing = async (request: FamilyRequest) => {
+    if (!request.is_paired || !request.pairing_id) {
+      toast.error('This request has not been paired yet')
+      return
+    }
+
+    const toastId = toast.loading('Removing family pairing...')
+
+    try {
+      const response = await fetch(`/api/admin/pairing/delete?user_id=${request.user_id}&batch_id=${request.batch_id}`, {
+        method: 'DELETE',
+        cache: 'no-store'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to revert family pairing')
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Family pairing removed successfully!', { id: toastId })
+        loadPairingRequests()
+        loadStatistics()
+      } else {
+        toast.error(result.error || 'Failed to revert family pairing', { id: toastId })
+      }
+    } catch (error) {
+      console.error('Error reverting family pairing:', error)
+      toast.error('Failed to revert family pairing', { id: toastId })
+    }
+  }
+
   const handleRevertAllPairings = async () => {
     if (!selectedBatchId) return
 
@@ -1777,13 +1843,23 @@ export function AdminPairingTab() {
                     </div>
 
                     <div className="ml-4 flex flex-col gap-2">
-                      <button
-                        onClick={() => handleApproveTarteel(request)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve
-                      </button>
+                      {!request.is_paired ? (
+                        <button
+                          onClick={() => handleApproveTarteel(request)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Approve
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleRevertTarteelPairing(request)}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2 text-sm font-medium shadow-sm"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Revert
+                        </button>
+                      )}
                     </div>
                   </div>
                   </div>
@@ -1880,13 +1956,23 @@ export function AdminPairingTab() {
                     </div>
 
                     <div className="ml-4 flex flex-col gap-2">
-                      <button
-                        onClick={() => handleApproveFamily(request)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve
-                      </button>
+                      {!request.is_paired ? (
+                        <button
+                          onClick={() => handleApproveFamily(request)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium shadow-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Approve
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleRevertFamilyPairing(request)}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2 text-sm font-medium shadow-sm"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Revert
+                        </button>
+                      )}
                     </div>
                   </div>
                   </div>
