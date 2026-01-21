@@ -1243,39 +1243,28 @@ export default function JurnalHarianPage() {
                                     <div className="text-[10px] opacity-80">Satu opsi 40x</div>
                                   </button>
 
-                                  {/* Option 2: WhatsApp Call (20x) ATAU Voice Note (20x) - single select */}
-                                  <div className="bg-gray-50 rounded-lg p-2">
-                                    <div className="text-[10px] text-gray-500 mb-1">Pilih salah satu (20x):</div>
-                                    <div className="flex flex-wrap gap-1">
-                                      {[
-                                        { value: 'pasangan_20_wa', label: 'WhatsApp Call (20x)' },
-                                        { value: 'voice_note_20', label: 'Voice Note (20x)' }
-                                      ].map((option) => {
-                                        const isSelected = jurnalData.tikrar_bi_al_ghaib_20x_multi.length === 1 && jurnalData.tikrar_bi_al_ghaib_20x_multi[0] === option.value
-                                        return (
-                                          <button
-                                            key={option.value}
-                                            type="button"
-                                            onClick={() => {
-                                              setJurnalData(prev => ({
-                                                ...prev,
-                                                tikrar_bi_al_ghaib_subtype: null,
-                                                tikrar_bi_al_ghaib_20x_multi: [option.value]
-                                              }))
-                                            }}
-                                            className={cn(
-                                              "px-2 py-1 rounded text-[10px] font-medium transition-all",
-                                              isSelected
-                                                ? "bg-teal-600 text-white"
-                                                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                                            )}
-                                          >
-                                            {option.label}
-                                          </button>
-                                        )
-                                      })}
-                                    </div>
-                                  </div>
+                                  {/* Option 2: WhatsApp Call (20x) DAN Voice Note (20x) - required both */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setJurnalData(prev => ({
+                                        ...prev,
+                                        tikrar_bi_al_ghaib_subtype: null,
+                                        tikrar_bi_al_ghaib_20x_multi: ['pasangan_20_wa', 'voice_note_20']
+                                      }))
+                                    }}
+                                    className={cn(
+                                      "px-3 py-2 rounded-lg text-xs font-medium transition-all text-left",
+                                      jurnalData.tikrar_bi_al_ghaib_20x_multi.length === 2 &&
+                                      jurnalData.tikrar_bi_al_ghaib_20x_multi.includes('pasangan_20_wa') &&
+                                      jurnalData.tikrar_bi_al_ghaib_20x_multi.includes('voice_note_20')
+                                        ? "bg-teal-600 text-white"
+                                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                    )}
+                                  >
+                                    <div className="font-medium">WhatsApp Call (20x) + Voice Note (20x)</div>
+                                    <div className="text-[10px] opacity-80">Dua opsi 20x (total 40x)</div>
+                                  </button>
                                 </div>
                               </div>
                             </div>
