@@ -499,12 +499,16 @@ export default function JurnalHarianPage() {
     const weekEnd = new Date(weekStart)
     weekEnd.setDate(weekStart.getDate() + 7)
 
+    // Use date format (YYYY-MM-DD) for comparison instead of ISO string to avoid timezone issues
+    const weekStartDateStr = weekStart.toISOString().split('T')[0]
+    const weekEndDateStr = weekEnd.toISOString().split('T')[0]
+
     const { data: tashihData, error: tashihError } = await supabase
       .from('tashih_records')
       .select('*')
       .eq('user_id', user.id)
-      .gte('waktu_tashih', weekStart.toISOString())
-      .lt('waktu_tashih', weekEnd.toISOString())
+      .gte('waktu_tashih', weekStartDateStr)
+      .lt('waktu_tashih', weekEndDateStr)
       .limit(1)
 
     if (tashihError || !tashihData || tashihData.length === 0) {
@@ -1216,66 +1220,64 @@ export default function JurnalHarianPage() {
                           {jurnalData.tikrar_bi_al_ghaib_type === 'pasangan_40' && (
                             <div className="ml-4 pl-3 border-l-2 border-teal-200 space-y-3">
                               <div>
-                                <p className="text-xs text-gray-600 mb-2">Tikrar 40x:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {[
-                                    { value: 'pasangan_40_wa', label: 'WhatsApp Call (40x)' }
-                                  ].map((option) => (
-                                    <button
-                                      key={option.value}
-                                      type="button"
-                                      onClick={() => {
-                                        setJurnalData(prev => ({
-                                          ...prev,
-                                          tikrar_bi_al_ghaib_subtype: option.value as any,
-                                          tikrar_bi_al_ghaib_20x_multi: []
-                                        }))
-                                      }}
-                                      className={cn(
-                                        "px-3 py-1 rounded-lg text-xs font-medium transition-all",
-                                        jurnalData.tikrar_bi_al_ghaib_subtype === option.value
-                                          ? "bg-teal-600 text-white"
-                                          : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                                      )}
-                                    >
-                                      {option.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                                <p className="text-xs text-gray-600 mb-2">Pilih salah satu opsi:</p>
+                                <div className="flex flex-col gap-2">
+                                  {/* Option 1: WhatsApp Call 40x (single select, clears 20x options) */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setJurnalData(prev => ({
+                                        ...prev,
+                                        tikrar_bi_al_ghaib_subtype: 'pasangan_40_wa',
+                                        tikrar_bi_al_ghaib_20x_multi: []
+                                      }))
+                                    }}
+                                    className={cn(
+                                      "px-3 py-2 rounded-lg text-xs font-medium transition-all text-left",
+                                      jurnalData.tikrar_bi_al_ghaib_subtype === 'pasangan_40_wa' && jurnalData.tikrar_bi_al_ghaib_20x_multi.length === 0
+                                        ? "bg-teal-600 text-white"
+                                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                                    )}
+                                  >
+                                    <div className="font-medium">WhatsApp Call (40x)</div>
+                                    <div className="text-[10px] opacity-80">Satu opsi 40x</div>
+                                  </button>
 
-                              <div>
-                                <p className="text-xs text-gray-600 mb-2">Tikrar 20x:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {[
-                                    { value: 'pasangan_20_wa', label: 'WhatsApp Call (20x)' },
-                                    { value: 'voice_note_20', label: 'Voice Note (20x)' }
-                                  ].map((option) => {
-                                    const isSelected = jurnalData.tikrar_bi_al_ghaib_20x_multi.includes(option.value)
-                                    return (
-                                      <button
-                                        key={option.value}
-                                        type="button"
-                                        onClick={() => {
-                                          setJurnalData(prev => ({
-                                            ...prev,
-                                            tikrar_bi_al_ghaib_20x_multi: isSelected
-                                              ? prev.tikrar_bi_al_ghaib_20x_multi.filter(v => v !== option.value)
-                                              : [...prev.tikrar_bi_al_ghaib_20x_multi, option.value],
-                                            tikrar_bi_al_ghaib_subtype: null
-                                          }))
-                                        }}
-                                        className={cn(
-                                          "px-3 py-1 rounded-lg text-xs font-medium transition-all",
-                                          isSelected
-                                            ? "bg-teal-600 text-white"
-                                            : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                                        )}
-                                      >
-                                        {option.label}
-                                      </button>
-                                    )
-                                  })}
+                                  {/* Option 2: 20x options (multi select, clears 40x option) */}
+                                  <div className="bg-gray-50 rounded-lg p-2">
+                                    <div className="text-[10px] text-gray-500 mb-1">Pilih satu atau keduanya:</div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {[
+                                        { value: 'pasangan_20_wa', label: 'WhatsApp Call (20x)' },
+                                        { value: 'voice_note_20', label: 'Voice Note (20x)' }
+                                      ].map((option) => {
+                                        const isSelected = jurnalData.tikrar_bi_al_ghaib_20x_multi.includes(option.value)
+                                        return (
+                                          <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => {
+                                              setJurnalData(prev => ({
+                                                ...prev,
+                                                tikrar_bi_al_ghaib_subtype: null,
+                                                tikrar_bi_al_ghaib_20x_multi: isSelected
+                                                  ? prev.tikrar_bi_al_ghaib_20x_multi.filter(v => v !== option.value)
+                                                  : [...prev.tikrar_bi_al_ghaib_20x_multi, option.value]
+                                              }))
+                                            }}
+                                            className={cn(
+                                              "px-2 py-1 rounded text-[10px] font-medium transition-all",
+                                              isSelected
+                                                ? "bg-teal-600 text-white"
+                                                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                                            )}
+                                          >
+                                            {option.label}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
