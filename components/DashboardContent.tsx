@@ -318,48 +318,6 @@ export default function DashboardContent() {
         </Card>
       )}
 
-      {/* Quick Stats - Consistent across all devices */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
-          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-blue-800 flex items-center gap-1.5 sm:gap-2">
-              <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Target Hari
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900">{displayStats.totalHariTarget}</div>
-            <p className="text-[10px] sm:text-xs text-blue-700">Total target hari</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-green-800 flex items-center gap-1.5 sm:gap-2">
-              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Hari Aktual
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-900">{displayStats.hariAktual}</div>
-            <p className="text-[10px] sm:text-xs text-green-700">Hari yang sudah diselesaikan</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
-          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-purple-800 flex items-center gap-1.5 sm:gap-2">
-              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-900">{displayStats.persentaseProgress}%</div>
-            <p className="text-[10px] sm:text-xs text-purple-700">Persentase penyelesaian</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Tashih Progress Card - Show for active thalibah */}
       {hasRegistered && tashihStatus && (
         <Card className="overflow-hidden">
@@ -383,15 +341,30 @@ export default function DashboardContent() {
             {/* Summary */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-blue-800">{tashihStatus.summary.total_blocks}</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-800 flex items-center justify-center gap-1">
+                  {tashihStatus.summary.total_blocks}
+                  <span className="text-[10px] text-blue-600 font-normal">
+                    ({Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%)
+                  </span>
+                </div>
                 <div className="text-[10px] sm:text-xs text-blue-600">Total</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-green-800">{tashihStatus.summary.completed_blocks}</div>
+                <div className="text-xl sm:text-2xl font-bold text-green-800 flex items-center justify-center gap-1">
+                  {tashihStatus.summary.completed_blocks}
+                  <span className="text-[10px] text-green-600 font-normal">
+                    ({Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%)
+                  </span>
+                </div>
                 <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
               </div>
               <div className="text-center p-3 bg-amber-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-amber-800">{tashihStatus.summary.pending_blocks}</div>
+                <div className="text-xl sm:text-2xl font-bold text-amber-800 flex items-center justify-center gap-1">
+                  {tashihStatus.summary.pending_blocks}
+                  <span className="text-[10px] text-amber-600 font-normal">
+                    ({Math.round((tashihStatus.summary.pending_blocks / tashihStatus.summary.total_blocks) * 100)}%)
+                  </span>
+                </div>
                 <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
               </div>
             </div>
@@ -438,15 +411,30 @@ export default function DashboardContent() {
             {/* Summary */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-blue-800">{jurnalStatus.summary.total_blocks}</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-800 flex items-center justify-center gap-1">
+                  {jurnalStatus.summary.total_blocks}
+                  <span className="text-[10px] text-blue-600 font-normal">
+                    ({Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%)
+                  </span>
+                </div>
                 <div className="text-[10px] sm:text-xs text-blue-600">Total</div>
               </div>
               <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-green-800">{jurnalStatus.summary.completed_blocks}</div>
+                <div className="text-xl sm:text-2xl font-bold text-green-800 flex items-center justify-center gap-1">
+                  {jurnalStatus.summary.completed_blocks}
+                  <span className="text-[10px] text-green-600 font-normal">
+                    ({Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%)
+                  </span>
+                </div>
                 <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
               </div>
               <div className="text-center p-3 bg-amber-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-amber-800">{jurnalStatus.summary.pending_blocks}</div>
+                <div className="text-xl sm:text-2xl font-bold text-amber-800 flex items-center justify-center gap-1">
+                  {jurnalStatus.summary.pending_blocks}
+                  <span className="text-[10px] text-amber-600 font-normal">
+                    ({Math.round((jurnalStatus.summary.pending_blocks / jurnalStatus.summary.total_blocks) * 100)}%)
+                  </span>
+                </div>
                 <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
               </div>
             </div>
