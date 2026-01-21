@@ -1222,7 +1222,7 @@ export default function JurnalHarianPage() {
                               <div>
                                 <p className="text-xs text-gray-600 mb-2">Pilih salah satu opsi:</p>
                                 <div className="flex flex-col gap-2">
-                                  {/* Option 1: WhatsApp Call 40x (single select, clears 20x options) */}
+                                  {/* Option 1: WhatsApp Call 40x */}
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1243,15 +1243,15 @@ export default function JurnalHarianPage() {
                                     <div className="text-[10px] opacity-80">Satu opsi 40x</div>
                                   </button>
 
-                                  {/* Option 2: 20x options (multi select, clears 40x option) */}
+                                  {/* Option 2: WhatsApp Call (20x) ATAU Voice Note (20x) - single select */}
                                   <div className="bg-gray-50 rounded-lg p-2">
-                                    <div className="text-[10px] text-gray-500 mb-1">Pilih satu atau keduanya:</div>
+                                    <div className="text-[10px] text-gray-500 mb-1">Pilih salah satu (20x):</div>
                                     <div className="flex flex-wrap gap-1">
                                       {[
                                         { value: 'pasangan_20_wa', label: 'WhatsApp Call (20x)' },
                                         { value: 'voice_note_20', label: 'Voice Note (20x)' }
                                       ].map((option) => {
-                                        const isSelected = jurnalData.tikrar_bi_al_ghaib_20x_multi.includes(option.value)
+                                        const isSelected = jurnalData.tikrar_bi_al_ghaib_20x_multi.length === 1 && jurnalData.tikrar_bi_al_ghaib_20x_multi[0] === option.value
                                         return (
                                           <button
                                             key={option.value}
@@ -1260,9 +1260,7 @@ export default function JurnalHarianPage() {
                                               setJurnalData(prev => ({
                                                 ...prev,
                                                 tikrar_bi_al_ghaib_subtype: null,
-                                                tikrar_bi_al_ghaib_20x_multi: isSelected
-                                                  ? prev.tikrar_bi_al_ghaib_20x_multi.filter(v => v !== option.value)
-                                                  : [...prev.tikrar_bi_al_ghaib_20x_multi, option.value]
+                                                tikrar_bi_al_ghaib_20x_multi: [option.value]
                                               }))
                                             }}
                                             className={cn(
