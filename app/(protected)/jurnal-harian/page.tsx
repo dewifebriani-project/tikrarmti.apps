@@ -40,7 +40,7 @@ interface JurnalRecord {
   rabth_completed: boolean
   murajaah_count: number
   simak_murattal_count: number
-  tikrar_bi_an_nadzar_count: number
+  tikrar_bi_an_nadzar_completed: boolean
   tasmi_record_count: number
   simak_record_completed: boolean
   tikrar_bi_al_ghaib_count: number
@@ -167,7 +167,7 @@ export default function JurnalHarianPage() {
   const [jurnalData, setJurnalData] = useState({
     tanggal_setor: new Date().toISOString().slice(0, 10),
     juz_code: '',
-    blok: '',
+    blok: [] as string[], // Multi-select blok
     rabth_completed: false,
     murajaah_completed: false,
     simak_murattal_completed: false,
@@ -185,6 +185,7 @@ export default function JurnalHarianPage() {
   })
 
   const [todayRecord, setTodayRecord] = useState<JurnalRecord | null>(null)
+  const [weekRecords, setWeekRecords] = useState<JurnalRecord[]>([]) // Week records for weekly status
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
@@ -327,80 +328,98 @@ export default function JurnalHarianPage() {
     return getWeekNumberFromDate(new Date())
   }
 
-  // Load today's record
-  useEffect(() => {
-    if (user) {
-      loadTodayRecord()
-    }
-  }, [user])
-
-  const loadTodayRecord = async () => {
-    if (!user) return
+  // Load week records for weekly status (4 blok wajib per pekan)
+  const loadWeekRecords = async () => {
+    if (!user || !batchStartDate) return
 
     try {
       const supabase = createClient()
-      const today = new Date().toISOString().split('T')[0]
+
+      // Get week start and end dates
+      const weekStart = getWeekStartDate(selectedWeekNumber)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 7)
+
       const { data, error } = await supabase
         .from('jurnal_records')
         .select('*')
         .eq('user_id', user.id)
-        .gte('tanggal_jurnal', today)
-        .order('tanggal_jurnal', { ascending: false })
-        .limit(1)
+        .gte('tanggal_setor', weekStart.toISOString().split('T')[0])
+        .lt('tanggal_setor', weekEnd.toISOString().split('T')[0])
+        .order('tanggal_setor', { ascending: false })
 
       if (error) {
-        console.error('Error loading jurnal record:', error)
+        console.error('Error loading week jurnal records:', error)
         return
       }
 
-      if (data && data.length > 0) {
-        setTodayRecord(data[0])
-        // Determine tikrar type from arrays (for backward compatibility)
+      setWeekRecords(data || [])
+
+      // Get today's record for editing
+      const today = new Date().toISOString().split('T')[0]
+      const todayRec = data?.find((r: JurnalRecord) => r.tanggal_setor === today)
+      setTodayRecord(todayRec || null)
+
+      if (todayRec) {
+        // Load record data for editing
         let tikrarType: 'pasangan_40' | 'keluarga_40' | 'tarteel_40' | null = null
         let tikrarSubtype: string | null = null
 
-        if (data[0].tikrar_bi_al_ghaib_40x && data[0].tikrar_bi_al_ghaib_40x.length > 0) {
-          const type40 = data[0].tikrar_bi_al_ghaib_40x[0]
+        if (todayRec.tikrar_bi_al_ghaib_40x && todayRec.tikrar_bi_al_ghaib_40x.length > 0) {
+          const type40 = todayRec.tikrar_bi_al_ghaib_40x[0]
           if (type40 === 'pasangan_40' || type40 === 'keluarga_40' || type40 === 'tarteel_40') {
             tikrarType = type40
           }
-        } else if (data[0].tikrar_bi_al_ghaib_20x && data[0].tikrar_bi_al_ghaib_20x.length > 0) {
-          // Old format: pasangan_20 or voice_note_20 were main types
-          // New format: they're subtypes under pasangan_40
-          const type20 = data[0].tikrar_bi_al_ghaib_20x[0]
+        } else if (todayRec.tikrar_bi_al_ghaib_20x && todayRec.tikrar_bi_al_ghaib_20x.length > 0) {
+          const type20 = todayRec.tikrar_bi_al_ghaib_20x[0]
           if (type20 === 'pasangan_20' || type20 === 'pasangan_20_wa' || type20 === 'voice_note_20') {
             tikrarType = 'pasangan_40'
-            // Map old pasangan_20 to new pasangan_20_wa for backward compatibility
             tikrarSubtype = type20 === 'pasangan_20' ? 'pasangan_20_wa' : type20
           }
         }
 
+        // Handle blok: convert string to array
+        let blokValue: string[] = []
+        if (todayRec.blok) {
+          if (typeof todayRec.blok === 'string') {
+            blokValue = todayRec.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
+          } else if (Array.isArray(todayRec.blok)) {
+            blokValue = todayRec.blok
+          }
+        }
+
         setJurnalData({
-          tanggal_setor: data[0].tanggal_setor || new Date().toISOString().slice(0, 10),
-          juz_code: data[0].juz_code || '',
-          blok: data[0].blok || '',
-          rabth_completed: data[0].rabth_completed || false,
-          murajaah_completed: data[0].murajaah_count > 0,
-          simak_murattal_completed: data[0].simak_murattal_count > 0,
-          tikrar_bi_an_nadzar_completed: data[0].tikrar_bi_an_nadzar_count > 0,
-          tasmi_record_completed: data[0].tasmi_record_count > 0,
-          simak_record_completed: data[0].simak_record_completed || false,
-          tikrar_bi_al_ghaib_completed: data[0].tikrar_bi_al_ghaib_count > 0,
+          tanggal_setor: todayRec.tanggal_setor || new Date().toISOString().slice(0, 10),
+          juz_code: todayRec.juz_code || '',
+          blok: blokValue,
+          rabth_completed: todayRec.rabth_completed || false,
+          murajaah_completed: todayRec.murajaah_count > 0,
+          simak_murattal_completed: todayRec.simak_murattal_count > 0,
+          tikrar_bi_an_nadzar_completed: todayRec.tikrar_bi_an_nadzar_completed || false,
+          tasmi_record_completed: todayRec.tasmi_record_count > 0,
+          simak_record_completed: todayRec.simak_record_completed || false,
+          tikrar_bi_al_ghaib_completed: todayRec.tikrar_bi_al_ghaib_count > 0,
           tikrar_bi_al_ghaib_type: tikrarType,
           tikrar_bi_al_ghaib_subtype: tikrarSubtype,
-          tikrar_bi_al_ghaib_20x_multi: data[0].tikrar_bi_al_ghaib_20x || [],
+          tikrar_bi_al_ghaib_20x_multi: todayRec.tikrar_bi_al_ghaib_20x || [],
           tarteel_screenshot_file: null,
-          tafsir_completed: data[0].tafsir_completed || false,
-          menulis_completed: data[0].menulis_completed || false,
-          catatan_tambahan: data[0].catatan_tambahan || ''
+          tafsir_completed: todayRec.tafsir_completed || false,
+          menulis_completed: todayRec.menulis_completed || false,
+          catatan_tambahan: todayRec.catatan_tambahan || ''
         })
       }
     } catch (error) {
-      console.error('Error loading jurnal record:', error)
-    } finally {
-      setIsLoading(false)
+      console.error('Error loading week jurnal records:', error)
     }
   }
+
+  // Load today's record on first load
+  useEffect(() => {
+    if (user) {
+      loadWeekRecords()
+      setIsLoading(false)
+    }
+  }, [user, selectedWeekNumber])
 
   const toggleStep = (stepId: string) => {
     const fieldKey = `${stepId}_completed` as keyof typeof jurnalData
@@ -408,6 +427,59 @@ export default function JurnalHarianPage() {
       ...prev,
       [fieldKey]: !prev[fieldKey]
     }))
+  }
+
+  const toggleBlokSelection = (blockCode: string) => {
+    setJurnalData(prev => ({
+      ...prev,
+      blok: prev.blok.includes(blockCode)
+        ? prev.blok.filter(b => b !== blockCode)
+        : [...prev.blok, blockCode]
+    }))
+  }
+
+  // Check if current week's 4 blocks are completed
+  const isWeekCompleted = (): boolean => {
+    if (!selectedJuzInfo) return false
+
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = selectedWeekNumber + blockOffset
+    const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+
+    // Get all unique blocks from week records
+    const weekBlocks = new Set<string>()
+    weekRecords.forEach((record: JurnalRecord) => {
+      if (record.blok) {
+        const blocks: string[] = typeof record.blok === 'string'
+          ? record.blok.split(',').map(b => b.trim()).filter(b => b)
+          : (Array.isArray(record.blok) ? record.blok : [])
+        blocks.forEach(block => weekBlocks.add(block))
+      }
+    })
+
+    return expectedBlocks.every(block => weekBlocks.has(block))
+  }
+
+  // Get completed blocks count for current week
+  const getWeekCompletedBlocksCount = (): number => {
+    if (!selectedJuzInfo) return 0
+
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = selectedWeekNumber + blockOffset
+    const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+
+    // Get all unique blocks from week records
+    const weekBlocks = new Set<string>()
+    weekRecords.forEach((record: JurnalRecord) => {
+      if (record.blok) {
+        const blocks: string[] = typeof record.blok === 'string'
+          ? record.blok.split(',').map(b => b.trim()).filter(b => b)
+          : (Array.isArray(record.blok) ? record.blok : [])
+        blocks.forEach(block => weekBlocks.add(block))
+      }
+    })
+
+    return expectedBlocks.filter(block => weekBlocks.has(block)).length
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -418,18 +490,28 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Check if tashih is completed today
+    // Validate blok selection (required)
+    if (!jurnalData.blok || jurnalData.blok.length === 0) {
+      toast.error('Harap pilih minimal 1 blok!')
+      return
+    }
+
+    // Check if tashih is completed for the week
     const supabase = createClient()
-    const today = new Date().toISOString().split('T')[0]
+    const weekStart = getWeekStartDate(selectedWeekNumber)
+    const weekEnd = new Date(weekStart)
+    weekEnd.setDate(weekStart.getDate() + 7)
+
     const { data: tashihData, error: tashihError } = await supabase
       .from('tashih_records')
       .select('*')
       .eq('user_id', user.id)
-      .gte('waktu_tashih', today)
+      .gte('waktu_tashih', weekStart.toISOString())
+      .lt('waktu_tashih', weekEnd.toISOString())
       .limit(1)
 
     if (tashihError || !tashihData || tashihData.length === 0) {
-      toast.error('Harap selesaikan tashih hari ini terlebih dahulu!')
+      toast.error('Harap selesaikan tashih pekan ini terlebih dahulu!')
       return
     }
 
@@ -441,16 +523,19 @@ export default function JurnalHarianPage() {
 
     setIsSubmitting(true)
     try {
+      // Convert blok array to comma-separated string
+      const blokString = jurnalData.blok.join(',')
+
       const recordData = {
         user_id: user.id,
         tanggal_setor: jurnalData.tanggal_setor,
         juz_code: jurnalData.juz_code || null,
-        blok: jurnalData.blok || null,
+        blok: blokString,
         tashih_completed: true,
         rabth_completed: jurnalData.rabth_completed,
         murajaah_count: jurnalData.murajaah_completed ? 1 : 0,
         simak_murattal_count: jurnalData.simak_murattal_completed ? 1 : 0,
-        tikrar_bi_an_nadzar_count: jurnalData.tikrar_bi_an_nadzar_completed ? 1 : 0,
+        tikrar_bi_an_nadzar_completed: jurnalData.tikrar_bi_an_nadzar_completed,
         tasmi_record_count: jurnalData.tasmi_record_completed ? 1 : 0,
         simak_record_completed: jurnalData.simak_record_completed,
         tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_type ? 1 : 0,
@@ -465,24 +550,14 @@ export default function JurnalHarianPage() {
 
       let error
 
-      if (todayRecord) {
-        const { error: updateError } = await supabase
-          .from('jurnal_records')
-          .update(recordData)
-          .eq('id', todayRecord.id)
-          .select()
-          .single()
+      // Always insert new record - each jurnal submission creates a new record
+      const { error: insertError } = await supabase
+        .from('jurnal_records')
+        .insert(recordData)
+        .select()
+        .single()
 
-        error = updateError
-      } else {
-        const { error: insertError } = await supabase
-          .from('jurnal_records')
-          .insert(recordData)
-          .select()
-          .single()
-
-        error = insertError
-      }
+      error = insertError
 
       if (error) {
         console.error('Error saving jurnal record:', error)
@@ -490,8 +565,8 @@ export default function JurnalHarianPage() {
         return
       }
 
-      toast.success('Jurnal harian berhasil disimpan!')
-      await loadTodayRecord()
+      toast.success('Jurnal berhasil disimpan!')
+      await loadWeekRecords()
     } catch (error) {
       console.error('Error saving jurnal:', error)
       toast.error('Terjadi kesalahan saat menyimpan')
@@ -504,7 +579,7 @@ export default function JurnalHarianPage() {
     setJurnalData({
       tanggal_setor: new Date().toISOString().slice(0, 10),
       juz_code: juzToUse || '',
-      blok: '',
+      blok: [],
       rabth_completed: false,
       murajaah_completed: false,
       simak_murattal_completed: false,
@@ -521,6 +596,7 @@ export default function JurnalHarianPage() {
       catatan_tambahan: ''
     })
     setTodayRecord(null)
+    setWeekRecords([])
   }
 
   const isStepCompleted = (step: JurnalStep): boolean => {
@@ -543,7 +619,9 @@ export default function JurnalHarianPage() {
   }
 
   const requiredCompleted = jurnalStepsConfig.filter(step => isStepCompleted(step)).length
-  const isAllRequiredCompleted = requiredCompleted === 7 && isTikrarGhaibValid()
+  const completedCount = getWeekCompletedBlocksCount()
+  const isWeekDone = isWeekCompleted()
+  const isAllRequiredCompleted = requiredCompleted === 7 && isTikrarGhaibValid() && jurnalData.blok.length > 0
 
   if (isLoading || registrationsLoading) {
     return (
@@ -553,60 +631,63 @@ export default function JurnalHarianPage() {
     )
   }
 
-  // Show success if already submitted today
-  if (todayRecord) {
+  // Show success if week's 4 blocks are completed
+  if (isWeekDone) {
     return (
       <div className="space-y-6 animate-fadeInUp">
         <div className="text-center py-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full mb-6 shadow-lg">
             <CheckCircle className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-green-army mb-2">Alhamdulillah, Jurnal Selesai!</h1>
+          <h1 className="text-3xl font-bold text-green-army mb-2">Alhamdulillah, Jurnal Pekan Ini Selesai!</h1>
           <p className="text-gray-600 mb-8">
-            Jurnal harian Ukhti telah berhasil dicatat untuk hari ini
+            Semua 4 blok untuk pekan {selectedWeekNumber} telah berhasil dicatat
           </p>
 
           <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-green-200">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="h-5 w-5 text-green-600" />
-              <h3 className="font-semibold text-gray-800">Ringkasan Jurnal Hari Ini</h3>
+              <h3 className="font-semibold text-gray-800">Detail Jurnal Pekan {selectedWeekNumber}</h3>
             </div>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Kurikulum Wajib:</span>
-                <span className="font-semibold text-green-600">{requiredCompleted}/7 selesai</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Juz:</span>
-                <span className="font-medium text-gray-800">{todayRecord.juz_code || '-'}</span>
+                <span className="font-semibold text-gray-800">
+                  {juzToUse || '-'}
+                  {selectedJuzInfo && (
+                    <span className="text-gray-500 font-normal ml-2">({selectedJuzInfo.name})</span>
+                  )}
+                </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-gray-600">Blok:</span>
-                <span className="font-medium text-gray-800">{todayRecord.blok || '-'}</span>
+                <span className="text-gray-600">Blok Selesai:</span>
+                <span className="font-semibold text-gray-800">{completedCount}/4 blok</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-gray-600">Status:</span>
+                <span className="font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  Selesai
+                </span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-gray-600">Tanggal:</span>
+                <span className="text-gray-600">Pekan:</span>
                 <span className="font-medium text-gray-800">
-                  {new Date(todayRecord.tanggal_jurnal).toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  Pekan {selectedWeekNumber}
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Button onClick={resetForm} variant="outline" className="flex-1">
-              Perbarui Jurnal
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+          <Button onClick={resetForm} variant="outline" className="flex-1">
+            Perbarui Jurnal
+          </Button>
+          <Link href="/dashboard" className="flex-1">
+            <Button variant="outline" className="w-full">
+              Kembali ke Dashboard
             </Button>
-            <Link href="/dashboard" className="flex-1">
-              <Button variant="outline" className="w-full">
-                Kembali ke Dashboard
-              </Button>
-            </Link>
-          </div>
+          </Link>
         </div>
       </div>
     )
@@ -618,13 +699,13 @@ export default function JurnalHarianPage() {
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 sm:p-6 border border-emerald-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-green-army mb-2">Jurnal Harian</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Lacak aktivitas hafalan Ukhti hari ini</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-green-army mb-2">Jurnal Pekan Ini</h1>
+            <p className="text-gray-600 text-sm sm:text-base">Lacak aktivitas hafalan Ukhti pekan ini</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 rounded-lg shadow-sm">
             <div className="text-right">
-              <p className="text-xs text-gray-500">Progress</p>
-              <p className="text-base sm:text-lg font-bold text-green-army">{requiredCompleted}/7</p>
+              <p className="text-xs text-gray-500">Progress Blok</p>
+              <p className="text-base sm:text-lg font-bold text-green-army">{completedCount}/4</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 relative">
               <svg className="transform -rotate-90 w-full h-full">
@@ -644,7 +725,7 @@ export default function JurnalHarianPage() {
                   stroke="currentColor"
                   strokeWidth="4"
                   fill="none"
-                  strokeDasharray={`${(requiredCompleted / 7) * 100} 100`}
+                  strokeDasharray={`${(completedCount / 4) * 100} 100`}
                   className="text-green-army transition-all duration-300"
                 />
               </svg>
@@ -681,14 +762,22 @@ export default function JurnalHarianPage() {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-base sm:text-lg text-gray-800">
-                {isAllRequiredCompleted ? 'Jurnal Hari Ini Selesai!' : 'Jurnal Hari Ini Belum Selesai'}
+                Progress Jurnal Pekan {selectedWeekNumber}: {completedCount}/4 Blok
               </h3>
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
-                {isAllRequiredCompleted
-                  ? 'Alhamdulillah, semua kurikulum wajib telah diselesaikan'
-                  : `${requiredCompleted}/7 kurikulum wajib selesai`
+                {completedCount === 0
+                  ? 'Belum ada blok yang dicatat minggu ini'
+                  : completedCount < 4
+                    ? `${4 - completedCount} blok lagi untuk menyelesaikan pekan ini`
+                    : 'Semua blok pekan ini sudah selesai!'
                 }
               </p>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(completedCount / 4) * 100}%` }}
+                ></div>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -696,7 +785,7 @@ export default function JurnalHarianPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        {/* Tanggal Selection - 2 Weeks */}
+        {/* Tanggal Selection */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50 border-b p-3 sm:p-6">
             <div className="flex items-center justify-between">
@@ -711,12 +800,11 @@ export default function JurnalHarianPage() {
               </div>
             </div>
             <CardDescription className="text-xs sm:text-sm">
-              Klik hari untuk mengisi atau melihat jurnal harian pada tanggal tersebut
+              Klik hari untuk mengisi jurnal pada tanggal tersebut
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
             <div className="space-y-4 sm:space-y-6">
-              {/* Week selection - show only current active week */}
               {(() => {
                 const currentWeek = getCurrentWeekNumber()
 
@@ -740,21 +828,21 @@ export default function JurnalHarianPage() {
                               "p-2 sm:p-3 border-2 rounded-xl transition-all duration-200 text-center",
                               "hover:shadow-md hover:scale-105",
                               jurnalData.tanggal_setor === dateString
-                                ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
+                                ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
                                 : isToday
-                                  ? "border-cyan-300 bg-cyan-50 hover:border-cyan-400"
+                                  ? "border-amber-400 bg-amber-50 hover:border-amber-500"
                                   : "border-gray-200 hover:border-cyan-300 bg-white"
                             )}
                           >
                             <div className={cn(
                               "text-xs font-medium mb-1",
-                              jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-700" : "text-gray-600"
+                              jurnalData.tanggal_setor === dateString ? "text-green-700" : isToday ? "text-amber-700" : "text-gray-600"
                             )}>
                               {hari}
                             </div>
                             <div className={cn(
                               "text-sm sm:text-base font-bold",
-                              jurnalData.tanggal_setor === dateString || isToday ? "text-cyan-800" : "text-gray-800"
+                              jurnalData.tanggal_setor === dateString ? "text-green-800" : isToday ? "text-amber-800" : "text-gray-800"
                             )}>
                               {dayDate.getDate()}
                             </div>
@@ -769,16 +857,16 @@ export default function JurnalHarianPage() {
           </CardContent>
         </Card>
 
-        {/* Blok Selection */}
+        {/* Blok Selection - Multi-select Required */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-blue-700 text-lg sm:text-xl">
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Pilih Blok Jurnal</span>
+              <span>Pilih Blok Jurnal *</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
               {availableBlocks.length > 0
-                ? `Pekan Jurnal ${selectedWeekNumber} - ${selectedJuzInfo?.name || ''}`
+                ? `Pekan Jurnal ${selectedWeekNumber} - ${selectedJuzInfo?.name || ''}. Bisa pilih lebih dari 1 blok.`
                 : 'Pilih tanggal terlebih dahulu untuk menentukan blok'}
             </CardDescription>
           </CardHeader>
@@ -790,12 +878,12 @@ export default function JurnalHarianPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {availableBlocks.map((blok) => {
-                  const isSelected = jurnalData.blok === blok.block_code
+                  const isSelected = jurnalData.blok.includes(blok.block_code)
                   return (
                     <button
                       key={blok.block_code}
                       type="button"
-                      onClick={() => setJurnalData(prev => ({ ...prev, blok: blok.block_code }))}
+                      onClick={() => toggleBlokSelection(blok.block_code)}
                       className={cn(
                         "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
                         "hover:shadow-lg hover:scale-105",
@@ -830,10 +918,10 @@ export default function JurnalHarianPage() {
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-blue-700 text-lg sm:text-xl">
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Kurikulum Wajib (7 Tahapan)</span>
+              <span>Kurikulum Wajib (7 Tahapan) *</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Tujuh tahapan harian yang disiplin untuk menghasilkan hafalan yang kuat dan mutqin
+              Tujuh tahapan yang wajib diselesaikan untuk menghasilkan hafalan yang kuat dan mutqin
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 space-y-4">
@@ -951,7 +1039,7 @@ export default function JurnalHarianPage() {
                                             tikrar_bi_al_ghaib_20x_multi: isSelected
                                               ? prev.tikrar_bi_al_ghaib_20x_multi.filter(v => v !== option.value)
                                               : [...prev.tikrar_bi_al_ghaib_20x_multi, option.value],
-                                            tikrar_bi_al_ghaib_subtype: null // Clear subtype when using 20x multi-select
+                                            tikrar_bi_al_ghaib_subtype: null
                                           }))
                                         }}
                                         className={cn(
@@ -1063,7 +1151,7 @@ export default function JurnalHarianPage() {
           </CardContent>
         </Card>
 
-        {/* Kurikulum Tambahan */}
+        {/* Kurikulum Tambahan - Optional */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-purple-700 text-lg sm:text-xl">
@@ -1121,22 +1209,22 @@ export default function JurnalHarianPage() {
           </CardContent>
         </Card>
 
-        {/* Catatan Tambahan */}
+        {/* Catatan Tambahan - Optional */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 border-b p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-slate-700 text-lg sm:text-xl">
               <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-              <span>Catatan Tambahan</span>
+              <span>Catatan Tambahan (Opsional)</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Catatan khusus tentang jurnal hari ini (opsional)
+              Catatan khusus tentang jurnal pekan ini
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
             <textarea
               value={jurnalData.catatan_tambahan}
               onChange={(e) => setJurnalData(prev => ({ ...prev, catatan_tambahan: e.target.value }))}
-              placeholder="Tambahkan catatan penting tentang jurnal hari ini..."
+              placeholder="Tambahkan catatan penting tentang jurnal pekan ini..."
               rows={4}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-all resize-none text-sm"
             />
