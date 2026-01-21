@@ -7,7 +7,7 @@ import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, File
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
-import { useDashboardStats, useTashihStatus } from '@/hooks/useDashboard'
+import { useDashboardStats, useTashihStatus, useJurnalStatus } from '@/hooks/useDashboard'
 import { useMyRegistrations } from '@/hooks/useRegistrations'
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 import { cn } from '@/lib/utils'
@@ -38,6 +38,7 @@ export default function DashboardContent() {
   const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus()
+  const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus()
 
   // Combined loading state
   // Note: User data is guaranteed by server layout, no need to check !user here
@@ -407,6 +408,61 @@ export default function DashboardContent() {
                 <div
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Jurnal Progress Card - Show for active thalibah */}
+      {hasRegistered && jurnalStatus && (
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-purple-800">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+                Progress Jurnal
+              </CardTitle>
+              <Link href="/jurnal-harian">
+                <Button variant="outline" size="sm" className="text-xs h-8 border-purple-300 text-purple-700 hover:bg-purple-50">
+                  Buka Halaman Jurnal
+                </Button>
+              </Link>
+            </div>
+            <CardDescription className="text-xs sm:text-sm text-purple-700">
+              Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part} ({jurnalStatus.juz_info.name})
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-blue-800">{jurnalStatus.summary.total_blocks}</div>
+                <div className="text-[10px] sm:text-xs text-blue-600">Total</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-green-800">{jurnalStatus.summary.completed_blocks}</div>
+                <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
+              </div>
+              <div className="text-center p-3 bg-amber-50 rounded-lg">
+                <div className="text-xl sm:text-2xl font-bold text-amber-800">{jurnalStatus.summary.pending_blocks}</div>
+                <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div>
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
+                <span className="text-gray-600">Progress</span>
+                <span className="font-medium text-gray-800">
+                  {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
+                <div
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
                 ></div>
               </div>
             </div>

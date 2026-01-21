@@ -534,6 +534,39 @@ export interface TashihStatusData {
 }
 
 /**
+ * Type for jurnal block status
+ */
+export interface JurnalBlockStatus {
+  block_code: string
+  week_number: number
+  part: string
+  start_page: number
+  end_page: number
+  is_completed: boolean
+  jurnal_date?: string
+  jurnal_count: number
+}
+
+export interface JurnalStatusData {
+  juz_code: string
+  juz_info: {
+    id: string
+    code: string
+    name: string
+    juz_number: number
+    part: string
+    start_page: number
+    end_page: number
+  }
+  blocks: JurnalBlockStatus[]
+  summary: {
+    total_blocks: number
+    completed_blocks: number
+    pending_blocks: number
+  }
+}
+
+/**
  * Hook for fetching tashih block status for dashboard
  */
 export function useTashihStatus() {
@@ -581,6 +614,61 @@ export function useTashihStatus() {
 
   return {
     tashihStatus: data || null,
+    isLoading,
+    isError: !!error,
+    error,
+    mutate,
+  }
+}
+
+/**
+ * Hook for fetching jurnal block status for dashboard
+ */
+export function useJurnalStatus() {
+  const { data, error, isLoading, mutate } = useSWR<JurnalStatusData | null>(
+    '/api/dashboard/jurnal-status',
+    async (url: string): Promise<JurnalStatusData | null> => {
+      try {
+        console.log('[useJurnalStatus] Fetching...')
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        })
+
+        console.log('[useJurnalStatus] Response status:', response.status)
+
+        if (!response.ok) {
+          if (response.status === 404 || response.status === 401) {
+            // No active registration or not authorized
+            console.log('[useJurnalStatus] No active registration, returning null')
+            return null
+          }
+          throw new Error('Failed to fetch jurnal status')
+        }
+
+        const result = await response.json()
+        console.log('[useJurnalStatus] Result:', result.success ? 'success' : 'failed', 'data:', result.data ? 'found' : 'null')
+        return result.data || null
+      } catch (error) {
+        console.error('[useJurnalStatus] Error:', error)
+        return null
+      }
+    },
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 60000, // 1 minute
+      dedupingInterval: 120000, // 2 minutes
+      fallbackData: null,
+    }
+  )
+
+  console.log('[useJurnalStatus] State:', { isLoading, isError: !!error, hasData: !!data })
+
+  return {
+    jurnalStatus: data || null,
     isLoading,
     isError: !!error,
     error,
