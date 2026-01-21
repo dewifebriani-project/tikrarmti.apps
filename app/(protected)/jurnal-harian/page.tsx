@@ -192,6 +192,10 @@ export default function JurnalHarianPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
 
+  // View mode: 'status' = show block status, 'form' = show jurnal form
+  const [viewMode, setViewMode] = useState<'status' | 'form'>('status')
+  const [selectedBlockForEditing, setSelectedBlockForEditing] = useState<string | null>(null)
+
   // Get active registration
   const activeRegistration = registrations.find((reg: any) =>
     reg.batch?.status === 'open' &&
@@ -558,12 +562,52 @@ export default function JurnalHarianPage() {
 
       toast.success('Jurnal berhasil disimpan!')
       await loadWeekRecords()
+      // Return to status view after saving
+      setViewMode('status')
+      setSelectedBlockForEditing(null)
     } catch (error) {
       console.error('Error saving jurnal:', error)
       toast.error('Terjadi kesalahan saat menyimpan')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Handle block click from status view
+  const handleBlockClick = (blockCode: string, blockWeekNumber: number) => {
+    if (!jurnalStatus) return
+
+    // Find the block in jurnalStatus
+    const block = jurnalStatus.blocks.find(b => b.block_code === blockCode)
+    if (!block) return
+
+    // Check if already completed
+    if (block.is_completed) {
+      toast.info('Blok ini sudah selesai dijurnal')
+      return
+    }
+
+    // Check if previous blocks are completed (sequential check)
+    const blockIndex = jurnalStatus.blocks.findIndex(b => b.block_code === blockCode)
+    if (blockIndex > 0) {
+      const previousBlock = jurnalStatus.blocks[blockIndex - 1]
+      if (!previousBlock.is_completed) {
+        toast.error(`Harap selesaikan blok ${previousBlock.block_code} terlebih dahulu!`)
+        return
+      }
+    }
+
+    // Set selected block and switch to form mode
+    setSelectedBlockForEditing(blockCode)
+    setJurnalData(prev => ({ ...prev, blok: blockCode }))
+
+    // Update week number based on block
+    const newWeekNumber = blockWeekNumber - (selectedJuzInfo?.part === 'B' ? 10 : 0)
+    setSelectedWeekNumber(newWeekNumber)
+    updateBlocksForWeek(newWeekNumber)
+
+    // Switch to form view
+    setViewMode('form')
   }
 
   const resetForm = () => {
@@ -588,6 +632,9 @@ export default function JurnalHarianPage() {
     })
     setTodayRecord(null)
     setWeekRecords([])
+    // Return to status view
+    setViewMode('status')
+    setSelectedBlockForEditing(null)
   }
 
   const isStepCompleted = (step: JurnalStep): boolean => {
@@ -622,7 +669,176 @@ export default function JurnalHarianPage() {
     )
   }
 
-  // Show success if week's 4 blocks are completed
+  // Render Status View (default)
+  if (viewMode === 'status') {
+    return (
+      <div className="space-y-4 sm:space-y-6 animate-fadeInUp">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 sm:p-6 border border-emerald-100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-green-army mb-2">Status Jurnal Blok</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Pilih blok yang belum diisi untuk mengisi jurnal</p>
+            </div>
+            {!jurnalStatusLoading && jurnalStatus && (
+              <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 rounded-lg shadow-sm">
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Progress</p>
+                  <p className="text-base sm:text-lg font-bold text-green-army">{jurnalStatus.summary.completed_blocks}/{jurnalStatus.summary.total_blocks}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Jurnal Block Status Card - Full detail with clickable blocks */}
+        {jurnalStatusLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-green-army" />
+          </div>
+        ) : jurnalStatus ? (
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-emerald-800">
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+                Status Jurnal Blok - {jurnalStatus.juz_info.name}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-emerald-700">
+                Progress jurnal untuk Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part}. Klik blok yang belum selesai untuk mengisi jurnal.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6">
+              {/* Summary */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-xl sm:text-2xl font-bold text-blue-800">{jurnalStatus.summary.total_blocks}</div>
+                  <div className="text-[10px] sm:text-xs text-blue-600">Total Blok</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-xl sm:text-2xl font-bold text-green-800">{jurnalStatus.summary.completed_blocks}</div>
+                  <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
+                </div>
+                <div className="text-center p-3 bg-amber-50 rounded-lg">
+                  <div className="text-xl sm:text-2xl font-bold text-amber-800">{jurnalStatus.summary.pending_blocks}</div>
+                  <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
+                </div>
+              </div>
+
+              {/* Overall Progress Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-xs sm:text-sm mb-1">
+                  <span className="text-gray-600">Progress Total</span>
+                  <span className="font-medium text-gray-800">
+                    {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Block Grid - Group by week */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(() => {
+                  // Group blocks by week_number
+                  const blocksByWeek = new Map<number, typeof jurnalStatus.blocks>()
+                  jurnalStatus.blocks.forEach(block => {
+                    const weekNum = block.week_number
+                    if (!blocksByWeek.has(weekNum)) {
+                      blocksByWeek.set(weekNum, [])
+                    }
+                    blocksByWeek.get(weekNum)!.push(block)
+                  })
+
+                  // Sort weeks and create UI
+                  const sortedWeeks = Array.from(blocksByWeek.keys()).sort((a, b) => a - b)
+
+                  return sortedWeeks.map(weekNum => {
+                    const weekBlocks = blocksByWeek.get(weekNum)!
+                    const completedInWeek = weekBlocks.filter(b => b.is_completed).length
+
+                    return (
+                      <div key={weekNum} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-gray-700">Pekan {weekNum}</span>
+                            <span className="text-xs text-gray-500">({completedInWeek}/4 selesai)</span>
+                          </div>
+                          <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                            <div
+                              className="bg-emerald-500 h-1.5 rounded-full"
+                              style={{ width: `${(completedInWeek / 4) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {weekBlocks.map(block => (
+                            <button
+                              key={block.block_code}
+                              type="button"
+                              onClick={() => handleBlockClick(block.block_code, block.week_number)}
+                              className={cn(
+                                "p-2 border-2 rounded-lg text-center transition-all duration-200",
+                                block.is_completed
+                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
+                                  : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
+                              )}
+                              title={block.is_completed ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}` : 'Klik untuk isi jurnal'}
+                            >
+                              <div className={cn(
+                                "text-xs sm:text-sm font-bold",
+                                block.is_completed ? "text-emerald-700" : "text-gray-600"
+                              )}>
+                                {block.block_code}
+                              </div>
+                              {block.is_completed && (
+                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })
+                })()}
+              </div>
+
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 border-2 border-emerald-400 bg-emerald-50 rounded"></div>
+                  <span>Sudah jurnal</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 border-2 border-gray-300 rounded"></div>
+                  <span>Klik untuk isi jurnal</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center text-gray-500">
+              <p>Belum ada data jurnal. Silakan daftar program terlebih dahulu.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+          <Link href="/dashboard" className="flex-1">
+            <Button variant="outline" className="w-full">
+              Kembali ke Dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // Show success if week's 4 blocks are completed (in form mode)
   if (isWeekDone) {
     return (
       <div className="space-y-6 animate-fadeInUp">
@@ -670,133 +886,9 @@ export default function JurnalHarianPage() {
           </div>
         </div>
 
-      {/* Jurnal Block Status Card - Full detail */}
-      {!jurnalStatusLoading && jurnalStatus && (
-        <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-emerald-800">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-              Status Jurnal Blok - {jurnalStatus.juz_info.name}
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-emerald-700">
-              Progress jurnal untuk Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-blue-800">{jurnalStatus.summary.total_blocks}</div>
-                <div className="text-[10px] sm:text-xs text-blue-600">Total Blok</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-green-800">{jurnalStatus.summary.completed_blocks}</div>
-                <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
-              </div>
-              <div className="text-center p-3 bg-amber-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-amber-800">{jurnalStatus.summary.pending_blocks}</div>
-                <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
-              </div>
-            </div>
-
-            {/* Overall Progress Bar */}
-            <div className="mb-4">
-              <div className="flex justify-between text-xs sm:text-sm mb-1">
-                <span className="text-gray-600">Progress Total</span>
-                <span className="font-medium text-gray-800">
-                  {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Block Grid - Group by week */}
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {(() => {
-                // Group blocks by week_number
-                const blocksByWeek = new Map<number, typeof jurnalStatus.blocks>()
-                jurnalStatus.blocks.forEach(block => {
-                  const weekNum = block.week_number
-                  if (!blocksByWeek.has(weekNum)) {
-                    blocksByWeek.set(weekNum, [])
-                  }
-                  blocksByWeek.get(weekNum)!.push(block)
-                })
-
-                // Sort weeks and create UI
-                const sortedWeeks = Array.from(blocksByWeek.keys()).sort((a, b) => a - b)
-
-                return sortedWeeks.map(weekNum => {
-                  const weekBlocks = blocksByWeek.get(weekNum)!
-                  const completedInWeek = weekBlocks.filter(b => b.is_completed).length
-
-                  return (
-                    <div key={weekNum} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-gray-700">Pekan {weekNum}</span>
-                          <span className="text-xs text-gray-500">({completedInWeek}/4 selesai)</span>
-                        </div>
-                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-emerald-500 h-1.5 rounded-full"
-                            style={{ width: `${(completedInWeek / 4) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-4 gap-2">
-                        {weekBlocks.map(block => (
-                          <div
-                            key={block.block_code}
-                            className={cn(
-                              "p-2 border-2 rounded-lg text-center transition-all duration-200",
-                              block.is_completed
-                                ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50"
-                                : "border-gray-300"
-                            )}
-                            title={block.is_completed ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}` : 'Belum jurnal'}
-                          >
-                            <div className={cn(
-                              "text-xs sm:text-sm font-bold",
-                              block.is_completed ? "text-emerald-700" : "text-gray-600"
-                            )}>
-                              {block.block_code}
-                            </div>
-                            {block.is_completed && (
-                              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })
-              })()}
-            </div>
-
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 border-2 border-emerald-400 bg-emerald-50 rounded"></div>
-                <span>Sudah jurnal</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-4 h-4 border-2 border-gray-300 rounded"></div>
-                <span>Belum jurnal</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
         <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-          <Button onClick={resetForm} variant="outline" className="flex-1">
-            Perbarui Jurnal
+          <Button onClick={() => { setViewMode('status'); resetForm() }} variant="outline" className="flex-1">
+            Kembali ke Status
           </Button>
           <Link href="/dashboard" className="flex-1">
             <Button variant="outline" className="w-full">
@@ -814,36 +906,52 @@ export default function JurnalHarianPage() {
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 sm:p-6 border border-emerald-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-green-army mb-2">Jurnal Pekan Ini</h1>
-            <p className="text-gray-600 text-sm sm:text-base">Lacak aktivitas hafalan Ukhti pekan ini</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-green-army mb-2">
+              {selectedBlockForEditing ? `Isi Jurnal - ${selectedBlockForEditing}` : 'Jurnal Pekan Ini'}
+            </h1>
+            <p className="text-gray-600 text-sm sm:text-base">
+              {selectedBlockForEditing ? 'Lengkapi semua tahapan kurikulum wajib' : 'Lacak aktivitas hafalan Ukhti pekan ini'}
+            </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 rounded-lg shadow-sm">
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Progress Blok</p>
-              <p className="text-base sm:text-lg font-bold text-green-army">{completedCount}/4</p>
-            </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 relative">
-              <svg className="transform -rotate-90 w-full h-full">
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                  className="text-gray-200"
-                />
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                  strokeDasharray={`${(completedCount / 4) * 100} 100`}
-                  className="text-green-army transition-all duration-300"
-                />
-              </svg>
+          <div className="flex items-center gap-2">
+            {selectedBlockForEditing && (
+              <Button
+                type="button"
+                onClick={() => { setViewMode('status'); setSelectedBlockForEditing(null); resetForm(); }}
+                variant="outline"
+                className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              >
+                Kembali ke Status
+              </Button>
+            )}
+            <div className="flex items-center gap-2 sm:gap-3 bg-white px-3 sm:px-4 py-2 rounded-lg shadow-sm">
+              <div className="text-right">
+                <p className="text-xs text-gray-500">Progress Blok</p>
+                <p className="text-base sm:text-lg font-bold text-green-army">{completedCount}/4</p>
+              </div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 relative">
+                <svg className="transform -rotate-90 w-full h-full">
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="16"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                    className="text-gray-200"
+                  />
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="16"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeDasharray={`${(completedCount / 4) * 100} 100`}
+                    className="text-green-army transition-all duration-300"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
