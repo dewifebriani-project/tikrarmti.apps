@@ -167,7 +167,7 @@ export default function JurnalHarianPage() {
   const [jurnalData, setJurnalData] = useState({
     tanggal_setor: new Date().toISOString().slice(0, 10),
     juz_code: '',
-    blok: [] as string[], // Multi-select blok
+    blok: '' as string, // Single blok
     rabth_completed: false,
     murajaah_completed: false,
     simak_murattal_completed: false,
@@ -378,15 +378,8 @@ export default function JurnalHarianPage() {
           }
         }
 
-        // Handle blok: convert string to array
-        let blokValue: string[] = []
-        if (todayRec.blok) {
-          if (typeof todayRec.blok === 'string') {
-            blokValue = todayRec.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
-          } else if (Array.isArray(todayRec.blok)) {
-            blokValue = todayRec.blok
-          }
-        }
+        // Handle blok: single string
+        const blokValue: string = todayRec.blok || ''
 
         setJurnalData({
           tanggal_setor: todayRec.tanggal_setor || new Date().toISOString().slice(0, 10),
@@ -432,9 +425,7 @@ export default function JurnalHarianPage() {
   const toggleBlokSelection = (blockCode: string) => {
     setJurnalData(prev => ({
       ...prev,
-      blok: prev.blok.includes(blockCode)
-        ? prev.blok.filter(b => b !== blockCode)
-        : [...prev.blok, blockCode]
+      blok: blockCode // Single select, just set the value
     }))
   }
 
@@ -492,7 +483,7 @@ export default function JurnalHarianPage() {
 
     // Validate blok selection (required)
     if (!jurnalData.blok || jurnalData.blok.length === 0) {
-      toast.error('Harap pilih minimal 1 blok!')
+      toast.error('Harap pilih 1 blok!')
       return
     }
 
@@ -523,14 +514,12 @@ export default function JurnalHarianPage() {
 
     setIsSubmitting(true)
     try {
-      // Convert blok array to comma-separated string
-      const blokString = jurnalData.blok.join(',')
-
       const recordData = {
         user_id: user.id,
+        tanggal_jurnal: new Date().toISOString(),
         tanggal_setor: jurnalData.tanggal_setor,
         juz_code: jurnalData.juz_code || null,
-        blok: blokString,
+        blok: jurnalData.blok,
         tashih_completed: true,
         rabth_completed: jurnalData.rabth_completed,
         murajaah_count: jurnalData.murajaah_completed ? 1 : 0,
@@ -579,7 +568,7 @@ export default function JurnalHarianPage() {
     setJurnalData({
       tanggal_setor: new Date().toISOString().slice(0, 10),
       juz_code: juzToUse || '',
-      blok: [],
+      blok: '',
       rabth_completed: false,
       murajaah_completed: false,
       simak_murattal_completed: false,
@@ -621,7 +610,7 @@ export default function JurnalHarianPage() {
   const requiredCompleted = jurnalStepsConfig.filter(step => isStepCompleted(step)).length
   const completedCount = getWeekCompletedBlocksCount()
   const isWeekDone = isWeekCompleted()
-  const isAllRequiredCompleted = requiredCompleted === 7 && isTikrarGhaibValid() && jurnalData.blok.length > 0
+  const isAllRequiredCompleted = requiredCompleted === 7 && isTikrarGhaibValid() && jurnalData.blok !== ''
 
   if (isLoading || registrationsLoading) {
     return (
@@ -866,7 +855,7 @@ export default function JurnalHarianPage() {
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
               {availableBlocks.length > 0
-                ? `Pekan Jurnal ${selectedWeekNumber} - ${selectedJuzInfo?.name || ''}. Bisa pilih lebih dari 1 blok.`
+                ? `Pekan Jurnal ${selectedWeekNumber} - ${selectedJuzInfo?.name || ''}. Pilih 1 blok.`
                 : 'Pilih tanggal terlebih dahulu untuk menentukan blok'}
             </CardDescription>
           </CardHeader>
@@ -878,7 +867,7 @@ export default function JurnalHarianPage() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
                 {availableBlocks.map((blok) => {
-                  const isSelected = jurnalData.blok.includes(blok.block_code)
+                  const isSelected = jurnalData.blok === blok.block_code
                   return (
                     <button
                       key={blok.block_code}
