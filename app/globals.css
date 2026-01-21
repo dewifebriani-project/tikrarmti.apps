@@ -543,6 +543,16 @@
   z-index: 50 !important;
 }
 
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Mobile scrollbar optimization */
 @media (max-width: 768px) {
   ::-webkit-scrollbar {
