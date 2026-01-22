@@ -493,26 +493,28 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Check if tashih is completed for the week
+    // Check if tashih is completed for the PREVIOUS week
+    // Jurnal pekan N butuh tashih pekan N-1
     const supabase = createClient()
-    const weekStart = getWeekStartDate(selectedWeekNumber)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekStart.getDate() + 7)
+    const tashihWeekNumber = Math.max(1, selectedWeekNumber - 1)
+    const tashihWeekStart = getWeekStartDate(tashihWeekNumber)
+    const tashihWeekEnd = new Date(tashihWeekStart)
+    tashihWeekEnd.setDate(tashihWeekStart.getDate() + 7)
 
-    // Use date format (YYYY-MM-DD) for comparison instead of ISO string to avoid timezone issues
-    const weekStartDateStr = weekStart.toISOString().split('T')[0]
-    const weekEndDateStr = weekEnd.toISOString().split('T')[0]
+    // Use date format (YYYY-MM-DD) for comparison
+    const tashihWeekStartDateStr = tashihWeekStart.toISOString().split('T')[0]
+    const tashihWeekEndDateStr = tashihWeekEnd.toISOString().split('T')[0]
 
     const { data: tashihData, error: tashihError } = await supabase
       .from('tashih_records')
       .select('*')
       .eq('user_id', user.id)
-      .gte('waktu_tashih', weekStartDateStr)
-      .lt('waktu_tashih', weekEndDateStr)
+      .gte('waktu_tashih', tashihWeekStartDateStr)
+      .lt('waktu_tashih', tashihWeekEndDateStr)
       .limit(1)
 
     if (tashihError || !tashihData || tashihData.length === 0) {
-      toast.error('Harap selesaikan tashih pekan ini terlebih dahulu!')
+      toast.error(`Harap selesaikan tashih pekan ${tashihWeekNumber} terlebih dahulu!`)
       return
     }
 
