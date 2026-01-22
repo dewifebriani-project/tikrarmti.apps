@@ -220,7 +220,7 @@ export default function PanelMusyrifahPage() {
 
       return {
         user_id,
-        user_data: getUserData(user_id),
+        user_data: getUserData(user_id) || null,
         total_count: records.length,
         unique_bloks: uniqueBloks,
         latest_record: latestRecord,
@@ -248,7 +248,7 @@ export default function PanelMusyrifahPage() {
 
       return {
         user_id,
-        user_data: getUserData(user_id),
+        user_data: getUserData(user_id) || null,
         total_entries: entries.length,
         latest_entry: latestEntry,
         all_entries: entries
