@@ -126,7 +126,7 @@ export default function PanelMusyrifahPage() {
       setTashihRecords(records)
 
       // Load user data for all records
-      await loadUserData(records.map(r => r.user_id))
+      await loadUserData(records.map((r: TashihRecord) => r.user_id))
     } catch (error: any) {
       console.error('Error loading tashih records:', error)
       toast.error('Gagal memuat data tashih: ' + error.message)
@@ -158,7 +158,7 @@ export default function PanelMusyrifahPage() {
       setJurnalRecords(records)
 
       // Load user data for all records
-      await loadUserData(records.map(r => r.user_id))
+      await loadUserData(records.map((r: JurnalRecord) => r.user_id))
     } catch (error: any) {
       console.error('Error loading jurnal records:', error)
       toast.error('Gagal memuat data jurnal: ' + error.message)
