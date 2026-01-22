@@ -15,7 +15,10 @@ import {
   Loader2,
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 
 interface TashihRecord {
@@ -60,6 +63,24 @@ interface UserData {
   email?: string
 }
 
+interface ThalibahTashihSummary {
+  user_id: string
+  user_data: UserData | null
+  total_count: number
+  unique_bloks: string[]
+  latest_record: TashihRecord
+  all_records: TashihRecord[]
+  status: 'lengkap' | 'belum'
+}
+
+interface ThalibahJurnalSummary {
+  user_id: string
+  user_data: UserData | null
+  total_entries: number
+  latest_entry: JurnalRecord
+  all_entries: JurnalRecord[]
+}
+
 type TabValue = 'tashih' | 'jurnal'
 
 export default function PanelMusyrifahPage() {
@@ -72,6 +93,11 @@ export default function PanelMusyrifahPage() {
   const [isLoadingJurnal, setIsLoadingJurnal] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  const [selectedThalibah, setSelectedThalibah] = useState<ThalibahTashihSummary | null>(null)
+  const [selectedJurnalThalibah, setSelectedJurnalThalibah] = useState<ThalibahJurnalSummary | null>(null)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+
+  const TASHIH_TARGET = 40
 
   // Load user data for all records
   const loadUserData = async (userIds: string[]) => {
@@ -107,10 +133,14 @@ export default function PanelMusyrifahPage() {
 
       // Apply date filter if set
       if (dateFilter) {
-        query = query.gte('waktu_tashih', dateFilter).lt('waktu_tashih', `${dateFilter}T23:59:59`)
+        const startDate = new Date(dateFilter)
+        const endDate = new Date(dateFilter)
+        endDate.setDate(endDate.getDate() + 6) // Get one week
+
+        query = query.gte('waktu_tashih', startDate.toISOString()).lte('waktu_tashih', endDate.toISOString())
       }
 
-      const { data, error } = await query.limit(100)
+      const { data, error } = await query.limit(500)
 
       if (error) throw error
       const records = data || []
@@ -142,7 +172,7 @@ export default function PanelMusyrifahPage() {
         query = query.gte('tanggal_setor', dateFilter).lte('tanggal_setor', dateFilter)
       }
 
-      const { data, error } = await query.limit(100)
+      const { data, error } = await query.limit(500)
 
       if (error) throw error
       const records = data || []
@@ -171,20 +201,72 @@ export default function PanelMusyrifahPage() {
     return userDataMap.get(userId)
   }
 
-  // Filter records based on search query
-  const filteredTashihRecords = tashihRecords.filter(record => {
-    const user = getUserData(record.user_id)
-    return user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           record.blok?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Group tashih records by thalibah
+  const getThalibahTashihSummaries = (): ThalibahTashihSummary[] => {
+    const grouped = new Map<string, TashihRecord[]>()
+
+    tashihRecords.forEach(record => {
+      if (!grouped.has(record.user_id)) {
+        grouped.set(record.user_id, [])
+      }
+      grouped.get(record.user_id)!.push(record)
+    })
+
+    return Array.from(grouped.entries()).map(([user_id, records]) => {
+      const uniqueBloks = Array.from(new Set(records.map(r => r.blok))).sort()
+      const latestRecord = records.sort((a, b) =>
+        new Date(b.waktu_tashih).getTime() - new Date(a.waktu_tashih).getTime()
+      )[0]
+
+      return {
+        user_id,
+        user_data: getUserData(user_id),
+        total_count: records.length,
+        unique_bloks: uniqueBloks,
+        latest_record: latestRecord,
+        all_records: records,
+        status: records.length >= TASHIH_TARGET ? 'lengkap' : 'belum'
+      }
+    }).sort((a, b) => a.user_data?.full_name?.localeCompare(b.user_data?.full_name || '') || 0)
+  }
+
+  // Group jurnal records by thalibah
+  const getThalibahJurnalSummaries = (): ThalibahJurnalSummary[] => {
+    const grouped = new Map<string, JurnalRecord[]>()
+
+    jurnalRecords.forEach(record => {
+      if (!grouped.has(record.user_id)) {
+        grouped.set(record.user_id, [])
+      }
+      grouped.get(record.user_id)!.push(record)
+    })
+
+    return Array.from(grouped.entries()).map(([user_id, entries]) => {
+      const latestEntry = entries.sort((a, b) =>
+        new Date(b.tanggal_setor).getTime() - new Date(a.tanggal_setor).getTime()
+      )[0]
+
+      return {
+        user_id,
+        user_data: getUserData(user_id),
+        total_entries: entries.length,
+        latest_entry: latestEntry,
+        all_entries: entries
+      }
+    }).sort((a, b) => a.user_data?.full_name?.localeCompare(b.user_data?.full_name || '') || 0)
+  }
+
+  // Filter summaries based on search query
+  const filteredTashihSummaries = getThalibahTashihSummaries().filter(summary => {
+    return summary.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           summary.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           summary.unique_bloks.some(blok => blok.toLowerCase().includes(searchQuery.toLowerCase()))
   })
 
-  const filteredJurnalRecords = jurnalRecords.filter(record => {
-    const user = getUserData(record.user_id)
-    return user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           record.blok?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           record.juz_code?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredJurnalSummaries = getThalibahJurnalSummaries().filter(summary => {
+    return summary.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           summary.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           summary.latest_entry.blok?.toLowerCase().includes(searchQuery.toLowerCase())
   })
 
   const formatDate = (dateString: string) => {
@@ -195,6 +277,15 @@ export default function PanelMusyrifahPage() {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
+    })
+  }
+
+  const formatDateOnly = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
     })
   }
 
@@ -212,31 +303,32 @@ export default function PanelMusyrifahPage() {
     )
   }
 
+  const toggleRowExpansion = (userId: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(userId)) {
+        newSet.delete(userId)
+      } else {
+        newSet.add(userId)
+      }
+      return newSet
+    })
+  }
+
   // Stats calculations
   const tashihStats = {
-    today: tashihRecords.filter(r => {
-      const today = new Date().toISOString().split('T')[0]
-      return r.waktu_tashih.startsWith(today)
-    }).length,
-    week: tashihRecords.filter(r => {
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      return new Date(r.waktu_tashih) > weekAgo
-    }).length,
-    total: tashihRecords.length
+    thalibah: getThalibahTashihSummaries().length,
+    total: tashihRecords.length,
+    completed: getThalibahTashihSummaries().filter(s => s.status === 'lengkap').length
   }
 
   const jurnalStats = {
+    thalibah: getThalibahJurnalSummaries().length,
+    total: jurnalRecords.length,
     today: jurnalRecords.filter(r => {
       const today = new Date().toISOString().split('T')[0]
       return r.tanggal_setor === today
-    }).length,
-    week: jurnalRecords.filter(r => {
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      return new Date(r.tanggal_setor) > weekAgo
-    }).length,
-    total: jurnalRecords.length
+    }).length
   }
 
   return (
@@ -269,7 +361,7 @@ export default function PanelMusyrifahPage() {
       <div className="bg-white border-b border-gray-200 -m-6 mb-0 px-6 py-6 rounded-t-lg">
         <h1 className="text-3xl font-bold text-gray-900">Panel Musyrifah</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Pantau laporan tashih dan jurnal harian thalibah
+          Pantau progres tashih dan jurnal harian thalibah
         </p>
       </div>
 
@@ -287,7 +379,7 @@ export default function PanelMusyrifahPage() {
             `}
           >
             <BookOpen className="w-5 h-5 flex-shrink-0" />
-            <span className="hidden sm:inline">Laporan Tashih</span>
+            <span className="hidden sm:inline">Progres Tashih</span>
           </button>
           <button
             onClick={() => setActiveTab('jurnal')}
@@ -299,7 +391,7 @@ export default function PanelMusyrifahPage() {
               }
             `}
           >
-            <BookOpen className="w-5 h-5 flex-shrink-0" />
+            <Calendar className="w-5 h-5 flex-shrink-0" />
             <span className="hidden sm:inline">Jurnal Harian</span>
           </button>
         </nav>
@@ -320,32 +412,32 @@ export default function PanelMusyrifahPage() {
                   <div className="bg-white overflow-hidden shadow rounded-lg p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
-                        <Calendar className="h-6 w-6 text-blue-600" />
+                        <Eye className="h-6 w-6 text-blue-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-500">Hari Ini</p>
-                        <p className="text-2xl font-semibold text-gray-900">{tashihStats.today}</p>
+                        <p className="text-sm font-medium text-gray-500">Total Thalibah</p>
+                        <p className="text-2xl font-semibold text-gray-900">{tashihStats.thalibah}</p>
                       </div>
                     </div>
                   </div>
                   <div className="bg-white overflow-hidden shadow rounded-lg p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg">
-                        <BookOpen className="h-6 w-6 text-green-600" />
+                        <CheckCircle className="h-6 w-6 text-green-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-500">Minggu Ini</p>
-                        <p className="text-2xl font-semibold text-gray-900">{tashihStats.week}</p>
+                        <p className="text-sm font-medium text-gray-500">Sudah Lengkap</p>
+                        <p className="text-2xl font-semibold text-gray-900">{tashihStats.completed}</p>
                       </div>
                     </div>
                   </div>
                   <div className="bg-white overflow-hidden shadow rounded-lg p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 p-3 bg-purple-100 rounded-lg">
-                        <Eye className="h-6 w-6 text-purple-600" />
+                        <BookOpen className="h-6 w-6 text-purple-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-500">Total</p>
+                        <p className="text-sm font-medium text-gray-500">Total Record</p>
                         <p className="text-2xl font-semibold text-gray-900">{tashihStats.total}</p>
                       </div>
                     </div>
@@ -385,16 +477,21 @@ export default function PanelMusyrifahPage() {
                       )}
                     </div>
                   </div>
+                  {dateFilter && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Filter: Minggu mulai {formatDateOnly(dateFilter)}
+                    </p>
+                  )}
                 </div>
 
-                {/* Tashih Records Table */}
+                {/* Thalibah Progress Table */}
                 <div className="bg-white shadow sm:rounded-lg">
                   <div className="px-4 py-5 sm:px-6">
-                    <h3 className="text-lg font-medium text-gray-900">Daftar Tashih</h3>
-                    <p className="mt-1 text-sm text-gray-500">Semua data tashih thalibah</p>
+                    <h3 className="text-lg font-medium text-gray-900">Progres Tashih per Thalibah</h3>
+                    <p className="mt-1 text-sm text-gray-500">Target: {TASHIH_TARGET}x per minggu</p>
                   </div>
                   <div className="overflow-x-auto">
-                    {filteredTashihRecords.length === 0 ? (
+                    {filteredTashihSummaries.length === 0 ? (
                       <div className="text-center py-12 text-gray-500">
                         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>Tidak ada data tashih ditemukan</p>
@@ -405,54 +502,126 @@ export default function PanelMusyrifahPage() {
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thalibah</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasi</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Masalah Tajwid</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terakhir</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                          {filteredTashihRecords.map((record) => {
-                            const user = getUserData(record.user_id)
+                          {filteredTashihSummaries.map((summary) => {
+                            const isExpanded = expandedRows.has(summary.user_id)
+                            const progress = Math.min((summary.total_count / TASHIH_TARGET) * 100, 100)
+
                             return (
-                              <tr key={record.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3">
-                                  <p className="font-medium text-gray-900">{user?.full_name || '-'}</p>
-                                  <p className="text-xs text-gray-500">{user?.email || '-'}</p>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
-                                    {record.blok}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <p className="text-sm text-gray-900 capitalize">{record.lokasi}</p>
-                                  {record.lokasi === 'luar' && record.lokasi_detail && (
-                                    <p className="text-xs text-gray-500">{record.lokasi_detail}</p>
-                                  )}
-                                  {record.nama_pemeriksa && (
-                                    <p className="text-xs text-gray-500">Pemeriksa: {record.nama_pemeriksa}</p>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {record.masalah_tajwid && record.masalah_tajwid.length > 0 ? (
+                              <>
+                                <tr key={summary.user_id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3">
+                                    <p className="font-medium text-gray-900">{summary.user_data?.full_name || '-'}</p>
+                                    <p className="text-xs text-gray-500">{summary.user_data?.email || '-'}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
                                     <div className="flex flex-wrap gap-1">
-                                      {record.masalah_tajwid.map((issue: string, idx: number) => (
+                                      {summary.unique_bloks.map(blok => (
                                         <span
-                                          key={idx}
-                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
+                                          key={blok}
+                                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800"
                                         >
-                                          {issue}
+                                          {blok}
                                         </span>
                                       ))}
                                     </div>
-                                  ) : (
-                                    <span className="text-sm text-gray-400">-</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-gray-600">
-                                  {formatDate(record.waktu_tashih)}
-                                </td>
-                              </tr>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="w-full">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="text-sm font-medium text-gray-700">
+                                          {summary.total_count} / {TASHIH_TARGET}
+                                        </span>
+                                        <span className="text-xs text-gray-500">{Math.round(progress)}%</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div
+                                          className={`h-2 rounded-full ${
+                                            progress >= 100 ? 'bg-green-600' : 'bg-blue-600'
+                                          }`}
+                                          style={{ width: `${progress}%` }}
+                                        ></div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {summary.status === 'lengkap' ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <CheckCircle className="h-3 w-3" />
+                                        Lengkap
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                        <Clock className="h-3 w-3" />
+                                        {TASHIH_TARGET - summary.total_count} lagi
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-600">
+                                    {formatDate(summary.latest_record.waktu_tashih)}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => toggleRowExpansion(summary.user_id)}
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronUp className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr key={`${summary.user_id}-details`} className="bg-gray-50">
+                                    <td colSpan={6} className="px-4 py-4">
+                                      <div className="space-y-3">
+                                        <h4 className="font-medium text-gray-900">Detail Tashih ({summary.all_records.length} record)</h4>
+                                        <div className="grid gap-2">
+                                          {summary.all_records.map(record => (
+                                            <div key={record.id} className="bg-white p-3 rounded-lg border border-gray-200">
+                                              <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                                    {record.blok}
+                                                  </span>
+                                                  <span className="text-sm text-gray-600">{formatDate(record.waktu_tashih)}</span>
+                                                </div>
+                                                <div className="text-right text-sm text-gray-600">
+                                                  <span className="capitalize">{record.lokasi}</span>
+                                                  {record.nama_pemeriksa && (
+                                                    <span className="block text-xs text-gray-500">Pemeriksa: {record.nama_pemeriksa}</span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              {record.masalah_tajwid && record.masalah_tajwid.length > 0 && (
+                                                <div className="flex flex-wrap gap-1">
+                                                  {record.masalah_tajwid.map((issue: string, idx: number) => (
+                                                    <span
+                                                      key={idx}
+                                                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
+                                                    >
+                                                      {issue}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </>
                             )
                           })}
                         </tbody>
@@ -477,7 +646,18 @@ export default function PanelMusyrifahPage() {
                   <div className="bg-white overflow-hidden shadow rounded-lg p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
-                        <Calendar className="h-6 w-6 text-blue-600" />
+                        <Eye className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <div className="ml-5 w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-500">Total Thalibah</p>
+                        <p className="text-2xl font-semibold text-gray-900">{jurnalStats.thalibah}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white overflow-hidden shadow rounded-lg p-5">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg">
+                        <Calendar className="h-6 w-6 text-green-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <p className="text-sm font-medium text-gray-500">Hari Ini</p>
@@ -487,22 +667,11 @@ export default function PanelMusyrifahPage() {
                   </div>
                   <div className="bg-white overflow-hidden shadow rounded-lg p-5">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg">
-                        <BookOpen className="h-6 w-6 text-green-600" />
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-500">Minggu Ini</p>
-                        <p className="text-2xl font-semibold text-gray-900">{jurnalStats.week}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-white overflow-hidden shadow rounded-lg p-5">
-                    <div className="flex items-center">
                       <div className="flex-shrink-0 p-3 bg-purple-100 rounded-lg">
-                        <Eye className="h-6 w-6 text-purple-600" />
+                        <BookOpen className="h-6 w-6 text-purple-600" />
                       </div>
                       <div className="ml-5 w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-500">Total</p>
+                        <p className="text-sm font-medium text-gray-500">Total Entry</p>
                         <p className="text-2xl font-semibold text-gray-900">{jurnalStats.total}</p>
                       </div>
                     </div>
@@ -547,11 +716,11 @@ export default function PanelMusyrifahPage() {
                 {/* Jurnal Records Table */}
                 <div className="bg-white shadow sm:rounded-lg">
                   <div className="px-4 py-5 sm:px-6">
-                    <h3 className="text-lg font-medium text-gray-900">Daftar Jurnal Harian</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Jurnal Harian per Thalibah</h3>
                     <p className="mt-1 text-sm text-gray-500">Semua data jurnal harian thalibah</p>
                   </div>
                   <div className="overflow-x-auto">
-                    {filteredJurnalRecords.length === 0 ? (
+                    {filteredJurnalSummaries.length === 0 ? (
                       <div className="text-center py-12 text-gray-500">
                         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>Tidak ada data jurnal ditemukan</p>
@@ -561,61 +730,95 @@ export default function PanelMusyrifahPage() {
                         <thead>
                           <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thalibah</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Entry</th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">7 Tahapan</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tikrar</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terakhir</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                          {filteredJurnalRecords.map((record) => {
-                            const user = getUserData(record.user_id)
+                          {filteredJurnalSummaries.map((summary) => {
+                            const isExpanded = expandedRows.has(summary.user_id)
+
                             return (
-                              <tr key={record.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3">
-                                  <p className="font-medium text-gray-900">{user?.full_name || '-'}</p>
-                                  <p className="text-xs text-gray-500">{user?.email || '-'}</p>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <p className="text-sm text-gray-600">{formatDate(record.tanggal_setor)}</p>
-                                  {record.juz_code && (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                                      Juz {record.juz_code}
+                              <>
+                                <tr key={summary.user_id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3">
+                                    <p className="font-medium text-gray-900">{summary.user_data?.full_name || '-'}</p>
+                                    <p className="text-xs text-gray-500">{summary.user_data?.email || '-'}</p>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                                      {summary.total_entries} entry
                                     </span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {record.blok ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
-                                      {record.blok}
-                                    </span>
-                                  ) : (
-                                    <span className="text-sm text-gray-400">-</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="grid grid-cols-4 gap-1">
-                                    {getStatusBadge(record.rabth_completed)}
-                                    {getStatusBadge(record.murajaah_count > 0)}
-                                    {getStatusBadge(record.simak_murattal_count > 0)}
-                                    {getStatusBadge(record.tikrar_bi_an_nadzar_completed)}
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-1 mt-1">
-                                    {getStatusBadge(record.tasmi_record_count > 0)}
-                                    {getStatusBadge(record.simak_record_completed)}
-                                    {getStatusBadge(record.tikrar_bi_al_ghaib_count > 0)}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                  {record.tikrar_bi_al_ghaib_type ? (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-100 text-teal-800">
-                                      {record.tikrar_bi_al_ghaib_type}
-                                    </span>
-                                  ) : (
-                                    <span className="text-sm text-gray-400">-</span>
-                                  )}
-                                </td>
-                              </tr>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {summary.latest_entry.blok ? (
+                                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                                        {summary.latest_entry.blok}
+                                      </span>
+                                    ) : (
+                                      <span className="text-sm text-gray-400">-</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-600">
+                                    {formatDate(summary.latest_entry.tanggal_setor)}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => toggleRowExpansion(summary.user_id)}
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronUp className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr key={`${summary.user_id}-details`} className="bg-gray-50">
+                                    <td colSpan={5} className="px-4 py-4">
+                                      <div className="space-y-3">
+                                        <h4 className="font-medium text-gray-900">Detail Jurnal ({summary.all_entries.length} entry)</h4>
+                                        <div className="grid gap-2">
+                                          {summary.all_entries.map(entry => (
+                                            <div key={entry.id} className="bg-white p-3 rounded-lg border border-gray-200">
+                                              <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm font-medium text-gray-900">{formatDateOnly(entry.tanggal_setor)}</span>
+                                                  {entry.juz_code && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                      Juz {entry.juz_code}
+                                                    </span>
+                                                  )}
+                                                  {entry.blok && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                      {entry.blok}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="grid grid-cols-4 gap-1 text-xs">
+                                                <div>{getStatusBadge(entry.rabth_completed)} Rabth</div>
+                                                <div>{getStatusBadge(entry.murajaah_count > 0)} Murajaah ({entry.murajaah_count})</div>
+                                                <div>{getStatusBadge(entry.simak_murattal_count > 0)} Simak ({entry.simak_murattal_count})</div>
+                                                <div>{getStatusBadge(entry.tikrar_bi_an_nadzar_completed)} Nadzar</div>
+                                                <div>{getStatusBadge(entry.tasmi_record_count > 0)} Tasmi ({entry.tasmi_record_count})</div>
+                                                <div>{getStatusBadge(entry.simak_record_completed)} Simak Rec</div>
+                                                <div>{getStatusBadge(entry.tikrar_bi_al_ghaib_count > 0)} Ghaib ({entry.tikrar_bi_al_ghaib_count})</div>
+                                                <div>{getStatusBadge(entry.tafsir_completed)} Tafsir</div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </>
                             )
                           })}
                         </tbody>
