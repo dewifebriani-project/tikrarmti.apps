@@ -254,6 +254,34 @@ CREATE TABLE public.halaqah_students (
   CONSTRAINT halaqah_students_halaqah_id_fkey FOREIGN KEY (halaqah_id) REFERENCES public.halaqah(id),
   CONSTRAINT halaqah_students_thalibah_id_fkey FOREIGN KEY (thalibah_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.jurnal_records (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  tanggal_jurnal timestamp with time zone NOT NULL DEFAULT now(),
+  tashih_completed boolean DEFAULT false,
+  rabth_completed boolean DEFAULT false,
+  murajaah_count integer DEFAULT 0 CHECK (murajaah_count >= 0),
+  simak_murattal_count integer DEFAULT 0 CHECK (simak_murattal_count >= 0),
+  tikrar_bi_an_nadzar_completed boolean DEFAULT false,
+  tasmi_record_count integer DEFAULT 0 CHECK (tasmi_record_count >= 0),
+  simak_record_completed boolean DEFAULT false,
+  tikrar_bi_al_ghaib_count integer DEFAULT 0 CHECK (tikrar_bi_al_ghaib_count >= 0),
+  tafsir_completed boolean DEFAULT false,
+  menulis_completed boolean DEFAULT false,
+  total_duration_minutes integer DEFAULT 0 CHECK (total_duration_minutes >= 0),
+  catatan_tambahan text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  tanggal_setor date NOT NULL DEFAULT CURRENT_DATE,
+  juz_code character varying,
+  blok character varying,
+  tikrar_bi_al_ghaib_type character varying CHECK (tikrar_bi_al_ghaib_type IS NULL OR tikrar_bi_al_ghaib_type::text = ''::text OR (tikrar_bi_al_ghaib_type::text = ANY (ARRAY['pasangan_40'::character varying, 'keluarga_40'::character varying, 'tarteel_40'::character varying, 'pasangan_40_wa'::character varying, 'pasangan_20_wa'::character varying, 'voice_note_20'::character varying, 'pasangan_20'::character varying, 'keluarga_40_suami'::character varying, 'keluarga_40_ayah'::character varying, 'keluarga_40_ibu'::character varying, 'keluarga_40_kakak'::character varying, 'keluarga_40_adik'::character varying, 'keluarga_40_saudara'::character varying]::text[]))),
+  tikrar_bi_al_ghaib_40x ARRAY CHECK (tikrar_bi_al_ghaib_40x IS NULL OR array_length(tikrar_bi_al_ghaib_40x, 1) IS NULL OR tikrar_bi_al_ghaib_40x <@ ARRAY['pasangan_40'::text, 'pasangan_40_wa'::text, 'keluarga_40'::text, 'keluarga_40_suami'::text, 'keluarga_40_ayah'::text, 'keluarga_40_ibu'::text, 'keluarga_40_kakak'::text, 'keluarga_40_adik'::text, 'keluarga_40_saudara'::text, 'tarteel_40'::text]),
+  tikrar_bi_al_ghaib_20x ARRAY CHECK (tikrar_bi_al_ghaib_20x IS NULL OR array_length(tikrar_bi_al_ghaib_20x, 1) IS NULL OR tikrar_bi_al_ghaib_20x <@ ARRAY['pasangan_20'::text, 'pasangan_20_wa'::text, 'voice_note_20'::text]),
+  tarteel_screenshot_url text,
+  CONSTRAINT jurnal_records_pkey PRIMARY KEY (id),
+  CONSTRAINT jurnal_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.juz_options (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   code text NOT NULL UNIQUE CHECK (code ~ '^[0-9]+[AB]$'::text),
@@ -489,11 +517,13 @@ CREATE TABLE public.study_partners (
   paired_by uuid,
   paired_at timestamp with time zone NOT NULL DEFAULT now(),
   notes text,
+  user_3_id uuid,
   CONSTRAINT study_partners_pkey PRIMARY KEY (id),
   CONSTRAINT study_partners_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES public.batches(id),
   CONSTRAINT study_partners_user_1_id_fkey FOREIGN KEY (user_1_id) REFERENCES public.users(id),
   CONSTRAINT study_partners_user_2_id_fkey FOREIGN KEY (user_2_id) REFERENCES public.users(id),
-  CONSTRAINT study_partners_paired_by_fkey FOREIGN KEY (paired_by) REFERENCES public.users(id)
+  CONSTRAINT study_partners_paired_by_fkey FOREIGN KEY (paired_by) REFERENCES public.users(id),
+  CONSTRAINT study_partners_user_3_id_fkey FOREIGN KEY (user_3_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.system_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -533,8 +563,11 @@ CREATE TABLE public.tashih_records (
   waktu_tashih timestamp with time zone NOT NULL DEFAULT now(),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  ustadzah_id uuid,
+  jumlah_kesalahan_tajwid integer DEFAULT 0,
   CONSTRAINT tashih_records_pkey PRIMARY KEY (id),
-  CONSTRAINT tashih_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT tashih_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT tashih_records_ustadzah_id_fkey FOREIGN KEY (ustadzah_id) REFERENCES public.muallimah_registrations(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
