@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 
@@ -15,7 +15,7 @@ interface UniversalSidebarProps {
 
 export default function DashboardSidebar({ isOpen = false, onClose }: UniversalSidebarProps) {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -46,6 +46,9 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
 
   // Role-based navigation items
   const getNavItems = () => {
+    const userRoles = user?.roles || [];
+    const userRole = user?.role || '';
+
     const baseItems = [
       {
         href: '/dashboard',
@@ -122,12 +125,27 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           </svg>
         ),
       },
-      {
+    ];
+
+    // Add musyrifah panel if user has musyrifah role
+    const isMusyrifah = userRole === 'musyrifah' || userRoles.includes('musyrifah');
+    if (isMusyrifah) {
+      baseItems.push({
+        href: '/panel-musyrifah',
+        label: 'Panel Musyrifah',
+        icon: <Eye className="h-6 w-6" />,
+      });
+    }
+
+    // Add admin panel if user has admin role
+    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    if (isAdmin) {
+      baseItems.push({
         href: '/admin',
         label: 'Panel Admin',
         icon: <Users className="h-6 w-6" />,
-      },
-    ];
+      });
+    }
 
     return baseItems;
   };
