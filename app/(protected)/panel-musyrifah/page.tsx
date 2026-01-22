@@ -38,10 +38,6 @@ interface TashihRecord {
   catatan_tambahan?: string
   waktu_tashih: string
   created_at: string
-  user?: {
-    full_name: string
-    email: string
-  }
 }
 
 interface JurnalRecord {
@@ -65,10 +61,12 @@ interface JurnalRecord {
   menulis_completed: boolean
   catatan_tambahan: string | null
   created_at: string
-  user?: {
-    full_name: string
-    email: string
-  }
+}
+
+interface UserData {
+  id: string
+  full_name?: string
+  email?: string
 }
 
 type TabValue = 'tashih' | 'jurnal'
@@ -78,10 +76,32 @@ export default function PanelMusyrifahPage() {
   const [activeTab, setActiveTab] = useState<TabValue>('tashih')
   const [tashihRecords, setTashihRecords] = useState<TashihRecord[]>([])
   const [jurnalRecords, setJurnalRecords] = useState<JurnalRecord[]>([])
+  const [userDataMap, setUserDataMap] = useState<Map<string, UserData>>(new Map())
   const [isLoadingTashih, setIsLoadingTashih] = useState(true)
   const [isLoadingJurnal, setIsLoadingJurnal] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+
+  // Load user data for all records
+  const loadUserData = async (userIds: string[]) => {
+    if (userIds.length === 0) return
+
+    const uniqueIds = Array.from(new Set(userIds))
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, full_name, email')
+      .in('id', uniqueIds)
+
+    if (!error && data) {
+      const map = new Map<string, UserData>()
+      data.forEach((user: UserData) => {
+        map.set(user.id, user)
+      })
+      setUserDataMap(map)
+    }
+  }
 
   // Load tashih records
   const loadTashihRecords = async () => {
@@ -91,13 +111,7 @@ export default function PanelMusyrifahPage() {
 
       let query = supabase
         .from('tashih_records')
-        .select(`
-          *,
-          user:users!tashih_records_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('waktu_tashih', { ascending: false })
 
       // Apply date filter if set
@@ -108,7 +122,11 @@ export default function PanelMusyrifahPage() {
       const { data, error } = await query.limit(100)
 
       if (error) throw error
-      setTashihRecords(data || [])
+      const records = data || []
+      setTashihRecords(records)
+
+      // Load user data for all records
+      await loadUserData(records.map(r => r.user_id))
     } catch (error: any) {
       console.error('Error loading tashih records:', error)
       toast.error('Gagal memuat data tashih: ' + error.message)
@@ -125,13 +143,7 @@ export default function PanelMusyrifahPage() {
 
       let query = supabase
         .from('jurnal_records')
-        .select(`
-          *,
-          user:users!jurnal_records_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('tanggal_setor', { ascending: false })
 
       // Apply date filter if set
@@ -142,7 +154,11 @@ export default function PanelMusyrifahPage() {
       const { data, error } = await query.limit(100)
 
       if (error) throw error
-      setJurnalRecords(data || [])
+      const records = data || []
+      setJurnalRecords(records)
+
+      // Load user data for all records
+      await loadUserData(records.map(r => r.user_id))
     } catch (error: any) {
       console.error('Error loading jurnal records:', error)
       toast.error('Gagal memuat data jurnal: ' + error.message)
@@ -159,19 +175,26 @@ export default function PanelMusyrifahPage() {
     }
   }, [activeTab, dateFilter])
 
-  // Filter records based on search query
-  const filteredTashihRecords = tashihRecords.filter(record =>
-    record.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.blok?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Get user data helper
+  const getUserData = (userId: string) => {
+    return userDataMap.get(userId)
+  }
 
-  const filteredJurnalRecords = jurnalRecords.filter(record =>
-    record.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.blok?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.juz_code?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Filter records based on search query
+  const filteredTashihRecords = tashihRecords.filter(record => {
+    const user = getUserData(record.user_id)
+    return user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           record.blok?.toLowerCase().includes(searchQuery.toLowerCase())
+  })
+
+  const filteredJurnalRecords = jurnalRecords.filter(record => {
+    const user = getUserData(record.user_id)
+    return user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           record.blok?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           record.juz_code?.toLowerCase().includes(searchQuery.toLowerCase())
+  })
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -376,51 +399,54 @@ export default function PanelMusyrifahPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTashihRecords.map((record) => (
-                      <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{record.user?.full_name || '-'}</p>
-                            <p className="text-xs text-gray-500">{record.user?.email || '-'}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
-                            {record.blok}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="text-sm text-gray-900 capitalize">{record.lokasi}</p>
-                            {record.lokasi === 'luar' && record.lokasi_detail && (
-                              <p className="text-xs text-gray-500">{record.lokasi_detail}</p>
-                            )}
-                            {record.nama_pemeriksa && (
-                              <p className="text-xs text-gray-500">Pemeriksa: {record.nama_pemeriksa}</p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          {record.masalah_tajwid && record.masalah_tajwid.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {record.masalah_tajwid.map((issue: string, idx: number) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
-                                >
-                                  {issue}
-                                </span>
-                              ))}
+                    {filteredTashihRecords.map((record) => {
+                      const user = getUserData(record.user_id)
+                      return (
+                        <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="font-medium text-gray-900">{user?.full_name || '-'}</p>
+                              <p className="text-xs text-gray-500">{user?.email || '-'}</p>
                             </div>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-sm text-gray-600">{formatDate(record.waktu_tashih)}</p>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
+                              {record.blok}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="text-sm text-gray-900 capitalize">{record.lokasi}</p>
+                              {record.lokasi === 'luar' && record.lokasi_detail && (
+                                <p className="text-xs text-gray-500">{record.lokasi_detail}</p>
+                              )}
+                              {record.nama_pemeriksa && (
+                                <p className="text-xs text-gray-500">Pemeriksa: {record.nama_pemeriksa}</p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {record.masalah_tajwid && record.masalah_tajwid.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {record.masalah_tajwid.map((issue: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800"
+                                  >
+                                    {issue}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <p className="text-sm text-gray-600">{formatDate(record.waktu_tashih)}</p>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -456,55 +482,58 @@ export default function PanelMusyrifahPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredJurnalRecords.map((record) => (
-                      <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium text-gray-900">{record.user?.full_name || '-'}</p>
-                            <p className="text-xs text-gray-500">{record.user?.email || '-'}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="text-sm text-gray-600">{formatDate(record.tanggal_setor)}</p>
-                          {record.juz_code && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                              Juz {record.juz_code}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {record.blok ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
-                              {record.blok}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="grid grid-cols-4 gap-1">
-                            {getStatusBadge(record.rabth_completed)}
-                            {getStatusBadge(record.murajaah_count > 0)}
-                            {getStatusBadge(record.simak_murattal_count > 0)}
-                            {getStatusBadge(record.tikrar_bi_an_nadzar_completed)}
-                          </div>
-                          <div className="grid grid-cols-3 gap-1 mt-1">
-                            {getStatusBadge(record.tasmi_record_count > 0)}
-                            {getStatusBadge(record.simak_record_completed)}
-                            {getStatusBadge(record.tikrar_bi_al_ghaib_count > 0)}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          {record.tikrar_bi_al_ghaib_type ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-100 text-teal-800">
-                              {record.tikrar_bi_al_ghaib_type}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-gray-400">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredJurnalRecords.map((record) => {
+                      const user = getUserData(record.user_id)
+                      return (
+                        <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div>
+                              <p className="font-medium text-gray-900">{user?.full_name || '-'}</p>
+                              <p className="text-xs text-gray-500">{user?.email || '-'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <p className="text-sm text-gray-600">{formatDate(record.tanggal_setor)}</p>
+                            {record.juz_code && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                                Juz {record.juz_code}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            {record.blok ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                                {record.blok}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="grid grid-cols-4 gap-1">
+                              {getStatusBadge(record.rabth_completed)}
+                              {getStatusBadge(record.murajaah_count > 0)}
+                              {getStatusBadge(record.simak_murattal_count > 0)}
+                              {getStatusBadge(record.tikrar_bi_an_nadzar_completed)}
+                            </div>
+                            <div className="grid grid-cols-3 gap-1 mt-1">
+                              {getStatusBadge(record.tasmi_record_count > 0)}
+                              {getStatusBadge(record.simak_record_completed)}
+                              {getStatusBadge(record.tikrar_bi_al_ghaib_count > 0)}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {record.tikrar_bi_al_ghaib_type ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-teal-100 text-teal-800">
+                                {record.tikrar_bi_al_ghaib_type}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
