@@ -47,7 +47,6 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
   // Role-based navigation items
   const getNavItems = () => {
     const userRoles = user?.roles || [];
-    const userRole = user?.role || '';
 
     const baseItems = [
       {
@@ -128,7 +127,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
     ];
 
     // Add musyrifah panel if user has musyrifah role
-    const isMusyrifah = userRole === 'musyrifah' || userRoles.includes('musyrifah');
+    const isMusyrifah = userRoles.includes('musyrifah');
     if (isMusyrifah) {
       baseItems.push({
         href: '/panel-musyrifah',
@@ -138,7 +137,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
     }
 
     // Add admin panel if user has admin role
-    const isAdmin = userRole === 'admin' || userRoles.includes('admin');
+    const isAdmin = userRoles.includes('admin');
     if (isAdmin) {
       baseItems.push({
         href: '/admin',
