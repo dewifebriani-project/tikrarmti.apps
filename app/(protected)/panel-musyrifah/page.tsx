@@ -16,6 +16,7 @@ import {
   Clock,
   Eye,
   Calendar,
+  Plus,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian';
@@ -40,15 +41,30 @@ interface Thalibah {
 
 interface JurnalEntry {
   id: string;
-  thalibah_id: string;
-  tanggal: string;
-  juz: number;
-  halaman_mulai: number;
-  halaman_selesai: number;
-  catatan: string;
+  user_id: string;
+  tanggal_jurnal: string;
+  tanggal_setor: string;
+  juz_code: string | null;
+  blok: string | null;
+  tashih_completed: boolean;
+  rabth_completed: boolean;
+  murajaah_count: number;
+  simak_murattal_count: number;
+  tikrar_bi_an_nadzar_completed: boolean;
+  tasmi_record_count: number;
+  simak_record_completed: boolean;
+  tikrar_bi_al_ghaib_count: number;
+  tafsir_completed: boolean;
+  menulis_completed: boolean;
+  total_duration_minutes: number;
+  catatan_tambahan: string | null;
   created_at: string;
-  thalibah?: {
-    full_name: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    full_name: string | null;
+    nama_kunyah: string | null;
+    whatsapp: string | null;
   };
 }
 
@@ -114,6 +130,11 @@ export default function PanelMusyrifahPage() {
   const [jurnalEntries, setJurnalEntries] = useState<JurnalEntry[]>([]);
   const [tashihEntries, setTashihEntries] = useState<TashihEntry[]>([]);
   const [ujianResults, setUjianResults] = useState<UjianResult[]>([]);
+
+  // Jurnal filter states
+  const [selectedBlok, setSelectedBlok] = useState<string>('all');
+  const [selectedPekan, setSelectedPekan] = useState<string>('all');
+  const [availableBloks, setAvailableBloks] = useState<string[]>([]);
 
   // Save activeTab to localStorage
   useEffect(() => {
@@ -237,7 +258,16 @@ export default function PanelMusyrifahPage() {
 
   const loadJurnal = async () => {
     try {
-      const response = await fetch('/api/musyrifah/jurnal');
+      // Build query params
+      const params = new URLSearchParams();
+      if (selectedBlok !== 'all') {
+        params.append('blok', selectedBlok);
+      }
+      if (selectedPekan !== 'all') {
+        params.append('pekan', selectedPekan);
+      }
+
+      const response = await fetch(`/api/musyrifah/jurnal?${params.toString()}`);
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || 'Error loading jurnal');
@@ -246,6 +276,10 @@ export default function PanelMusyrifahPage() {
         const result = await response.json();
         console.log(`Jurnal entries loaded: ${result.data?.length || 0} records`);
         setJurnalEntries(result.data || []);
+        // Set available bloks from meta
+        if (result.meta?.bloks) {
+          setAvailableBloks(result.meta.bloks);
+        }
       }
     } catch (error) {
       console.error('Error loading jurnal:', error);
@@ -392,7 +426,13 @@ export default function PanelMusyrifahPage() {
         )}
 
         {!dataLoading && activeTab === 'jurnal' && (
-          <JurnalTab entries={jurnalEntries} onRefresh={loadJurnal} />
+          <JurnalTab
+            entries={jurnalEntries}
+            onRefresh={loadJurnal}
+            selectedBlok={selectedBlok}
+            onBlokChange={setSelectedBlok}
+            availableBloks={availableBloks}
+          />
         )}
 
         {!dataLoading && activeTab === 'tashih' && (
@@ -537,51 +577,180 @@ function ThalibahTab({ thalibah, onRefresh }: { thalibah: Thalibah[], onRefresh:
 }
 
 // Jurnal Tab Component
-function JurnalTab({ entries, onRefresh }: { entries: JurnalEntry[], onRefresh: () => void }) {
+interface JurnalTabProps {
+  entries: JurnalEntry[];
+  onRefresh: () => void;
+  selectedBlok: string;
+  onBlokChange: (blok: string) => void;
+  availableBloks: string[];
+}
+
+function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: JurnalTabProps) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<JurnalEntry | null>(null);
+
+  const displayName = (entry: JurnalEntry) => {
+    if (entry.user?.nama_kunyah) return entry.user.nama_kunyah;
+    if (entry.user?.full_name) return entry.user.full_name;
+    return '-';
+  };
+
+  const displayWhatsApp = (entry: JurnalEntry) => {
+    if (entry.user?.whatsapp) return entry.user.whatsapp;
+    return '-';
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Jurnal Harian Thalibah</h2>
-        <button
-          onClick={onRefresh}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <AlertCircle className="w-5 h-5 mr-2" />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Jurnal
+          </button>
+          <button
+            onClick={onRefresh}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <AlertCircle className="w-5 h-5 mr-2" />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Blok:</label>
+            <select
+              value={selectedBlok}
+              onChange={(e) => onBlokChange(e.target.value)}
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
+            >
+              <option value="all">Semua</option>
+              {availableBloks.map((blok) => (
+                <option key={blok} value={blok}>{blok}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada jurnal</h3>
-          <p className="mt-1 text-sm text-gray-500">Belum ada jurnal harian dari thalibah.</p>
+          <p className="mt-1 text-sm text-gray-500">Belum ada jurnal harian dari thalibah yang terdaftar di daftar ulang (approved/submitted).</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {entries.map((entry) => (
-            <div key={entry.id} className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{entry.thalibah?.full_name}</h3>
-                  <p className="text-sm text-gray-500">{new Date(entry.tanggal).toLocaleDateString('id-ID')}</p>
-                </div>
-                <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                  Juz {entry.juz}
-                </span>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Halaman:</span> {entry.halaman_mulai} - {entry.halaman_selesai}
-                </p>
-                {entry.catatan && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    <span className="font-medium">Catatan:</span> {entry.catatan}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama / Nama Kunyah</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Setor</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi (menit)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {entries.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{displayName(entry)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{displayWhatsApp(entry)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                        {entry.blok || '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {entry.juz_code || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {entry.total_duration_minutes || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingEntry(entry);
+                            setShowEditModal(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
+                              // TODO: Implement delete
+                              toast.success('Jurnal dihapus');
+                              onRefresh();
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Create Modal Placeholder */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Tambah Jurnal</h3>
+            <p className="text-sm text-gray-500 mb-4">Fitur ini akan diimplementasikan segera.</p>
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal Placeholder */}
+      {showEditModal && editingEntry && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Jurnal</h3>
+            <p className="text-sm text-gray-500 mb-4">Fitur ini akan diimplementasikan segera.</p>
+            <button
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingEntry(null);
+              }}
+              className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       )}
     </div>

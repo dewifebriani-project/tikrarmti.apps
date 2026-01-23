@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = createClient();
 
@@ -27,22 +27,82 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden: Musyrifah access required' }, { status: 403 });
     }
 
-    // Get jurnal entries
-    const { data: entries, error } = await supabase
-      .from('jurnal_harian')
+    // Get URL parameters for filtering
+    const { searchParams } = new URL(request.url);
+    const blok = searchParams.get('blok');
+    const pekan = searchParams.get('pekan');
+    const batchId = searchParams.get('batch_id');
+
+    // Get active batch if not specified
+    let activeBatchId = batchId;
+    if (!activeBatchId) {
+      const { data: activeBatch } = await supabase
+        .from('batches')
+        .select('id')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      activeBatchId = activeBatch?.id;
+    }
+
+    // Get user IDs from daftar_ulang_submissions with approved or submitted status
+    const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('user_id')
+      .in('status', ['approved', 'submitted']);
+
+    if (daftarUlangError) throw daftarUlangError;
+
+    const userIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
+
+    if (userIds.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    // Build query for jurnal_records
+    let query = supabase
+      .from('jurnal_records')
       .select(`
         id,
-        thalibah_id,
-        tanggal,
-        juz,
-        halaman_mulai,
-        halaman_selesai,
-        catatan,
+        user_id,
+        tanggal_jurnal,
+        tanggal_setor,
+        juz_code,
+        blok,
+        tashih_completed,
+        rabth_completed,
+        murajaah_count,
+        simak_murattal_count,
+        tikrar_bi_an_nadzar_completed,
+        tasmi_record_count,
+        simak_record_completed,
+        tikrar_bi_al_ghaib_count,
+        tafsir_completed,
+        menulis_completed,
+        total_duration_minutes,
+        catatan_tambahan,
         created_at,
-        thalibah:users(full_name)
+        updated_at,
+        user:users!jurnal_records_user_id_fkey(
+          id,
+          full_name,
+          nama_kunyah,
+          whatsapp
+        )
       `)
-      .order('tanggal', { ascending: false })
-      .limit(100);
+      .in('user_id', userIds)
+      .order('tanggal_setor', { ascending: false });
+
+    // Apply filters if provided
+    if (blok) {
+      query = query.eq('blok', blok);
+    }
+    if (pekan) {
+      query = query.eq('pekan', pekan);
+    }
+
+    const { data: entries, error } = await query;
 
     if (error) {
       // If table doesn't exist, return empty array
@@ -52,7 +112,23 @@ export async function GET() {
       throw error;
     }
 
-    return NextResponse.json({ success: true, data: entries || [] });
+    // Get unique bloks and pekans for filter options
+    const { data: bloksData } = await supabase
+      .from('jurnal_records')
+      .select('blok')
+      .in('user_id', userIds)
+      .not('blok', 'is', null)
+      .order('blok', { ascending: true });
+
+    const uniqueBloks = Array.from(new Set(bloksData?.map((d: any) => d.blok).filter((b: any) => b) || []));
+
+    return NextResponse.json({
+      success: true,
+      data: entries || [],
+      meta: {
+        bloks: uniqueBloks,
+      }
+    });
   } catch (error: any) {
     console.error('Error in musyrifah jurnal API:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
