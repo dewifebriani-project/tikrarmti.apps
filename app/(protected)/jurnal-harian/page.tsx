@@ -584,17 +584,9 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Check if previous blocks are completed (sequential check)
-    const blockIndex = jurnalStatus.blocks.findIndex(b => b.block_code === blockCode)
-    if (blockIndex > 0) {
-      const previousBlock = jurnalStatus.blocks[blockIndex - 1]
-      if (!previousBlock.is_completed) {
-        toast.error(`Harap selesaikan blok ${previousBlock.block_code} terlebih dahulu!`)
-        return
-      }
-    }
-
     // Set selected block and switch to form mode
+    // Note: Thalibah can fill any block within the week, not sequential
+    // Only requirement: complete all 4 blocks in the week
     setSelectedBlockForEditing(blockCode)
     setJurnalData(prev => ({ ...prev, blok: blockCode }))
 
@@ -798,54 +790,46 @@ export default function JurnalHarianPage() {
                           </div>
                         </div>
                         <div className="grid grid-cols-4 gap-2">
-                          {weekBlocks.map(block => {
-                            // Check if previous block is completed (for lock icon)
-                            const blockIndex = jurnalStatus.blocks.findIndex(b => b.block_code === block.block_code)
-                            const isLockedByPreviousBlock = blockIndex > 0 && !jurnalStatus.blocks[blockIndex - 1].is_completed && !block.is_completed
-
-                            return (
-                              <button
-                                key={block.block_code}
-                                type="button"
-                                onClick={() => handleBlockClick(block.block_code, block.week_number)}
-                                className={cn(
-                                  "p-2 border-2 rounded-lg text-center transition-all duration-200",
-                                  block.is_completed
-                                    ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
-                                    : !isWeekAllowed || isLockedByPreviousBlock
-                                      ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
-                                      : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
-                                )}
-                                title={block.is_completed
-                                  ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
-                                  : isLockedByPreviousBlock
-                                    ? `Selesaikan ${jurnalStatus.blocks[blockIndex - 1].block_code} terlebih dahulu`
-                                    : !isWeekAllowed
-                                      ? isFutureWeek
-                                        ? `Pekan ${actualWeekNumber} belum dimulai`
-                                        : `Pekan ${actualWeekNumber} sudah berlalu`
-                                      : 'Klik untuk isi jurnal'
-                                }
-                                disabled={!isWeekAllowed || isLockedByPreviousBlock || block.is_completed}
-                              >
-                                <div className={cn(
-                                  "text-xs sm:text-sm font-bold",
-                                  block.is_completed
-                                    ? "text-emerald-700"
-                                    : !isWeekAllowed || isLockedByPreviousBlock
-                                      ? "text-gray-400"
-                                      : "text-gray-600"
-                                )}>
-                                  {block.block_code}
-                                </div>
-                                {block.is_completed ? (
-                                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
-                                ) : isLockedByPreviousBlock || !isWeekAllowed ? (
-                                  <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mx-auto mt-1" />
-                                ) : null}
-                              </button>
-                            )
-                          })}
+                          {weekBlocks.map(block => (
+                            <button
+                              key={block.block_code}
+                              type="button"
+                              onClick={() => handleBlockClick(block.block_code, block.week_number)}
+                              className={cn(
+                                "p-2 border-2 rounded-lg text-center transition-all duration-200",
+                                block.is_completed
+                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
+                                  : !isWeekAllowed
+                                    ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
+                                    : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
+                              )}
+                              title={block.is_completed
+                                ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
+                                : !isWeekAllowed
+                                  ? isFutureWeek
+                                    ? `Pekan ${actualWeekNumber} belum dimulai`
+                                    : `Pekan ${actualWeekNumber} sudah berlalu`
+                                  : 'Klik untuk isi jurnal'
+                              }
+                              disabled={!isWeekAllowed || block.is_completed}
+                            >
+                              <div className={cn(
+                                "text-xs sm:text-sm font-bold",
+                                block.is_completed
+                                  ? "text-emerald-700"
+                                  : !isWeekAllowed
+                                    ? "text-gray-400"
+                                    : "text-gray-600"
+                              )}>
+                                {block.block_code}
+                              </div>
+                              {block.is_completed ? (
+                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
+                              ) : !isWeekAllowed ? (
+                                <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mx-auto mt-1" />
+                              ) : null}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     )
@@ -1080,22 +1064,20 @@ export default function JurnalHarianPage() {
           <CardContent className="p-3 sm:p-6">
             <div className="space-y-4 sm:space-y-6">
               {(() => {
-                const currentWeek = getCurrentWeekNumber()
-
                 return (
-                  <div key={currentWeek}>
+                  <div key={selectedWeekNumber}>
                     <div className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 text-cyan-700">
-                      Pekan Jurnal {currentWeek}
+                      Pekan Jurnal {selectedWeekNumber}
                     </div>
                     <div className="grid grid-cols-7 gap-1 sm:gap-2">
                       {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Ah'].map((hari, index) => {
-                        const dayDate = getDayDateInWeek(currentWeek, index)
+                        const dayDate = getDayDateInWeek(selectedWeekNumber, index)
                         const isToday = new Date().toDateString() === dayDate.toDateString()
                         const dateString = dayDate.toISOString().split('T')[0]
 
                         return (
                           <button
-                            key={`week${currentWeek}-${hari}`}
+                            key={`week${selectedWeekNumber}-${hari}`}
                             type="button"
                             onClick={() => handleDateSelection(dayDate)}
                             className={cn(
