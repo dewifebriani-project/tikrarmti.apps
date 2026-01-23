@@ -566,8 +566,9 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Calculate actual week number (1-13) from block week number
-    const actualWeekNumber = blockWeekNumber - (selectedJuzInfo?.part === 'B' ? 10 : 0)
+    // The API now returns normalized week_number (1-13 for both Part A and Part B)
+    // Use blockWeekNumber directly as the actual week number
+    const actualWeekNumber = blockWeekNumber
 
     // Check if week is allowed (current week or 1 week before only)
     const currentWeekNumber = getCurrentWeekNumber()
@@ -590,10 +591,9 @@ export default function JurnalHarianPage() {
     setSelectedBlockForEditing(blockCode)
     setJurnalData(prev => ({ ...prev, blok: blockCode }))
 
-    // Update week number based on block
-    const newWeekNumber = blockWeekNumber - (selectedJuzInfo?.part === 'B' ? 10 : 0)
-    setSelectedWeekNumber(newWeekNumber)
-    updateBlocksForWeek(newWeekNumber)
+    // Update week number based on block (API returns normalized 1-13)
+    setSelectedWeekNumber(actualWeekNumber)
+    updateBlocksForWeek(actualWeekNumber)
 
     // Switch to form view
     setViewMode('form')

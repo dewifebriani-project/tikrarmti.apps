@@ -151,7 +151,7 @@ export async function GET() {
 
         allBlocks.push({
           block_code: blockCode,
-          week_number: blockNumber,
+          week_number: week, // Always 1-13 for UI display (Pekan 1, Pekan 2, etc.)
           part,
           start_page: blockPage,
           end_page: blockPage,
