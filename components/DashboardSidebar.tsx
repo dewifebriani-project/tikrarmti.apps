@@ -127,14 +127,14 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
     ];
 
     // Add musyrifah panel if user has musyrifah role
-    const isMusyrifah = userRoles.includes('musyrifah');
-    if (isMusyrifah) {
-      baseItems.push({
-        href: '/panel-musyrifah',
-        label: 'Panel Musyrifah',
-        icon: <Eye className="h-6 w-6" />,
-      });
-    }
+    // const isMusyrifah = userRoles.includes('musyrifah');
+    // if (isMusyrifah) {
+    //   baseItems.push({
+    //     href: '/panel-musyrifah',
+    //     label: 'Panel Musyrifah',
+    //     icon: <Eye className="h-6 w-6" />,
+    //   });
+    // }
 
     // Add admin panel if user has admin role
     const isAdmin = userRoles.includes('admin');
