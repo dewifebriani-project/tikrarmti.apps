@@ -185,7 +185,7 @@ export default function TashihPage() {
     if (!selectedJuzInfo) return
 
     // Part B starts from H11, Part A starts from H1
-    // Block number = weekNumber for Part A, weekNumber + 10 for Part B
+    // Block code uses offset, but weekNumber for UI is always 1-10
     const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
     const blockNumber = weekNumber + blockOffset
 
@@ -208,7 +208,7 @@ export default function TashihPage() {
 
       blocks.push({
         block_code: blockCode,
-        week_number: blockNumber,
+        week_number: weekNumber, // Always 1-10 for UI display
         part,
         start_page: blockPage,
         end_page: blockPage
@@ -429,10 +429,9 @@ export default function TashihPage() {
     setSelectedBlocksForEditing([blockCode])
     setTashihData(prev => ({ ...prev, blok: [blockCode] }))
 
-    // Update week number based on block
-    const newWeekNumber = blockWeekNumber - (selectedJuzInfo?.part === 'B' ? 10 : 0)
-    setSelectedWeekNumber(newWeekNumber)
-    updateBlocksForWeek(newWeekNumber)
+    // Update week number based on block (week_number from API is already 1-10)
+    setSelectedWeekNumber(blockWeekNumber)
+    updateBlocksForWeek(blockWeekNumber)
 
     // Switch to form view
     setViewMode('form')

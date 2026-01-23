@@ -136,13 +136,17 @@ export async function GET() {
       )
     }
 
-    // Generate all blocks for this juz (13 weeks, 4 blocks per week = 52 blocks total)
+    // Generate all blocks for this juz (10 weeks, 4 blocks per week = 40 blocks total)
+    // Part A: H1A-H10D, Part B: H11A-H20D
+    // But week_number is always 1-10 for UI display (Pekan 1, Pekan 2, etc.)
     const allBlocks: TashihBlockStatus[] = []
     const parts = ['A', 'B', 'C', 'D']
 
-    for (let week = 1; week <= 13; week++) {
-      // Part B starts from H11, Part A starts from H1
-      const blockOffset = juzInfo.part === 'B' ? 10 : 0
+    // Part B starts from H11, Part A starts from H1
+    const blockOffset = juzInfo.part === 'B' ? 10 : 0
+
+    for (let week = 1; week <= 10; week++) {
+      // Block number includes offset for Part B (H11-H20), Part A is H1-H10
       const blockNumber = week + blockOffset
       const weekStartPage = juzInfo.start_page + (week - 1)
 
@@ -153,7 +157,7 @@ export async function GET() {
 
         allBlocks.push({
           block_code: blockCode,
-          week_number: blockNumber,
+          week_number: week, // Always 1-10 for UI display (Pekan 1, Pekan 2, etc.)
           part,
           start_page: blockPage,
           end_page: blockPage,
