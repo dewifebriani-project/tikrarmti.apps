@@ -58,6 +58,7 @@ export default function PanelMusyrifahPage() {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [editingRecord, setEditingRecord] = useState<ReportJurnalRecord | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [deleteModalUser, setDeleteModalUser] = useState<ThalibahWithProgress | null>(null)
 
   const TASHIH_TARGET = 40
   const TASHIH_WEEKS = 10
@@ -566,17 +567,30 @@ export default function PanelMusyrifahPage() {
                                 )
                               })}
                               <td className="px-4 py-3">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleRowExpansion(thalibah.user_id)}
-                                >
-                                  {isExpanded ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4" />
+                                <div className="flex items-center gap-1">
+                                  {hasAnyRecord && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setDeleteModalUser(thalibah)}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      title="Hapus Records"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   )}
-                                </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleRowExpansion(thalibah.user_id)}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                             {isExpanded && (
@@ -880,17 +894,30 @@ export default function PanelMusyrifahPage() {
                                 )
                               })}
                               <td className="px-4 py-3">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleRowExpansion(thalibah.user_id)}
-                                >
-                                  {isExpanded ? (
-                                    <ChevronUp className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4" />
+                                <div className="flex items-center gap-1">
+                                  {hasAnyRecord && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setDeleteModalUser(thalibah)}
+                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      title="Hapus Records"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
                                   )}
-                                </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleRowExpansion(thalibah.user_id)}
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-4 w-4" />
+                                    ) : (
+                                      <ChevronDown className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                             {isExpanded && (
@@ -1068,6 +1095,176 @@ export default function PanelMusyrifahPage() {
           </>
         )}
       </div>
+
+      {/* Delete Modal */}
+      {deleteModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setDeleteModalUser(null)} />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Hapus Records - {deleteModalUser.user_data?.full_name}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {activeTab === 'tashih' ? 'Pilih record tashih yang ingin dihapus' : 'Pilih record jurnal yang ingin dihapus'}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setDeleteModalUser(null)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
+              {activeTab === 'tashih' ? (
+                <div className="space-y-4">
+                  {Array.from({ length: TASHIH_WEEKS }, (_, i) => {
+                    const weekNum = i + 1
+                    const weekData = deleteModalUser.tashih_by_week.get(weekNum)
+                    if (!weekData || weekData.records.length === 0) return null
+
+                    return (
+                      <div key={weekNum} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900">Pekan {weekNum}</span>
+                          <span className="text-sm text-gray-500">{weekData.records.length} record</span>
+                        </div>
+                        <div className="space-y-2">
+                          {weekData.records.map((record: ReportTashihRecord) => (
+                            <div key={record.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                              <div className="flex items-center gap-2">
+                                <div className="flex gap-1">
+                                  {record.blok_list?.map((blok: string) => (
+                                    <span key={blok} className="px-1.5 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
+                                      {blok}
+                                    </span>
+                                  ))}
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {new Date(record.waktu_tashih).toLocaleDateString('id-ID')}
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  if (!confirm('Hapus record ini?')) return
+                                  setIsDeleting(record.id)
+                                  const result = await deleteTashihRecord(record.id)
+                                  if (result.success) {
+                                    toast.success('Record berhasil dihapus')
+                                    mutateTashih()
+                                    // Update local state
+                                    const updatedRecords = weekData.records.filter((r: ReportTashihRecord) => r.id !== record.id)
+                                    if (updatedRecords.length === 0) {
+                                      deleteModalUser.tashih_by_week.delete(weekNum)
+                                    } else {
+                                      weekData.records = updatedRecords
+                                    }
+                                    // Force re-render
+                                    setDeleteModalUser({ ...deleteModalUser })
+                                  } else {
+                                    toast.error(result.error || 'Gagal menghapus')
+                                  }
+                                  setIsDeleting(null)
+                                }}
+                                disabled={isDeleting === record.id}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                {isDeleting === record.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {deleteModalUser.tashih_by_week.size === 0 && (
+                    <p className="text-center text-gray-500 py-8">Tidak ada record untuk dihapus</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Array.from({ length: JURNAL_WEEKS }, (_, i) => {
+                    const weekNum = i + 1
+                    const weekData = deleteModalUser.jurnal_by_week.get(weekNum)
+                    if (!weekData || weekData.records.length === 0) return null
+
+                    return (
+                      <div key={weekNum} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-gray-900">Pekan {weekNum}</span>
+                          <span className="text-sm text-gray-500">{weekData.records.length} record</span>
+                        </div>
+                        <div className="space-y-2">
+                          {weekData.records.map((record: ReportJurnalRecord) => (
+                            <div key={record.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                              <div className="flex items-center gap-2">
+                                {record.blok && (
+                                  <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded">
+                                    {record.blok}
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-500">
+                                  {new Date(record.tanggal_setor).toLocaleDateString('id-ID')}
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  if (!confirm('Hapus record ini?')) return
+                                  setIsDeleting(record.id)
+                                  const result = await deleteJurnalRecord(record.id)
+                                  if (result.success) {
+                                    toast.success('Record berhasil dihapus')
+                                    mutateJurnal()
+                                    // Update local state
+                                    const updatedRecords = weekData.records.filter((r: ReportJurnalRecord) => r.id !== record.id)
+                                    if (updatedRecords.length === 0) {
+                                      deleteModalUser.jurnal_by_week.delete(weekNum)
+                                    } else {
+                                      weekData.records = updatedRecords
+                                    }
+                                    // Force re-render
+                                    setDeleteModalUser({ ...deleteModalUser })
+                                  } else {
+                                    toast.error(result.error || 'Gagal menghapus')
+                                  }
+                                  setIsDeleting(null)
+                                }}
+                                disabled={isDeleting === record.id}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                {isDeleting === record.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {deleteModalUser.jurnal_by_week.size === 0 && (
+                    <p className="text-center text-gray-500 py-8">Tidak ada record untuk dihapus</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <Button variant="outline" onClick={() => setDeleteModalUser(null)}>
+                Tutup
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
