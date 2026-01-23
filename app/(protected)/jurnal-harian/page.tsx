@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { useAllRegistrations } from '@/hooks/useRegistrations'
 import { useJurnalStatus } from '@/hooks/useDashboard'
+import { saveJurnalRecord } from './actions'
 
 interface JuzOption {
   id: string
@@ -493,28 +494,52 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Check if tashih is completed for the PREVIOUS week
-    // Jurnal pekan N butuh tashih pekan N-1
+    // Check if tashih is completed for the SAME week (not previous week)
+    // Jurnal pekan N butuh tashih pekan N sudah selesai
     const supabase = createClient()
-    const tashihWeekNumber = Math.max(1, selectedWeekNumber - 1)
-    const tashihWeekStart = getWeekStartDate(tashihWeekNumber)
-    const tashihWeekEnd = new Date(tashihWeekStart)
-    tashihWeekEnd.setDate(tashihWeekStart.getDate() + 7)
 
-    // Use date format (YYYY-MM-DD) for comparison
-    const tashihWeekStartDateStr = tashihWeekStart.toISOString().split('T')[0]
-    const tashihWeekEndDateStr = tashihWeekEnd.toISOString().split('T')[0]
+    // Calculate expected block codes for this week's tashih
+    // Part B starts from H11, Part A starts from H1
+    const blockOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
+    const tashihBlockNumber = selectedWeekNumber + blockOffset
+    const expectedTashihBlocks = [
+      `H${tashihBlockNumber}A`,
+      `H${tashihBlockNumber}B`,
+      `H${tashihBlockNumber}C`,
+      `H${tashihBlockNumber}D`
+    ]
 
+    // Get all tashih records for this user
     const { data: tashihData, error: tashihError } = await supabase
       .from('tashih_records')
-      .select('*')
+      .select('blok')
       .eq('user_id', user.id)
-      .gte('waktu_tashih', tashihWeekStartDateStr)
-      .lt('waktu_tashih', tashihWeekEndDateStr)
-      .limit(1)
 
-    if (tashihError || !tashihData || tashihData.length === 0) {
-      toast.error(`Harap selesaikan tashih pekan ${tashihWeekNumber} terlebih dahulu!`)
+    if (tashihError) {
+      console.error('Error checking tashih:', tashihError)
+      toast.error('Gagal mengecek status tashih')
+      return
+    }
+
+    // Collect all completed tashih blocks
+    const completedTashihBlocks = new Set<string>()
+    if (tashihData) {
+      tashihData.forEach((record: any) => {
+        if (record.blok) {
+          const blocks: string[] = typeof record.blok === 'string'
+            ? record.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
+            : (Array.isArray(record.blok) ? record.blok : [])
+          blocks.forEach(block => completedTashihBlocks.add(block))
+        }
+      })
+    }
+
+    // Check if ALL 4 blocks for this week's tashih are completed
+    const allTashihCompleted = expectedTashihBlocks.every(block => completedTashihBlocks.has(block))
+
+    if (!allTashihCompleted) {
+      const missingBlocks = expectedTashihBlocks.filter(block => !completedTashihBlocks.has(block))
+      toast.error(`Harap selesaikan tashih pekan ${selectedWeekNumber} terlebih dahulu! (Blok belum: ${missingBlocks.join(', ')})`)
       return
     }
 
@@ -526,47 +551,34 @@ export default function JurnalHarianPage() {
 
     setIsSubmitting(true)
     try {
-      const recordData = {
-        user_id: user.id,
-        tanggal_jurnal: new Date().toISOString(),
+      // Use server action for database operations (following arsitektur.md)
+      // Server action uses supabase.auth.getUser() which guarantees user_id matches auth.uid()
+      const result = await saveJurnalRecord({
         tanggal_setor: jurnalData.tanggal_setor,
         juz_code: jurnalData.juz_code || null,
         blok: jurnalData.blok,
-        tashih_completed: true,
         rabth_completed: jurnalData.rabth_completed,
-        murajaah_count: jurnalData.murajaah_completed ? 1 : 0,
-        simak_murattal_count: jurnalData.simak_murattal_completed ? 1 : 0,
+        murajaah_completed: jurnalData.murajaah_completed,
+        simak_murattal_completed: jurnalData.simak_murattal_completed,
         tikrar_bi_an_nadzar_completed: jurnalData.tikrar_bi_an_nadzar_completed,
-        tasmi_record_count: jurnalData.tasmi_record_completed ? 1 : 0,
+        tasmi_record_completed: jurnalData.tasmi_record_completed,
         simak_record_completed: jurnalData.simak_record_completed,
-        tikrar_bi_al_ghaib_count: jurnalData.tikrar_bi_al_ghaib_type ? 1 : 0,
-        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_20x_multi.length > 0 ? jurnalData.tikrar_bi_al_ghaib_20x_multi[0] : (jurnalData.tikrar_bi_al_ghaib_subtype || jurnalData.tikrar_bi_al_ghaib_type),
-        tikrar_bi_al_ghaib_40x: (jurnalData.tikrar_bi_al_ghaib_type && !jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20') && jurnalData.tikrar_bi_al_ghaib_20x_multi.length === 0) ? [jurnalData.tikrar_bi_al_ghaib_type] : null,
-        tikrar_bi_al_ghaib_20x: jurnalData.tikrar_bi_al_ghaib_20x_multi.length > 0 ? jurnalData.tikrar_bi_al_ghaib_20x_multi : (jurnalData.tikrar_bi_al_ghaib_subtype?.endsWith('_20') ? [jurnalData.tikrar_bi_al_ghaib_subtype] : null),
+        tikrar_bi_al_ghaib_type: jurnalData.tikrar_bi_al_ghaib_type,
+        tikrar_bi_al_ghaib_subtype: jurnalData.tikrar_bi_al_ghaib_subtype,
+        tikrar_bi_al_ghaib_20x_multi: jurnalData.tikrar_bi_al_ghaib_20x_multi,
         tarteel_screenshot_url: null, // File upload will be handled separately
         tafsir_completed: jurnalData.tafsir_completed,
         menulis_completed: jurnalData.menulis_completed,
         catatan_tambahan: jurnalData.catatan_tambahan || null
-      }
+      })
 
-      let error
-
-      // Always insert new record - each jurnal submission creates a new record
-      const { error: insertError } = await supabase
-        .from('jurnal_records')
-        .insert(recordData)
-        .select()
-        .single()
-
-      error = insertError
-
-      if (error) {
-        console.error('Error saving jurnal record:', error)
-        toast.error('Gagal menyimpan data jurnal: ' + error.message)
+      if (!result.success) {
+        console.error('Error saving jurnal record:', result.error)
+        toast.error('Gagal menyimpan data jurnal: ' + result.error)
         return
       }
 
-      toast.success('Jurnal berhasil disimpan!')
+      toast.success(result.message || 'Jurnal berhasil disimpan!')
       await loadWeekRecords()
       // Return to status view after saving
       setViewMode('status')
