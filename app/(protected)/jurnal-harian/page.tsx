@@ -494,54 +494,8 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Check if tashih is completed for the SAME week (not previous week)
-    // Jurnal pekan N butuh tashih pekan N sudah selesai
-    const supabase = createClient()
-
-    // Calculate expected block codes for this week's tashih
-    // Part B starts from H11, Part A starts from H1
-    const blockOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
-    const tashihBlockNumber = selectedWeekNumber + blockOffset
-    const expectedTashihBlocks = [
-      `H${tashihBlockNumber}A`,
-      `H${tashihBlockNumber}B`,
-      `H${tashihBlockNumber}C`,
-      `H${tashihBlockNumber}D`
-    ]
-
-    // Get all tashih records for this user
-    const { data: tashihData, error: tashihError } = await supabase
-      .from('tashih_records')
-      .select('blok')
-      .eq('user_id', user.id)
-
-    if (tashihError) {
-      console.error('Error checking tashih:', tashihError)
-      toast.error('Gagal mengecek status tashih')
-      return
-    }
-
-    // Collect all completed tashih blocks
-    const completedTashihBlocks = new Set<string>()
-    if (tashihData) {
-      tashihData.forEach((record: any) => {
-        if (record.blok) {
-          const blocks: string[] = typeof record.blok === 'string'
-            ? record.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
-            : (Array.isArray(record.blok) ? record.blok : [])
-          blocks.forEach(block => completedTashihBlocks.add(block))
-        }
-      })
-    }
-
-    // Check if ALL 4 blocks for this week's tashih are completed
-    const allTashihCompleted = expectedTashihBlocks.every(block => completedTashihBlocks.has(block))
-
-    if (!allTashihCompleted) {
-      const missingBlocks = expectedTashihBlocks.filter(block => !completedTashihBlocks.has(block))
-      toast.error(`Harap selesaikan tashih pekan ${selectedWeekNumber} terlebih dahulu! (Blok belum: ${missingBlocks.join(', ')})`)
-      return
-    }
+    // Tashih validation is now done server-side in the action
+    // This ensures we use authUser.id which matches auth.uid() in RLS
 
     // Validate tarteel file if tarteel_40 is selected
     if (jurnalData.tikrar_bi_al_ghaib_type === 'tarteel_40' && !jurnalData.tarteel_screenshot_file) {
@@ -553,6 +507,7 @@ export default function JurnalHarianPage() {
     try {
       // Use server action for database operations (following arsitektur.md)
       // Server action uses supabase.auth.getUser() which guarantees user_id matches auth.uid()
+      // Tashih validation is also done server-side
       const result = await saveJurnalRecord({
         tanggal_setor: jurnalData.tanggal_setor,
         juz_code: jurnalData.juz_code || null,
@@ -569,7 +524,10 @@ export default function JurnalHarianPage() {
         tarteel_screenshot_url: null, // File upload will be handled separately
         tafsir_completed: jurnalData.tafsir_completed,
         menulis_completed: jurnalData.menulis_completed,
-        catatan_tambahan: jurnalData.catatan_tambahan || null
+        catatan_tambahan: jurnalData.catatan_tambahan || null,
+        // For server-side tashih validation
+        weekNumber: selectedWeekNumber,
+        juzPart: (selectedJuzInfo?.part || 'A') as 'A' | 'B'
       })
 
       if (!result.success) {
