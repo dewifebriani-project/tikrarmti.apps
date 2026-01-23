@@ -1152,16 +1152,10 @@ export default function PanelMusyrifahPage() {
                                   const result = await deleteTashihRecord(record.id)
                                   if (result.success) {
                                     toast.success('Record berhasil dihapus')
-                                    mutateTashih()
-                                    // Update local state
-                                    const updatedRecords = weekData.records.filter((r: ReportTashihRecord) => r.id !== record.id)
-                                    if (updatedRecords.length === 0) {
-                                      deleteModalUser.tashih_by_week.delete(weekNum)
-                                    } else {
-                                      weekData.records = updatedRecords
-                                    }
-                                    // Force re-render
-                                    setDeleteModalUser({ ...deleteModalUser })
+                                    // Await mutate to ensure data is refreshed
+                                    await mutateTashih()
+                                    // Close modal to force table refresh with new data
+                                    setDeleteModalUser(null)
                                   } else {
                                     toast.error(result.error || 'Gagal menghapus')
                                   }
@@ -1221,16 +1215,10 @@ export default function PanelMusyrifahPage() {
                                   const result = await deleteJurnalRecord(record.id)
                                   if (result.success) {
                                     toast.success('Record berhasil dihapus')
-                                    mutateJurnal()
-                                    // Update local state
-                                    const updatedRecords = weekData.records.filter((r: ReportJurnalRecord) => r.id !== record.id)
-                                    if (updatedRecords.length === 0) {
-                                      deleteModalUser.jurnal_by_week.delete(weekNum)
-                                    } else {
-                                      weekData.records = updatedRecords
-                                    }
-                                    // Force re-render
-                                    setDeleteModalUser({ ...deleteModalUser })
+                                    // Await mutate to ensure data is refreshed
+                                    await mutateJurnal()
+                                    // Close modal to force table refresh with new data
+                                    setDeleteModalUser(null)
                                   } else {
                                     toast.error(result.error || 'Gagal menghapus')
                                   }
