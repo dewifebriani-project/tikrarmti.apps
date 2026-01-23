@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, AlertCircle, Calendar, Loader2, BookOpen, Volume2, Mic, Edit, Circle } from 'lucide-react'
+import { CheckCircle, Clock, AlertCircle, Calendar, Loader2, BookOpen, Volume2, Mic, Edit, Circle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -798,44 +798,54 @@ export default function JurnalHarianPage() {
                           </div>
                         </div>
                         <div className="grid grid-cols-4 gap-2">
-                          {weekBlocks.map(block => (
-                            <button
-                              key={block.block_code}
-                              type="button"
-                              onClick={() => handleBlockClick(block.block_code, block.week_number)}
-                              className={cn(
-                                "p-2 border-2 rounded-lg text-center transition-all duration-200",
-                                block.is_completed
-                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
-                                  : !isWeekAllowed
-                                    ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
-                                    : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
-                              )}
-                              title={block.is_completed
-                                ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
-                                : !isWeekAllowed
-                                  ? isFutureWeek
-                                    ? `Pekan ${actualWeekNumber} belum dimulai`
-                                    : `Pekan ${actualWeekNumber} sudah berlalu`
-                                  : 'Klik untuk isi jurnal'
-                              }
-                              disabled={!isWeekAllowed || block.is_completed}
-                            >
-                              <div className={cn(
-                                "text-xs sm:text-sm font-bold",
-                                block.is_completed
-                                  ? "text-emerald-700"
-                                  : !isWeekAllowed
-                                    ? "text-gray-400"
-                                    : "text-gray-600"
-                              )}>
-                                {block.block_code}
-                              </div>
-                              {block.is_completed && (
-                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
-                              )}
-                            </button>
-                          ))}
+                          {weekBlocks.map(block => {
+                            // Check if previous block is completed (for lock icon)
+                            const blockIndex = jurnalStatus.blocks.findIndex(b => b.block_code === block.block_code)
+                            const isLockedByPreviousBlock = blockIndex > 0 && !jurnalStatus.blocks[blockIndex - 1].is_completed && !block.is_completed
+
+                            return (
+                              <button
+                                key={block.block_code}
+                                type="button"
+                                onClick={() => handleBlockClick(block.block_code, block.week_number)}
+                                className={cn(
+                                  "p-2 border-2 rounded-lg text-center transition-all duration-200",
+                                  block.is_completed
+                                    ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
+                                    : !isWeekAllowed || isLockedByPreviousBlock
+                                      ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
+                                      : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
+                                )}
+                                title={block.is_completed
+                                  ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
+                                  : isLockedByPreviousBlock
+                                    ? `Selesaikan ${jurnalStatus.blocks[blockIndex - 1].block_code} terlebih dahulu`
+                                    : !isWeekAllowed
+                                      ? isFutureWeek
+                                        ? `Pekan ${actualWeekNumber} belum dimulai`
+                                        : `Pekan ${actualWeekNumber} sudah berlalu`
+                                      : 'Klik untuk isi jurnal'
+                                }
+                                disabled={!isWeekAllowed || isLockedByPreviousBlock || block.is_completed}
+                              >
+                                <div className={cn(
+                                  "text-xs sm:text-sm font-bold",
+                                  block.is_completed
+                                    ? "text-emerald-700"
+                                    : !isWeekAllowed || isLockedByPreviousBlock
+                                      ? "text-gray-400"
+                                      : "text-gray-600"
+                                )}>
+                                  {block.block_code}
+                                </div>
+                                {block.is_completed ? (
+                                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-600 mx-auto mt-1" />
+                                ) : isLockedByPreviousBlock || !isWeekAllowed ? (
+                                  <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mx-auto mt-1" />
+                                ) : null}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     )
