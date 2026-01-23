@@ -700,9 +700,22 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                         <button
                           onClick={async () => {
                             if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
-                              // TODO: Implement delete
-                              toast.success('Jurnal dihapus');
-                              onRefresh();
+                              try {
+                                const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
+                                  method: 'DELETE',
+                                });
+
+                                if (!response.ok) {
+                                  const error = await response.json();
+                                  toast.error(error.error || 'Gagal menghapus jurnal');
+                                  return;
+                                }
+
+                                toast.success('Jurnal berhasil dihapus');
+                                onRefresh();
+                              } catch (err) {
+                                toast.error('Gagal menghapus jurnal');
+                              }
                             }
                           }}
                           className="text-red-600 hover:text-red-900"
@@ -719,37 +732,311 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
         </div>
       )}
 
-      {/* Create Modal Placeholder */}
+      {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Tambah Jurnal</h3>
-            <p className="text-sm text-gray-500 mb-4">Fitur ini akan diimplementasikan segera.</p>
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Tambah Jurnal Baru</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const data = {
+                  user_id: formData.get('user_id') as string,
+                  tanggal_jurnal: formData.get('tanggal_jurnal') as string,
+                  tanggal_setor: formData.get('tanggal_setor') as string,
+                  juz_code: formData.get('juz_code') as string,
+                  blok: formData.get('blok') as string,
+                  pekan: formData.get('pekan') ? Number(formData.get('pekan')) : null,
+                  total_duration_minutes: formData.get('total_duration_minutes') ? Number(formData.get('total_duration_minutes')) : 0,
+                  tashih_completed: formData.get('tashih_completed') === 'true',
+                  rabth_completed: formData.get('rabth_completed') === 'true',
+                  murajaah_count: formData.get('murajaah_count') ? Number(formData.get('murajaah_count')) : 0,
+                  simak_murattal_count: formData.get('simak_murattal_count') ? Number(formData.get('simak_murattal_count')) : 0,
+                  tikrar_bi_an_nadzar_completed: formData.get('tikrar_bi_an_nadzar_completed') === 'true',
+                  tasmi_record_count: formData.get('tasmi_record_count') ? Number(formData.get('tasmi_record_count')) : 0,
+                  simak_record_completed: formData.get('simak_record_completed') === 'true',
+                  tikrar_bi_al_ghaib_count: formData.get('tikrar_bi_al_ghaib_count') ? Number(formData.get('tikrar_bi_al_ghaib_count')) : 0,
+                  tafsir_completed: formData.get('tafsir_completed') === 'true',
+                  menulis_completed: formData.get('menulis_completed') === 'true',
+                  catatan_tambahan: formData.get('catatan_tambahan') as string || null,
+                };
+
+                try {
+                  const response = await fetch('/api/musyrifah/jurnal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    toast.error(error.error || 'Gagal menambah jurnal');
+                    return;
+                  }
+
+                  toast.success('Jurnal berhasil ditambahkan');
+                  setShowCreateModal(false);
+                  onRefresh();
+                } catch (err) {
+                  toast.error('Gagal menambah jurnal');
+                }
+              }}
+              className="space-y-4"
             >
-              Tutup
-            </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">User ID *</label>
+                <input
+                  type="text"
+                  name="user_id"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  placeholder="Masukkan UUID user"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Jurnal</label>
+                  <input
+                    type="date"
+                    name="tanggal_jurnal"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Setor</label>
+                  <input
+                    type="date"
+                    name="tanggal_setor"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Juz</label>
+                  <input
+                    type="text"
+                    name="juz_code"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="1, 2, 30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Blok</label>
+                  <input
+                    type="text"
+                    name="blok"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="1, 2, 3"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Pekan</label>
+                  <input
+                    type="number"
+                    name="pekan"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Durasi (menit)</label>
+                <input
+                  type="number"
+                  name="total_duration_minutes"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  placeholder="60"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Murajaah Count</label>
+                  <input type="number" name="murajaah_count" defaultValue={0} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Simak Murattal Count</label>
+                  <input type="number" name="simak_murattal_count" defaultValue={0} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Catatan Tambahan</label>
+                <textarea
+                  name="catatan_tambahan"
+                  rows={3}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  placeholder="Catatan tambahan..."
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800"
+                >
+                  Simpan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Edit Modal Placeholder */}
+      {/* Edit Modal */}
       {showEditModal && editingEntry && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Jurnal</h3>
-            <p className="text-sm text-gray-500 mb-4">Fitur ini akan diimplementasikan segera.</p>
-            <button
-              onClick={() => {
-                setShowEditModal(false);
-                setEditingEntry(null);
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const data = {
+                  id: editingEntry.id,
+                  tanggal_jurnal: formData.get('tanggal_jurnal') as string,
+                  tanggal_setor: formData.get('tanggal_setor') as string,
+                  juz_code: formData.get('juz_code') as string,
+                  blok: formData.get('blok') as string,
+                  pekan: formData.get('pekan') ? Number(formData.get('pekan')) : null,
+                  total_duration_minutes: formData.get('total_duration_minutes') ? Number(formData.get('total_duration_minutes')) : 0,
+                  tashih_completed: formData.get('tashih_completed') === 'true',
+                  rabth_completed: formData.get('rabth_completed') === 'true',
+                  murajaah_count: formData.get('murajaah_count') ? Number(formData.get('murajaah_count')) : 0,
+                  simak_murattal_count: formData.get('simak_murattal_count') ? Number(formData.get('simak_murattal_count')) : 0,
+                  tikrar_bi_an_nadzar_completed: formData.get('tikrar_bi_an_nadzar_completed') === 'true',
+                  tasmi_record_count: formData.get('tasmi_record_count') ? Number(formData.get('tasmi_record_count')) : 0,
+                  simak_record_completed: formData.get('simak_record_completed') === 'true',
+                  tikrar_bi_al_ghaib_count: formData.get('tikrar_bi_al_ghaib_count') ? Number(formData.get('tikrar_bi_al_ghaib_count')) : 0,
+                  tafsir_completed: formData.get('tafsir_completed') === 'true',
+                  menulis_completed: formData.get('menulis_completed') === 'true',
+                  catatan_tambahan: formData.get('catatan_tambahan') as string || null,
+                };
+
+                try {
+                  const response = await fetch('/api/musyrifah/jurnal', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    toast.error(error.error || 'Gagal mengupdate jurnal');
+                    return;
+                  }
+
+                  toast.success('Jurnal berhasil diupdate');
+                  setShowEditModal(false);
+                  setEditingEntry(null);
+                  onRefresh();
+                } catch (err) {
+                  toast.error('Gagal mengupdate jurnal');
+                }
               }}
-              className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+              className="space-y-4"
             >
-              Tutup
-            </button>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Jurnal</label>
+                  <input
+                    type="date"
+                    name="tanggal_jurnal"
+                    defaultValue={editingEntry.tanggal_jurnal?.split('T')[0]}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tanggal Setor</label>
+                  <input
+                    type="date"
+                    name="tanggal_setor"
+                    defaultValue={editingEntry.tanggal_setor?.split('T')[0]}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Juz</label>
+                  <input
+                    type="text"
+                    name="juz_code"
+                    defaultValue={editingEntry.juz_code || ''}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Blok</label>
+                  <input
+                    type="text"
+                    name="blok"
+                    defaultValue={editingEntry.blok || ''}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Pekan</label>
+                  <input
+                    type="number"
+                    name="pekan"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Durasi (menit)</label>
+                <input
+                  type="number"
+                  name="total_duration_minutes"
+                  defaultValue={editingEntry.total_duration_minutes || 0}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Murajaah Count</label>
+                  <input type="number" name="murajaah_count" defaultValue={editingEntry.murajaah_count || 0} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Simak Murattal Count</label>
+                  <input type="number" name="simak_murattal_count" defaultValue={editingEntry.simak_murattal_count || 0} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Catatan Tambahan</label>
+                <textarea
+                  name="catatan_tambahan"
+                  rows={3}
+                  defaultValue={editingEntry.catatan_tambahan || ''}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800"
+                >
+                  Simpan Perubahan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingEntry(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

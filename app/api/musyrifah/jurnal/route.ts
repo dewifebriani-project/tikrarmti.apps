@@ -1,30 +1,62 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+// Validation schema for jurnal record
+const jurnalRecordSchema = z.object({
+  user_id: z.string().uuid(),
+  tanggal_jurnal: z.string().optional(),
+  tanggal_setor: z.string().optional(),
+  juz_code: z.string().nullable().optional(),
+  blok: z.string().nullable().optional(),
+  pekan: z.number().nullable().optional(),
+  tashih_completed: z.boolean().optional(),
+  rabth_completed: z.boolean().optional(),
+  murajaah_count: z.number().optional(),
+  simak_murattal_count: z.number().optional(),
+  tikrar_bi_an_nadzar_completed: z.boolean().optional(),
+  tasmi_record_count: z.number().optional(),
+  simak_record_completed: z.boolean().optional(),
+  tikrar_bi_al_ghaib_count: z.number().optional(),
+  tafsir_completed: z.boolean().optional(),
+  menulis_completed: z.boolean().optional(),
+  total_duration_minutes: z.number().optional(),
+  catatan_tambahan: z.string().nullable().optional(),
+});
+
+// Helper function to verify musyrifah access
+async function verifyMusyrifahAccess(supabase: any) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: 'Unauthorized', status: 401 };
+  }
+
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('roles')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData) {
+    return { error: 'User not found', status: 404 };
+  }
+
+  const roles = userData?.roles || [];
+  if (!roles.includes('musyrifah')) {
+    return { error: 'Forbidden: Musyrifah access required', status: 403 };
+  }
+
+  return { user };
+}
 
 export async function GET(request: Request) {
   try {
     const supabase = createClient();
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify user has musyrifah role
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const roles = userData?.roles || [];
-    if (!roles.includes('musyrifah')) {
-      return NextResponse.json({ error: 'Forbidden: Musyrifah access required' }, { status: 403 });
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     // Get URL parameters for filtering
@@ -130,6 +162,170 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Error in musyrifah jurnal API:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// POST - Create a new jurnal record
+export async function POST(request: Request) {
+  try {
+    const supabase = createClient();
+
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const body = await request.json();
+
+    // Validate request body
+    const validatedData = jurnalRecordSchema.parse(body);
+
+    // Check if user exists
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', validatedData.user_id)
+      .single();
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Create jurnal record
+    const { data: newRecord, error } = await supabase
+      .from('jurnal_records')
+      .insert({
+        ...validatedData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: newRecord,
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating jurnal record:', error);
+    if (error.name === 'ZodError') {
+      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// PUT - Update an existing jurnal record
+export async function PUT(request: Request) {
+  try {
+    const supabase = createClient();
+
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+    }
+
+    // Validate request body (partial validation for update)
+    const validatedData = jurnalRecordSchema.partial().parse(updateData);
+
+    // Check if record exists
+    const { data: existingRecord } = await supabase
+      .from('jurnal_records')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (!existingRecord) {
+      return NextResponse.json({ error: 'Jurnal record not found' }, { status: 404 });
+    }
+
+    // Update jurnal record
+    const { data: updatedRecord, error } = await supabase
+      .from('jurnal_records')
+      .update({
+        ...validatedData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedRecord,
+    });
+  } catch (error: any) {
+    console.error('Error updating jurnal record:', error);
+    if (error.name === 'ZodError') {
+      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE - Delete a jurnal record
+export async function DELETE(request: Request) {
+  try {
+    const supabase = createClient();
+
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+    }
+
+    // Check if record exists
+    const { data: existingRecord } = await supabase
+      .from('jurnal_records')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (!existingRecord) {
+      return NextResponse.json({ error: 'Jurnal record not found' }, { status: 404 });
+    }
+
+    // Delete jurnal record
+    const { error } = await supabase
+      .from('jurnal_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Jurnal record deleted successfully',
+    });
+  } catch (error: any) {
+    console.error('Error deleting jurnal record:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
