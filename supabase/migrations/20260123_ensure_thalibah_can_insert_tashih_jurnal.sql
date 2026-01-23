@@ -30,6 +30,10 @@ DROP POLICY IF EXISTS "Admins and Musyrifah can view all jurnal records" ON publ
 DROP POLICY IF EXISTS "Authenticated users can manage own jurnal records" ON public.jurnal_records;
 DROP POLICY IF EXISTS "Enable read for authenticated users" ON public.jurnal_records;
 
+-- Also try to drop any other variant policies that might exist
+DROP POLICY IF EXISTS "Users can manage tashih_records" ON public.tashih_records;
+DROP POLICY IF EXISTS "Users can manage jurnal_records" ON public.jurnal_records;
+
 -- =====================================================
 -- 2. CREATE NEW POLICIES FOR TASHIH_RECORDS
 -- =====================================================
