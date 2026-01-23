@@ -46,11 +46,11 @@ export async function GET(request: Request) {
       activeBatchId = activeBatch?.id;
     }
 
-    // Get user IDs from daftar_ulang_submissions with approved or submitted status
+    // Get user IDs from daftar_ulang_submissions with approved, submitted, or draft status
     const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
       .select('user_id')
-      .in('status', ['approved', 'submitted']);
+      .in('status', ['approved', 'submitted', 'draft']);
 
     if (daftarUlangError) throw daftarUlangError;
 
