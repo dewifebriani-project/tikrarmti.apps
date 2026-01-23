@@ -32,7 +32,8 @@ import {
   HelpCircle,
   RefreshCw,
   HeartHandshake,
-  Info
+  Info,
+  Shield
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
@@ -52,6 +53,7 @@ import { AdminPairingTab } from '@/components/AdminPairingTab';
 import { DaftarUlangTab } from '@/components/DaftarUlangTab';
 import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
+import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 
 interface Batch {
   id: string;
@@ -290,7 +292,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -512,7 +514,8 @@ export default function AdminPage() {
     { id: 'analysis' as TabType, name: 'Analysis', icon: BarChart3 },
     { id: 'pairing' as TabType, name: 'Pairing', icon: HeartHandshake },
     { id: 'system-logs' as TabType, name: 'System Logs', icon: AlertCircle },
-    { id: 'reports' as TabType, name: 'Reports', icon: FileText }
+    { id: 'reports' as TabType, name: 'Reports', icon: FileText },
+    { id: 'rls-policies' as TabType, name: 'RLS Policies', icon: Shield }
   ];
 
   if (loading) {
@@ -726,6 +729,7 @@ export default function AdminPage() {
         {activeTab === 'pairing' && <AdminPairingTab />}
         {activeTab === 'system-logs' && <SystemLogsTab isActive={activeTab === 'system-logs'} />}
         {activeTab === 'reports' && <ReportsTab />}
+        {activeTab === 'rls-policies' && <AdminRlsPoliciesTab />}
       </div>
 
       {/* Exam Import Modal */}
