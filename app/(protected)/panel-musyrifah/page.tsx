@@ -225,7 +225,7 @@ export default function PanelMusyrifahPage() {
         unique_bloks: uniqueBloks,
         latest_record: latestRecord,
         all_records: records,
-        status: records.length >= TASHIH_TARGET ? 'lengkap' : 'belum'
+        status: (records.length >= TASHIH_TARGET ? 'lengkap' : 'belum') as 'lengkap' | 'belum'
       }
     }).sort((a, b) => a.user_data?.full_name?.localeCompare(b.user_data?.full_name || '') || 0)
   }
