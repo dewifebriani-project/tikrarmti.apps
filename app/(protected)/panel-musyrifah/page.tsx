@@ -148,12 +148,23 @@ export default function PanelMusyrifahPage() {
     jurnalRecords.forEach(record => {
       const progress = progressMap.get(record.user_id)
       if (progress) {
-        // Get week from block code
+        // Try to get week from block code first
+        let weekNum: number | null = null
         const blockMatch = record.blok?.match(/H(\d+)[A-D]/)
         if (blockMatch) {
           const blockNum = parseInt(blockMatch[1], 10)
-          const weekNum = blockNum > 10 ? blockNum - 10 : blockNum
+          weekNum = blockNum > 10 ? blockNum - 10 : blockNum
+        } else if (record.tanggal_setor && batchStartDate) {
+          // Fallback: calculate week from tanggal_setor (with 7 day offset for jurnal)
+          const setorDate = new Date(record.tanggal_setor)
+          const startDate = new Date(batchStartDate)
+          const diffTime = setorDate.getTime() - startDate.getTime()
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+          const adjustedDays = Math.max(0, diffDays - 7) // 7 day offset for jurnal
+          weekNum = Math.min(JURNAL_WEEKS, Math.max(1, Math.floor(adjustedDays / 7) + 1))
+        }
 
+        if (weekNum !== null && weekNum >= 1 && weekNum <= JURNAL_WEEKS) {
           if (!progress.jurnal_by_week.has(weekNum)) {
             progress.jurnal_by_week.set(weekNum, { count: 0, bloks: [], records: [] })
           }
@@ -169,7 +180,7 @@ export default function PanelMusyrifahPage() {
     })
 
     return Array.from(progressMap.values())
-  }, [thalibah, tashihRecords, jurnalRecords])
+  }, [thalibah, tashihRecords, jurnalRecords, batchStartDate])
 
   // Filter thalibahs
   const filteredThalibahs = useMemo(() => {
