@@ -850,10 +850,10 @@ export default function PanelMusyrifahPage() {
                                                     ) : (
                                                       <>
                                                         <div className="grid grid-cols-4 gap-0.5 text-[10px]">
-                                                          <div className={getStatusBadge(entry.rabth_completed)}>R</div>
-                                                          <div className={getStatusBadge(entry.murajaah_count > 0)}>M</div>
-                                                          <div className={getStatusBadge(entry.simak_murattal_count > 0)}>S</div>
-                                                          <div className={getStatusBadge(entry.tikrar_bi_an_nadzar_completed)}>N</div>
+                                                          <span className="text-gray-600">R:</span>
+                                                          <span className="text-gray-600">M: {entry.murajaah_count}</span>
+                                                          <span className="text-gray-600">S: {entry.simak_murattal_count}</span>
+                                                          <span className="text-gray-600">N: {entry.tikrar_bi_an_nadzar_completed ? '✓' : '-'}</span>
                                                         </div>
                                                         {entry.catatan_tambahan && (
                                                           <div className="mt-1 text-[10px] text-gray-600 bg-gray-100 p-1 rounded">
@@ -886,13 +886,5 @@ export default function PanelMusyrifahPage() {
         </>
       )}
     </div>
-  )
-}
-
-function getStatusBadge(completed: boolean) {
-  return completed ? (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">✓</span>
-  ) : (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-400">-</span>
   )
 }
