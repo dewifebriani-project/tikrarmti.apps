@@ -378,8 +378,22 @@ export default function TashihPage() {
     try {
       const supabase = createClient()
 
+      // Get auth user directly from Supabase to ensure user_id matches auth.uid() for RLS
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !authUser) {
+        console.error('Auth error:', authError)
+        toast.error('Sesi login tidak valid. Silakan login ulang.')
+        return
+      }
+
+      // Debug: Log both IDs to compare
+      console.log('[Tashih] Context user.id:', user?.id)
+      console.log('[Tashih] Auth user.id:', authUser.id)
+      console.log('[Tashih] IDs match:', user?.id === authUser.id)
+
       const recordData = {
-        user_id: user.id,
+        user_id: authUser.id, // Use authUser.id directly to match auth.uid() in RLS
         blok: tashihData.blok.join(','), // Store as comma-separated string for DB compatibility
         lokasi: tashihData.lokasi,
         lokasi_detail: tashihData.lokasiDetail || null,
