@@ -98,7 +98,7 @@ export async function saveJurnalRecord(data: JurnalFormData) {
       tanggal_jurnal: new Date().toISOString(),
       tanggal_setor: data.tanggal_setor,
       juz_code: data.juz_code || null,
-      blok: data.blok ? [data.blok] : [], // Convert single blok to array for DB
+      blok: data.blok || null, // Store as single string (VARCHAR in DB)
       tashih_completed: true,
       rabth_completed: data.rabth_completed,
       murajaah_count: data.murajaah_completed ? 1 : 0,
