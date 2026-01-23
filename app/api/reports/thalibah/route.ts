@@ -78,7 +78,7 @@ export async function GET(request: Request) {
       .eq('id', targetBatchId)
       .single()
 
-    // Fetch all approved thalibah from daftar_ulang_submissions
+    // Fetch all thalibah from daftar_ulang_submissions (approved or submitted)
     const { data: submissions, error: subError } = await supabase
       .from('daftar_ulang_submissions')
       .select(`
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
         submitted_at
       `)
       .eq('batch_id', targetBatchId)
-      .eq('status', 'approved')
+      .in('status', ['approved', 'submitted'])
       .order('confirmed_full_name', { ascending: true })
 
     if (subError) {
