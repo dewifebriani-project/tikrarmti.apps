@@ -46,21 +46,7 @@ export async function GET(request: Request) {
       activeBatchId = activeBatch?.id;
     }
 
-    // Get user IDs from daftar_ulang_submissions with approved, submitted, or draft status
-    const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('user_id')
-      .in('status', ['approved', 'submitted', 'draft']);
-
-    if (daftarUlangError) throw daftarUlangError;
-
-    const userIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
-
-    if (userIds.length === 0) {
-      return NextResponse.json({ success: true, data: [] });
-    }
-
-    // Build query for jurnal_records
+    // Build query for jurnal_records - get ALL records (not filtered by daftar_ulang)
     let query = supabase
       .from('jurnal_records')
       .select(`
@@ -85,7 +71,6 @@ export async function GET(request: Request) {
         created_at,
         updated_at
       `)
-      .in('user_id', userIds)
       .order('tanggal_setor', { ascending: false });
 
     // Apply filters if provided
@@ -105,6 +90,9 @@ export async function GET(request: Request) {
       }
       throw error;
     }
+
+    // Extract unique user IDs from entries for fetching user data
+    const userIds = entries?.map((e: any) => e.user_id) || [];
 
     // Fetch user data separately (from public.users)
     const { data: usersData } = await supabase
@@ -128,7 +116,6 @@ export async function GET(request: Request) {
     const { data: bloksData } = await supabase
       .from('jurnal_records')
       .select('blok')
-      .in('user_id', userIds)
       .not('blok', 'is', null)
       .order('blok', { ascending: true });
 
