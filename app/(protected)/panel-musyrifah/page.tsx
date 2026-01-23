@@ -249,10 +249,10 @@ export default function PanelMusyrifahPage() {
     try {
       // Optimistic update: remove from cache immediately
       await mutateTashih(
-        (currentData) => ({
+        (currentData) => currentData ? {
           ...currentData,
-          data: currentData?.data?.filter(r => r.id !== recordId) || []
-        }),
+          data: currentData.data.filter(r => r.id !== recordId)
+        } : undefined,
         false
       )
 
@@ -282,10 +282,10 @@ export default function PanelMusyrifahPage() {
     try {
       // Optimistic update: remove from cache immediately
       await mutateJurnal(
-        (currentData) => ({
+        (currentData) => currentData ? {
           ...currentData,
-          data: currentData?.data?.filter((r: ReportJurnalRecord) => r.id !== recordId) || []
-        }),
+          data: currentData.data.filter(r => r.id !== recordId)
+        } : undefined,
         false
       )
 
@@ -1196,10 +1196,10 @@ export default function PanelMusyrifahPage() {
                                   try {
                                     // Optimistic update: remove from cache immediately
                                     await mutateTashih(
-                                      (currentData) => ({
+                                      (currentData) => currentData ? {
                                         ...currentData,
-                                        data: currentData?.data?.filter((r: ReportTashihRecord) => r.id !== record.id) || []
-                                      }),
+                                        data: currentData.data.filter(r => r.id !== record.id)
+                                      } : undefined,
                                       false
                                     )
 
@@ -1279,10 +1279,10 @@ export default function PanelMusyrifahPage() {
                                   try {
                                     // Optimistic update: remove from cache immediately
                                     await mutateJurnal(
-                                      (currentData) => ({
+                                      (currentData) => currentData ? {
                                         ...currentData,
-                                        data: currentData?.data?.filter((r: ReportJurnalRecord) => r.id !== record.id) || []
-                                      }),
+                                        data: currentData.data.filter(r => r.id !== record.id)
+                                      } : undefined,
                                       false
                                     )
 
