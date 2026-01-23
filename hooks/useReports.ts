@@ -237,24 +237,20 @@ export async function updateJurnalRecord(
 
 /**
  * Type for thalibah data from musyrifah panel
+ * Data comes from daftar_ulang_submissions (approved thalibah only)
  */
 export interface ThalibahData {
   id: string
   user_id: string
+  registration_id?: string
+  batch_id: string
   full_name: string
-  email: string
+  chosen_juz?: string
   wa_phone?: string
   whatsapp?: string
-  chosen_juz?: string
+  email?: string
   status: string
-  selection_status: string
-  batch_id: string
-  batch?: {
-    id: string
-    name: string
-    start_date: string
-    status: string
-  }
+  submitted_at?: string
   user_data?: {
     id: string
     full_name?: string
