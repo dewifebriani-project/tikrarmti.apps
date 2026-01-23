@@ -332,7 +332,10 @@ export default function JurnalHarianPage() {
 
   // Get current week number from today's date
   const getCurrentWeekNumber = (): number => {
-    return getWeekNumberFromDate(new Date())
+    const weekNum = getWeekNumberFromDate(new Date())
+    // Ensure week number is at least 1 for a new batch
+    // If batch just started and we're before H+7, we're still in week 1
+    return Math.max(1, weekNum)
   }
 
   // Load week records for weekly status (4 blok wajib per pekan)
@@ -566,14 +569,28 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // The API now returns normalized week_number (1-13 for both Part A and Part B)
-    // Use blockWeekNumber directly as the actual week number
-    const actualWeekNumber = blockWeekNumber
+    // The API returns normalized week_number (1-13 for display)
+    // But for validation, we need to calculate the actual week from batch start
+    // Block code format: H{blockNumber}{part}, where blockNumber = week + offset
+    // For Part A: H1A-H13D, for Part B: H11A-H23D
+    // We need to extract the week number from block code correctly
+
+    // Calculate actual week from block code
+    const blockNumMatch = blockCode.match(/H(\d+)[A-D]/)
+    if (!blockNumMatch) return
+
+    const blockNumberFromCode = parseInt(blockNumMatch[1], 10)
+    const blockOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
+    const actualWeekNumber = blockNumberFromCode - blockOffset
+
+    // Get current week from today's date (calculated from batch start + H+7)
+    const currentWeekNumber = getCurrentWeekNumber()
 
     // Check if week is allowed (current week or 1 week before only)
-    const currentWeekNumber = getCurrentWeekNumber()
+    // If current week is 1 (or less), only allow week 1
+    // If current week is 2 or more, allow current week and previous week
     const isCurrentWeek = actualWeekNumber === currentWeekNumber
-    const isPreviousWeek = actualWeekNumber === currentWeekNumber - 1
+    const isPreviousWeek = currentWeekNumber > 1 && actualWeekNumber === currentWeekNumber - 1
     const isWeekAllowed = isCurrentWeek || isPreviousWeek
 
     if (!isWeekAllowed) {
@@ -591,7 +608,7 @@ export default function JurnalHarianPage() {
     setSelectedBlockForEditing(blockCode)
     setJurnalData(prev => ({ ...prev, blok: blockCode }))
 
-    // Update week number based on block (API returns normalized 1-13)
+    // Update week number based on block (use actual week for internal logic)
     setSelectedWeekNumber(actualWeekNumber)
     updateBlocksForWeek(actualWeekNumber)
 

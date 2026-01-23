@@ -534,7 +534,9 @@ export default function TashihPage() {
 
   // Get current week number from today's date
   const getCurrentWeekNumber = (): number => {
-    return getWeekNumberFromDate(new Date())
+    const weekNum = getWeekNumberFromDate(new Date())
+    // Ensure week number is at least 1 for a new batch
+    return Math.max(1, weekNum)
   }
 
   // Check if current week's 4 blocks are completed
