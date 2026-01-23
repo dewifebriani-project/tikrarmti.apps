@@ -83,13 +83,7 @@ export async function GET(request: Request) {
         total_duration_minutes,
         catatan_tambahan,
         created_at,
-        updated_at,
-        user:users!jurnal_records_user_id_fkey(
-          id,
-          full_name,
-          nama_kunyah,
-          whatsapp
-        )
+        updated_at
       `)
       .in('user_id', userIds)
       .order('tanggal_setor', { ascending: false });
@@ -112,6 +106,24 @@ export async function GET(request: Request) {
       throw error;
     }
 
+    // Fetch user data separately (from public.users)
+    const { data: usersData } = await supabase
+      .from('users')
+      .select('id, full_name, nama_kunyah, whatsapp')
+      .in('id', userIds);
+
+    // Create a map for quick user lookup
+    const userMap = new Map();
+    usersData?.forEach((u: any) => {
+      userMap.set(u.id, u);
+    });
+
+    // Merge jurnal entries with user data
+    const entriesWithUsers = (entries || []).map((entry: any) => ({
+      ...entry,
+      user: userMap.get(entry.user_id) || null,
+    }));
+
     // Get unique bloks and pekans for filter options
     const { data: bloksData } = await supabase
       .from('jurnal_records')
@@ -124,7 +136,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: entries || [],
+      data: entriesWithUsers,
       meta: {
         bloks: uniqueBloks,
       }
