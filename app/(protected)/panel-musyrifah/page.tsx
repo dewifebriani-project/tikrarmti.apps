@@ -184,9 +184,14 @@ export default function PanelMusyrifahPage() {
 
   // Filter thalibahs
   const filteredThalibahs = useMemo(() => {
+    // If no search query, return all thalibah
+    if (!searchQuery.trim()) return thalibahProgress
+
+    const query = searchQuery.toLowerCase().trim()
     return thalibahProgress.filter(thalibah => {
-      return thalibah.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-             thalibah.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      const name = thalibah.user_data?.full_name?.toLowerCase() || ''
+      const email = thalibah.user_data?.email?.toLowerCase() || ''
+      return name.includes(query) || email.includes(query)
     })
   }, [thalibahProgress, searchQuery])
 
@@ -245,7 +250,7 @@ export default function PanelMusyrifahPage() {
       const result = await deleteTashihRecord(recordId)
       if (result.success) {
         toast.success('Record tashih berhasil dihapus')
-        mutateTashih()
+        await mutateTashih(undefined, { revalidate: true })
       } else {
         toast.error(result.error || 'Gagal menghapus record')
       }
@@ -264,7 +269,7 @@ export default function PanelMusyrifahPage() {
       const result = await deleteJurnalRecord(recordId)
       if (result.success) {
         toast.success('Record jurnal berhasil dihapus')
-        mutateJurnal()
+        await mutateJurnal(undefined, { revalidate: true })
       } else {
         toast.error(result.error || 'Gagal menghapus record')
       }
@@ -291,7 +296,7 @@ export default function PanelMusyrifahPage() {
       if (result.success) {
         toast.success('Record jurnal berhasil diupdate')
         setEditingRecord(null)
-        mutateJurnal()
+        await mutateJurnal(undefined, { revalidate: true })
       } else {
         toast.error(result.error || 'Gagal mengupdate record')
       }
@@ -1163,10 +1168,12 @@ export default function PanelMusyrifahPage() {
                                   const result = await deleteTashihRecord(record.id)
                                   if (result.success) {
                                     toast.success('Record berhasil dihapus')
-                                    // Await mutate to ensure data is refreshed
-                                    await mutateTashih()
-                                    // Close modal to force table refresh with new data
+                                    // Close modal first
                                     setDeleteModalUser(null)
+                                    setIsDeleting(null)
+                                    // Force revalidation after modal closes
+                                    await mutateTashih(undefined, { revalidate: true })
+                                    return
                                   } else {
                                     toast.error(result.error || 'Gagal menghapus')
                                   }
@@ -1226,10 +1233,12 @@ export default function PanelMusyrifahPage() {
                                   const result = await deleteJurnalRecord(record.id)
                                   if (result.success) {
                                     toast.success('Record berhasil dihapus')
-                                    // Await mutate to ensure data is refreshed
-                                    await mutateJurnal()
-                                    // Close modal to force table refresh with new data
+                                    // Close modal first
                                     setDeleteModalUser(null)
+                                    setIsDeleting(null)
+                                    // Force revalidation after modal closes
+                                    await mutateJurnal(undefined, { revalidate: true })
+                                    return
                                   } else {
                                     toast.error(result.error || 'Gagal menghapus')
                                   }
