@@ -249,7 +249,10 @@ export default function PanelMusyrifahPage() {
     try {
       // Optimistic update: remove from cache immediately
       await mutateTashih(
-        (currentRecords) => currentRecords?.filter(r => r.id !== recordId) || [],
+        (currentData) => ({
+          ...currentData,
+          data: currentData?.data?.filter(r => r.id !== recordId) || []
+        }),
         false
       )
 
@@ -279,7 +282,10 @@ export default function PanelMusyrifahPage() {
     try {
       // Optimistic update: remove from cache immediately
       await mutateJurnal(
-        (currentRecords) => currentRecords?.filter(r => r.id !== recordId) || [],
+        (currentData) => ({
+          ...currentData,
+          data: currentData?.data?.filter((r: ReportJurnalRecord) => r.id !== recordId) || []
+        }),
         false
       )
 
@@ -1190,7 +1196,10 @@ export default function PanelMusyrifahPage() {
                                   try {
                                     // Optimistic update: remove from cache immediately
                                     await mutateTashih(
-                                      (currentRecords) => currentRecords?.filter(r => r.id !== record.id) || [],
+                                      (currentData) => ({
+                                        ...currentData,
+                                        data: currentData?.data?.filter((r: ReportTashihRecord) => r.id !== record.id) || []
+                                      }),
                                       false
                                     )
 
@@ -1270,7 +1279,10 @@ export default function PanelMusyrifahPage() {
                                   try {
                                     // Optimistic update: remove from cache immediately
                                     await mutateJurnal(
-                                      (currentRecords) => currentRecords?.filter(r => r.id !== record.id) || [],
+                                      (currentData) => ({
+                                        ...currentData,
+                                        data: currentData?.data?.filter((r: ReportJurnalRecord) => r.id !== record.id) || []
+                                      }),
                                       false
                                     )
 
