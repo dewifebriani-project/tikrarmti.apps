@@ -247,15 +247,26 @@ export default function PanelMusyrifahPage() {
 
     setIsDeleting(recordId)
     try {
+      // Optimistic update: remove from cache immediately
+      await mutateTashih(
+        (currentRecords) => currentRecords?.filter(r => r.id !== recordId) || [],
+        false
+      )
+
       const result = await deleteTashihRecord(recordId)
       if (result.success) {
         toast.success('Record tashih berhasil dihapus')
-        await mutateTashih(undefined, { revalidate: true })
+        // Revalidate to get fresh data from server
+        await mutateTashih()
       } else {
         toast.error(result.error || 'Gagal menghapus record')
+        // Rollback on error
+        await mutateTashih()
       }
     } catch (error) {
       toast.error('Gagal menghapus record')
+      // Rollback on error
+      await mutateTashih()
     } finally {
       setIsDeleting(null)
     }
@@ -266,15 +277,26 @@ export default function PanelMusyrifahPage() {
 
     setIsDeleting(recordId)
     try {
+      // Optimistic update: remove from cache immediately
+      await mutateJurnal(
+        (currentRecords) => currentRecords?.filter(r => r.id !== recordId) || [],
+        false
+      )
+
       const result = await deleteJurnalRecord(recordId)
       if (result.success) {
         toast.success('Record jurnal berhasil dihapus')
-        await mutateJurnal(undefined, { revalidate: true })
+        // Revalidate to get fresh data from server
+        await mutateJurnal()
       } else {
         toast.error(result.error || 'Gagal menghapus record')
+        // Rollback on error
+        await mutateJurnal()
       }
     } catch (error) {
       toast.error('Gagal menghapus record')
+      // Rollback on error
+      await mutateJurnal()
     } finally {
       setIsDeleting(null)
     }
@@ -1165,19 +1187,34 @@ export default function PanelMusyrifahPage() {
                                 onClick={async () => {
                                   if (!confirm('Hapus record ini?')) return
                                   setIsDeleting(record.id)
-                                  const result = await deleteTashihRecord(record.id)
-                                  if (result.success) {
-                                    toast.success('Record berhasil dihapus')
-                                    // Close modal first
-                                    setDeleteModalUser(null)
+                                  try {
+                                    // Optimistic update: remove from cache immediately
+                                    await mutateTashih(
+                                      (currentRecords) => currentRecords?.filter(r => r.id !== record.id) || [],
+                                      false
+                                    )
+
+                                    const result = await deleteTashihRecord(record.id)
+                                    if (result.success) {
+                                      toast.success('Record berhasil dihapus')
+                                      // Close modal first
+                                      setDeleteModalUser(null)
+                                      setIsDeleting(null)
+                                      // Revalidate to get fresh data from server
+                                      await mutateTashih()
+                                      return
+                                    } else {
+                                      toast.error(result.error || 'Gagal menghapus')
+                                      // Rollback on error
+                                      await mutateTashih()
+                                    }
+                                  } catch (error) {
+                                    toast.error('Gagal menghapus')
+                                    // Rollback on error
+                                    await mutateTashih()
+                                  } finally {
                                     setIsDeleting(null)
-                                    // Force revalidation after modal closes
-                                    await mutateTashih(undefined, { revalidate: true })
-                                    return
-                                  } else {
-                                    toast.error(result.error || 'Gagal menghapus')
                                   }
-                                  setIsDeleting(null)
                                 }}
                                 disabled={isDeleting === record.id}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -1230,19 +1267,34 @@ export default function PanelMusyrifahPage() {
                                 onClick={async () => {
                                   if (!confirm('Hapus record ini?')) return
                                   setIsDeleting(record.id)
-                                  const result = await deleteJurnalRecord(record.id)
-                                  if (result.success) {
-                                    toast.success('Record berhasil dihapus')
-                                    // Close modal first
-                                    setDeleteModalUser(null)
+                                  try {
+                                    // Optimistic update: remove from cache immediately
+                                    await mutateJurnal(
+                                      (currentRecords) => currentRecords?.filter(r => r.id !== record.id) || [],
+                                      false
+                                    )
+
+                                    const result = await deleteJurnalRecord(record.id)
+                                    if (result.success) {
+                                      toast.success('Record berhasil dihapus')
+                                      // Close modal first
+                                      setDeleteModalUser(null)
+                                      setIsDeleting(null)
+                                      // Revalidate to get fresh data from server
+                                      await mutateJurnal()
+                                      return
+                                    } else {
+                                      toast.error(result.error || 'Gagal menghapus')
+                                      // Rollback on error
+                                      await mutateJurnal()
+                                    }
+                                  } catch (error) {
+                                    toast.error('Gagal menghapus')
+                                    // Rollback on error
+                                    await mutateJurnal()
+                                  } finally {
                                     setIsDeleting(null)
-                                    // Force revalidation after modal closes
-                                    await mutateJurnal(undefined, { revalidate: true })
-                                    return
-                                  } else {
-                                    toast.error(result.error || 'Gagal menghapus')
                                   }
-                                  setIsDeleting(null)
                                 }}
                                 disabled={isDeleting === record.id}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
