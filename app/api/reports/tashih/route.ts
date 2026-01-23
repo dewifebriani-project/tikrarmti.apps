@@ -105,7 +105,7 @@ export async function GET(request: Request) {
       let blokList: string[] = []
       if (record.blok) {
         if (typeof record.blok === 'string') {
-          blokList = record.blok.split(',').map(b => b.trim()).filter(b => b)
+          blokList = record.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
         } else if (Array.isArray(record.blok)) {
           blokList = record.blok
         }
