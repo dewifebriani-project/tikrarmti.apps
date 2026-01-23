@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { useAllRegistrations } from '@/hooks/useRegistrations'
 import { useAuth } from '@/hooks/useAuth'
 import { useTashihStatus } from '@/hooks/useDashboard'
+import { saveTashihRecord } from './actions'
 
 interface JuzOption {
   id: string
@@ -376,24 +377,9 @@ export default function TashihPage() {
 
     setIsSubmitting(true)
     try {
-      const supabase = createClient()
-
-      // Get auth user directly from Supabase to ensure user_id matches auth.uid() for RLS
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-
-      if (authError || !authUser) {
-        console.error('Auth error:', authError)
-        toast.error('Sesi login tidak valid. Silakan login ulang.')
-        return
-      }
-
-      // Debug: Log both IDs to compare
-      console.log('[Tashih] Context user.id:', user?.id)
-      console.log('[Tashih] Auth user.id:', authUser.id)
-      console.log('[Tashih] IDs match:', user?.id === authUser.id)
-
-      const recordData = {
-        user_id: authUser.id, // Use authUser.id directly to match auth.uid() in RLS
+      // Use server action for database operations (following arsitektur.md)
+      // Server action uses supabase.auth.getUser() which guarantees user_id matches auth.uid()
+      const result = await saveTashihRecord({
         blok: tashihData.blok.join(','), // Store as comma-separated string for DB compatibility
         lokasi: tashihData.lokasi,
         lokasi_detail: tashihData.lokasiDetail || null,
@@ -403,23 +389,15 @@ export default function TashihPage() {
         masalah_tajwid: tashihData.masalahTajwid,
         catatan_tambahan: tashihData.catatanTambahan || null,
         waktu_tashih: new Date(tashihData.tanggalTashih).toISOString()
-      }
+      })
 
-      // Always insert new record - each tashih submission creates a new record
-      // This allows tracking progress throughout the week
-      const { error: insertError } = await supabase
-        .from('tashih_records')
-        .insert(recordData)
-        .select()
-        .single()
-
-      if (insertError) {
-        console.error('Error saving tashih record:', insertError)
-        toast.error('Gagal menyimpan data tashih: ' + insertError.message)
+      if (!result.success) {
+        console.error('Error saving tashih record:', result.error)
+        toast.error('Gagal menyimpan data tashih: ' + result.error)
         return
       }
 
-      toast.success('Tashih berhasil disimpan!')
+      toast.success(result.message || 'Tashih berhasil disimpan!')
       await loadWeekRecords()
       // Return to status view after saving
       setViewMode('status')
