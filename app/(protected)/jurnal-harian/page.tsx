@@ -566,6 +566,24 @@ export default function JurnalHarianPage() {
       return
     }
 
+    // Calculate actual week number (1-13) from block week number
+    const actualWeekNumber = blockWeekNumber - (selectedJuzInfo?.part === 'B' ? 10 : 0)
+
+    // Check if week is allowed (current week or 1 week before only)
+    const currentWeekNumber = getCurrentWeekNumber()
+    const isCurrentWeek = actualWeekNumber === currentWeekNumber
+    const isPreviousWeek = actualWeekNumber === currentWeekNumber - 1
+    const isWeekAllowed = isCurrentWeek || isPreviousWeek
+
+    if (!isWeekAllowed) {
+      if (actualWeekNumber > currentWeekNumber) {
+        toast.error(`Pekan ${actualWeekNumber} belum dimulai. Anda hanya bisa mengisi pekan ${currentWeekNumber - 1 > 0 ? currentWeekNumber - 1 + ' dan ' : ''}${currentWeekNumber}.`)
+      } else {
+        toast.error(`Pekan ${actualWeekNumber} sudah berlalu. Anda hanya bisa mengisi pekan ${currentWeekNumber - 1 > 0 ? currentWeekNumber - 1 + ' dan ' : ''}${currentWeekNumber}.`)
+      }
+      return
+    }
+
     // Check if previous blocks are completed (sequential check)
     const blockIndex = jurnalStatus.blocks.findIndex(b => b.block_code === blockCode)
     if (blockIndex > 0) {
@@ -739,16 +757,42 @@ export default function JurnalHarianPage() {
                     const weekBlocks = blocksByWeek.get(weekNum)!
                     const completedInWeek = weekBlocks.filter(b => b.is_completed).length
 
+                    // Calculate actual week number (1-13)
+                    const actualWeekNumber = weekNum
+                    const currentWeekNumber = getCurrentWeekNumber()
+                    const isCurrentWeek = actualWeekNumber === currentWeekNumber
+                    const isPreviousWeek = actualWeekNumber === currentWeekNumber - 1
+                    const isWeekAllowed = isCurrentWeek || isPreviousWeek
+                    const isFutureWeek = actualWeekNumber > currentWeekNumber
+                    const isPastWeek = actualWeekNumber < currentWeekNumber - 1
+
                     return (
-                      <div key={weekNum} className="border border-gray-200 rounded-lg p-3">
+                      <div key={weekNum} className={cn(
+                        "border rounded-lg p-3",
+                        isWeekAllowed ? "border-gray-200" : "border-gray-100 bg-gray-50 opacity-75"
+                      )}>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-700">Pekan {weekNum}</span>
-                            <span className="text-xs text-gray-500">({completedInWeek}/4 selesai)</span>
+                            <span className={cn(
+                              "text-sm font-semibold",
+                              isWeekAllowed ? "text-gray-700" : "text-gray-400"
+                            )}>Pekan {weekNum}</span>
+                            <span className={cn(
+                              "text-xs",
+                              isWeekAllowed ? "text-gray-500" : "text-gray-400"
+                            )}>({completedInWeek}/4 selesai)</span>
+                            {!isWeekAllowed && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
+                                {isFutureWeek ? 'Akan datang' : 'Sudah lewat'}
+                              </span>
+                            )}
                           </div>
                           <div className="w-16 bg-gray-200 rounded-full h-1.5">
                             <div
-                              className="bg-emerald-500 h-1.5 rounded-full"
+                              className={cn(
+                                "h-1.5 rounded-full",
+                                isWeekAllowed ? "bg-emerald-500" : "bg-gray-400"
+                              )}
                               style={{ width: `${(completedInWeek / 4) * 100}%` }}
                             ></div>
                           </div>
@@ -763,13 +807,27 @@ export default function JurnalHarianPage() {
                                 "p-2 border-2 rounded-lg text-center transition-all duration-200",
                                 block.is_completed
                                   ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
-                                  : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
+                                  : !isWeekAllowed
+                                    ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
+                                    : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
                               )}
-                              title={block.is_completed ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}` : 'Klik untuk isi jurnal'}
+                              title={block.is_completed
+                                ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
+                                : !isWeekAllowed
+                                  ? isFutureWeek
+                                    ? `Pekan ${actualWeekNumber} belum dimulai`
+                                    : `Pekan ${actualWeekNumber} sudah berlalu`
+                                  : 'Klik untuk isi jurnal'
+                              }
+                              disabled={!isWeekAllowed || block.is_completed}
                             >
                               <div className={cn(
                                 "text-xs sm:text-sm font-bold",
-                                block.is_completed ? "text-emerald-700" : "text-gray-600"
+                                block.is_completed
+                                  ? "text-emerald-700"
+                                  : !isWeekAllowed
+                                    ? "text-gray-400"
+                                    : "text-gray-600"
                               )}>
                                 {block.block_code}
                               </div>
@@ -786,7 +844,7 @@ export default function JurnalHarianPage() {
               </div>
 
               {/* Legend */}
-              <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 border-2 border-emerald-400 bg-emerald-50 rounded"></div>
                   <span>Sudah jurnal</span>
@@ -794,6 +852,10 @@ export default function JurnalHarianPage() {
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 border-2 border-gray-300 rounded"></div>
                   <span>Klik untuk isi jurnal</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 border-2 border-gray-200 bg-gray-100 rounded opacity-60"></div>
+                  <span>Tidak aktif</span>
                 </div>
               </div>
             </CardContent>
