@@ -234,3 +234,77 @@ export async function updateJurnalRecord(
     return { success: false, error: error.message || 'Failed to update record' }
   }
 }
+
+/**
+ * Type for thalibah data from musyrifah panel
+ */
+export interface ThalibahData {
+  id: string
+  user_id: string
+  full_name: string
+  email: string
+  wa_phone?: string
+  whatsapp?: string
+  chosen_juz?: string
+  status: string
+  selection_status: string
+  batch_id: string
+  batch?: {
+    id: string
+    name: string
+    start_date: string
+    status: string
+  }
+  user_data?: {
+    id: string
+    full_name?: string
+    email?: string
+    whatsapp?: string
+  }
+}
+
+export interface ThalibahResponse {
+  success: boolean
+  data: ThalibahData[]
+  batch?: {
+    id: string
+    name: string
+    start_date: string
+    status: string
+  }
+  summary?: {
+    total_thalibah: number
+  }
+  error?: string
+  message?: string
+}
+
+/**
+ * Hook for fetching all thalibah data for musyrifah panel
+ */
+export function useThalibahData(params?: { batch_id?: string }) {
+  const queryString = new URLSearchParams()
+  if (params?.batch_id) queryString.set('batch_id', params.batch_id)
+
+  const url = `/api/reports/thalibah${queryString.toString() ? '?' + queryString.toString() : ''}`
+
+  const { data, error, isLoading, mutate } = useSWR<ThalibahResponse>(
+    url,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 30000,
+      dedupingInterval: 10000,
+    }
+  )
+
+  return {
+    thalibah: data?.data || [],
+    batch: data?.batch || null,
+    summary: data?.summary,
+    isLoading,
+    isError: !!error,
+    error,
+    mutate,
+  }
+}

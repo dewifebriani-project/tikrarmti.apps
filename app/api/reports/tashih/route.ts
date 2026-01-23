@@ -154,7 +154,7 @@ export async function DELETE(request: Request) {
       )
     }
 
-    // Check if user has admin role (only admin can delete)
+    // Check if user has admin or musyrifah role
     const { data: userData } = await supabase
       .from('users')
       .select('role, roles')
@@ -169,10 +169,11 @@ export async function DELETE(request: Request) {
     }
 
     const isAdmin = userData.role === 'admin' || userData.roles?.includes('admin')
+    const isMusyrifah = userData.role === 'musyrifah' || userData.roles?.includes('musyrifah')
 
-    if (!isAdmin) {
+    if (!isAdmin && !isMusyrifah) {
       return NextResponse.json(
-        { success: false, error: 'Forbidden - Admin role required to delete records' },
+        { success: false, error: 'Forbidden - Admin or Musyrifah role required to delete records' },
         { status: 403 }
       )
     }
