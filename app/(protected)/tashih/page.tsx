@@ -80,7 +80,7 @@ const masalahTajwidOptions = [
 export default function TashihPage() {
   const { user } = useAuth()
   const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
-  const { tashihStatus, isLoading: tashihStatusLoading } = useTashihStatus()
+  const { tashihStatus, isLoading: tashihStatusLoading, mutate: mutateTashihStatus } = useTashihStatus()
 
   const [tashihData, setTashihData] = useState<TashihData>({
     blok: [],
@@ -399,6 +399,9 @@ export default function TashihPage() {
 
       toast.success(result.message || 'Tashih berhasil disimpan!')
       await loadWeekRecords()
+      // Refresh tashih status to update block colors immediately
+      // Use mutate() to force revalidation and bypass cache
+      await mutateTashihStatus(undefined, { revalidate: true, rollbackOnError: false })
       // Return to status view after saving
       setViewMode('status')
       setSelectedBlocksForEditing([])

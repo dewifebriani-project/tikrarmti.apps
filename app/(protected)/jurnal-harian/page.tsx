@@ -165,7 +165,7 @@ const tambahanStepsConfig: JurnalStep[] = [
 export default function JurnalHarianPage() {
   const { user } = useAuth()
   const { registrations, isLoading: registrationsLoading } = useAllRegistrations()
-  const { jurnalStatus, isLoading: jurnalStatusLoading } = useJurnalStatus()
+  const { jurnalStatus, isLoading: jurnalStatusLoading, mutate: mutateJurnalStatus } = useJurnalStatus()
 
   const [jurnalData, setJurnalData] = useState({
     tanggal_setor: new Date().toISOString().slice(0, 10),
@@ -538,6 +538,9 @@ export default function JurnalHarianPage() {
 
       toast.success(result.message || 'Jurnal berhasil disimpan!')
       await loadWeekRecords()
+      // Refresh jurnal status to update block colors immediately
+      // Use mutate() to force revalidation and bypass cache
+      await mutateJurnalStatus(undefined, { revalidate: true, rollbackOnError: false })
       // Return to status view after saving
       setViewMode('status')
       setSelectedBlockForEditing(null)
