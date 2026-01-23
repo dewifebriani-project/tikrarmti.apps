@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode, useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import DashboardSidebar from '@/components/DashboardSidebar'
 import GlobalAuthenticatedHeader from '@/components/GlobalAuthenticatedHeader'
 import Footer from '@/components/Footer'
@@ -30,8 +31,13 @@ interface ProtectedClientLayoutProps {
 }
 
 export default function ProtectedClientLayout({ children, user }: ProtectedClientLayoutProps) {
+  const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+
+  // Routes that should not have header and footer
+  const hideHeaderFooterRoutes = ['/panel-musyrifah']
+  const shouldHideHeaderFooter = hideHeaderFooterRoutes.some(route => pathname.startsWith(route))
 
   // Set mounted state after hydration - DEFERRED to prevent React Error #310
   useEffect(() => {
@@ -62,13 +68,15 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           {/* Global Header - Sticky at top */}
-          <div className="sticky top-0 z-50">
-            <GlobalAuthenticatedHeader
-              onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-              isSidebarOpen={isSidebarOpen}
-              isMounted={isMounted}
-            />
-          </div>
+          {!shouldHideHeaderFooter && (
+            <div className="sticky top-0 z-50">
+              <GlobalAuthenticatedHeader
+                onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+                isSidebarOpen={isSidebarOpen}
+                isMounted={isMounted}
+              />
+            </div>
+          )}
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto bg-gray-50 pt-0">
@@ -79,7 +87,7 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
             </main>
 
             {/* Footer */}
-            <Footer />
+            {!shouldHideHeaderFooter && <Footer />}
           </div>
         </div>
       </div>
