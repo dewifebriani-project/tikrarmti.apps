@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useMemo } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import toast, { Toaster } from 'react-hot-toast'
+import { useTashihReports, useJurnalReports, deleteTashihRecord, deleteJurnalRecord, updateJurnalRecord } from '@/hooks/useReports'
+import type { ReportTashihRecord, ReportJurnalRecord } from '@/hooks/useReports'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,69 +17,30 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2,
+  Edit,
+  X,
+  Save
 } from 'lucide-react'
-
-interface TashihRecord {
-  id: string
-  user_id: string
-  blok: string
-  lokasi: string
-  lokasi_detail?: string
-  nama_pemeriksa?: string
-  masalah_tajwid: any[]
-  catatan_tambahan?: string
-  waktu_tashih: string
-  created_at: string
-}
-
-interface JurnalRecord {
-  id: string
-  user_id: string
-  tanggal_jurnal: string
-  tanggal_setor: string
-  juz_code: string | null
-  blok: string | null
-  tashih_completed: boolean
-  rabth_completed: boolean
-  murajaah_count: number
-  simak_murattal_count: number
-  tikrar_bi_an_nadzar_completed: boolean
-  tasmi_record_count: number
-  simak_record_completed: boolean
-  tikrar_bi_al_ghaib_count: number
-  tikrar_bi_al_ghaib_type: string | null
-  tarteel_screenshot_url: string | null
-  tafsir_completed: boolean
-  menulis_completed: boolean
-  catatan_tambahan: string | null
-  created_at: string
-}
-
-interface UserData {
-  id: string
-  full_name?: string
-  email?: string
-}
 
 interface ThalibahTashihSummary {
   user_id: string
-  user_data: UserData | null
+  user_data: { id: string; full_name?: string; email?: string } | null
   total_count: number
   unique_bloks: string[]
-  latest_record: TashihRecord
-  all_records: TashihRecord[]
+  latest_record: ReportTashihRecord
+  all_records: ReportTashihRecord[]
   status: 'lengkap' | 'belum'
 }
 
 interface ThalibahJurnalSummary {
   user_id: string
-  user_data: UserData | null
+  user_data: { id: string; full_name?: string; email?: string } | null
   total_entries: number
-  latest_entry: JurnalRecord
-  all_entries: JurnalRecord[]
+  latest_entry: ReportJurnalRecord
+  all_entries: ReportJurnalRecord[]
 }
 
 type TabValue = 'tashih' | 'jurnal'
@@ -86,124 +48,28 @@ type TabValue = 'tashih' | 'jurnal'
 export default function PanelMusyrifahPage() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<TabValue>('tashih')
-  const [tashihRecords, setTashihRecords] = useState<TashihRecord[]>([])
-  const [jurnalRecords, setJurnalRecords] = useState<JurnalRecord[]>([])
-  const [userDataMap, setUserDataMap] = useState<Map<string, UserData>>(new Map())
-  const [isLoadingTashih, setIsLoadingTashih] = useState(true)
-  const [isLoadingJurnal, setIsLoadingJurnal] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [dateFilter, setDateFilter] = useState('')
-  const [selectedThalibah, setSelectedThalibah] = useState<ThalibahTashihSummary | null>(null)
-  const [selectedJurnalThalibah, setSelectedJurnalThalibah] = useState<ThalibahJurnalSummary | null>(null)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+  const [editingRecord, setEditingRecord] = useState<ReportJurnalRecord | null>(null)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
   const TASHIH_TARGET = 40
 
-  // Load user data for all records
-  const loadUserData = async (userIds: string[]) => {
-    if (userIds.length === 0) return
+  // Fetch data using hooks
+  const { records: tashihRecords, isLoading: isLoadingTashih, mutate: mutateTashih } = useTashihReports({
+    date_from: dateFilter || undefined,
+    limit: 1000
+  })
 
-    const uniqueIds = Array.from(new Set(userIds))
-    const supabase = createClient()
-
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, full_name, email')
-      .in('id', uniqueIds)
-
-    if (!error && data) {
-      const map = new Map<string, UserData>()
-      data.forEach((user: UserData) => {
-        map.set(user.id, user)
-      })
-      setUserDataMap(map)
-    }
-  }
-
-  // Load tashih records
-  const loadTashihRecords = async () => {
-    setIsLoadingTashih(true)
-    try {
-      const supabase = createClient()
-
-      let query = supabase
-        .from('tashih_records')
-        .select('*')
-        .order('waktu_tashih', { ascending: false })
-
-      // Apply date filter if set
-      if (dateFilter) {
-        const startDate = new Date(dateFilter)
-        const endDate = new Date(dateFilter)
-        endDate.setDate(endDate.getDate() + 6) // Get one week
-
-        query = query.gte('waktu_tashih', startDate.toISOString()).lte('waktu_tashih', endDate.toISOString())
-      }
-
-      const { data, error } = await query.limit(500)
-
-      if (error) throw error
-      const records = data || []
-      setTashihRecords(records)
-
-      // Load user data for all records
-      await loadUserData(records.map((r: TashihRecord) => r.user_id))
-    } catch (error: any) {
-      console.error('Error loading tashih records:', error)
-      toast.error('Gagal memuat data tashih: ' + error.message)
-    } finally {
-      setIsLoadingTashih(false)
-    }
-  }
-
-  // Load jurnal records
-  const loadJurnalRecords = async () => {
-    setIsLoadingJurnal(true)
-    try {
-      const supabase = createClient()
-
-      let query = supabase
-        .from('jurnal_records')
-        .select('*')
-        .order('tanggal_setor', { ascending: false })
-
-      // Apply date filter if set
-      if (dateFilter) {
-        query = query.gte('tanggal_setor', dateFilter).lte('tanggal_setor', dateFilter)
-      }
-
-      const { data, error } = await query.limit(500)
-
-      if (error) throw error
-      const records = data || []
-      setJurnalRecords(records)
-
-      // Load user data for all records
-      await loadUserData(records.map((r: JurnalRecord) => r.user_id))
-    } catch (error: any) {
-      console.error('Error loading jurnal records:', error)
-      toast.error('Gagal memuat data jurnal: ' + error.message)
-    } finally {
-      setIsLoadingJurnal(false)
-    }
-  }
-
-  useEffect(() => {
-    if (activeTab === 'tashih') {
-      loadTashihRecords()
-    } else {
-      loadJurnalRecords()
-    }
-  }, [activeTab, dateFilter])
-
-  // Get user data helper
-  const getUserData = (userId: string) => {
-    return userDataMap.get(userId)
-  }
+  const { records: jurnalRecords, isLoading: isLoadingJurnal, mutate: mutateJurnal } = useJurnalReports({
+    date: dateFilter || undefined,
+    limit: 1000
+  })
 
   // Group tashih records by thalibah
-  const getThalibahTashihSummaries = (): ThalibahTashihSummary[] => {
-    const grouped = new Map<string, TashihRecord[]>()
+  const getThalibahTashihSummaries = useMemo((): ThalibahTashihSummary[] => {
+    const grouped = new Map<string, ReportTashihRecord[]>()
 
     tashihRecords.forEach(record => {
       if (!grouped.has(record.user_id)) {
@@ -213,14 +79,17 @@ export default function PanelMusyrifahPage() {
     })
 
     return Array.from(grouped.entries()).map(([user_id, records]) => {
-      const uniqueBloks = Array.from(new Set(records.map(r => r.blok))).sort()
+      const uniqueBloks = Array.from(new Set(
+        records.flatMap(r => r.blok_list || [])
+      )).sort()
+
       const latestRecord = records.sort((a, b) =>
         new Date(b.waktu_tashih).getTime() - new Date(a.waktu_tashih).getTime()
       )[0]
 
       return {
         user_id,
-        user_data: getUserData(user_id) || null,
+        user_data: latestRecord.user_data || null,
         total_count: records.length,
         unique_bloks: uniqueBloks,
         latest_record: latestRecord,
@@ -228,11 +97,11 @@ export default function PanelMusyrifahPage() {
         status: (records.length >= TASHIH_TARGET ? 'lengkap' : 'belum') as 'lengkap' | 'belum'
       }
     }).sort((a, b) => a.user_data?.full_name?.localeCompare(b.user_data?.full_name || '') || 0)
-  }
+  }, [tashihRecords])
 
   // Group jurnal records by thalibah
-  const getThalibahJurnalSummaries = (): ThalibahJurnalSummary[] => {
-    const grouped = new Map<string, JurnalRecord[]>()
+  const getThalibahJurnalSummaries = useMemo((): ThalibahJurnalSummary[] => {
+    const grouped = new Map<string, ReportJurnalRecord[]>()
 
     jurnalRecords.forEach(record => {
       if (!grouped.has(record.user_id)) {
@@ -248,26 +117,30 @@ export default function PanelMusyrifahPage() {
 
       return {
         user_id,
-        user_data: getUserData(user_id) || null,
+        user_data: latestEntry.user_data || null,
         total_entries: entries.length,
         latest_entry: latestEntry,
         all_entries: entries
       }
     }).sort((a, b) => a.user_data?.full_name?.localeCompare(b.user_data?.full_name || '') || 0)
-  }
+  }, [jurnalRecords])
 
   // Filter summaries based on search query
-  const filteredTashihSummaries = getThalibahTashihSummaries().filter(summary => {
-    return summary.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           summary.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           summary.unique_bloks.some(blok => blok.toLowerCase().includes(searchQuery.toLowerCase()))
-  })
+  const filteredTashihSummaries = useMemo(() => {
+    return getThalibahTashihSummaries.filter(summary => {
+      return summary.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             summary.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             summary.unique_bloks.some(blok => blok.toLowerCase().includes(searchQuery.toLowerCase()))
+    })
+  }, [getThalibahTashihSummaries, searchQuery])
 
-  const filteredJurnalSummaries = getThalibahJurnalSummaries().filter(summary => {
-    return summary.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           summary.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           summary.latest_entry.blok?.toLowerCase().includes(searchQuery.toLowerCase())
-  })
+  const filteredJurnalSummaries = useMemo(() => {
+    return getThalibahJurnalSummaries.filter(summary => {
+      return summary.user_data?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             summary.user_data?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             summary.latest_entry.blok?.toLowerCase().includes(searchQuery.toLowerCase())
+    })
+  }, [getThalibahJurnalSummaries, searchQuery])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -289,16 +162,16 @@ export default function PanelMusyrifahPage() {
     })
   }
 
-  const getStatusBadge = (completed: boolean) => {
+  const getStatusBadge = (completed: boolean, label?: string) => {
     return completed ? (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
         <CheckCircle className="h-3 w-3" />
-        Selesai
+        {label || 'Selesai'}
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
         <Clock className="h-3 w-3" />
-        Belum
+        {label || 'Belum'}
       </span>
     )
   }
@@ -315,15 +188,83 @@ export default function PanelMusyrifahPage() {
     })
   }
 
+  // Delete handlers
+  const handleDeleteTashih = async (recordId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus record tashih ini?')) return
+
+    setIsDeleting(recordId)
+    try {
+      const result = await deleteTashihRecord(recordId)
+      if (result.success) {
+        toast.success('Record tashih berhasil dihapus')
+        mutateTashih()
+      } else {
+        toast.error(result.error || 'Gagal menghapus record')
+      }
+    } catch (error) {
+      toast.error('Gagal menghapus record')
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
+  const handleDeleteJurnal = async (recordId: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus record jurnal ini?')) return
+
+    setIsDeleting(recordId)
+    try {
+      const result = await deleteJurnalRecord(recordId)
+      if (result.success) {
+        toast.success('Record jurnal berhasil dihapus')
+        mutateJurnal()
+      } else {
+        toast.error(result.error || 'Gagal menghapus record')
+      }
+    } catch (error) {
+      toast.error('Gagal menghapus record')
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
+  // Edit handlers
+  const handleEditJurnal = (record: ReportJurnalRecord) => {
+    setEditingRecord(record)
+  }
+
+  const handleSaveJurnal = async () => {
+    if (!editingRecord) return
+
+    try {
+      const result = await updateJurnalRecord(editingRecord.id, {
+        catatan_tambahan: editingRecord.catatan_tambahan
+      })
+
+      if (result.success) {
+        toast.success('Record jurnal berhasil diupdate')
+        setEditingRecord(null)
+        mutateJurnal()
+      } else {
+        toast.error(result.error || 'Gagal mengupdate record')
+      }
+    } catch (error) {
+      toast.error('Gagal mengupdate record')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingRecord(null)
+  }
+
   // Stats calculations
   const tashihStats = {
-    thalibah: getThalibahTashihSummaries().length,
+    thalibah: getThalibahTashihSummaries.length,
     total: tashihRecords.length,
-    completed: getThalibahTashihSummaries().filter(s => s.status === 'lengkap').length
+    completed: getThalibahTashihSummaries.filter(s => s.status === 'lengkap').length
   }
 
   const jurnalStats = {
-    thalibah: getThalibahJurnalSummaries().length,
+    thalibah: getThalibahJurnalSummaries.length,
     total: jurnalRecords.length,
     today: jurnalRecords.filter(r => {
       const today = new Date().toISOString().split('T')[0]
@@ -333,30 +274,6 @@ export default function PanelMusyrifahPage() {
 
   return (
     <>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
-            },
-          },
-          error: {
-            duration: 4000,
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
-            },
-          },
-        }}
-      />
       {/* Header */}
       <div className="bg-white border-b border-gray-200 -m-6 mb-0 px-6 py-6 rounded-t-lg">
         <h1 className="text-3xl font-bold text-gray-900">Panel Musyrifah</h1>
@@ -595,11 +512,26 @@ export default function PanelMusyrifahPage() {
                                                   </span>
                                                   <span className="text-sm text-gray-600">{formatDate(record.waktu_tashih)}</span>
                                                 </div>
-                                                <div className="text-right text-sm text-gray-600">
-                                                  <span className="capitalize">{record.lokasi}</span>
-                                                  {record.nama_pemeriksa && (
-                                                    <span className="block text-xs text-gray-500">Pemeriksa: {record.nama_pemeriksa}</span>
-                                                  )}
+                                                <div className="flex items-center gap-2">
+                                                  <div className="text-right text-sm text-gray-600">
+                                                    <span className="capitalize">{record.lokasi}</span>
+                                                    {record.nama_pemeriksa && (
+                                                      <span className="block text-xs text-gray-500">Pemeriksa: {record.nama_pemeriksa}</span>
+                                                    )}
+                                                  </div>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteTashih(record.id)}
+                                                    disabled={isDeleting === record.id}
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                  >
+                                                    {isDeleting === record.id ? (
+                                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                      <Trash2 className="h-4 w-4" />
+                                                    )}
+                                                  </Button>
                                                 </div>
                                               </div>
                                               {record.masalah_tajwid && record.masalah_tajwid.length > 0 && (
@@ -784,35 +716,100 @@ export default function PanelMusyrifahPage() {
                                       <div className="space-y-3">
                                         <h4 className="font-medium text-gray-900">Detail Jurnal ({summary.all_entries.length} entry)</h4>
                                         <div className="grid gap-2">
-                                          {summary.all_entries.map(entry => (
-                                            <div key={entry.id} className="bg-white p-3 rounded-lg border border-gray-200">
-                                              <div className="flex justify-between items-start mb-2">
-                                                <div className="flex items-center gap-2">
-                                                  <span className="text-sm font-medium text-gray-900">{formatDateOnly(entry.tanggal_setor)}</span>
-                                                  {entry.juz_code && (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                                      Juz {entry.juz_code}
-                                                    </span>
-                                                  )}
-                                                  {entry.blok && (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                      {entry.blok}
-                                                    </span>
-                                                  )}
+                                          {summary.all_entries.map(entry => {
+                                            const isEditing = editingRecord?.id === entry.id
+
+                                            return (
+                                              <div key={entry.id} className={`bg-white p-3 rounded-lg border ${isEditing ? 'border-blue-300' : 'border-gray-200'}`}>
+                                                <div className="flex justify-between items-start mb-2">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-medium text-gray-900">{formatDateOnly(entry.tanggal_setor)}</span>
+                                                    {entry.juz_code && (
+                                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                        Juz {entry.juz_code}
+                                                      </span>
+                                                    )}
+                                                    {entry.blok && (
+                                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                        {entry.blok}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      onClick={() => handleEditJurnal(entry)}
+                                                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                    >
+                                                      <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      onClick={() => handleDeleteJurnal(entry.id)}
+                                                      disabled={isDeleting === entry.id}
+                                                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    >
+                                                      {isDeleting === entry.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                      ) : (
+                                                        <Trash2 className="h-4 w-4" />
+                                                      )}
+                                                    </Button>
+                                                  </div>
                                                 </div>
+
+                                                {isEditing ? (
+                                                  <div className="mt-3 space-y-2">
+                                                    <label className="text-xs font-medium text-gray-700">Catatan Tambahan:</label>
+                                                    <textarea
+                                                      value={editingRecord.catatan_tambahan || ''}
+                                                      onChange={(e) => setEditingRecord({ ...editingRecord, catatan_tambahan: e.target.value })}
+                                                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                                      rows={2}
+                                                    />
+                                                    <div className="flex gap-2">
+                                                      <Button
+                                                        size="sm"
+                                                        onClick={handleSaveJurnal}
+                                                        className="bg-green-600 hover:bg-green-700"
+                                                      >
+                                                        <Save className="h-4 w-4 mr-1" />
+                                                        Simpan
+                                                      </Button>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={handleCancelEdit}
+                                                      >
+                                                        <X className="h-4 w-4 mr-1" />
+                                                        Batal
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <>
+                                                    <div className="grid grid-cols-4 gap-1 text-xs">
+                                                      <div>{getStatusBadge(entry.rabth_completed)} Rabth</div>
+                                                      <div>{getStatusBadge(entry.murajaah_count > 0)} Murajaah ({entry.murajaah_count})</div>
+                                                      <div>{getStatusBadge(entry.simak_murattal_count > 0)} Simak ({entry.simak_murattal_count})</div>
+                                                      <div>{getStatusBadge(entry.tikrar_bi_an_nadzar_completed)} Nadzar</div>
+                                                      <div>{getStatusBadge(entry.tasmi_record_count > 0)} Tasmi ({entry.tasmi_record_count})</div>
+                                                      <div>{getStatusBadge(entry.simak_record_completed)} Simak Rec</div>
+                                                      <div>{getStatusBadge(entry.tikrar_bi_al_ghaib_count > 0)} Ghaib ({entry.tikrar_bi_al_ghaib_count})</div>
+                                                      <div>{getStatusBadge(entry.tafsir_completed)} Tafsir</div>
+                                                    </div>
+                                                    {entry.catatan_tambahan && (
+                                                      <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                                                        <span className="font-medium">Catatan:</span> {entry.catatan_tambahan}
+                                                      </div>
+                                                    )}
+                                                  </>
+                                                )}
                                               </div>
-                                              <div className="grid grid-cols-4 gap-1 text-xs">
-                                                <div>{getStatusBadge(entry.rabth_completed)} Rabth</div>
-                                                <div>{getStatusBadge(entry.murajaah_count > 0)} Murajaah ({entry.murajaah_count})</div>
-                                                <div>{getStatusBadge(entry.simak_murattal_count > 0)} Simak ({entry.simak_murattal_count})</div>
-                                                <div>{getStatusBadge(entry.tikrar_bi_an_nadzar_completed)} Nadzar</div>
-                                                <div>{getStatusBadge(entry.tasmi_record_count > 0)} Tasmi ({entry.tasmi_record_count})</div>
-                                                <div>{getStatusBadge(entry.simak_record_completed)} Simak Rec</div>
-                                                <div>{getStatusBadge(entry.tikrar_bi_al_ghaib_count > 0)} Ghaib ({entry.tikrar_bi_al_ghaib_count})</div>
-                                                <div>{getStatusBadge(entry.tafsir_completed)} Tafsir</div>
-                                              </div>
-                                            </div>
-                                          ))}
+                                            )
+                                          })}
                                         </div>
                                       </div>
                                     </td>
