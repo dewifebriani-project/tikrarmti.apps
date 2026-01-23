@@ -924,7 +924,7 @@ export default function PanelMusyrifahPage() {
                                               <span className="text-xs font-medium text-gray-500">Sudah Lapor: </span>
                                               {reportedBlocks.length > 0 ? (
                                                 <span className="text-xs">
-                                                  {[...new Set(reportedBlocks)].map((blok, idx) => (
+                                                  {Array.from(new Set(reportedBlocks)).map((blok: string) => (
                                                     <span key={blok} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 mr-1">
                                                       {blok}
                                                     </span>
