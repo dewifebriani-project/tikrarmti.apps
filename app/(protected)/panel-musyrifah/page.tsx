@@ -70,15 +70,23 @@ interface JurnalEntry {
 
 interface TashihEntry {
   id: string;
-  thalibah_id: string;
-  tanggal_tashih: string;
-  jenis_kesalahan: string;
-  ayat: string;
-  keterangan: string;
-  status: 'pending' | 'approved' | 'rejected';
+  user_id: string;
+  blok: string;
+  lokasi: string;
+  lokasi_detail: string | null;
+  nama_pemeriksa: string | null;
+  masalah_tajwid: any[]; // JSONB array
+  catatan_tambahan: string | null;
+  waktu_tashih: string;
   created_at: string;
-  thalibah?: {
-    full_name: string;
+  updated_at: string;
+  ustadzah_id: string | null;
+  jumlah_kesalahan_tajwid: number | null;
+  user?: {
+    id: string;
+    full_name: string | null;
+    nama_kunyah: string | null;
+    whatsapp: string | null;
   };
 }
 
@@ -135,6 +143,10 @@ export default function PanelMusyrifahPage() {
   const [selectedBlok, setSelectedBlok] = useState<string>('all');
   const [selectedPekan, setSelectedPekan] = useState<string>('all');
   const [availableBloks, setAvailableBloks] = useState<string[]>([]);
+
+  // Tashih filter states
+  const [selectedTashihBlok, setSelectedTashihBlok] = useState<string>('all');
+  const [availableTashihBloks, setAvailableTashihBloks] = useState<string[]>([]);
 
   // Save activeTab to localStorage
   useEffect(() => {
@@ -290,7 +302,13 @@ export default function PanelMusyrifahPage() {
 
   const loadTashih = async () => {
     try {
-      const response = await fetch('/api/musyrifah/tashih');
+      // Build query params
+      const params = new URLSearchParams();
+      if (selectedTashihBlok !== 'all') {
+        params.append('blok', selectedTashihBlok);
+      }
+
+      const response = await fetch(`/api/musyrifah/tashih?${params.toString()}`);
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || 'Error loading tashih');
@@ -299,6 +317,10 @@ export default function PanelMusyrifahPage() {
         const result = await response.json();
         console.log(`Tashih entries loaded: ${result.data?.length || 0} records`);
         setTashihEntries(result.data || []);
+        // Set available bloks from meta
+        if (result.meta?.bloks) {
+          setAvailableTashihBloks(result.meta.bloks);
+        }
       }
     } catch (error) {
       console.error('Error loading tashih:', error);
@@ -436,7 +458,13 @@ export default function PanelMusyrifahPage() {
         )}
 
         {!dataLoading && activeTab === 'tashih' && (
-          <TashihTab entries={tashihEntries} onRefresh={loadTashih} />
+          <TashihTab
+            entries={tashihEntries}
+            onRefresh={loadTashih}
+            selectedBlok={selectedTashihBlok}
+            onBlokChange={setSelectedTashihBlok}
+            availableBloks={availableTashihBloks}
+          />
         )}
 
         {!dataLoading && activeTab === 'ujian' && (
@@ -1045,10 +1073,48 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
 }
 
 // Tashih Tab Component
-function TashihTab({ entries, onRefresh }: { entries: TashihEntry[], onRefresh: () => void }) {
+interface TashihTabProps {
+  entries: TashihEntry[];
+  onRefresh: () => void;
+  selectedBlok: string;
+  onBlokChange: (blok: string) => void;
+  availableBloks: string[];
+}
+
+function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: TashihTabProps) {
+  const displayName = (entry: TashihEntry) => {
+    if (entry.user?.nama_kunyah) return entry.user.nama_kunyah;
+    if (entry.user?.full_name) return entry.user.full_name;
+    return '-';
+  };
+
+  const formatWhatsAppLink = (phoneNumber: string | null, name: string) => {
+    if (!phoneNumber) return null;
+
+    // Clean the phone number - remove +, spaces, dashes, etc
+    const cleanedPhone = phoneNumber.replace(/^0/, '62').replace(/[\s\-\(\)]/g, '');
+
+    const message = `Assalamu'alaikum ${name},
+
+Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan hasil tashih yang telah dilakukan:
+
+- Blok: ${entries[0]?.blok || '-'}
+- Jumlah kesalahan tajwid: ${entries[0]?.jumlah_kesalahan_tajwid || '0'}
+
+Mohon dapat diperbaiki dan dilanjutkan.
+
+Jazakillahu khairan
+Tim Markaz Tikrar Indonesia`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${cleanedPhone}?text=${encodedMessage}`;
+
+    return whatsappUrl;
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Catatan Tashih</h2>
         <button
           onClick={onRefresh}
@@ -1059,44 +1125,94 @@ function TashihTab({ entries, onRefresh }: { entries: TashihEntry[], onRefresh: 
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Blok:</label>
+            <select
+              value={selectedBlok}
+              onChange={(e) => onBlokChange(e.target.value)}
+              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
+            >
+              <option value="all">Semua</option>
+              {availableBloks.map((blok) => (
+                <option key={blok} value={blok}>{blok}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada catatan tashih</h3>
-          <p className="mt-1 text-sm text-gray-500">Belum ada catatan tashih dari thalibah.</p>
+          <p className="mt-1 text-sm text-gray-500">Belum ada catatan tashih dari thalibah yang terdaftar di daftar ulang (approved/submitted).</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {entries.map((entry) => (
-            <div key={entry.id} className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{entry.thalibah?.full_name}</h3>
-                  <p className="text-sm text-gray-500">{new Date(entry.tanggal_tashih).toLocaleDateString('id-ID')}</p>
-                </div>
-                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                  entry.status === 'approved' ? 'bg-green-100 text-green-800' :
-                  entry.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {entry.status}
-                </span>
-              </div>
-              <div className="mt-4">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Jenis Kesalahan:</span> {entry.jenis_kesalahan}
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Ayat:</span> {entry.ayat}
-                </p>
-                {entry.keterangan && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    <span className="font-medium">Keterangan:</span> {entry.keterangan}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama / Nama Kunyah</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasi</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Tashih</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jml Kesalahan</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemeriksa</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {entries.map((entry) => {
+                  const name = displayName(entry);
+                  const whatsappUrl = entry.user?.whatsapp ? formatWhatsAppLink(entry.user.whatsapp, name) : null;
+
+                  return (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{name}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {whatsappUrl ? (
+                          <a
+                            href={whatsappUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-green-600 hover:text-green-800 font-medium"
+                          >
+                            {entry.user?.whatsapp}
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                          {entry.blok}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {entry.lokasi}
+                        {entry.lokasi_detail && ` - ${entry.lokasi_detail}`}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(entry.waktu_tashih).toLocaleDateString('id-ID')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {entry.jumlah_kesalahan_tajwid ?? 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {entry.nama_pemeriksa || entry.ustadzah_id || '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
