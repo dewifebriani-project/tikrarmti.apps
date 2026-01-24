@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,6 +21,7 @@ import {
   Edit,
   Trash2,
   X,
+  ChevronDown,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian';
@@ -72,9 +73,32 @@ interface JurnalEntry {
   };
 }
 
+interface WeeklyStatus {
+  week_number: number;
+  total_blocks: number;
+  completed_blocks: number;
+  is_completed: boolean;
+  blocks: Array<{
+    block_code: string;
+    week_number: number;
+    part: string;
+    start_page: number;
+    end_page: number;
+    is_completed: boolean;
+    tashih_count: number;
+  }>;
+}
+
+interface TashihSummary {
+  total_blocks: number;
+  completed_blocks: number;
+  pending_blocks: number;
+  completion_percentage: number;
+}
+
 interface TashihEntry {
   user_id: string;
-  confirmed_chosen_juz: number;
+  confirmed_chosen_juz: string | null;
   daftar_ulang_status: string;
   submitted_at: string;
   reviewed_at: string;
@@ -84,6 +108,17 @@ interface TashihEntry {
     nama_kunyah: string | null;
     whatsapp: string | null;
   };
+  juz_info?: {
+    id: string;
+    code: string;
+    name: string;
+    juz_number: number;
+    part: string;
+    start_page: number;
+    end_page: number;
+  } | null;
+  weekly_status: WeeklyStatus[];
+  summary: TashihSummary;
   has_tashih: boolean;
   tashih_count: number;
   latest_tashih: {
@@ -1090,6 +1125,18 @@ interface TashihTabProps {
 }
 
 function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: TashihTabProps) {
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRow = (userId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(userId)) {
+      newExpanded.delete(userId);
+    } else {
+      newExpanded.add(userId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
   const displayName = (entry: TashihEntry) => {
     if (entry.user?.full_name) return entry.user.full_name;
     return '-';
@@ -1103,63 +1150,25 @@ function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: TashihEntry) => {
     if (!phoneNumber) return null;
 
-    // Clean the phone number - remove +, spaces, dashes, etc
     const cleanedPhone = phoneNumber.replace(/^0/, '62').replace(/[\s\-\(\)]/g, '');
-
-    const hasTashih = entry.has_tashih ? 'Sudah lapor' : 'Belum lapor';
-    const tashihInfo = entry.latest_tashih
-      ? `- Jumlah kesalahan tajwid: ${entry.latest_tashih.jumlah_kesalahan_tajwid || '0'}`
-      : '- Belum ada data tashih';
-
-    const blokInfo = entry.latest_tashih?.blok || 'Belum ada blok';
+    const completedWeeks = entry.weekly_status.filter(w => w.is_completed).length;
+    const totalWeeks = entry.weekly_status.length;
 
     const message = `Assalamu'alaikum ${name},
 
-Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan hasil tashih:
+Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan progress tashih:
 
-- Blok: ${blokInfo}
 - Juz: ${entry.confirmed_chosen_juz}
-- Status: ${hasTashih}
-${tashihInfo}
+- Progress: ${entry.summary.completed_blocks}/${entry.summary.total_blocks} blok (${entry.summary.completion_percentage}%)
+- Pekan selesai: ${completedWeeks}/${totalWeeks}
 
-${entry.has_tashih ? 'Mohon dapat diperbaiki dan dilanjutkan.' : 'Mohon segera melaksanakan tashih.'}
+${entry.summary.completion_percentage < 100 ? 'Mohon ditingkatkan lagi progress tashihnya.' : 'Alhamdulillah progress sudah lengkap.'}
 
 Jazakillahu khairan
 Tim Markaz Tikrar Indonesia`;
 
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${cleanedPhone}?text=${encodedMessage}`;
-
-    return whatsappUrl;
-  };
-
-  // Parse blok field from tashih_records (can be comma-separated string)
-  const parseBlokField = (blok: any): string[] => {
-    if (!blok) return [];
-    if (typeof blok === 'string') {
-      return blok.split(',').map(b => b.trim()).filter(b => b);
-    }
-    if (Array.isArray(blok)) {
-      return blok;
-    }
-    return [];
-  };
-
-  // Calculate blok per pekan (30 juz divided into bloks)
-  const juzPerBlok = 5; // Assuming 5 juz per blok
-  const blokToPekan = (blok: string) => {
-    const blokNum = parseInt(blok.replace(/\D/g, '')) || 1;
-    const pekan = Math.ceil((blokNum - 1) * juzPerBlok / 5) + 1; // Rough calculation
-    return pekan;
-  };
-
-  // Get blok display from entry
-  const getEntryBlok = (entry: TashihEntry): string => {
-    if (entry.latest_tashih?.blok) {
-      const bloks = parseBlokField(entry.latest_tashih.blok);
-      return bloks.length > 0 ? bloks.join(', ') : '-';
-    }
-    return '-';
+    return `https://wa.me/${cleanedPhone}?text=${encodedMessage}`;
   };
 
   return (
@@ -1218,14 +1227,12 @@ Tim Markaz Tikrar Indonesia`;
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pekan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemeriksa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Pekan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
@@ -1234,96 +1241,145 @@ Tim Markaz Tikrar Indonesia`;
                   const name = displayName(entry);
                   const kunyah = displayKunyah(entry);
                   const whatsappUrl = entry.user?.whatsapp ? formatWhatsAppLink(entry.user.whatsapp, name, entry) : null;
-                  const entryBlok = getEntryBlok(entry);
-
-                  // Calculate progress bar (tashih_count vs confirmed_chosen_juz)
-                  const progress = entry.confirmed_chosen_juz > 0
-                    ? Math.min((entry.tashih_count / entry.confirmed_chosen_juz) * 100, 100)
-                    : 0;
+                  const isExpanded = expandedRows.has(entry.user_id);
+                  const completedWeeks = entry.weekly_status.filter(w => w.is_completed).length;
 
                   return (
-                    <tr key={entry.user_id} className={`hover:bg-gray-50 ${!entry.has_tashih ? 'bg-yellow-50' : ''}`}>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-medium text-gray-900">{name}</div>
-                        {kunyah && (
-                          <div className="text-xs text-gray-500">{kunyah}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {whatsappUrl ? (
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
-                            title="Chat via WhatsApp"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </a>
-                        ) : (
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400">
-                            <X className="w-4 h-4" />
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="w-24">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-gray-600">{entry.tashih_count}/{entry.confirmed_chosen_juz}</span>
-                            <span className="text-xs font-medium text-gray-900">{Math.round(progress)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-green-600 h-2 rounded-full"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                          {entryBlok}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {entryBlok !== '-' && entryBlok !== '' ? blokToPekan(entryBlok.split(',')[0]?.trim() || '') : '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {entry.confirmed_chosen_juz}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {entry.has_tashih ? (
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            Sudah Lapor ({entry.tashih_count})
-                          </span>
-                        ) : (
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            Belum Lapor
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {entry.latest_tashih?.nama_pemeriksa || '-'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-1">
+                    <React.Fragment key={entry.user_id}>
+                      <tr className={`hover:bg-gray-50 ${!entry.has_tashih ? 'bg-yellow-50' : ''}`}>
+                        <td className="px-4 py-3">
                           <button
-                            onClick={() => {/* TODO: Implement edit */}}
-                            className="text-indigo-600 hover:text-indigo-900 p-1"
-                            title="Edit"
+                            onClick={() => toggleRow(entry.user_id)}
+                            className="text-gray-400 hover:text-gray-600"
                           >
-                            <Edit className="w-4 h-4" />
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 transform rotate-180" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
                           </button>
-                          <button
-                            onClick={() => {/* TODO: Implement delete */}}
-                            className="text-red-600 hover:text-red-900 p-1"
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-medium text-gray-900">{name}</div>
+                          {kunyah && (
+                            <div className="text-xs text-gray-500">{kunyah}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {whatsappUrl ? (
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
+                              title="Chat via WhatsApp"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </a>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400">
+                              <X className="w-4 h-4" />
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="w-32">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-gray-600">{entry.summary.completed_blocks}/{entry.summary.total_blocks}</span>
+                              <span className="text-xs font-medium text-gray-900">{entry.summary.completion_percentage}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${entry.summary.completion_percentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          {entry.confirmed_chosen_juz || '-'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                          <span className="text-xs">
+                            {completedWeeks}/10 pekan selesai
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => {/* TODO: Implement edit */}}
+                              className="text-indigo-600 hover:text-indigo-900 p-1"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {/* TODO: Implement delete */}}
+                              className="text-red-600 hover:text-red-900 p-1"
+                              title="Hapus"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={7} className="px-4 py-4">
+                            <div className="space-y-3">
+                              <h4 className="text-sm font-medium text-gray-700">Progress per Pekan (10 Pekan)</h4>
+                              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                                {entry.weekly_status.map((week) => (
+                                  <div
+                                    key={week.week_number}
+                                    className={`text-center p-2 rounded-lg border-2 transition-all ${
+                                      week.is_completed
+                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                        : week.completed_blocks > 0
+                                          ? 'border-yellow-400 bg-yellow-50 text-yellow-700'
+                                          : 'border-gray-200 bg-white text-gray-400'
+                                    }`}
+                                    title={`Pekan ${week.week_number}: ${week.completed_blocks}/${week.total_blocks} blok`}
+                                  >
+                                    <div className="text-xs font-medium">P{week.week_number}</div>
+                                    <div className="text-xs mt-1">{week.completed_blocks}/4</div>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="grid grid-cols-5 gap-4 text-xs">
+                                  <div>
+                                    <span className="text-gray-500">Total Blok:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{entry.summary.total_blocks}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Selesai:</span>
+                                    <span className="ml-2 font-medium text-green-600">{entry.summary.completed_blocks}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Pending:</span>
+                                    <span className="ml-2 font-medium text-yellow-600">{entry.summary.pending_blocks}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Pekan Selesai:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{completedWeeks}/10</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Terakhir Tashih:</span>
+                                    <span className="ml-2 font-medium text-gray-900">
+                                      {entry.latest_tashih
+                                        ? new Date(entry.latest_tashih.waktu_tashih).toLocaleDateString('id-ID')
+                                        : '-'
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
