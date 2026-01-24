@@ -717,7 +717,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada jurnal</h3>
-          <p className="mt-1 text-sm text-gray-500">Belum ada jurnal harian dari thalibah yang terdaftar di daftar ulang (approved/submitted).</p>
+          <p className="mt-1 text-sm text-gray-500">Belum ada jurnal harian dari thalibah.</p>
         </div>
       ) : (
         <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -725,80 +725,163 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama / Nama Kunyah</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Setor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi (menit)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tgl Setor</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">T</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">R</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">M</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SM</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TN</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TR</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TG</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TF</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{displayName(entry)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{displayWhatsApp(entry)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                        {entry.blok || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {entry.juz_code || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {entry.total_duration_minutes || 0}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingEntry(entry);
-                            setShowEditModal(true);
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
-                              try {
-                                const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
-                                  method: 'DELETE',
-                                });
+                  <React.Fragment key={entry.id}>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{displayName(entry)}</div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {entry.tanggal_setor ? new Date(entry.tanggal_setor).toLocaleDateString('id-ID') : '-'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                          {entry.blok || '-'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {entry.tashih_completed ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-300 mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {entry.rabth_completed ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-300 mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-600">
+                        {entry.murajaah_count || 0}
+                      </td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-600">
+                        {entry.simak_murattal_count || 0}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {entry.tikrar_bi_an_nadzar_completed ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-300 mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-600">
+                        {entry.tasmi_record_count || 0}
+                      </td>
+                      <td className="px-3 py-2 text-center text-sm text-gray-600">
+                        {entry.tikrar_bi_al_ghaib_count || 0}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {entry.tafsir_completed ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-300 mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {entry.menulis_completed ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
+                        ) : (
+                          <X className="w-4 h-4 text-gray-300 mx-auto" />
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {entry.juz_code || '-'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingEntry(entry);
+                              setShowEditModal(true);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-900"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
+                                try {
+                                  const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
+                                    method: 'DELETE',
+                                  });
 
-                                if (!response.ok) {
-                                  const error = await response.json();
-                                  toast.error(error.error || 'Gagal menghapus jurnal');
-                                  return;
+                                  if (!response.ok) {
+                                    const error = await response.json();
+                                    toast.error(error.error || 'Gagal menghapus jurnal');
+                                    return;
+                                  }
+
+                                  toast.success('Jurnal berhasil dihapus');
+                                  onRefresh();
+                                } catch (err) {
+                                  toast.error('Gagal menghapus jurnal');
                                 }
-
-                                toast.success('Jurnal berhasil dihapus');
-                                onRefresh();
-                              } catch (err) {
-                                toast.error('Gagal menghapus jurnal');
                               }
-                            }
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {/* Additional details row */}
+                    {(entry.catatan_tambahan || entry.total_duration_minutes) && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={14} className="px-3 py-2 text-xs text-gray-600">
+                          {entry.total_duration_minutes && (
+                            <span className="mr-4">
+                              <strong>Durasi:</strong> {entry.total_duration_minutes} menit
+                            </span>
+                          )}
+                          {entry.catatan_tambahan && (
+                            <span>
+                              <strong>Catatan:</strong> {entry.catatan_tambahan}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Legend */}
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+            <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+              <span><strong>T:</strong> Tashih</span>
+              <span><strong>R:</strong> Rabth</span>
+              <span><strong>M:</strong> Murajaah (count)</span>
+              <span><strong>SM:</strong> Simak Murattal (count)</span>
+              <span><strong>TN:</strong> Tikrar Nadzar</span>
+              <span><strong>TR:</strong> Tasmi Record (count)</span>
+              <span><strong>TG:</strong> Tikrar Ghaib (count)</span>
+              <span><strong>TF:</strong> Tafsir</span>
+              <span><strong>W:</strong> Menulis</span>
+            </div>
           </div>
         </div>
       )}
