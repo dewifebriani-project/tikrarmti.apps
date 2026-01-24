@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[Daftar Ulang Admin] Fetching submissions with params:', { page, limit, batchId, status });
 
-    // Build query - get ALL fields from all 3 tables
+    // Build query - get ALL fields from all tables
     let query = supabaseAdmin
       .from('daftar_ulang_submissions')
       .select(`
@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
         registration:pendaftaran_tikrar_tahfidz(*),
         ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(*),
         tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(*),
-        partner_user:users!daftar_ulang_submissions_partner_user_id_fkey(*)
+        partner_user:users!daftar_ulang_submissions_partner_user_id_fkey(*),
+        reviewed_by_user:users!daftar_ulang_submissions_reviewed_by_fkey(*)
       `)
       .order('created_at', { ascending: false });
 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Attach muallimah names to halaqah data
-    const dataWithMuallimah = data?.map((sub: any) => ({
+    let dataWithMuallimah = data?.map((sub: any) => ({
       ...sub,
       ujian_halaqah: sub.ujian_halaqah ? {
         ...sub.ujian_halaqah,
@@ -109,6 +110,52 @@ export async function GET(request: NextRequest) {
         ...sub.tashih_halaqah,
         muallimah_name: sub.tashih_halaqah.muallimah_id ? muallimahNames[sub.tashih_halaqah.muallimah_id] : null
       } : null
+    }));
+
+    // Fetch study partners for all submissions
+    const userIds = dataWithMuallimah?.map((sub: any) => sub.user_id) || [];
+    const studyPartnersMap: Record<string, any[]> = {};
+
+    if (userIds.length > 0) {
+      // Get batch IDs from submissions
+      const batchIds = [...new Set(dataWithMuallimah?.map((sub: any) => sub.batch_id) || [])];
+
+      // Fetch study partners for each batch
+      for (const batchId of batchIds) {
+        const { data: partners } = await supabaseAdmin
+          .from('study_partners')
+          .select(`
+            *,
+            user_1:users!study_partners_user_1_id_fkey(id, full_name, email, whatsapp),
+            user_2:users!study_partners_user_2_id_fkey(id, full_name, email, whatsapp),
+            user_3:users!study_partners_user_3_id_fkey(id, full_name, email, whatsapp),
+            paired_by_user:users!study_partners_paired_by_fkey(id, full_name)
+          `)
+          .eq('batch_id', batchId)
+          .eq('pairing_status', 'active');
+
+        partners?.forEach((partner: any) => {
+          // Add to map for both user_1 and user_2
+          if (partner.user_1_id) {
+            if (!studyPartnersMap[partner.user_1_id]) studyPartnersMap[partner.user_1_id] = [];
+            studyPartnersMap[partner.user_1_id].push(partner);
+          }
+          if (partner.user_2_id) {
+            if (!studyPartnersMap[partner.user_2_id]) studyPartnersMap[partner.user_2_id] = [];
+            studyPartnersMap[partner.user_2_id].push(partner);
+          }
+          if (partner.user_3_id) {
+            if (!studyPartnersMap[partner.user_3_id]) studyPartnersMap[partner.user_3_id] = [];
+            studyPartnersMap[partner.user_3_id].push(partner);
+          }
+        });
+      }
+    }
+
+    // Attach study partners to submissions
+    const dataWithPartners = dataWithMuallimah?.map((sub: any) => ({
+      ...sub,
+      study_partners: studyPartnersMap[sub.user_id] || []
     }));
 
     // Get total count
@@ -134,7 +181,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: dataWithMuallimah || [],
+      data: dataWithPartners || [],
       pagination: {
         page,
         limit,

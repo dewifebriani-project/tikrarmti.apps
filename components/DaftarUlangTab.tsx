@@ -377,18 +377,35 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
       };
 
-      // Prepare Excel data with ALL fields from all 3 tables
+      const formatDateTime = (dateString: string | undefined) => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleDateString('id-ID', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      };
+
+      // Prepare Excel data with ALL fields from database schema
       const excelData = sortedData.map((item, index) => {
         const user = item.user || {};
         const registration = item.registration || {};
         const ujianHalaqah = item.ujian_halaqah || {};
         const tashihHalaqah = item.tashih_halaqah || {};
         const partnerUser = item.partner_user || {};
+        const studyPartner = item.study_partner || {};
 
         return {
-          // === DATA THALIBAH (from daftar_ulang_submissions) ===
+          // === SEQUENCE NUMBER ===
           'No': index + 1,
+
+          // === DATA THALIBAH (from daftar_ulang_submissions) ===
           'Submission ID': item.id || '-',
+          'User ID': user.id || '-',
+          'Registration ID': registration.id || '-',
+          'Batch ID': item.batch_id || '-',
 
           // Confirmed Data (daftar_ulang_submissions)
           'Nama Lengkap (Confirmed)': item.confirmed_full_name || '-',
@@ -397,6 +414,17 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           'Slot Jadwal Cadangan (Confirmed)': formatTimeSlot(item.confirmed_backup_time_slot),
           'No. WhatsApp (Confirmed)': item.confirmed_wa_phone || '-',
           'Alamat (Confirmed)': item.confirmed_address || '-',
+
+          // Additional daftar_ulang_submissions fields
+          'Reviewed By User': item.reviewed_by_user || '-',
+          'Pairing Status': item.pairing_status || '-',
+          'Rejection Reason': item.rejection_reason || '-',
+          'Akad URL': item.akad_url || '-',
+          'Akad File Name': item.akad_file_name || '-',
+          'Batch Name': item.batch_name || '-',
+          'Program ID': item.program_id || '-',
+          'Selection Status': item.selection_status || '-',
+          'Re-enrollment Completed': item.re_enrollment_completed ? 'Ya' : 'Tidak',
 
           // Exam & Juz Adjustment
           'Nilai Exam': item.exam_score ?? registration.exam_score ?? '-',
@@ -426,6 +454,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           'No. WA Partner': item.partner_wa_phone || '-',
           'Catatan Partner': item.partner_notes || '-',
 
+          // Study Partner (from study_partners table)
+          'Nama Pasangan Studi': studyPartner.nama_pasangan || '-',
+          'Hubungan Pasangan Studi': studyPartner.hubungan || '-',
+          'Catatan Pasangan Studi': studyPartner.catatan || '-',
+
           // Akad
           'Akad Terupload': item.akad_files && item.akad_files.length > 0 ? 'Ya' : 'Tidak',
           'Jumlah File Akad': item.akad_files?.length || 0,
@@ -433,13 +466,12 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
           // Status & Timestamps
           'Status Daftar Ulang': item.status === 'approved' ? 'Approved' : item.status === 'submitted' ? 'Submitted' : '-',
-          'Tanggal Submit': formatDate(item.submitted_at),
-          'Tanggal Review': formatDate(item.reviewed_at),
-          'Tanggal Dibuat': formatDate(item.created_at),
-          'Tanggal Diupdate': formatDate(item.updated_at),
+          'Tanggal Submit': formatDateTime(item.submitted_at),
+          'Tanggal Review': formatDateTime(item.reviewed_at),
+          'Tanggal Dibuat': formatDateTime(item.created_at),
+          'Tanggal Diupdate': formatDateTime(item.updated_at),
 
           // === DATA PENDAFTARAN (from pendaftaran_tikrar_tahfidz) ===
-          'Registration ID': registration.id || '-',
 
           // Data Pendaftaran Awal
           'Nama Lengkap (Pendaftaran)': registration.full_name || '-',
@@ -452,14 +484,64 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           'Tanggal Lahir (Pendaftaran)': formatDate(registration.birth_date),
           'Zona Waktu (Pendaftaran)': registration.zona_waktu || '-',
 
+          // Oral Assessment Data (Nilai Rekaman Suara)
+          'Oral Submission URL': registration.oral_submission_url || '-',
+          'Oral Makhraj Errors': registration.oral_makhraj_errors ?? '-',
+          'Oral Sifat Errors': registration.oral_sifat_errors ?? '-',
+          'Oral Mad Errors': registration.oral_mad_errors ?? '-',
+          'Oral Ghunnah Errors': registration.oral_ghunnah_errors ?? '-',
+          'Oral Harakat Errors': registration.oral_harakat_errors ?? '-',
+          'Oral Itmamul Harakat Errors': registration.oral_itmamul_harakat_errors ?? '-',
+          'Oral Total Score': registration.oral_total_score ?? '-',
+          'Oral Assessment Status': registration.oral_assessment_status || '-',
+          'Oral Assessed By': registration.oral_assessed_by || '-',
+          'Oral Assessed At': formatDateTime(registration.oral_assessed_at),
+          'Oral Feedback': registration.oral_feedback || '-',
+
+          // Written Quiz Data
+          'Written Quiz Score': registration.written_quiz_score ?? '-',
+          'Written Quiz Total Questions': registration.written_quiz_total_questions ?? '-',
+          'Written Quiz Correct Answers': registration.written_quiz_correct_answers ?? '-',
+          'Written Quiz Submitted At': formatDateTime(registration.written_quiz_submitted_at),
+
+          // Commitment Data
+          'Understands Commitment': registration.understands_commitment ? 'Ya' : 'Tidak',
+          'Tried Simulation': registration.tried_simulation ? 'Ya' : 'Tidak',
+          'No Travel Plans': registration.no_travel_plans ? 'Ya' : 'Tidak',
+          'Has Telegram': registration.has_telegram ? 'Ya' : 'Tidak',
+          'Saved Contact': registration.saved_contact ? 'Ya' : 'Tidak',
+          'Has Permission': registration.has_permission ? 'Ya' : 'Tidak',
+          'Permission Name': registration.permission_name || '-',
+          'Permission Phone': registration.permission_phone || '-',
+          'Motivation': registration.motivation || '-',
+          'Ready for Team': registration.ready_for_team ? 'Ya' : 'Tidak',
+          'Time Commitment': registration.time_commitment || '-',
+          'Understands Program': registration.understands_program ? 'Ya' : 'Tidak',
+          'Questions': registration.questions || '-',
+
+          // Exam Data
+          'Exam Juz Number': registration.exam_juz_number || '-',
+          'Exam Attempt ID': registration.exam_attempt_id || '-',
+          'Exam Submitted At': formatDateTime(registration.exam_submitted_at),
+          'Exam Status': registration.exam_status || '-',
+
           // === DATA USER (from users table) ===
-          'User ID': user.id || '-',
           'Nama Lengkap (User)': user.full_name || '-',
           'Email': user.email || '-',
           'No. WhatsApp (User)': user.whatsapp || user.phone || '-',
           'Tanggal Lahir (User)': formatDate(user.tanggal_lahir),
           'Zona Waktu (User)': user.zona_waktu || '-',
           'Roles': user.roles?.join(', ') || '-',
+          'Provinsi': user.provinsi || '-',
+          'Kota': user.kota || '-',
+          'Alamat Lengkap': user.alamat || '-',
+          'Telegram': user.telegram || '-',
+          'Tempat Lahir': user.tempat_lahir || '-',
+          'Pekerjaan': user.pekerjaan || '-',
+          'Alasan Daftar': user.alasan_daftar || '-',
+          'Jenis Kelamin': user.jenis_kelamin || '-',
+          'Negara': user.negara || '-',
+          'Nama Kunyah': user.nama_kunyah || '-',
         };
       });
 
@@ -467,11 +549,16 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
-      // Set column widths
+      // Set column widths - adjusted for all new fields
       ws['!cols'] = [
-        // No & IDs
+        // Sequence
         { wch: 5 },   // No
+
+        // IDs & References
         { wch: 40 },  // Submission ID
+        { wch: 40 },  // User ID
+        { wch: 40 },  // Registration ID
+        { wch: 15 },  // Batch ID
 
         // Confirmed Data
         { wch: 35 },  // Nama Lengkap (Confirmed)
@@ -480,6 +567,17 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         { wch: 20 },  // Slot Jadwal Cadangan (Confirmed)
         { wch: 18 },  // No. WhatsApp (Confirmed)
         { wch: 40 },  // Alamat (Confirmed)
+
+        // Additional daftar_ulang_submissions fields
+        { wch: 35 },  // Reviewed By User
+        { wch: 15 },  // Pairing Status
+        { wch: 40 },  // Rejection Reason
+        { wch: 50 },  // Akad URL
+        { wch: 30 },  // Akad File Name
+        { wch: 20 },  // Batch Name
+        { wch: 15 },  // Program ID
+        { wch: 15 },  // Selection Status
+        { wch: 20 },  // Re-enrollment Completed
 
         // Exam & Juz Adjustment
         { wch: 12 },  // Nilai Exam
@@ -508,6 +606,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         { wch: 18 },  // No. WA Partner
         { wch: 40 },  // Catatan Partner
 
+        // Study Partner
+        { wch: 35 },  // Nama Pasangan Studi
+        { wch: 20 },  // Hubungan Pasangan Studi
+        { wch: 40 },  // Catatan Pasangan Studi
+
         // Akad
         { wch: 15 },  // Akad Terupload
         { wch: 15 },  // Jumlah File Akad
@@ -515,13 +618,12 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
         // Status & Timestamps
         { wch: 18 },  // Status Daftar Ulang
-        { wch: 20 },  // Tanggal Submit
-        { wch: 20 },  // Tanggal Review
-        { wch: 20 },  // Tanggal Dibuat
-        { wch: 20 },  // Tanggal Diupdate
+        { wch: 25 },  // Tanggal Submit
+        { wch: 25 },  // Tanggal Review
+        { wch: 25 },  // Tanggal Dibuat
+        { wch: 25 },  // Tanggal Diupdate
 
         // Data Pendaftaran
-        { wch: 40 },  // Registration ID
         { wch: 35 },  // Nama Lengkap (Pendaftaran)
         { wch: 15 },  // Juz Pilihan (Pendaftaran)
         { wch: 12 },  // Nilai Exam (Pendaftaran)
@@ -532,14 +634,64 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         { wch: 20 },  // Tanggal Lahir (Pendaftaran)
         { wch: 15 },  // Zona Waktu (Pendaftaran)
 
+        // Oral Assessment Data
+        { wch: 50 },  // Oral Submission URL
+        { wch: 15 },  // Oral Makhraj Errors
+        { wch: 15 },  // Oral Sifat Errors
+        { wch: 15 },  // Oral Mad Errors
+        { wch: 15 },  // Oral Ghunnah Errors
+        { wch: 15 },  // Oral Harakat Errors
+        { wch: 20 },  // Oral Itmamul Harakat Errors
+        { wch: 15 },  // Oral Total Score
+        { wch: 18 },  // Oral Assessment Status
+        { wch: 35 },  // Oral Assessed By
+        { wch: 25 },  // Oral Assessed At
+        { wch: 50 },  // Oral Feedback
+
+        // Written Quiz Data
+        { wch: 15 },  // Written Quiz Score
+        { wch: 20 },  // Written Quiz Total Questions
+        { wch: 20 },  // Written Quiz Correct Answers
+        { wch: 25 },  // Written Quiz Submitted At
+
+        // Commitment Data
+        { wch: 18 },  // Understands Commitment
+        { wch: 15 },  // Tried Simulation
+        { wch: 15 },  // No Travel Plans
+        { wch: 15 },  // Has Telegram
+        { wch: 15 },  // Saved Contact
+        { wch: 15 },  // Has Permission
+        { wch: 35 },  // Permission Name
+        { wch: 18 },  // Permission Phone
+        { wch: 50 },  // Motivation
+        { wch: 15 },  // Ready for Team
+        { wch: 20 },  // Time Commitment
+        { wch: 18 },  // Understands Program
+        { wch: 50 },  // Questions
+
+        // Exam Data
+        { wch: 15 },  // Exam Juz Number
+        { wch: 40 },  // Exam Attempt ID
+        { wch: 25 },  // Exam Submitted At
+        { wch: 15 },  // Exam Status
+
         // Data User
-        { wch: 40 },  // User ID
         { wch: 35 },  // Nama Lengkap (User)
         { wch: 35 },  // Email
         { wch: 18 },  // No. WhatsApp (User)
         { wch: 20 },  // Tanggal Lahir (User)
         { wch: 15 },  // Zona Waktu (User)
         { wch: 20 },  // Roles
+        { wch: 20 },  // Provinsi
+        { wch: 20 },  // Kota
+        { wch: 40 },  // Alamat Lengkap
+        { wch: 18 },  // Telegram
+        { wch: 20 },  // Tempat Lahir
+        { wch: 25 },  // Pekerjaan
+        { wch: 50 },  // Alasan Daftar
+        { wch: 15 },  // Jenis Kelamin
+        { wch: 20 },  // Negara
+        { wch: 30 },  // Nama Kunyah
       ];
 
       XLSX.utils.book_append_sheet(wb, ws, 'Data Thalibah');
