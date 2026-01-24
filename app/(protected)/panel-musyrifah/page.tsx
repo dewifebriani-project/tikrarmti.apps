@@ -208,7 +208,7 @@ export default function PanelMusyrifahPage() {
     pendingUjianReview: 0,
   });
   const [thalibahList, setThalibahList] = useState<Thalibah[]>([]);
-  const [jurnalEntries, setJurnalEntries] = useState<JurnalEntry[]>([]);
+  const [jurnalEntries, setJurnalEntries] = useState<JurnalUserEntry[]>([]);
   const [tashihEntries, setTashihEntries] = useState<TashihEntry[]>([]);
   const [ujianResults, setUjianResults] = useState<UjianResult[]>([]);
 
