@@ -266,6 +266,7 @@ export async function GET(request: Request) {
           tanggal_setor: latestJurnal.tanggal_setor,
           blok: latestJurnal.blok,
           pekan: calculateWeekFromBlok(latestJurnal.blok),
+          juz_code: latestJurnal.juz_code,
         } : null,
         jurnal_records: userJurnalRecords.map((r: any) => ({
           ...r,

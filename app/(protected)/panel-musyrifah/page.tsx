@@ -99,6 +99,7 @@ interface JurnalUserEntry {
     tanggal_setor: string;
     blok: string | null;
     pekan: number | null;
+    juz_code?: string | null;
   } | null;
   jurnal_records: JurnalEntry[];
 }
@@ -715,6 +716,31 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     return null;
   };
 
+  // Helper to format WhatsApp link
+  const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: JurnalUserEntry) => {
+    if (!phoneNumber) return null;
+
+    const cleanedPhone = phoneNumber.replace(/^0/, '62').replace(/[\s\-\(\)]/g, '');
+    const weeksWithJurnal = entry.weeks_with_jurnal;
+    const totalWeeks = entry.weekly_status.length;
+
+    const message = `Assalamu'alaikum ${name},
+
+Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan progress jurnal harian:
+
+- Total jurnal: ${entry.jurnal_count}
+- Pekan dengan jurnal: ${weeksWithJurnal}/${totalWeeks}
+- Terakhir jurnal: ${entry.latest_jurnal ? new Date(entry.latest_jurnal.tanggal_setor).toLocaleDateString('id-ID') : '-'}
+
+${weeksWithJurnal < 10 ? 'Mohon ditingkatkan lagi jurnal hariannya.' : 'Alhamdulillah jurnal sudah lengkap.'}
+
+Jazakillahu khairan
+Tim Markaz Tikrar Indonesia`;
+
+    const encodedMessage = encodeURIComponent(message);
+    return `https://wa.me/${cleanedPhone}?text=${encodedMessage}`;
+  };
+
   // Helper to render week cell - entries now already has weekly_status from API
   const renderJurnalWeekCell = (entry: JurnalUserEntry, weekNum: number) => {
     const week = entry.weekly_status.find((w: any) => w.week_number === weekNum);
@@ -796,75 +822,101 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                 <tr>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P1</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P2</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P3</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P4</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P5</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P6</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P7</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P8</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P9</th>
-                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P10</th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P1</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P2</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P3</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P4</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P5</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P6</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P7</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P8</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P9</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P10</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {entries.map((userData) => (
-                  <React.Fragment key={userData.user_id}>
-                    <tr className={`hover:bg-gray-50 ${userData.jurnal_count === 0 ? 'bg-yellow-50' : ''}`}>
-                      <td className="px-2 py-2">
-                        <button
-                          onClick={() => toggleRow(userData.user_id)}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          {expandedRows.has(userData.user_id) ? (
-                            <ChevronDown className="w-4 h-4 transform rotate-180" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{displayName(userData.user)}</div>
-                        {displayKunyah(userData.user) && (
-                          <div className="text-xs text-gray-500 truncate max-w-[120px]">{displayKunyah(userData.user)}</div>
-                        )}
-                      </td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 1)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 2)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 3)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 4)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 5)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 6)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 7)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 8)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 9)}</td>
-                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 10)}</td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
-                        {userData.jurnal_count} jurnal
-                      </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => {/* Could open detail modal */}}
-                            className="text-indigo-600 hover:text-indigo-900 p-1"
-                            title="Detail"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                {entries.map((userData) => {
+                  const name = displayName(userData.user);
+                  const kunyah = displayKunyah(userData.user);
+                  const whatsappUrl = userData.user?.whatsapp ? formatWhatsAppLink(userData.user.whatsapp, name, userData) : null;
+                  const isExpanded = expandedRows.has(userData.user_id);
+                  // Get latest juz from jurnal records
+                  const latestJuz = userData.latest_jurnal?.juz_code || null;
+
+                  return (
+                    <React.Fragment key={userData.user_id}>
+                      <tr className={`hover:bg-gray-50 ${userData.jurnal_count === 0 ? 'bg-yellow-50' : ''}`}>
+                        <td className="px-2 py-2">
                           <button
                             onClick={() => toggleRow(userData.user_id)}
-                            className="text-blue-600 hover:text-blue-900 p-1"
-                            title="Lihat Detail"
+                            className="text-gray-400 hover:text-gray-600"
                           >
-                            <BookOpen className="w-4 h-4" />
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4 transform rotate-180" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedRows.has(userData.user_id) && (
+                        </td>
+                        <td className="px-2 py-2">
+                          <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{name}</div>
+                          {kunyah && (
+                            <div className="text-xs text-gray-500 truncate max-w-[120px]">{kunyah}</div>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          {whatsappUrl ? (
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
+                              title="Chat via WhatsApp"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-400">
+                              <X className="w-3 h-3" />
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 1)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 2)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 3)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 4)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 5)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 6)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 7)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 8)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 9)}</td>
+                        <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 10)}</td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
+                          {latestJuz || '-'}
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => {/* Could open detail modal */}}
+                              className="text-indigo-600 hover:text-indigo-900 p-1"
+                              title="Detail"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => toggleRow(userData.user_id)}
+                              className="text-blue-600 hover:text-blue-900 p-1"
+                              title="Lihat Detail"
+                            >
+                              <BookOpen className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedRows.has(userData.user_id) && (
                       <tr className="bg-gray-50">
                         <td colSpan={14} className="px-4 py-4">
                           <div className="space-y-4">
@@ -968,22 +1020,75 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                                               </button>
                                               <button
                                                 onClick={async () => {
-                                                  if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
-                                                    try {
-                                                      const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
-                                                        method: 'DELETE',
-                                                      });
-
-                                                      if (!response.ok) {
-                                                        const error = await response.json();
-                                                        toast.error(error.error || 'Gagal menghapus jurnal');
-                                                        return;
+                                                  // Parse blok - check if it's JSON array or comma-separated
+                                                  let bloks: string[] = [];
+                                                  if (entry.blok) {
+                                                    if (typeof entry.blok === 'string' && entry.blok.startsWith('[')) {
+                                                      try {
+                                                        bloks = JSON.parse(entry.blok);
+                                                      } catch {
+                                                        bloks = entry.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b);
                                                       }
+                                                    } else if (typeof entry.blok === 'string') {
+                                                      bloks = entry.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b);
+                                                    } else if (Array.isArray(entry.blok)) {
+                                                      bloks = entry.blok;
+                                                    }
+                                                  }
 
-                                                      toast.success('Jurnal berhasil dihapus');
-                                                      onRefresh();
-                                                    } catch (err) {
-                                                      toast.error('Gagal menghapus jurnal');
+                                                  const blockCount = bloks.length;
+                                                  const blockList = bloks.join(', ');
+                                                  const entryDate = new Date(entry.tanggal_setor).toLocaleDateString('id-ID');
+
+                                                  if (blockCount > 1) {
+                                                    // Multiple blocks - ask which block to delete
+                                                    const blockToDelete = prompt(`Hapus blok dari record jurnal ini?\n\nTanggal: ${entryDate}\nBlok dalam record ini: ${blockList}\n\nMasukkan nama blok yang ingin dihapus (contoh: H1A):`);
+
+                                                    if (blockToDelete && bloks.includes(blockToDelete)) {
+                                                      try {
+                                                        const newBlok = bloks.filter((b: string) => b !== blockToDelete);
+                                                        const response = await fetch('/api/musyrifah/jurnal', {
+                                                          method: 'PUT',
+                                                          headers: { 'Content-Type': 'application/json' },
+                                                          body: JSON.stringify({
+                                                            id: entry.id,
+                                                            blok: newBlok.length > 0 ? JSON.stringify(newBlok) : null
+                                                          }),
+                                                        });
+
+                                                        if (!response.ok) {
+                                                          const error = await response.json();
+                                                          toast.error(error.error || 'Gagal menghapus blok');
+                                                          return;
+                                                        }
+
+                                                        toast.success(`Blok ${blockToDelete} berhasil dihapus dari record`);
+                                                        onRefresh();
+                                                      } catch (err) {
+                                                        toast.error('Gagal menghapus blok');
+                                                      }
+                                                    } else if (blockToDelete) {
+                                                      toast.error('Blok tidak ditemukan dalam record');
+                                                    }
+                                                  } else {
+                                                    // Single block - delete entire record
+                                                    if (confirm(`Hapus record jurnal ini?\n\nBlok: ${blockList || '-'}\nTanggal: ${entryDate}`)) {
+                                                      try {
+                                                        const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
+                                                          method: 'DELETE',
+                                                        });
+
+                                                        if (!response.ok) {
+                                                          const error = await response.json();
+                                                          toast.error(error.error || 'Gagal menghapus jurnal');
+                                                          return;
+                                                        }
+
+                                                        toast.success('Jurnal berhasil dihapus');
+                                                        onRefresh();
+                                                      } catch (err) {
+                                                        toast.error('Gagal menghapus jurnal');
+                                                      }
                                                     }
                                                   }
                                                 }}
@@ -1004,14 +1109,22 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
 
                             {/* Summary */}
                             <div className="mt-4 pt-3 border-t border-gray-200">
-                              <div className="grid grid-cols-3 gap-4 text-xs">
+                              <div className="grid grid-cols-5 gap-4 text-xs">
                                 <div>
                                   <span className="text-gray-500">Total Jurnal:</span>
                                   <span className="ml-2 font-medium text-gray-900">{userData.jurnal_count}</span>
                                 </div>
                                 <div>
                                   <span className="text-gray-500">Pekan dengan Jurnal:</span>
-                                  <span className="ml-2 font-medium text-gray-900">{userData.weeks_with_jurnal}/10</span>
+                                  <span className="ml-2 font-medium text-green-600">{userData.weeks_with_jurnal}/10</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Pekan Kosong:</span>
+                                  <span className="ml-2 font-medium text-yellow-600">{10 - userData.weeks_with_jurnal}/10</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Juz Terakhir:</span>
+                                  <span className="ml-2 font-medium text-gray-900">{userData.latest_jurnal?.juz_code || '-'}</span>
                                 </div>
                                 <div>
                                   <span className="text-gray-500">Terakhir Jurnal:</span>
@@ -1024,12 +1137,75 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                                 </div>
                               </div>
                             </div>
+
+                            {/* All Jurnal Records - Delete Excess Records */}
+                            {userData.jurnal_records.length > 0 && (
+                              <div className="mt-4 pt-3 border-t border-gray-200">
+                                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                                  Riwayat Jurnal ({userData.jurnal_records.length} record) - Hapus yang kelebihan
+                                </h4>
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                  {userData.jurnal_records.map((record) => {
+                                    const bloks = typeof record.blok === 'string' && record.blok.startsWith('[')
+                                      ? JSON.parse(record.blok)
+                                      : (record.blok ? [record.blok] : []);
+
+                                    return (
+                                      <div
+                                        key={record.id}
+                                        className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:border-red-300 transition-colors"
+                                      >
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-xs text-gray-900">
+                                            {new Date(record.tanggal_setor).toLocaleDateString('id-ID', {
+                                              day: 'numeric',
+                                              month: 'short',
+                                              year: 'numeric'
+                                            })}
+                                          </div>
+                                          <div className="text-xs text-gray-500 truncate">
+                                            Blok: {bloks.join(', ') || '-'} | Juz: {record.juz_code || '-'}
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={async () => {
+                                            if (confirm(`Hapus record jurnal ini?\n\nBlok: ${bloks.join(', ')}\nTanggal: ${new Date(record.tanggal_setor).toLocaleDateString('id-ID')}`)) {
+                                              try {
+                                                const response = await fetch(`/api/musyrifah/jurnal?id=${record.id}`, {
+                                                  method: 'DELETE',
+                                                });
+
+                                                if (!response.ok) {
+                                                  const error = await response.json();
+                                                  toast.error(error.error || 'Gagal menghapus record');
+                                                  return;
+                                                }
+
+                                                toast.success('Record jurnal berhasil dihapus');
+                                                onRefresh();
+                                              } catch (err) {
+                                                toast.error('Gagal menghapus record');
+                                              }
+                                            }
+                                          }}
+                                          className="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition-colors"
+                                          title="Hapus record ini"
+                                        >
+                                          Hapus
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
-                    )}
+                      )}
                   </React.Fragment>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>
