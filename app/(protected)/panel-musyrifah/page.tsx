@@ -1326,7 +1326,7 @@ Tim Markaz Tikrar Indonesia`;
                       {isExpanded && (
                         <tr className="bg-gray-50">
                           <td colSpan={7} className="px-4 py-4">
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                               <h4 className="text-sm font-medium text-gray-700">Progress per Pekan (10 Pekan)</h4>
                               <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                                 {entry.weekly_status.map((week) => (
@@ -1346,7 +1346,9 @@ Tim Markaz Tikrar Indonesia`;
                                   </div>
                                 ))}
                               </div>
-                              <div className="mt-3 pt-3 border-t border-gray-200">
+
+                              {/* Summary */}
+                              <div className="mt-4 pt-3 border-t border-gray-200">
                                 <div className="grid grid-cols-5 gap-4 text-xs">
                                   <div>
                                     <span className="text-gray-500">Total Blok:</span>
@@ -1375,6 +1377,75 @@ Tim Markaz Tikrar Indonesia`;
                                   </div>
                                 </div>
                               </div>
+
+                              {/* All Tashih Records - Delete Excess Records */}
+                              {entry.tashih_records.length > 0 && (
+                                <div className="mt-4 pt-3 border-t border-gray-200">
+                                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                                    Riwayat Tashih ({entry.tashih_records.length} record) - Hapus yang kelebihan
+                                  </h4>
+                                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    {entry.tashih_records.map((record) => {
+                                      const bloks = typeof record.blok === 'string'
+                                        ? record.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
+                                        : (Array.isArray(record.blok) ? record.blok : []);
+
+                                      return (
+                                        <div
+                                          key={record.id}
+                                          className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:border-red-300 transition-colors"
+                                        >
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-xs text-gray-900">
+                                              {new Date(record.waktu_tashih).toLocaleDateString('id-ID', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric'
+                                              })}
+                                            </div>
+                                            <div className="text-xs text-gray-500 truncate">
+                                              Blok: {bloks.join(', ') || '-'} | {record.nama_pemeriksa || '-'}
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {record.jumlah_kesalahan_tajwid !== null && (
+                                              <span className="text-xs px-2 py-1 bg-red-50 text-red-700 rounded">
+                                                {record.jumlah_kesalahan_tajwid} error
+                                              </span>
+                                            )}
+                                            <button
+                                              onClick={async () => {
+                                                if (confirm(`Hapus record tashih ini?\n\nBlok: ${bloks.join(', ')}\nTanggal: ${new Date(record.waktu_tashih).toLocaleDateString('id-ID')}`)) {
+                                                  try {
+                                                    const response = await fetch(`/api/musyrifah/tashih?id=${record.id}`, {
+                                                      method: 'DELETE',
+                                                    });
+
+                                                    if (!response.ok) {
+                                                      const error = await response.json();
+                                                      toast.error(error.error || 'Gagal menghapus record');
+                                                      return;
+                                                    }
+
+                                                    toast.success('Record tashih berhasil dihapus');
+                                                    onRefresh();
+                                                  } catch (err) {
+                                                    toast.error('Gagal menghapus record');
+                                                  }
+                                                }
+                                              }}
+                                              className="text-red-600 hover:text-red-900 p-1"
+                                              title="Hapus record ini"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </td>
                         </tr>

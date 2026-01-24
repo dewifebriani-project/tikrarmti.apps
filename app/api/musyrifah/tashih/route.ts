@@ -45,15 +45,12 @@ function generateAllBlocks(juzInfo: any) {
 
 // Helper to calculate weekly status
 function calculateWeeklyStatus(allBlocks: any[], tashihRecords: any[]) {
-  // Create a map to track completion status
   const blockStatus = new Map<string, { is_completed: boolean; tashih_count: number; tashih_date?: string }>();
 
-  // Initialize map with all blocks
   allBlocks.forEach(block => {
     blockStatus.set(block.block_code, { is_completed: false, tashih_count: 0 });
   });
 
-  // Process tashih records
   tashihRecords.forEach(record => {
     if (record.blok) {
       const blocksInRecord = parseBlokField(record.blok);
@@ -71,7 +68,6 @@ function calculateWeeklyStatus(allBlocks: any[], tashihRecords: any[]) {
     }
   });
 
-  // Group blocks by week and calculate status
   const weeklyStatus: any[] = [];
   for (let week = 1; week <= 10; week++) {
     const weekBlocks = allBlocks.filter(b => b.week_number === week);
@@ -96,30 +92,39 @@ function calculateWeeklyStatus(allBlocks: any[], tashihRecords: any[]) {
   return weeklyStatus;
 }
 
+// Helper function to verify musyrifah access
+async function verifyMusyrifahAccess(supabase: any) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: 'Unauthorized', status: 401 };
+  }
+
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('roles')
+    .eq('id', user.id)
+    .single();
+
+  if (userError || !userData) {
+    return { error: 'User not found', status: 404 };
+  }
+
+  const roles = userData?.roles || [];
+  if (!roles.includes('musyrifah')) {
+    return { error: 'Forbidden: Musyrifah access required', status: 403 };
+  }
+
+  return { user };
+}
+
 export async function GET(request: Request) {
   try {
     const supabase = createClient();
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify user has musyrifah role
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const roles = userData?.roles || [];
-    if (!roles.includes('musyrifah')) {
-      return NextResponse.json({ error: 'Forbidden: Musyrifah access required' }, { status: 403 });
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
     // Get URL parameters for filtering
@@ -151,13 +156,11 @@ export async function GET(request: Request) {
       .select('id, full_name, nama_kunyah, whatsapp')
       .in('id', userIds);
 
-    // Create a map for quick user lookup
     const userMap = new Map();
     usersData?.forEach((u: any) => {
       userMap.set(u.id, u);
     });
 
-    // Create a map for daftar ulang lookup
     const daftarUlangMap = new Map();
     daftarUlangUsers?.forEach((d: any) => {
       daftarUlangMap.set(d.user_id, d);
@@ -180,7 +183,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // Group tashih records by user_id
     const tashihByUser = new Map();
     tashihRecords.forEach((record: any) => {
       if (!tashihByUser.has(record.user_id)) {
@@ -189,7 +191,6 @@ export async function GET(request: Request) {
       tashihByUser.get(record.user_id).push(record);
     });
 
-    // Collect all unique bloks from tashih_records for filter options
     const allBloks = new Set<string>();
     tashihRecords.forEach((record: any) => {
       const bloks = parseBlokField(record.blok);
@@ -222,7 +223,6 @@ export async function GET(request: Request) {
       const juzCode = daftarUlang?.confirmed_chosen_juz;
       const juzInfo = juzCode ? juzInfoMap.get(juzCode) : null;
 
-      // Generate all blocks and calculate weekly status if juz info is available
       let weeklyStatus: any[] = [];
       let totalBlocks = 0;
       let completedBlocks = 0;
@@ -241,31 +241,20 @@ export async function GET(request: Request) {
       }
 
       return {
-        // Daftar ulang info
         user_id: userId,
         confirmed_chosen_juz: juzCode || null,
         daftar_ulang_status: daftarUlang?.status,
         submitted_at: daftarUlang?.submitted_at,
         reviewed_at: daftarUlang?.reviewed_at,
-
-        // User info
         user: userMap.get(userId) || null,
-
-        // Juz info
         juz_info: juzInfo || null,
-
-        // Weekly status (pekan 1-10)
         weekly_status: weeklyStatus,
-
-        // Summary
         summary: {
           total_blocks: totalBlocks,
           completed_blocks: completedBlocks,
           pending_blocks: totalBlocks - completedBlocks,
           completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0
         },
-
-        // Tashih info (latest)
         has_tashih: userTashihRecords.length > 0,
         tashih_count: userTashihRecords.length,
         latest_tashih: latestTashih ? {
@@ -277,8 +266,6 @@ export async function GET(request: Request) {
           waktu_tashih: latestTashih.waktu_tashih,
           blok: latestTashih.blok,
         } : null,
-
-        // All tashih records
         tashih_records: userTashihRecords,
       };
     });
@@ -294,6 +281,55 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Error in musyrifah tashih API:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE - Delete a tashih record
+export async function DELETE(request: Request) {
+  try {
+    const supabase = createClient();
+
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+    }
+
+    // Check if record exists
+    const { data: existingRecord } = await supabase
+      .from('tashih_records')
+      .select('id, user_id')
+      .eq('id', id)
+      .single();
+
+    if (!existingRecord) {
+      return NextResponse.json({ error: 'Tashih record not found' }, { status: 404 });
+    }
+
+    // Delete tashih record
+    const { error } = await supabase
+      .from('tashih_records')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Tashih record berhasil dihapus',
+    });
+  } catch (error: any) {
+    console.error('Error deleting tashih record:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
