@@ -1,6 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+// Helper function to parse blok field (can be string or array)
+function parseBlokField(blok: any): string[] {
+  if (!blok) return [];
+  if (typeof blok === 'string') {
+    return blok.split(',').map(b => b.trim()).filter(b => b);
+  }
+  if (Array.isArray(blok)) {
+    return blok;
+  }
+  return [];
+}
+
 export async function GET(request: Request) {
   try {
     const supabase = createClient();
@@ -32,16 +44,10 @@ export async function GET(request: Request) {
     const blok = searchParams.get('blok');
 
     // Get all thalibah from daftar_ulang_submissions with approved or submitted status
+    // Note: blok comes from tashih_records, NOT from daftar_ulang_submissions
     const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
-      .select(`
-        user_id,
-        blok,
-        confirmed_juz_number,
-        status,
-        submitted_at,
-        approved_at
-      `)
+      .select('user_id, confirmed_chosen_juz, status, submitted_at, approved_at')
       .in('status', ['approved', 'submitted']);
 
     if (daftarUlangError) {
@@ -69,44 +75,65 @@ export async function GET(request: Request) {
       userMap.set(u.id, u);
     });
 
-    // Fetch tashih_records for these users
+    // Create a map for daftar ulang lookup
+    const daftarUlangMap = new Map();
+    daftarUlangUsers?.forEach((d: any) => {
+      daftarUlangMap.set(d.user_id, d);
+    });
+
+    // Fetch all tashih_records for these users
+    // Note: blok field is in tashih_records table
     let tashihQuery = supabase
       .from('tashih_records')
       .select('*')
       .in('user_id', userIds)
       .order('waktu_tashih', { ascending: false });
 
-    if (blok) {
-      tashihQuery = tashihQuery.eq('blok', blok);
-    }
+    // If blok filter is specified, we need to check if blok field contains the filter value
+    // Since blok can be a comma-separated string or array, we need to filter after fetching
+    const { data: allTashihRecords, error: tashihError } = await tashihQuery;
 
-    const { data: tashihRecords, error: tashihError } = await tashihQuery;
+    let tashihRecords = allTashihRecords || [];
+    if (blok) {
+      // Filter records that contain the specified blok
+      tashihRecords = tashihRecords.filter((record: any) => {
+        const bloks = parseBlokField(record.blok);
+        return bloks.includes(blok);
+      });
+    }
 
     // Group tashih records by user_id
     const tashihByUser = new Map();
-    (tashihRecords || []).forEach((record: any) => {
+    tashihRecords.forEach((record: any) => {
       if (!tashihByUser.has(record.user_id)) {
         tashihByUser.set(record.user_id, []);
       }
       tashihByUser.get(record.user_id).push(record);
     });
 
-    // Build combined entries - one per thalibah, with their tashih records
-    const combinedEntries = (daftarUlangUsers || []).map((daftarUlang: any) => {
-      const userTashihRecords = tashihByUser.get(daftarUlang.user_id) || [];
+    // Collect all unique bloks from tashih_records for filter options
+    const allBloks = new Set<string>();
+    tashihRecords.forEach((record: any) => {
+      const bloks = parseBlokField(record.blok);
+      bloks.forEach(b => allBloks.add(b));
+    });
+
+    // Build combined entries - one per thalibah from daftar_ulang, with their tashih records
+    const combinedEntries = userIds.map((userId: string) => {
+      const daftarUlang = daftarUlangMap.get(userId);
+      const userTashihRecords = tashihByUser.get(userId) || [];
       const latestTashih = userTashihRecords.length > 0 ? userTashihRecords[0] : null;
 
       return {
         // Daftar ulang info
-        user_id: daftarUlang.user_id,
-        blok: daftarUlang.blok,
-        confirmed_juz_number: daftarUlang.confirmed_juz_number,
-        daftar_ulang_status: daftarUlang.status,
-        submitted_at: daftarUlang.submitted_at,
-        approved_at: daftarUlang.approved_at,
+        user_id: userId,
+        confirmed_chosen_juz: daftarUlang?.confirmed_chosen_juz || 0,
+        daftar_ulang_status: daftarUlang?.status,
+        submitted_at: daftarUlang?.submitted_at,
+        approved_at: daftarUlang?.approved_at,
 
         // User info
-        user: userMap.get(daftarUlang.user_id) || null,
+        user: userMap.get(userId) || null,
 
         // Tashih info (latest)
         has_tashih: userTashihRecords.length > 0,
@@ -118,6 +145,7 @@ export async function GET(request: Request) {
           nama_pemeriksa: latestTashih.nama_pemeriksa,
           jumlah_kesalahan_tajwid: latestTashih.jumlah_kesalahan_tajwid,
           waktu_tashih: latestTashih.waktu_tashih,
+          blok: latestTashih.blok,
         } : null,
 
         // All tashih records
@@ -125,15 +153,7 @@ export async function GET(request: Request) {
       };
     });
 
-    // Get unique bloks for filter options
-    const { data: bloksData } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('blok')
-      .in('status', ['approved', 'submitted'])
-      .not('blok', 'is', null)
-      .order('blok', { ascending: true });
-
-    const uniqueBloks = Array.from(new Set(bloksData?.map((d: any) => d.blok).filter((b: any) => b) || []));
+    const uniqueBloks = Array.from(allBloks).sort();
 
     return NextResponse.json({
       success: true,

@@ -74,8 +74,7 @@ interface JurnalEntry {
 
 interface TashihEntry {
   user_id: string;
-  blok: string;
-  confirmed_juz_number: number;
+  confirmed_chosen_juz: number;
   daftar_ulang_status: string;
   submitted_at: string;
   approved_at: string;
@@ -94,6 +93,7 @@ interface TashihEntry {
     nama_pemeriksa: string | null;
     jumlah_kesalahan_tajwid: number | null;
     waktu_tashih: string;
+    blok: string;
   } | null;
   tashih_records: any[];
 }
@@ -1111,12 +1111,14 @@ function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
       ? `- Jumlah kesalahan tajwid: ${entry.latest_tashih.jumlah_kesalahan_tajwid || '0'}`
       : '- Belum ada data tashih';
 
+    const blokInfo = entry.latest_tashih?.blok || 'Belum ada blok';
+
     const message = `Assalamu'alaikum ${name},
 
 Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan hasil tashih:
 
-- Blok: ${entry.blok}
-- Juz: ${entry.confirmed_juz_number}
+- Blok: ${blokInfo}
+- Juz: ${entry.confirmed_chosen_juz}
 - Status: ${hasTashih}
 ${tashihInfo}
 
@@ -1131,12 +1133,33 @@ Tim Markaz Tikrar Indonesia`;
     return whatsappUrl;
   };
 
+  // Parse blok field from tashih_records (can be comma-separated string)
+  const parseBlokField = (blok: any): string[] => {
+    if (!blok) return [];
+    if (typeof blok === 'string') {
+      return blok.split(',').map(b => b.trim()).filter(b => b);
+    }
+    if (Array.isArray(blok)) {
+      return blok;
+    }
+    return [];
+  };
+
   // Calculate blok per pekan (30 juz divided into bloks)
   const juzPerBlok = 5; // Assuming 5 juz per blok
   const blokToPekan = (blok: string) => {
     const blokNum = parseInt(blok.replace(/\D/g, '')) || 1;
     const pekan = Math.ceil((blokNum - 1) * juzPerBlok / 5) + 1; // Rough calculation
     return pekan;
+  };
+
+  // Get blok display from entry
+  const getEntryBlok = (entry: TashihEntry): string => {
+    if (entry.latest_tashih?.blok) {
+      const bloks = parseBlokField(entry.latest_tashih.blok);
+      return bloks.length > 0 ? bloks.join(', ') : '-';
+    }
+    return '-';
   };
 
   return (
@@ -1211,10 +1234,11 @@ Tim Markaz Tikrar Indonesia`;
                   const name = displayName(entry);
                   const kunyah = displayKunyah(entry);
                   const whatsappUrl = entry.user?.whatsapp ? formatWhatsAppLink(entry.user.whatsapp, name, entry) : null;
+                  const entryBlok = getEntryBlok(entry);
 
-                  // Calculate progress bar (tashih_count vs confirmed_juz_number)
-                  const progress = entry.confirmed_juz_number > 0
-                    ? Math.min((entry.tashih_count / entry.confirmed_juz_number) * 100, 100)
+                  // Calculate progress bar (tashih_count vs confirmed_chosen_juz)
+                  const progress = entry.confirmed_chosen_juz > 0
+                    ? Math.min((entry.tashih_count / entry.confirmed_chosen_juz) * 100, 100)
                     : 0;
 
                   return (
@@ -1245,7 +1269,7 @@ Tim Markaz Tikrar Indonesia`;
                       <td className="px-4 py-3">
                         <div className="w-24">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-gray-600">{entry.tashih_count}/{entry.confirmed_juz_number}</span>
+                            <span className="text-xs text-gray-600">{entry.tashih_count}/{entry.confirmed_chosen_juz}</span>
                             <span className="text-xs font-medium text-gray-900">{Math.round(progress)}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -1258,14 +1282,14 @@ Tim Markaz Tikrar Indonesia`;
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                          {entry.blok}
+                          {entryBlok}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {blokToPekan(entry.blok)}
+                        {entryBlok !== '-' && entryBlok !== '' ? blokToPekan(entryBlok.split(',')[0]?.trim() || '') : '-'}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {entry.confirmed_juz_number}
+                        {entry.confirmed_chosen_juz}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {entry.has_tashih ? (
