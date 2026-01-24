@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
 
 // Validation schema for jurnal record
 const jurnalRecordSchema = z.object({
@@ -268,6 +269,10 @@ export async function PUT(request: Request) {
       throw error;
     }
 
+    // Revalidate paths to refresh cache
+    revalidatePath('/panel-musyrifah');
+    revalidatePath('/dashboard');
+
     return NextResponse.json({
       success: true,
       data: updatedRecord,
@@ -319,6 +324,10 @@ export async function DELETE(request: Request) {
     if (error) {
       throw error;
     }
+
+    // Revalidate paths to refresh cache
+    revalidatePath('/panel-musyrifah');
+    revalidatePath('/dashboard');
 
     return NextResponse.json({
       success: true,
