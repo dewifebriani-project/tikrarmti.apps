@@ -344,85 +344,6 @@ export default function PanelMusyrifahPage() {
     }
   };
 
-  // Helper to calculate weekly status from jurnal entries
-  const calculateJurnalWeeklyStatus = (entries: JurnalEntry[]) => {
-    const weeklyStatus: any[] = [];
-    for (let week = 1; week <= 10; week++) {
-      const weekEntries = entries.filter(e => e.pekan === week);
-      const hasJurnal = weekEntries.length > 0;
-
-      // Calculate total activities for the week
-      let totalActivities = 0;
-      let completedActivities = 0;
-
-      weekEntries.forEach(entry => {
-        if (entry.tashih_completed) totalActivities++;
-        if (entry.rabth_completed) totalActivities++;
-        totalActivities += entry.murajaah_count > 0 ? 1 : 0;
-        totalActivities += entry.simak_murattal_count > 0 ? 1 : 0;
-        if (entry.tikrar_bi_an_nadzar_completed) totalActivities++;
-        totalActivities += entry.tasmi_record_count > 0 ? 1 : 0;
-        totalActivities += entry.tikrar_bi_al_ghaib_count > 0 ? 1 : 0;
-        if (entry.tafsir_completed) totalActivities++;
-        if (entry.menulis_completed) totalActivities++;
-
-        // Count completed
-        if (entry.tashih_completed) completedActivities++;
-        if (entry.rabth_completed) completedActivities++;
-        if (entry.murajaah_count > 0) completedActivities++;
-        if (entry.simak_murattal_count > 0) completedActivities++;
-        if (entry.tikrar_bi_an_nadzar_completed) completedActivities++;
-        if (entry.tasmi_record_count > 0) completedActivities++;
-        if (entry.tikrar_bi_al_ghaib_count > 0) completedActivities++;
-        if (entry.tafsir_completed) completedActivities++;
-        if (entry.menulis_completed) completedActivities++;
-      });
-
-      weeklyStatus.push({
-        week_number: week,
-        has_jurnal: hasJurnal,
-        entry_count: weekEntries.length,
-        total_activities: totalActivities,
-        completed_activities: completedActivities,
-        entries: weekEntries
-      });
-    }
-
-    return weeklyStatus;
-  };
-
-  // Group jurnal entries by user for display
-  const groupJurnalByUser = (entries: JurnalEntry[]) => {
-    const userMap = new Map<string, JurnalEntry[]>();
-
-    entries.forEach(entry => {
-      if (!userMap.has(entry.user_id)) {
-        userMap.set(entry.user_id, []);
-      }
-      userMap.get(entry.user_id)!.push(entry);
-    });
-
-    return Array.from(userMap.entries()).map(([userId, userEntries]) => {
-      const user = userEntries[0]?.user;
-      const latestEntry = userEntries.sort((a, b) =>
-        new Date(b.tanggal_setor).getTime() - new Date(a.tanggal_setor).getTime()
-      )[0];
-
-      const weeklyStatus = calculateJurnalWeeklyStatus(userEntries);
-      const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
-
-      return {
-        user_id: userId,
-        user: user,
-        weekly_status: weeklyStatus,
-        jurnal_count: userEntries.length,
-        weeks_with_jurnal: weeksWithJurnal,
-        latest_entry: latestEntry,
-        all_entries: userEntries
-      };
-    });
-  };
-
   const loadTashih = async () => {
     try {
       // Build query params
@@ -763,6 +684,58 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   const displayKunyah = (user: any) => {
     if (user?.nama_kunyah) return user.nama_kunyah;
     return null;
+  };
+
+  // Helper to calculate weekly status from jurnal entries
+  const calculateJurnalWeeklyStatus = (entries: JurnalEntry[]) => {
+    const weeklyStatus: any[] = [];
+    for (let week = 1; week <= 10; week++) {
+      const weekEntries = entries.filter(e => e.pekan === week);
+      const hasJurnal = weekEntries.length > 0;
+
+      weeklyStatus.push({
+        week_number: week,
+        has_jurnal: hasJurnal,
+        entry_count: weekEntries.length,
+        total_activities: 0,
+        completed_activities: 0,
+        entries: weekEntries
+      });
+    }
+
+    return weeklyStatus;
+  };
+
+  // Group jurnal entries by user for display
+  const groupJurnalByUser = (entries: JurnalEntry[]) => {
+    const userMap = new Map<string, JurnalEntry[]>();
+
+    entries.forEach(entry => {
+      if (!userMap.has(entry.user_id)) {
+        userMap.set(entry.user_id, []);
+      }
+      userMap.get(entry.user_id)!.push(entry);
+    });
+
+    return Array.from(userMap.entries()).map(([userId, userEntries]) => {
+      const user = userEntries[0]?.user;
+      const latestEntry = userEntries.sort((a, b) =>
+        new Date(b.tanggal_setor).getTime() - new Date(a.tanggal_setor).getTime()
+      )[0];
+
+      const weeklyStatus = calculateJurnalWeeklyStatus(userEntries);
+      const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
+
+      return {
+        user_id: userId,
+        user: user,
+        weekly_status: weeklyStatus,
+        jurnal_count: userEntries.length,
+        weeks_with_jurnal: weeksWithJurnal,
+        latest_entry: latestEntry,
+        all_entries: userEntries
+      };
+    });
   };
 
   // Group entries by user and calculate weekly status
