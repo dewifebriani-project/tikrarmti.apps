@@ -125,7 +125,7 @@ export async function GET(request: Request) {
     // Get all thalibah from daftar_ulang_submissions with approved or submitted status
     const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, status, submitted_at, reviewed_at')
+      .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
       .in('status', ['approved', 'submitted']);
 
     if (daftarUlangError) {
@@ -221,8 +221,27 @@ export async function GET(request: Request) {
       }
     });
 
+    // Get all unique juz codes from daftar ulang (like tashih)
+    const uniqueJuzCodes = new Set(
+      daftarUlangUsers?.map((d: any) => d.confirmed_chosen_juz).filter(Boolean) || []
+    );
+
+    // Fetch juz info for all unique juz codes (like tashih)
+    const juzInfoMap = new Map();
+    if (uniqueJuzCodes.size > 0) {
+      const { data: juzOptions } = await supabase
+        .from('juz_options')
+        .select('*')
+        .in('code', Array.from(uniqueJuzCodes));
+
+      juzOptions?.forEach((juz: any) => {
+        juzInfoMap.set(juz.code, juz);
+      });
+    }
+
     // Build combined entries for ALL users (like tashih)
     const combinedEntries = daftarUlangUserIds.map((userId: string) => {
+      const daftarUlang = daftarUlangMap.get(userId);
       const userJurnalRecords = jurnalByUser.get(userId) || [];
       const latestJurnal = userJurnalRecords.length > 0
         ? userJurnalRecords.sort((a: any, b: any) =>
@@ -230,6 +249,8 @@ export async function GET(request: Request) {
             new Date(a.tanggal_setor || a.created_at).getTime()
           )[0]
         : null;
+      const juzCode = daftarUlang?.confirmed_chosen_juz;
+      const juzInfo = juzCode ? juzInfoMap.get(juzCode) : null;
 
       // Calculate weekly status (P1-P10)
       const weeklyStatus: any[] = [];
@@ -254,10 +275,11 @@ export async function GET(request: Request) {
 
       return {
         user_id: userId,
-        daftar_ulang_status: daftarUlangMap.get(userId)?.status,
-        submitted_at: daftarUlangMap.get(userId)?.submitted_at,
-        reviewed_at: daftarUlangMap.get(userId)?.reviewed_at,
-        confirmed_chosen_juz: daftarUlangMap.get(userId)?.confirmed_chosen_juz || null,
+        confirmed_chosen_juz: juzCode || null,
+        juz_info: juzInfo || null,
+        daftar_ulang_status: daftarUlang?.status,
+        submitted_at: daftarUlang?.submitted_at,
+        reviewed_at: daftarUlang?.reviewed_at,
         user: userMap.get(userId) || null,
         weekly_status: weeklyStatus,
         jurnal_count: userJurnalRecords.length,
