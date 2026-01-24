@@ -3,14 +3,49 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
-// Validation schema for jurnal record
+// Helper function to calculate week number from blok code
+// Same logic as tashih: H1A/H1B/H1C/H1D = week 1, H2A/H2B/H2C/H2D = week 2, etc.
+function calculateWeekFromBlok(blok: string | null): number | null {
+  if (!blok) return null;
+
+  // Handle array format like "[\"H11A\"]"
+  if (blok.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(blok);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        blok = parsed[0];
+      } else {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  // Extract number from blok code (e.g., "H1A" -> 1, "H11B" -> 11)
+  const match = blok.match(/H(\d+)/);
+  if (!match) return null;
+
+  const blockNumber = parseInt(match[1], 10);
+
+  // Map block number to week (H1-H10 = pekan 1-10, H11-H20 = pekan 1-10 for juz 2)
+  if (blockNumber >= 1 && blockNumber <= 10) {
+    return blockNumber; // Juz 1: H1 = pekan 1, H2 = pekan 2, etc.
+  } else if (blockNumber >= 11 && blockNumber <= 20) {
+    return blockNumber - 10; // Juz 2: H11 = pekan 1, H12 = pekan 2, etc.
+  }
+
+  return null;
+}
+
+// Validation schema for jurnal record (pekan is optional, will be calculated from blok)
 const jurnalRecordSchema = z.object({
   user_id: z.string().uuid(),
   tanggal_jurnal: z.string().optional(),
   tanggal_setor: z.string().optional(),
   juz_code: z.string().nullable().optional(),
   blok: z.string().nullable().optional(),
-  pekan: z.number().nullable().optional(),
+  pekan: z.number().nullable().optional(), // Optional for backward compatibility
   tashih_completed: z.boolean().optional(),
   rabth_completed: z.boolean().optional(),
   murajaah_count: z.number().optional(),
@@ -105,7 +140,6 @@ export async function GET(request: Request) {
         tanggal_setor,
         juz_code,
         blok,
-        pekan,
         tashih_completed,
         rabth_completed,
         murajaah_count,
@@ -127,9 +161,6 @@ export async function GET(request: Request) {
     // Apply filters if provided
     if (blok) {
       query = query.eq('blok', blok);
-    }
-    if (pekan) {
-      query = query.eq('pekan', pekan);
     }
 
     const { data: entries, error } = await query;
@@ -157,10 +188,11 @@ export async function GET(request: Request) {
       userMap.set(u.id, u);
     });
 
-    // Merge jurnal entries with user data
+    // Merge jurnal entries with user data and calculate pekan from blok
     const entriesWithUsers = (entries || []).map((entry: any) => ({
       ...entry,
       user: userMap.get(entry.user_id) || null,
+      pekan: calculateWeekFromBlok(entry.blok), // Calculate week from blok code
     }));
 
     // Get unique bloks for filter options (also filter by daftar_ulang users)
