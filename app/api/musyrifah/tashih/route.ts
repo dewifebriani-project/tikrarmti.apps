@@ -285,6 +285,62 @@ export async function GET(request: Request) {
   }
 }
 
+// PUT - Update a tashih record (e.g., remove a specific block from multi-block record)
+export async function PUT(request: Request) {
+  try {
+    const supabase = createClient();
+
+    // Verify musyrifah access
+    const authResult = await verifyMusyrifahAccess(supabase);
+    if (authResult.error) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    }
+
+    const body = await request.json();
+    const { id, blok } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+    }
+
+    if (blok === undefined || blok === null) {
+      return NextResponse.json({ error: 'Blok field is required' }, { status: 400 });
+    }
+
+    // Check if record exists
+    const { data: existingRecord } = await supabase
+      .from('tashih_records')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!existingRecord) {
+      return NextResponse.json({ error: 'Tashih record not found' }, { status: 404 });
+    }
+
+    // Update the blok field
+    const { data: updatedRecord, error } = await supabase
+      .from('tashih_records')
+      .update({ blok: blok || null })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Tashih record berhasil diupdate',
+      data: updatedRecord,
+    });
+  } catch (error: any) {
+    console.error('Error updating tashih record:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 // DELETE - Delete a tashih record
 export async function DELETE(request: Request) {
   try {
