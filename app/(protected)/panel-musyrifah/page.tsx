@@ -21,6 +21,7 @@ import {
   Trash2,
   X,
   ChevronDown,
+  ArrowUpDown,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian';
@@ -696,11 +697,16 @@ interface JurnalTabProps {
   availableBloks: string[];
 }
 
+type SortField = 'name' | 'juz' | 'progress';
+type SortOrder = 'asc' | 'desc';
+
 function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: JurnalTabProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JurnalEntry | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const toggleRow = (userId: string) => {
     setExpandedRows(prev => {
@@ -724,6 +730,31 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     if (user?.nama_kunyah) return user.nama_kunyah;
     return null;
   };
+
+  // Sort entries
+  const sortedEntries = [...entries].sort((a, b) => {
+    const multiplier = sortOrder === 'asc' ? 1 : -1;
+
+    if (sortBy === 'name') {
+      const nameA = displayName(a.user).toLowerCase();
+      const nameB = displayName(b.user).toLowerCase();
+      return nameA.localeCompare(nameB) * multiplier;
+    }
+
+    if (sortBy === 'juz') {
+      const juzA = a.confirmed_chosen_juz || '';
+      const juzB = b.confirmed_chosen_juz || '';
+      return juzA.localeCompare(juzB) * multiplier;
+    }
+
+    if (sortBy === 'progress') {
+      const progressA = a.weeks_with_jurnal;
+      const progressB = b.weeks_with_jurnal;
+      return (progressA - progressB) * multiplier;
+    }
+
+    return 0;
+  });
 
   // Helper to format WhatsApp link
   const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: JurnalUserEntry) => {
@@ -814,17 +845,37 @@ Tim Markaz Tikrar Indonesia`;
               ))}
             </select>
           </div>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-gray-500" />
+            <label className="text-sm font-medium text-gray-700">Urutkan:</label>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
+            >
+              <option value="name-asc">Nama (A-Z)</option>
+              <option value="name-desc">Nama (Z-A)</option>
+              <option value="juz-asc">Juz (A-Z)</option>
+              <option value="juz-desc">Juz (Z-A)</option>
+              <option value="progress-desc">Progress (Terbanyak)</option>
+              <option value="progress-asc">Progress (Tersedikit)</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Per-Week Statistics */}
-      {entries.length > 0 && (
+      {sortedEntries.length > 0 && (
         <div className="bg-white shadow rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Statistik per Pekan</h3>
           <div className="grid grid-cols-10 gap-2">
             {Array.from({ length: 10 }, (_, i) => {
               const weekNum = i + 1;
-              const completed = entries.filter(e => {
+              const completed = sortedEntries.filter(e => {
                 const week = e.weekly_status.find(w => w.week_number === weekNum);
                 if (!week || !week.has_jurnal) return false;
                 // Count unique bloks - need 4 bloks for completion (like tashih)
@@ -840,8 +891,8 @@ Tim Markaz Tikrar Indonesia`;
                 });
                 return uniqueBlops.size >= 4;
               }).length;
-              const notCompleted = entries.length - completed;
-              const percentage = entries.length > 0 ? Math.round((completed / entries.length) * 100) : 0;
+              const notCompleted = sortedEntries.length - completed;
+              const percentage = sortedEntries.length > 0 ? Math.round((completed / sortedEntries.length) * 100) : 0;
 
               return (
                 <div key={weekNum} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
@@ -850,7 +901,7 @@ Tim Markaz Tikrar Indonesia`;
                     {percentage}%
                   </div>
                   <div className="text-[10px] text-gray-500 mt-1">
-                    {completed}/{entries.length}
+                    {completed}/{sortedEntries.length}
                   </div>
                   <div className="flex justify-between text-[10px] mt-1">
                     <span className="text-green-600">{completed}✓</span>
@@ -863,7 +914,7 @@ Tim Markaz Tikrar Indonesia`;
         </div>
       )}
 
-      {entries.length === 0 ? (
+      {sortedEntries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada jurnal</h3>
@@ -893,7 +944,7 @@ Tim Markaz Tikrar Indonesia`;
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {entries.map((userData) => {
+                {sortedEntries.map((userData) => {
                   const name = displayName(userData.user);
                   const kunyah = displayKunyah(userData.user);
                   const whatsappUrl = userData.user?.whatsapp ? formatWhatsAppLink(userData.user.whatsapp, name, userData) : null;
@@ -1592,6 +1643,8 @@ interface TashihTabProps {
 
 function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: TashihTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const toggleRow = (userId: string) => {
     const newExpanded = new Set(expandedRows);
@@ -1612,6 +1665,31 @@ function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     if (entry.user?.nama_kunyah) return entry.user.nama_kunyah;
     return null;
   };
+
+  // Sort entries
+  const sortedEntries = [...entries].sort((a, b) => {
+    const multiplier = sortOrder === 'asc' ? 1 : -1;
+
+    if (sortBy === 'name') {
+      const nameA = displayName(a).toLowerCase();
+      const nameB = displayName(b).toLowerCase();
+      return nameA.localeCompare(nameB) * multiplier;
+    }
+
+    if (sortBy === 'juz') {
+      const juzA = a.confirmed_chosen_juz || '';
+      const juzB = b.confirmed_chosen_juz || '';
+      return juzA.localeCompare(juzB) * multiplier;
+    }
+
+    if (sortBy === 'progress') {
+      const progressA = a.summary.completion_percentage;
+      const progressB = b.summary.completion_percentage;
+      return (progressA - progressB) * multiplier;
+    }
+
+    return 0;
+  });
 
   const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: TashihEntry) => {
     if (!phoneNumber) return null;
@@ -1675,25 +1753,45 @@ Tim Markaz Tikrar Indonesia`;
               ))}
             </select>
           </div>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-gray-500" />
+            <label className="text-sm font-medium text-gray-700">Urutkan:</label>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
+                setSortBy(field);
+                setSortOrder(order);
+              }}
+              className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
+            >
+              <option value="name-asc">Nama (A-Z)</option>
+              <option value="name-desc">Nama (Z-A)</option>
+              <option value="juz-asc">Juz (A-Z)</option>
+              <option value="juz-desc">Juz (Z-A)</option>
+              <option value="progress-desc">Progress (Terbanyak)</option>
+              <option value="progress-asc">Progress (Tersedikit)</option>
+            </select>
+          </div>
           <div className="text-sm text-gray-600">
-            Total: {entries.length} thalibah ({entries.filter(e => e.has_tashih).length} sudah lapor, {entries.filter(e => !e.has_tashih).length} belum lapor)
+            Total: {sortedEntries.length} thalibah ({sortedEntries.filter(e => e.has_tashih).length} sudah lapor, {sortedEntries.filter(e => !e.has_tashih).length} belum lapor)
           </div>
         </div>
       </div>
 
       {/* Per-Week Statistics */}
-      {entries.length > 0 && (
+      {sortedEntries.length > 0 && (
         <div className="bg-white shadow rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Statistik per Pekan</h3>
           <div className="grid grid-cols-10 gap-2">
             {Array.from({ length: 10 }, (_, i) => {
               const weekNum = i + 1;
-              const completed = entries.filter(e => {
+              const completed = sortedEntries.filter(e => {
                 const week = e.weekly_status.find(w => w.week_number === weekNum);
                 return week?.is_completed || false;
               }).length;
-              const notCompleted = entries.length - completed;
-              const percentage = entries.length > 0 ? Math.round((completed / entries.length) * 100) : 0;
+              const notCompleted = sortedEntries.length - completed;
+              const percentage = sortedEntries.length > 0 ? Math.round((completed / sortedEntries.length) * 100) : 0;
 
               return (
                 <div key={weekNum} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
@@ -1702,7 +1800,7 @@ Tim Markaz Tikrar Indonesia`;
                     {percentage}%
                   </div>
                   <div className="text-[10px] text-gray-500 mt-1">
-                    {completed}/{entries.length}
+                    {completed}/{sortedEntries.length}
                   </div>
                   <div className="flex justify-between text-[10px] mt-1">
                     <span className="text-green-600">{completed}✓</span>
@@ -1745,7 +1843,7 @@ Tim Markaz Tikrar Indonesia`;
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {entries.map((entry) => {
+                {sortedEntries.map((entry) => {
                   const name = displayName(entry);
                   const kunyah = displayKunyah(entry);
                   const whatsappUrl = entry.user?.whatsapp ? formatWhatsAppLink(entry.user.whatsapp, name, entry) : null;
