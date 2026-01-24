@@ -74,6 +74,35 @@ interface JurnalEntry {
   };
 }
 
+// Grouped jurnal entry by user (new structure like tashih)
+interface JurnalUserEntry {
+  user_id: string;
+  daftar_ulang_status?: string;
+  submitted_at?: string;
+  reviewed_at?: string;
+  user?: {
+    id: string;
+    full_name: string | null;
+    nama_kunyah: string | null;
+    whatsapp: string | null;
+  };
+  weekly_status: Array<{
+    week_number: number;
+    has_jurnal: boolean;
+    entry_count: number;
+    entries: JurnalEntry[];
+  }>;
+  jurnal_count: number;
+  weeks_with_jurnal: number;
+  latest_jurnal?: {
+    id: string;
+    tanggal_setor: string;
+    blok: string | null;
+    pekan: number | null;
+  } | null;
+  jurnal_records: JurnalEntry[];
+}
+
 interface WeeklyStatus {
   week_number: number;
   total_blocks: number;
@@ -650,7 +679,7 @@ function ThalibahTab({ thalibah, onRefresh }: { thalibah: Thalibah[], onRefresh:
 
 // Jurnal Tab Component
 interface JurnalTabProps {
-  entries: JurnalEntry[];
+  entries: JurnalUserEntry[]; // Changed to grouped entries like tashih
   onRefresh: () => void;
   selectedBlok: string;
   onBlokChange: (blok: string) => void;
@@ -686,64 +715,9 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     return null;
   };
 
-  // Helper to calculate weekly status from jurnal entries
-  const calculateJurnalWeeklyStatus = (entries: JurnalEntry[]) => {
-    const weeklyStatus: any[] = [];
-    for (let week = 1; week <= 10; week++) {
-      const weekEntries = entries.filter(e => e.pekan === week);
-      const hasJurnal = weekEntries.length > 0;
-
-      weeklyStatus.push({
-        week_number: week,
-        has_jurnal: hasJurnal,
-        entry_count: weekEntries.length,
-        total_activities: 0,
-        completed_activities: 0,
-        entries: weekEntries
-      });
-    }
-
-    return weeklyStatus;
-  };
-
-  // Group jurnal entries by user for display
-  const groupJurnalByUser = (entries: JurnalEntry[]) => {
-    const userMap = new Map<string, JurnalEntry[]>();
-
-    entries.forEach(entry => {
-      if (!userMap.has(entry.user_id)) {
-        userMap.set(entry.user_id, []);
-      }
-      userMap.get(entry.user_id)!.push(entry);
-    });
-
-    return Array.from(userMap.entries()).map(([userId, userEntries]) => {
-      const user = userEntries[0]?.user;
-      const latestEntry = userEntries.sort((a, b) =>
-        new Date(b.tanggal_setor).getTime() - new Date(a.tanggal_setor).getTime()
-      )[0];
-
-      const weeklyStatus = calculateJurnalWeeklyStatus(userEntries);
-      const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
-
-      return {
-        user_id: userId,
-        user: user,
-        weekly_status: weeklyStatus,
-        jurnal_count: userEntries.length,
-        weeks_with_jurnal: weeksWithJurnal,
-        latest_entry: latestEntry,
-        all_entries: userEntries
-      };
-    });
-  };
-
-  // Group entries by user and calculate weekly status
-  const groupedUsers = groupJurnalByUser(entries);
-
-  // Helper to render week cell
-  const renderJurnalWeekCell = (weekData: any, weekNum: number) => {
-    const week = weekData.weekly_status.find((w: any) => w.week_number === weekNum);
+  // Helper to render week cell - entries now already has weekly_status from API
+  const renderJurnalWeekCell = (entry: JurnalUserEntry, weekNum: number) => {
+    const week = entry.weekly_status.find((w: any) => w.week_number === weekNum);
     if (!week) {
       return <span className="text-gray-300">-</span>;
     }
@@ -756,16 +730,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
       );
     }
 
-    // Calculate activity completion for the week
     const entryCount = week.entry_count;
-    if (entryCount === 0) {
-      return (
-        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">
-          0
-        </span>
-      );
-    }
-
     return (
       <span
         className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold"
@@ -817,7 +782,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
         </div>
       </div>
 
-      {groupedUsers.length === 0 ? (
+      {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada jurnal</h3>
@@ -846,7 +811,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {groupedUsers.map((userData) => (
+                {entries.map((userData) => (
                   <React.Fragment key={userData.user_id}>
                     <tr className={`hover:bg-gray-50 ${userData.jurnal_count === 0 ? 'bg-yellow-50' : ''}`}>
                       <td className="px-2 py-2">

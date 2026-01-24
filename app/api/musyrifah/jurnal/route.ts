@@ -170,48 +170,115 @@ export async function GET(request: Request) {
     const { data: entries, error } = await query;
 
     if (error) {
-      // If table doesn't exist, return empty array
+      // If table doesn't exist, treat as no entries
       if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-        return NextResponse.json({ success: true, data: [] });
+        // Continue with empty entries array
+      } else {
+        throw error;
       }
-      throw error;
     }
 
-    // Extract unique user IDs from entries for fetching user data
-    const userIds = entries?.map((e: any) => e.user_id) || [];
+    // =====================================================
+    // LIKE TASHIH: Create entry for ALL users from daftar_ulang
+    // =====================================================
 
-    // Fetch user data separately (from public.users)
+    // Fetch user data for ALL daftar_ulang users
     const { data: usersData } = await supabase
       .from('users')
       .select('id, full_name, nama_kunyah, whatsapp')
-      .in('id', userIds);
+      .in('id', daftarUlangUserIds);
 
-    // Create a map for quick user lookup
+    // Create user map for quick lookup
     const userMap = new Map();
     usersData?.forEach((u: any) => {
       userMap.set(u.id, u);
     });
 
-    // Merge jurnal entries with user data and calculate pekan from blok
-    const entriesWithUsers = (entries || []).map((entry: any) => ({
-      ...entry,
-      user: userMap.get(entry.user_id) || null,
-      pekan: calculateWeekFromBlok(entry.blok), // Calculate week from blok code
-    }));
+    // Create daftar ulang map for quick lookup
+    const daftarUlangMap = new Map();
+    daftarUlangUsers?.forEach((d: any) => {
+      daftarUlangMap.set(d.user_id, d);
+    });
 
-    // Get unique bloks for filter options (also filter by daftar_ulang users)
-    const { data: bloksData } = await supabase
-      .from('jurnal_records')
-      .select('blok')
-      .in('user_id', daftarUlangUserIds)
-      .not('blok', 'is', null)
-      .order('blok', { ascending: true });
+    // Group jurnal entries by user
+    const jurnalByUser = new Map();
+    (entries || []).forEach((record: any) => {
+      if (!jurnalByUser.has(record.user_id)) {
+        jurnalByUser.set(record.user_id, []);
+      }
+      jurnalByUser.get(record.user_id).push(record);
+    });
 
-    const uniqueBloks = Array.from(new Set(bloksData?.map((d: any) => d.blok).filter((b: any) => b) || []));
+    // Get all unique bloks from jurnal records
+    const allBloks = new Set<string>();
+    (entries || []).forEach((record: any) => {
+      if (record.blok) {
+        // Handle both string and array format
+        const bloks = typeof record.blok === 'string' && record.blok.startsWith('[')
+          ? JSON.parse(record.blok)
+          : [record.blok];
+        bloks.forEach((b: any) => allBloks.add(b));
+      }
+    });
+
+    // Build combined entries for ALL users (like tashih)
+    const combinedEntries = daftarUlangUserIds.map((userId: string) => {
+      const userJurnalRecords = jurnalByUser.get(userId) || [];
+      const latestJurnal = userJurnalRecords.length > 0
+        ? userJurnalRecords.sort((a, b) =>
+            new Date(b.tanggal_setor || b.created_at).getTime() -
+            new Date(a.tanggal_setor || a.created_at).getTime()
+          )[0]
+        : null;
+
+      // Calculate weekly status (P1-P10)
+      const weeklyStatus: any[] = [];
+      for (let week = 1; week <= 10; week++) {
+        const weekEntries = userJurnalRecords.filter((e: any) => {
+          const pekan = calculateWeekFromBlok(e.blok);
+          return pekan === week;
+        });
+
+        weeklyStatus.push({
+          week_number: week,
+          has_jurnal: weekEntries.length > 0,
+          entry_count: weekEntries.length,
+          entries: weekEntries.map((e: any) => ({
+            ...e,
+            pekan: calculateWeekFromBlok(e.blok),
+          }))
+        });
+      }
+
+      const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
+
+      return {
+        user_id: userId,
+        daftar_ulang_status: daftarUlangMap.get(userId)?.status,
+        submitted_at: daftarUlangMap.get(userId)?.submitted_at,
+        reviewed_at: daftarUlangMap.get(userId)?.reviewed_at,
+        user: userMap.get(userId) || null,
+        weekly_status: weeklyStatus,
+        jurnal_count: userJurnalRecords.length,
+        weeks_with_jurnal: weeksWithJurnal,
+        latest_jurnal: latestJurnal ? {
+          id: latestJurnal.id,
+          tanggal_setor: latestJurnal.tanggal_setor,
+          blok: latestJurnal.blok,
+          pekan: calculateWeekFromBlok(latestJurnal.blok),
+        } : null,
+        jurnal_records: userJurnalRecords.map((r: any) => ({
+          ...r,
+          pekan: calculateWeekFromBlok(r.blok),
+        })),
+      };
+    });
+
+    const uniqueBloks = Array.from(allBloks).sort();
 
     return NextResponse.json({
       success: true,
-      data: entriesWithUsers,
+      data: combinedEntries,
       meta: {
         bloks: uniqueBloks,
       }
