@@ -225,7 +225,7 @@ export async function GET(request: Request) {
     const combinedEntries = daftarUlangUserIds.map((userId: string) => {
       const userJurnalRecords = jurnalByUser.get(userId) || [];
       const latestJurnal = userJurnalRecords.length > 0
-        ? userJurnalRecords.sort((a, b) =>
+        ? userJurnalRecords.sort((a: any, b: any) =>
             new Date(b.tanggal_setor || b.created_at).getTime() -
             new Date(a.tanggal_setor || a.created_at).getTime()
           )[0]
