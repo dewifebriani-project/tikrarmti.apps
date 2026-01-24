@@ -1230,7 +1230,7 @@ export default function JurnalHarianPage() {
                         <div className="mt-3 space-y-3">
                           {/* Main Options - Single Select */}
                           <div>
-                            <p className="text-xs font-medium text-gray-700 mb-2">Pilih Tikrar Bil Ghaib:</p>
+                            <p className="text-xs font-medium text-gray-700 mb-2">Pilih Tikrar Bil Ghaib <span className="text-red-500">*</span></p>
                             <div className="flex flex-wrap gap-2">
                               {[
                                 { value: 'pasangan_40', label: 'Pasangan (40x)' },
