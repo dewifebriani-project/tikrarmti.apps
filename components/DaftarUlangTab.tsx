@@ -332,10 +332,18 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     try {
       const data = await loadAllSubmissionsForDownload();
 
-      // Filter only approved or submitted status
+      console.log('[Download Excel] Total data before filter:', data.length);
+      console.log('[Download Excel] Status breakdown:', data.reduce((acc: any, s: any) => {
+        acc[s.status] = (acc[s.status] || 0) + 1;
+        return acc;
+      }, {}));
+
+      // Filter only approved or submitted status (exclude draft and rejected)
       const filteredData = data.filter(
         (item: any) => item.status === 'approved' || item.status === 'submitted'
       );
+
+      console.log('[Download Excel] Total data after filter:', filteredData.length);
 
       if (filteredData.length === 0) {
         toast.error('Tidak ada data dengan status approved/submitted untuk diunduh');
