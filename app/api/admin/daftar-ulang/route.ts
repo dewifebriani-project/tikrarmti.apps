@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
     if (userIds.length > 0) {
       // Get batch IDs from submissions
-      const batchIds = [...new Set(dataWithMuallimah?.map((sub: any) => sub.batch_id) || [])];
+      const batchIds = Array.from(new Set(dataWithMuallimah?.map((sub: any) => sub.batch_id) || []));
 
       // Fetch study partners for each batch
       for (const batchId of batchIds) {
