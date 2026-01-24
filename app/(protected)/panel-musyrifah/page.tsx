@@ -360,6 +360,28 @@ export default function PanelMusyrifahPage() {
           pendingJurnalReview: 0,
           pendingTashihReview: 0,
           pendingUjianReview: 0,
+          jurnal: {
+            totalEntries: 0,
+            uniqueThalibah: 0,
+            thalibahWithJurnal: 0,
+            thalibahWithoutJurnal: 0,
+            averageEntriesPerThalibah: 0,
+            weeksWithJurnal: 0,
+            totalBlocksCompleted: 0,
+            completionPercentage: 0,
+            thisWeekEntries: 0,
+          },
+          tashih: {
+            totalRecords: 0,
+            uniqueThalibah: 0,
+            thalibahWithTashih: 0,
+            thalibahWithoutTashih: 0,
+            averageRecordsPerThalibah: 0,
+            totalBlocksCompleted: 0,
+            totalBlocks: 0,
+            completionPercentage: 0,
+            thisWeekRecords: 0,
+          },
         });
       } else {
         const result = await response.json();
@@ -373,6 +395,28 @@ export default function PanelMusyrifahPage() {
         pendingJurnalReview: 0,
         pendingTashihReview: 0,
         pendingUjianReview: 0,
+        jurnal: {
+          totalEntries: 0,
+          uniqueThalibah: 0,
+          thalibahWithJurnal: 0,
+          thalibahWithoutJurnal: 0,
+          averageEntriesPerThalibah: 0,
+          weeksWithJurnal: 0,
+          totalBlocksCompleted: 0,
+          completionPercentage: 0,
+          thisWeekEntries: 0,
+        },
+        tashih: {
+          totalRecords: 0,
+          uniqueThalibah: 0,
+          thalibahWithTashih: 0,
+          thalibahWithoutTashih: 0,
+          averageRecordsPerThalibah: 0,
+          totalBlocksCompleted: 0,
+          totalBlocks: 0,
+          completionPercentage: 0,
+          thisWeekRecords: 0,
+        },
       });
     }
   };
