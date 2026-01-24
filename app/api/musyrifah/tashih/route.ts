@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
 // Helper function to parse blok field (can be string or array)
 function parseBlokField(blok: any): string[] {
@@ -330,6 +331,11 @@ export async function PUT(request: Request) {
       throw error;
     }
 
+    // Revalidate paths to refresh cache
+    revalidatePath('/panel-musyrifah');
+    revalidatePath('/tashih');
+    revalidatePath('/dashboard');
+
     return NextResponse.json({
       success: true,
       message: 'Tashih record berhasil diupdate',
@@ -379,6 +385,11 @@ export async function DELETE(request: Request) {
     if (error) {
       throw error;
     }
+
+    // Revalidate paths to refresh cache
+    revalidatePath('/panel-musyrifah');
+    revalidatePath('/tashih');
+    revalidatePath('/dashboard');
 
     return NextResponse.json({
       success: true,
