@@ -349,7 +349,35 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         return aName.localeCompare(bName, 'id-ID');
       });
 
-      // Prepare Excel data with complete information
+      // Helper functions
+      const formatTimeSlot = (slot: string | undefined) => {
+        if (!slot) return '-';
+        const timeMap: Record<string, string> = {
+          '04-06': '04.00 - 06.00',
+          '06-09': '06.00 - 09.00',
+          '09-12': '09.00 - 12.00',
+          '12-15': '12.00 - 15.00',
+          '15-18': '15.00 - 18.00',
+          '18-21': '18.00 - 21.00',
+          '21-24': '21.00 - 24.00'
+        };
+        return timeMap[slot] || slot;
+      };
+
+      const formatHalaqahSchedule = (halaqah: any) => {
+        if (!halaqah || !halaqah.name) return '-';
+        const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
+        const day = halaqah.day_of_week !== undefined ? days[halaqah.day_of_week] : '';
+        const time = (halaqah.start_time && halaqah.end_time) ? `${halaqah.start_time} - ${halaqah.end_time}` : '';
+        return day && time ? `${day}, ${time}` : halaqah.name || '-';
+      };
+
+      const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+      };
+
+      // Prepare Excel data with ALL fields from all 3 tables
       const excelData = sortedData.map((item, index) => {
         const user = item.user || {};
         const registration = item.registration || {};
@@ -357,57 +385,81 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         const tashihHalaqah = item.tashih_halaqah || {};
         const partnerUser = item.partner_user || {};
 
-        // Format time slot for display
-        const formatTimeSlot = (slot: string | undefined) => {
-          if (!slot) return '-';
-          const timeMap: Record<string, string> = {
-            '04-06': '04.00 - 06.00',
-            '06-09': '06.00 - 09.00',
-            '09-12': '09.00 - 12.00',
-            '12-15': '12.00 - 15.00',
-            '15-18': '15.00 - 18.00',
-            '18-21': '18.00 - 21.00',
-            '21-24': '21.00 - 24.00'
-          };
-          return timeMap[slot] || slot;
-        };
-
-        // Format halaqah schedule
-        const formatHalaqahSchedule = (halaqah: any) => {
-          if (!halaqah || !halaqah.name) return '-';
-          const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
-          const day = halaqah.day_of_week !== undefined ? days[halaqah.day_of_week] : '';
-          const time = (halaqah.start_time && halaqah.end_time) ? `${halaqah.start_time} - ${halaqah.end_time}` : '';
-          return day && time ? `${day}, ${time}` : halaqah.name || '-';
-        };
-
         return {
+          // === DATA THALIBAH (from daftar_ulang_submissions) ===
           'No': index + 1,
-          'Nama Lengkap': item.confirmed_full_name || user.full_name || '-',
-          'Email': user.email || '-',
-          'No. WhatsApp': user.whatsapp || user.phone || '-',
-          'Usia': calculateAge(user.tanggal_lahir || registration.birth_date),
-          'Juz Code': getJuzCode(item.confirmed_chosen_juz || registration.chosen_juz),
-          'Juz Pilihan': item.confirmed_chosen_juz || registration.chosen_juz || '-',
-          'Slot Jadwal Utama': formatTimeSlot(item.confirmed_main_time_slot || registration.main_time_slot),
-          'Slot Jadwal Cadangan': formatTimeSlot(item.confirmed_backup_time_slot || registration.backup_time_slot),
-          'Zona Waktu': user.zona_waktu || '-',
-          'Status Daftar Ulang': item.status === 'approved' ? 'Approved' : item.status === 'submitted' ? 'Submitted' : '-',
-          'Tanggal Submit': item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-',
+          'Submission ID': item.id || '-',
+
+          // Confirmed Data (daftar_ulang_submissions)
+          'Nama Lengkap (Confirmed)': item.confirmed_full_name || '-',
+          'Juz Pilihan (Confirmed)': item.confirmed_chosen_juz || '-',
+          'Slot Jadwal Utama (Confirmed)': formatTimeSlot(item.confirmed_main_time_slot),
+          'Slot Jadwal Cadangan (Confirmed)': formatTimeSlot(item.confirmed_backup_time_slot),
+          'No. WhatsApp (Confirmed)': item.confirmed_wa_phone || '-',
+          'Alamat (Confirmed)': item.confirmed_address || '-',
+
+          // Exam & Juz Adjustment
+          'Nilai Exam': item.exam_score ?? registration.exam_score ?? '-',
+          'Final Juz': item.final_juz || '-',
+          'Juz Disesuaikan': item.juz_adjusted ? 'Ya' : 'Tidak',
+          'Alasan Penyesuaian Juz': item.juz_adjustment_reason || '-',
+
+          // Halaqah Selection
           'Halaqah Ujian': ujianHalaqah.name || '-',
           'Jadwal Halaqah Ujian': formatHalaqahSchedule(ujianHalaqah),
+          'Lokasi Halaqah Ujian': ujianHalaqah.location || '-',
+          'Tipe Kelas Ujian': ujianHalaqah.class_type || '-',
+          'Muallimah Ujian': ujianHalaqah.muallimah_name || '-',
+
           'Halaqah Tashih': item.is_tashih_umum ? 'Umum' : (tashihHalaqah.name || '-'),
           'Jadwal Halaqah Tashih': item.is_tashih_umum ? 'Umum' : formatHalaqahSchedule(tashihHalaqah),
+          'Lokasi Halaqah Tashih': item.is_tashih_umum ? '-' : (tashihHalaqah.location || '-'),
+          'Tipe Kelas Tashih': item.is_tashih_umum ? '-' : (tashihHalaqah.class_type || '-'),
+          'Muallimah Tashih': item.is_tashih_umum ? '-' : (tashihHalaqah.muallimah_name || '-'),
+
+          // Partner
           'Tipe Partner': item.partner_type || '-',
           'Nama Partner': item.partner_type === 'self_match' && partnerUser.full_name
             ? partnerUser.full_name
             : (item.partner_name || '-'),
-          'Email Partner': item.partner_type === 'self_match' && partnerUser.email
-            ? partnerUser.email
-            : '-',
+          'Hubungan Partner': item.partner_relationship || '-',
           'No. WA Partner': item.partner_wa_phone || '-',
+          'Catatan Partner': item.partner_notes || '-',
+
+          // Akad
           'Akad Terupload': item.akad_files && item.akad_files.length > 0 ? 'Ya' : 'Tidak',
-          'Tanggal Upload Akad': item.akad_submitted_at ? new Date(item.akad_submitted_at).toLocaleDateString('id-ID') : '-',
+          'Jumlah File Akad': item.akad_files?.length || 0,
+          'Tanggal Upload Akad': formatDate(item.akad_submitted_at),
+
+          // Status & Timestamps
+          'Status Daftar Ulang': item.status === 'approved' ? 'Approved' : item.status === 'submitted' ? 'Submitted' : '-',
+          'Tanggal Submit': formatDate(item.submitted_at),
+          'Tanggal Review': formatDate(item.reviewed_at),
+          'Tanggal Dibuat': formatDate(item.created_at),
+          'Tanggal Diupdate': formatDate(item.updated_at),
+
+          // === DATA PENDAFTARAN (from pendaftaran_tikrar_tahfidz) ===
+          'Registration ID': registration.id || '-',
+
+          // Data Pendaftaran Awal
+          'Nama Lengkap (Pendaftaran)': registration.full_name || '-',
+          'Juz Pilihan (Pendaftaran)': registration.chosen_juz || '-',
+          'Nilai Exam (Pendaftaran)': registration.exam_score ?? '-',
+          'Slot Jadwal Utama (Pendaftaran)': formatTimeSlot(registration.main_time_slot),
+          'Slot Jadwal Cadangan (Pendaftaran)': formatTimeSlot(registration.backup_time_slot),
+          'No. WhatsApp (Pendaftaran)': registration.wa_phone || '-',
+          'Alamat (Pendaftaran)': registration.address || '-',
+          'Tanggal Lahir (Pendaftaran)': formatDate(registration.birth_date),
+          'Zona Waktu (Pendaftaran)': registration.zona_waktu || '-',
+
+          // === DATA USER (from users table) ===
+          'User ID': user.id || '-',
+          'Nama Lengkap (User)': user.full_name || '-',
+          'Email': user.email || '-',
+          'No. WhatsApp (User)': user.whatsapp || user.phone || '-',
+          'Tanggal Lahir (User)': formatDate(user.tanggal_lahir),
+          'Zona Waktu (User)': user.zona_waktu || '-',
+          'Roles': user.roles?.join(', ') || '-',
         };
       });
 
@@ -417,28 +469,77 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
       // Set column widths
       ws['!cols'] = [
+        // No & IDs
         { wch: 5 },   // No
-        { wch: 30 },  // Nama Lengkap
-        { wch: 30 },  // Email
-        { wch: 15 },  // No. WhatsApp
-        { wch: 6 },   // Usia
-        { wch: 8 },   // Juz Code
-        { wch: 15 },  // Juz Pilihan
-        { wch: 20 },  // Slot Jadwal Utama
-        { wch: 20 },  // Slot Jadwal Cadangan
-        { wch: 12 },  // Zona Waktu
-        { wch: 15 },  // Status Daftar Ulang
-        { wch: 20 },  // Tanggal Submit
-        { wch: 25 },  // Halaqah Ujian
-        { wch: 25 },  // Jadwal Halaqah Ujian
-        { wch: 25 },  // Halaqah Tashih
-        { wch: 25 },  // Jadwal Halaqah Tashih
-        { wch: 12 },  // Tipe Partner
-        { wch: 30 },  // Nama Partner
-        { wch: 30 },  // Email Partner
-        { wch: 15 },  // No. WA Partner
-        { wch: 12 },  // Akad Terupload
+        { wch: 40 },  // Submission ID
+
+        // Confirmed Data
+        { wch: 35 },  // Nama Lengkap (Confirmed)
+        { wch: 15 },  // Juz Pilihan (Confirmed)
+        { wch: 20 },  // Slot Jadwal Utama (Confirmed)
+        { wch: 20 },  // Slot Jadwal Cadangan (Confirmed)
+        { wch: 18 },  // No. WhatsApp (Confirmed)
+        { wch: 40 },  // Alamat (Confirmed)
+
+        // Exam & Juz Adjustment
+        { wch: 12 },  // Nilai Exam
+        { wch: 10 },  // Final Juz
+        { wch: 15 },  // Juz Disesuaikan
+        { wch: 50 },  // Alasan Penyesuaian Juz
+
+        // Halaqah Ujian
+        { wch: 30 },  // Halaqah Ujian
+        { wch: 30 },  // Jadwal Halaqah Ujian
+        { wch: 25 },  // Lokasi Halaqah Ujian
+        { wch: 18 },  // Tipe Kelas Ujian
+        { wch: 25 },  // Muallimah Ujian
+
+        // Halaqah Tashih
+        { wch: 30 },  // Halaqah Tashih
+        { wch: 30 },  // Jadwal Halaqah Tashih
+        { wch: 25 },  // Lokasi Halaqah Tashih
+        { wch: 18 },  // Tipe Kelas Tashih
+        { wch: 25 },  // Muallimah Tashih
+
+        // Partner
+        { wch: 15 },  // Tipe Partner
+        { wch: 35 },  // Nama Partner
+        { wch: 20 },  // Hubungan Partner
+        { wch: 18 },  // No. WA Partner
+        { wch: 40 },  // Catatan Partner
+
+        // Akad
+        { wch: 15 },  // Akad Terupload
+        { wch: 15 },  // Jumlah File Akad
         { wch: 20 },  // Tanggal Upload Akad
+
+        // Status & Timestamps
+        { wch: 18 },  // Status Daftar Ulang
+        { wch: 20 },  // Tanggal Submit
+        { wch: 20 },  // Tanggal Review
+        { wch: 20 },  // Tanggal Dibuat
+        { wch: 20 },  // Tanggal Diupdate
+
+        // Data Pendaftaran
+        { wch: 40 },  // Registration ID
+        { wch: 35 },  // Nama Lengkap (Pendaftaran)
+        { wch: 15 },  // Juz Pilihan (Pendaftaran)
+        { wch: 12 },  // Nilai Exam (Pendaftaran)
+        { wch: 20 },  // Slot Jadwal Utama (Pendaftaran)
+        { wch: 20 },  // Slot Jadwal Cadangan (Pendaftaran)
+        { wch: 18 },  // No. WhatsApp (Pendaftaran)
+        { wch: 40 },  // Alamat (Pendaftaran)
+        { wch: 20 },  // Tanggal Lahir (Pendaftaran)
+        { wch: 15 },  // Zona Waktu (Pendaftaran)
+
+        // Data User
+        { wch: 40 },  // User ID
+        { wch: 35 },  // Nama Lengkap (User)
+        { wch: 35 },  // Email
+        { wch: 18 },  // No. WhatsApp (User)
+        { wch: 20 },  // Tanggal Lahir (User)
+        { wch: 15 },  // Zona Waktu (User)
+        { wch: 20 },  // Roles
       ];
 
       XLSX.utils.book_append_sheet(wb, ws, 'Data Thalibah');
