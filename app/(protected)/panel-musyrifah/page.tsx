@@ -1016,8 +1016,8 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                                 <div>
                                   <span className="text-gray-500">Terakhir Jurnal:</span>
                                   <span className="ml-2 font-medium text-gray-900">
-                                    {userData.latest_entry
-                                      ? new Date(userData.latest_entry.tanggal_setor).toLocaleDateString('id-ID')
+                                    {userData.latest_jurnal
+                                      ? new Date(userData.latest_jurnal.tanggal_setor).toLocaleDateString('id-ID')
                                       : '-'
                                     }
                                   </span>
