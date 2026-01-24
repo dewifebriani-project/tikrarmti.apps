@@ -77,7 +77,7 @@ interface TashihEntry {
   confirmed_chosen_juz: number;
   daftar_ulang_status: string;
   submitted_at: string;
-  approved_at: string;
+  reviewed_at: string;
   user?: {
     id: string;
     full_name: string | null;

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     // Note: blok comes from tashih_records, NOT from daftar_ulang_submissions
     const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_chosen_juz, status, submitted_at, approved_at')
+      .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
       .in('status', ['approved', 'submitted']);
 
     if (daftarUlangError) {
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
         confirmed_chosen_juz: daftarUlang?.confirmed_chosen_juz || 0,
         daftar_ulang_status: daftarUlang?.status,
         submitted_at: daftarUlang?.submitted_at,
-        approved_at: daftarUlang?.approved_at,
+        reviewed_at: daftarUlang?.reviewed_at,
 
         // User info
         user: userMap.get(userId) || null,
