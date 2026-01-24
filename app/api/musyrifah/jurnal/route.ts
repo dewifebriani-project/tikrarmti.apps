@@ -8,12 +8,14 @@ import { revalidatePath } from 'next/cache';
 function calculateWeekFromBlok(blok: string | null): number | null {
   if (!blok) return null;
 
+  let blokCode: string | null = blok;
+
   // Handle array format like "[\"H11A\"]"
-  if (blok.startsWith('[')) {
+  if (blokCode.startsWith('[')) {
     try {
-      const parsed = JSON.parse(blok);
+      const parsed = JSON.parse(blokCode);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        blok = parsed[0];
+        blokCode = parsed[0];
       } else {
         return null;
       }
@@ -22,8 +24,10 @@ function calculateWeekFromBlok(blok: string | null): number | null {
     }
   }
 
+  if (!blokCode) return null;
+
   // Extract number from blok code (e.g., "H1A" -> 1, "H11B" -> 11)
-  const match = blok.match(/H(\d+)/);
+  const match = blokCode.match(/H(\d+)/);
   if (!match) return null;
 
   const blockNumber = parseInt(match[1], 10);
