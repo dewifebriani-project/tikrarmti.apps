@@ -79,7 +79,23 @@ export async function GET(request: Request) {
       activeBatchId = activeBatch?.id;
     }
 
-    // Build query for jurnal_records - get ALL records (not filtered by daftar_ulang)
+    // =====================================================
+    // APPROACH LIKE TASHIH: Get users from daftar_ulang first
+    // =====================================================
+
+    // Get all thalibah from daftar_ulang_submissions with approved or submitted status
+    const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('user_id, status, submitted_at, reviewed_at')
+      .in('status', ['approved', 'submitted']);
+
+    if (daftarUlangError) {
+      throw daftarUlangError;
+    }
+
+    const daftarUlangUserIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
+
+    // Build query for jurnal_records - filter by user IDs from daftar_ulang (like tashih)
     let query = supabase
       .from('jurnal_records')
       .select(`
@@ -105,6 +121,7 @@ export async function GET(request: Request) {
         created_at,
         updated_at
       `)
+      .in('user_id', daftarUlangUserIds)
       .order('tanggal_setor', { ascending: false });
 
     // Apply filters if provided
@@ -146,10 +163,11 @@ export async function GET(request: Request) {
       user: userMap.get(entry.user_id) || null,
     }));
 
-    // Get unique bloks and pekans for filter options
+    // Get unique bloks for filter options (also filter by daftar_ulang users)
     const { data: bloksData } = await supabase
       .from('jurnal_records')
       .select('blok')
+      .in('user_id', daftarUlangUserIds)
       .not('blok', 'is', null)
       .order('blok', { ascending: true });
 
