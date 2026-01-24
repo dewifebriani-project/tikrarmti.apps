@@ -17,7 +17,6 @@ import {
   Eye,
   Calendar,
   Plus,
-  MessageSquare,
   Edit,
   Trash2,
   X,
@@ -81,6 +80,15 @@ interface JurnalUserEntry {
   submitted_at?: string;
   reviewed_at?: string;
   confirmed_chosen_juz?: string | null;
+  juz_info?: {
+    id: string;
+    code: string;
+    name: string;
+    juz_number: number;
+    part: string;
+    start_page: number;
+    end_page: number;
+  } | null;
   user?: {
     id: string;
     full_name: string | null;
@@ -809,6 +817,52 @@ Tim Markaz Tikrar Indonesia`;
         </div>
       </div>
 
+      {/* Per-Week Statistics */}
+      {entries.length > 0 && (
+        <div className="bg-white shadow rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Statistik per Pekan</h3>
+          <div className="grid grid-cols-10 gap-2">
+            {Array.from({ length: 10 }, (_, i) => {
+              const weekNum = i + 1;
+              const completed = entries.filter(e => {
+                const week = e.weekly_status.find(w => w.week_number === weekNum);
+                if (!week || !week.has_jurnal) return false;
+                // Count unique bloks - need 4 bloks for completion (like tashih)
+                const uniqueBlops = new Set<string>();
+                week.entries.forEach((entry: JurnalEntry) => {
+                  if (entry.blok) {
+                    // Handle both string and array format
+                    const bloks = typeof entry.blok === 'string' && entry.blok.startsWith('[')
+                      ? JSON.parse(entry.blok)
+                      : [entry.blok];
+                    bloks.forEach((b: any) => uniqueBlops.add(b));
+                  }
+                });
+                return uniqueBlops.size >= 4;
+              }).length;
+              const notCompleted = entries.length - completed;
+              const percentage = entries.length > 0 ? Math.round((completed / entries.length) * 100) : 0;
+
+              return (
+                <div key={weekNum} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="text-xs font-semibold text-gray-700 mb-1">P{weekNum}</div>
+                  <div className={`text-lg font-bold ${percentage >= 80 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {percentage}%
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1">
+                    {completed}/{entries.length}
+                  </div>
+                  <div className="flex justify-between text-[10px] mt-1">
+                    <span className="text-green-600">{completed}✓</span>
+                    <span className="text-red-600">{notCompleted}✗</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
@@ -880,8 +934,8 @@ Tim Markaz Tikrar Indonesia`;
                               className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
                               title="Chat via WhatsApp"
                             >
-                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.769-.074-.421-.013-.796.233-1.07.247-.273.61-.868 1.427-1.165 1.663-.198.149-.348.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.769-.074-.421-.013-.796.233-1.07.247-.273.61-.868 1.427-1.165 1.663-.198.149-.348.223-.644.075zm-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648 1.07-.376.223-.714.338-1.033.478-1.797.754-3.359 2.518-3.359 4.099 0 1.123.346 2.195.982 3.025a9.86 9.86 0 005.031 1.378l.361.214 3.741-.982-.998-3.648-1.07-.376-.223-.714-.338-1.033-.478-1.797-.754-3.359-2.518-3.359-4.099 0-1.123.346-2.195.982-3.025z"/>
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                               </svg>
                             </a>
                           ) : (
@@ -1627,6 +1681,40 @@ Tim Markaz Tikrar Indonesia`;
         </div>
       </div>
 
+      {/* Per-Week Statistics */}
+      {entries.length > 0 && (
+        <div className="bg-white shadow rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Statistik per Pekan</h3>
+          <div className="grid grid-cols-10 gap-2">
+            {Array.from({ length: 10 }, (_, i) => {
+              const weekNum = i + 1;
+              const completed = entries.filter(e => {
+                const week = e.weekly_status.find(w => w.week_number === weekNum);
+                return week?.is_completed || false;
+              }).length;
+              const notCompleted = entries.length - completed;
+              const percentage = entries.length > 0 ? Math.round((completed / entries.length) * 100) : 0;
+
+              return (
+                <div key={weekNum} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="text-xs font-semibold text-gray-700 mb-1">P{weekNum}</div>
+                  <div className={`text-lg font-bold ${percentage >= 80 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {percentage}%
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1">
+                    {completed}/{entries.length}
+                  </div>
+                  <div className="flex justify-between text-[10px] mt-1">
+                    <span className="text-green-600">{completed}✓</span>
+                    <span className="text-red-600">{notCompleted}✗</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
@@ -1641,6 +1729,7 @@ Tim Markaz Tikrar Indonesia`;
                 <tr>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P1</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P2</th>
@@ -1652,7 +1741,6 @@ Tim Markaz Tikrar Indonesia`;
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P8</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P9</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P10</th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
@@ -1723,6 +1811,9 @@ Tim Markaz Tikrar Indonesia`;
                             <div className="text-xs text-gray-500 truncate max-w-[120px]">{kunyah}</div>
                           )}
                         </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
+                          {entry.confirmed_chosen_juz || '-'}
+                        </td>
                         <td className="px-2 py-2 text-center">
                           {whatsappUrl ? (
                             <a
@@ -1732,7 +1823,9 @@ Tim Markaz Tikrar Indonesia`;
                               className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
                               title="Chat via WhatsApp"
                             >
-                              <MessageSquare className="w-3 h-3" />
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                              </svg>
                             </a>
                           ) : (
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-400">
@@ -1750,9 +1843,6 @@ Tim Markaz Tikrar Indonesia`;
                         <td className="px-1 py-2 text-center">{renderWeekCell(8)}</td>
                         <td className="px-1 py-2 text-center">{renderWeekCell(9)}</td>
                         <td className="px-1 py-2 text-center">{renderWeekCell(10)}</td>
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {entry.confirmed_chosen_juz || '-'}
-                        </td>
                         <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-1">
                             <button
@@ -1774,7 +1864,7 @@ Tim Markaz Tikrar Indonesia`;
                       </tr>
                       {isExpanded && (
                         <tr className="bg-gray-50">
-                          <td colSpan={15} className="px-4 py-4">
+                          <td colSpan={14} className="px-4 py-4">
                             <div className="space-y-4">
                               <div className="flex items-center justify-between">
                                 <h4 className="text-sm font-medium text-gray-700">Status Blok per Pekan (10 Pekan)</h4>
