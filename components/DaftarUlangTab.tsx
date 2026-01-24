@@ -116,7 +116,6 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
   const [sortField, setSortField] = useState<SortField>('submitted_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [resettingId, setResettingId] = useState<string | null>(null);
-  const [resettingAll, setResettingAll] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<{ total: number; totalPages: number } | null>(null);
 
@@ -327,42 +326,88 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     return match ? match[1].toUpperCase() : confirmedChosenJuz;
   };
 
-  // Download Excel
+  // Download Excel - Filter by approved/submitted status only
   const downloadExcel = async () => {
     setDownloadingExcel(true);
     try {
       const data = await loadAllSubmissionsForDownload();
-      if (data.length === 0) {
-        toast.error('Tidak ada data untuk diunduh');
+
+      // Filter only approved or submitted status
+      const filteredData = data.filter(
+        (item: any) => item.status === 'approved' || item.status === 'submitted'
+      );
+
+      if (filteredData.length === 0) {
+        toast.error('Tidak ada data dengan status approved/submitted untuk diunduh');
         return;
       }
 
       // Sort data alphabetically by name
-      const sortedData = [...data].sort((a, b) => {
+      const sortedData = [...filteredData].sort((a, b) => {
         const aName = a.confirmed_full_name || a.user?.full_name || '';
         const bName = b.confirmed_full_name || b.user?.full_name || '';
         return aName.localeCompare(bName, 'id-ID');
       });
 
-      // Prepare Excel data
+      // Prepare Excel data with complete information
       const excelData = sortedData.map((item, index) => {
         const user = item.user || {};
         const registration = item.registration || {};
         const ujianHalaqah = item.ujian_halaqah || {};
         const tashihHalaqah = item.tashih_halaqah || {};
+        const partnerUser = item.partner_user || {};
+
+        // Format time slot for display
+        const formatTimeSlot = (slot: string | undefined) => {
+          if (!slot) return '-';
+          const timeMap: Record<string, string> = {
+            '04-06': '04.00 - 06.00',
+            '06-09': '06.00 - 09.00',
+            '09-12': '09.00 - 12.00',
+            '12-15': '12.00 - 15.00',
+            '15-18': '15.00 - 18.00',
+            '18-21': '18.00 - 21.00',
+            '21-24': '21.00 - 24.00'
+          };
+          return timeMap[slot] || slot;
+        };
+
+        // Format halaqah schedule
+        const formatHalaqahSchedule = (halaqah: any) => {
+          if (!halaqah || !halaqah.name) return '-';
+          const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
+          const day = halaqah.day_of_week !== undefined ? days[halaqah.day_of_week] : '';
+          const time = (halaqah.start_time && halaqah.end_time) ? `${halaqah.start_time} - ${halaqah.end_time}` : '';
+          return day && time ? `${day}, ${time}` : halaqah.name || '-';
+        };
 
         return {
           'No': index + 1,
           'Nama Lengkap': item.confirmed_full_name || user.full_name || '-',
-          'Usia': calculateAge(user.tanggal_lahir || registration.birth_date),
-          'Juz Code': getJuzCode(item.confirmed_chosen_juz),
-          'Juz Pilihan': item.confirmed_chosen_juz || registration.chosen_juz || '-',
-          'Halaqah Ujian': ujianHalaqah.name || '-',
-          'Halaqah Tashih': tashihHalaqah.name || (item.is_tashih_umum ? 'Umum' : '-'),
-          'Nomor WhatsApp': user.whatsapp || user.phone || '-',
           'Email': user.email || '-',
-          'Status': item.status,
-          'Tanggal Submit': item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('id-ID') : '-',
+          'No. WhatsApp': user.whatsapp || user.phone || '-',
+          'Usia': calculateAge(user.tanggal_lahir || registration.birth_date),
+          'Juz Code': getJuzCode(item.confirmed_chosen_juz || registration.chosen_juz),
+          'Juz Pilihan': item.confirmed_chosen_juz || registration.chosen_juz || '-',
+          'Slot Jadwal Utama': formatTimeSlot(item.confirmed_main_time_slot || registration.main_time_slot),
+          'Slot Jadwal Cadangan': formatTimeSlot(item.confirmed_backup_time_slot || registration.backup_time_slot),
+          'Zona Waktu': user.zona_waktu || '-',
+          'Status Daftar Ulang': item.status === 'approved' ? 'Approved' : item.status === 'submitted' ? 'Submitted' : '-',
+          'Tanggal Submit': item.submitted_at ? new Date(item.submitted_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-',
+          'Halaqah Ujian': ujianHalaqah.name || '-',
+          'Jadwal Halaqah Ujian': formatHalaqahSchedule(ujianHalaqah),
+          'Halaqah Tashih': item.is_tashih_umum ? 'Umum' : (tashihHalaqah.name || '-'),
+          'Jadwal Halaqah Tashih': item.is_tashih_umum ? 'Umum' : formatHalaqahSchedule(tashihHalaqah),
+          'Tipe Partner': item.partner_type || '-',
+          'Nama Partner': item.partner_type === 'self_match' && partnerUser.full_name
+            ? partnerUser.full_name
+            : (item.partner_name || '-'),
+          'Email Partner': item.partner_type === 'self_match' && partnerUser.email
+            ? partnerUser.email
+            : '-',
+          'No. WA Partner': item.partner_wa_phone || '-',
+          'Akad Terupload': item.akad_files && item.akad_files.length > 0 ? 'Ya' : 'Tidak',
+          'Tanggal Upload Akad': item.akad_submitted_at ? new Date(item.akad_submitted_at).toLocaleDateString('id-ID') : '-',
         };
       });
 
@@ -372,17 +417,28 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
       // Set column widths
       ws['!cols'] = [
-        { wch: 5 },  // No
-        { wch: 30 }, // Nama Lengkap
-        { wch: 6 },  // Usia
-        { wch: 8 },  // Juz Code
-        { wch: 15 }, // Juz Pilihan
-        { wch: 25 }, // Halaqah Ujian
-        { wch: 25 }, // Halaqah Tashih
-        { wch: 15 }, // Nomor WhatsApp
-        { wch: 25 }, // Email
-        { wch: 12 }, // Status
-        { wch: 15 }, // Tanggal Submit
+        { wch: 5 },   // No
+        { wch: 30 },  // Nama Lengkap
+        { wch: 30 },  // Email
+        { wch: 15 },  // No. WhatsApp
+        { wch: 6 },   // Usia
+        { wch: 8 },   // Juz Code
+        { wch: 15 },  // Juz Pilihan
+        { wch: 20 },  // Slot Jadwal Utama
+        { wch: 20 },  // Slot Jadwal Cadangan
+        { wch: 12 },  // Zona Waktu
+        { wch: 15 },  // Status Daftar Ulang
+        { wch: 20 },  // Tanggal Submit
+        { wch: 25 },  // Halaqah Ujian
+        { wch: 25 },  // Jadwal Halaqah Ujian
+        { wch: 25 },  // Halaqah Tashih
+        { wch: 25 },  // Jadwal Halaqah Tashih
+        { wch: 12 },  // Tipe Partner
+        { wch: 30 },  // Nama Partner
+        { wch: 30 },  // Email Partner
+        { wch: 15 },  // No. WA Partner
+        { wch: 12 },  // Akad Terupload
+        { wch: 20 },  // Tanggal Upload Akad
       ];
 
       XLSX.utils.book_append_sheet(wb, ws, 'Data Thalibah');
@@ -393,7 +449,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
       // Download
       XLSX.writeFile(wb, fileName);
-      toast.success('Excel berhasil diunduh');
+      toast.success(`Excel berhasil diunduh (${filteredData.length} thalibah dengan status approved/submitted)`);
     } catch (error) {
       console.error('[DaftarUlangTab] Error downloading Excel:', error);
       toast.error('Gagal mengunduh Excel');
@@ -793,45 +849,6 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
     }
   };
 
-  const handleResetAllHalaqah = async () => {
-    // Count draft submissions with halaqah selection
-    const draftsWithHalaqah = submissions.filter(
-      s => s.status === 'draft' && (s.ujian_halaqah_id || s.tashih_halaqah_id)
-    );
-
-    if (draftsWithHalaqah.length === 0) {
-      toast.info('Tidak ada draft dengan pilihan halaqah untuk direset');
-      return;
-    }
-
-    if (!confirm(`Apakah Anda yakin ingin mereset pilihan halaqah untuk ${draftsWithHalaqah.length} draft submissions? Data halaqah akan dihapus tetapi akad dan partner akan tetap tersimpan.`)) {
-      return;
-    }
-
-    setResettingAll(true);
-    try {
-      const response = await fetch('/api/admin/daftar-ulang/reset-all-halaqah', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to reset all halaqah');
-      }
-
-      toast.success(`Berhasil mereset ${result.data?.reset_count || 0} halaqah selection`);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error: any) {
-      console.error('[DaftarUlangTab] Error resetting all halaqah:', error);
-      toast.error('Gagal mereset semua halaqah: ' + error.message);
-    } finally {
-      setResettingAll(false);
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -896,23 +913,6 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           <div className="flex gap-2">
             {activeSubTab === 'submissions' && (
               <>
-                <button
-                  onClick={handleResetAllHalaqah}
-                  disabled={resettingAll}
-                  className="px-3 py-2 border border-orange-300 text-orange-600 rounded-md text-sm hover:bg-orange-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {resettingAll ? (
-                    <>
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                      Resetting...
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw className="w-3 h-3" />
-                      Reset All Halaqah
-                    </>
-                  )}
-                </button>
                 <button
                   onClick={downloadExcel}
                   disabled={downloadingExcel}
