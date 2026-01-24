@@ -1428,7 +1428,7 @@ Tim Markaz Tikrar Indonesia`;
 
                                                         if (bloks.length > 1) {
                                                           // Update record to remove this block
-                                                          const newBlok = bloks.filter(b => b !== block.block_code).join(',');
+                                                          const newBlok = bloks.filter((b: string) => b !== block.block_code).join(',');
                                                           const response = await fetch('/api/musyrifah/tashih', {
                                                             method: 'PUT',
                                                             headers: { 'Content-Type': 'application/json' },
