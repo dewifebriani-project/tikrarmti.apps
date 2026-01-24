@@ -80,6 +80,7 @@ interface JurnalUserEntry {
   daftar_ulang_status?: string;
   submitted_at?: string;
   reviewed_at?: string;
+  confirmed_chosen_juz?: string | null;
   user?: {
     id: string;
     full_name: string | null;
@@ -822,6 +823,7 @@ Tim Markaz Tikrar Indonesia`;
                 <tr>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P1</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P2</th>
@@ -833,7 +835,6 @@ Tim Markaz Tikrar Indonesia`;
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P8</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P9</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P10</th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
@@ -843,8 +844,8 @@ Tim Markaz Tikrar Indonesia`;
                   const kunyah = displayKunyah(userData.user);
                   const whatsappUrl = userData.user?.whatsapp ? formatWhatsAppLink(userData.user.whatsapp, name, userData) : null;
                   const isExpanded = expandedRows.has(userData.user_id);
-                  // Get latest juz from jurnal records
-                  const latestJuz = userData.latest_jurnal?.juz_code || null;
+                  // Get juz from confirmed_chosen_juz (same as tashih)
+                  const juzCode = userData.confirmed_chosen_juz || null;
 
                   return (
                     <React.Fragment key={userData.user_id}>
@@ -867,6 +868,9 @@ Tim Markaz Tikrar Indonesia`;
                             <div className="text-xs text-gray-500 truncate max-w-[120px]">{kunyah}</div>
                           )}
                         </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
+                          {juzCode || '-'}
+                        </td>
                         <td className="px-2 py-2 text-center">
                           {whatsappUrl ? (
                             <a
@@ -876,7 +880,9 @@ Tim Markaz Tikrar Indonesia`;
                               className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
                               title="Chat via WhatsApp"
                             >
-                              <MessageSquare className="w-3 h-3" />
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.769-.074-.421-.013-.796.233-1.07.247-.273.61-.868 1.427-1.165 1.663-.198.149-.348.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.769-.074-.421-.013-.796.233-1.07.247-.273.61-.868 1.427-1.165 1.663-.198.149-.348.223-.644.075zm-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648 1.07-.376.223-.714.338-1.033.478-1.797.754-3.359 2.518-3.359 4.099 0 1.123.346 2.195.982 3.025a9.86 9.86 0 005.031 1.378l.361.214 3.741-.982-.998-3.648-1.07-.376-.223-.714-.338-1.033-.478-1.797-.754-3.359-2.518-3.359-4.099 0-1.123.346-2.195.982-3.025z"/>
+                              </svg>
                             </a>
                           ) : (
                             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-400">
@@ -894,9 +900,6 @@ Tim Markaz Tikrar Indonesia`;
                         <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 8)}</td>
                         <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 9)}</td>
                         <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 10)}</td>
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {latestJuz || '-'}
-                        </td>
                         <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-1">
                             <button
@@ -918,7 +921,7 @@ Tim Markaz Tikrar Indonesia`;
                       </tr>
                       {expandedRows.has(userData.user_id) && (
                       <tr className="bg-gray-50">
-                        <td colSpan={14} className="px-4 py-4">
+                        <td colSpan={13} className="px-4 py-4">
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-medium text-gray-700">Jurnal per Pekan (10 Pekan)</h4>

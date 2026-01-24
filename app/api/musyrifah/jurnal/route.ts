@@ -257,6 +257,7 @@ export async function GET(request: Request) {
         daftar_ulang_status: daftarUlangMap.get(userId)?.status,
         submitted_at: daftarUlangMap.get(userId)?.submitted_at,
         reviewed_at: daftarUlangMap.get(userId)?.reviewed_at,
+        confirmed_chosen_juz: daftarUlangMap.get(userId)?.confirmed_chosen_juz || null,
         user: userMap.get(userId) || null,
         weekly_status: weeklyStatus,
         jurnal_count: userJurnalRecords.length,
