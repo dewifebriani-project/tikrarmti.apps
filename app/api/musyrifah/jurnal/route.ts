@@ -89,6 +89,7 @@ export async function GET(request: Request) {
         tanggal_setor,
         juz_code,
         blok,
+        pekan,
         tashih_completed,
         rabth_completed,
         murajaah_count,

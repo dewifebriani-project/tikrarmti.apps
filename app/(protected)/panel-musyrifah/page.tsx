@@ -51,6 +51,7 @@ interface JurnalEntry {
   tanggal_setor: string;
   juz_code: string | null;
   blok: string | null;
+  pekan: number | null;
   tashih_completed: boolean;
   rabth_completed: boolean;
   murajaah_count: number;
@@ -341,6 +342,85 @@ export default function PanelMusyrifahPage() {
       toast.error('Error loading jurnal');
       setJurnalEntries([]);
     }
+  };
+
+  // Helper to calculate weekly status from jurnal entries
+  const calculateJurnalWeeklyStatus = (entries: JurnalEntry[]) => {
+    const weeklyStatus: any[] = [];
+    for (let week = 1; week <= 10; week++) {
+      const weekEntries = entries.filter(e => e.pekan === week);
+      const hasJurnal = weekEntries.length > 0;
+
+      // Calculate total activities for the week
+      let totalActivities = 0;
+      let completedActivities = 0;
+
+      weekEntries.forEach(entry => {
+        if (entry.tashih_completed) totalActivities++;
+        if (entry.rabth_completed) totalActivities++;
+        totalActivities += entry.murajaah_count > 0 ? 1 : 0;
+        totalActivities += entry.simak_murattal_count > 0 ? 1 : 0;
+        if (entry.tikrar_bi_an_nadzar_completed) totalActivities++;
+        totalActivities += entry.tasmi_record_count > 0 ? 1 : 0;
+        totalActivities += entry.tikrar_bi_al_ghaib_count > 0 ? 1 : 0;
+        if (entry.tafsir_completed) totalActivities++;
+        if (entry.menulis_completed) totalActivities++;
+
+        // Count completed
+        if (entry.tashih_completed) completedActivities++;
+        if (entry.rabth_completed) completedActivities++;
+        if (entry.murajaah_count > 0) completedActivities++;
+        if (entry.simak_murattal_count > 0) completedActivities++;
+        if (entry.tikrar_bi_an_nadzar_completed) completedActivities++;
+        if (entry.tasmi_record_count > 0) completedActivities++;
+        if (entry.tikrar_bi_al_ghaib_count > 0) completedActivities++;
+        if (entry.tafsir_completed) completedActivities++;
+        if (entry.menulis_completed) completedActivities++;
+      });
+
+      weeklyStatus.push({
+        week_number: week,
+        has_jurnal: hasJurnal,
+        entry_count: weekEntries.length,
+        total_activities: totalActivities,
+        completed_activities: completedActivities,
+        entries: weekEntries
+      });
+    }
+
+    return weeklyStatus;
+  };
+
+  // Group jurnal entries by user for display
+  const groupJurnalByUser = (entries: JurnalEntry[]) => {
+    const userMap = new Map<string, JurnalEntry[]>();
+
+    entries.forEach(entry => {
+      if (!userMap.has(entry.user_id)) {
+        userMap.set(entry.user_id, []);
+      }
+      userMap.get(entry.user_id)!.push(entry);
+    });
+
+    return Array.from(userMap.entries()).map(([userId, userEntries]) => {
+      const user = userEntries[0]?.user;
+      const latestEntry = userEntries.sort((a, b) =>
+        new Date(b.tanggal_setor).getTime() - new Date(a.tanggal_setor).getTime()
+      )[0];
+
+      const weeklyStatus = calculateJurnalWeeklyStatus(userEntries);
+      const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
+
+      return {
+        user_id: userId,
+        user: user,
+        weekly_status: weeklyStatus,
+        jurnal_count: userEntries.length,
+        weeks_with_jurnal: weeksWithJurnal,
+        latest_entry: latestEntry,
+        all_entries: userEntries
+      };
+    });
   };
 
   const loadTashih = async () => {
@@ -660,16 +740,67 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JurnalEntry | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const displayName = (entry: JurnalEntry) => {
-    if (entry.user?.nama_kunyah) return entry.user.nama_kunyah;
-    if (entry.user?.full_name) return entry.user.full_name;
+  const toggleRow = (userId: string) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const displayName = (user: any) => {
+    if (user?.nama_kunyah) return user.nama_kunyah;
+    if (user?.full_name) return user.full_name;
     return '-';
   };
 
-  const displayWhatsApp = (entry: JurnalEntry) => {
-    if (entry.user?.whatsapp) return entry.user.whatsapp;
-    return '-';
+  const displayKunyah = (user: any) => {
+    if (user?.nama_kunyah) return user.nama_kunyah;
+    return null;
+  };
+
+  // Group entries by user and calculate weekly status
+  const groupedUsers = groupJurnalByUser(entries);
+
+  // Helper to render week cell
+  const renderJurnalWeekCell = (weekData: any, weekNum: number) => {
+    const week = weekData.weekly_status.find((w: any) => w.week_number === weekNum);
+    if (!week) {
+      return <span className="text-gray-300">-</span>;
+    }
+
+    if (!week.has_jurnal) {
+      return (
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">
+          -
+        </span>
+      );
+    }
+
+    // Calculate activity completion for the week
+    const entryCount = week.entry_count;
+    if (entryCount === 0) {
+      return (
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">
+          0
+        </span>
+      );
+    }
+
+    return (
+      <span
+        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold"
+        title={`${entryCount} jurnal entries`}
+      >
+        {entryCount}
+      </span>
+    );
   };
 
   return (
@@ -713,7 +844,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
         </div>
       </div>
 
-      {entries.length === 0 ? (
+      {groupedUsers.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada jurnal</h3>
@@ -725,142 +856,237 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tgl Setor</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">T</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">R</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">M</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">SM</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TN</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TR</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TG</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">TF</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">W</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P1</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P2</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P3</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P4</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P5</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P6</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P7</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P8</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P9</th>
+                  <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">P10</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {entries.map((entry) => (
-                  <React.Fragment key={entry.id}>
-                    <tr className="hover:bg-gray-50">
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{displayName(entry)}</div>
+                {groupedUsers.map((userData) => (
+                  <React.Fragment key={userData.user_id}>
+                    <tr className={`hover:bg-gray-50 ${userData.jurnal_count === 0 ? 'bg-yellow-50' : ''}`}>
+                      <td className="px-2 py-2">
+                        <button
+                          onClick={() => toggleRow(userData.user_id)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          {expandedRows.has(userData.user_id) ? (
+                            <ChevronDown className="w-4 h-4 transform rotate-180" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </button>
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                        {entry.tanggal_setor ? new Date(entry.tanggal_setor).toLocaleDateString('id-ID') : '-'}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                          {entry.blok || '-'}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {entry.tashih_completed ? (
-                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-4 h-4 text-gray-300 mx-auto" />
+                      <td className="px-2 py-2">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{displayName(userData.user)}</div>
+                        {displayKunyah(userData.user) && (
+                          <div className="text-xs text-gray-500 truncate max-w-[120px]">{displayKunyah(userData.user)}</div>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-center">
-                        {entry.rabth_completed ? (
-                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-4 h-4 text-gray-300 mx-auto" />
-                        )}
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 1)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 2)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 3)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 4)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 5)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 6)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 7)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 8)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 9)}</td>
+                      <td className="px-1 py-2 text-center">{renderJurnalWeekCell(userData, 10)}</td>
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {userData.jurnal_count} jurnal
                       </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600">
-                        {entry.murajaah_count || 0}
-                      </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600">
-                        {entry.simak_murattal_count || 0}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {entry.tikrar_bi_an_nadzar_completed ? (
-                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-4 h-4 text-gray-300 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600">
-                        {entry.tasmi_record_count || 0}
-                      </td>
-                      <td className="px-3 py-2 text-center text-sm text-gray-600">
-                        {entry.tikrar_bi_al_ghaib_count || 0}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {entry.tafsir_completed ? (
-                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-4 h-4 text-gray-300 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {entry.menulis_completed ? (
-                          <CheckCircle className="w-4 h-4 text-green-600 mx-auto" />
-                        ) : (
-                          <X className="w-4 h-4 text-gray-300 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                        {entry.juz_code || '-'}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-1">
                           <button
-                            onClick={() => {
-                              setEditingEntry(entry);
-                              setShowEditModal(true);
-                            }}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Edit"
+                            onClick={() => {/* Could open detail modal */}}
+                            className="text-indigo-600 hover:text-indigo-900 p-1"
+                            title="Detail"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={async () => {
-                              if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
-                                try {
-                                  const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
-                                    method: 'DELETE',
-                                  });
-
-                                  if (!response.ok) {
-                                    const error = await response.json();
-                                    toast.error(error.error || 'Gagal menghapus jurnal');
-                                    return;
-                                  }
-
-                                  toast.success('Jurnal berhasil dihapus');
-                                  onRefresh();
-                                } catch (err) {
-                                  toast.error('Gagal menghapus jurnal');
-                                }
-                              }
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                            title="Hapus"
+                            onClick={() => toggleRow(userData.user_id)}
+                            className="text-blue-600 hover:text-blue-900 p-1"
+                            title="Lihat Detail"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <BookOpen className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                     </tr>
-                    {/* Additional details row */}
-                    {(entry.catatan_tambahan || entry.total_duration_minutes) && (
+                    {expandedRows.has(userData.user_id) && (
                       <tr className="bg-gray-50">
-                        <td colSpan={14} className="px-3 py-2 text-xs text-gray-600">
-                          {entry.total_duration_minutes && (
-                            <span className="mr-4">
-                              <strong>Durasi:</strong> {entry.total_duration_minutes} menit
-                            </span>
-                          )}
-                          {entry.catatan_tambahan && (
-                            <span>
-                              <strong>Catatan:</strong> {entry.catatan_tambahan}
-                            </span>
-                          )}
+                        <td colSpan={14} className="px-4 py-4">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-medium text-gray-700">Jurnal per Pekan (10 Pekan)</h4>
+                              <span className="text-xs text-gray-500">Klik pekan untuk melihat detail jurnal</span>
+                            </div>
+
+                            {/* Weekly Jurnal Grid */}
+                            <div className="space-y-3">
+                              {userData.weekly_status.map((week: any) => {
+                                if (!week.has_jurnal && week.entries.length === 0) {
+                                  return (
+                                    <div key={week.week_number} className="border border-dashed rounded-lg p-3 bg-gray-50">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-500">Pekan {week.week_number}</span>
+                                        <span className="text-xs text-gray-400">Belum ada jurnal</span>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+
+                                return (
+                                  <div key={week.week_number} className="border rounded-lg p-3 bg-white">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-gray-700">Pekan {week.week_number}</span>
+                                        <span className="text-xs text-gray-500">({week.entry_count} jurnal)</span>
+                                      </div>
+                                    </div>
+
+                                    {/* Jurnal entries for this week */}
+                                    <div className="space-y-2">
+                                      {week.entries.map((entry: JurnalEntry) => (
+                                        <div
+                                          key={entry.id}
+                                          className="border border-gray-200 rounded p-3 bg-white hover:bg-gray-50"
+                                        >
+                                          <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-3 text-sm">
+                                                <span className="text-xs text-gray-500">
+                                                  {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
+                                                </span>
+                                                {entry.blok && (
+                                                  <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800">
+                                                    {entry.blok}
+                                                  </span>
+                                                )}
+                                                {entry.juz_code && (
+                                                  <span className="text-xs text-gray-600">
+                                                    Juz {entry.juz_code}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="mt-2 grid grid-cols-10 gap-2 text-xs">
+                                                <span className={entry.tashih_completed ? 'text-green-600' : 'text-gray-400'}>
+                                                  T: {entry.tashih_completed ? '✓' : '-'}
+                                                </span>
+                                                <span className={entry.rabth_completed ? 'text-green-600' : 'text-gray-400'}>
+                                                  R: {entry.rabth_completed ? '✓' : '-'}
+                                                </span>
+                                                <span className={entry.murajaah_count > 0 ? 'text-green-600' : 'text-gray-400'}>
+                                                  M: {entry.murajaah_count}
+                                                </span>
+                                                <span className={entry.simak_murattal_count > 0 ? 'text-green-600' : 'text-gray-400'}>
+                                                  SM: {entry.simak_murattal_count}
+                                                </span>
+                                                <span className={entry.tikrar_bi_an_nadzar_completed ? 'text-green-600' : 'text-gray-400'}>
+                                                  TN: {entry.tikrar_bi_an_nadzar_completed ? '✓' : '-'}
+                                                </span>
+                                                <span className={entry.tasmi_record_count > 0 ? 'text-green-600' : 'text-gray-400'}>
+                                                  TR: {entry.tasmi_record_count}
+                                                </span>
+                                                <span className={entry.tikrar_bi_al_ghaib_count > 0 ? 'text-green-600' : 'text-gray-400'}>
+                                                  TG: {entry.tikrar_bi_al_ghaib_count}
+                                                </span>
+                                                <span className={entry.tafsir_completed ? 'text-green-600' : 'text-gray-400'}>
+                                                  TF: {entry.tafsir_completed ? '✓' : '-'}
+                                                </span>
+                                                <span className={entry.menulis_completed ? 'text-green-600' : 'text-gray-400'}>
+                                                  W: {entry.menulis_completed ? '✓' : '-'}
+                                                </span>
+                                              </div>
+                                              {entry.catatan_tambahan && (
+                                                <div className="mt-1 text-xs text-gray-600">
+                                                  Catatan: {entry.catatan_tambahan}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="flex gap-1">
+                                              <button
+                                                onClick={() => {
+                                                  setEditingEntry(entry);
+                                                  setShowEditModal(true);
+                                                }}
+                                                className="text-indigo-600 hover:text-indigo-900 p-1"
+                                                title="Edit"
+                                              >
+                                                <Edit className="w-3 h-3" />
+                                              </button>
+                                              <button
+                                                onClick={async () => {
+                                                  if (confirm('Apakah Anda yakin ingin menghapus jurnal ini?')) {
+                                                    try {
+                                                      const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
+                                                        method: 'DELETE',
+                                                      });
+
+                                                      if (!response.ok) {
+                                                        const error = await response.json();
+                                                        toast.error(error.error || 'Gagal menghapus jurnal');
+                                                        return;
+                                                      }
+
+                                                      toast.success('Jurnal berhasil dihapus');
+                                                      onRefresh();
+                                                    } catch (err) {
+                                                      toast.error('Gagal menghapus jurnal');
+                                                    }
+                                                  }
+                                                }}
+                                                className="text-red-600 hover:text-red-900 p-1"
+                                                title="Hapus"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Summary */}
+                            <div className="mt-4 pt-3 border-t border-gray-200">
+                              <div className="grid grid-cols-3 gap-4 text-xs">
+                                <div>
+                                  <span className="text-gray-500">Total Jurnal:</span>
+                                  <span className="ml-2 font-medium text-gray-900">{userData.jurnal_count}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Pekan dengan Jurnal:</span>
+                                  <span className="ml-2 font-medium text-gray-900">{userData.weeks_with_jurnal}/10</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Terakhir Jurnal:</span>
+                                  <span className="ml-2 font-medium text-gray-900">
+                                    {userData.latest_entry
+                                      ? new Date(userData.latest_entry.tanggal_setor).toLocaleDateString('id-ID')
+                                      : '-'
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -868,20 +1094,6 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
                 ))}
               </tbody>
             </table>
-          </div>
-          {/* Legend */}
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-            <div className="flex flex-wrap gap-4 text-xs text-gray-600">
-              <span><strong>T:</strong> Tashih</span>
-              <span><strong>R:</strong> Rabth</span>
-              <span><strong>M:</strong> Murajaah (count)</span>
-              <span><strong>SM:</strong> Simak Murattal (count)</span>
-              <span><strong>TN:</strong> Tikrar Nadzar</span>
-              <span><strong>TR:</strong> Tasmi Record (count)</span>
-              <span><strong>TG:</strong> Tikrar Ghaib (count)</span>
-              <span><strong>TF:</strong> Tafsir</span>
-              <span><strong>W:</strong> Menulis</span>
-            </div>
           </div>
         </div>
       )}
