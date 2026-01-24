@@ -192,6 +192,28 @@ interface MusyrifahStats {
   pendingJurnalReview: number;
   pendingTashihReview: number;
   pendingUjianReview: number;
+  jurnal: {
+    totalEntries: number;
+    uniqueThalibah: number;
+    thalibahWithJurnal: number;
+    thalibahWithoutJurnal: number;
+    averageEntriesPerThalibah: number;
+    weeksWithJurnal: number;
+    totalBlocksCompleted: number;
+    completionPercentage: number;
+    thisWeekEntries: number;
+  };
+  tashih: {
+    totalRecords: number;
+    uniqueThalibah: number;
+    thalibahWithTashih: number;
+    thalibahWithoutTashih: number;
+    averageRecordsPerThalibah: number;
+    totalBlocksCompleted: number;
+    totalBlocks: number;
+    completionPercentage: number;
+    thisWeekRecords: number;
+  };
 }
 
 export default function PanelMusyrifahPage() {
@@ -217,6 +239,28 @@ export default function PanelMusyrifahPage() {
     pendingJurnalReview: 0,
     pendingTashihReview: 0,
     pendingUjianReview: 0,
+    jurnal: {
+      totalEntries: 0,
+      uniqueThalibah: 0,
+      thalibahWithJurnal: 0,
+      thalibahWithoutJurnal: 0,
+      averageEntriesPerThalibah: 0,
+      weeksWithJurnal: 0,
+      totalBlocksCompleted: 0,
+      completionPercentage: 0,
+      thisWeekEntries: 0,
+    },
+    tashih: {
+      totalRecords: 0,
+      uniqueThalibah: 0,
+      thalibahWithTashih: 0,
+      thalibahWithoutTashih: 0,
+      averageRecordsPerThalibah: 0,
+      totalBlocksCompleted: 0,
+      totalBlocks: 0,
+      completionPercentage: 0,
+      thisWeekRecords: 0,
+    },
   });
   const [thalibahList, setThalibahList] = useState<Thalibah[]>([]);
   const [jurnalEntries, setJurnalEntries] = useState<JurnalUserEntry[]>([]);
@@ -579,7 +623,7 @@ function OverviewTab({ stats }: { stats: MusyrifahStats }) {
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Overview Stats Cards */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {statCards.map((stat) => {
           const Icon = stat.icon;
@@ -601,6 +645,60 @@ function OverviewTab({ stats }: { stats: MusyrifahStats }) {
             </div>
           );
         })}
+      </div>
+
+      {/* Jurnal Statistics */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Statistik Jurnal Harian</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="text-sm text-blue-600 mb-1">Total Entri</div>
+            <div className="text-2xl font-bold text-blue-900">{stats.jurnal.totalEntries}</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="text-sm text-green-600 mb-1">Thalibah dengan Jurnal</div>
+            <div className="text-2xl font-bold text-green-900">{stats.jurnal.thalibahWithJurnal}/{stats.totalThalibah}</div>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-4">
+            <div className="text-sm text-purple-600 mb-1">Blok Selesai</div>
+            <div className="text-2xl font-bold text-purple-900">{stats.jurnal.totalBlocksCompleted} blok</div>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-4">
+            <div className="text-sm text-amber-600 mb-1">Progress</div>
+            <div className="text-2xl font-bold text-amber-900">{stats.jurnal.completionPercentage}%</div>
+          </div>
+        </div>
+        <div className="mt-3 text-sm text-gray-600">
+          <span className="font-medium">Entri minggu ini:</span> {stats.jurnal.thisWeekEntries} |
+          <span className="ml-4 font-medium">Thalibah tanpa jurnal:</span> {stats.jurnal.thalibahWithoutJurnal}
+        </div>
+      </div>
+
+      {/* Tashih Statistics */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Statistik Tashih</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="text-sm text-blue-600 mb-1">Total Record</div>
+            <div className="text-2xl font-bold text-blue-900">{stats.tashih.totalRecords}</div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="text-sm text-green-600 mb-1">Thalibah dengan Tashih</div>
+            <div className="text-2xl font-bold text-green-900">{stats.tashih.thalibahWithTashih}/{stats.totalThalibah}</div>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-4">
+            <div className="text-sm text-purple-600 mb-1">Blok Selesai</div>
+            <div className="text-2xl font-bold text-purple-900">{stats.tashih.totalBlocksCompleted}/{stats.tashih.totalBlocks}</div>
+          </div>
+          <div className="bg-amber-50 rounded-lg p-4">
+            <div className="text-sm text-amber-600 mb-1">Progress</div>
+            <div className="text-2xl font-bold text-amber-900">{stats.tashih.completionPercentage}%</div>
+          </div>
+        </div>
+        <div className="mt-3 text-sm text-gray-600">
+          <span className="font-medium">Record minggu ini:</span> {stats.tashih.thisWeekRecords} |
+          <span className="ml-4 font-medium">Thalibah tanpa tashih:</span> {stats.tashih.thalibahWithoutTashih}
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -829,24 +927,6 @@ Tim Markaz Tikrar Indonesia`;
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Blok:</label>
-            <select
-              value={selectedBlok}
-              onChange={(e) => onBlokChange(e.target.value)}
-              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
-            >
-              <option value="all">Semua</option>
-              {availableBloks.map((blok) => (
-                <option key={blok} value={blok}>{blok}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
 
       {sortedEntries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
@@ -1705,27 +1785,6 @@ Tim Markaz Tikrar Indonesia`;
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">Blok:</label>
-            <select
-              value={selectedBlok}
-              onChange={(e) => onBlokChange(e.target.value)}
-              className="block w-40 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
-            >
-              <option value="all">Semua</option>
-              {availableBloks.map((blok) => (
-                <option key={blok} value={blok}>{blok}</option>
-              ))}
-            </select>
-          </div>
-          <div className="text-sm text-gray-600">
-            Total: {sortedEntries.length} thalibah ({sortedEntries.filter(e => e.has_tashih).length} sudah lapor, {sortedEntries.filter(e => !e.has_tashih).length} belum lapor)
-          </div>
-        </div>
-      </div>
 
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
