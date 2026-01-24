@@ -845,74 +845,8 @@ Tim Markaz Tikrar Indonesia`;
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-gray-500" />
-            <label className="text-sm font-medium text-gray-700">Urutkan:</label>
-            <select
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
-                setSortBy(field);
-                setSortOrder(order);
-              }}
-              className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
-            >
-              <option value="name-asc">Nama (A-Z)</option>
-              <option value="name-desc">Nama (Z-A)</option>
-              <option value="juz-asc">Juz (A-Z)</option>
-              <option value="juz-desc">Juz (Z-A)</option>
-              <option value="progress-desc">Progress (Terbanyak)</option>
-              <option value="progress-asc">Progress (Tersedikit)</option>
-            </select>
-          </div>
         </div>
       </div>
-
-      {/* Per-Week Statistics */}
-      {sortedEntries.length > 0 && (
-        <div className="bg-white shadow rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Statistik per Pekan</h3>
-          <div className="grid grid-cols-10 gap-2">
-            {Array.from({ length: 10 }, (_, i) => {
-              const weekNum = i + 1;
-              const completed = sortedEntries.filter(e => {
-                const week = e.weekly_status.find(w => w.week_number === weekNum);
-                if (!week || !week.has_jurnal) return false;
-                // Count unique bloks - need 4 bloks for completion (like tashih)
-                const uniqueBlops = new Set<string>();
-                week.entries.forEach((entry: JurnalEntry) => {
-                  if (entry.blok) {
-                    // Handle both string and array format
-                    const bloks = typeof entry.blok === 'string' && entry.blok.startsWith('[')
-                      ? JSON.parse(entry.blok)
-                      : [entry.blok];
-                    bloks.forEach((b: any) => uniqueBlops.add(b));
-                  }
-                });
-                return uniqueBlops.size >= 4;
-              }).length;
-              const notCompleted = sortedEntries.length - completed;
-              const percentage = sortedEntries.length > 0 ? Math.round((completed / sortedEntries.length) * 100) : 0;
-
-              return (
-                <div key={weekNum} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-700 mb-1">P{weekNum}</div>
-                  <div className={`text-lg font-bold ${percentage >= 80 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {percentage}%
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-1">
-                    {completed}/{sortedEntries.length}
-                  </div>
-                  <div className="flex justify-between text-[10px] mt-1">
-                    <span className="text-green-600">{completed}✓</span>
-                    <span className="text-red-600">{notCompleted}✗</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {sortedEntries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
@@ -927,8 +861,42 @@ Tim Markaz Tikrar Indonesia`;
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => {
+                        if (sortBy === 'name') {
+                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                        } else {
+                          setSortBy('name');
+                          setSortOrder('asc');
+                        }
+                      }}
+                      className="flex items-center gap-1 hover:text-gray-700 focus:outline-none"
+                    >
+                      Nama
+                      {sortBy === 'name' && (
+                        <ArrowUpDown className={`w-3 h-3 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`} />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => {
+                        if (sortBy === 'juz') {
+                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                        } else {
+                          setSortBy('juz');
+                          setSortOrder('asc');
+                        }
+                      }}
+                      className="flex items-center gap-1 hover:text-gray-700 focus:outline-none"
+                    >
+                      Juz
+                      {sortBy === 'juz' && (
+                        <ArrowUpDown className={`w-3 h-3 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`} />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P1</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P2</th>
@@ -1753,65 +1721,11 @@ Tim Markaz Tikrar Indonesia`;
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-gray-500" />
-            <label className="text-sm font-medium text-gray-700">Urutkan:</label>
-            <select
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
-                setSortBy(field);
-                setSortOrder(order);
-              }}
-              className="block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-900 focus:border-green-900 sm:text-sm rounded-md"
-            >
-              <option value="name-asc">Nama (A-Z)</option>
-              <option value="name-desc">Nama (Z-A)</option>
-              <option value="juz-asc">Juz (A-Z)</option>
-              <option value="juz-desc">Juz (Z-A)</option>
-              <option value="progress-desc">Progress (Terbanyak)</option>
-              <option value="progress-asc">Progress (Tersedikit)</option>
-            </select>
-          </div>
           <div className="text-sm text-gray-600">
             Total: {sortedEntries.length} thalibah ({sortedEntries.filter(e => e.has_tashih).length} sudah lapor, {sortedEntries.filter(e => !e.has_tashih).length} belum lapor)
           </div>
         </div>
       </div>
-
-      {/* Per-Week Statistics */}
-      {sortedEntries.length > 0 && (
-        <div className="bg-white shadow rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Statistik per Pekan</h3>
-          <div className="grid grid-cols-10 gap-2">
-            {Array.from({ length: 10 }, (_, i) => {
-              const weekNum = i + 1;
-              const completed = sortedEntries.filter(e => {
-                const week = e.weekly_status.find(w => w.week_number === weekNum);
-                return week?.is_completed || false;
-              }).length;
-              const notCompleted = sortedEntries.length - completed;
-              const percentage = sortedEntries.length > 0 ? Math.round((completed / sortedEntries.length) * 100) : 0;
-
-              return (
-                <div key={weekNum} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-700 mb-1">P{weekNum}</div>
-                  <div className={`text-lg font-bold ${percentage >= 80 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {percentage}%
-                  </div>
-                  <div className="text-[10px] text-gray-500 mt-1">
-                    {completed}/{sortedEntries.length}
-                  </div>
-                  <div className="flex justify-between text-[10px] mt-1">
-                    <span className="text-green-600">{completed}✓</span>
-                    <span className="text-red-600">{notCompleted}✗</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
@@ -1826,8 +1740,42 @@ Tim Markaz Tikrar Indonesia`;
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => {
+                        if (sortBy === 'name') {
+                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                        } else {
+                          setSortBy('name');
+                          setSortOrder('asc');
+                        }
+                      }}
+                      className="flex items-center gap-1 hover:text-gray-700 focus:outline-none"
+                    >
+                      Nama
+                      {sortBy === 'name' && (
+                        <ArrowUpDown className={`w-3 h-3 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`} />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <button
+                      onClick={() => {
+                        if (sortBy === 'juz') {
+                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                        } else {
+                          setSortBy('juz');
+                          setSortOrder('asc');
+                        }
+                      }}
+                      className="flex items-center gap-1 hover:text-gray-700 focus:outline-none"
+                    >
+                      Juz
+                      {sortBy === 'juz' && (
+                        <ArrowUpDown className={`w-3 h-3 ${sortOrder === 'asc' ? 'transform rotate-180' : ''}`} />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P1</th>
                   <th className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[50px]">P2</th>
