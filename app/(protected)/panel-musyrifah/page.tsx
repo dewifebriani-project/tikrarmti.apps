@@ -17,6 +17,10 @@ import {
   Eye,
   Calendar,
   Plus,
+  MessageSquare,
+  Edit,
+  Trash2,
+  X,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian';
@@ -69,25 +73,29 @@ interface JurnalEntry {
 }
 
 interface TashihEntry {
-  id: string;
   user_id: string;
   blok: string;
-  lokasi: string;
-  lokasi_detail: string | null;
-  nama_pemeriksa: string | null;
-  masalah_tajwid: any[]; // JSONB array
-  catatan_tambahan: string | null;
-  waktu_tashih: string;
-  created_at: string;
-  updated_at: string;
-  ustadzah_id: string | null;
-  jumlah_kesalahan_tajwid: number | null;
+  confirmed_juz_number: number;
+  daftar_ulang_status: string;
+  submitted_at: string;
+  approved_at: string;
   user?: {
     id: string;
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
   };
+  has_tashih: boolean;
+  tashih_count: number;
+  latest_tashih: {
+    id: string;
+    lokasi: string;
+    lokasi_detail: string | null;
+    nama_pemeriksa: string | null;
+    jumlah_kesalahan_tajwid: number | null;
+    waktu_tashih: string;
+  } | null;
+  tashih_records: any[];
 }
 
 interface UjianResult {
@@ -1083,25 +1091,36 @@ interface TashihTabProps {
 
 function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: TashihTabProps) {
   const displayName = (entry: TashihEntry) => {
-    if (entry.user?.nama_kunyah) return entry.user.nama_kunyah;
     if (entry.user?.full_name) return entry.user.full_name;
     return '-';
   };
 
-  const formatWhatsAppLink = (phoneNumber: string | null, name: string) => {
+  const displayKunyah = (entry: TashihEntry) => {
+    if (entry.user?.nama_kunyah) return entry.user.nama_kunyah;
+    return null;
+  };
+
+  const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: TashihEntry) => {
     if (!phoneNumber) return null;
 
     // Clean the phone number - remove +, spaces, dashes, etc
     const cleanedPhone = phoneNumber.replace(/^0/, '62').replace(/[\s\-\(\)]/g, '');
 
+    const hasTashih = entry.has_tashih ? 'Sudah lapor' : 'Belum lapor';
+    const tashihInfo = entry.latest_tashih
+      ? `- Jumlah kesalahan tajwid: ${entry.latest_tashih.jumlah_kesalahan_tajwid || '0'}`
+      : '- Belum ada data tashih';
+
     const message = `Assalamu'alaikum ${name},
 
-Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan hasil tashih yang telah dilakukan:
+Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan hasil tashih:
 
-- Blok: ${entries[0]?.blok || '-'}
-- Jumlah kesalahan tajwid: ${entries[0]?.jumlah_kesalahan_tajwid || '0'}
+- Blok: ${entry.blok}
+- Juz: ${entry.confirmed_juz_number}
+- Status: ${hasTashih}
+${tashihInfo}
 
-Mohon dapat diperbaiki dan dilanjutkan.
+${entry.has_tashih ? 'Mohon dapat diperbaiki dan dilanjutkan.' : 'Mohon segera melaksanakan tashih.'}
 
 Jazakillahu khairan
 Tim Markaz Tikrar Indonesia`;
@@ -1112,17 +1131,34 @@ Tim Markaz Tikrar Indonesia`;
     return whatsappUrl;
   };
 
+  // Calculate blok per pekan (30 juz divided into bloks)
+  const juzPerBlok = 5; // Assuming 5 juz per blok
+  const blokToPekan = (blok: string) => {
+    const blokNum = parseInt(blok.replace(/\D/g, '')) || 1;
+    const pekan = Math.ceil((blokNum - 1) * juzPerBlok / 5) + 1; // Rough calculation
+    return pekan;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-900">Catatan Tashih</h2>
-        <button
-          onClick={onRefresh}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <AlertCircle className="w-5 h-5 mr-2" />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {/* TODO: Implement add tashih */}}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Tashih
+          </button>
+          <button
+            onClick={onRefresh}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <AlertCircle className="w-5 h-5 mr-2" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -1141,14 +1177,17 @@ Tim Markaz Tikrar Indonesia`;
               ))}
             </select>
           </div>
+          <div className="text-sm text-gray-600">
+            Total: {entries.length} thalibah ({entries.filter(e => e.has_tashih).length} sudah lapor, {entries.filter(e => !e.has_tashih).length} belum lapor)
+          </div>
         </div>
       </div>
 
       {entries.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada catatan tashih</h3>
-          <p className="mt-1 text-sm text-gray-500">Belum ada catatan tashih dari thalibah yang terdaftar di daftar ulang (approved/submitted).</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Tidak ada data thalibah</h3>
+          <p className="mt-1 text-sm text-gray-500">Belum ada thalibah yang terdaftar di daftar ulang (approved/submitted).</p>
         </div>
       ) : (
         <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -1156,56 +1195,109 @@ Tim Markaz Tikrar Indonesia`;
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama / Nama Kunyah</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasi</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu Tashih</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jml Kesalahan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemeriksa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WA</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blok</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pekan</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemeriksa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {entries.map((entry) => {
                   const name = displayName(entry);
-                  const whatsappUrl = entry.user?.whatsapp ? formatWhatsAppLink(entry.user.whatsapp, name) : null;
+                  const kunyah = displayKunyah(entry);
+                  const whatsappUrl = entry.user?.whatsapp ? formatWhatsAppLink(entry.user.whatsapp, name, entry) : null;
+
+                  // Calculate progress bar (tashih_count vs confirmed_juz_number)
+                  const progress = entry.confirmed_juz_number > 0
+                    ? Math.min((entry.tashih_count / entry.confirmed_juz_number) * 100, 100)
+                    : 0;
 
                   return (
-                    <tr key={entry.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={entry.user_id} className={`hover:bg-gray-50 ${!entry.has_tashih ? 'bg-yellow-50' : ''}`}>
+                      <td className="px-4 py-3">
                         <div className="text-sm font-medium text-gray-900">{name}</div>
+                        {kunyah && (
+                          <div className="text-xs text-gray-500">{kunyah}</div>
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 text-center">
                         {whatsappUrl ? (
                           <a
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-green-600 hover:text-green-800 font-medium"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
+                            title="Chat via WhatsApp"
                           >
-                            {entry.user?.whatsapp}
+                            <MessageSquare className="w-4 h-4" />
                           </a>
                         ) : (
-                          <span className="text-sm text-gray-400">-</span>
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400">
+                            <X className="w-4 h-4" />
+                          </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3">
+                        <div className="w-24">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-600">{entry.tashih_count}/{entry.confirmed_juz_number}</span>
+                            <span className="text-xs font-medium text-gray-900">{Math.round(progress)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-green-600 h-2 rounded-full"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
                           {entry.blok}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.lokasi}
-                        {entry.lokasi_detail && ` - ${entry.lokasi_detail}`}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {blokToPekan(entry.blok)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(entry.waktu_tashih).toLocaleDateString('id-ID')}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {entry.confirmed_juz_number}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.jumlah_kesalahan_tajwid ?? 0}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {entry.has_tashih ? (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Sudah Lapor ({entry.tashih_count})
+                          </span>
+                        ) : (
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Belum Lapor
+                          </span>
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.nama_pemeriksa || entry.ustadzah_id || '-'}
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {entry.latest_tashih?.nama_pemeriksa || '-'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => {/* TODO: Implement edit */}}
+                            className="text-indigo-600 hover:text-indigo-900 p-1"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {/* TODO: Implement delete */}}
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

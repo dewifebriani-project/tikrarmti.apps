@@ -31,54 +31,33 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const blok = searchParams.get('blok');
 
-    // Get user IDs from daftar_ulang_submissions with approved or submitted status
-    const { data: daftarUlangUsers } = await supabase
+    // Get all thalibah from daftar_ulang_submissions with approved or submitted status
+    const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
-      .select('user_id')
+      .select(`
+        user_id,
+        blok,
+        confirmed_juz_number,
+        status,
+        submitted_at,
+        approved_at
+      `)
       .in('status', ['approved', 'submitted']);
+
+    if (daftarUlangError) {
+      throw daftarUlangError;
+    }
 
     const userIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
     if (userIds.length === 0) {
-      return NextResponse.json({ success: true, data: [] });
+      return NextResponse.json({
+        success: true,
+        data: [],
+        meta: { bloks: [] }
+      });
     }
 
-    // Build query for tashih_records - filter by daftar_ulang users
-    let query = supabase
-      .from('tashih_records')
-      .select(`
-        id,
-        user_id,
-        blok,
-        lokasi,
-        lokasi_detail,
-        nama_pemeriksa,
-        masalah_tajwid,
-        catatan_tambahan,
-        waktu_tashih,
-        created_at,
-        updated_at,
-        ustadzah_id,
-        jumlah_kesalahan_tajwid
-      `)
-      .in('user_id', userIds)
-      .order('waktu_tashih', { ascending: false });
-
-    // Apply blok filter if provided
-    if (blok) {
-      query = query.eq('blok', blok);
-    }
-
-    const { data: entries, error } = await query;
-
-    if (error) {
-      // If table doesn't exist, return empty array
-      if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-        return NextResponse.json({ success: true, data: [] });
-      }
-      throw error;
-    }
-
-    // Fetch user data separately (from public.users)
+    // Fetch user data separately
     const { data: usersData } = await supabase
       .from('users')
       .select('id, full_name, nama_kunyah, whatsapp')
@@ -90,17 +69,67 @@ export async function GET(request: Request) {
       userMap.set(u.id, u);
     });
 
-    // Merge tashih entries with user data
-    const entriesWithUsers = (entries || []).map((entry: any) => ({
-      ...entry,
-      user: userMap.get(entry.user_id) || null,
-    }));
+    // Fetch tashih_records for these users
+    let tashihQuery = supabase
+      .from('tashih_records')
+      .select('*')
+      .in('user_id', userIds)
+      .order('waktu_tashih', { ascending: false });
+
+    if (blok) {
+      tashihQuery = tashihQuery.eq('blok', blok);
+    }
+
+    const { data: tashihRecords, error: tashihError } = await tashihQuery;
+
+    // Group tashih records by user_id
+    const tashihByUser = new Map();
+    (tashihRecords || []).forEach((record: any) => {
+      if (!tashihByUser.has(record.user_id)) {
+        tashihByUser.set(record.user_id, []);
+      }
+      tashihByUser.get(record.user_id).push(record);
+    });
+
+    // Build combined entries - one per thalibah, with their tashih records
+    const combinedEntries = (daftarUlangUsers || []).map((daftarUlang: any) => {
+      const userTashihRecords = tashihByUser.get(daftarUlang.user_id) || [];
+      const latestTashih = userTashihRecords.length > 0 ? userTashihRecords[0] : null;
+
+      return {
+        // Daftar ulang info
+        user_id: daftarUlang.user_id,
+        blok: daftarUlang.blok,
+        confirmed_juz_number: daftarUlang.confirmed_juz_number,
+        daftar_ulang_status: daftarUlang.status,
+        submitted_at: daftarUlang.submitted_at,
+        approved_at: daftarUlang.approved_at,
+
+        // User info
+        user: userMap.get(daftarUlang.user_id) || null,
+
+        // Tashih info (latest)
+        has_tashih: userTashihRecords.length > 0,
+        tashih_count: userTashihRecords.length,
+        latest_tashih: latestTashih ? {
+          id: latestTashih.id,
+          lokasi: latestTashih.lokasi,
+          lokasi_detail: latestTashih.lokasi_detail,
+          nama_pemeriksa: latestTashih.nama_pemeriksa,
+          jumlah_kesalahan_tajwid: latestTashih.jumlah_kesalahan_tajwid,
+          waktu_tashih: latestTashih.waktu_tashih,
+        } : null,
+
+        // All tashih records
+        tashih_records: userTashihRecords,
+      };
+    });
 
     // Get unique bloks for filter options
     const { data: bloksData } = await supabase
-      .from('tashih_records')
+      .from('daftar_ulang_submissions')
       .select('blok')
-      .in('user_id', userIds)
+      .in('status', ['approved', 'submitted'])
       .not('blok', 'is', null)
       .order('blok', { ascending: true });
 
@@ -108,7 +137,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
-      data: entriesWithUsers,
+      data: combinedEntries,
       meta: {
         bloks: uniqueBloks,
       }
