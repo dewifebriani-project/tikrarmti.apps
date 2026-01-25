@@ -288,21 +288,19 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'No daftar ulang submissions with approved/submitted status found' }, { status: 404 });
       }
 
-      // Process submissions and create sequence numbers per juz
-      const juzSequenceMap = new Map<string, number>();
+      // Process submissions and create sequential numbers
+      // For Tikrar, numbering is sequential (001, 002, 003...) for ALL entries, not per-juz
+      let sequenceCounter = 0;
 
       for (const submission of submissions) {
         const userData = (submission.user as any);
         if (!userData) continue;
 
         const juzCode = submission.confirmed_chosen_juz || 'Unknown';
-        const juzKey = getJuzSequenceKey(juzCode);
         const batchYear = batchYearMap.get(submission.batch_id) || 'XX';
 
-        // Get or increment sequence number for this juz
-        let sequenceNumber = juzSequenceMap.get(juzKey) || 0;
-        sequenceNumber++;
-        juzSequenceMap.set(juzKey, sequenceNumber);
+        // Increment sequence number (sequential for all Tikrar entries)
+        sequenceCounter++;
 
         // Format Nomor Induk Thalibah (Tikrar - MTIA)
         const nomorInduk = formatNomorIndukThalibah(
@@ -310,7 +308,7 @@ export async function GET(request: NextRequest) {
           juzCode,
           userData.tanggal_lahir,
           userData.kota,
-          sequenceNumber,
+          sequenceCounter,
           'tikrar',
           batchYear
         );
