@@ -154,6 +154,7 @@ export async function getMusyrifahJurnal() {
 
 /**
  * Get tashih entries for review by this musyrifah
+ * Only fetches records with approved or submitted status
  */
 export async function getMusyrifahTashih() {
   try {
@@ -174,6 +175,7 @@ export async function getMusyrifahTashih() {
         created_at,
         thalibah:users(full_name)
       `)
+      .in('status', ['approved', 'submitted'])
       .order('tanggal_tashih', { ascending: false })
       .limit(50);
 

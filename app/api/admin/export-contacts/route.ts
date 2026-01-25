@@ -252,7 +252,7 @@ export async function GET(request: NextRequest) {
           status,
           confirmed_full_name,
           confirmed_chosen_juz,
-          user:users(
+          user:users!daftar_ulang_submissions_user_id_fkey(
             id,
             full_name,
             email,
@@ -323,7 +323,7 @@ export async function GET(request: NextRequest) {
       }
 
     } else {
-      // ===== PRA TIKRAR (MTIP) - Thalibah selected tapi tidak lulus test rekam suara =====
+      // ===== PRA TIKRAR (MTIPRA) - Thalibah selected tapi tidak lulus test rekam suara =====
       // Fetch from pendaftaran_tikrar_tahfidz where selection_status = 'selected'
       // AND they don't have approved/submitted daftar_ulang submission
 
@@ -337,7 +337,7 @@ export async function GET(request: NextRequest) {
           chosen_juz,
           selection_status,
           oral_assessment_status,
-          user:users(
+          user:users!pendaftaran_tikrar_tahfidz_user_id_fkey(
             id,
             full_name,
             email,
