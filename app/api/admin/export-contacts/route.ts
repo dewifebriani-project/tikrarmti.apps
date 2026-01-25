@@ -137,11 +137,12 @@ function generateVCF(users: ThalibahContact[]): string {
 
     vcfLines.push('BEGIN:VCARD');
     vcfLines.push('VERSION:3.0');
-    // FN is the display name - use full nomor_induk as the primary display name
+    // FN is the formatted name - use full nomor_induk
     // Example: MTIA-26057 30B Linawarabone 79 Gorontalo
     vcfLines.push(`FN:${escapeVcfField(nomorInduk)}`);
-    // N is the structured name - use actual name (format: Family Name; Given Name; ; ; )
-    vcfLines.push(`N:${escapeVcfField(fullName)};;;;`);
+    // N is the structured name (format: Family Name; Given Name; ; ; )
+    // Put full nomorInduk in Family Name position so WhatsApp displays it correctly
+    vcfLines.push(`N:${escapeVcfField(nomorInduk)};;;;`);
     vcfLines.push(`ORG:Markaz Tikrar Indonesia`);
 
     if (email) {
