@@ -503,13 +503,15 @@ export async function GET(request: NextRequest) {
           contact.telegram ? 'Other' : '', // Phone 2 - Type
           escapeCsvField(contact.telegram || ''), // Phone 2 - Value
           'Markaz Tikrar Indonesia', // Organization 1 - Name
-          escapeCsvField(`ID: ${contact.id}\nJuz: ${contact.confirmed_chosen_juz}\nStatus: ${contact.status}\nKategori: ${categoryLabel}`) // Notes
+          escapeCsvField(`ID: ${contact.id} | Juz: ${contact.confirmed_chosen_juz} | Status: ${contact.status} | Kategori: ${categoryLabel}`) // Notes - use | separator instead of \n
         ];
 
         csvRows.push(row.join(','));
       }
 
-      const csvContent = csvRows.join('\n');
+      // Add BOM for Excel UTF-8 compatibility
+      const BOM = '\uFEFF';
+      const csvContent = BOM + csvRows.join('\n');
       const categorySuffix = category === 'tikrar' ? '-tikrar' : '-pra-tikrar';
       const batchName = batchId && batchId !== 'all' ? `-${batchId}` : '';
 
