@@ -130,14 +130,20 @@ function generateVCF(users: ThalibahContact[]): string {
 
   for (const user of users) {
     const nomorInduk = user.nomor_induk;
+    const fullName = user.full_name || 'Unknown';
     const whatsapp = formatPhoneForVcf(user.whatsapp);
     const telegram = formatPhoneForVcf(user.telegram);
     const email = user.email || '';
 
     vcfLines.push('BEGIN:VCARD');
     vcfLines.push('VERSION:3.0');
+    // FN is the display name - use nomor_induk as the primary display name
     vcfLines.push(`FN:${escapeVcfField(nomorInduk)}`);
-    vcfLines.push(`N:${escapeVcfField(user.full_name || ';;;;')};;;`);
+    // N is the structured name - use actual name (format: Family Name; Given Name; ; ; )
+    // This ensures the actual name is also stored in the contact
+    vcfLines.push(`N:${escapeVcfField(fullName)};;;;`);
+    // Add nickname to preserve nomor_induk as an additional identifier
+    vcfLines.push(`NICKNAME:${escapeVcfField(nomorInduk)}`);
     vcfLines.push(`ORG:Markaz Tikrar Indonesia`);
 
     if (email) {
@@ -146,13 +152,16 @@ function generateVCF(users: ThalibahContact[]): string {
 
     if (whatsapp) {
       vcfLines.push(`TEL;TYPE=CELL:${whatsapp}`);
+      vcfLines.push(`TEL;TYPE=CELL;TYPE=VOICE:${whatsapp}`);
+      vcfLines.push(`X-WhatsApp:${whatsapp}`);
     }
 
     if (telegram) {
       vcfLines.push(`TEL;TYPE=OTHER:${telegram}`);
+      vcfLines.push(`X-Telegram:${telegram}`);
     }
 
-    vcfLines.push(`NOTE:${escapeVcfField(`ID: ${user.id}\\nJuz: ${user.confirmed_chosen_juz || '-'}\\nStatus: ${user.status}\\nKategori: ${user.category}`)}`);
+    vcfLines.push(`NOTE:${escapeVcfField(`ID: ${user.id}\\nJuz: ${user.confirmed_chosen_juz || '-'}\\nStatus: ${user.status}\\nKategori: ${user.category}\\nNomor Induk: ${nomorInduk}`)}`);
     vcfLines.push('END:VCARD');
     vcfLines.push(''); // Empty line between cards
   }
