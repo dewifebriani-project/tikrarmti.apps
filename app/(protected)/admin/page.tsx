@@ -2228,12 +2228,6 @@ function UsersTab({
     }
   };
 
-  const handleOpenGmailImport = () => {
-    // Open Gmail Contacts page
-    window.open('https://contacts.google.com/u/0/', '_blank');
-    toast.success('Gmail Contacts opened. Click the Import icon to import your downloaded CSV file.');
-  };
-
   // Build columns dynamically based on active sub-tab
   const getColumns = (): Column<User>[] => {
     const baseColumns: Column<User>[] = [
@@ -2881,32 +2875,6 @@ Tim Markaz Tikrar Indonesia`;
                     </>
                   )}
                 </button>
-                {exportFormat === 'csv' && (
-                  <button
-                    onClick={handleOpenGmailImport}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
-                    </svg>
-                    Open Gmail Import
-                  </button>
-                )}
-                <div className="flex-1 text-xs text-gray-600">
-                  {exportCategory === 'tikrar' ? (
-                    <>
-                      <p><strong>Tikrar (MTIA)</strong>: Thalibah dengan status daftar ulang <strong>approved</strong> atau <strong>submitted</strong> (lulus test rekam suara).</p>
-                      <p>Nomor Induk: MTIA-batchYYnomor_urut juz nama tahun lahir domisili (contoh: MTIA-26001 30A Dewi Febriani 95 Jakarta)</p>
-                    </>
-                  ) : (
-                    <>
-                      <p><strong>Pra Tikrar (MTIPRA)</strong>: Thalibah dengan status <strong>selected</strong> tapi tidak lulus test rekam suara.</p>
-                      <p>Nomor Induk: MTIPRA-batchYYnomor_urut juz nama tahun lahir domisili (contoh: MTIPRA-26001 30A Dewi Febriani 95 Jakarta)</p>
-                    </>
-                  )}
-                  <p>Nomor urut per juz (28A dan 28B berbagi nomor urut yang sama, 29A mulai dari 001 lagi)</p>
-                  <p>batchYY = 2 digit terakhir tahun batch dimulai (dari tabel batches)</p>
-                </div>
               </div>
 
               {/* Other action buttons */}
