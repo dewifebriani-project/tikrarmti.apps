@@ -240,30 +240,42 @@ export default function JurnalHarianPage() {
     }
   }
 
-  // Update blocks when week changes - for JURNAL, start from H+7 (week 1 = days 7-13 from batch start)
+  // Update blocks when week changes - for JURNAL
+  // Jurnal week 1 corresponds to tashih week 2 (H+7 from batch start)
   const updateBlocksForWeek = (weekNumber: number) => {
     if (!selectedJuzInfo) return
 
-    // For jurnal: week 1 starts H+7 (7 days after batch start)
-    // So jurnal week number maps directly to block number (week 1 = H1, week 2 = H2, etc)
+    // Calculate total pages for this juz part
+    const totalPages = selectedJuzInfo.end_page - selectedJuzInfo.start_page + 1
+    const totalWeeks = totalPages  // 1 week = 1 page = 4 blocks
+
+    // Validate week number is within range
+    if (weekNumber < 1 || weekNumber > totalWeeks) {
+      setAvailableBlocks([])
+      return
+    }
+
+    // Part B starts from H11, Part A starts from H1
     const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
     const blockNumber = weekNumber + blockOffset
-    const weekStartPage = selectedJuzInfo.start_page + (weekNumber - 1)
 
+    // Each week corresponds to 1 page
+    const weekPage = selectedJuzInfo.start_page + (weekNumber - 1)
+
+    // Generate 4 blocks for this week (A, B, C, D all for the same page)
     const blocks: TashihBlock[] = []
     const parts = ['A', 'B', 'C', 'D']
 
     for (let i = 0; i < 4; i++) {
       const part = parts[i]
       const blockCode = `H${blockNumber}${part}`
-      const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
 
       blocks.push({
         block_code: blockCode,
-        week_number: blockNumber,
+        week_number: weekNumber,
         part,
-        start_page: blockPage,
-        end_page: blockPage
+        start_page: weekPage,
+        end_page: weekPage  // All 4 blocks are on the same page
       })
     }
 
@@ -443,6 +455,12 @@ export default function JurnalHarianPage() {
   const isWeekCompleted = (): boolean => {
     if (!selectedJuzInfo) return false
 
+    // Calculate total pages for this juz part
+    const totalPages = selectedJuzInfo.end_page - selectedJuzInfo.start_page + 1
+
+    // Validate week number is within range
+    if (selectedWeekNumber < 1 || selectedWeekNumber > totalPages) return false
+
     const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
     const blockNumber = selectedWeekNumber + blockOffset
     const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
@@ -464,6 +482,12 @@ export default function JurnalHarianPage() {
   // Get completed blocks count for current week
   const getWeekCompletedBlocksCount = (): number => {
     if (!selectedJuzInfo) return 0
+
+    // Calculate total pages for this juz part
+    const totalPages = selectedJuzInfo.end_page - selectedJuzInfo.start_page + 1
+
+    // Validate week number is within range
+    if (selectedWeekNumber < 1 || selectedWeekNumber > totalPages) return 0
 
     const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
     const blockNumber = selectedWeekNumber + blockOffset
@@ -586,18 +610,14 @@ export default function JurnalHarianPage() {
     // Get current week from today's date (calculated from batch start + H+7)
     const currentWeekNumber = getCurrentWeekNumber()
 
-    // Check if week is allowed (current week or 1 week before only)
-    // If current week is 1 (or less), only allow week 1
-    // If current week is 2 or more, allow current week and previous week
+    // Check if week is allowed (from week 1 to current week only)
+    const isPastWeek = actualWeekNumber >= 1 && actualWeekNumber < currentWeekNumber
     const isCurrentWeek = actualWeekNumber === currentWeekNumber
-    const isPreviousWeek = currentWeekNumber > 1 && actualWeekNumber === currentWeekNumber - 1
-    const isWeekAllowed = isCurrentWeek || isPreviousWeek
+    const isWeekAllowed = isPastWeek || isCurrentWeek
 
     if (!isWeekAllowed) {
       if (actualWeekNumber > currentWeekNumber) {
-        toast.error(`Pekan ${actualWeekNumber} belum dimulai. Anda hanya bisa mengisi pekan ${currentWeekNumber - 1 > 0 ? currentWeekNumber - 1 + ' dan ' : ''}${currentWeekNumber}.`)
-      } else {
-        toast.error(`Pekan ${actualWeekNumber} sudah berlalu. Anda hanya bisa mengisi pekan ${currentWeekNumber - 1 > 0 ? currentWeekNumber - 1 + ' dan ' : ''}${currentWeekNumber}.`)
+        toast.error(`Pekan ${actualWeekNumber} belum dimulai. Anda hanya bisa mengisi pekan 1 sampai ${currentWeekNumber}.`)
       }
       return
     }

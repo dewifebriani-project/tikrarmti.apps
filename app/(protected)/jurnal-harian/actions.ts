@@ -40,58 +40,7 @@ export async function saveJurnalRecord(data: JurnalFormData) {
   console.log('[saveJurnalRecord] User ID:', authUser.id)
   console.log('[saveJurnalRecord] Data:', data)
 
-  // 2. Validasi Tashih - cek apakah tashih pekan ini sudah selesai
-  const blockOffset = data.juzPart === 'B' ? 10 : 0
-  const tashihBlockNumber = data.weekNumber + blockOffset
-  const expectedTashihBlocks = [
-    `H${tashihBlockNumber}A`,
-    `H${tashihBlockNumber}B`,
-    `H${tashihBlockNumber}C`,
-    `H${tashihBlockNumber}D`
-  ]
-
-  console.log('[saveJurnalRecord] Expected tashih blocks:', expectedTashihBlocks)
-
-  // Get all tashih records for this user (using authUser.id, same as auth.uid())
-  const { data: tashihData, error: tashihError } = await supabase
-    .from('tashih_records')
-    .select('blok')
-    .eq('user_id', authUser.id)
-
-  if (tashihError) {
-    console.error('[saveJurnalRecord] Tashih check error:', tashihError)
-    return { success: false, error: 'Gagal mengecek status tashih' }
-  }
-
-  console.log('[saveJurnalRecord] Tashih records found:', tashihData?.length || 0)
-
-  // Collect all completed tashih blocks
-  const completedTashihBlocks = new Set<string>()
-  if (tashihData) {
-    tashihData.forEach((record: any) => {
-      if (record.blok) {
-        const blocks: string[] = typeof record.blok === 'string'
-          ? record.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b)
-          : (Array.isArray(record.blok) ? record.blok : [])
-        blocks.forEach(block => completedTashihBlocks.add(block))
-      }
-    })
-  }
-
-  console.log('[saveJurnalRecord] Completed tashih blocks:', Array.from(completedTashihBlocks))
-
-  // Check if ALL 4 blocks for this week's tashih are completed
-  const allTashihCompleted = expectedTashihBlocks.every(block => completedTashihBlocks.has(block))
-
-  if (!allTashihCompleted) {
-    const missingBlocks = expectedTashihBlocks.filter(block => !completedTashihBlocks.has(block))
-    console.log('[saveJurnalRecord] Missing tashih blocks:', missingBlocks)
-    return {
-      success: false,
-      error: `Harap selesaikan tashih pekan ${data.weekNumber} terlebih dahulu! (Blok belum: ${missingBlocks.join(', ')})`
-    }
-  }
-
+  // Tashih validation removed - jurnal is now independent from tashih
   try {
     const recordData = {
       user_id: authUser.id, // Menggunakan authUser.id dari server, dijamin sama dengan auth.uid()

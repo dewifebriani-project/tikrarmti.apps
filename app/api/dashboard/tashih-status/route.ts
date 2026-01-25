@@ -136,31 +136,35 @@ export async function GET() {
       )
     }
 
-    // Generate all blocks for this juz (10 weeks, 4 blocks per week = 40 blocks total)
-    // Part A: H1A-H10D, Part B: H11A-H20D
-    // But week_number is always 1-10 for UI display (Pekan 1, Pekan 2, etc.)
+    // Generate all blocks for this juz dynamically
+    // Each page = 4 blocks (A, B, C, D)
+    // Total weeks = total pages (since 4 blocks per week = 1 page per week)
     const allBlocks: TashihBlockStatus[] = []
     const parts = ['A', 'B', 'C', 'D']
+
+    // Calculate total pages for this juz part
+    const totalPages = juzInfo.end_page - juzInfo.start_page + 1
+    const totalWeeks = totalPages  // 1 week = 1 page = 4 blocks
 
     // Part B starts from H11, Part A starts from H1
     const blockOffset = juzInfo.part === 'B' ? 10 : 0
 
-    for (let week = 1; week <= 10; week++) {
-      // Block number includes offset for Part B (H11-H20), Part A is H1-H10
+    for (let week = 1; week <= totalWeeks; week++) {
+      // Block number includes offset for Part B, Part A is H1-H10
       const blockNumber = week + blockOffset
-      const weekStartPage = juzInfo.start_page + (week - 1)
+      // Each week corresponds to 1 page
+      const weekPage = juzInfo.start_page + (week - 1)
 
       for (let i = 0; i < 4; i++) {
         const part = parts[i]
         const blockCode = `H${blockNumber}${part}`
-        const blockPage = Math.min(weekStartPage + i, juzInfo.end_page)
 
         allBlocks.push({
           block_code: blockCode,
-          week_number: week, // Always 1-10 for UI display (Pekan 1, Pekan 2, etc.)
+          week_number: week,
           part,
-          start_page: blockPage,
-          end_page: blockPage,
+          start_page: weekPage,
+          end_page: weekPage,
           is_completed: false,
           tashih_count: 0
         })

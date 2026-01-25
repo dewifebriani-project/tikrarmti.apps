@@ -184,34 +184,37 @@ export default function TashihPage() {
   const updateBlocksForWeek = (weekNumber: number) => {
     if (!selectedJuzInfo) return
 
+    // Calculate total pages for this juz part
+    const totalPages = selectedJuzInfo.end_page - selectedJuzInfo.start_page + 1
+    const totalWeeks = totalPages  // 1 week = 1 page = 4 blocks
+
+    // Validate week number is within range
+    if (weekNumber < 1 || weekNumber > totalWeeks) {
+      setAvailableBlocks([])
+      return
+    }
+
     // Part B starts from H11, Part A starts from H1
-    // Block code uses offset, but weekNumber for UI is always 1-10
     const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
     const blockNumber = weekNumber + blockOffset
 
-    // Each week adds 1 page to the starting page
-    // Week 1: starts at juz start_page
-    // Week 2: starts at juz start_page + 1
-    // etc.
-    const weekStartPage = selectedJuzInfo.start_page + (weekNumber - 1)
+    // Each week corresponds to 1 page
+    const weekPage = selectedJuzInfo.start_page + (weekNumber - 1)
 
-    // Generate 4 blocks for the selected week
-    // Each block is 1 page (total 4 pages per week = 4 blocks * 1 page)
+    // Generate 4 blocks for this week (A, B, C, D all for the same page)
     const blocks: TashihBlock[] = []
     const parts = ['A', 'B', 'C', 'D']
 
     for (let i = 0; i < 4; i++) {
       const part = parts[i]
       const blockCode = `H${blockNumber}${part}`
-      // Each block is 1 page, incrementing from the week's start page
-      const blockPage = Math.min(weekStartPage + i, selectedJuzInfo.end_page)
 
       blocks.push({
         block_code: blockCode,
-        week_number: weekNumber, // Always 1-10 for UI display
+        week_number: weekNumber,
         part,
-        start_page: blockPage,
-        end_page: blockPage
+        start_page: weekPage,
+        end_page: weekPage  // All 4 blocks are on the same page
       })
     }
 
@@ -279,18 +282,16 @@ export default function TashihPage() {
         })
       }
 
-      // Check if all 4 blocks for this week are completed
-      const blockOffset = selectedJuzInfo?.part === 'B' ? 10 : 0
-      const blockNumber = selectedWeekNumber + blockOffset
-      const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
-      const allBlocksCompleted = expectedBlocks.every(block => weekBlocks.has(block))
+      // Check if all expected blocks for this week are completed (handles variable block count)
+      const expectedBlocks = getExpectedBlocksForWeek(selectedWeekNumber)
+      const allBlocksCompleted = expectedBlocks.length > 0 && expectedBlocks.every(block => weekBlocks.has(block))
 
       // Get today's record for editing (if exists)
       const today = new Date().toISOString().split('T')[0]
       const todayRec = data?.find((r: TashihRecord) => r.waktu_tashih.startsWith(today))
       setTodayRecord(todayRec || null)
 
-      // If all 4 blocks completed, load the most recent record for display
+      // If all expected blocks completed, load the most recent record for display
       if (allBlocksCompleted && data && data.length > 0) {
         const mostRecent = data[0]
         setTodayRecord(mostRecent)
@@ -357,13 +358,34 @@ export default function TashihPage() {
   }
 
   // Toggle blok selection (multi-select)
+  // Auto-select all 4 blocks in the same week when one is clicked
   const toggleBlok = (blockCode: string) => {
-    setTashihData(prev => ({
-      ...prev,
-      blok: prev.blok.includes(blockCode)
-        ? prev.blok.filter(b => b !== blockCode)
-        : [...prev.blok, blockCode]
-    }))
+    setTashihData(prev => {
+      const isCurrentlySelected = prev.blok.includes(blockCode)
+
+      // Extract week number from block code (format: H{number}{letter})
+      const match = blockCode.match(/H(\d+)[A-D]/)
+      if (!match) return prev
+
+      const blockNumber = match[1]
+      const sameWeekBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+
+      if (isCurrentlySelected) {
+        // Unselect this specific block (allow individual unselect)
+        return {
+          ...prev,
+          blok: prev.blok.filter(b => b !== blockCode)
+        }
+      } else {
+        // Select all 4 blocks in the same week
+        // Remove any blocks from the same week that were already selected, then add all 4
+        const otherWeekBlocks = prev.blok.filter(b => !sameWeekBlocks.includes(b))
+        return {
+          ...prev,
+          blok: [...otherWeekBlocks, ...sameWeekBlocks]
+        }
+      }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -430,17 +452,15 @@ export default function TashihPage() {
     // Calculate actual week number (1-10)
     const actualWeekNumber = blockWeekNumber
 
-    // Check if week is allowed (current week or 1 week before only)
+    // Check if week is allowed (from week 1 to current week only)
     const currentWeekNumber = getCurrentWeekNumber()
+    const isPastWeek = actualWeekNumber >= 1 && actualWeekNumber < currentWeekNumber
     const isCurrentWeek = actualWeekNumber === currentWeekNumber
-    const isPreviousWeek = actualWeekNumber === currentWeekNumber - 1
-    const isWeekAllowed = isCurrentWeek || isPreviousWeek
+    const isWeekAllowed = isPastWeek || isCurrentWeek
 
     if (!isWeekAllowed) {
       if (actualWeekNumber > currentWeekNumber) {
-        toast.error(`Pekan ${actualWeekNumber} belum dimulai. Anda hanya bisa mengisi pekan ${currentWeekNumber - 1 > 0 ? currentWeekNumber - 1 + ' dan ' : ''}${currentWeekNumber}.`)
-      } else {
-        toast.error(`Pekan ${actualWeekNumber} sudah berlalu. Anda hanya bisa mengisi pekan ${currentWeekNumber - 1 > 0 ? currentWeekNumber - 1 + ' dan ' : ''}${currentWeekNumber}.`)
+        toast.error(`Pekan ${actualWeekNumber} belum dimulai. Anda hanya bisa mengisi pekan 1 sampai ${currentWeekNumber}.`)
       }
       return
     }
@@ -539,13 +559,43 @@ export default function TashihPage() {
     return Math.max(1, weekNum)
   }
 
-  // Check if current week's 4 blocks are completed
+  // Helper: Get expected blocks for a given week
+  // Each week always has 4 blocks (A, B, C, D) for 1 page
+  const getExpectedBlocksForWeek = (weekNumber: number): string[] => {
+    if (!selectedJuzInfo) return []
+
+    // Calculate total pages for this juz part
+    const totalPages = selectedJuzInfo.end_page - selectedJuzInfo.start_page + 1
+
+    // Validate week number is within range
+    if (weekNumber < 1 || weekNumber > totalPages) return []
+
+    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
+    const blockNumber = weekNumber + blockOffset
+
+    // Each week always has 4 blocks (A, B, C, D) for 1 page
+    return [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+  }
+
+  // Get total expected blocks for current week (always 4)
+  const getTotalBlocksForWeek = (weekNumber: number): number => {
+    if (!selectedJuzInfo) return 0
+
+    // Calculate total pages for this juz part
+    const totalPages = selectedJuzInfo.end_page - selectedJuzInfo.start_page + 1
+
+    // Validate week number is within range
+    if (weekNumber < 1 || weekNumber > totalPages) return 0
+
+    return 4  // Always 4 blocks per week
+  }
+
+  // Check if current week's blocks are completed
   const isWeekCompleted = (): boolean => {
     if (!selectedJuzInfo) return false
 
-    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
-    const blockNumber = selectedWeekNumber + blockOffset
-    const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+    const expectedBlocks = getExpectedBlocksForWeek(selectedWeekNumber)
+    if (expectedBlocks.length === 0) return false
 
     // Get all unique blocks from week records
     const weekBlocks = new Set<string>()
@@ -565,9 +615,7 @@ export default function TashihPage() {
   const getWeekCompletedBlocksCount = (): number => {
     if (!selectedJuzInfo) return 0
 
-    const blockOffset = selectedJuzInfo.part === 'B' ? 10 : 0
-    const blockNumber = selectedWeekNumber + blockOffset
-    const expectedBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+    const expectedBlocks = getExpectedBlocksForWeek(selectedWeekNumber)
 
     // Get all unique blocks from week records
     const weekBlocks = new Set<string>()
@@ -734,7 +782,7 @@ export default function TashihPage() {
                             <span className={cn(
                               "text-xs",
                               isWeekAllowed ? "text-gray-500" : "text-gray-400"
-                            )}>({completedInWeek}/4 selesai)</span>
+                            )}>({completedInWeek}/{weekBlocks.length} selesai)</span>
                             {!isWeekAllowed && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
                                 {isFutureWeek ? 'Akan datang' : 'Sudah lewat'}
@@ -747,7 +795,7 @@ export default function TashihPage() {
                                 "h-1.5 rounded-full",
                                 isWeekAllowed ? "bg-emerald-500" : "bg-gray-400"
                               )}
-                              style={{ width: `${(completedInWeek / 4) * 100}%` }}
+                              style={{ width: `${weekBlocks.length > 0 ? (completedInWeek / weekBlocks.length) * 100 : 0}%` }}
                             ></div>
                           </div>
                         </div>
@@ -845,7 +893,7 @@ export default function TashihPage() {
           </div>
           <h1 className="text-3xl font-bold text-green-army mb-2">Alhamdulillah, Tashih Pekan Ini Selesai!</h1>
           <p className="text-gray-600 mb-8">
-            Semua 4 blok untuk pekan {selectedWeekNumber} telah berhasil ditashih
+            Semua {getTotalBlocksForWeek(selectedWeekNumber)} blok untuk pekan {selectedWeekNumber} telah berhasil ditashih
           </p>
 
           <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-green-200">
@@ -865,7 +913,7 @@ export default function TashihPage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Blok Selesai:</span>
-                <span className="font-semibold text-gray-800">{completedCount}/4 blok</span>
+                <span className="font-semibold text-gray-800">{completedCount}/{getTotalBlocksForWeek(selectedWeekNumber)} blok</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-gray-600">Status:</span>
@@ -963,20 +1011,20 @@ export default function TashihPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-sm sm:text-lg text-gray-800 truncate">
-                Progress Pekan {selectedWeekNumber}: {completedCount}/4
+                Progress Pekan {selectedWeekNumber}: {completedCount}/{getTotalBlocksForWeek(selectedWeekNumber)}
               </h3>
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">
                 {completedCount === 0
                   ? 'Belum ada blok yang ditashih minggu ini'
-                  : completedCount < 4
-                    ? `${4 - completedCount} blok lagi`
+                  : completedCount < getTotalBlocksForWeek(selectedWeekNumber)
+                    ? `${getTotalBlocksForWeek(selectedWeekNumber) - completedCount} blok lagi`
                     : 'Semua blok pekan ini sudah selesai!'
                 }
               </p>
               <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(completedCount / 4) * 100}%` }}
+                  style={{ width: `${getTotalBlocksForWeek(selectedWeekNumber) > 0 ? (completedCount / getTotalBlocksForWeek(selectedWeekNumber)) * 100 : 0}%` }}
                 ></div>
               </div>
             </div>
