@@ -137,13 +137,11 @@ function generateVCF(users: ThalibahContact[]): string {
 
     vcfLines.push('BEGIN:VCARD');
     vcfLines.push('VERSION:3.0');
-    // FN is the display name - use nomor_induk as the primary display name
+    // FN is the display name - use full nomor_induk as the primary display name
+    // Example: MTIA-26057 30B Linawarabone 79 Gorontalo
     vcfLines.push(`FN:${escapeVcfField(nomorInduk)}`);
     // N is the structured name - use actual name (format: Family Name; Given Name; ; ; )
-    // This ensures the actual name is also stored in the contact
     vcfLines.push(`N:${escapeVcfField(fullName)};;;;`);
-    // Add nickname to preserve nomor_induk as an additional identifier
-    vcfLines.push(`NICKNAME:${escapeVcfField(nomorInduk)}`);
     vcfLines.push(`ORG:Markaz Tikrar Indonesia`);
 
     if (email) {
@@ -153,7 +151,7 @@ function generateVCF(users: ThalibahContact[]): string {
     if (whatsapp) {
       vcfLines.push(`TEL;TYPE=CELL:${whatsapp}`);
       vcfLines.push(`TEL;TYPE=CELL;TYPE=VOICE:${whatsapp}`);
-      vcfLines.push(`X-WhatsApp:${whatsapp}`);
+      vcfLines.push(`X-WA-ID:${whatsapp}`);
     }
 
     if (telegram) {
@@ -409,7 +407,7 @@ export async function GET(request: NextRequest) {
           juzCode,
           userData.tanggal_lahir,
           userData.kota,
-          sequenceNumber,
+          sequenceCounter,
           'pra_tikrar',
           batchYear
         );
