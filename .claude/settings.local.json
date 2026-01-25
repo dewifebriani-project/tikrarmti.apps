@@ -181,7 +181,11 @@
       "Bash(in the schema cache\"\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(move:*)",
       "Bash(printf '%s\\\\n' 'const fs = require\\(\"\"fs\"\"\\);' '' 'const newTypes =' ' `type ThalibahSortField = '\"''\"'name')",
-      "Bash('\"\"'\"''juz'' | ''\"'\"\"'partner' | '\"''\"'type')"
+      "Bash('\"\"'\"''juz'' | ''\"'\"\"'partner' | '\"''\"'type')",
+      "Bash(git -C \"d:\\\\tikrarmti.apps\" diff --stat)",
+      "Bash(git -C \"d:\\\\tikrarmti.apps\" log --oneline -5)",
+      "Bash(git -C \"d:\\\\tikrarmti.apps\" add \"app/\\(protected\\)/panel-musyrifah/page.tsx\" \"app/api/musyrifah/stats/route.ts\")",
+      "Bash(git -C \"d:\\\\tikrarmti.apps\" commit -m \"$\\(cat <<''EOF''\nfeat\\(musyrifah\\): Add comprehensive statistics API and update overview dashboard\n\n- Add nested jurnal and tashih statistics to MusyrifahStats interface\n- Calculate jurnal stats: total entries, unique thalibah, blocks completed, completion %, weekly entries\n- Calculate tashih stats: total records, unique thalibah, blocks completed, completion %, weekly records\n- Update OverviewTab to display Jurnal and Tashih statistics with colored metric cards\n- Update loadStats to properly handle nested statistics from API\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "deny": [],
     "ask": []

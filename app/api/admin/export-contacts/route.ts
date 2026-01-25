@@ -333,7 +333,9 @@ export async function GET(request: NextRequest) {
 
     } else {
       // ===== PRA TIKRAR (MTIPRA) - Thalibah selected tapi tidak lulus test rekam suara =====
-      // Fetch from pendaftaran_tikrar_tahfidz where selection_status = 'selected'
+      // Fetch from pendaftaran_tikrar_tahfidz where:
+      // 1. selection_status = 'selected' (they were selected to continue)
+      // 2. oral_assessment_status IN ('fail', 'not_submitted') (did NOT pass oral assessment)
       // AND they don't have approved/submitted daftar_ulang submission
 
       let query = supabaseAdmin
@@ -356,7 +358,8 @@ export async function GET(request: NextRequest) {
             kota
           )
         `)
-        .eq('selection_status', 'selected');
+        .eq('selection_status', 'selected')
+        .in('oral_assessment_status', ['fail', 'not_submitted']);
 
       // Add batch filter if specified
       if (batchId && batchId !== 'all') {
@@ -371,7 +374,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (!registrations || registrations.length === 0) {
-        return NextResponse.json({ error: 'No registrations with selection_status=selected found' }, { status: 404 });
+        return NextResponse.json({ error: 'No pra tikrar registrations found (selection_status=selected AND oral_assessment_status IN (fail, not_submitted))' }, { status: 404 });
       }
 
       // Get user IDs that have approved/submitted daftar_ulang (these are TIKRAR, not PRA TIKRAR)
@@ -382,9 +385,10 @@ export async function GET(request: NextRequest) {
 
       const daftarUlangUserIds = new Set(existingDaftarUlang?.map(d => d.user_id) || []);
 
-      // Process registrations and create sequence numbers per juz
+      // Process registrations and create sequential numbers
+      // For Pra Tikrar, numbering is sequential (001, 002, 003...) for ALL entries, not per-juz
       // Only include those who don't have approved/submitted daftar_ulang
-      const juzSequenceMap = new Map<string, number>();
+      let sequenceCounter = 0;
 
       for (const registration of registrations) {
         const userData = (registration.user as any);
@@ -394,13 +398,10 @@ export async function GET(request: NextRequest) {
         if (daftarUlangUserIds.has(userData.id)) continue;
 
         const juzCode = registration.chosen_juz || 'Unknown';
-        const juzKey = getJuzSequenceKey(juzCode);
         const batchYear = batchYearMap.get(registration.batch_id) || 'XX';
 
-        // Get or increment sequence number for this juz
-        let sequenceNumber = juzSequenceMap.get(juzKey) || 0;
-        sequenceNumber++;
-        juzSequenceMap.set(juzKey, sequenceNumber);
+        // Increment sequence number (sequential for all Pra Tikrar entries)
+        sequenceCounter++;
 
         // Format Nomor Induk Thalibah (Pra Tikrar - MTIPRA)
         const nomorInduk = formatNomorIndukThalibah(
