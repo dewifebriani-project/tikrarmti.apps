@@ -5,7 +5,20 @@ import { logger } from '@/lib/logger-secure';
 
 const supabaseAdmin = createSupabaseAdmin();
 
-// Helper function to calculate age from birth date
+// Helper function to get batch year from batch start date (last 2 digits)
+function getBatchYearFromDate(startDate: string | null): string {
+  if (!startDate) return 'XX';
+  try {
+    const date = new Date(startDate);
+    const year = date.getFullYear();
+    // Return last 2 digits of year
+    return year.toString().slice(-2);
+  } catch {
+    return 'XX';
+  }
+}
+
+// Helper function to calculate year from birth date (last 2 digits)
 function getYearFromBirthDate(birthDate: string | null): string {
   if (!birthDate) return '';
   try {
@@ -30,29 +43,135 @@ function toProperCase(text: string | null): string {
     .join(' ');
 }
 
-// Helper function to format contact name
-function formatContactName(fullName: string, birthDate: string | null, city: string | null): string {
-  const yearYY = getYearFromBirthDate(birthDate);
-  const formattedCity = toProperCase(city);
-  const formattedName = toProperCase(fullName);
-
-  let name = `MTI ${formattedName}`;
-
-  if (yearYY) {
-    name += ` ${yearYY}`;
-  }
-
-  if (formattedCity) {
-    name += ` ${formattedCity}`;
-  }
-
-  return name;
-}
-
 // Helper function to normalize phone number (remove +, spaces, dashes)
 function normalizePhoneNumber(phone: string | null): string {
   if (!phone) return '';
   return phone.replace(/[\s\-\+]/g, '');
+}
+
+// Helper function to get juz number from juz code (e.g., "28A" -> 28, "29B" -> 29)
+function getJuzNumber(juzCode: string | null): number {
+  if (!juzCode) return 999;
+  const match = juzCode.match(/(\d+)/);
+  return match ? parseInt(match[1]) : 999;
+}
+
+// Helper function to get juz sequence key (number only, not including A/B)
+// This ensures sequence numbers are per juz number (28, 29, 30)
+// 28A and 28B share the same sequence numbering
+function getJuzSequenceKey(juzCode: string | null): string {
+  const juzNumber = getJuzNumber(juzCode);
+  return juzNumber.toString();
+}
+
+// Helper function to format Nomor Induk Thalibah
+// Pattern: MTIA-batchYYnomor_urut juz nama tahun lahir domisili (Tikrar)
+// Pattern: MTIPRA-batchYYnomor_urut juz nama tahun lahir domisili (Pra Tikrar)
+// nomor_urut dibuat per juz (angka saja), jadi 28A dan 28B berbagi nomor urut yang sama
+// batchYY adalah 2 digit terakhir tahun batch dimulai
+function formatNomorIndukThalibah(
+  fullName: string,
+  juzCode: string | null,
+  birthDate: string | null,
+  domicile: string | null,
+  sequenceNumber: number,
+  category: 'tikrar' | 'pra_tikrar',
+  batchYear: string
+): string {
+  const birthYearYY = getYearFromBirthDate(birthDate);
+  const formattedName = toProperCase(fullName);
+  const formattedDomicile = toProperCase(domicile);
+  const juz = juzCode || '-';
+  const code = category === 'tikrar' ? 'MTIA' : 'MTIPRA';
+
+  // Format: CODE-batchYYnomor_urut juz name birthYearYY domicile
+  // Example: MTIA-26001 30A Dewi Febriani 95 Jakarta
+  const nomorInduk = `${code}-${batchYear}${String(sequenceNumber).padStart(3, '0')} ${juz} ${formattedName} ${birthYearYY} ${formattedDomicile}`;
+
+  return nomorInduk;
+}
+
+// Helper function to escape CSV fields (handle commas and quotes)
+function escapeCsvField(field: string | null): string {
+  if (!field) return '';
+  const str = field.toString();
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+// Helper function to escape VCF fields (handle backslashes, semicolons, newlines)
+function escapeVcfField(field: string | null): string {
+  if (!field) return '';
+  let str = field.toString();
+  // Escape backslashes first, then other special characters
+  str = str.replace(/\\/g, '\\\\');  // Backslash
+  str = str.replace(/;/g, '\\;');    // Semicolon
+  str = str.replace(/\n/g, '\\n');   // Newline
+  str = str.replace(/\r/g, '\\r');   // Carriage return
+  return str;
+}
+
+// Helper function to format phone for VCF (must include country code, no special chars)
+function formatPhoneForVcf(phone: string | null): string {
+  if (!phone) return '';
+  let formatted = normalizePhoneNumber(phone);
+  // Ensure it starts with country code (62 for Indonesia)
+  if (formatted.startsWith('0')) {
+    formatted = '62' + formatted.slice(1);
+  }
+  return formatted;
+}
+
+// Helper function to generate VCF content
+function generateVCF(users: ThalibahContact[]): string {
+  const vcfLines: string[] = [];
+
+  for (const user of users) {
+    const nomorInduk = user.nomor_induk;
+    const whatsapp = formatPhoneForVcf(user.whatsapp);
+    const telegram = formatPhoneForVcf(user.telegram);
+    const email = user.email || '';
+
+    vcfLines.push('BEGIN:VCARD');
+    vcfLines.push('VERSION:3.0');
+    vcfLines.push(`FN:${escapeVcfField(nomorInduk)}`);
+    vcfLines.push(`N:${escapeVcfField(user.full_name || ';;;;')};;;`);
+    vcfLines.push(`ORG:Markaz Tikrar Indonesia`);
+
+    if (email) {
+      vcfLines.push(`EMAIL;TYPE=WORK:${escapeVcfField(email)}`);
+    }
+
+    if (whatsapp) {
+      vcfLines.push(`TEL;TYPE=CELL:${whatsapp}`);
+    }
+
+    if (telegram) {
+      vcfLines.push(`TEL;TYPE=OTHER:${telegram}`);
+    }
+
+    vcfLines.push(`NOTE:${escapeVcfField(`ID: ${user.id}\\nJuz: ${user.confirmed_chosen_juz || '-'}\\nStatus: ${user.status}\\nKategori: ${user.category}`)}`);
+    vcfLines.push('END:VCARD');
+    vcfLines.push(''); // Empty line between cards
+  }
+
+  return vcfLines.join('\n');
+}
+
+interface ThalibahContact {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+  telegram: string | null;
+  tanggal_lahir: string | null;
+  kota: string | null;
+  confirmed_chosen_juz: string | null;
+  status: string;
+  nomor_induk: string;
+  category: 'tikrar' | 'pra_tikrar';
 }
 
 export async function GET(request: NextRequest) {
@@ -86,105 +205,323 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    logger.info('Admin exporting contacts', { adminId: user.id });
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const batchId = searchParams.get('batch_id');
+    const format = searchParams.get('format') || 'csv'; // csv or vcf
+    const category = searchParams.get('category') || 'tikrar'; // tikrar or pra_tikrar
 
-    // Fetch all users with phone numbers using admin client
-    const { data: users, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select(`
-        id,
-        full_name,
-        email,
-        whatsapp,
-        telegram,
-        tanggal_lahir,
-        kota
-      `)
-      .not('whatsapp', 'is', null)
-      .order('full_name', { ascending: true });
+    logger.info('Admin exporting contacts', {
+      adminId: user.id,
+      batchId,
+      format,
+      category
+    });
 
-    if (fetchError) {
-      logger.error('Error fetching users for contact export', { error: fetchError });
-      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    // Fetch batch information to get start_date
+    let batchQuery = supabaseAdmin
+      .from('batches')
+      .select('id, start_date');
+
+    if (batchId && batchId !== 'all') {
+      batchQuery = batchQuery.eq('id', batchId);
     }
 
-    if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'No users with phone numbers found' }, { status: 404 });
-    }
+    const { data: batchesData } = await batchQuery;
 
-    // Build CSV content compatible with Google Contacts
-    // Gmail CSV format: Name,Given Name,Additional Name,Family Name,Yomi Name,Given Name Yomi,Additional Name Yomi,Family Name Yomi,Name Prefix,Name Suffix,Initials,Nickname,Short Name,Maiden Name,Birthday,Gender,Location,Billing Information,Directory Server,Mileage,Occupation,Hobby,Sensitivity,Priority,Subject,Notes,Language,Photo,Group Membership,Phone 1 - Type,Phone 1 - Value
-
-    const csvHeaders = [
-      'Name',
-      'Given Name',
-      'Family Name',
-      'Email 1 - Type',
-      'Email 1 - Value',
-      'Phone 1 - Type',
-      'Phone 1 - Value',
-      'Phone 2 - Type',
-      'Phone 2 - Value',
-      'Organization 1 - Name',
-      'Notes'
-    ];
-
-    const csvRows: string[] = [csvHeaders.join(',')];
-
-    // Escape CSV fields (handle commas and quotes)
-    const escapeCsvField = (field: string | null): string => {
-      if (!field) return '';
-      const str = field.toString();
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`;
+    // Create a map of batch_id -> batch year (2 digits)
+    const batchYearMap = new Map<string, string>();
+    if (batchesData) {
+      for (const batch of batchesData) {
+        const batchYear = getBatchYearFromDate(batch.start_date);
+        batchYearMap.set(batch.id, batchYear);
       }
-      return str;
-    };
+    }
 
-    for (const user of users) {
-      // Format contact name with Proper Case (MTI Dewi Febriani 95 Jakarta)
-      const fullContactName = formatContactName(
-        user.full_name || 'Unknown',
-        user.tanggal_lahir,
-        user.kota
-      );
+    let thalibahContacts: ThalibahContact[] = [];
 
-      // Build CSV row
-      // Gmail uses "Given Name" as the primary display name, so put the full formatted name there
-      const row = [
-        escapeCsvField(fullContactName), // Name - for display
-        escapeCsvField(fullContactName), // Given Name - THIS is what Gmail uses as contact name
-        escapeCsvField(''), // Family Name
-        'Work', // Email 1 - Type
-        escapeCsvField(user.email), // Email 1 - Value
-        'Mobile', // Phone 1 - Type
-        escapeCsvField(user.whatsapp), // Phone 1 - Value
-        user.telegram ? 'Other' : '', // Phone 2 - Type
-        escapeCsvField(user.telegram || ''), // Phone 2 - Value
-        'Markaz Tikrar Indonesia', // Organization 1 - Name
-        escapeCsvField(`ID: ${user.id}`) // Notes
+    if (category === 'tikrar') {
+      // ===== TIKRAR (MTIA) - Thalibah yang bisa daftar ulang =====
+      // Fetch from daftar_ulang_submissions with status approved/submitted
+      let query = supabaseAdmin
+        .from('daftar_ulang_submissions')
+        .select(`
+          id,
+          user_id,
+          batch_id,
+          status,
+          confirmed_full_name,
+          confirmed_chosen_juz,
+          user:users(
+            id,
+            full_name,
+            email,
+            whatsapp,
+            telegram,
+            tanggal_lahir,
+            kota
+          )
+        `)
+        .in('status', ['approved', 'submitted']);
+
+      // Add batch filter if specified
+      if (batchId && batchId !== 'all') {
+        query = query.eq('batch_id', batchId);
+      }
+
+      const { data: submissions, error: fetchError } = await query.order('confirmed_chosen_juz', { ascending: true });
+
+      if (fetchError) {
+        logger.error('Error fetching daftar_ulang_submissions for contact export', { error: fetchError });
+        return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
+      }
+
+      if (!submissions || submissions.length === 0) {
+        return NextResponse.json({ error: 'No daftar ulang submissions with approved/submitted status found' }, { status: 404 });
+      }
+
+      // Process submissions and create sequence numbers per juz
+      const juzSequenceMap = new Map<string, number>();
+
+      for (const submission of submissions) {
+        const userData = (submission.user as any);
+        if (!userData) continue;
+
+        const juzCode = submission.confirmed_chosen_juz || 'Unknown';
+        const juzKey = getJuzSequenceKey(juzCode);
+        const batchYear = batchYearMap.get(submission.batch_id) || 'XX';
+
+        // Get or increment sequence number for this juz
+        let sequenceNumber = juzSequenceMap.get(juzKey) || 0;
+        sequenceNumber++;
+        juzSequenceMap.set(juzKey, sequenceNumber);
+
+        // Format Nomor Induk Thalibah (Tikrar - MTIA)
+        const nomorInduk = formatNomorIndukThalibah(
+          submission.confirmed_full_name || userData.full_name || 'Unknown',
+          juzCode,
+          userData.tanggal_lahir,
+          userData.kota,
+          sequenceNumber,
+          'tikrar',
+          batchYear
+        );
+
+        thalibahContacts.push({
+          id: userData.id,
+          full_name: submission.confirmed_full_name || userData.full_name,
+          email: userData.email,
+          whatsapp: userData.whatsapp,
+          telegram: userData.telegram,
+          tanggal_lahir: userData.tanggal_lahir,
+          kota: userData.kota,
+          confirmed_chosen_juz: juzCode,
+          status: submission.status,
+          nomor_induk: nomorInduk,
+          category: 'tikrar'
+        });
+      }
+
+    } else {
+      // ===== PRA TIKRAR (MTIP) - Thalibah selected tapi tidak lulus test rekam suara =====
+      // Fetch from pendaftaran_tikrar_tahfidz where selection_status = 'selected'
+      // AND they don't have approved/submitted daftar_ulang submission
+
+      let query = supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .select(`
+          id,
+          user_id,
+          batch_id,
+          full_name,
+          chosen_juz,
+          selection_status,
+          oral_assessment_status,
+          user:users(
+            id,
+            full_name,
+            email,
+            whatsapp,
+            telegram,
+            tanggal_lahir,
+            kota
+          )
+        `)
+        .eq('selection_status', 'selected');
+
+      // Add batch filter if specified
+      if (batchId && batchId !== 'all') {
+        query = query.eq('batch_id', batchId);
+      }
+
+      const { data: registrations, error: fetchError } = await query.order('chosen_juz', { ascending: true });
+
+      if (fetchError) {
+        logger.error('Error fetching pendaftaran_tikrar_tahfidz for pra tikrar export', { error: fetchError });
+        return NextResponse.json({ error: 'Failed to fetch registrations' }, { status: 500 });
+      }
+
+      if (!registrations || registrations.length === 0) {
+        return NextResponse.json({ error: 'No registrations with selection_status=selected found' }, { status: 404 });
+      }
+
+      // Get user IDs that have approved/submitted daftar_ulang (these are TIKRAR, not PRA TIKRAR)
+      const { data: existingDaftarUlang } = await supabaseAdmin
+        .from('daftar_ulang_submissions')
+        .select('user_id')
+        .in('status', ['approved', 'submitted']);
+
+      const daftarUlangUserIds = new Set(existingDaftarUlang?.map(d => d.user_id) || []);
+
+      // Process registrations and create sequence numbers per juz
+      // Only include those who don't have approved/submitted daftar_ulang
+      const juzSequenceMap = new Map<string, number>();
+
+      for (const registration of registrations) {
+        const userData = (registration.user as any);
+        if (!userData) continue;
+
+        // Skip if this user already has approved/submitted daftar_ulang (they are TIKRAR)
+        if (daftarUlangUserIds.has(userData.id)) continue;
+
+        const juzCode = registration.chosen_juz || 'Unknown';
+        const juzKey = getJuzSequenceKey(juzCode);
+        const batchYear = batchYearMap.get(registration.batch_id) || 'XX';
+
+        // Get or increment sequence number for this juz
+        let sequenceNumber = juzSequenceMap.get(juzKey) || 0;
+        sequenceNumber++;
+        juzSequenceMap.set(juzKey, sequenceNumber);
+
+        // Format Nomor Induk Thalibah (Pra Tikrar - MTIPRA)
+        const nomorInduk = formatNomorIndukThalibah(
+          registration.full_name || userData.full_name || 'Unknown',
+          juzCode,
+          userData.tanggal_lahir,
+          userData.kota,
+          sequenceNumber,
+          'pra_tikrar',
+          batchYear
+        );
+
+        thalibahContacts.push({
+          id: userData.id,
+          full_name: registration.full_name || userData.full_name,
+          email: userData.email,
+          whatsapp: userData.whatsapp,
+          telegram: userData.telegram,
+          tanggal_lahir: userData.tanggal_lahir,
+          kota: userData.kota,
+          confirmed_chosen_juz: juzCode,
+          status: registration.selection_status || 'selected',
+          nomor_induk: nomorInduk,
+          category: 'pra_tikrar'
+        });
+      }
+
+      if (thalibahContacts.length === 0) {
+        return NextResponse.json({ error: 'No pra tikrar thalibah found (all selected thalibah have approved/submitted daftar ulang)' }, { status: 404 });
+      }
+    }
+
+    // Sort by juz number, then by A/B letter, then by sequence number
+    thalibahContacts.sort((a, b) => {
+      const aJuz = getJuzNumber(a.confirmed_chosen_juz);
+      const bJuz = getJuzNumber(b.confirmed_chosen_juz);
+
+      if (aJuz !== bJuz) {
+        return aJuz - bJuz;
+      }
+
+      // Same juz number, sort by letter (A before B)
+      const aCode = a.confirmed_chosen_juz || '';
+      const bCode = b.confirmed_chosen_juz || '';
+      if (aCode !== bCode) {
+        return aCode.localeCompare(bCode);
+      }
+
+      // Same juz code, sort by sequence number (extract from nomor_induk)
+      // Format: CODE-batchYYnomor_urut juz name birthYearYY domicile
+      const aSeq = parseInt(a.nomor_induk.match(/MT[IA]+-(\d{5})/)?.[1] || '0');
+      const bSeq = parseInt(b.nomor_induk.match(/MT[IA]+-(\d{5})/)?.[1] || '0');
+      return aSeq - bSeq;
+    });
+
+    logger.info('Contacts prepared for export', {
+      adminId: user.id,
+      totalContacts: thalibahContacts.length,
+      format,
+      category
+    });
+
+    // Return based on requested format
+    if (format === 'vcf') {
+      // Generate VCF content
+      const vcfContent = generateVCF(thalibahContacts);
+
+      const categorySuffix = category === 'tikrar' ? '-tikrar' : '-pra-tikrar';
+      const batchName = batchId && batchId !== 'all' ? `-${batchId}` : '';
+
+      return new NextResponse(vcfContent, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/vcard; charset=utf-8',
+          'Content-Disposition': `attachment; filename="mti-contacts${categorySuffix}${batchName}-${new Date().toISOString().split('T')[0]}.vcf"`,
+          'Cache-Control': 'no-cache',
+        },
+      });
+    } else {
+      // Generate CSV content
+      const csvHeaders = [
+        'Name',
+        'Given Name',
+        'Family Name',
+        'Email 1 - Type',
+        'Email 1 - Value',
+        'Phone 1 - Type',
+        'Phone 1 - Value',
+        'Phone 2 - Type',
+        'Phone 2 - Value',
+        'Organization 1 - Name',
+        'Notes'
       ];
 
-      csvRows.push(row.join(','));
+      const csvRows: string[] = [csvHeaders.join(',')];
+
+      for (const contact of thalibahContacts) {
+        const nomorInduk = contact.nomor_induk;
+        const categoryLabel = contact.category === 'tikrar' ? 'Tikrar' : 'Pra Tikrar';
+
+        const row = [
+          escapeCsvField(nomorInduk), // Name - for display
+          escapeCsvField(nomorInduk), // Given Name - THIS is what Gmail uses as contact name
+          escapeCsvField(''), // Family Name
+          'Work', // Email 1 - Type
+          escapeCsvField(contact.email), // Email 1 - Value
+          'Mobile', // Phone 1 - Type
+          escapeCsvField(contact.whatsapp), // Phone 1 - Value
+          contact.telegram ? 'Other' : '', // Phone 2 - Type
+          escapeCsvField(contact.telegram || ''), // Phone 2 - Value
+          'Markaz Tikrar Indonesia', // Organization 1 - Name
+          escapeCsvField(`ID: ${contact.id}\nJuz: ${contact.confirmed_chosen_juz}\nStatus: ${contact.status}\nKategori: ${categoryLabel}`) // Notes
+        ];
+
+        csvRows.push(row.join(','));
+      }
+
+      const csvContent = csvRows.join('\n');
+      const categorySuffix = category === 'tikrar' ? '-tikrar' : '-pra-tikrar';
+      const batchName = batchId && batchId !== 'all' ? `-${batchId}` : '';
+
+      return new NextResponse(csvContent, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="mti-contacts${categorySuffix}${batchName}-${new Date().toISOString().split('T')[0]}.csv"`,
+          'Cache-Control': 'no-cache',
+        },
+      });
     }
-
-    const csvContent = csvRows.join('\n');
-
-    logger.info('Contacts exported successfully', {
-      adminId: user.id,
-      totalUsers: users.length,
-      exportedContacts: csvRows.length - 1
-    });
-
-    // Return CSV file
-    return new NextResponse(csvContent, {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="mti-contacts-${new Date().toISOString().split('T')[0]}.csv"`,
-        'Cache-Control': 'no-cache',
-      },
-    });
 
   } catch (error) {
     logger.error('Error in export contacts', { error: error as Error });

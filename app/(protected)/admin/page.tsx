@@ -2105,6 +2105,9 @@ function UsersTab({
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
+  const [exportBatchId, setExportBatchId] = useState<string>('all');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'vcf'>('csv');
+  const [exportCategory, setExportCategory] = useState<'tikrar' | 'pra_tikrar'>('tikrar');
 
   // Bulk upgrade state
   const [upgradingUsers, setUpgradingUsers] = useState(false);
@@ -2178,7 +2181,15 @@ function UsersTab({
   const handleExportContacts = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/admin/export-contacts', {
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (exportBatchId && exportBatchId !== 'all') {
+        params.append('batch_id', exportBatchId);
+      }
+      params.append('format', exportFormat);
+      params.append('category', exportCategory);
+
+      const response = await fetch(`/api/admin/export-contacts?${params.toString()}`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -2189,18 +2200,26 @@ function UsersTab({
         return;
       }
 
-      // Get the CSV content
+      // Get the content (CSV or VCF)
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `mti-contacts-${new Date().toISOString().split('T')[0]}.csv`;
+      const extension = exportFormat === 'vcf' ? 'vcf' : 'csv';
+      const categorySuffix = exportCategory === 'tikrar' ? '-tikrar' : '-pra-tikrar';
+      const batchName = exportBatchId && exportBatchId !== 'all' ? `-${exportBatchId}` : '';
+      a.download = `mti-contacts${categorySuffix}${batchName}-${new Date().toISOString().split('T')[0]}.${extension}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast.success('CSV downloaded! Click "Open Gmail Import" button to import contacts.');
+      const formatName = exportFormat === 'vcf' ? 'VCF' : 'CSV';
+      const categoryName = exportCategory === 'tikrar' ? 'Tikrar (MTIA)' : 'Pra Tikrar (MTIPRA)';
+      const importMessage = exportFormat === 'vcf'
+        ? `${categoryName} VCF downloaded! You can import this file directly to Google Contacts.`
+        : `${categoryName} CSV downloaded! Click "Open Gmail Import" button to import contacts.`;
+      toast.success(importMessage);
     } catch (error) {
       console.error('Export error:', error);
       toast.error('Failed to export contacts');
@@ -2805,50 +2824,111 @@ Tim Markaz Tikrar Indonesia`;
         <>
           {/* Action buttons - Only show on "All Users" tab */}
           {activeSubTab === 'all' && (
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={handleDownloadUsers}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <Download className="w-5 h-5 mr-2" />
-                Download Excel
-              </button>
-              <button
-                onClick={handleExportContacts}
-                disabled={isExporting}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isExporting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Exporting...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-5 h-5 mr-2" />
-                    Export to Gmail
-                  </>
+            <div className="space-y-4">
+              {/* Export options */}
+              <div className="flex flex-wrap items-end gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                  <select
+                    value={exportCategory}
+                    onChange={(e) => setExportCategory(e.target.value as 'tikrar' | 'pra_tikrar')}
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="tikrar">Tikrar (MTIA)</option>
+                    <option value="pra_tikrar">Pra Tikrar (MTIPRA)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Export Batch</label>
+                  <select
+                    value={exportBatchId}
+                    onChange={(e) => setExportBatchId(e.target.value)}
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Batches</option>
+                    {batches.map((batch) => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Export Format</label>
+                  <select
+                    value={exportFormat}
+                    onChange={(e) => setExportFormat(e.target.value as 'csv' | 'vcf')}
+                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="csv">CSV (Gmail Import)</option>
+                    <option value="vcf">VCF (Google Contacts)</option>
+                  </select>
+                </div>
+                <button
+                  onClick={handleExportContacts}
+                  disabled={isExporting}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isExporting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5 mr-2" />
+                      Export Thalibah Contacts
+                    </>
+                  )}
+                </button>
+                {exportFormat === 'csv' && (
+                  <button
+                    onClick={handleOpenGmailImport}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
+                    </svg>
+                    Open Gmail Import
+                  </button>
                 )}
-              </button>
-              <button
-                onClick={handleOpenGmailImport}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.545l8.073-6.052C21.69 2.28 24 3.434 24 5.457z"/>
-                </svg>
-                Open Gmail Import
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedUser(null);
-                  setShowModal(true);
-                }}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Add User
-              </button>
+                <div className="flex-1 text-xs text-gray-600">
+                  {exportCategory === 'tikrar' ? (
+                    <>
+                      <p><strong>Tikrar (MTIA)</strong>: Thalibah dengan status daftar ulang <strong>approved</strong> atau <strong>submitted</strong> (lulus test rekam suara).</p>
+                      <p>Nomor Induk: MTIA-batchYYnomor_urut juz nama tahun lahir domisili (contoh: MTIA-26001 30A Dewi Febriani 95 Jakarta)</p>
+                    </>
+                  ) : (
+                    <>
+                      <p><strong>Pra Tikrar (MTIPRA)</strong>: Thalibah dengan status <strong>selected</strong> tapi tidak lulus test rekam suara.</p>
+                      <p>Nomor Induk: MTIPRA-batchYYnomor_urut juz nama tahun lahir domisili (contoh: MTIPRA-26001 30A Dewi Febriani 95 Jakarta)</p>
+                    </>
+                  )}
+                  <p>Nomor urut per juz (28A dan 28B berbagi nomor urut yang sama, 29A mulai dari 001 lagi)</p>
+                  <p>batchYY = 2 digit terakhir tahun batch dimulai (dari tabel batches)</p>
+                </div>
+              </div>
+
+              {/* Other action buttons */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleDownloadUsers}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Download Excel (All Users)
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setShowModal(true);
+                  }}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add User
+                </button>
+              </div>
             </div>
           )}
 
