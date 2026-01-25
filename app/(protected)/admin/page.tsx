@@ -753,6 +753,64 @@ export default function AdminPage() {
           }}
         />
       )}
+
+      {/* Debug Panel */}
+      <div className="mt-8 border-t-2 border-red-500 bg-gray-900 text-white p-4 rounded-lg">
+        <details>
+          <summary className="cursor-pointer font-bold text-red-400 hover:text-red-300">
+            Debug Panel (Click to expand)
+          </summary>
+          <div className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">Current State</h3>
+              <pre className="bg-gray-800 p-3 rounded text-xs overflow-x-auto">
+{`Active Tab: ${activeTab}
+Selected Batch Filter: ${selectedBatchFilter || 'all'}
+Selection Status Filter: ${selectionStatusFilter || 'all'}
+Data Loading: ${dataLoading ? 'Yes' : 'No'}
+Auth Loading: ${authLoading ? 'Yes' : 'No'}
+Loading: ${loading ? 'Yes' : 'No'}
+Is Admin: ${isAdmin ? 'Yes' : 'No'}`}
+              </pre>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">User Info</h3>
+              <pre className="bg-gray-800 p-3 rounded text-xs overflow-x-auto">
+{`User ID: ${user?.id || 'N/A'}
+User Email: ${user?.email || 'N/A'}
+User Roles: ${user?.roles?.join(', ') || 'N/A'}`}
+              </pre>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">SWR Data Counts</h3>
+              <pre className="bg-gray-800 p-3 rounded text-xs overflow-x-auto">
+{`SWR Users: ${swrUsers?.length || 0}
+SWR Tikrar: ${swrTikrar?.length || 0}
+SWR Stats: ${swrStats ? 'Loaded' : 'Not loaded'}
+Batches: ${batches?.length || 0}
+Programs: ${programs?.length || 0}
+Presensi: ${presensi?.length || 0}
+Muallimah: ${muallimah?.length || 0}`}
+              </pre>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">Loading States</h3>
+              <pre className="bg-gray-800 p-3 rounded text-xs overflow-x-auto">
+{`Users Loading: ${usersLoading ? 'Yes' : 'No'}
+Tikrar Loading: ${tikrarLoading ? 'Yes' : 'No'}
+Stats Loading: ${statsLoading ? 'Yes' : 'No'}`}
+              </pre>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-yellow-400 mb-2">Session Info</h3>
+              <pre className="bg-gray-800 p-3 rounded text-xs overflow-x-auto">
+{`Session Active: ${!!user}
+Time: ${new Date().toLocaleString('id-ID')}`}
+              </pre>
+            </div>
+          </div>
+        </details>
+      </div>
     </>
   );
 }
