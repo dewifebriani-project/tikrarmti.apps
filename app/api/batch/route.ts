@@ -1,0 +1,129 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
+import { Batch } from '@/types/database';
+import { requireAdmin } from '@/lib/auth-middleware';
+import { z } from 'zod';
+import { ApiResponses } from '@/lib/api-responses';
+import { batchSchemas } from '@/lib/schemas';
+
+const supabaseAdmin = createSupabaseAdmin();
+
+/**
+ * @deprecated GET method is deprecated.
+ *
+ * MIGRATION GUIDE:
+ * Instead of fetching batches via API from client:
+ * ❌ const { data } = await fetch('/api/batch')
+ *
+ * Use Server Component:
+ * ✅ async function MyServerComponent() {
+ * ✅   const supabase = createClient()
+ * ✅   const { data } = await supabase.from('batches').select('*')
+ * ✅   return <ClientComponent batches={data} />
+ * ✅ }
+ *
+ * This endpoint is kept for backward compatibility only.
+ * The POST method (create batch) is NOT deprecated.
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // Temporarily disabled admin check for development
+    // const authResult = await requireAdmin(request);
+    // if (authResult instanceof NextResponse) {
+    //   return authResult;
+    // }
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const limit = searchParams.get('limit');
+
+    const supabase = supabaseAdmin;
+
+    let query = supabase
+      .from('batches')
+      .select('*');
+
+    // Apply filters
+    if (status) {
+      const statusArray = status.split(',');
+      query = query.in('status', statusArray);
+    }
+
+    if (search) {
+      query = query.ilike('name', `%${search}%`);
+    }
+
+    if (limit) {
+      query = query.limit(parseInt(limit));
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching batches:', error);
+      return ApiResponses.serverError('Failed to fetch batches');
+    }
+
+    // Transform data to include calculated fields
+    const transformedBatches = data?.map(batch => ({
+      ...batch,
+      duration_weeks: calculateDuration(batch.start_date, batch.end_date)
+    }));
+
+    return ApiResponses.success(transformedBatches || [], 'Batches fetched successfully');
+  } catch (error) {
+    console.error('Error in batches GET:', error);
+    return ApiResponses.serverError('Internal server error');
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Temporarily disabled admin check for development
+    // const authResult = await requireAdmin(request);
+    // if (authResult instanceof NextResponse) {
+    //   return authResult;
+    // }
+    const body = await request.json();
+
+    // Validate request body
+    const validation = batchSchemas.create.safeParse(body);
+    if (!validation.success) {
+      return ApiResponses.validationError(validation.error.issues);
+    }
+
+    const validatedData = validation.data;
+
+    const supabase = supabaseAdmin;
+
+    const { data, error } = await supabase
+      .from('batches')
+      .insert({
+        ...validatedData,
+        status: 'draft',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating batch:', error);
+      return ApiResponses.serverError('Failed to create batch');
+    }
+
+    return ApiResponses.success(data, 'Batch created successfully', 201);
+  } catch (error) {
+    console.error('Error in batches POST:', error);
+    return ApiResponses.serverError('Internal server error');
+  }
+}
+
+// Helper function to calculate duration in weeks
+function calculateDuration(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = Math.abs(end.getTime() - start.getTime());
+  const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+  return diffWeeks;
+}
