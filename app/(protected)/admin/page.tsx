@@ -2161,11 +2161,7 @@ function UsersTab({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'admin' | 'thalibah' | 'muallimah' | 'musyrifah' | 'orphaned'>('all');
-  const [exportBatchId, setExportBatchId] = useState<string>('all');
-  const [exportFormat, setExportFormat] = useState<'csv' | 'vcf'>('csv');
-  const [exportCategory, setExportCategory] = useState<'tikrar' | 'pra_tikrar'>('tikrar');
 
   // Bulk upgrade state
   const [upgradingUsers, setUpgradingUsers] = useState(false);
@@ -2235,56 +2231,6 @@ function UsersTab({
   };
 
   const filteredUsers = getFilteredUsers();
-
-  const handleExportContacts = async () => {
-    setIsExporting(true);
-    try {
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (exportBatchId && exportBatchId !== 'all') {
-        params.append('batch_id', exportBatchId);
-      }
-      params.append('format', exportFormat);
-      params.append('category', exportCategory);
-
-      const response = await fetch(`/api/admin/export-contacts?${params.toString()}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to export contacts');
-        return;
-      }
-
-      // Get the content (CSV or VCF)
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const extension = exportFormat === 'vcf' ? 'vcf' : 'csv';
-      const categorySuffix = exportCategory === 'tikrar' ? '-tikrar' : '-pra-tikrar';
-      const batchName = exportBatchId && exportBatchId !== 'all' ? `-${exportBatchId}` : '';
-      a.download = `mti-contacts${categorySuffix}${batchName}-${new Date().toISOString().split('T')[0]}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      const formatName = exportFormat === 'vcf' ? 'VCF' : 'CSV';
-      const categoryName = exportCategory === 'tikrar' ? 'Tikrar (MTIA)' : 'Pra Tikrar (MTIPRA)';
-      const importMessage = exportFormat === 'vcf'
-        ? `${categoryName} VCF downloaded! You can import this file directly to Google Contacts.`
-        : `${categoryName} CSV downloaded! Click "Open Gmail Import" button to import contacts.`;
-      toast.success(importMessage);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error('Failed to export contacts');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   // Build columns dynamically based on active sub-tab
   const getColumns = (): Column<User>[] => {
@@ -2876,85 +2822,24 @@ Tim Markaz Tikrar Indonesia`;
         <>
           {/* Action buttons - Only show on "All Users" tab */}
           {activeSubTab === 'all' && (
-            <div className="space-y-4">
-              {/* Export options */}
-              <div className="flex flex-wrap items-end gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                  <select
-                    value={exportCategory}
-                    onChange={(e) => setExportCategory(e.target.value as 'tikrar' | 'pra_tikrar')}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="tikrar">Tikrar (MTIA)</option>
-                    <option value="pra_tikrar">Pra Tikrar (MTIPRA)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Export Batch</label>
-                  <select
-                    value={exportBatchId}
-                    onChange={(e) => setExportBatchId(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="all">All Batches</option>
-                    {batches.map((batch) => (
-                      <option key={batch.id} value={batch.id}>
-                        {batch.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Export Format</label>
-                  <select
-                    value={exportFormat}
-                    onChange={(e) => setExportFormat(e.target.value as 'csv' | 'vcf')}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="csv">CSV (Gmail Import)</option>
-                    <option value="vcf">VCF (Google Contacts)</option>
-                  </select>
-                </div>
-                <button
-                  onClick={handleExportContacts}
-                  disabled={isExporting}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isExporting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5 mr-2" />
-                      Export Thalibah Contacts
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Other action buttons */}
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={handleDownloadUsers}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Download Excel (All Users)
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedUser(null);
-                    setShowModal(true);
-                  }}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Add User
-                </button>
-              </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={handleDownloadUsers}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Download Excel (All Users)
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setShowModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Add User
+              </button>
             </div>
           )}
 
