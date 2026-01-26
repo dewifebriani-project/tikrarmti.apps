@@ -1133,38 +1133,38 @@ export default function TashihPage() {
               </p>
             </div>
           </div>
-          <CardDescription className="text-xs sm:text-sm">
+          <CardDescription className="text-xs">
             Geser ke kiri/kanan atau klik panah untuk ganti pekan. Klik hari untuk mengisi tashih.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6">
+        <CardContent className="p-3">
           {/* Week Navigation Header */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <button
               type="button"
               onClick={goToPreviousWeek}
               disabled={displayedWeekNumber <= 1}
               className={cn(
-                "p-2 rounded-lg transition-all",
+                "p-1.5 rounded-lg transition-all",
                 displayedWeekNumber <= 1
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-cyan-600 hover:bg-cyan-50"
               )}
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
 
             <div className="text-center">
               <div className={cn(
-                "text-sm sm:text-base font-semibold",
+                "text-xs font-semibold",
                 displayedWeekNumber === getCurrentWeekNumber() ? "text-cyan-700" : "text-gray-700"
               )}>
                 Pekan Tashih {displayedWeekNumber}
                 {displayedWeekNumber === getCurrentWeekNumber() && (
-                  <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>
+                  <span className="ml-1 text-[10px] text-cyan-600">(Pekan Ini)</span>
                 )}
               </div>
-              <div className="text-xs text-gray-500 mt-0.5">
+              <div className="text-[10px] text-gray-500 mt-0.5">
                 {getWeekStartDate(displayedWeekNumber).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {(() => {
                   const weekEnd = new Date(getWeekStartDate(displayedWeekNumber))
                   weekEnd.setDate(weekEnd.getDate() + 6)
@@ -1178,13 +1178,13 @@ export default function TashihPage() {
               onClick={goToNextWeek}
               disabled={displayedWeekNumber >= getCurrentWeekNumber()}
               className={cn(
-                "p-2 rounded-lg transition-all",
+                "p-1.5 rounded-lg transition-all",
                 displayedWeekNumber >= getCurrentWeekNumber()
                   ? "text-gray-300 cursor-not-allowed"
                   : "text-cyan-600 hover:bg-cyan-50"
               )}
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
@@ -1249,7 +1249,7 @@ export default function TashihPage() {
           </div>
 
           {/* Swipe hint */}
-          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
+          <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-gray-500">
             <ChevronLeft className="h-3 w-3" />
             <span>Gesar untuk ganti pekan</span>
             <ChevronRight className="h-3 w-3" />
@@ -1258,15 +1258,15 @@ export default function TashihPage() {
       </Card>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {/* Block Selection - Mobile: 4 kolom fix */}
         <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-blue-700 text-sm sm:text-base">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3">
+            <CardTitle className="flex items-center gap-2 text-blue-700 text-xs">
+              <BookOpen className="h-3.5 w-3.5" />
               <span>Pilih Blok yang Ditashih</span>
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className="text-[10px]">
               {selectedJuzInfo && availableBlocks.length > 0
                 ? `Pekan Tashih ${availableBlocks[0].week_number} - ${selectedJuzInfo.name}`
                 : isLoadingBlocks
@@ -1274,7 +1274,7 @@ export default function TashihPage() {
                   : 'Pilih tanggal terlebih dahulu untuk menentukan blok'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6">
+          <CardContent className="p-3">
             {isLoadingBlocks ? (
               <div className="text-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />

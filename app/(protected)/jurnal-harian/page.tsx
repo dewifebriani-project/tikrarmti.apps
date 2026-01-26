@@ -1182,38 +1182,38 @@ export default function JurnalHarianPage() {
                 </p>
               </div>
             </div>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className="text-xs">
               Geser ke kiri/kanan atau klik panah untuk ganti pekan. Klik hari untuk mengisi jurnal.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6">
+          <CardContent className="p-3">
             {/* Week Navigation Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <button
                 type="button"
                 onClick={goToPreviousWeek}
                 disabled={displayedWeekNumber <= 1}
                 className={cn(
-                  "p-2 rounded-lg transition-all",
+                  "p-1.5 rounded-lg transition-all",
                   displayedWeekNumber <= 1
                     ? "text-gray-300 cursor-not-allowed"
                     : "text-cyan-600 hover:bg-cyan-50"
                 )}
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
 
               <div className="text-center">
                 <div className={cn(
-                  "text-sm sm:text-base font-semibold",
+                  "text-xs font-semibold",
                   displayedWeekNumber === getCurrentWeekNumber() ? "text-cyan-700" : "text-gray-700"
                 )}>
                   Pekan Jurnal {displayedWeekNumber}
                   {displayedWeekNumber === getCurrentWeekNumber() && (
-                    <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>
+                    <span className="ml-1 text-[10px] text-cyan-600">(Pekan Ini)</span>
                   )}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">
+                <div className="text-[10px] text-gray-500 mt-0.5">
                   {getWeekStartDate(displayedWeekNumber).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {(() => {
                     const weekEnd = new Date(getWeekStartDate(displayedWeekNumber))
                     weekEnd.setDate(weekEnd.getDate() + 6)
@@ -1227,13 +1227,13 @@ export default function JurnalHarianPage() {
                 onClick={goToNextWeek}
                 disabled={displayedWeekNumber >= getCurrentWeekNumber()}
                 className={cn(
-                  "p-2 rounded-lg transition-all",
+                  "p-1.5 rounded-lg transition-all",
                   displayedWeekNumber >= getCurrentWeekNumber()
                     ? "text-gray-300 cursor-not-allowed"
                     : "text-cyan-600 hover:bg-cyan-50"
                 )}
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
 
@@ -1290,7 +1290,7 @@ export default function JurnalHarianPage() {
             </div>
 
             {/* Swipe hint */}
-            <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
+            <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-gray-500">
               <ChevronLeft className="h-3 w-3" />
               <span>Gesar untuk ganti pekan</span>
               <ChevronRight className="h-3 w-3" />
@@ -1300,18 +1300,18 @@ export default function JurnalHarianPage() {
 
         {/* Blok Selection - Multi-select Required */}
         <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-blue-700 text-lg sm:text-xl">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b p-3">
+            <CardTitle className="flex items-center gap-2 text-blue-700 text-xs">
+              <BookOpen className="h-3.5 w-3.5" />
               <span>Pilih Blok Jurnal *</span>
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
+            <CardDescription className="text-[10px]">
               {availableBlocks.length > 0
                 ? `Pekan Jurnal ${selectedWeekNumber} - ${selectedJuzInfo?.name || ''}. Pilih 1 blok.`
                 : 'Pilih tanggal terlebih dahulu untuk menentukan blok'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6">
+          <CardContent className="p-3">
             {availableBlocks.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">Belum ada blok yang tersedia.</p>
