@@ -50,6 +50,7 @@ interface TashihRecord {
   lokasi_detail: string | null
   nama_pemeriksa: string | null
   ustadzah_id: string | null
+  jumlah_kesalahan_tajwid: number | null
   masalah_tajwid: string[] | null
   catatan_tambahan: string | null
   waktu_tashih: string
