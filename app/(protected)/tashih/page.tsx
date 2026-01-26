@@ -448,12 +448,6 @@ export default function TashihPage() {
     const block = tashihStatus.blocks.find(b => b.block_code === blockCode)
     if (!block) return
 
-    // Check if already completed
-    if (block.is_completed) {
-      toast.info('Blok ini sudah ditashih')
-      return
-    }
-
     // Calculate actual week number (1-10)
     const actualWeekNumber = blockWeekNumber
 
@@ -470,10 +464,51 @@ export default function TashihPage() {
       return
     }
 
-    // For tashih, user can select multiple blocks (not sequential like jurnal)
-    // Set selected blocks and switch to form mode
-    setSelectedBlocksForEditing([blockCode])
-    setTashihData(prev => ({ ...prev, blok: [blockCode] }))
+    // If block is completed, load its data for editing
+    if (block.is_completed && block.tashih_date) {
+      // Find the record for this block
+      const record = weekRecords.find(r => {
+        if (!r.blok) return false
+        const blocks: string[] = typeof r.blok === 'string'
+          ? r.blok.split(',').map(b => b.trim()).filter(b => b)
+          : (Array.isArray(r.blok) ? r.blok : [])
+        return blocks.includes(blockCode)
+      })
+
+      if (record) {
+        // Load the record data for editing
+        const lokasiValue = record.lokasi === 'halaqah' ? 'mti' : record.lokasi as 'mti' | 'luar'
+        let blokValue: string[] = []
+        if (record.blok) {
+          if (typeof record.blok === 'string') {
+            blokValue = record.blok.split(',').filter((b: string) => b.trim())
+          } else if (Array.isArray(record.blok)) {
+            blokValue = record.blok
+          }
+        }
+        setTashihData({
+          blok: blokValue,
+          lokasi: lokasiValue,
+          lokasiDetail: record.lokasi_detail || '',
+          ustadzahId: record.ustadzah_id || null,
+          ustadzahName: record.nama_pemeriksa || null,
+          jumlahKesalahanTajwid: record.jumlah_kesalahan_tajwid || 0,
+          masalahTajwid: record.masalah_tajwid || [],
+          catatanTambahan: record.catatan_tambahan || '',
+          tanggalTashih: new Date(record.waktu_tashih).toISOString().slice(0, 10)
+        })
+        toast.info(`Mengedit blok ${blockCode} yang sudah ditashih`)
+      } else {
+        // Block is completed but record not found in weekRecords, load for this week
+        setSelectedWeekNumber(actualWeekNumber)
+        updateBlocksForWeek(actualWeekNumber)
+        loadWeekRecords()
+      }
+    } else {
+      // For new tashih, user can select multiple blocks
+      setSelectedBlocksForEditing([blockCode])
+      setTashihData(prev => ({ ...prev, blok: [blockCode] }))
+    }
 
     // Update week number based on block (week_number from API is already 1-10)
     setSelectedWeekNumber(blockWeekNumber)
@@ -859,20 +894,20 @@ export default function TashihPage() {
                               className={cn(
                                 "p-2 border-2 rounded-lg text-center transition-all duration-200",
                                 block.is_completed
-                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
+                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-pointer hover:border-teal-400 hover:bg-teal-50"
                                   : !isWeekAllowed
                                     ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
                                     : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
                               )}
                               title={block.is_completed
-                                ? `Sudah ditashih${block.tashih_date ? `: ${new Date(block.tashih_date).toLocaleDateString('id-ID')}` : ''}`
+                                ? `Klik untuk edit${block.tashih_date ? `: ${new Date(block.tashih_date).toLocaleDateString('id-ID')}` : ''}`
                                 : !isWeekAllowed
                                   ? isFutureWeek
                                     ? `Pekan ${actualWeekNumber} belum dimulai`
                                     : `Pekan ${actualWeekNumber} sudah berlalu`
                                   : 'Klik untuk isi tashih'
                               }
-                              disabled={!isWeekAllowed || block.is_completed}
+                              disabled={!isWeekAllowed}
                             >
                               <div className={cn(
                                 "text-xs sm:text-sm font-bold",
@@ -902,7 +937,7 @@ export default function TashihPage() {
               <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 border-2 border-emerald-400 bg-emerald-50 rounded"></div>
-                  <span>Sudah ditashih</span>
+                  <span>Sudah ditashih (klik untuk edit)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 border-2 border-gray-300 rounded"></div>
@@ -1249,7 +1284,7 @@ export default function TashihPage() {
                 <p className="text-gray-500">Belum ada blok yang tersedia.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-2 sm:gap-4">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
                 {availableBlocks.map((blok) => {
                   const isSelected = tashihData.blok.includes(blok.block_code)
                   return (
@@ -1257,23 +1292,23 @@ export default function TashihPage() {
                       key={blok.block_code}
                       onClick={() => toggleBlok(blok.block_code)}
                       className={cn(
-                        "p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 group",
-                        "hover:shadow-lg hover:scale-105",
+                        "p-1.5 sm:p-4 border-2 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-200 group",
+                        "hover:shadow-md hover:scale-[1.02]",
                         isSelected
-                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200"
+                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-1 sm:ring-2 ring-blue-200"
                           : "border-gray-200 hover:border-blue-300 bg-white"
                       )}
                     >
                       <div className="text-center">
                         <div className={cn(
-                          "text-2xl font-bold",
+                          "text-sm sm:text-2xl font-bold leading-tight",
                           isSelected ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600"
                         )}>
                           {blok.block_code.toUpperCase()}
                         </div>
                         {isSelected && (
-                          <div className="mt-2 text-blue-600">
-                            <CheckCircle className="h-5 w-5 mx-auto" />
+                          <div className="mt-0.5 sm:mt-2 text-blue-600">
+                            <CheckCircle className="h-3 w-3 sm:h-5 sm:w-5 mx-auto" />
                           </div>
                         )}
                       </div>

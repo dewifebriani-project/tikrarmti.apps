@@ -638,18 +638,6 @@ export default function JurnalHarianPage() {
     const block = jurnalStatus.blocks.find(b => b.block_code === blockCode)
     if (!block) return
 
-    // Check if already completed
-    if (block.is_completed) {
-      toast.info('Blok ini sudah selesai dijurnal')
-      return
-    }
-
-    // The API returns normalized week_number (1-13 for display)
-    // But for validation, we need to calculate the actual week from batch start
-    // Block code format: H{blockNumber}{part}, where blockNumber = week + offset
-    // For Part A: H1A-H13D, for Part B: H11A-H23D
-    // We need to extract the week number from block code correctly
-
     // Calculate actual week from block code
     const blockNumMatch = blockCode.match(/H(\d+)[A-D]/)
     if (!blockNumMatch) return
@@ -673,11 +661,60 @@ export default function JurnalHarianPage() {
       return
     }
 
-    // Set selected block and switch to form mode
-    // Note: Thalibah can fill any block within the week, not sequential
-    // Only requirement: complete all 4 blocks in the week
-    setSelectedBlockForEditing(blockCode)
-    setJurnalData(prev => ({ ...prev, blok: blockCode }))
+    // If block is completed, load its data for editing
+    if (block.is_completed && block.jurnal_date) {
+      // Find the record for this block
+      const record = weekRecords.find(r => r.blok === blockCode)
+
+      if (record) {
+        // Load the record data for editing
+        let tikrarType: 'pasangan_40' | 'keluarga_40' | 'tarteel_40' | null = null
+        let tikrarSubtype: string | null = null
+
+        if (record.tikrar_bi_al_ghaib_40x && record.tikrar_bi_al_ghaib_40x.length > 0) {
+          const type40 = record.tikrar_bi_al_ghaib_40x[0]
+          if (type40 === 'pasangan_40' || type40 === 'keluarga_40' || type40 === 'tarteel_40') {
+            tikrarType = type40
+          }
+        } else if (record.tikrar_bi_al_ghaib_20x && record.tikrar_bi_al_ghaib_20x.length > 0) {
+          const type20 = record.tikrar_bi_al_ghaib_20x[0]
+          if (type20 === 'pasangan_20' || type20 === 'pasangan_20_wa' || type20 === 'voice_note_20') {
+            tikrarType = 'pasangan_40'
+            tikrarSubtype = type20 === 'pasangan_20' ? 'pasangan_20_wa' : type20
+          }
+        }
+
+        setJurnalData({
+          tanggal_setor: record.tanggal_setor || new Date().toISOString().slice(0, 10),
+          juz_code: record.juz_code || '',
+          blok: blockCode,
+          rabth_completed: record.rabth_completed || false,
+          murajaah_completed: record.murajaah_count > 0,
+          simak_murattal_completed: record.simak_murattal_count > 0,
+          tikrar_bi_an_nadzar_completed: record.tikrar_bi_an_nadzar_completed || false,
+          tasmi_record_completed: record.tasmi_record_count > 0,
+          simak_record_completed: record.simak_record_completed || false,
+          tikrar_bi_al_ghaib_completed: record.tikrar_bi_al_ghaib_count > 0,
+          tikrar_bi_al_ghaib_type: tikrarType,
+          tikrar_bi_al_ghaib_subtype: tikrarSubtype,
+          tikrar_bi_al_ghaib_20x_multi: record.tikrar_bi_al_ghaib_20x || [],
+          tarteel_screenshot_file: null,
+          tafsir_completed: record.tafsir_completed || false,
+          menulis_completed: record.menulis_completed || false,
+          catatan_tambahan: record.catatan_tambahan || ''
+        })
+        toast.info(`Mengedit blok ${blockCode} yang sudah dijurnal`)
+      } else {
+        // Block is completed but record not found in weekRecords, load for this week
+        setSelectedWeekNumber(actualWeekNumber)
+        updateBlocksForWeek(actualWeekNumber)
+        loadWeekRecords()
+      }
+    } else {
+      // For new jurnal entry
+      setSelectedBlockForEditing(blockCode)
+      setJurnalData(prev => ({ ...prev, blok: blockCode }))
+    }
 
     // Update week number based on block (use actual week for internal logic)
     setSelectedWeekNumber(actualWeekNumber)
@@ -886,20 +923,20 @@ export default function JurnalHarianPage() {
                               className={cn(
                                 "p-2 border-2 rounded-lg text-center transition-all duration-200",
                                 block.is_completed
-                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-default"
+                                  ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-pointer hover:border-teal-400 hover:bg-teal-50"
                                   : !isWeekAllowed
                                     ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
                                     : "border-gray-300 hover:border-teal-400 hover:bg-teal-50 cursor-pointer"
                               )}
                               title={block.is_completed
-                                ? `Sudah jurnal${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
+                                ? `Klik untuk edit${block.jurnal_date ? `: ${new Date(block.jurnal_date).toLocaleDateString('id-ID')}` : ''}`
                                 : !isWeekAllowed
                                   ? isFutureWeek
                                     ? `Pekan ${actualWeekNumber} belum dimulai`
                                     : `Pekan ${actualWeekNumber} sudah berlalu`
                                   : 'Klik untuk isi jurnal'
                               }
-                              disabled={!isWeekAllowed || block.is_completed}
+                              disabled={!isWeekAllowed}
                             >
                               <div className={cn(
                                 "text-xs sm:text-sm font-bold",
@@ -929,7 +966,7 @@ export default function JurnalHarianPage() {
               <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-4 pt-3 border-t border-gray-200 text-xs text-gray-600">
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 border-2 border-emerald-400 bg-emerald-50 rounded"></div>
-                  <span>Sudah jurnal</span>
+                  <span>Sudah jurnal (klik untuk edit)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 border-2 border-gray-300 rounded"></div>
@@ -1280,7 +1317,7 @@ export default function JurnalHarianPage() {
                 <p className="text-gray-500">Belum ada blok yang tersedia.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
                 {availableBlocks.map((blok) => {
                   const isSelected = jurnalData.blok === blok.block_code
                   return (
@@ -1289,23 +1326,23 @@ export default function JurnalHarianPage() {
                       type="button"
                       onClick={() => toggleBlokSelection(blok.block_code)}
                       className={cn(
-                        "p-3 sm:p-4 border-2 rounded-xl transition-all duration-200",
-                        "hover:shadow-lg hover:scale-105",
+                        "p-1.5 sm:p-3 border-2 rounded-lg sm:rounded-xl transition-all duration-200",
+                        "hover:shadow-md hover:scale-[1.02]",
                         isSelected
-                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-2 ring-blue-200"
+                          ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-1 sm:ring-2 ring-blue-200"
                           : "border-gray-200 hover:border-blue-300 bg-white"
                       )}
                     >
                       <div className="text-center">
                         <div className={cn(
-                          "text-xl sm:text-2xl font-bold",
+                          "text-sm sm:text-xl font-bold leading-tight",
                           isSelected ? "text-blue-700" : "text-gray-700"
                         )}>
                           {blok.block_code.toUpperCase()}
                         </div>
                         {isSelected && (
-                          <div className="mt-2 text-blue-600">
-                            <CheckCircle className="h-5 w-5 mx-auto" />
+                          <div className="mt-0.5 sm:mt-2 text-blue-600">
+                            <CheckCircle className="h-3 w-3 sm:h-5 sm:w-5 mx-auto" />
                           </div>
                         )}
                       </div>
