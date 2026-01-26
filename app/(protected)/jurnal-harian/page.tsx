@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, TouchEvent } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Clock, AlertCircle, Calendar, Loader2, BookOpen, Volume2, Mic, Edit, Circle, Lock } from 'lucide-react'
+import { CheckCircle, Clock, AlertCircle, Calendar, Loader2, BookOpen, Volume2, Mic, Edit, Circle, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -214,6 +214,11 @@ export default function JurnalHarianPage() {
   const [selectedJuzInfo, setSelectedJuzInfo] = useState<JuzOption | null>(null)
   const [availableBlocks, setAvailableBlocks] = useState<TashihBlock[]>([])
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number>(1)
+  const [displayedWeekNumber, setDisplayedWeekNumber] = useState<number>(1) // For date navigation
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const minSwipeDistance = 50
+  const carouselRef = useRef<HTMLDivElement>(null)
 
   // Load juz info
   useEffect(() => {
@@ -307,8 +312,54 @@ export default function JurnalHarianPage() {
     if (batchStartDate) {
       const currentWeek = getWeekNumberFromDate(new Date())
       setSelectedWeekNumber(currentWeek)
+      setDisplayedWeekNumber(currentWeek)
     }
   }, [batchStartDate])
+
+  // Touch handlers for swipe navigation
+  const onTouchStart = (e: TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      // Swipe left = next week
+      const currentWeek = getCurrentWeekNumber()
+      if (displayedWeekNumber < currentWeek) {
+        setDisplayedWeekNumber(displayedWeekNumber + 1)
+      }
+    } else if (isRightSwipe) {
+      // Swipe right = previous week
+      if (displayedWeekNumber > 1) {
+        setDisplayedWeekNumber(displayedWeekNumber - 1)
+      }
+    }
+  }
+
+  // Navigate to previous/next week
+  const goToPreviousWeek = () => {
+    if (displayedWeekNumber > 1) {
+      setDisplayedWeekNumber(displayedWeekNumber - 1)
+    }
+  }
+
+  const goToNextWeek = () => {
+    const currentWeek = getCurrentWeekNumber()
+    if (displayedWeekNumber < currentWeek) {
+      setDisplayedWeekNumber(displayedWeekNumber + 1)
+    }
+  }
 
   // Get start date of a jurnal week (Senin) based on week number from batch start
   // Jurnal starts H+7 from batch start (week 1 = days 7-13)
@@ -1080,7 +1131,7 @@ export default function JurnalHarianPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        {/* Tanggal Selection */}
+        {/* Tanggal Selection - Swipeable untuk semua ukuran layar */}
         <Card className="overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50 border-b p-3 sm:p-6">
             <div className="flex items-center justify-between">
@@ -1095,57 +1146,117 @@ export default function JurnalHarianPage() {
               </div>
             </div>
             <CardDescription className="text-xs sm:text-sm">
-              Klik hari untuk mengisi jurnal pada tanggal tersebut
+              Geser ke kiri/kanan atau klik panah untuk ganti pekan. Klik hari untuk mengisi jurnal.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3 sm:p-6">
-            <div className="space-y-4 sm:space-y-6">
-              {(() => {
-                return (
-                  <div key={selectedWeekNumber}>
-                    <div className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 text-cyan-700">
-                      Pekan Jurnal {selectedWeekNumber}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                      {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Ah'].map((hari, index) => {
-                        const dayDate = getDayDateInWeek(selectedWeekNumber, index)
-                        const isToday = new Date().toDateString() === dayDate.toDateString()
-                        const dateString = dayDate.toISOString().split('T')[0]
+            {/* Week Navigation Header */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                type="button"
+                onClick={goToPreviousWeek}
+                disabled={displayedWeekNumber <= 1}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  displayedWeekNumber <= 1
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-cyan-600 hover:bg-cyan-50"
+                )}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
 
-                        return (
-                          <button
-                            key={`week${selectedWeekNumber}-${hari}`}
-                            type="button"
-                            onClick={() => handleDateSelection(dayDate)}
-                            className={cn(
-                              "p-2 sm:p-3 border-2 rounded-xl transition-all duration-200 text-center",
-                              "hover:shadow-md hover:scale-105",
-                              jurnalData.tanggal_setor === dateString
-                                ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
-                                : isToday
-                                  ? "border-amber-400 bg-amber-50 hover:border-amber-500"
-                                  : "border-gray-200 hover:border-cyan-300 bg-white"
-                            )}
-                          >
-                            <div className={cn(
-                              "text-xs font-medium mb-1",
-                              jurnalData.tanggal_setor === dateString ? "text-green-700" : isToday ? "text-amber-700" : "text-gray-600"
-                            )}>
-                              {hari}
-                            </div>
-                            <div className={cn(
-                              "text-sm sm:text-base font-bold",
-                              jurnalData.tanggal_setor === dateString ? "text-green-800" : isToday ? "text-amber-800" : "text-gray-800"
-                            )}>
-                              {dayDate.getDate()}
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })()}
+              <div className="text-center">
+                <div className={cn(
+                  "text-sm sm:text-base font-semibold",
+                  displayedWeekNumber === getCurrentWeekNumber() ? "text-cyan-700" : "text-gray-700"
+                )}>
+                  Pekan Jurnal {displayedWeekNumber}
+                  {displayedWeekNumber === getCurrentWeekNumber() && (
+                    <span className="ml-2 text-xs text-cyan-600">(Pekan Ini)</span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {getWeekStartDate(displayedWeekNumber).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} - {(() => {
+                    const weekEnd = new Date(getWeekStartDate(displayedWeekNumber))
+                    weekEnd.setDate(weekEnd.getDate() + 6)
+                    return weekEnd.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+                  })()}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={goToNextWeek}
+                disabled={displayedWeekNumber >= getCurrentWeekNumber()}
+                className={cn(
+                  "p-2 rounded-lg transition-all",
+                  displayedWeekNumber >= getCurrentWeekNumber()
+                    ? "text-gray-300 cursor-not-allowed"
+                    : "text-cyan-600 hover:bg-cyan-50"
+                )}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Days Grid - Swipeable */}
+            <div
+              ref={carouselRef}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              className="select-none"
+            >
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                {['Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb', 'Ah'].map((hari, index) => {
+                  const dayDate = getDayDateInWeek(displayedWeekNumber, index)
+                  const isToday = new Date().toDateString() === dayDate.toDateString()
+                  const dateString = dayDate.toISOString().split('T')[0]
+
+                  return (
+                    <button
+                      key={`week${displayedWeekNumber}-${hari}`}
+                      type="button"
+                      onClick={() => handleDateSelection(dayDate)}
+                      className={cn(
+                        "p-2 sm:p-3 border-2 rounded-xl transition-all duration-200 text-center",
+                        "hover:shadow-md hover:scale-105 active:scale-95",
+                        jurnalData.tanggal_setor === dateString
+                          ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
+                          : isToday
+                            ? "border-amber-400 bg-amber-50 hover:border-amber-500"
+                            : "border-gray-200 hover:border-cyan-300 bg-white"
+                      )}
+                    >
+                      <div className={cn(
+                        "text-[10px] sm:text-xs font-medium mb-1",
+                        jurnalData.tanggal_setor === dateString ? "text-green-700" : isToday ? "text-amber-700" : "text-gray-600"
+                      )}>
+                        {hari}
+                      </div>
+                      <div className={cn(
+                        "text-sm sm:text-base font-bold",
+                        jurnalData.tanggal_setor === dateString ? "text-green-800" : isToday ? "text-amber-800" : "text-gray-800"
+                      )}>
+                        {dayDate.getDate()}
+                      </div>
+                      {isToday && jurnalData.tanggal_setor !== dateString && (
+                        <div className="mt-1">
+                          <div className="w-2 h-2 bg-amber-400 rounded-full mx-auto"></div>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Swipe hint */}
+            <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
+              <ChevronLeft className="h-3 w-3" />
+              <span>Gesar untuk ganti pekan</span>
+              <ChevronRight className="h-3 w-3" />
             </div>
           </CardContent>
         </Card>
