@@ -1192,87 +1192,51 @@ export default function TashihPage() {
             </button>
           </div>
 
-          {/* Days Grid - Swipeable Carousel */}
-          <div className="relative">
-            <button
-              type="button"
+          {/* Days Grid - Swipeable Carousel - Single Active Date */}
+          <div
+            ref={carouselRef}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            className="select-none"
+          >
+            <div
               onClick={() => {
                 const newDate = new Date(tashihData.tanggalTashih)
                 newDate.setDate(newDate.getDate() - 1)
                 handleDateSelection(newDate)
               }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-50"
+              className="flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-all"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <div className="flex gap-1 mx-8 overflow-hidden">
-              {Array.from({ length: 4 }, (_, i) => {
-                const baseDate = new Date(tashihData.tanggalTashih)
-                const offset = i - 1 // Show: previous, current, next, next+1
-                baseDate.setDate(baseDate.getDate() + offset)
-                const dayDate = baseDate
-                const isToday = new Date().toDateString() === dayDate.toDateString()
-                const dateString = dayDate.toISOString().split('T')[0]
-                const dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Aha']
-                const dayName = dayNames[dayDate.getDay()]
-
-                return (
-                  <button
-                    key={`${dateString}-${i}`}
-                    type="button"
-                    onClick={() => handleDateSelection(dayDate)}
-                    className={cn(
-                      "flex-1 p-2 border-2 rounded-lg transition-all duration-200 text-center",
-                      "hover:shadow-md hover:scale-105 active:scale-95 min-w-0",
-                      tashihData.tanggalTashih === dateString
-                        ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
-                        : isToday
-                          ? "border-amber-400 bg-amber-50 hover:border-amber-500 shadow-sm"
-                          : "border-gray-200 hover:border-cyan-300 bg-white"
-                    )}
-                  >
-                    <div className={cn(
-                      "text-[10px] font-medium leading-tight",
-                      tashihData.tanggalTashih === dateString
-                        ? "text-cyan-700"
-                        : isToday
-                          ? "text-amber-700"
-                          : "text-gray-600"
-                    )}>
-                      {dayName}
-                    </div>
-                    <div className={cn(
-                      "text-sm font-bold leading-none mt-1",
-                      tashihData.tanggalTashih === dateString
-                        ? "text-cyan-800"
-                        : isToday
-                          ? "text-amber-800"
-                          : "text-gray-800"
-                    )}>
-                      {dayDate.getDate()}
-                    </div>
-                    {isToday && tashihData.tanggalTashih !== dateString && (
-                      <div className="mt-1">
-                        <div className="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto"></div>
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
+              <ChevronLeft className="h-4 w-4 text-gray-600" />
+              <span className="text-[10px] text-gray-600">Sebelumnya</span>
             </div>
 
-            <button
-              type="button"
+            <div className="my-2 p-3 border-2 rounded-xl bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg">
+              <div className="text-center">
+                <div className="text-xs font-medium text-cyan-700 mb-1">
+                  {new Date(tashihData.tanggalTashih).toLocaleDateString('id-ID', { weekday: 'long' })}
+                </div>
+                <div className="text-2xl font-bold text-cyan-800">
+                  {new Date(tashihData.tanggalTashih).getDate()}
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {new Date(tashihData.tanggalTashih).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+
+            <div
               onClick={() => {
                 const newDate = new Date(tashihData.tanggalTashih)
                 newDate.setDate(newDate.getDate() + 1)
                 handleDateSelection(newDate)
               }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-50"
+              className="flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-all"
             >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+              <span className="text-[10px] text-gray-600">Sesudahnya</span>
+              <ChevronRight className="h-4 w-4 text-gray-600" />
+            </div>
           </div>
 
           {/* Swipe hint */}
