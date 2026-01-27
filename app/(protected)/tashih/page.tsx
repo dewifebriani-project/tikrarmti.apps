@@ -506,9 +506,13 @@ export default function TashihPage() {
         loadWeekRecords()
       }
     } else {
-      // For new tashih, user can select multiple blocks
-      setSelectedBlocksForEditing([blockCode])
-      setTashihData(prev => ({ ...prev, blok: [blockCode] }))
+      // For new tashih, auto-select all 4 blocks in the same week
+      const match = blockCode.match(/H(\d+)[A-D]/)
+      if (!match) return
+      const blockNumber = match[1]
+      const sameWeekBlocks = [`H${blockNumber}A`, `H${blockNumber}B`, `H${blockNumber}C`, `H${blockNumber}D`]
+      setSelectedBlocksForEditing(sameWeekBlocks)
+      setTashihData(prev => ({ ...prev, blok: sameWeekBlocks }))
     }
 
     // Update week number based on block (week_number from API is already 1-10)
