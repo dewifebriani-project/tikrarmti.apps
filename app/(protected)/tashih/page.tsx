@@ -719,14 +719,24 @@ export default function TashihPage() {
   // Navigate to previous/next week
   const goToPreviousWeek = () => {
     if (displayedWeekNumber > 1) {
-      setDisplayedWeekNumber(displayedWeekNumber - 1)
+      const newWeek = displayedWeekNumber - 1
+      setDisplayedWeekNumber(newWeek)
+      setSelectedWeekNumber(newWeek)
+      // Update tanggalTashih to Senin of the new week
+      const newDate = getWeekStartDate(newWeek)
+      handleDateSelection(newDate)
     }
   }
 
   const goToNextWeek = () => {
     const currentWeek = getCurrentWeekNumber()
     if (displayedWeekNumber < currentWeek) {
-      setDisplayedWeekNumber(displayedWeekNumber + 1)
+      const newWeek = displayedWeekNumber + 1
+      setDisplayedWeekNumber(newWeek)
+      setSelectedWeekNumber(newWeek)
+      // Update tanggalTashih to Senin of the new week
+      const newDate = getWeekStartDate(newWeek)
+      handleDateSelection(newDate)
     }
   }
 
@@ -1200,20 +1210,22 @@ export default function TashihPage() {
             onTouchEnd={onTouchEnd}
             className="select-none"
           >
-            <div
-              onClick={() => {
-                const newDate = new Date(tashihData.tanggalTashih)
-                newDate.setDate(newDate.getDate() - 1)
-                handleDateSelection(newDate)
-              }}
-              className="flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-all"
-            >
-              <ChevronLeft className="h-4 w-4 text-gray-600" />
-              <span className="text-[10px] text-gray-600">Sebelumnya</span>
-            </div>
+            <div className="flex items-center gap-2">
+              {/* Previous button */}
+              <div
+                onClick={() => {
+                  const newDate = new Date(tashihData.tanggalTashih)
+                  newDate.setDate(newDate.getDate() - 1)
+                  handleDateSelection(newDate)
+                }}
+                className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-all flex-shrink-0"
+              >
+                <ChevronLeft className="h-4 w-4 text-gray-600" />
+                <span className="text-[10px] text-gray-600 whitespace-nowrap">Sebelumnya</span>
+              </div>
 
-            <div className="my-2 p-3 border-2 rounded-xl bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg">
-              <div className="text-center">
+              {/* Date display */}
+              <div className="flex-1 p-3 border-2 rounded-xl bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg text-center">
                 <div className="text-xs font-medium text-cyan-700 mb-1">
                   {new Date(tashihData.tanggalTashih).toLocaleDateString('id-ID', { weekday: 'long' })}
                 </div>
@@ -1224,29 +1236,28 @@ export default function TashihPage() {
                   {new Date(tashihData.tanggalTashih).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
+
+              {/* Next button */}
+              <div
+                onClick={() => {
+                  const newDate = new Date(tashihData.tanggalTashih)
+                  newDate.setDate(newDate.getDate() + 1)
+                  handleDateSelection(newDate)
+                }}
+                className="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-all flex-shrink-0"
+              >
+                <span className="text-[10px] text-gray-600 whitespace-nowrap">Sesudahnya</span>
+                <ChevronRight className="h-4 w-4 text-gray-600" />
+              </div>
             </div>
 
-            <div
-              onClick={() => {
-                const newDate = new Date(tashihData.tanggalTashih)
-                newDate.setDate(newDate.getDate() + 1)
-                handleDateSelection(newDate)
-              }}
-              className="flex items-center justify-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-all"
-            >
-              <span className="text-[10px] text-gray-600">Sesudahnya</span>
-              <ChevronRight className="h-4 w-4 text-gray-600" />
+            {/* Swipe hint */}
+            <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-gray-500">
+              <ChevronLeft className="h-3 w-3" />
+              <span>Gesar untuk ganti tanggal</span>
+              <ChevronRight className="h-3 w-3" />
             </div>
           </div>
-
-          {/* Swipe hint */}
-          <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-gray-500">
-            <ChevronLeft className="h-3 w-3" />
-            <span>Gesar untuk ganti tanggal</span>
-            <ChevronRight className="h-3 w-3" />
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-3">
