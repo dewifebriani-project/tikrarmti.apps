@@ -890,14 +890,14 @@ export default function TashihPage() {
                             ></div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-flow-col grid-cols-4 gap-1">
                           {weekBlocks.map(block => (
                             <button
                               key={block.block_code}
                               type="button"
                               onClick={() => handleBlockClick(block.block_code, block.week_number)}
                               className={cn(
-                                "p-1.5 border-2 rounded-lg text-center transition-all duration-200",
+                                "p-1 border-2 rounded-lg text-center transition-all duration-200 min-w-0",
                                 block.is_completed
                                   ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-pointer hover:border-teal-400 hover:bg-teal-50"
                                   : !isWeekAllowed
@@ -915,7 +915,7 @@ export default function TashihPage() {
                               disabled={!isWeekAllowed}
                             >
                               <div className={cn(
-                                "text-xs font-bold",
+                                "text-[10px] font-bold leading-tight",
                                 block.is_completed
                                   ? "text-emerald-700"
                                   : !isWeekAllowed
@@ -925,9 +925,9 @@ export default function TashihPage() {
                                 {block.block_code}
                               </div>
                               {block.is_completed ? (
-                                <CheckCircle className="h-3 w-3 text-emerald-600 mx-auto mt-0.5" />
+                                <CheckCircle className="h-2.5 w-2.5 text-emerald-600 mx-auto mt-0.5" />
                               ) : !isWeekAllowed ? (
-                                <Lock className="h-3 w-3 text-gray-400 mx-auto mt-0.5" />
+                                <Lock className="h-2.5 w-2.5 text-gray-400 mx-auto mt-0.5" />
                               ) : null}
                             </button>
                           ))}
@@ -1200,7 +1200,7 @@ export default function TashihPage() {
             onTouchEnd={onTouchEnd}
             className="select-none"
           >
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-flow-col grid-cols-7 gap-0.5">
               {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
                 const dayDate = getDayDateInWeek(displayedWeekNumber, index)
                 const isToday = new Date().toDateString() === dayDate.toDateString()
@@ -1212,7 +1212,7 @@ export default function TashihPage() {
                     type="button"
                     onClick={() => handleDateSelection(dayDate)}
                     className={cn(
-                      "p-1.5 border-2 rounded-lg transition-all duration-200 text-center",
+                      "p-1 border-2 rounded-lg transition-all duration-200 text-center min-w-0",
                       "hover:shadow-md hover:scale-105 active:scale-95",
                       tashihData.tanggalTashih === dateString
                         ? "border-cyan-500 bg-gradient-to-br from-cyan-50 to-sky-50 shadow-lg ring-2 ring-cyan-200"
@@ -1222,7 +1222,7 @@ export default function TashihPage() {
                     )}
                   >
                     <div className={cn(
-                      "text-[10px] font-medium mb-0.5",
+                      "text-[8px] font-medium leading-tight",
                       tashihData.tanggalTashih === dateString
                         ? "text-cyan-700"
                         : isToday
@@ -1232,7 +1232,7 @@ export default function TashihPage() {
                       {hari.substring(0, 3)}
                     </div>
                     <div className={cn(
-                      "text-sm font-bold",
+                      "text-xs font-bold leading-none mt-0.5",
                       tashihData.tanggalTashih === dateString
                         ? "text-cyan-800"
                         : isToday
@@ -1243,7 +1243,7 @@ export default function TashihPage() {
                     </div>
                     {isToday && tashihData.tanggalTashih !== dateString && (
                       <div className="mt-0.5">
-                        <div className="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto"></div>
+                        <div className="w-1 h-1 bg-amber-400 rounded-full mx-auto"></div>
                       </div>
                     )}
                   </button>
@@ -1289,7 +1289,7 @@ export default function TashihPage() {
                 <p className="text-gray-500">Belum ada blok yang tersedia.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-flow-col grid-cols-4 gap-1">
                 {availableBlocks.map((blok) => {
                   const isSelected = tashihData.blok.includes(blok.block_code)
                   return (
@@ -1297,7 +1297,7 @@ export default function TashihPage() {
                       key={blok.block_code}
                       onClick={() => toggleBlok(blok.block_code)}
                       className={cn(
-                        "p-1.5 border-2 rounded-lg cursor-pointer transition-all duration-200 group",
+                        "p-1 border-2 rounded-lg cursor-pointer transition-all duration-200 group min-w-0",
                         "hover:shadow-md hover:scale-[1.02]",
                         isSelected
                           ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-1 ring-blue-200"
@@ -1306,14 +1306,14 @@ export default function TashihPage() {
                     >
                       <div className="text-center">
                         <div className={cn(
-                          "text-sm font-bold leading-tight",
+                          "text-xs font-bold leading-tight",
                           isSelected ? "text-blue-700" : "text-gray-700 group-hover:text-blue-600"
                         )}>
                           {blok.block_code.toUpperCase()}
                         </div>
                         {isSelected && (
                           <div className="mt-0.5 text-blue-600">
-                            <CheckCircle className="h-3 w-3 mx-auto" />
+                            <CheckCircle className="h-2.5 w-2.5 mx-auto" />
                           </div>
                         )}
                       </div>
