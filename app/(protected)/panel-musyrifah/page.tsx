@@ -863,7 +863,6 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   };
 
   const displayName = (user: any) => {
-    if (user?.nama_kunyah) return user.nama_kunyah;
     if (user?.full_name) return user.full_name;
     return '-';
   };
