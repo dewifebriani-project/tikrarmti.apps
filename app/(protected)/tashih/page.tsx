@@ -1258,6 +1258,8 @@ export default function TashihPage() {
               <ChevronRight className="h-3 w-3" />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-3">
