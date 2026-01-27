@@ -914,14 +914,14 @@ export default function JurnalHarianPage() {
                             ></div>
                           </div>
                         </div>
-                        <div className="grid grid-flow-col grid-cols-4 gap-1">
+                        <div className="flex gap-1">
                           {weekBlocks.map(block => (
                             <button
                               key={block.block_code}
                               type="button"
                               onClick={() => handleBlockClick(block.block_code, block.week_number)}
                               className={cn(
-                                "p-1 border-2 rounded-lg text-center transition-all duration-200 min-w-0",
+                                "flex-1 p-2 border-2 rounded-lg text-center transition-all duration-200",
                                 block.is_completed
                                   ? "border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 cursor-pointer hover:border-teal-400 hover:bg-teal-50"
                                   : !isWeekAllowed
@@ -939,7 +939,7 @@ export default function JurnalHarianPage() {
                               disabled={!isWeekAllowed}
                             >
                               <div className={cn(
-                                "text-[10px] font-bold leading-tight",
+                                "text-xs font-bold leading-tight",
                                 block.is_completed
                                   ? "text-emerald-700"
                                   : !isWeekAllowed
@@ -949,9 +949,9 @@ export default function JurnalHarianPage() {
                                 {block.block_code}
                               </div>
                               {block.is_completed ? (
-                                <CheckCircle className="h-2.5 w-2.5 text-emerald-600 mx-auto mt-0.5" />
+                                <CheckCircle className="h-3 w-3 text-emerald-600 mx-auto mt-1" />
                               ) : !isWeekAllowed ? (
-                                <Lock className="h-2.5 w-2.5 text-gray-400 mx-auto mt-0.5" />
+                                <Lock className="h-3 w-3 text-gray-400 mx-auto mt-1" />
                               ) : null}
                             </button>
                           ))}
@@ -1237,28 +1237,39 @@ export default function JurnalHarianPage() {
               </button>
             </div>
 
-            {/* Days Grid - Swipeable */}
-            <div
-              ref={carouselRef}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              className="select-none"
-            >
-              <div className="grid grid-flow-col grid-cols-7 gap-0.5">
-                {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'].map((hari, index) => {
-                  const dayDate = getDayDateInWeek(displayedWeekNumber, index)
+            {/* Days Grid - Swipeable Carousel */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  const newDate = new Date(jurnalData.tanggal_setor)
+                  newDate.setDate(newDate.getDate() - 1)
+                  handleDateSelection(newDate)
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <div className="flex gap-1 mx-8 overflow-hidden">
+                {Array.from({ length: 4 }, (_, i) => {
+                  const baseDate = new Date(jurnalData.tanggal_setor)
+                  const offset = i - 1 // Show: previous, current, next, next+1
+                  baseDate.setDate(baseDate.getDate() + offset)
+                  const dayDate = baseDate
                   const isToday = new Date().toDateString() === dayDate.toDateString()
                   const dateString = dayDate.toISOString().split('T')[0]
+                  const dayNames = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Aha']
+                  const dayName = dayNames[dayDate.getDay()]
 
                   return (
                     <button
-                      key={`week${displayedWeekNumber}-${hari}`}
+                      key={`${dateString}-${i}`}
                       type="button"
                       onClick={() => handleDateSelection(dayDate)}
                       className={cn(
-                        "p-1 border-2 rounded-lg transition-all duration-200 text-center min-w-0",
-                        "hover:shadow-md hover:scale-105 active:scale-95",
+                        "flex-1 p-2 border-2 rounded-lg transition-all duration-200 text-center",
+                        "hover:shadow-md hover:scale-105 active:scale-95 min-w-0",
                         jurnalData.tanggal_setor === dateString
                           ? "border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg ring-2 ring-green-200"
                           : isToday
@@ -1267,32 +1278,44 @@ export default function JurnalHarianPage() {
                       )}
                     >
                       <div className={cn(
-                        "text-[8px] font-medium leading-tight",
+                        "text-[10px] font-medium leading-tight",
                         jurnalData.tanggal_setor === dateString ? "text-green-700" : isToday ? "text-amber-700" : "text-gray-600"
                       )}>
-                        {hari.substring(0, 3)}
+                        {dayName}
                       </div>
                       <div className={cn(
-                        "text-xs font-bold leading-none mt-0.5",
+                        "text-sm font-bold leading-none mt-1",
                         jurnalData.tanggal_setor === dateString ? "text-green-800" : isToday ? "text-amber-800" : "text-gray-800"
                       )}>
                         {dayDate.getDate()}
                       </div>
                       {isToday && jurnalData.tanggal_setor !== dateString && (
-                        <div className="mt-0.5">
-                          <div className="w-1 h-1 bg-amber-400 rounded-full mx-auto"></div>
+                        <div className="mt-1">
+                          <div className="w-1.5 h-1.5 bg-amber-400 rounded-full mx-auto"></div>
                         </div>
                       )}
                     </button>
                   )
                 })}
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newDate = new Date(jurnalData.tanggal_setor)
+                  newDate.setDate(newDate.getDate() + 1)
+                  handleDateSelection(newDate)
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
 
             {/* Swipe hint */}
             <div className="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-gray-500">
               <ChevronLeft className="h-3 w-3" />
-              <span>Gesar untuk ganti pekan</span>
+              <span>Gesar untuk ganti tanggal</span>
               <ChevronRight className="h-3 w-3" />
             </div>
           </CardContent>
@@ -1317,7 +1340,7 @@ export default function JurnalHarianPage() {
                 <p className="text-gray-500">Belum ada blok yang tersedia.</p>
               </div>
             ) : (
-              <div className="grid grid-flow-col grid-cols-4 gap-1">
+              <div className="flex gap-1">
                 {availableBlocks.map((blok) => {
                   const isSelected = jurnalData.blok === blok.block_code
                   return (
@@ -1326,7 +1349,7 @@ export default function JurnalHarianPage() {
                       type="button"
                       onClick={() => toggleBlokSelection(blok.block_code)}
                       className={cn(
-                        "p-1 border-2 rounded-lg transition-all duration-200 min-w-0",
+                        "flex-1 p-2 border-2 rounded-lg transition-all duration-200",
                         "hover:shadow-md hover:scale-[1.02]",
                         isSelected
                           ? "border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg ring-1 ring-blue-200"
@@ -1341,8 +1364,8 @@ export default function JurnalHarianPage() {
                           {blok.block_code.toUpperCase()}
                         </div>
                         {isSelected && (
-                          <div className="mt-0.5 text-blue-600">
-                            <CheckCircle className="h-2.5 w-2.5 mx-auto" />
+                          <div className="mt-1 text-blue-600">
+                            <CheckCircle className="h-3 w-3 mx-auto" />
                           </div>
                         )}
                       </div>
