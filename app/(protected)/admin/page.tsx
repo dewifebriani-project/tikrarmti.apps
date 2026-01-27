@@ -3025,7 +3025,7 @@ Tim Markaz Tikrar Indonesia`;
         onEdit={handleEdit}
         onDelete={handleDelete}
         rowKey="id"
-        searchPlaceholder="Search users by name, email, role..."
+        searchPlaceholder="Search users by name, email, phone, or role..."
         emptyMessage="No users found"
         emptyIcon={<Users className="mx-auto h-12 w-12 text-gray-400" />}
       />
@@ -4702,6 +4702,7 @@ Tim Markaz Tikrar Indonesia`;
         onEdit={handleEdit}
         onDelete={handleDelete}
         onView={handleView}
+        searchPlaceholder="Search by name, phone, batch, status..."
         emptyMessage="No tikrar applications found"
         emptyIcon={<Award className="mx-auto h-12 w-12 text-gray-400" />}
       />
