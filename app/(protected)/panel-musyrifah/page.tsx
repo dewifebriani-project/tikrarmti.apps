@@ -177,13 +177,29 @@ interface TashihEntry {
 interface UjianResult {
   id: string;
   thalibah_id: string;
-  juz_number: number;
-  score: number;
-  status: string;
-  submitted_at: string;
   thalibah?: {
+    id: string;
     full_name: string;
+    nama_kunyah?: string;
+    whatsapp?: string;
+    email?: string;
+    confirmed_chosen_juz?: string;
   };
+  summary?: {
+    total_attempts: number;
+    passed_attempts: number;
+    unique_juz_count: number;
+    latest_attempt_date: string;
+  };
+  attempts: Array<{
+    id: string;
+    juz_number: number;
+    score: number;
+    status: string;
+    submitted_at: string;
+    created_at: string;
+    updated_at: string;
+  }>;
 }
 
 interface MusyrifahStats {
@@ -2257,6 +2273,24 @@ Tim Markaz Tikrar Indonesia`;
 
 // Ujian Tab Component
 function UjianTab({ results, onRefresh }: { results: UjianResult[], onRefresh: () => void }) {
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRow = (thalibahId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(thalibahId)) {
+      newExpanded.delete(thalibahId);
+    } else {
+      newExpanded.add(thalibahId);
+    }
+    setExpandedRows(newExpanded);
+  };
+
+  const displayName = (result: UjianResult) => {
+    if (result.thalibah?.full_name) return result.thalibah.full_name;
+    if (result.thalibah?.nama_kunyah) return result.thalibah.nama_kunyah;
+    return 'Tanpa nama';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -2281,32 +2315,115 @@ function UjianTab({ results, onRefresh }: { results: UjianResult[], onRefresh: (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Juz Pilihan</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {results.map((result) => (
-                <tr key={result.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{result.thalibah?.full_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{result.juz_number}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{result.score}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      result.status === 'passed' ? 'bg-green-100 text-green-800' :
-                      result.status === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {result.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(result.submitted_at).toLocaleDateString('id-ID')}
-                  </td>
-                </tr>
+                <React.Fragment key={result.thalibah_id}>
+                  <tr
+                    onClick={() => toggleRow(result.thalibah_id)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
+                    <td className="px-2 py-3">
+                      <ChevronDown
+                        className={`w-4 h-4 text-gray-400 transition-transform ${
+                          expandedRows.has(result.thalibah_id) ? 'rotate-0' : '-rotate-90'
+                        }`}
+                      />
+                    </td>
+                    <td className="px-2 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {displayName(result)}
+                    </td>
+                    <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {result.thalibah?.confirmed_chosen_juz || '-'}
+                    </td>
+                    <td className="px-2 py-3 text-sm text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">
+                          {result.summary?.passed_attempts || 0}/{result.summary?.unique_juz_count || 0} juz lulus
+                        </span>
+                        {result.summary && (
+                          <span className="text-xs text-gray-500">
+                            ({result.summary.total_attempts || 0} percobaan)
+                        </span>
+                      )}
+                    </div>
+                    </td>
+                    <td className="px-2 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        (result.summary?.passed_attempts || 0) > 0
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {(result.summary?.passed_attempts || 0) > 0 ? 'Ada lulus' : 'Belum lulus'}
+                      </span>
+                    </td>
+                  </tr>
+                  {expandedRows.has(result.thalibah_id) && (
+                    <tr key={`detail-${result.thalibah_id}`}>
+                      <td colSpan={5} className="px-2 py-4 bg-gray-50">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-sm font-medium text-gray-700">Detail Ujian:</span>
+                            <span className="text-xs text-gray-500">{displayName(result)}</span>
+                          </div>
+
+                          {/* Show all attempts grouped by juz */}
+                          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Juz</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nilai</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {result.attempts.map((attempt) => (
+                                  <tr key={attempt.id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                      Juz {attempt.juz_number}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                      {attempt.score}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap">
+                                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                        attempt.status === 'passed'
+                                          ? 'bg-green-100 text-green-800'
+                                          : attempt.status === 'failed'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-yellow-100 text-yellow-800'
+                                      }`}>
+                                        {attempt.status === 'passed' ? 'Lulus' : attempt.status === 'failed' ? 'Gagal' : attempt.status}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500">
+                                      {new Date(attempt.submitted_at || attempt.created_at).toLocaleDateString('id-ID')}
+                                    </td>
+                                  </tr>
+                                ))}
+                                {result.attempts.length === 0 && (
+                                  <tr>
+                                    <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                                      Tidak ada data ujian
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
