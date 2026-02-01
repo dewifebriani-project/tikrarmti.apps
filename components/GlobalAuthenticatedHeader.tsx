@@ -107,6 +107,8 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
       '/lengkapi-profile': 'Edit Profil',
       '/pengaturan': 'Pengaturan',
       '/admin': 'Admin Dashboard',
+      '/panel-musyrifah': 'Panel Musyrifah',
+      '/panel-muallimah': 'Panel Muallimah',
     };
 
     // Handle nested routes
@@ -156,6 +158,10 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
       breadcrumbs.push({ label: 'Pengaturan', href: '/pengaturan' });
     } else if (pathname.startsWith('/admin')) {
       breadcrumbs.push({ label: 'Admin', href: '/admin' });
+    } else if (pathname.startsWith('/panel-musyrifah')) {
+      breadcrumbs.push({ label: 'Panel Musyrifah', href: '/panel-musyrifah' });
+    } else if (pathname.startsWith('/panel-muallimah')) {
+      breadcrumbs.push({ label: 'Panel Muallimah', href: '/panel-muallimah' });
     }
 
     return breadcrumbs;
