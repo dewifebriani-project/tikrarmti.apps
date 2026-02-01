@@ -40,6 +40,8 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/pengaturan',
     '/profil',
     '/admin',
+    '/panel-musyrifah',
+    '/panel-muallimah',
   ];
 
   // Check if current route is an auth route

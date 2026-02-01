@@ -36,7 +36,7 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
   const [isMounted, setIsMounted] = useState(false)
 
   // Routes that should not have header and footer
-  const hideHeaderFooterRoutes = ['/panel-musyrifah']
+  const hideHeaderFooterRoutes = ['/panel-musyrifah', '/panel-muallimah']
   const shouldHideHeaderFooter = hideHeaderFooterRoutes.some(route => pathname.startsWith(route))
 
   // Set mounted state after hydration - DEFERRED to prevent React Error #310
