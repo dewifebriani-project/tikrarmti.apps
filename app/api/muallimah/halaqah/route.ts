@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = createClient();
+    const { searchParams } = new URL(request.url);
+    const muallimahId = searchParams.get('muallimah_id');
 
     // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -11,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify user has muallimah role
+    // Verify user has muallimah or admin role
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('roles')
@@ -23,16 +25,23 @@ export async function GET() {
     }
 
     const roles = userData?.roles || [];
-    if (!roles.includes('muallimah')) {
-      return NextResponse.json({ error: 'Forbidden: Muallimah access required' }, { status: 403 });
+    const isAdmin = roles.includes('admin');
+    const isMuallimah = roles.includes('muallimah');
+
+    if (!isAdmin && !isMuallimah) {
+      return NextResponse.json({ error: 'Forbidden: Muallimah or Admin access required' }, { status: 403 });
     }
 
-    // Get halaqah where this muallimah is assigned
-    const { data: halaqah, error } = await supabase
+    // Admin can view specific muallimah's halaqah, muallimah can only view their own
+    const targetMuallimahId = isAdmin && muallimahId ? muallimahId : user.id;
+
+    // Get halaqah where muallimah is assigned
+    const query = supabase
       .from('halaqah')
       .select(`
         *,
         program:programs(id, name, class_type),
+        muallimah:users(id, full_name, nama_kunyah, email),
         students:halaqah_students(
           id,
           thalibah_id,
@@ -41,8 +50,10 @@ export async function GET() {
           thalibah:users(id, full_name, nama_kunyah, whatsapp, email)
         )
       `)
-      .eq('muallimah_id', user.id)
+      .eq('muallimah_id', targetMuallimahId)
       .order('created_at', { ascending: false });
+
+    const { data: halaqah, error } = await query;
 
     if (error) throw error;
 

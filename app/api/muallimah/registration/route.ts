@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = createClient();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('user_id');
 
     // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -11,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify user has muallimah role
+    // Verify user has muallimah or admin role
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('roles')
@@ -23,31 +25,41 @@ export async function GET() {
     }
 
     const roles = userData?.roles || [];
-    if (!roles.includes('muallimah')) {
-      return NextResponse.json({ error: 'Forbidden: Muallimah access required' }, { status: 403 });
+    const isAdmin = roles.includes('admin');
+    const isMuallimah = roles.includes('muallimah');
+
+    if (!isAdmin && !isMuallimah) {
+      return NextResponse.json({ error: 'Forbidden: Muallimah or Admin access required' }, { status: 403 });
     }
 
+    // Admin can view specific user's registration, muallimah can only view their own
+    const targetUserId = isAdmin && userId ? userId : user.id;
+
     // Get muallimah registration
-    const { data: registration, error } = await supabase
+    let query = supabase
       .from('muallimah_registrations')
       .select(`
         *,
-        batch:batches(id, name, status)
+        batch:batches(id, name, status),
+        user:users(id, full_name, nama_kunyah, email, whatsapp)
       `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .order('created_at', { ascending: false });
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No registration found
-        return NextResponse.json({ success: true, data: null });
-      }
-      throw error;
+    if (isAdmin && !userId) {
+      // Admin viewing all registrations
+      const { data: registrations, error } = await query;
+      if (error) throw error;
+      return NextResponse.json({ success: true, data: registrations || [] });
+    } else {
+      // Viewing specific registration (muallimah own, or admin viewing specific user)
+      const { data: registration, error } = await query
+        .eq('user_id', targetUserId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, data: registration });
     }
-
-    return NextResponse.json({ success: true, data: registration });
   } catch (error: any) {
     console.error('Error in muallimah registration API:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -9,7 +9,7 @@ import { z } from 'zod'
  *
  * SECURITY ARCHITECTURE COMPLIANCE:
  * - Server Actions for muallimah mutations
- * - Muallimah validation in server-side
+ * - Muallimah/Admin validation in server-side
  * - RLS policies handle data access control
  */
 
@@ -25,6 +25,7 @@ interface CreateHalaqahData {
   zoom_link?: string
   preferred_juz?: string
   waitlist_max?: number
+  muallimah_id?: string // For admin to assign to specific muallimah
 }
 
 const createHalaqahSchema = z.object({
@@ -38,12 +39,13 @@ const createHalaqahSchema = z.object({
   zoom_link: z.string().url().optional().or(z.literal('')),
   preferred_juz: z.string().optional(),
   waitlist_max: z.number().min(0).default(5),
+  muallimah_id: z.string().optional(),
 })
 
 /**
- * Verify muallimah role - MUST be called before any muallimah action
+ * Verify muallimah or admin role - MUST be called before any action
  */
-async function verifyMuallimah() {
+async function verifyAccess() {
   const supabase = createClient()
 
   // Get authenticated user
@@ -53,30 +55,38 @@ async function verifyMuallimah() {
     throw new Error('Unauthorized - Invalid session')
   }
 
-  // Verify muallimah role from database
+  // Verify role from database
   const { data: userData, error: dbError } = await supabase
     .from('users')
     .select('roles')
     .eq('id', user.id)
     .single()
 
-  if (dbError || !userData || !userData.roles?.includes('muallimah')) {
-    throw new Error('Forbidden - Muallimah access required')
+  if (dbError || !userData) {
+    throw new Error('User not found')
   }
 
-  return { user, supabase }
+  const roles = userData?.roles || []
+  const isAdmin = roles.includes('admin')
+  const isMuallimah = roles.includes('muallimah')
+
+  if (!isAdmin && !isMuallimah) {
+    throw new Error('Forbidden - Muallimah or Admin access required')
+  }
+
+  return { user, supabase, isAdmin, isMuallimah }
 }
 
 /**
- * Create a new halaqah (Muallimah only)
+ * Create a new halaqah (Muallimah or Admin)
  *
  * @param data Halaqah data to create
  * @returns Success status and optional error
  */
 export async function createHalaqah(data: CreateHalaqahData) {
   try {
-    // Verify muallimah role first
-    const { user, supabase } = await verifyMuallimah()
+    // Verify access first
+    const { user, supabase, isAdmin, isMuallimah } = await verifyAccess()
 
     // Validate input
     const validationResult = createHalaqahSchema.safeParse(data)
@@ -88,6 +98,27 @@ export async function createHalaqah(data: CreateHalaqahData) {
     }
 
     const validatedData = validationResult.data
+
+    // Determine muallimah_id:
+    // - Muallimah can only create for themselves
+    // - Admin can create for any muallimah (if specified)
+    let targetMuallimahId = user.id
+    if (isAdmin && validatedData.muallimah_id) {
+      // Verify the target muallimah exists and has muallimah role
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('roles')
+        .eq('id', validatedData.muallimah_id)
+        .single()
+
+      if (!targetUser || !targetUser.roles?.includes('muallimah')) {
+        return {
+          success: false,
+          error: 'Target user is not a muallimah',
+        }
+      }
+      targetMuallimahId = validatedData.muallimah_id
+    }
 
     // Create halaqah
     const { data: halaqah, error } = await supabase
@@ -101,7 +132,7 @@ export async function createHalaqah(data: CreateHalaqahData) {
         location: validatedData.location || null,
         max_students: validatedData.max_students,
         zoom_link: validatedData.zoom_link || null,
-        muallimah_id: user.id,
+        muallimah_id: targetMuallimahId,
         preferred_juz: validatedData.preferred_juz || null,
         waitlist_max: validatedData.waitlist_max,
         status: 'active',
@@ -133,7 +164,7 @@ export async function createHalaqah(data: CreateHalaqahData) {
 }
 
 /**
- * Update halaqah (Muallimah only - can only update their own halaqah)
+ * Update halaqah (Muallimah can only update their own, Admin can update any)
  *
  * @param halaqahId Halaqah ID to update
  * @param data Halaqah data to update
@@ -141,8 +172,8 @@ export async function createHalaqah(data: CreateHalaqahData) {
  */
 export async function updateHalaqah(halaqahId: string, data: Partial<CreateHalaqahData>) {
   try {
-    // Verify muallimah role first
-    const { user, supabase } = await verifyMuallimah()
+    // Verify access first
+    const { user, supabase, isAdmin } = await verifyAccess()
 
     // Validate input
     const validationResult = createHalaqahSchema.partial().safeParse(data)
@@ -155,17 +186,21 @@ export async function updateHalaqah(halaqahId: string, data: Partial<CreateHalaq
 
     const validatedData = validationResult.data
 
-    // Update halaqah (RLS will ensure they can only update their own)
-    const { data: halaqah, error } = await supabase
+    // Build update query
+    let query = supabase
       .from('halaqah')
       .update({
         ...validatedData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', halaqahId)
-      .eq('muallimah_id', user.id) // Extra security: ensure they own this halaqah
-      .select()
-      .single()
+
+    // Muallimah can only update their own halaqah, Admin can update any
+    if (!isAdmin) {
+      query = query.eq('muallimah_id', user.id)
+    }
+
+    const { data: halaqah, error } = await query.select().single()
 
     if (error) {
       return {
@@ -191,22 +226,28 @@ export async function updateHalaqah(halaqahId: string, data: Partial<CreateHalaq
 }
 
 /**
- * Delete halaqah (Muallimah only - can only delete their own halaqah)
+ * Delete halaqah (Muallimah can only delete their own, Admin can delete any)
  *
  * @param halaqahId Halaqah ID to delete
  * @returns Success status and optional error
  */
 export async function deleteHalaqah(halaqahId: string) {
   try {
-    // Verify muallimah role first
-    const { user, supabase } = await verifyMuallimah()
+    // Verify access first
+    const { user, supabase, isAdmin } = await verifyAccess()
 
-    // Delete halaqah (RLS will ensure they can only delete their own)
-    const { error } = await supabase
+    // Build delete query
+    let query = supabase
       .from('halaqah')
       .delete()
       .eq('id', halaqahId)
-      .eq('muallimah_id', user.id) // Extra security: ensure they own this halaqah
+
+    // Muallimah can only delete their own halaqah, Admin can delete any
+    if (!isAdmin) {
+      query = query.eq('muallimah_id', user.id)
+    }
+
+    const { error } = await query
 
     if (error) {
       return {

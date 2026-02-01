@@ -149,10 +149,12 @@ export default function PanelMuallimahPage() {
   });
 
   const isMuallimah: boolean = !authLoading && user?.roles?.includes('muallimah') === true;
+  const isAdmin: boolean = !authLoading && user?.roles?.includes('admin') === true;
+  const canAccess: boolean = isMuallimah || isAdmin;
 
   // Data hooks
-  const { registration, isLoading: registrationLoading, mutate: mutateRegistration } = useMuallimahRegistration(!authLoading && isMuallimah);
-  const { halaqahList, isLoading: halaqahLoading, mutate: mutateHalaqah } = useMuallimahHalaqah(!authLoading && isMuallimah);
+  const { registration, isLoading: registrationLoading, mutate: mutateRegistration } = useMuallimahRegistration(!authLoading && canAccess);
+  const { halaqahList, isLoading: halaqahLoading, mutate: mutateHalaqah } = useMuallimahHalaqah(!authLoading && canAccess);
 
   // Modal states
   const [showCreateHalaqahModal, setShowCreateHalaqahModal] = useState(false);
@@ -184,20 +186,22 @@ export default function PanelMuallimahPage() {
     console.log('User:', user);
     console.log('User roles:', user?.roles);
     console.log('Is Muallimah:', isMuallimah);
+    console.log('Is Admin:', isAdmin);
+    console.log('Can Access:', canAccess);
 
     if (!authLoading) {
       if (!user) {
         console.log('No user found, redirecting to login');
         router.push('/login');
-      } else if (!user.roles?.includes('muallimah')) {
-        console.log('User is not muallimah, roles:', user.roles);
+      } else if (!canAccess) {
+        console.log('User is not muallimah or admin, roles:', user.roles);
         router.push('/dashboard');
       } else {
-        console.log('Muallimah access granted');
+        console.log('Access granted:', isAdmin ? 'Admin' : 'Muallimah');
         setLoading(false);
       }
     }
-  }, [user, authLoading, router, isMuallimah]);
+  }, [user, authLoading, router, isMuallimah, isAdmin, canAccess]);
 
   const handleCreateHalaqah = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +335,14 @@ export default function PanelMuallimahPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Panel Muallimah</h1>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-900">Panel Muallimah</h1>
+                {isAdmin && (
+                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                    Mode Admin
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-sm text-gray-500">
                 Selamat datang, {user?.full_name || user?.nama_kunyah || user?.email}
               </p>
@@ -353,7 +364,7 @@ export default function PanelMuallimahPage() {
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
             >
               <User className="w-4 h-4" />
-              Pendaftaran Saya
+              {isAdmin ? 'Data Pendaftaran' : 'Pendaftaran Saya'}
             </button>
             <button
               onClick={() => setActiveTab('halaqah')}

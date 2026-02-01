@@ -14,6 +14,7 @@ const createHalaqahSchema = z.object({
   zoom_link: z.string().url().optional().or(z.literal('')),
   preferred_juz: z.string().optional(),
   waitlist_max: z.number().min(0).default(5),
+  muallimah_id: z.string().optional(), // For admin to assign to specific muallimah
 });
 
 export async function POST(request: Request) {
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify user has muallimah role
+    // Verify user has muallimah or admin role
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('roles')
@@ -38,8 +39,11 @@ export async function POST(request: Request) {
     }
 
     const roles = userData?.roles || [];
-    if (!roles.includes('muallimah')) {
-      return NextResponse.json({ error: 'Forbidden: Muallimah access required' }, { status: 403 });
+    const isAdmin = roles.includes('admin');
+    const isMuallimah = roles.includes('muallimah');
+
+    if (!isAdmin && !isMuallimah) {
+      return NextResponse.json({ error: 'Forbidden: Muallimah or Admin access required' }, { status: 403 });
     }
 
     // Parse and validate request body
@@ -54,6 +58,24 @@ export async function POST(request: Request) {
     }
 
     const data = validationResult.data;
+
+    // Determine muallimah_id:
+    // - Muallimah can only create for themselves
+    // - Admin can create for any muallimah (if specified)
+    let targetMuallimahId = user.id;
+    if (isAdmin && data.muallimah_id) {
+      // Verify the target muallimah exists and has muallimah role
+      const { data: targetUser } = await supabase
+        .from('users')
+        .select('roles')
+        .eq('id', data.muallimah_id)
+        .single();
+
+      if (!targetUser || !targetUser.roles?.includes('muallimah')) {
+        return NextResponse.json({ error: 'Target user is not a muallimah' }, { status: 400 });
+      }
+      targetMuallimahId = data.muallimah_id;
+    }
 
     // Get current active batch
     const { data: activeBatch } = await supabase
@@ -80,7 +102,7 @@ export async function POST(request: Request) {
         location: data.location || null,
         max_students: data.max_students,
         zoom_link: data.zoom_link || null,
-        muallimah_id: user.id,
+        muallimah_id: targetMuallimahId,
         preferred_juz: data.preferred_juz || null,
         waitlist_max: data.waitlist_max,
         status: 'active',
