@@ -7,7 +7,7 @@
 -- =====================================================
 CREATE TABLE IF NOT EXISTS surat_peringatan (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    thalibah_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    thalibah_id UUID NOT NULL,
     batch_id UUID NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
 
     -- SP Information
@@ -24,15 +24,20 @@ CREATE TABLE IF NOT EXISTS surat_peringatan (
 
     -- Metadata
     issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    issued_by UUID REFERENCES auth.users(id), -- Musyrifah/Admin yang mengeluarkan
+    issued_by UUID,
     reviewed_at TIMESTAMP WITH TIME ZONE,
-    reviewed_by UUID REFERENCES auth.users(id),
+    reviewed_by UUID,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
     -- Constraints
-    CONSTRAINT sp_unique_thalibah_week UNIQUE(thalibah_id, batch_id, week_number, sp_level)
+    CONSTRAINT sp_unique_thalibah_week UNIQUE(thalibah_id, batch_id, week_number, sp_level),
+
+    -- Foreign key constraints to users table
+    CONSTRAINT sp_thalibah_fkey FOREIGN KEY (thalibah_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT sp_issued_by_fkey FOREIGN KEY (issued_by) REFERENCES users(id),
+    CONSTRAINT sp_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES users(id)
 );
 
 -- Indexes for performance
@@ -48,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_sp_issued_at ON surat_peringatan(issued_at);
 -- =====================================================
 CREATE TABLE IF NOT EXISTS sp_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    thalibah_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    thalibah_id UUID NOT NULL,
     batch_id UUID NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
 
     -- Final Action
@@ -60,9 +65,13 @@ CREATE TABLE IF NOT EXISTS sp_history (
 
     -- Metadata
     action_taken_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    action_taken_by UUID REFERENCES auth.users(id),
+    action_taken_by UUID,
     notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- Foreign key constraints to users table
+    CONSTRAINT sp_history_thalibah_fkey FOREIGN KEY (thalibah_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT sp_history_action_taken_by_fkey FOREIGN KEY (action_taken_by) REFERENCES users(id)
 );
 
 -- Indexes for performance
