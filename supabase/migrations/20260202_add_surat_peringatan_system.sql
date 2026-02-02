@@ -211,6 +211,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop trigger if exists, then create
+DROP TRIGGER IF EXISTS sp_updated_at ON surat_peringatan;
+
 CREATE TRIGGER sp_updated_at
     BEFORE UPDATE ON surat_peringatan
     FOR EACH ROW
