@@ -239,6 +239,22 @@ export async function GET(request: Request) {
       });
     }
 
+    // Fetch active SP records for all thalibah
+    const { data: spRecords } = await supabase
+      .from('surat_peringatan')
+      .select('thalibah_id, sp_level, week_number, status, issued_at, reason, is_blacklisted')
+      .eq('status', 'active')
+      .in('thalibah_id', daftarUlangUserIds);
+
+    // Group SP by user
+    const spByUser = new Map();
+    spRecords?.forEach((sp: any) => {
+      if (!spByUser.has(sp.thalibah_id)) {
+        spByUser.set(sp.thalibah_id, []);
+      }
+      spByUser.get(sp.thalibah_id).push(sp);
+    });
+
     // Build combined entries for ALL users (like tashih)
     const combinedEntries = daftarUlangUserIds.map((userId: string) => {
       const daftarUlang = daftarUlangMap.get(userId);
@@ -273,6 +289,14 @@ export async function GET(request: Request) {
 
       const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
 
+      // Get SP summary for this user
+      const userSPRecords = spByUser.get(userId) || [];
+      const latestSP = userSPRecords.length > 0
+        ? userSPRecords.reduce((latest: any, current: any) =>
+            current.sp_level > latest.sp_level ? current : latest
+          )
+        : null;
+
       return {
         user_id: userId,
         confirmed_chosen_juz: juzCode || null,
@@ -295,6 +319,15 @@ export async function GET(request: Request) {
           ...r,
           pekan: calculateWeekFromBlok(r.blok),
         })),
+        // SP summary
+        sp_summary: latestSP ? {
+          sp_level: latestSP.sp_level,
+          week_number: latestSP.week_number,
+          issued_at: latestSP.issued_at,
+          reason: latestSP.reason,
+          is_blacklisted: latestSP.is_blacklisted,
+          total_active_sp: userSPRecords.length,
+        } : null,
       };
     });
 

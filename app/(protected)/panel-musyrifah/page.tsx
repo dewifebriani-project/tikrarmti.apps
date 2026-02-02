@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ArrowUpDown,
   Shield,
+  Ban,
 } from 'lucide-react';
 
 type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian' | 'sp';
@@ -115,6 +116,14 @@ interface JurnalUserEntry {
     juz_code?: string | null;
   } | null;
   jurnal_records: JurnalEntry[];
+  sp_summary?: {
+    sp_level: number;
+    week_number: number;
+    issued_at: string;
+    reason: string;
+    is_blacklisted: boolean;
+    total_active_sp: number;
+  } | null;
 }
 
 interface WeeklyStatus {
@@ -1151,6 +1160,23 @@ Tim Markaz Tikrar Indonesia`;
                           <div className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{name}</div>
                           {kunyah && (
                             <div className="text-xs text-gray-500 truncate max-w-[120px]">{kunyah}</div>
+                          )}
+                          {userData.sp_summary && (
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border mt-1 ${
+                                userData.sp_summary.sp_level === 1
+                                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                  : userData.sp_summary.sp_level === 2
+                                  ? 'bg-orange-100 text-orange-800 border-orange-300'
+                                  : 'bg-red-100 text-red-800 border-red-300'
+                              }`}
+                              title={`SP${userData.sp_summary.sp_level} - Pekan ${userData.sp_summary.week_number}`}
+                            >
+                              {userData.sp_summary.is_blacklisted && (
+                                <Ban className="w-3 h-3 mr-1" />
+                              )}
+                              SP{userData.sp_summary.sp_level}
+                            </span>
                           )}
                         </td>
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500">
