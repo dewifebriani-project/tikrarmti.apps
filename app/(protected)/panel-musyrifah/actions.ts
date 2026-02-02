@@ -682,7 +682,7 @@ export async function getSPData(batchId?: string) {
       .from('surat_peringatan')
       .select(`
         *,
-        thalibah:users(id, full_name, nama_kunyah, whatsapp, email),
+        thalibah:users!surat_peringatan_thalibah_id_fkey(id, full_name, nama_kunyah, whatsapp, email),
         batch:batches(id, name)
       `)
       .eq('batch_id', activeBatchId)
@@ -694,7 +694,7 @@ export async function getSPData(batchId?: string) {
       .from('sp_history')
       .select(`
         *,
-        thalibah:users(id, full_name, nama_kunyah, whatsapp, email),
+        thalibah:users!sp_history_thalibah_id_fkey(id, full_name, nama_kunyah, whatsapp, email),
         batch:batches(id, name)
       `)
       .eq('batch_id', activeBatchId)

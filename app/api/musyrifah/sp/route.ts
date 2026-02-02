@@ -69,6 +69,7 @@ export async function GET(request: Request) {
     const includeHistory = searchParams.get('include_history') === 'true';
 
     // Build query
+    // Use explicit FK constraint names to disambiguate multiple relationships to users table
     let query = supabase
       .from('surat_peringatan')
       .select(`
@@ -90,10 +91,10 @@ export async function GET(request: Request) {
         notes,
         created_at,
         updated_at,
-        thalibah:users(id, full_name, nama_kunyah, whatsapp, email),
+        thalibah:users!surat_peringatan_thalibah_id_fkey(id, full_name, nama_kunyah, whatsapp, email),
         batch:batches(id, name, first_week_start_date, first_week_end_date),
-        issued_by_user:users(id, full_name),
-        reviewed_by_user:users(id, full_name)
+        issued_by_user:users!surat_peringatan_issued_by_fkey(id, full_name),
+        reviewed_by_user:users!surat_peringatan_reviewed_by_fkey(id, full_name)
       `)
       .order('issued_at', { ascending: false });
 
@@ -131,9 +132,9 @@ export async function GET(request: Request) {
           action_taken_by,
           notes,
           created_at,
-          thalibah:users(id, full_name, nama_kunyah, whatsapp, email),
+          thalibah:users!sp_history_thalibah_id_fkey(id, full_name, nama_kunyah, whatsapp, email),
           batch:batches(id, name),
-          action_taken_by_user:users(id, full_name)
+          action_taken_by_user:users!sp_history_action_taken_by_fkey(id, full_name)
         `)
         .order('action_taken_at', { ascending: false });
 

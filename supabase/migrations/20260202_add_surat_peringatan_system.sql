@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS surat_peringatan (
     CONSTRAINT sp_unique_thalibah_week UNIQUE(thalibah_id, batch_id, week_number, sp_level),
 
     -- Foreign key constraints to users table
-    CONSTRAINT sp_thalibah_fkey FOREIGN KEY (thalibah_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT sp_issued_by_fkey FOREIGN KEY (issued_by) REFERENCES users(id),
-    CONSTRAINT sp_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES users(id)
+    CONSTRAINT sp_thalibah_fkey FOREIGN KEY (thalibah_id) REFERENCES public.users(id) ON DELETE CASCADE,
+    CONSTRAINT sp_issued_by_fkey FOREIGN KEY (issued_by) REFERENCES public.users(id),
+    CONSTRAINT sp_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
 
 -- Indexes for performance
@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS sp_history (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 
     -- Foreign key constraints to users table
-    CONSTRAINT sp_history_thalibah_fkey FOREIGN KEY (thalibah_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT sp_history_action_taken_by_fkey FOREIGN KEY (action_taken_by) REFERENCES users(id)
+    CONSTRAINT sp_history_thalibah_fkey FOREIGN KEY (thalibah_id) REFERENCES public.users(id) ON DELETE CASCADE,
+    CONSTRAINT sp_history_action_taken_by_fkey FOREIGN KEY (action_taken_by) REFERENCES public.users(id)
 );
 
 -- Indexes for performance
@@ -106,7 +106,7 @@ CREATE OR REPLACE FUNCTION has_musyrifah_or_admin_role(user_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
     RETURN EXISTS (
-        SELECT 1 FROM users
+        SELECT 1 FROM public.users
         WHERE id = user_id
         AND ('musyrifah' = ANY(roles) OR 'admin' = ANY(roles))
     );
