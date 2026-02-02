@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import toast, { Toaster } from 'react-hot-toast';
+import { SPTab } from './components/SPTab';
 import {
   Users,
   BookOpen,
@@ -13,6 +14,7 @@ import {
   BarChart3,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   Clock,
   Eye,
   Calendar,
@@ -22,9 +24,10 @@ import {
   X,
   ChevronDown,
   ArrowUpDown,
+  Shield,
 } from 'lucide-react';
 
-type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian';
+type TabType = 'overview' | 'thalibah' | 'jurnal' | 'tashih' | 'ujian' | 'sp';
 
 interface Thalibah {
   id: string;
@@ -283,6 +286,12 @@ export default function PanelMusyrifahPage() {
   const [tashihEntries, setTashihEntries] = useState<TashihEntry[]>([]);
   const [ujianResults, setUjianResults] = useState<UjianResult[]>([]);
 
+  // SP states
+  const [spActiveList, setSPActiveList] = useState<any[]>([]);
+  const [spHistoryList, setSPHistoryList] = useState<any[]>([]);
+  const [spPendingList, setSPPendingList] = useState<any[]>([]);
+  const [spBatchId, setSPBatchId] = useState<string | undefined>();
+
   // Jurnal filter states
   const [selectedBlok, setSelectedBlok] = useState<string>('all');
   const [selectedPekan, setSelectedPekan] = useState<string>('all');
@@ -352,6 +361,9 @@ export default function PanelMusyrifahPage() {
         await loadTashih();
       } else if (activeTab === 'ujian') {
         await loadUjian();
+      } else if (activeTab === 'sp') {
+        await loadSP();
+        await loadSPPending();
       }
     } catch (error) {
       console.error('Error in loadData:', error);
@@ -536,12 +548,60 @@ export default function PanelMusyrifahPage() {
     }
   };
 
+  const loadSP = async () => {
+    try {
+      const response = await fetch('/api/musyrifah/sp?include_history=true');
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Error loading SP data');
+        setSPActiveList([]);
+        setSPHistoryList([]);
+        setSPPendingList([]);
+      } else {
+        const result = await response.json();
+        console.log(`SP data loaded: ${result.data?.length || 0} active, ${result.history?.length || 0} history`);
+        setSPActiveList(result.data || []);
+        setSPHistoryList(result.history || []);
+        setSPBatchId(result.data?.[0]?.batch_id);
+      }
+    } catch (error) {
+      console.error('Error loading SP:', error);
+      toast.error('Error loading SP');
+      setSPActiveList([]);
+      setSPHistoryList([]);
+      setSPPendingList([]);
+    }
+  };
+
+  const loadSPPending = async () => {
+    try {
+      const response = await fetch('/api/musyrifah/sp/check-weekly');
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Error loading pending SP');
+        setSPPendingList([]);
+      } else {
+        const result = await response.json();
+        console.log(`Pending SP loaded: ${result.data?.length || 0} records`);
+        setSPPendingList(result.data || []);
+        if (result.meta?.batch_id) {
+          setSPBatchId(result.meta.batch_id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading pending SP:', error);
+      toast.error('Error loading pending SP');
+      setSPPendingList([]);
+    }
+  };
+
   const tabs = [
     { id: 'overview' as TabType, name: 'Ringkasan', icon: BarChart3 },
     { id: 'thalibah' as TabType, name: 'Thalibah', icon: Users },
     { id: 'jurnal' as TabType, name: 'Jurnal Harian', icon: BookOpen },
     { id: 'tashih' as TabType, name: 'Catatan Tashih', icon: FileText },
     { id: 'ujian' as TabType, name: 'Ujian', icon: GraduationCap },
+    { id: 'sp' as TabType, name: 'SP / Peringatan', icon: AlertCircle },
   ];
 
   if (loading) {
@@ -657,6 +717,19 @@ export default function PanelMusyrifahPage() {
 
         {!dataLoading && activeTab === 'ujian' && (
           <UjianTab results={ujianResults} onRefresh={loadUjian} />
+        )}
+
+        {!dataLoading && activeTab === 'sp' && (
+          <SPTab
+            activeList={spActiveList}
+            historyList={spHistoryList}
+            pendingList={spPendingList}
+            batchId={spBatchId}
+            onRefresh={() => {
+              loadSP();
+              loadSPPending();
+            }}
+          />
         )}
       </div>
     </>

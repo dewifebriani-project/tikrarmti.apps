@@ -407,3 +407,103 @@ export interface PresensiFilter {
   date_to?: string;
   status?: PresensiStatus[];
 }
+
+// =====================================================
+// SP (Surat Peringatan) Types
+// =====================================================
+
+export type SPLevel = 1 | 2 | 3;
+export type SPStatus = 'active' | 'cancelled' | 'expired';
+export type SPType = 'permanent_do' | 'temporary_do';
+export type SPReason = 'tidak_lapor_jurnal' | 'laporan_tidak_lengkap' | 'lainnya';
+export type UdzurType = 'sakit' | 'merawat_orang_tua' | 'lainnya';
+
+export interface SuratPeringatan {
+  id: string;
+  thalibah_id: string;
+  batch_id: string;
+  week_number: number;
+  sp_level: SPLevel;
+  sp_type?: SPType;
+  reason: SPReason;
+  udzur_type?: UdzurType;
+  udzur_notes?: string;
+  is_blacklisted: boolean;
+  status: SPStatus;
+  issued_at: string;
+  issued_by?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+
+  // Relations
+  thalibah?: User;
+  batch?: Batch;
+  issued_by_user?: User;
+  reviewed_by_user?: User;
+}
+
+export interface SPHistory {
+  id: string;
+  thalibah_id: string;
+  batch_id: string;
+  final_action: 'permanent_do' | 'temporary_do' | 'blacklisted';
+  total_sp_count: number;
+  udzur_type?: UdzurType;
+  udzur_notes?: string;
+  temporary_until?: string;
+  action_taken_at: string;
+  action_taken_by?: string;
+  notes?: string;
+  created_at: string;
+
+  // Relations
+  thalibah?: User;
+  batch?: Batch;
+  action_taken_by_user?: User;
+}
+
+export interface PendingSP {
+  thalibah_id: string;
+  thalibah: User;
+  week_number: number;
+  has_jurnal: boolean;
+  latest_jurnal_date?: string;
+  current_active_sp?: SuratPeringatan;
+  weeks_with_jurnal: number;
+  confirmed_chosen_juz?: string | null;
+}
+
+export interface SPSummary {
+  thalibah_id: string;
+  total_active_sp: number;
+  latest_sp_level: SPLevel | null;
+  latest_sp_date?: string;
+  is_blacklisted: boolean;
+  has_sp3: boolean;
+}
+
+export interface CreateSPInput {
+  thalibah_id: string;
+  batch_id: string;
+  week_number: number;
+  reason: SPReason;
+  notes?: string;
+}
+
+export interface UpdateSPInput {
+  status?: SPStatus;
+  notes?: string;
+  sp_type?: SPType;
+  udzur_type?: UdzurType;
+  udzur_notes?: string;
+}
+
+export interface SPFilter {
+  batch_id?: string;
+  thalibah_id?: string;
+  sp_level?: SPLevel;
+  status?: SPStatus[];
+}
