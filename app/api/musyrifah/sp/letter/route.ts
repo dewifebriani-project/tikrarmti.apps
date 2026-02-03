@@ -286,15 +286,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'SP record not found' }, { status: 404 });
     }
 
+    // Handle array or object from Supabase joins
+    const thalibah = Array.isArray(sp.thalibah) ? sp.thalibah[0] : sp.thalibah;
+    const batch = Array.isArray(sp.batch) ? sp.batch[0] : sp.batch;
+
+    if (!thalibah) {
+      return NextResponse.json({ error: 'Thalibah data not found' }, { status: 404 });
+    }
+
+    if (!batch) {
+      return NextResponse.json({ error: 'Batch data not found' }, { status: 404 });
+    }
+
     // Generate HTML letter
-    const html = getSPLetterTemplate(sp, sp.thalibah, sp.batch);
+    const html = getSPLetterTemplate(sp, thalibah, batch);
 
     // Return HTML with print-triggering script
+    const displayName = thalibah.full_name?.replace(/\s+/g, '_') || thalibah.nama_kunyah?.replace(/\s+/g, '_') || 'thalibah';
     return new NextResponse(html, {
       status: 200,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `inline; filename="SP${sp.sp_level}_${sp.thalibah.full_name?.replace(/\s+/g, '_') || sp.thalibah.nama_kunyah?.replace(/\s+/g, '_') || 'thalibah'}.html"`,
+        'Content-Disposition': `inline; filename="SP${sp.sp_level}_${displayName}.html"`,
       },
     });
   } catch (error: any) {

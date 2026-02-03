@@ -39,28 +39,41 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   return null;
 }
 
+// Helper function to get the first week start date from batch
+// First week starts 3 weeks after batch start_date
+function getFirstWeekStart(batch: any): Date | null {
+  const startDate = batch.start_date ? new Date(batch.start_date) : null;
+  if (!startDate) return null;
+
+  // First week starts 3 weeks after batch start_date
+  const firstWeekStart = new Date(startDate);
+  firstWeekStart.setDate(firstWeekStart.getDate() + (3 * 7)); // +3 weeks
+  return firstWeekStart;
+}
+
 // Helper function to get the current week number based on batch timeline
 function getCurrentWeekNumber(batch: any): number {
+  const firstWeekStart = getFirstWeekStart(batch);
   const now = new Date();
-  const firstWeekStart = batch.first_week_start_date ? new Date(batch.first_week_start_date) : null;
 
   if (!firstWeekStart) return 1;
 
-  // Calculate week difference
+  // Calculate week difference from first week start
   const weekDiff = Math.floor((now.getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
 
-  // Week numbers are 1-based
+  // Week numbers are 1-based, Week 1 is the first learning week (3 weeks after batch start)
   return Math.max(1, Math.min(weekDiff + 1, 10)); // Max 10 weeks
 }
 
 // Helper function to check if week has ended (Sunday passed)
 function hasWeekEnded(batch: any, weekNumber: number): boolean {
-  const firstWeekStart = batch.first_week_start_date ? new Date(batch.first_week_start_date) : null;
+  const firstWeekStart = getFirstWeekStart(batch);
   if (!firstWeekStart) return false;
 
   // Calculate the end of the specified week (Sunday)
+  // Week 1 = firstWeekStart to firstWeekStart + 6 days
   const weekEnd = new Date(firstWeekStart);
-  weekEnd.setDate(weekEnd.getDate() + (weekNumber * 7) - 1); // -1 because first week starts on day 0
+  weekEnd.setDate(weekEnd.getDate() + ((weekNumber - 1) * 7) + 6);
   weekEnd.setHours(23, 59, 59, 999);
 
   const now = new Date();

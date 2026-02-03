@@ -1,6 +1,47 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+// Helper function to calculate first week start from batch start_date
+// First week starts 3 weeks after batch start_date
+function getFirstWeekStart(batch: any): Date | null {
+  const startDate = batch.start_date ? new Date(batch.start_date) : null;
+  if (!startDate) return null;
+
+  // First week starts 3 weeks after batch start_date
+  const firstWeekStart = new Date(startDate);
+  firstWeekStart.setDate(firstWeekStart.getDate() + (3 * 7)); // +3 weeks
+  return firstWeekStart;
+}
+
+// Helper function to get current week based on batch timeline
+function getCurrentWeekNumber(batch: any): number {
+  const firstWeekStart = getFirstWeekStart(batch);
+  const now = new Date();
+
+  if (!firstWeekStart) return 1;
+
+  // Calculate week difference from first week start
+  const weekDiff = Math.floor((now.getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+  // Week numbers are 1-based, Week 1 is the first learning week (3 weeks after batch start)
+  return Math.max(1, Math.min(weekDiff + 1, 10)); // Max 10 weeks
+}
+
+// Helper function to check if week has ended (Sunday passed)
+function hasWeekEnded(batch: any, weekNumber: number): boolean {
+  const firstWeekStart = getFirstWeekStart(batch);
+  if (!firstWeekStart) return false;
+
+  // Calculate the end of the specified week (Sunday)
+  // Week 1 = firstWeekStart to firstWeekStart + 6 days
+  const weekEnd = new Date(firstWeekStart);
+  weekEnd.setDate(weekEnd.getDate() + ((weekNumber - 1) * 7) + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const now = new Date();
+  return now > weekEnd;
+}
+
 // Debug API to check why SP list is empty
 export async function GET(request: Request) {
   try {
@@ -24,25 +65,27 @@ export async function GET(request: Request) {
       });
     }
 
-    // Calculate current week
+    // Calculate current week using batch start_date
     const now = new Date();
-    const firstWeekStart = activeBatch.first_week_start_date ? new Date(activeBatch.first_week_start_date) : null;
-
-    let currentWeek = 1;
-    if (firstWeekStart) {
-      const weekDiff = Math.floor((now.getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
-      currentWeek = Math.max(1, Math.min(weekDiff + 1, 10));
-    }
+    const firstWeekStart = getFirstWeekStart(activeBatch);
+    const currentWeek = getCurrentWeekNumber(activeBatch);
 
     // Check which weeks have ended
     const weeksStatus: any[] = [];
     for (let week = 1; week <= 10; week++) {
       let hasEnded = false;
       let weekEndDate = null;
+      let weekStartDate = null;
 
       if (firstWeekStart) {
-        const weekEnd = new Date(firstWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + (week * 7) - 1);
+        // Week start date
+        const weekStart = new Date(firstWeekStart);
+        weekStart.setDate(weekStart.getDate() + ((week - 1) * 7));
+        weekStartDate = weekStart.toISOString();
+
+        // Week end date (Sunday, 6 days after week start)
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
         weekEnd.setHours(23, 59, 59, 999);
         weekEndDate = weekEnd.toISOString();
         hasEnded = now > weekEnd;
@@ -50,6 +93,7 @@ export async function GET(request: Request) {
 
       weeksStatus.push({
         week,
+        week_start_date: weekStartDate,
         has_ended: hasEnded,
         week_end_date: weekEndDate,
       });
@@ -92,11 +136,21 @@ export async function GET(request: Request) {
           id: activeBatch.id,
           name: activeBatch.name,
           status: activeBatch.status,
-          first_week_start_date: activeBatch.first_week_start_date,
-          first_week_end_date: activeBatch.first_week_end_date,
+          start_date: activeBatch.start_date,
+          calculated_first_week_start_date: firstWeekStart?.toISOString() || null,
+          // Show old fields for comparison
+          old_first_week_start_date: activeBatch.first_week_start_date,
+          old_first_week_end_date: activeBatch.first_week_end_date,
         },
         current_date: now.toISOString(),
         calculated_current_week: currentWeek,
+        timeline_explanation: {
+          note: 'First week starts 3 weeks (21 days) after batch start_date',
+          start_date: activeBatch.start_date,
+          first_week_start: firstWeekStart?.toISOString() || null,
+          week_1_ends: firstWeekStart ? new Date(firstWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString() : null,
+          sp1_can_be_issued_after: firstWeekStart ? new Date(firstWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString() : null,
+        },
         weeks_status: weeksStatus,
         daftar_ulang: {
           total: daftarUlangUsers?.length || 0,
