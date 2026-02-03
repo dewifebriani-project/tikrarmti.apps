@@ -246,13 +246,18 @@ export async function GET(request: Request) {
       .eq('status', 'active')
       .in('thalibah_id', daftarUlangUserIds);
 
-    // Group SP by user
+    // Group SP by user and by week
     const spByUser = new Map();
+    const spByUserAndWeek = new Map();
     spRecords?.forEach((sp: any) => {
       if (!spByUser.has(sp.thalibah_id)) {
         spByUser.set(sp.thalibah_id, []);
       }
       spByUser.get(sp.thalibah_id).push(sp);
+
+      // Also group by user and week for easy lookup
+      const key = `${sp.thalibah_id}-${sp.week_number}`;
+      spByUserAndWeek.set(key, sp);
     });
 
     // Build combined entries for ALL users (like tashih)
@@ -276,6 +281,10 @@ export async function GET(request: Request) {
           return pekan === week;
         });
 
+        // Check if there's an SP for this specific week
+        const spKey = `${userId}-${week}`;
+        const spForWeek = spByUserAndWeek.get(spKey);
+
         weeklyStatus.push({
           week_number: week,
           has_jurnal: weekEntries.length > 0,
@@ -283,7 +292,14 @@ export async function GET(request: Request) {
           entries: weekEntries.map((e: any) => ({
             ...e,
             pekan: calculateWeekFromBlok(e.blok),
-          }))
+          })),
+          sp_info: spForWeek ? {
+            sp_level: spForWeek.sp_level,
+            status: spForWeek.status,
+            issued_at: spForWeek.issued_at,
+            reason: spForWeek.reason,
+            is_blacklisted: spForWeek.is_blacklisted,
+          } : null,
         });
       }
 

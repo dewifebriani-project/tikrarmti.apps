@@ -105,6 +105,13 @@ interface JurnalUserEntry {
     has_jurnal: boolean;
     entry_count: number;
     entries: JurnalEntry[];
+    sp_info?: {
+      sp_level: number;
+      status: string;
+      issued_at: string;
+      reason: string;
+      is_blacklisted: boolean;
+    } | null;
   }>;
   jurnal_count: number;
   weeks_with_jurnal: number;
@@ -1027,6 +1034,35 @@ Tim Markaz Tikrar Indonesia`;
       return <span className="text-gray-300">-</span>;
     }
 
+    // If there's an SP for this week, show SP indicator
+    if (week.sp_info) {
+      const spLevel = week.sp_info.sp_level;
+      const bgColors = {
+        1: 'bg-yellow-100',
+        2: 'bg-orange-100',
+        3: 'bg-red-100',
+      };
+      const textColors = {
+        1: 'text-yellow-800',
+        2: 'text-orange-800',
+        3: 'text-red-800',
+      };
+      const borderColors = {
+        1: 'border-yellow-400',
+        2: 'border-orange-400',
+        3: 'border-red-400',
+      };
+
+      return (
+        <span
+          className={`inline-flex items-center justify-center w-8 h-8 rounded-full border-2 ${bgColors[spLevel as keyof typeof bgColors]} ${textColors[spLevel as keyof typeof textColors]} ${borderColors[spLevel as keyof typeof borderColors]} text-xs font-bold`}
+          title={`SP${spLevel} - ${week.sp_info.reason} (${new Date(week.sp_info.issued_at).toLocaleDateString('id-ID')})`}
+        >
+          SP{spLevel}
+        </span>
+      );
+    }
+
     if (!week.has_jurnal) {
       return (
         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">
@@ -1065,6 +1101,31 @@ Tim Markaz Tikrar Indonesia`;
             <AlertCircle className="w-5 h-5 mr-2" />
             Refresh
           </button>
+        </div>
+      </div>
+
+      {/* SP Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-50 px-4 py-2 rounded-lg">
+        <span className="font-medium text-gray-700">Keterangan SP:</span>
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 bg-yellow-100 text-yellow-800 border-yellow-400 text-xs font-bold">SP1</span>
+          <span className="text-gray-600">Peringatan 1</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 bg-orange-100 text-orange-800 border-orange-400 text-xs font-bold">SP2</span>
+          <span className="text-gray-600">Peringatan 2</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 bg-red-100 text-red-800 border-red-400 text-xs font-bold">SP3</span>
+          <span className="text-gray-600">Peringatan 3 (DO)</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">1</span>
+          <span className="text-gray-600">Ada jurnal</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">-</span>
+          <span className="text-gray-600">Belum ada jurnal</span>
         </div>
       </div>
 
