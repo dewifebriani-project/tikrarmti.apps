@@ -17,6 +17,7 @@ import {
   Plus,
   X,
   ChevronDown,
+  Download,
 } from 'lucide-react';
 
 interface SPTabProps {
@@ -94,6 +95,12 @@ export function SPTab({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDownloadSP = (spId: string, thalibahName: string, spLevel: number) => {
+    // Open SP letter in new tab for printing/download
+    window.open(`/api/musyrifah/sp/letter?id=${spId}`, '_blank');
+    toast.success(`Membuka surat SP${spLevel} untuk ${thalibahName}`);
   };
 
   const getSPBadge = (level: number) => {
@@ -304,14 +311,23 @@ export function SPTab({
                         setShowDetailModal(true);
                       }}
                       className="text-blue-600 hover:text-blue-900"
+                      title="Detail"
                     >
                       <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadSP(sp.id, sp.thalibah?.full_name || sp.thalibah?.nama_kunyah || 'Thalibah', sp.sp_level)}
+                      className="text-green-600 hover:text-green-900"
+                      title="Download/Print Surat SP"
+                    >
+                      <Download className="w-4 h-4" />
                     </button>
                     {sp.sp_level < 3 && (
                       <button
                         onClick={() => handleCreateSP(sp.thalibah_id, sp.week_number + 1, 'tidak_lapor_jurnal')}
                         disabled={loading}
                         className="text-orange-600 hover:text-orange-900"
+                        title="Buat SP Berikutnya"
                       >
                         <AlertTriangle className="w-4 h-4" />
                       </button>
@@ -320,6 +336,7 @@ export function SPTab({
                       onClick={() => handleCancelSP(sp.id)}
                       disabled={loading}
                       className="text-red-600 hover:text-red-900"
+                      title="Batalkan SP"
                     >
                       <XCircle className="w-4 h-4" />
                     </button>
@@ -499,6 +516,13 @@ export function SPTab({
           </div>
 
           <div className="mt-6 flex justify-end space-x-3">
+            <button
+              onClick={() => handleDownloadSP(selectedItem.id, selectedItem.thalibah?.full_name || selectedItem.thalibah?.nama_kunyah || 'Thalibah', selectedItem.sp_level)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download Surat
+            </button>
             <button
               onClick={() => handleCancelSP(selectedItem.id)}
               disabled={loading}
