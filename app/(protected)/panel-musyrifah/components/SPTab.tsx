@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
@@ -18,6 +18,8 @@ import {
   X,
   ChevronDown,
   Download,
+  Bug,
+  ChevronRight,
 } from 'lucide-react';
 
 interface SPTabProps {
@@ -42,6 +44,9 @@ export function SPTab({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugData, setDebugData] = useState<any>(null);
+  const [loadingDebug, setLoadingDebug] = useState(false);
 
   const handleCreateSP = async (thalibahId: string, weekNumber: number, reason: string) => {
     setLoading(true);
@@ -101,6 +106,20 @@ export function SPTab({
     // Open SP letter in new tab for printing/download
     window.open(`/api/musyrifah/sp/letter?id=${spId}`, '_blank');
     toast.success(`Membuka surat SP${spLevel} untuk ${thalibahName}`);
+  };
+
+  const handleLoadDebug = async () => {
+    setLoadingDebug(true);
+    try {
+      const response = await fetch('/api/debug/sp-check');
+      const result = await response.json();
+      setDebugData(result.debug);
+      setShowDebug(true);
+    } catch (error) {
+      toast.error('Gagal load debug info');
+    } finally {
+      setLoadingDebug(false);
+    }
   };
 
   const getSPBadge = (level: number) => {
@@ -594,6 +613,117 @@ export function SPTab({
           </button>
         </nav>
       </div>
+
+      {/* Debug button */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={handleLoadDebug}
+          disabled={loadingDebug}
+          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <Bug className="w-3 h-3 mr-1" />
+          {loadingDebug ? 'Loading...' : 'Debug Info'}
+        </button>
+      </div>
+
+      {/* Debug panel */}
+      {showDebug && debugData && (
+        <div className="mb-4 p-4 bg-gray-900 text-gray-100 rounded-lg text-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-yellow-400">Debug Information</h3>
+            <button
+              onClick={() => setShowDebug(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {/* Batch Info */}
+            <div className="border-b border-gray-700 pb-2">
+              <p className="text-green-400 font-semibold mb-1">📦 Batch Info</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-gray-400">Name:</span> {debugData.batch_info?.name}</div>
+                <div><span className="text-gray-400">Status:</span> {debugData.batch_info?.status}</div>
+                <div className="col-span-2"><span className="text-gray-400">First Week Start:</span> {debugData.batch_info?.first_week_start_date || 'NOT SET'}</div>
+                <div className="col-span-2"><span className="text-gray-400">First Week End:</span> {debugData.batch_info?.first_week_end_date || 'NOT SET'}</div>
+              </div>
+              {!debugData.batch_info?.first_week_start_date && (
+                <p className="mt-1 text-red-400 text-xs">⚠️ first_week_start_date is NULL! This will cause hasWeekEnded() to always return false.</p>
+              )}
+            </div>
+
+            {/* Current Date & Week */}
+            <div className="border-b border-gray-700 pb-2">
+              <p className="text-green-400 font-semibold mb-1">📅 Timeline</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-gray-400">Current Date:</span> {new Date(debugData.current_date).toLocaleDateString('id-ID')}</div>
+                <div><span className="text-gray-400">Current Week:</span> Pekan {debugData.calculated_current_week}</div>
+              </div>
+            </div>
+
+            {/* Weeks Status */}
+            <div className="border-b border-gray-700 pb-2">
+              <p className="text-green-400 font-semibold mb-1">📆 Weeks Status</p>
+              <div className="grid grid-cols-5 gap-1 text-xs">
+                {debugData.weeks_status?.map((w: any) => (
+                  <div
+                    key={w.week}
+                    className={`text-center px-2 py-1 rounded ${
+                      w.has_ended ? 'bg-green-800' : 'bg-gray-700'
+                    }`}
+                  >
+                    P{w.week}: {w.has_ended ? '✓' : '○'}
+                  </div>
+                ))}
+              </div>
+              <p className="text-gray-500 text-xs mt-1">✓ = Ended, ○ = Not Ended</p>
+            </div>
+
+            {/* Daftar Ulang */}
+            <div className="border-b border-gray-700 pb-2">
+              <p className="text-green-400 font-semibold mb-1">👥 Daftar Ulang</p>
+              <div className="text-xs">
+                <span className="text-gray-400">Total: {debugData.daftar_ulang?.total || 0}</span>
+                <span className="ml-3 text-green-400">Approved: {debugData.daftar_ulang?.status_counts?.approved || 0}</span>
+                <span className="ml-3 text-yellow-400">Submitted: {debugData.daftar_ulang?.status_counts?.submitted || 0}</span>
+                <span className="ml-3 text-red-400">Other: {debugData.daftar_ulang?.status_counts?.other || 0}</span>
+              </div>
+              {debugData.daftar_ulang?.total === 0 && (
+                <p className="mt-1 text-red-400 text-xs">⚠️ No thalibah found with approved/submitted status!</p>
+              )}
+            </div>
+
+            {/* Jurnal */}
+            <div className="border-b border-gray-700 pb-2">
+              <p className="text-green-400 font-semibold mb-1">📝 Jurnal Records</p>
+              <div className="text-xs">
+                <span className="text-gray-400">Total Records: {debugData.jurnal?.total_records || 0}</span>
+                <span className="ml-3 text-gray-400">Unique Thalibah: {debugData.jurnal?.unique_thalibah || 0}</span>
+              </div>
+            </div>
+
+            {/* SP Records */}
+            <div className="pb-2">
+              <p className="text-green-400 font-semibold mb-1">⚠️ SP Records</p>
+              <div className="text-xs">
+                <span className="text-gray-400">Total: {debugData.sp?.total_records || 0}</span>
+              </div>
+              {debugData.sp?.records?.length > 0 && (
+                <div className="mt-2 p-2 bg-gray-800 rounded text-xs">
+                  <p className="text-gray-400 mb-1">Sample SP Records:</p>
+                  {debugData.sp.records.map((sp: any) => (
+                    <div key={sp.id} className="text-gray-300">
+                      SP{sp.sp_level} - Week {sp.week_number} - {sp.status}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab content */}
       {activeSubTab === 'pending' && renderPendingTab()}
