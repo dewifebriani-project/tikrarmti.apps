@@ -1526,51 +1526,6 @@ Tim Markaz Tikrar Indonesia`;
                         </td>
                       </tr>
                       )}
-                                              day: 'numeric',
-                                              month: 'short',
-                                              year: 'numeric'
-                                            })}
-                                          </div>
-                                          <div className="text-xs text-gray-500 truncate">
-                                            Blok: {bloks.join(', ') || '-'} | Juz: {record.juz_code || '-'}
-                                          </div>
-                                        </div>
-                                        <button
-                                          onClick={async () => {
-                                            if (confirm(`Hapus record jurnal ini?\n\nBlok: ${bloks.join(', ')}\nTanggal: ${new Date(record.tanggal_setor).toLocaleDateString('id-ID')}`)) {
-                                              try {
-                                                const response = await fetch(`/api/musyrifah/jurnal?id=${record.id}`, {
-                                                  method: 'DELETE',
-                                                });
-
-                                                if (!response.ok) {
-                                                  const error = await response.json();
-                                                  toast.error(error.error || 'Gagal menghapus record');
-                                                  return;
-                                                }
-
-                                                toast.success('Record jurnal berhasil dihapus');
-                                                onRefresh();
-                                              } catch (err) {
-                                                toast.error('Gagal menghapus record');
-                                              }
-                                            }
-                                          }}
-                                          className="text-red-600 hover:text-red-800 text-xs px-2 py-1 bg-red-50 rounded hover:bg-red-100 transition-colors"
-                                          title="Hapus record ini"
-                                        >
-                                          Hapus
-                                        </button>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      )}
                   </React.Fragment>
                 );
                 })}
