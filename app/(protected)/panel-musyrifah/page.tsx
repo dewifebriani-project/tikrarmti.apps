@@ -102,9 +102,18 @@ interface JurnalUserEntry {
   };
   weekly_status: Array<{
     week_number: number;
-    has_jurnal: boolean;
-    entry_count: number;
-    entries: JurnalEntry[];
+    total_blocks: number;
+    completed_blocks: number;
+    is_completed: boolean;
+    blocks: Array<{
+      block_code: string;
+      week_number: number;
+      part: string;
+      start_page: number;
+      end_page: number;
+      is_completed: boolean;
+      jurnal_count: number;
+    }>;
     sp_info?: {
       sp_level: number;
       status: string;
@@ -112,9 +121,18 @@ interface JurnalUserEntry {
       reason: string;
       is_blacklisted: boolean;
     } | null;
+    entries: JurnalEntry[]; // For backward compatibility
   }>;
+  // NEW: Add summary like tashih
+  summary?: {
+    total_blocks: number;
+    completed_blocks: number;
+    pending_blocks: number;
+    completion_percentage: number;
+  };
   jurnal_count: number;
   weeks_with_jurnal: number;
+  has_jurnal: boolean;
   latest_jurnal?: {
     id: string;
     tanggal_setor: string;
@@ -994,8 +1012,8 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     }
 
     if (sortBy === 'progress') {
-      const progressA = a.weeks_with_jurnal;
-      const progressB = b.weeks_with_jurnal;
+      const progressA = a.summary?.completion_percentage || 0;
+      const progressB = b.summary?.completion_percentage || 0;
       return (progressA - progressB) * multiplier;
     }
 
@@ -1007,18 +1025,19 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     if (!phoneNumber) return null;
 
     const cleanedPhone = phoneNumber.replace(/^0/, '62').replace(/[\s\-\(\)]/g, '');
-    const weeksWithJurnal = entry.weeks_with_jurnal;
+    const completedWeeks = entry.weekly_status.filter((w: any) => w.is_completed).length;
     const totalWeeks = entry.weekly_status.length;
 
     const message = `Assalamu'alaikum ${name},
 
-Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan progress jurnal harian:
+Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan progress jurnal:
 
-- Total jurnal: ${entry.jurnal_count}
-- Pekan dengan jurnal: ${weeksWithJurnal}/${totalWeeks}
-- Terakhir jurnal: ${entry.latest_jurnal ? new Date(entry.latest_jurnal.tanggal_setor).toLocaleDateString('id-ID') : '-'}
+- Juz: ${entry.confirmed_chosen_juz}
+- Progress: ${entry.summary?.completed_blocks || 0}/${entry.summary?.total_blocks || 0} blok (${entry.summary?.completion_percentage || 0}%)
+- Pekan selesai: ${completedWeeks}/${totalWeeks}
+- Total jurnal: ${entry.jurnal_count} record
 
-${weeksWithJurnal < 10 ? 'Mohon ditingkatkan lagi jurnal hariannya.' : 'Alhamdulillah jurnal sudah lengkap.'}
+${(entry.summary?.completion_percentage || 0) < 100 ? 'Mohon ditingkatkan lagi jurnal hariannya.' : 'Alhamdulillah jurnal sudah lengkap.'}
 
 Jazakillahu khairan
 Tim Markaz Tikrar Indonesia`;
@@ -1027,14 +1046,18 @@ Tim Markaz Tikrar Indonesia`;
     return `https://wa.me/${cleanedPhone}?text=${encodedMessage}`;
   };
 
-  // Helper to render week cell - entries now already has weekly_status from API
+  // Helper to render week cell - NEW: block-based status like tashih
   const renderJurnalWeekCell = (entry: JurnalUserEntry, weekNum: number) => {
     const week = entry.weekly_status.find((w: any) => w.week_number === weekNum);
     if (!week) {
       return <span className="text-gray-300">-</span>;
     }
 
-    // If there's an SP for this week, show SP indicator
+    // Get incomplete blocks for this week
+    const incompleteBlocks = week.blocks ? week.blocks.filter((b: any) => !b.is_completed) : [];
+    const completedCount = week.total_blocks - incompleteBlocks.length;
+
+    // If there's an SP for this week, show SP indicator with block status
     if (week.sp_info) {
       const spLevel = week.sp_info.sp_level;
       const bgColors = {
@@ -1053,31 +1076,46 @@ Tim Markaz Tikrar Indonesia`;
         3: 'border-red-400',
       };
 
+      // Show SP badge with block count
       return (
-        <span
-          className={`inline-flex items-center justify-center w-8 h-8 rounded-full border-2 ${bgColors[spLevel as keyof typeof bgColors]} ${textColors[spLevel as keyof typeof textColors]} ${borderColors[spLevel as keyof typeof borderColors]} text-xs font-bold`}
-          title={`SP${spLevel} - ${week.sp_info.reason} (${new Date(week.sp_info.issued_at).toLocaleDateString('id-ID')})`}
-        >
-          SP{spLevel}
+        <div className="flex flex-col items-center gap-0.5">
+          <span
+            className={`inline-flex items-center justify-center w-7 h-5 rounded-full border-2 ${bgColors[spLevel as keyof typeof bgColors]} ${textColors[spLevel as keyof typeof textColors]} ${borderColors[spLevel as keyof typeof borderColors]} text-[10px] font-bold`}
+            title={`SP${spLevel} - ${week.sp_info.reason} (${new Date(week.sp_info.issued_at).toLocaleDateString('id-ID')})`}
+          >
+            SP{spLevel}
+          </span>
+          <span className={`text-[9px] font-bold ${
+            incompleteBlocks.length === 0 ? 'text-green-700' :
+            incompleteBlocks.length === week.total_blocks ? 'text-red-700' :
+            'text-yellow-700'
+          }`}>
+            {completedCount}/4
+          </span>
+        </div>
+      );
+    }
+
+    // No SP - show block status like tashih
+    if (incompleteBlocks.length === 0) {
+      return (
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+          ✓
         </span>
       );
     }
 
-    if (!week.has_jurnal) {
+    if (incompleteBlocks.length === week.total_blocks) {
       return (
-        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">
-          -
+        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-700 text-xs font-bold" title={incompleteBlocks.map((b: any) => b.block_code).join(', ')}>
+          0/4
         </span>
       );
     }
 
-    const entryCount = week.entry_count;
     return (
-      <span
-        className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold"
-        title={`${entryCount} jurnal entries`}
-      >
-        {entryCount}
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold" title={incompleteBlocks.map((b: any) => b.block_code).join(', ')}>
+        {completedCount}/4
       </span>
     );
   };
@@ -1104,9 +1142,13 @@ Tim Markaz Tikrar Indonesia`;
         </div>
       </div>
 
-      {/* SP Legend */}
+      {/* SP Legend & Block Status Legend */}
       <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-50 px-4 py-2 rounded-lg">
-        <span className="font-medium text-gray-700">Keterangan SP:</span>
+        <span className="font-medium text-gray-700">Keterangan:</span>
+
+        <span className="text-xs text-gray-400">|</span>
+
+        <span className="font-medium text-gray-600">SP:</span>
         <div className="flex items-center gap-1">
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 bg-yellow-100 text-yellow-800 border-yellow-400 text-xs font-bold">SP1</span>
           <span className="text-gray-600">Peringatan 1</span>
@@ -1119,13 +1161,21 @@ Tim Markaz Tikrar Indonesia`;
           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full border-2 bg-red-100 text-red-800 border-red-400 text-xs font-bold">SP3</span>
           <span className="text-gray-600">Peringatan 3 (DO)</span>
         </div>
+
+        <span className="text-xs text-gray-400">|</span>
+
+        <span className="font-medium text-gray-600">Blok:</span>
         <div className="flex items-center gap-1">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">1</span>
-          <span className="text-gray-600">Ada jurnal</span>
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold">✓</span>
+          <span className="text-gray-600">4/4 selesai</span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-400 text-xs font-bold">-</span>
-          <span className="text-gray-600">Belum ada jurnal</span>
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-yellow-100 text-yellow-700 text-xs font-bold">X/4</span>
+          <span className="text-gray-600">Sebagian</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 text-xs font-bold">0/4</span>
+          <span className="text-gray-600">Belum ada</span>
         </div>
       </div>
 
@@ -1296,243 +1346,186 @@ Tim Markaz Tikrar Indonesia`;
                         <td colSpan={13} className="px-4 py-4">
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-medium text-gray-700">Jurnal per Pekan (10 Pekan)</h4>
-                              <span className="text-xs text-gray-500">Klik pekan untuk melihat detail jurnal</span>
+                              <h4 className="text-sm font-medium text-gray-700">Status Blok per Pekan (10 Pekan)</h4>
+                              <span className="text-xs text-gray-500">Klik blok untuk melihat detail</span>
                             </div>
 
-                            {/* Weekly Jurnal Grid */}
+                            {/* Block Grid with Detail per Blok - LIKE TASHIH */}
                             <div className="space-y-3">
-                              {userData.weekly_status.map((week: any) => {
-                                if (!week.has_jurnal && week.entries.length === 0) {
-                                  return (
-                                    <div key={week.week_number} className="border border-dashed rounded-lg p-3 bg-gray-50">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-500">Pekan {week.week_number}</span>
-                                        <span className="text-xs text-gray-400">Belum ada jurnal</span>
-                                      </div>
-                                    </div>
-                                  );
-                                }
+                              {userData.weekly_status.map((week) => {
+                                const incompleteBlocks = week.blocks ? week.blocks.filter((b: any) => !b.is_completed) : [];
+                                const completedBlocks = week.blocks ? week.blocks.filter((b: any) => b.is_completed) : [];
 
                                 return (
                                   <div key={week.week_number} className="border rounded-lg p-3 bg-white">
                                     <div className="flex items-center justify-between mb-2">
                                       <div className="flex items-center gap-2">
                                         <span className="text-sm font-semibold text-gray-700">Pekan {week.week_number}</span>
-                                        <span className="text-xs text-gray-500">({week.entry_count} jurnal)</span>
+                                        <span className="text-xs text-gray-500">({week.completed_blocks}/4 selesai)</span>
                                       </div>
+                                      {week.sp_info && (
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                                          week.sp_info.sp_level === 1
+                                            ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                            : week.sp_info.sp_level === 2
+                                            ? 'bg-orange-100 text-orange-800 border-orange-300'
+                                            : 'bg-red-100 text-red-800 border-red-300'
+                                        }`} title={`SP${week.sp_info.sp_level} - ${week.sp_info.reason}`}>
+                                          SP{week.sp_info.sp_level}
+                                        </span>
+                                      )}
+                                      {week.is_completed && (
+                                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                                          Selesai
+                                        </span>
+                                      )}
                                     </div>
 
-                                    {/* Jurnal entries for this week */}
-                                    <div className="space-y-2">
-                                      {week.entries.map((entry: JurnalEntry) => (
-                                        <div
-                                          key={entry.id}
-                                          className="border border-gray-200 rounded p-3 bg-white hover:bg-gray-50"
-                                        >
-                                          <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                              <div className="flex items-center gap-3 text-sm">
-                                                <span className="text-xs text-gray-500">
-                                                  {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
-                                                </span>
-                                                {entry.blok && (
-                                                  <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800">
-                                                    {entry.blok}
-                                                  </span>
-                                                )}
-                                                {entry.juz_code && (
-                                                  <span className="text-xs text-gray-600">
-                                                    Juz {entry.juz_code}
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <div className="mt-2 grid grid-cols-10 gap-2 text-xs">
-                                                <span className={entry.tashih_completed ? 'text-green-600' : 'text-gray-400'}>
-                                                  T: {entry.tashih_completed ? '✓' : '-'}
-                                                </span>
-                                                <span className={entry.rabth_completed ? 'text-green-600' : 'text-gray-400'}>
-                                                  R: {entry.rabth_completed ? '✓' : '-'}
-                                                </span>
-                                                <span className={entry.murajaah_count > 0 ? 'text-green-600' : 'text-gray-400'}>
-                                                  M: {entry.murajaah_count}
-                                                </span>
-                                                <span className={entry.simak_murattal_count > 0 ? 'text-green-600' : 'text-gray-400'}>
-                                                  SM: {entry.simak_murattal_count}
-                                                </span>
-                                                <span className={entry.tikrar_bi_an_nadzar_completed ? 'text-green-600' : 'text-gray-400'}>
-                                                  TN: {entry.tikrar_bi_an_nadzar_completed ? '✓' : '-'}
-                                                </span>
-                                                <span className={entry.tasmi_record_count > 0 ? 'text-green-600' : 'text-gray-400'}>
-                                                  TR: {entry.tasmi_record_count}
-                                                </span>
-                                                <span className={entry.tikrar_bi_al_ghaib_count > 0 ? 'text-green-600' : 'text-gray-400'}>
-                                                  TG: {entry.tikrar_bi_al_ghaib_count}
-                                                </span>
-                                                <span className={entry.tafsir_completed ? 'text-green-600' : 'text-gray-400'}>
-                                                  TF: {entry.tafsir_completed ? '✓' : '-'}
-                                                </span>
-                                                <span className={entry.menulis_completed ? 'text-green-600' : 'text-gray-400'}>
-                                                  W: {entry.menulis_completed ? '✓' : '-'}
-                                                </span>
-                                              </div>
-                                              {entry.catatan_tambahan && (
-                                                <div className="mt-1 text-xs text-gray-600">
-                                                  Catatan: {entry.catatan_tambahan}
-                                                </div>
-                                              )}
+                                    {/* Blocks for this week - Grid like tashih */}
+                                    <div className="grid grid-cols-4 gap-2">
+                                      {week.blocks && week.blocks.map((block: any) => {
+                                        // Find jurnal records for this block
+                                        const recordsForBlock = userData.jurnal_records.filter((r: any) => r.blok === block.block_code);
+
+                                        return (
+                                          <div
+                                            key={block.block_code}
+                                            className={`text-center p-2 rounded-lg border-2 transition-all ${
+                                              block.is_completed
+                                                ? 'border-green-400 bg-green-50 text-green-700'
+                                                : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'
+                                            }`}
+                                            title={block.is_completed
+                                              ? `Sudah ada jurnal (${block.jurnal_count} record)`
+                                              : `Belum ada jurnal`
+                                            }
+                                          >
+                                            <div className="text-xs font-bold">{block.block_code}</div>
+                                            <div className="text-[10px] text-gray-500 mt-1">
+                                              {block.is_completed ? `${block.jurnal_count} jurnal` : 'Belum'}
                                             </div>
-                                            <div className="flex gap-1">
-                                              <button
-                                                onClick={() => {
-                                                  setEditingEntry(entry);
-                                                  setShowEditModal(true);
-                                                }}
-                                                className="text-indigo-600 hover:text-indigo-900 p-1"
-                                                title="Edit"
-                                              >
-                                                <Edit className="w-3 h-3" />
-                                              </button>
-                                              <button
-                                                onClick={async () => {
-                                                  // Parse blok - check if it's JSON array or comma-separated
-                                                  let bloks: string[] = [];
-                                                  if (entry.blok) {
-                                                    if (typeof entry.blok === 'string' && entry.blok.startsWith('[')) {
-                                                      try {
-                                                        bloks = JSON.parse(entry.blok);
-                                                      } catch {
-                                                        bloks = entry.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b);
-                                                      }
-                                                    } else if (typeof entry.blok === 'string') {
-                                                      bloks = entry.blok.split(',').map((b: string) => b.trim()).filter((b: string) => b);
-                                                    } else if (Array.isArray(entry.blok)) {
-                                                      bloks = entry.blok;
-                                                    }
-                                                  }
+                                            {/* Show delete button for blocks with jurnal records */}
+                                            {block.is_completed && recordsForBlock.length > 0 && (
+                                              <div className="mt-1 space-y-0.5">
+                                                {recordsForBlock.map((record: any) => (
+                                                  <button
+                                                    key={record.id}
+                                                    onClick={async () => {
+                                                      const entryDate = new Date(record.tanggal_setor).toLocaleDateString('id-ID');
+                                                      if (confirm(`Hapus record jurnal untuk blok ${block.block_code}?\n\nTanggal: ${entryDate}\nBlok: ${block.block_code}`)) {
+                                                        try {
+                                                          const response = await fetch(`/api/musyrifah/jurnal?id=${record.id}`, {
+                                                            method: 'DELETE',
+                                                          });
 
-                                                  const blockCount = bloks.length;
-                                                  const blockList = bloks.join(', ');
-                                                  const entryDate = new Date(entry.tanggal_setor).toLocaleDateString('id-ID');
+                                                          if (!response.ok) {
+                                                            const error = await response.json();
+                                                            toast.error(error.error || 'Gagal menghapus record');
+                                                            return;
+                                                          }
 
-                                                  if (blockCount > 1) {
-                                                    // Multiple blocks - ask which block to delete
-                                                    const blockToDelete = prompt(`Hapus blok dari record jurnal ini?\n\nTanggal: ${entryDate}\nBlok dalam record ini: ${blockList}\n\nMasukkan nama blok yang ingin dihapus (contoh: H1A):`);
-
-                                                    if (blockToDelete && bloks.includes(blockToDelete)) {
-                                                      try {
-                                                        const newBlok = bloks.filter((b: string) => b !== blockToDelete);
-                                                        const response = await fetch('/api/musyrifah/jurnal', {
-                                                          method: 'PUT',
-                                                          headers: { 'Content-Type': 'application/json' },
-                                                          body: JSON.stringify({
-                                                            id: entry.id,
-                                                            blok: newBlok.length > 0 ? JSON.stringify(newBlok) : null
-                                                          }),
-                                                        });
-
-                                                        if (!response.ok) {
-                                                          const error = await response.json();
-                                                          toast.error(error.error || 'Gagal menghapus blok');
-                                                          return;
+                                                          toast.success(`Record jurnal untuk ${block.block_code} berhasil dihapus`);
+                                                          onRefresh();
+                                                        } catch (err) {
+                                                          toast.error('Gagal menghapus record');
                                                         }
-
-                                                        toast.success(`Blok ${blockToDelete} berhasil dihapus dari record`);
-                                                        onRefresh();
-                                                      } catch (err) {
-                                                        toast.error('Gagal menghapus blok');
                                                       }
-                                                    } else if (blockToDelete) {
-                                                      toast.error('Blok tidak ditemukan dalam record');
-                                                    }
-                                                  } else {
-                                                    // Single block - delete entire record
-                                                    if (confirm(`Hapus record jurnal ini?\n\nBlok: ${blockList || '-'}\nTanggal: ${entryDate}`)) {
-                                                      try {
-                                                        const response = await fetch(`/api/musyrifah/jurnal?id=${entry.id}`, {
-                                                          method: 'DELETE',
-                                                        });
-
-                                                        if (!response.ok) {
-                                                          const error = await response.json();
-                                                          toast.error(error.error || 'Gagal menghapus jurnal');
-                                                          return;
-                                                        }
-
-                                                        toast.success('Jurnal berhasil dihapus');
-                                                        onRefresh();
-                                                      } catch (err) {
-                                                        toast.error('Gagal menghapus jurnal');
-                                                      }
-                                                    }
-                                                  }
-                                                }}
-                                                className="text-red-600 hover:text-red-900 p-1"
-                                                title="Hapus"
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </button>
-                                            </div>
+                                                    }}
+                                                    className="text-red-600 hover:text-red-800 text-[9px] underline w-full"
+                                                    title={`Hapus record ${new Date(record.tanggal_setor).toLocaleDateString('id-ID')}`}
+                                                  >
+                                                    Hapus
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            )}
                                           </div>
-                                        </div>
-                                      ))}
+                                        );
+                                      })}
                                     </div>
+
+                                    {/* Show detailed entries for this week (collapsed by default) */}
+                                    {week.entries && week.entries.length > 0 && (
+                                      <details className="mt-3">
+                                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                                          Lihat detail jurnal untuk pekan ini
+                                        </summary>
+                                        <div className="mt-2 space-y-2 pl-2 border-l-2 border-gray-200">
+                                          {week.entries.map((entry: JurnalEntry) => (
+                                            <div
+                                              key={entry.id}
+                                              className="text-xs p-2 bg-gray-50 rounded border border-gray-100"
+                                            >
+                                              <div className="flex justify-between items-start">
+                                                <div className="flex-1">
+                                                  <div className="flex items-center gap-2 text-xs">
+                                                    <span className="text-gray-500">
+                                                      {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
+                                                    </span>
+                                                    {entry.blok && (
+                                                      <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-purple-100 text-purple-800">
+                                                        {entry.blok}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  <div className="mt-1 grid grid-cols-5 gap-1 text-[10px]">
+                                                    <span className={entry.tashih_completed ? 'text-green-600' : 'text-gray-400'}>T: {entry.tashih_completed ? '✓' : '-'}</span>
+                                                    <span className={entry.rabth_completed ? 'text-green-600' : 'text-gray-400'}>R: {entry.rabth_completed ? '✓' : '-'}</span>
+                                                    <span className={entry.murajaah_count > 0 ? 'text-green-600' : 'text-gray-400'}>M: {entry.murajaah_count}</span>
+                                                    <span className={entry.tikrar_bi_an_nadzar_completed ? 'text-green-600' : 'text-gray-400'}>TN: {entry.tikrar_bi_an_nadzar_completed ? '✓' : '-'}</span>
+                                                    <span className={entry.tikrar_bi_al_ghaib_count > 0 ? 'text-green-600' : 'text-gray-400'}>TG: {entry.tikrar_bi_al_ghaib_count}</span>
+                                                  </div>
+                                                </div>
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingEntry(entry);
+                                                    setShowEditModal(true);
+                                                  }}
+                                                  className="text-indigo-600 hover:text-indigo-900 p-1"
+                                                  title="Edit"
+                                                >
+                                                  <Edit className="w-3 h-3" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </details>
+                                    )}
                                   </div>
                                 );
                               })}
                             </div>
 
-                            {/* Summary */}
+                            {/* Summary - Updated with block stats */}
                             <div className="mt-4 pt-3 border-t border-gray-200">
                               <div className="grid grid-cols-5 gap-4 text-xs">
+                                <div>
+                                  <span className="text-gray-500">Total Blok:</span>
+                                  <span className="ml-2 font-medium text-gray-900">{userData.summary?.total_blocks || 0}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Blok Selesai:</span>
+                                  <span className="ml-2 font-medium text-green-600">{userData.summary?.completed_blocks || 0}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Blok Pending:</span>
+                                  <span className="ml-2 font-medium text-yellow-600">{userData.summary?.pending_blocks || 0}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Progress:</span>
+                                  <span className="ml-2 font-medium text-gray-900">{userData.summary?.completion_percentage || 0}%</span>
+                                </div>
                                 <div>
                                   <span className="text-gray-500">Total Jurnal:</span>
                                   <span className="ml-2 font-medium text-gray-900">{userData.jurnal_count}</span>
                                 </div>
-                                <div>
-                                  <span className="text-gray-500">Pekan dengan Jurnal:</span>
-                                  <span className="ml-2 font-medium text-green-600">{userData.weeks_with_jurnal}/10</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Pekan Kosong:</span>
-                                  <span className="ml-2 font-medium text-yellow-600">{10 - userData.weeks_with_jurnal}/10</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Juz Terakhir:</span>
-                                  <span className="ml-2 font-medium text-gray-900">{userData.latest_jurnal?.juz_code || '-'}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Terakhir Jurnal:</span>
-                                  <span className="ml-2 font-medium text-gray-900">
-                                    {userData.latest_jurnal
-                                      ? new Date(userData.latest_jurnal.tanggal_setor).toLocaleDateString('id-ID')
-                                      : '-'
-                                    }
-                                  </span>
-                                </div>
                               </div>
                             </div>
-
-                            {/* All Jurnal Records - Delete Excess Records */}
-                            {userData.jurnal_records.length > 0 && (
-                              <div className="mt-4 pt-3 border-t border-gray-200">
-                                <h4 className="text-sm font-medium text-gray-700 mb-3">
-                                  Riwayat Jurnal ({userData.jurnal_records.length} record) - Hapus yang kelebihan
-                                </h4>
-                                <div className="space-y-2 max-h-60 overflow-y-auto">
-                                  {userData.jurnal_records.map((record) => {
-                                    const bloks = typeof record.blok === 'string' && record.blok.startsWith('[')
-                                      ? JSON.parse(record.blok)
-                                      : (record.blok ? [record.blok] : []);
-
-                                    return (
-                                      <div
-                                        key={record.id}
-                                        className="flex items-center justify-between p-2 bg-white rounded border border-gray-200 hover:border-red-300 transition-colors"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-xs text-gray-900">
-                                            {new Date(record.tanggal_setor).toLocaleDateString('id-ID', {
+                          </div>
+                        </td>
+                      </tr>
+                      )}
                                               day: 'numeric',
                                               month: 'short',
                                               year: 'numeric'

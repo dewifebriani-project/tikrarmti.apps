@@ -42,6 +42,85 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   return null;
 }
 
+// Helper to generate all blocks (10 weeks, 4 blocks per week) for a juz - LIKE TASHIH
+function generateAllBlocks(juzInfo: any) {
+  const allBlocks: any[] = [];
+  const parts = ['A', 'B', 'C', 'D'];
+  const blockOffset = juzInfo.part === 'B' ? 10 : 0;
+
+  for (let week = 1; week <= 10; week++) {
+    const blockNumber = week + blockOffset;
+    const weekStartPage = juzInfo.start_page + (week - 1);
+
+    for (let i = 0; i < 4; i++) {
+      const part = parts[i];
+      const blockCode = `H${blockNumber}${part}`;
+      const blockPage = Math.min(weekStartPage + i, juzInfo.end_page);
+
+      allBlocks.push({
+        block_code: blockCode,
+        week_number: week,
+        part,
+        start_page: blockPage,
+        end_page: blockPage,
+        is_completed: false,
+        jurnal_count: 0
+      });
+    }
+  }
+
+  return allBlocks;
+}
+
+// Helper to calculate weekly status - LIKE TASHIH but for jurnal
+function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
+  const blockStatus = new Map<string, { is_completed: boolean; jurnal_count: number; jurnal_date?: string }>();
+
+  // Initialize all blocks as not completed
+  allBlocks.forEach(block => {
+    blockStatus.set(block.block_code, { is_completed: false, jurnal_count: 0 });
+  });
+
+  // Mark blocks that have jurnal records
+  jurnalRecords.forEach(record => {
+    if (record.blok) {
+      const blokCode = record.blok;
+      const current = blockStatus.get(blokCode);
+      if (current) {
+        current.is_completed = true;
+        current.jurnal_count += 1;
+        if (!current.jurnal_date || new Date(record.tanggal_setor || record.created_at) > new Date(current.jurnal_date)) {
+          current.jurnal_date = record.tanggal_setor || record.created_at;
+        }
+        blockStatus.set(blokCode, current);
+      }
+    }
+  });
+
+  const weeklyStatus: any[] = [];
+  for (let week = 1; week <= 10; week++) {
+    const weekBlocks = allBlocks.filter(b => b.week_number === week);
+    const completedBlocks = weekBlocks.filter(b => {
+      const status = blockStatus.get(b.block_code);
+      return status?.is_completed || false;
+    });
+
+    weeklyStatus.push({
+      week_number: week,
+      total_blocks: weekBlocks.length,
+      completed_blocks: completedBlocks.length,
+      is_completed: completedBlocks.length === weekBlocks.length,
+      blocks: weekBlocks.map(b => ({
+        ...b,
+        is_completed: blockStatus.get(b.block_code)?.is_completed || false,
+        jurnal_count: blockStatus.get(b.block_code)?.jurnal_count || 0
+      }))
+    });
+  }
+
+  return weeklyStatus;
+}
+
 // Validation schema for jurnal record (pekan is optional, will be calculated from blok)
 const jurnalRecordSchema = z.object({
   user_id: z.string().uuid(),
@@ -273,37 +352,69 @@ export async function GET(request: Request) {
       const juzCode = daftarUlang?.confirmed_chosen_juz;
       const juzInfo = juzCode ? juzInfoMap.get(juzCode) : null;
 
-      // Calculate weekly status (P1-P10)
-      const weeklyStatus: any[] = [];
-      for (let week = 1; week <= 10; week++) {
-        const weekEntries = userJurnalRecords.filter((e: any) => {
-          const pekan = calculateWeekFromBlok(e.blok);
-          return pekan === week;
-        });
+      // Calculate weekly status (P1-P10) using NEW block-based approach like tashih
+      let weeklyStatus: any[] = [];
+      let totalBlocks = 0;
+      let completedBlocks = 0;
 
-        // Check if there's an SP for this specific week
-        const spKey = `${userId}-${week}`;
-        const spForWeek = spByUserAndWeek.get(spKey);
+      if (juzInfo) {
+        // Generate all expected blocks for this juz (like tashih)
+        const allBlocks = generateAllBlocks(juzInfo);
+        weeklyStatus = calculateWeeklyStatus(allBlocks, userJurnalRecords);
+        totalBlocks = allBlocks.length;
+        completedBlocks = allBlocks.filter(b => {
+          const hasJurnal = userJurnalRecords.some((record: any) => record.blok === b.block_code);
+          return hasJurnal;
+        }).length;
 
-        weeklyStatus.push({
-          week_number: week,
-          has_jurnal: weekEntries.length > 0,
-          entry_count: weekEntries.length,
-          entries: weekEntries.map((e: any) => ({
-            ...e,
-            pekan: calculateWeekFromBlok(e.blok),
-          })),
-          sp_info: spForWeek ? {
+        // Add SP info to each week (preserve existing SP integration)
+        weeklyStatus.forEach((week: any) => {
+          const spKey = `${userId}-${week.week_number}`;
+          const spForWeek = spByUserAndWeek.get(spKey);
+
+          // Add sp_info to the week
+          week.sp_info = spForWeek ? {
             sp_level: spForWeek.sp_level,
             status: spForWeek.status,
             issued_at: spForWeek.issued_at,
             reason: spForWeek.reason,
             is_blacklisted: spForWeek.is_blacklisted,
-          } : null,
+          } : null;
+
+          // Also add entries for backward compatibility (optional)
+          week.entries = userJurnalRecords.filter((e: any) => {
+            const pekan = calculateWeekFromBlok(e.blok);
+            return pekan === week.week_number;
+          }).map((e: any) => ({
+            ...e,
+            pekan: calculateWeekFromBlok(e.blok),
+          }));
         });
+      } else {
+        // Fallback for users without juz info (should not happen normally)
+        for (let week = 1; week <= 10; week++) {
+          const spKey = `${userId}-${week}`;
+          const spForWeek = spByUserAndWeek.get(spKey);
+
+          weeklyStatus.push({
+            week_number: week,
+            total_blocks: 0,
+            completed_blocks: 0,
+            is_completed: false,
+            blocks: [],
+            sp_info: spForWeek ? {
+              sp_level: spForWeek.sp_level,
+              status: spForWeek.status,
+              issued_at: spForWeek.issued_at,
+              reason: spForWeek.reason,
+              is_blacklisted: spForWeek.is_blacklisted,
+            } : null,
+            entries: [],
+          });
+        }
       }
 
-      const weeksWithJurnal = weeklyStatus.filter(w => w.has_jurnal).length;
+      const weeksWithJurnal = weeklyStatus.filter((w: any) => w.completed_blocks > 0).length;
 
       // Get SP summary for this user
       const userSPRecords = spByUser.get(userId) || [];
@@ -322,8 +433,16 @@ export async function GET(request: Request) {
         reviewed_at: daftarUlang?.reviewed_at,
         user: userMap.get(userId) || null,
         weekly_status: weeklyStatus,
+        // NEW: Add summary like tashih
+        summary: {
+          total_blocks: totalBlocks,
+          completed_blocks: completedBlocks,
+          pending_blocks: totalBlocks - completedBlocks,
+          completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0
+        },
         jurnal_count: userJurnalRecords.length,
         weeks_with_jurnal: weeksWithJurnal,
+        has_jurnal: userJurnalRecords.length > 0,
         latest_jurnal: latestJurnal ? {
           id: latestJurnal.id,
           tanggal_setor: latestJurnal.tanggal_setor,
