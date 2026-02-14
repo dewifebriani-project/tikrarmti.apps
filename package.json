@@ -10,7 +10,9 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "generate-build-info": "node scripts/generate-build-info.js",
-    "update-selection": "npx tsx scripts/update-selection-status.ts"
+    "update-selection": "npx tsx scripts/update-selection-status.ts",
+    "debug:jurnal": "npx tsx scripts/quick-check-jurnal.ts",
+    "test:block-mapping": "npx tsx scripts/test-block-mapping.ts"
   },
   "keywords": [
     "quran",

@@ -42,32 +42,15 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   return null;
 }
 
-// Helper to generate all blocks for a juz - CORRECTED to use juz start/end pages
+// Helper to generate all blocks (10 weeks, 4 blocks per week) for a juz - SAME AS TASHIH
 function generateAllBlocks(juzInfo: any) {
   const allBlocks: any[] = [];
   const parts = ['A', 'B', 'C', 'D'];
+  const blockOffset = juzInfo.part === 'B' ? 10 : 0;
 
-  // Calculate number of pages in this juz
-  const totalPages = juzInfo.end_page - juzInfo.start_page + 1;
-  const pagesPerBlock = totalPages / 40; // 40 blocks = 10 weeks × 4 blocks
-  const weeks = Math.ceil(40 / 4); // 10 weeks if full juz, but calculate based on pages
-
-  for (let week = 1; week <= weeks; week++) {
-    // For juz 30A (5 pages), calculate block numbers properly
-    let blockNumber: number;
-    if (juzInfo.part === 'A') {
-      // Part A: 30 pages = 15 blocks (e.g., 30A: H1-H15, H1-H30, H2-H15, H2-H30, H3-H15, H3-H30, H4-H15, H4-H30, H5-H15)
-      // Map week (1-15) to block numbers: week 1 = H1-H5, week 2 = H6-H10, etc.
-      // Actually for 30A, it's simpler: H1A, H1B, H1C, H1D = week 1 blocks
-      // Block number = (week - 1) * 4 + 1 = H1, H2, H3, H4, H5...
-      blockNumber = (week - 1) * 4 + 1;
-    } else {
-      // Part B: offset by 10
-      blockNumber = week + 10;
-    }
-
-    // Calculate actual page for this block
-    const weekStartPage = juzInfo.start_page + (week - 1) * pagesPerBlock * 4;
+  for (let week = 1; week <= 10; week++) {
+    const blockNumber = week + blockOffset;
+    const weekStartPage = juzInfo.start_page + (week - 1);
 
     for (let i = 0; i < 4; i++) {
       const part = parts[i];
