@@ -142,7 +142,8 @@ week10BlocksB.forEach(b => {
 console.log('\n🔍 Test: Mapping Consistency Check\n');
 
 let allMatch = true;
-for (const block of [...blocks30A, ...blocks30B]) {
+const allBlocks = blocks30A.concat(blocks30B);
+for (const block of allBlocks) {
   const calculatedWeek = calculateWeekFromBlok(block.block_code);
   if (calculatedWeek !== block.week_number) {
     console.log(`❌ MISMATCH: ${block.block_code} -> Generated Week ${block.week_number}, Calculated Week ${calculatedWeek}`);

@@ -210,7 +210,7 @@ async function quickCheck() {
     userRecords.get(r.user_id)!.push(r);
   });
 
-  for (const [userId, records] of userRecords) {
+  Array.from(userRecords).forEach(([userId, records]) => {
     const userJuz = juzByUser.get(userId) || 'Unknown';
     const userBloks = records.flatMap(r => parseBlokField(r.blok));
 
@@ -226,7 +226,7 @@ async function quickCheck() {
       console.log(`   ⚠️ User ${userId} (Juz ${userJuz}):`);
       console.log(`      Some blok don't match: [${nonMatching.join(', ')}]`);
     }
-  }
+  });
 
   console.log('\n✅ Quick Check Complete!\n');
   console.log('💡 Rekomendasi:');
