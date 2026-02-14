@@ -84,16 +84,31 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
   // Mark blocks that have jurnal records
   jurnalRecords.forEach(record => {
     if (record.blok) {
-      const blokCode = record.blok;
-      const current = blockStatus.get(blokCode);
-      if (current) {
-        current.is_completed = true;
-        current.jurnal_count += 1;
-        if (!current.jurnal_date || new Date(record.tanggal_setor || record.created_at) > new Date(current.jurnal_date)) {
-          current.jurnal_date = record.tanggal_setor || record.created_at;
+      // Handle both string and array format for blok field
+      let blokCodes: string[] = [];
+      if (typeof record.blok === 'string' && record.blok.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(record.blok);
+          blokCodes = Array.isArray(parsed) ? parsed : [record.blok];
+        } catch {
+          blokCodes = [record.blok];
         }
-        blockStatus.set(blokCode, current);
+      } else {
+        blokCodes = [record.blok];
       }
+
+      // Mark each blok as completed
+      blokCodes.forEach(blokCode => {
+        const current = blockStatus.get(blokCode);
+        if (current) {
+          current.is_completed = true;
+          current.jurnal_count += 1;
+          if (!current.jurnal_date || new Date(record.tanggal_setor || record.created_at) > new Date(current.jurnal_date)) {
+            current.jurnal_date = record.tanggal_setor || record.created_at;
+          }
+          blockStatus.set(blokCode, current);
+        }
+      });
     }
   });
 
