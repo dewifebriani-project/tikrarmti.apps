@@ -157,7 +157,7 @@ async function quickCheck() {
   console.log(`   Invalid: ${formatCounts.invalid}\n`);
 
   // Unique blok values
-  const uniqueBloks = [...new Set(blokValues)].sort();
+  const uniqueBloks = Array.from(new Set(blokValues)).sort();
   console.log(`📋 Unique Blok Values (${uniqueBloks.length}):`);
   console.log(`   ${uniqueBloks.join(', ')}\n`);
 
