@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
+// Helper to normalize block code (ensure it starts with H)
+function normalizeBlokCode(code: string): string {
+  if (!code) return code;
+  // If it's just a number or number+letter but missing H, add it
+  // But be careful not to double add if format matches H\d...
+  if (/^H\d/.test(code)) return code;
+  // If it matches array format, don't touch it here, handle inside logic
+  if (code.startsWith('[')) return code;
+  return `H${code}`;
+}
+
 // Helper function to calculate week number from blok code
 // Same logic as tashih: H1A/H1B/H1C/H1D = week 1, H2A/H2B/H2C/H2D = week 2, etc.
 function calculateWeekFromBlok(blok: string | null): number | null {
@@ -26,8 +37,12 @@ function calculateWeekFromBlok(blok: string | null): number | null {
 
   if (!blokCode) return null;
 
+  // Normalize code first
+  blokCode = normalizeBlokCode(blokCode);
+
   // Extract number from blok code (e.g., "H1A" -> 1, "H11B" -> 11)
-  const match = blokCode.match(/H(\d+)/);
+  // Now we can rely on H prefix being there or simple number matching
+  const match = blokCode.match(/H(\d+)/) || blokCode.match(/^(\d+)/);
   if (!match) return null;
 
   const blockNumber = parseInt(match[1], 10);
@@ -98,7 +113,10 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
       }
 
       // Mark each blok as completed
-      blokCodes.forEach(blokCode => {
+      blokCodes.forEach(rawBlokCode => {
+        // Normalize blok code to ensure it matches the generated H-format
+        const blokCode = normalizeBlokCode(rawBlokCode);
+
         const current = blockStatus.get(blokCode);
         if (current) {
           current.is_completed = true;
@@ -195,6 +213,97 @@ export async function GET(request: Request) {
 
     // Get URL parameters for filtering
     const { searchParams } = new URL(request.url);
+    const debugMode = searchParams.get('debug') === 'true';
+
+    // DEBUG MODE: Return raw data for specific users to troubleshoot
+    if (debugMode) {
+      const debugNames = ['Afifah', 'Aam', 'Agustina'];
+      const debugData: any = {
+        timestamp: new Date().toISOString(),
+        target_names: debugNames,
+        users: [],
+        juz_options: []
+      };
+
+      // 1. Find users
+      for (const name of debugNames) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, full_name, nama_kunyah')
+          .ilike('full_name', `%${name}%`);
+
+        if (users && users.length > 0) {
+          for (const u of users) {
+            // Get submission
+            const { data: submission } = await supabase
+              .from('daftar_ulang_submissions')
+              .select('*')
+              .eq('user_id', u.id)
+              .single();
+
+            // Get records
+            const { data: records } = await supabase
+              .from('jurnal_records')
+              .select('*')
+              .eq('user_id', u.id)
+              .order('created_at', { ascending: false });
+
+            // Test Block Generation for this user
+            let generatedBlocks = [];
+            let debugWeeklyStatus = [];
+            let blockStatusDump: any = {};
+
+            if (submission?.confirmed_chosen_juz) {
+              const { data: juz } = await supabase
+                .from('juz_options')
+                .select('*')
+                .eq('code', submission.confirmed_chosen_juz)
+                .single();
+
+              if (juz) {
+                generatedBlocks = generateAllBlocks(juz);
+                debugWeeklyStatus = calculateWeeklyStatus(generatedBlocks, records || []);
+
+                // Dump status for first 2 weeks blocks
+                generatedBlocks.filter(b => b.week_number <= 2).forEach(b => {
+                  const status = debugWeeklyStatus.find(w => w.week_number === b.week_number)?.blocks.find((ib: any) => ib.block_code === b.block_code);
+                  // Re-simulate map check
+                  const hasJurnal = records?.some(r => normalizeBlokCode(r.blok) === b.block_code);
+
+                  blockStatusDump[b.block_code] = {
+                    in_generated: true,
+                    has_record_match: hasJurnal,
+                    final_status_is_completed: status?.is_completed
+                  };
+                });
+              }
+            }
+
+            debugData.users.push({
+              info: u,
+              submission,
+              records_count: records?.length,
+              block_status_dump: blockStatusDump,
+              weekly_status_summary: debugWeeklyStatus.map(w => `W${w.week_number}: ${w.completed_blocks}/${w.total_blocks}`),
+              records: records?.map(r => ({
+                id: r.id,
+                blok: r.blok,
+                normalized_blok: normalizeBlokCode(r.blok || ''),
+                tanggal_setor: r.tanggal_setor
+              })),
+              generated_blocks_sample: generatedBlocks.slice(0, 5) // Just first 5
+            });
+          }
+        }
+      }
+
+      // 2. Get all Juz Options for reference
+      const { data: allJuz } = await supabase.from('juz_options').select('*');
+      debugData.juz_options = allJuz;
+
+      return NextResponse.json(debugData);
+    }
+
     const blok = searchParams.get('blok');
     const pekan = searchParams.get('pekan');
     const batchId = searchParams.get('batch_id');
@@ -228,49 +337,68 @@ export async function GET(request: Request) {
 
     const daftarUlangUserIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
 
-    // Build query for jurnal_records - filter by user IDs from daftar_ulang (like tashih)
-    let query = supabase
-      .from('jurnal_records')
-      .select(`
-        id,
-        user_id,
-        tanggal_jurnal,
-        tanggal_setor,
-        juz_code,
-        blok,
-        tashih_completed,
-        rabth_completed,
-        murajaah_count,
-        simak_murattal_count,
-        tikrar_bi_an_nadzar_completed,
-        tasmi_record_count,
-        simak_record_completed,
-        tikrar_bi_al_ghaib_count,
-        tafsir_completed,
-        menulis_completed,
-        total_duration_minutes,
-        catatan_tambahan,
-        created_at,
-        updated_at
-      `)
-      .in('user_id', daftarUlangUserIds)
-      .order('tanggal_setor', { ascending: false });
+    let allEntries: any[] = [];
+    let page = 0;
+    let hasMore = true;
+    const pageSize = 1000;
 
-    // Apply filters if provided
-    if (blok) {
-      query = query.eq('blok', blok);
-    }
+    while (hasMore) {
+      let chunkQuery = supabase
+        .from('jurnal_records')
+        .select(`
+            id,
+            user_id,
+            tanggal_jurnal,
+            tanggal_setor,
+            juz_code,
+            blok,
+            tashih_completed,
+            rabth_completed,
+            murajaah_count,
+            simak_murattal_count,
+            tikrar_bi_an_nadzar_completed,
+            tasmi_record_count,
+            simak_record_completed,
+            tikrar_bi_al_ghaib_count,
+            tafsir_completed,
+            menulis_completed,
+            total_duration_minutes,
+            catatan_tambahan,
+            created_at,
+            updated_at
+          `)
+        .in('user_id', daftarUlangUserIds)
+        .order('tanggal_setor', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
 
-    const { data: entries, error } = await query;
+      if (blok) {
+        chunkQuery = chunkQuery.eq('blok', blok);
+      }
 
-    if (error) {
-      // If table doesn't exist, treat as no entries
-      if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-        // Continue with empty entries array
+      const { data: chunk, error: chunkError } = await chunkQuery;
+
+      if (chunkError) {
+        if (chunkError.code === 'PGRST116' || chunkError.message.includes('does not exist')) {
+          hasMore = false;
+          break;
+        } else {
+          throw chunkError;
+        }
+      }
+
+      if (chunk && chunk.length > 0) {
+        allEntries = [...allEntries, ...chunk];
+        if (chunk.length < pageSize) {
+          hasMore = false; // Last page
+        } else {
+          page++;
+        }
       } else {
-        throw error;
+        hasMore = false;
       }
     }
+
+    const entries = allEntries;
 
     // =====================================================
     // LIKE TASHIH: Create entry for ALL users from daftar_ulang
@@ -311,7 +439,7 @@ export async function GET(request: Request) {
         const bloks = typeof record.blok === 'string' && record.blok.startsWith('[')
           ? JSON.parse(record.blok)
           : [record.blok];
-        bloks.forEach((b: any) => allBloks.add(b));
+        bloks.forEach((b: any) => allBloks.add(normalizeBlokCode(b)));
       }
     });
 
@@ -360,9 +488,9 @@ export async function GET(request: Request) {
       const userJurnalRecords = jurnalByUser.get(userId) || [];
       const latestJurnal = userJurnalRecords.length > 0
         ? userJurnalRecords.sort((a: any, b: any) =>
-            new Date(b.tanggal_setor || b.created_at).getTime() -
-            new Date(a.tanggal_setor || a.created_at).getTime()
-          )[0]
+          new Date(b.tanggal_setor || b.created_at).getTime() -
+          new Date(a.tanggal_setor || a.created_at).getTime()
+        )[0]
         : null;
       const juzCode = daftarUlang?.confirmed_chosen_juz;
       const juzInfo = juzCode ? juzInfoMap.get(juzCode) : null;
@@ -378,7 +506,17 @@ export async function GET(request: Request) {
         weeklyStatus = calculateWeeklyStatus(allBlocks, userJurnalRecords);
         totalBlocks = allBlocks.length;
         completedBlocks = allBlocks.filter(b => {
-          const hasJurnal = userJurnalRecords.some((record: any) => record.blok === b.block_code);
+          const hasJurnal = userJurnalRecords.some((record: any) => {
+            // Handle both string and array format for blok
+            let rBloks = [];
+            if (record.blok && record.blok.startsWith('[')) {
+              try { rBloks = JSON.parse(record.blok); } catch { rBloks = [record.blok]; }
+            } else {
+              rBloks = [record.blok];
+            }
+
+            return rBloks.some((rb: string) => normalizeBlokCode(rb) === b.block_code);
+          });
           return hasJurnal;
         }).length;
 
@@ -435,8 +573,8 @@ export async function GET(request: Request) {
       const userSPRecords = spByUser.get(userId) || [];
       const latestSP = userSPRecords.length > 0
         ? userSPRecords.reduce((latest: any, current: any) =>
-            current.sp_level > latest.sp_level ? current : latest
-          )
+          current.sp_level > latest.sp_level ? current : latest
+        )
         : null;
 
       return {
