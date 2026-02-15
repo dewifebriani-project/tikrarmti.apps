@@ -5,7 +5,7 @@ import { cookies } from 'next/headers'
 export async function POST(request: Request) {
   const startTime = Date.now()
   try {
-    const { access_token, refresh_token } = await request.json()
+    const { access_token, refresh_token, remember_me } = await request.json()
 
     if (!access_token || !refresh_token) {
       return NextResponse.json({
@@ -14,13 +14,22 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    console.log('API /api/auth/login - Setting session on server')
+    console.log('API /api/auth/login - Setting session on server', { remember_me })
+
+    // Configure cookie expiration based on remember_me preference
+    // If remember_me is true, set maxAge to 7 days (60 * 60 * 24 * 7)
+    // If remember_me is false, set maxAge to 0 (session cookie)
+    const cookieOptions = {
+      cookies: {
+        maxAge: remember_me ? 60 * 60 * 24 * 7 : 0
+      }
+    }
 
     // Get the cookie store to properly set cookies
     const cookieStore = cookies()
 
-    // Create server client and set the session
-    const supabase = createClient()
+    // Create server client and set the session with correct expiration
+    const supabase = createClient(cookieOptions)
 
     const { data, error } = await supabase.auth.setSession({
       access_token,

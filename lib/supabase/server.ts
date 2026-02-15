@@ -7,7 +7,7 @@ export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Server-side client that can read cookies - for API routes
-export function createClient() {
+export function createClient(options?: { cookies?: { maxAge?: number } }) {
   const cookieStore = cookies()
 
   return createSupabaseServerClient(
@@ -19,16 +19,29 @@ export function createClient() {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
+            // Determine maxAge: use passed option, or default to 1 week if not session cookie
+            // If options.cookies.maxAge is explicitly 0 or undefined, it acts as session cookie
+            let maxAge = options?.cookies?.maxAge;
+            
+            // If no maxAge provided in options, default to 1 week (preserve existing behavior)
+            // UNLESS we want a session cookie (maxAge = 0 or undefined explicitly passed)
+            // But to preserve backward compatibility:
+            if (maxAge === undefined) {
+               maxAge = 60 * 60 * 24 * 7; // Default 1 week
+            } else if (maxAge === 0) {
+               maxAge = undefined; // Session cookie
+            }
+
             cookieStore.set(name, value, {
-              ...options,
+              ...cookieOptions,
               // SECURITY: Explicit cookie flags
               httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
-              maxAge: 60 * 60 * 24 * 7, // 1 week in seconds
+              maxAge: maxAge, 
             })
-          )
+          })
         },
       },
       auth: {

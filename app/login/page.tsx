@@ -16,9 +16,9 @@ function LoginPageContent() {
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
-    email: '',
     password: ''
   });
+  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<React.ReactNode>('');
@@ -256,6 +256,7 @@ function LoginPageContent() {
             body: JSON.stringify({
               access_token: data.session.access_token,
               refresh_token: data.session.refresh_token,
+              remember_me: rememberMe,
             }),
             credentials: 'include',
           });
@@ -299,11 +300,10 @@ function LoginPageContent() {
     <>
       {/* Mobile Notification Toast */}
       {showNotification && (
-        <div className={`fixed top-4 right-4 left-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 ${
-          notificationType === 'success'
-            ? 'bg-green-500 text-white'
-            : 'bg-red-500 text-white'
-        }`}>
+        <div className={`fixed top-4 right-4 left-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 ${notificationType === 'success'
+          ? 'bg-green-500 text-white'
+          : 'bg-red-500 text-white'
+          }`}>
           <div className="flex items-center">
             {notificationType === 'success' ? (
               <CheckCircle2 className="w-6 h-6 mr-3" />
@@ -326,7 +326,7 @@ function LoginPageContent() {
         </div>
       )}
 
-      
+
       <div className="min-h-screen bg-white flex items-center justify-center px-4 py-8 sm:py-12">
         {/* Minimal Background Elements */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
@@ -351,147 +351,165 @@ function LoginPageContent() {
             <p className="text-gray-600">Portal Santri Markaz Tikrar Indonesia</p>
           </div>
 
-        {/* Login Form */}
-        <Card className="shadow-xl border-0">
-          <CardContent className="p-6 sm:p-8">
-            {successMessage && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
-                {successMessage}
-              </div>
-            )}
-
-            {errors.general && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-                {errors.general}
-              </div>
-            )}
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email/Username</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="mt-1"
-                  placeholder="email@example.com"
-                  disabled={isLoading}
-                  autoComplete="email"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="mt-1 pr-12 text-base"
-                    placeholder="Masukkan password"
-                    disabled={isLoading}
-                    autoComplete="current-password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-1 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
-                    ) : (
-                      <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
-                    )}
-                  </Button>
+          {/* Login Form */}
+          <Card className="shadow-xl border-0">
+            <CardContent className="p-6 sm:p-8">
+              {successMessage && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+                  {successMessage}
                 </div>
-              </div>
+              )}
 
-              <div className="flex justify-end">
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-green-900 hover:text-green-700 hover:underline transition-colors"
+              {errors.general && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                  {errors.general}
+                </div>
+              )}
+
+              {/* Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email/Username</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="mt-1"
+                    placeholder="email@example.com"
+                    disabled={isLoading}
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      className="mt-1 pr-12 text-base"
+                      placeholder="Masukkan password"
+                      disabled={isLoading}
+                      autoComplete="current-password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-1 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
+                      ) : (
+                        <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="remember_me"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-600 focus:ring-2 transition duration-150 ease-in-out cursor-pointer"
+                    />
+                  </div>
+                  <Label
+                    htmlFor="remember_me"
+                    className="text-sm text-gray-700 cursor-pointer select-none font-medium"
+                  >
+                    Ingatkan Saya
+                  </Label>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm text-green-900 hover:text-green-700 hover:underline transition-colors"
+                  >
+                    Lupa password?
+                  </Link>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  size="lg"
+                  className="w-full bg-green-900 hover:bg-green-800 text-white transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl py-4 sm:py-6 text-base sm:text-lg"
                 >
-                  Lupa password?
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Memproses...</span>
+                    </div>
+                  ) : (
+                    <span className="font-semibold">Masuk</span>
+                  )}
+                </Button>
+              </form>
+
+              {/* Register Link */}
+              <div className="text-center mt-6">
+                <p className="text-gray-600 mb-2 text-sm sm:text-base">
+                  Belum terdaftar di sistem MTI?
+                </p>
+                <Link
+                  href="/register"
+                  className="inline-block text-green-900 hover:text-green-800 font-semibold hover:underline transition-colors text-base sm:text-lg"
+                >
+                  Daftar sebagai anggota baru
                 </Link>
               </div>
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                size="lg"
-                className="w-full bg-green-900 hover:bg-green-800 text-white transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl py-4 sm:py-6 text-base sm:text-lg"
-              >
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Memproses...</span>
-                  </div>
-                ) : (
-                  <span className="font-semibold">Masuk</span>
-                )}
-              </Button>
-            </form>
-
-            {/* Register Link */}
-            <div className="text-center mt-6">
-              <p className="text-gray-600 mb-2 text-sm sm:text-base">
-                Belum terdaftar di sistem MTI?
-              </p>
-              <Link
-                href="/register"
-                className="inline-block text-green-900 hover:text-green-800 font-semibold hover:underline transition-colors text-base sm:text-lg"
-              >
-                Daftar sebagai anggota baru
-              </Link>
-            </div>
-
-            {/* Debug Toggle Button */}
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDebug(!showDebug);
-                  collectDebugInfo();
-                }}
-                className="text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 mx-auto"
-              >
-                <Bug className="w-3 h-3" />
-                {showDebug ? 'Hide Debug' : 'Show Debug'}
-              </button>
-            </div>
-
-            {/* Debug Panel */}
-            {showDebug && debugInfo && (
-              <div className="mt-4 p-4 bg-gray-900 text-green-400 rounded-lg text-xs overflow-auto max-h-96">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold">Debug Info:</span>
-                  <span className="text-gray-400">{debugInfo.timestamp}</span>
-                </div>
-                <pre className="whitespace-pre-wrap break-words">
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
+              {/* Debug Toggle Button */}
+              <div className="mt-4 text-center">
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
-                    alert('Debug info copied to clipboard');
+                    setShowDebug(!showDebug);
+                    collectDebugInfo();
                   }}
-                  className="mt-2 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 mx-auto"
                 >
-                  Copy to Clipboard
+                  <Bug className="w-3 h-3" />
+                  {showDebug ? 'Hide Debug' : 'Show Debug'}
                 </button>
               </div>
-            )}
 
-                      </CardContent>
-        </Card>
+              {/* Debug Panel */}
+              {showDebug && debugInfo && (
+                <div className="mt-4 p-4 bg-gray-900 text-green-400 rounded-lg text-xs overflow-auto max-h-96">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold">Debug Info:</span>
+                    <span className="text-gray-400">{debugInfo.timestamp}</span>
+                  </div>
+                  <pre className="whitespace-pre-wrap break-words">
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </pre>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
+                      alert('Debug info copied to clipboard');
+                    }}
+                    className="mt-2 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
+                  >
+                    Copy to Clipboard
+                  </button>
+                </div>
+              )}
+
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </>
   );
 }
