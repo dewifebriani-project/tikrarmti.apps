@@ -513,7 +513,12 @@ export default function PanelMusyrifahPage() {
         params.append('pekan', selectedPekan);
       }
 
-      const response = await fetch(`/api/musyrifah/jurnal?${params.toString()}`);
+      const response = await fetch(`/api/musyrifah/jurnal?${params.toString()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || 'Error loading jurnal');
