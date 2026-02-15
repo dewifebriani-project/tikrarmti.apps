@@ -19,7 +19,7 @@ interface JurnalRecord {
 }
 
 // Copy of the generateAllBlocks function from the API
-function generateAllBlocks(juzInfo: JuzInfo) {
+function generateAllBlocksDebug(juzInfo: JuzInfo) {
   const allBlocks: any[] = [];
   const parts = ['A', 'B', 'C', 'D'];
   const blockOffset = juzInfo.part === 'B' ? 10 : 0;
@@ -128,7 +128,7 @@ function testAamUmmuRifki() {
   };
 
   // Generate all blocks
-  const allBlocks = generateAllBlocks(juz30A);
+  const allBlocks = generateAllBlocksDebug(juz30A);
   console.log(`Total blocks generated: ${allBlocks.length}`);
   console.log(`First 4 blocks: ${allBlocks.slice(0, 4).map(b => b.block_code).join(', ')}`);
 
