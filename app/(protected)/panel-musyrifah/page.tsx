@@ -335,6 +335,9 @@ export default function PanelMusyrifahPage() {
   const [selectedTashihBlok, setSelectedTashihBlok] = useState<string>('all');
   const [availableTashihBloks, setAvailableTashihBloks] = useState<string[]>([]);
 
+  // Batch info state
+  const [currentWeek, setCurrentWeek] = useState<number>(0);
+
   // Save activeTab to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -531,6 +534,9 @@ export default function PanelMusyrifahPage() {
         if (result.meta?.bloks) {
           setAvailableBloks(result.meta.bloks);
         }
+        if (result.meta?.current_week) {
+          setCurrentWeek(result.meta.current_week);
+        }
       }
     } catch (error) {
       console.error('Error loading jurnal:', error);
@@ -614,7 +620,7 @@ export default function PanelMusyrifahPage() {
 
   const loadSPPending = async () => {
     try {
-      const response = await fetch('/api/musyrifah/sp/check-weekly');
+      const response = await fetch('/api/musyrifah/sp/check-weekly?check_all_weeks=true');
       if (!response.ok) {
         const errorData = await response.json();
         toast.error(errorData.error || 'Error loading pending SP');
@@ -1033,6 +1039,22 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
     const completedWeeks = entry.weekly_status.filter((w: any) => w.is_completed).length;
     const totalWeeks = entry.weekly_status.length;
 
+    // Calculate missing blocks up to current week
+    // Use currentWeek from state, or default to all if not loaded yet
+    const targetWeek = currentWeek > 0 ? currentWeek : 10;
+    const relevantWeeks = entry.weekly_status.filter((w: any) => w.week_number <= targetWeek);
+    const missingBlocks: string[] = [];
+
+    relevantWeeks.forEach((w: any) => {
+      // Check incomplete blocks in this week
+      const incomplete = w.blocks.filter((b: any) => !b.is_completed);
+      incomplete.forEach((b: any) => missingBlocks.push(b.block_code));
+    });
+
+    const missingBlocksText = missingBlocks.length > 0
+      ? missingBlocks.join(', ')
+      : 'Alhamdulillah tuntas';
+
     const message = `Assalamu'alaikum ${name},
 
 Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan progress jurnal:
@@ -1041,6 +1063,7 @@ Saya dari tim musyrifah Markaz Tikrar Indonesia. Terkait dengan progress jurnal:
 - Progress: ${entry.summary?.completed_blocks || 0}/${entry.summary?.total_blocks || 0} blok (${entry.summary?.completion_percentage || 0}%)
 - Pekan selesai: ${completedWeeks}/${totalWeeks}
 - Total jurnal: ${entry.jurnal_count} record
+- Blok belum tuntas (sampai Pekan ${targetWeek}): ${missingBlocksText}
 
 ${(entry.summary?.completion_percentage || 0) < 100 ? 'Mohon ditingkatkan lagi jurnal hariannya.' : 'Alhamdulillah jurnal sudah lengkap.'}
 
@@ -1090,11 +1113,10 @@ Tim Markaz Tikrar Indonesia`;
           >
             SP{spLevel}
           </span>
-          <span className={`text-[9px] font-bold ${
-            incompleteBlocks.length === 0 ? 'text-green-700' :
+          <span className={`text-[9px] font-bold ${incompleteBlocks.length === 0 ? 'text-green-700' :
             incompleteBlocks.length === week.total_blocks ? 'text-red-700' :
-            'text-yellow-700'
-          }`}>
+              'text-yellow-700'
+            }`}>
             {completedCount}/4
           </span>
         </div>
@@ -1279,13 +1301,12 @@ Tim Markaz Tikrar Indonesia`;
                           )}
                           {userData.sp_summary && (
                             <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border mt-1 ${
-                                userData.sp_summary.sp_level === 1
-                                  ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
-                                  : userData.sp_summary.sp_level === 2
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border mt-1 ${userData.sp_summary.sp_level === 1
+                                ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                : userData.sp_summary.sp_level === 2
                                   ? 'bg-orange-100 text-orange-800 border-orange-300'
                                   : 'bg-red-100 text-red-800 border-red-300'
-                              }`}
+                                }`}
                               title={`SP${userData.sp_summary.sp_level} - Pekan ${userData.sp_summary.week_number}`}
                             >
                               {userData.sp_summary.is_blacklisted && (
@@ -1308,7 +1329,7 @@ Tim Markaz Tikrar Indonesia`;
                               title="Chat via WhatsApp"
                             >
                               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                               </svg>
                             </a>
                           ) : (
@@ -1330,7 +1351,7 @@ Tim Markaz Tikrar Indonesia`;
                         <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-1">
                             <button
-                              onClick={() => {/* Could open detail modal */}}
+                              onClick={() => {/* Could open detail modal */ }}
                               className="text-indigo-600 hover:text-indigo-900 p-1"
                               title="Detail"
                             >
@@ -1347,192 +1368,190 @@ Tim Markaz Tikrar Indonesia`;
                         </td>
                       </tr>
                       {expandedRows.has(userData.user_id) && (
-                      <tr className="bg-gray-50">
-                        <td colSpan={13} className="px-4 py-4">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-sm font-medium text-gray-700">Status Blok per Pekan (10 Pekan)</h4>
-                              <span className="text-xs text-gray-500">Klik blok untuk melihat detail</span>
-                            </div>
+                        <tr className="bg-gray-50">
+                          <td colSpan={13} className="px-4 py-4">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-medium text-gray-700">Status Blok per Pekan (10 Pekan)</h4>
+                                <span className="text-xs text-gray-500">Klik blok untuk melihat detail</span>
+                              </div>
 
-                            {/* Block Grid with Detail per Blok - LIKE TASHIH */}
-                            <div className="space-y-3">
-                              {userData.weekly_status.map((week) => {
-                                const incompleteBlocks = week.blocks ? week.blocks.filter((b: any) => !b.is_completed) : [];
-                                const completedBlocks = week.blocks ? week.blocks.filter((b: any) => b.is_completed) : [];
+                              {/* Block Grid with Detail per Blok - LIKE TASHIH */}
+                              <div className="space-y-3">
+                                {userData.weekly_status.map((week) => {
+                                  const incompleteBlocks = week.blocks ? week.blocks.filter((b: any) => !b.is_completed) : [];
+                                  const completedBlocks = week.blocks ? week.blocks.filter((b: any) => b.is_completed) : [];
 
-                                return (
-                                  <div key={week.week_number} className="border rounded-lg p-3 bg-white">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-semibold text-gray-700">Pekan {week.week_number}</span>
-                                        <span className="text-xs text-gray-500">({week.completed_blocks}/4 selesai)</span>
-                                      </div>
-                                      {week.sp_info && (
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                                          week.sp_info.sp_level === 1
+                                  return (
+                                    <div key={week.week_number} className="border rounded-lg p-3 bg-white">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-sm font-semibold text-gray-700">Pekan {week.week_number}</span>
+                                          <span className="text-xs text-gray-500">({week.completed_blocks}/4 selesai)</span>
+                                        </div>
+                                        {week.sp_info && (
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${week.sp_info.sp_level === 1
                                             ? 'bg-yellow-100 text-yellow-800 border-yellow-300'
                                             : week.sp_info.sp_level === 2
-                                            ? 'bg-orange-100 text-orange-800 border-orange-300'
-                                            : 'bg-red-100 text-red-800 border-red-300'
-                                        }`} title={`SP${week.sp_info.sp_level} - ${week.sp_info.reason}`}>
-                                          SP{week.sp_info.sp_level}
-                                        </span>
-                                      )}
-                                      {week.is_completed && (
-                                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
-                                          Selesai
-                                        </span>
-                                      )}
-                                    </div>
+                                              ? 'bg-orange-100 text-orange-800 border-orange-300'
+                                              : 'bg-red-100 text-red-800 border-red-300'
+                                            }`} title={`SP${week.sp_info.sp_level} - ${week.sp_info.reason}`}>
+                                            SP{week.sp_info.sp_level}
+                                          </span>
+                                        )}
+                                        {week.is_completed && (
+                                          <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                                            Selesai
+                                          </span>
+                                        )}
+                                      </div>
 
-                                    {/* Blocks for this week - Grid like tashih */}
-                                    <div className="grid grid-cols-4 gap-2">
-                                      {week.blocks && week.blocks.map((block: any) => {
-                                        // Find jurnal records for this block
-                                        const recordsForBlock = userData.jurnal_records.filter((r: any) => r.blok === block.block_code);
+                                      {/* Blocks for this week - Grid like tashih */}
+                                      <div className="grid grid-cols-4 gap-2">
+                                        {week.blocks && week.blocks.map((block: any) => {
+                                          // Find jurnal records for this block
+                                          const recordsForBlock = userData.jurnal_records.filter((r: any) => r.blok === block.block_code);
 
-                                        return (
-                                          <div
-                                            key={block.block_code}
-                                            className={`text-center p-2 rounded-lg border-2 transition-all ${
-                                              block.is_completed
+                                          return (
+                                            <div
+                                              key={block.block_code}
+                                              className={`text-center p-2 rounded-lg border-2 transition-all ${block.is_completed
                                                 ? 'border-green-400 bg-green-50 text-green-700'
                                                 : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'
-                                            }`}
-                                            title={block.is_completed
-                                              ? `Sudah ada jurnal (${block.jurnal_count} record)`
-                                              : `Belum ada jurnal`
-                                            }
-                                          >
-                                            <div className="text-xs font-bold">{block.block_code}</div>
-                                            <div className="text-[10px] text-gray-500 mt-1">
-                                              {block.is_completed ? `${block.jurnal_count} jurnal` : 'Belum'}
-                                            </div>
-                                            {/* Show delete button for blocks with jurnal records */}
-                                            {block.is_completed && recordsForBlock.length > 0 && (
-                                              <div className="mt-1 space-y-0.5">
-                                                {recordsForBlock.map((record: any) => (
-                                                  <button
-                                                    key={record.id}
-                                                    onClick={async () => {
-                                                      const entryDate = new Date(record.tanggal_setor).toLocaleDateString('id-ID');
-                                                      if (confirm(`Hapus record jurnal untuk blok ${block.block_code}?\n\nTanggal: ${entryDate}\nBlok: ${block.block_code}`)) {
-                                                        try {
-                                                          const response = await fetch(`/api/musyrifah/jurnal?id=${record.id}`, {
-                                                            method: 'DELETE',
-                                                          });
-
-                                                          if (!response.ok) {
-                                                            const error = await response.json();
-                                                            toast.error(error.error || 'Gagal menghapus record');
-                                                            return;
-                                                          }
-
-                                                          toast.success(`Record jurnal untuk ${block.block_code} berhasil dihapus`);
-                                                          onRefresh();
-                                                        } catch (err) {
-                                                          toast.error('Gagal menghapus record');
-                                                        }
-                                                      }
-                                                    }}
-                                                    className="text-red-600 hover:text-red-800 text-[9px] underline w-full"
-                                                    title={`Hapus record ${new Date(record.tanggal_setor).toLocaleDateString('id-ID')}`}
-                                                  >
-                                                    Hapus
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-
-                                    {/* Show detailed entries for this week (collapsed by default) */}
-                                    {week.entries && week.entries.length > 0 && (
-                                      <details className="mt-3">
-                                        <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
-                                          Lihat detail jurnal untuk pekan ini
-                                        </summary>
-                                        <div className="mt-2 space-y-2 pl-2 border-l-2 border-gray-200">
-                                          {week.entries.map((entry: JurnalEntry) => (
-                                            <div
-                                              key={entry.id}
-                                              className="text-xs p-2 bg-gray-50 rounded border border-gray-100"
+                                                }`}
+                                              title={block.is_completed
+                                                ? `Sudah ada jurnal (${block.jurnal_count} record)`
+                                                : `Belum ada jurnal`
+                                              }
                                             >
-                                              <div className="flex justify-between items-start">
-                                                <div className="flex-1">
-                                                  <div className="flex items-center gap-2 text-xs">
-                                                    <span className="text-gray-500">
-                                                      {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
-                                                    </span>
-                                                    {entry.blok && (
-                                                      <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-purple-100 text-purple-800">
-                                                        {entry.blok}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                  <div className="mt-1 grid grid-cols-5 gap-1 text-[10px]">
-                                                    <span className={entry.tashih_completed ? 'text-green-600' : 'text-gray-400'}>T: {entry.tashih_completed ? '✓' : '-'}</span>
-                                                    <span className={entry.rabth_completed ? 'text-green-600' : 'text-gray-400'}>R: {entry.rabth_completed ? '✓' : '-'}</span>
-                                                    <span className={entry.murajaah_count > 0 ? 'text-green-600' : 'text-gray-400'}>M: {entry.murajaah_count}</span>
-                                                    <span className={entry.tikrar_bi_an_nadzar_completed ? 'text-green-600' : 'text-gray-400'}>TN: {entry.tikrar_bi_an_nadzar_completed ? '✓' : '-'}</span>
-                                                    <span className={entry.tikrar_bi_al_ghaib_count > 0 ? 'text-green-600' : 'text-gray-400'}>TG: {entry.tikrar_bi_al_ghaib_count}</span>
-                                                  </div>
-                                                </div>
-                                                <button
-                                                  onClick={() => {
-                                                    setEditingEntry(entry);
-                                                    setShowEditModal(true);
-                                                  }}
-                                                  className="text-indigo-600 hover:text-indigo-900 p-1"
-                                                  title="Edit"
-                                                >
-                                                  <Edit className="w-3 h-3" />
-                                                </button>
+                                              <div className="text-xs font-bold">{block.block_code}</div>
+                                              <div className="text-[10px] text-gray-500 mt-1">
+                                                {block.is_completed ? `${block.jurnal_count} jurnal` : 'Belum'}
                                               </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </details>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
+                                              {/* Show delete button for blocks with jurnal records */}
+                                              {block.is_completed && recordsForBlock.length > 0 && (
+                                                <div className="mt-1 space-y-0.5">
+                                                  {recordsForBlock.map((record: any) => (
+                                                    <button
+                                                      key={record.id}
+                                                      onClick={async () => {
+                                                        const entryDate = new Date(record.tanggal_setor).toLocaleDateString('id-ID');
+                                                        if (confirm(`Hapus record jurnal untuk blok ${block.block_code}?\n\nTanggal: ${entryDate}\nBlok: ${block.block_code}`)) {
+                                                          try {
+                                                            const response = await fetch(`/api/musyrifah/jurnal?id=${record.id}`, {
+                                                              method: 'DELETE',
+                                                            });
 
-                            {/* Summary - Updated with block stats */}
-                            <div className="mt-4 pt-3 border-t border-gray-200">
-                              <div className="grid grid-cols-5 gap-4 text-xs">
-                                <div>
-                                  <span className="text-gray-500">Total Blok:</span>
-                                  <span className="ml-2 font-medium text-gray-900">{userData.summary?.total_blocks || 0}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Blok Selesai:</span>
-                                  <span className="ml-2 font-medium text-green-600">{userData.summary?.completed_blocks || 0}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Blok Pending:</span>
-                                  <span className="ml-2 font-medium text-yellow-600">{userData.summary?.pending_blocks || 0}</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Progress:</span>
-                                  <span className="ml-2 font-medium text-gray-900">{userData.summary?.completion_percentage || 0}%</span>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500">Total Jurnal:</span>
-                                  <span className="ml-2 font-medium text-gray-900">{userData.jurnal_count}</span>
+                                                            if (!response.ok) {
+                                                              const error = await response.json();
+                                                              toast.error(error.error || 'Gagal menghapus record');
+                                                              return;
+                                                            }
+
+                                                            toast.success(`Record jurnal untuk ${block.block_code} berhasil dihapus`);
+                                                            onRefresh();
+                                                          } catch (err) {
+                                                            toast.error('Gagal menghapus record');
+                                                          }
+                                                        }
+                                                      }}
+                                                      className="text-red-600 hover:text-red-800 text-[9px] underline w-full"
+                                                      title={`Hapus record ${new Date(record.tanggal_setor).toLocaleDateString('id-ID')}`}
+                                                    >
+                                                      Hapus
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+
+                                      {/* Show detailed entries for this week (collapsed by default) */}
+                                      {week.entries && week.entries.length > 0 && (
+                                        <details className="mt-3">
+                                          <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                                            Lihat detail jurnal untuk pekan ini
+                                          </summary>
+                                          <div className="mt-2 space-y-2 pl-2 border-l-2 border-gray-200">
+                                            {week.entries.map((entry: JurnalEntry) => (
+                                              <div
+                                                key={entry.id}
+                                                className="text-xs p-2 bg-gray-50 rounded border border-gray-100"
+                                              >
+                                                <div className="flex justify-between items-start">
+                                                  <div className="flex-1">
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <span className="text-gray-500">
+                                                        {new Date(entry.tanggal_setor).toLocaleDateString('id-ID')}
+                                                      </span>
+                                                      {entry.blok && (
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-purple-100 text-purple-800">
+                                                          {entry.blok}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div className="mt-1 grid grid-cols-5 gap-1 text-[10px]">
+                                                      <span className={entry.tashih_completed ? 'text-green-600' : 'text-gray-400'}>T: {entry.tashih_completed ? '✓' : '-'}</span>
+                                                      <span className={entry.rabth_completed ? 'text-green-600' : 'text-gray-400'}>R: {entry.rabth_completed ? '✓' : '-'}</span>
+                                                      <span className={entry.murajaah_count > 0 ? 'text-green-600' : 'text-gray-400'}>M: {entry.murajaah_count}</span>
+                                                      <span className={entry.tikrar_bi_an_nadzar_completed ? 'text-green-600' : 'text-gray-400'}>TN: {entry.tikrar_bi_an_nadzar_completed ? '✓' : '-'}</span>
+                                                      <span className={entry.tikrar_bi_al_ghaib_count > 0 ? 'text-green-600' : 'text-gray-400'}>TG: {entry.tikrar_bi_al_ghaib_count}</span>
+                                                    </div>
+                                                  </div>
+                                                  <button
+                                                    onClick={() => {
+                                                      setEditingEntry(entry);
+                                                      setShowEditModal(true);
+                                                    }}
+                                                    className="text-indigo-600 hover:text-indigo-900 p-1"
+                                                    title="Edit"
+                                                  >
+                                                    <Edit className="w-3 h-3" />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </details>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Summary - Updated with block stats */}
+                              <div className="mt-4 pt-3 border-t border-gray-200">
+                                <div className="grid grid-cols-5 gap-4 text-xs">
+                                  <div>
+                                    <span className="text-gray-500">Total Blok:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{userData.summary?.total_blocks || 0}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Blok Selesai:</span>
+                                    <span className="ml-2 font-medium text-green-600">{userData.summary?.completed_blocks || 0}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Blok Pending:</span>
+                                    <span className="ml-2 font-medium text-yellow-600">{userData.summary?.pending_blocks || 0}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Progress:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{userData.summary?.completion_percentage || 0}%</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Total Jurnal:</span>
+                                    <span className="ml-2 font-medium text-gray-900">{userData.jurnal_count}</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
                       )}
-                  </React.Fragment>
-                );
+                    </React.Fragment>
+                  );
                 })}
               </tbody>
             </table>
@@ -1941,7 +1960,7 @@ Tim Markaz Tikrar Indonesia`;
         <h2 className="text-2xl font-bold text-gray-900">Catatan Tashih</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => {/* TODO: Implement add tashih */}}
+            onClick={() => {/* TODO: Implement add tashih */ }}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -2101,7 +2120,7 @@ Tim Markaz Tikrar Indonesia`;
                               title="Chat via WhatsApp"
                             >
                               <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
                               </svg>
                             </a>
                           ) : (
@@ -2123,7 +2142,7 @@ Tim Markaz Tikrar Indonesia`;
                         <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-1">
                             <button
-                              onClick={() => {/* Open detail modal */}}
+                              onClick={() => {/* Open detail modal */ }}
                               className="text-indigo-600 hover:text-indigo-900 p-1"
                               title="Detail Blok"
                             >
@@ -2181,11 +2200,10 @@ Tim Markaz Tikrar Indonesia`;
                                           return (
                                             <div
                                               key={block.block_code}
-                                              className={`text-center p-2 rounded-lg border-2 transition-all ${
-                                                block.is_completed
-                                                  ? 'border-green-400 bg-green-50 text-green-700'
-                                                  : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'
-                                              }`}
+                                              className={`text-center p-2 rounded-lg border-2 transition-all ${block.is_completed
+                                                ? 'border-green-400 bg-green-50 text-green-700'
+                                                : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'
+                                                }`}
                                               title={block.is_completed
                                                 ? `Sudah ditashih`
                                                 : `Belum ditashih`
@@ -2444,9 +2462,8 @@ function UjianTab({ results, onRefresh }: { results: UjianResult[], onRefresh: (
                   >
                     <td className="px-2 py-3">
                       <ChevronDown
-                        className={`w-4 h-4 text-gray-400 transition-transform ${
-                          expandedRows.has(result.thalibah_id) ? 'rotate-0' : '-rotate-90'
-                        }`}
+                        className={`w-4 h-4 text-gray-400 transition-transform ${expandedRows.has(result.thalibah_id) ? 'rotate-0' : '-rotate-90'
+                          }`}
                       />
                     </td>
                     <td className="px-2 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -2463,16 +2480,15 @@ function UjianTab({ results, onRefresh }: { results: UjianResult[], onRefresh: (
                         {result.summary && (
                           <span className="text-xs text-gray-500">
                             ({result.summary.total_attempts || 0} percobaan)
-                        </span>
-                      )}
-                    </div>
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-2 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        (result.summary?.passed_attempts || 0) > 0
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${(result.summary?.passed_attempts || 0) > 0
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                        }`}>
                         {(result.summary?.passed_attempts || 0) > 0 ? 'Ada lulus' : 'Belum lulus'}
                       </span>
                     </td>
@@ -2507,13 +2523,12 @@ function UjianTab({ results, onRefresh }: { results: UjianResult[], onRefresh: (
                                       {attempt.score}
                                     </td>
                                     <td className="px-4 py-2 whitespace-nowrap">
-                                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                        attempt.status === 'passed'
-                                          ? 'bg-green-100 text-green-800'
-                                          : attempt.status === 'failed'
-                                            ? 'bg-red-100 text-red-800'
-                                            : 'bg-yellow-100 text-yellow-800'
-                                      }`}>
+                                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${attempt.status === 'passed'
+                                        ? 'bg-green-100 text-green-800'
+                                        : attempt.status === 'failed'
+                                          ? 'bg-red-100 text-red-800'
+                                          : 'bg-yellow-100 text-yellow-800'
+                                        }`}>
                                         {attempt.status === 'passed' ? 'Lulus' : attempt.status === 'failed' ? 'Gagal' : attempt.status}
                                       </span>
                                     </td>

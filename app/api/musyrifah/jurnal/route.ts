@@ -309,16 +309,51 @@ export async function GET(request: Request) {
     const batchId = searchParams.get('batch_id');
 
     // Get active batch if not specified
+    // Get active batch details for week calculation
     let activeBatchId = batchId;
+    let currentWeek = 0;
+
     if (!activeBatchId) {
       const { data: activeBatch } = await supabase
         .from('batches')
-        .select('id')
+        .select('id, start_date, first_week_start_date')
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
       activeBatchId = activeBatch?.id;
+
+      // Calculate current week
+      if (activeBatch?.start_date) {
+        const startDate = new Date(activeBatch.start_date);
+        // First week starts 1 week after batch start_date (Pekan Tashih)
+        const firstWeekStart = new Date(startDate);
+        firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
+
+        const now = new Date();
+        const diffTime = now.getTime() - firstWeekStart.getTime();
+        const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        currentWeek = diffWeeks + 1;
+      }
+    } else {
+      // If batch_id provided, fetch its details
+      const { data: batch } = await supabase
+        .from('batches')
+        .select('start_date, first_week_start_date')
+        .eq('id', activeBatchId)
+        .single();
+
+      if (batch?.start_date) {
+        const startDate = new Date(batch.start_date);
+        // First week starts 1 week after batch start_date (Pekan Tashih)
+        const firstWeekStart = new Date(startDate);
+        firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
+
+        const now = new Date();
+        const diffTime = now.getTime() - firstWeekStart.getTime();
+        const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        currentWeek = diffWeeks + 1;
+      }
     }
 
     // =====================================================
@@ -626,6 +661,7 @@ export async function GET(request: Request) {
       data: combinedEntries,
       meta: {
         bloks: uniqueBloks,
+        current_week: currentWeek
       }
     });
   } catch (error: any) {

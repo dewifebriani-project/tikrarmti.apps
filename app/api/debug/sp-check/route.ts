@@ -7,9 +7,9 @@ function getFirstWeekStart(batch: any): Date | null {
   const startDate = batch.start_date ? new Date(batch.start_date) : null;
   if (!startDate) return null;
 
-  // First week starts 3 weeks after batch start_date
+  // First week starts 1 week after batch start_date (Pekan Tashih)
   const firstWeekStart = new Date(startDate);
-  firstWeekStart.setDate(firstWeekStart.getDate() + (3 * 7)); // +3 weeks
+  firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7)); // +1 week
   return firstWeekStart;
 }
 

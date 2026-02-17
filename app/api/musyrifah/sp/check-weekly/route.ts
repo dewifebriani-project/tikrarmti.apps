@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import fs from 'fs';
 
 // Helper function to calculate week number from blok code
 function calculateWeekFromBlok(blok: string | null): number | null {
@@ -45,9 +46,9 @@ function getFirstWeekStart(batch: any): Date | null {
   const startDate = batch.start_date ? new Date(batch.start_date) : null;
   if (!startDate) return null;
 
-  // First week starts 3 weeks after batch start_date
+  // First week starts 1 week after batch start_date (Pekan Tashih)
   const firstWeekStart = new Date(startDate);
-  firstWeekStart.setDate(firstWeekStart.getDate() + (3 * 7)); // +3 weeks
+  firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7)); // +1 week
   return firstWeekStart;
 }
 
@@ -171,6 +172,24 @@ export async function GET(request: Request) {
 
     const daftarUlangUserIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
 
+    // DEBUG LOGGING
+    try {
+      const debugInfo = `
+Timestamp: ${new Date().toISOString()}
+Target Week: ${targetWeek}
+Active Batch: ${activeBatch?.name}
+Batch Start: ${activeBatch?.start_date}
+First Week Start (Calculated): ${getFirstWeekStart(activeBatch)?.toISOString()}
+Current Week Number (Calculated): ${getCurrentWeekNumber(activeBatch)}
+Has Week ${targetWeek} Ended?: ${hasWeekEnded(activeBatch, targetWeek)}
+Daftar Ulang Users: ${daftarUlangUserIds.length}
+Check All Weeks: ${checkAllWeeks}
+`;
+      fs.writeFileSync('public/debug-check-weekly.txt', debugInfo);
+    } catch (e) {
+      console.error('Debug log failed', e);
+    }
+
     if (daftarUlangUserIds.length === 0) {
       return NextResponse.json({
         success: true,
@@ -202,11 +221,36 @@ export async function GET(request: Request) {
       daftarUlangMap.set(d.user_id, d);
     });
 
-    // Get jurnal records for all thalibah
-    const { data: jurnalRecords, error: jurnalError } = await supabase
-      .from('jurnal_records')
-      .select('id, user_id, blok, tanggal_setor, created_at')
-      .in('user_id', daftarUlangUserIds);
+    // Get jurnal records for all thalibah with pagination
+    let allJurnalRecords: any[] = [];
+    let page = 0;
+    let hasMore = true;
+    const pageSize = 1000;
+
+    while (hasMore) {
+      const { data: chunk, error: chunkError } = await supabase
+        .from('jurnal_records')
+        .select('id, user_id, blok, tanggal_setor, created_at')
+        .in('user_id', daftarUlangUserIds)
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (chunkError) {
+        throw chunkError;
+      }
+
+      if (chunk && chunk.length > 0) {
+        allJurnalRecords = [...allJurnalRecords, ...chunk];
+        if (chunk.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    const jurnalRecords = allJurnalRecords;
 
     // Group jurnal by user
     const jurnalByUser = new Map();
@@ -273,8 +317,8 @@ export async function GET(request: Request) {
           // Get latest SP level for this user
           const latestSP = userSP.length > 0
             ? userSP.reduce((latest: any, current: any) =>
-                current.sp_level > latest.sp_level ? current : latest
-              )
+              current.sp_level > latest.sp_level ? current : latest
+            )
             : null;
 
           const nextSPLevel = latestSP ? Math.min(latestSP.sp_level + 1, 3) : 1;
