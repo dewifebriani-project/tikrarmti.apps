@@ -1,10 +1,10 @@
 
-Timestamp: 2026-02-15T17:15:24.855Z
-Target Week: 4
+Timestamp: 2026-02-19T23:04:03.924Z
+Target Week: 5
 Active Batch: Tikrar Tahfidz MTI Batch 2
 Batch Start: 2026-01-12
 First Week Start (Calculated): 2026-01-19T00:00:00.000Z
-Current Week Number (Calculated): 4
-Has Week 4 Ended?: true
+Current Week Number (Calculated): 5
+Has Week 5 Ended?: false
 Daftar Ulang Users: 111
 Check All Weeks: false
