@@ -1032,7 +1032,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   });
 
   // Helper to format WhatsApp link
-  const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: JurnalUserEntry) => {
+  const formatWhatsAppLink = (phoneNumber: string | null, name: string, entry: JurnalUserEntry, currentWeek: number) => {
     if (!phoneNumber) return null;
 
     const cleanedPhone = phoneNumber.replace(/^0/, '62').replace(/[\s\-\(\)]/g, '');
@@ -1274,7 +1274,7 @@ Tim Markaz Tikrar Indonesia`;
                 {sortedEntries.map((userData) => {
                   const name = displayName(userData.user);
                   const kunyah = displayKunyah(userData.user);
-                  const whatsappUrl = userData.user?.whatsapp ? formatWhatsAppLink(userData.user.whatsapp, name, userData) : null;
+                  const whatsappUrl = userData.user?.whatsapp ? formatWhatsAppLink(userData.user.whatsapp, name, userData, currentWeek) : null;
                   const isExpanded = expandedRows.has(userData.user_id);
                   // Get juz from confirmed_chosen_juz (same as tashih)
                   const juzCode = userData.confirmed_chosen_juz || null;
