@@ -737,7 +737,7 @@ export default function PanelMusyrifahPage() {
         )}
 
         {!dataLoading && activeTab === 'thalibah' && (
-          <ThalibahTab thalibah={thalibahList} onRefresh={loadThalibah} />
+          <ThalibahTab thalibah={thalibahList} onRefresh={loadThalibah} currentWeek={currentWeek} />
         )}
 
         {!dataLoading && activeTab === 'jurnal' && (
@@ -906,7 +906,7 @@ function OverviewTab({ stats }: { stats: MusyrifahStats }) {
 }
 
 // Thalibah Tab Component
-function ThalibahTab({ thalibah, onRefresh }: { thalibah: Thalibah[], onRefresh: () => void }) {
+function ThalibahTab({ thalibah, onRefresh, currentWeek }: { thalibah: Thalibah[], onRefresh: () => void, currentWeek: number }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
