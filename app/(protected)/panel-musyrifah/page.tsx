@@ -747,6 +747,7 @@ export default function PanelMusyrifahPage() {
             selectedBlok={selectedBlok}
             onBlokChange={setSelectedBlok}
             availableBloks={availableBloks}
+            currentWeek={currentWeek}
           />
         )}
 
@@ -971,12 +972,13 @@ interface JurnalTabProps {
   selectedBlok: string;
   onBlokChange: (blok: string) => void;
   availableBloks: string[];
+  currentWeek: number;
 }
 
 type SortField = 'name' | 'juz' | 'progress';
 type SortOrder = 'asc' | 'desc';
 
-function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks }: JurnalTabProps) {
+function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBloks, currentWeek }: JurnalTabProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JurnalEntry | null>(null);
