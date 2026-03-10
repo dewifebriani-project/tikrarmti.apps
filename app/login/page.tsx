@@ -16,6 +16,7 @@ function LoginPageContent() {
   const supabase = createClient();
 
   const [formData, setFormData] = useState({
+    email: '',
     password: ''
   });
   const [rememberMe, setRememberMe] = useState(true);
