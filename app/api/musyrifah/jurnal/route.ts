@@ -249,8 +249,8 @@ export async function GET(request: Request) {
               .order('created_at', { ascending: false });
 
             // Test Block Generation for this user
-            let generatedBlocks = [];
-            let debugWeeklyStatus = [];
+            let generatedBlocks: any[] = [];
+            let debugWeeklyStatus: any[] = [];
             let blockStatusDump: any = {};
 
             if (submission?.confirmed_chosen_juz) {
