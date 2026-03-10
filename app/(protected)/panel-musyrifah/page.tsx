@@ -982,6 +982,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JurnalEntry | null>(null);
+  const [selectedThalibah, setSelectedThalibah] = useState<JurnalUserEntry | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -1353,6 +1354,16 @@ Tim Markaz Tikrar Indonesia`;
                         <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-1">
                             <button
+                              onClick={() => {
+                                setSelectedThalibah(userData);
+                                setShowCreateModal(true);
+                              }}
+                              className="text-green-600 hover:text-green-900 p-1"
+                              title="Input Jurnal"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => {/* Could open detail modal */ }}
                               className="text-indigo-600 hover:text-indigo-900 p-1"
                               title="Detail"
@@ -1565,13 +1576,15 @@ Tim Markaz Tikrar Indonesia`;
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Tambah Jurnal Baru</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {selectedThalibah ? `Input Jurnal: ${displayName(selectedThalibah.user)}` : 'Tambah Jurnal Baru'}
+            </h3>
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
                 const data = {
-                  user_id: formData.get('user_id') as string,
+                  user_id: selectedThalibah?.user_id || formData.get('user_id') as string,
                   tanggal_jurnal: formData.get('tanggal_jurnal') as string,
                   tanggal_setor: formData.get('tanggal_setor') as string,
                   juz_code: formData.get('juz_code') as string,
@@ -1606,6 +1619,7 @@ Tim Markaz Tikrar Indonesia`;
 
                   toast.success('Jurnal berhasil ditambahkan');
                   setShowCreateModal(false);
+                  setSelectedThalibah(null);
                   onRefresh();
                 } catch (err) {
                   toast.error('Gagal menambah jurnal');
@@ -1613,16 +1627,31 @@ Tim Markaz Tikrar Indonesia`;
               }}
               className="space-y-4"
             >
-              <div>
-                <label className="block text-sm font-medium text-gray-700">User ID *</label>
-                <input
-                  type="text"
-                  name="user_id"
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
-                  placeholder="Masukkan UUID user"
-                />
-              </div>
+              {selectedThalibah ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Thalibah</label>
+                  <input
+                    type="text"
+                    name="user_id"
+                    required
+                    readOnly
+                    value={selectedThalibah.user_id}
+                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">{displayName(selectedThalibah.user)}</p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">User ID *</label>
+                  <input
+                    type="text"
+                    name="user_id"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="Masukkan UUID user"
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Tanggal Jurnal</label>
@@ -1707,7 +1736,10 @@ Tim Markaz Tikrar Indonesia`;
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setSelectedThalibah(null);
+                  }}
                   className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                 >
                   Batal
