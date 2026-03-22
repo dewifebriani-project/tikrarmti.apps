@@ -26,13 +26,13 @@ export default function PengaturanPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
               <p className="text-sm text-blue-800">
                 <strong>Info:</strong> Halaman pengaturan sedang dalam pengembangan.
-                Untuk saat ini, Ukhti dapat mengubah informasi profil di halaman Lengkapi Profil.
+                Untuk saat ini, Ukhti dapat mengubah informasi profil di halaman Profil.
               </p>
               <button
-                onClick={() => router.push('/lengkapi-profile')}
+                onClick={() => router.push('/profile')}
                 className="mt-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               >
-                Pergi ke Lengkapi Profil
+                Pergi ke Halaman Profil
               </button>
             </div>
 

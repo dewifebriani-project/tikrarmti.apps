@@ -381,7 +381,7 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                     </Link>
 
                     <Link
-                      href="/lengkapi-profile"
+                      href="/profile"
                       className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-900 rounded-lg transition-colors duration-200 w-full"
                     >
                       <User className="w-4 h-4" />
