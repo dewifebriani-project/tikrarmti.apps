@@ -680,7 +680,7 @@ export async function approveDaftarUlangSubmission(submissionId: string) {
     }
 
     // 5. Add to halaqah_students for ujian and tashih halaqah
-    const halaqahEntries = []
+    const halaqahEntries: any[] = []
 
     if (submission.ujian_halaqah_id) {
       halaqahEntries.push({
