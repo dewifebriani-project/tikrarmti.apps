@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       const { count } = await supabaseAdmin
         .from('users')
         .select('*', { count: 'exact', head: true })
-        .eq('role', 'thalibah');
+        .contains('roles', ['thalibah']);
       stats.totalThalibah = count || 0;
       console.log('Thalibah count:', count);
     } catch (e: any) {
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       const { count } = await supabaseAdmin
         .from('users')
         .select('*', { count: 'exact', head: true })
-        .in('role', ['ustadzah', 'musyrifah']);
+        .overlaps('roles', ['ustadzah', 'musyrifah']);
       stats.totalMentors = count || 0;
       console.log('Mentors count:', count);
     } catch (e: any) {

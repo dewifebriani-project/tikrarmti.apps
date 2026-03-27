@@ -32,6 +32,11 @@ function AuthCallbackContent() {
       try {
         setLoading(true);
 
+        // Log the full URL for debugging
+        console.log('[Auth Callback] Full URL:', window.location.href);
+        console.log('[Auth Callback] Search params:', Object.fromEntries(searchParams.entries()));
+        console.log('[Auth Callback] Hash:', window.location.hash);
+
         // Check for errors in URL first
         const error = searchParams.get('error');
         if (error) {
@@ -43,26 +48,154 @@ function AuthCallbackContent() {
 
         // Check for authorization code (PKCE flow)
         const code = searchParams.get('code');
-        const type = searchParams.get('type');
 
-        // Check if this is a password recovery flow (without code, just type=recovery)
-        if (type === 'recovery' && !code) {
-          console.log('Password recovery flow detected (query params), redirecting to reset-password...');
-          // For password recovery, Supabase will handle the session via hash fragment or redirect
-          // The user should already have a session set by Supabase
-          // Try to get user and redirect to reset-password
-          const { data: { user } } = await supabase.auth.getUser();
+        // Note: Recovery links from Supabase come in hash fragment, not query params
+        // So we check for code first, then handle hash fragment below
 
-          if (user) {
-            console.log('User session exists, redirecting to reset-password...');
+        // FIRST: Handle hash fragment BEFORE checking for code
+        // This is important because password recovery links use hash fragments
+        if (typeof window !== 'undefined' && window.location.hash) {
+          console.log('Hash fragment detected:', window.location.hash);
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          const type = hashParams.get('type');
+
+          console.log('Hash params:', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            type: type
+          });
+
+          // Check if this is a password recovery link
+          // Recovery links have type=recovery in hash fragment
+          if (type === 'recovery' && accessToken) {
+            console.log('Password recovery detected (type=' + type + '), setting session and redirecting...');
+
+            // First set the session
+            const { data: recoveryData, error: recoveryError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            console.log('setSession result:', { data: recoveryData, error: recoveryError });
+
+            if (recoveryError) {
+              console.error('Recovery session error:', recoveryError);
+
+              // Distinguish between expired and other errors
+              if ((recoveryError as any)?.code === 'invalid_grant' ||
+                  recoveryError.message?.includes('expired') ||
+                  recoveryError.message?.includes('invalid') ||
+                  recoveryError.message?.includes('malformed')) {
+                setError('Link reset password sudah kadaluarsa atau tidak valid. Silakan gunakan fitur "Lupa Password" untuk meminta link baru.');
+              } else {
+                setError(`Error: ${recoveryError.message}`);
+              }
+
+              setLoading(false);
+              return;
+            }
+
+            if (!recoveryData.session) {
+              console.error('No session returned from setSession');
+              setError('Gagal membuat session dari link reset password. Silakan coba lagi.');
+              setLoading(false);
+              return;
+            }
+
+            console.log('Recovery session set successfully, redirecting to reset-password page...');
+            // Now redirect to reset-password page (session already set)
             window.location.replace('/reset-password');
             return;
-          } else {
-            // No session yet - wait for hash fragment processing below
-            console.log('No session yet, will process hash fragment...');
+          }
+
+          // Handle other access tokens in hash (implicit flow)
+          if (accessToken && type !== 'recovery') {
+            console.log('Found access token in hash fragment, setting session...');
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            if (sessionError) {
+              console.error('Error setting session from hash:', sessionError);
+              setError(`Failed to set session: ${sessionError.message}`);
+              setLoading(false);
+              return;
+            }
+
+            if (!sessionData.session?.user?.email) {
+              setError('Authentication failed. No user email found.');
+              setLoading(false);
+              return;
+            }
+
+            // Clear hash from URL
+            window.history.replaceState(null, '', window.location.pathname);
+
+            // Session is set, set server-side cookies first
+            const userEmail = sessionData.session.user.email;
+            const userId = sessionData.session.user.id;
+            const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
+
+            console.log('User authenticated:', userEmail);
+
+            // Set server-side cookies for middleware authentication
+            try {
+              await fetch('/api/auth/set-session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  access_token: accessToken,
+                  refresh_token: refreshToken || '',
+                }),
+              });
+              console.log('Server-side cookies set successfully');
+            } catch (err) {
+              console.error('Failed to set server-side cookies:', err);
+              // Continue anyway - client-side session is already set
+            }
+
+            // Ensure user exists in database BEFORE redirect
+            try {
+              const device = getDeviceInfo();
+              const provider = sessionData.session.user.app_metadata?.provider || 'email';
+
+              if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
+                console.log('Skipping ensure-user for optimized OAuth flow');
+              } else {
+                const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                await fetch('/api/auth/ensure-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
+                  signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+              }
+            } catch (err: any) {
+              if (err.name === 'AbortError') {
+                console.warn('Ensure-user call timed out, continuing anyway');
+              } else {
+                console.error('Failed to ensure user:', err);
+              }
+            }
+
+            sessionStorage.removeItem('oauth_from_localhost');
+            console.log('Redirecting to dashboard...');
+
+            window.location.replace('/dashboard');
+            return;
           }
         }
 
+        // Check for authorization code (PKCE flow)
         if (code) {
           console.log('Found authorization code, exchanging for session...');
 
@@ -144,141 +277,6 @@ function AuthCallbackContent() {
           // Redirect after ensuring user exists
           window.location.replace('/dashboard');
           return;
-        }
-
-        // Handle hash fragment (for implicit flow - legacy and password recovery)
-        if (typeof window !== 'undefined' && window.location.hash) {
-          console.log('Hash fragment detected:', window.location.hash);
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          const type = hashParams.get('type');
-
-          console.log('Hash params:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            type: type
-          });
-
-          // Check if this is a password recovery link
-          // Recovery links have type=recovery in hash fragment
-          if (type === 'recovery' && accessToken) {
-            console.log('Password recovery detected (type=' + type + '), setting session and redirecting...');
-
-            // First set the session
-            const { data: recoveryData, error: recoveryError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-
-            console.log('setSession result:', { data: recoveryData, error: recoveryError });
-
-            if (recoveryError) {
-              console.error('Recovery session error:', recoveryError);
-              setError(`Gagal memvalidasi link reset password: ${recoveryError.message}`);
-              setLoading(false);
-              return;
-            }
-
-            if (!recoveryData.session) {
-              console.error('No session returned from setSession');
-              setError('Gagal membuat session dari link reset password.');
-              setLoading(false);
-              return;
-            }
-
-            console.log('Recovery session set successfully, redirecting to reset-password page...');
-            // Now redirect to reset-password page (session already set)
-            window.location.replace('/reset-password');
-            return;
-          }
-
-          if (accessToken) {
-            console.log('Found access token in hash fragment, setting session...');
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-
-            if (sessionError) {
-              console.error('Error setting session from hash:', sessionError);
-              setError(`Failed to set session: ${sessionError.message}`);
-              setLoading(false);
-              return;
-            }
-
-            if (!sessionData.session?.user?.email) {
-              setError('Authentication failed. No user email found.');
-              setLoading(false);
-              return;
-            }
-
-            // Clear hash from URL
-            window.history.replaceState(null, '', window.location.pathname);
-
-            // Session is set, set server-side cookies first
-            const userEmail = sessionData.session.user.email;
-            const userId = sessionData.session.user.id;
-            const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
-
-            console.log('User authenticated:', userEmail);
-
-            // Set server-side cookies for middleware authentication
-            try {
-              await fetch('/api/auth/set-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  access_token: accessToken,
-                  refresh_token: refreshToken || '',
-                }),
-              });
-              console.log('Server-side cookies set successfully');
-            } catch (err) {
-              console.error('Failed to set server-side cookies:', err);
-              // Continue anyway - client-side session is already set
-            }
-
-            // Ensure user exists in database BEFORE redirect - with platform optimization
-            try {
-              const device = getDeviceInfo();
-              const provider = sessionData.session.user.app_metadata?.provider || 'google';
-
-              // Skip ensure-user for mobile/tablet OAuth to speed up authentication
-              if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
-                console.log('Skipping ensure-user for optimized OAuth flow');
-              } else {
-                // Add timeout for ensure-user call
-                const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-                await fetch('/api/auth/ensure-user', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
-                  signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-              }
-            } catch (err: any) {
-              if (err.name === 'AbortError') {
-                console.warn('Ensure-user call timed out, continuing anyway');
-              } else {
-                console.error('Failed to ensure user:', err);
-              }
-              // Continue anyway - user might already exist
-            }
-
-            sessionStorage.removeItem('oauth_from_localhost');
-            console.log('Redirecting to dashboard...');
-
-            // Redirect after ensuring user exists
-            window.location.replace('/dashboard');
-            return;
-          }
         }
 
         // If no code or hash, try to get existing user session

@@ -2,19 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger-secure';
 
+// Helper function to validate URL
+function isValidUrl(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
 
     if (!email) {
+      logger.warn('Forgot password request without email');
       return NextResponse.json(
         { error: 'Email diperlukan' },
         { status: 400 }
       );
     }
 
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
+      logger.warn('Forgot password request with invalid email format', {
+        email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
+      });
       return NextResponse.json(
         { error: 'Format email tidak valid' },
         { status: 400 }
@@ -27,12 +42,35 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // Log environment for debugging
-    const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+    // Validate and construct redirect URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      logger.error('Missing NEXT_PUBLIC_APP_URL environment variable');
+      return NextResponse.json(
+        { 
+          success: true,
+          message: 'Jika email terdaftar, Ukhti akan menerima link reset password'
+        }
+      );
+    }
+
+    if (!isValidUrl(appUrl)) {
+      logger.error('Invalid NEXT_PUBLIC_APP_URL', {
+        appUrl,
+        nodeEnv: process.env.NODE_ENV
+      });
+      return NextResponse.json(
+        { 
+          success: true,
+          message: 'Jika email terdaftar, Ukhti akan menerima link reset password'
+        }
+      );
+    }
+
+    const redirectUrl = `${appUrl}/auth/callback`;
     logger.info('Password reset attempt', {
       email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       redirectUrl,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL,
       nodeEnv: process.env.NODE_ENV
     });
 
@@ -44,7 +82,8 @@ export async function POST(request: NextRequest) {
     if (error) {
       logger.error('Password reset request failed', {
         email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
-        error: error.message
+        error: error.message,
+        errorStatus: (error as any)?.status
       });
 
       // Always return success to prevent email enumeration
@@ -60,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Jika email terdaftar, *Ukhti* akan menerima link reset password'
+      message: 'Jika email terdaftar, Ukhti akan menerima link reset password'
     });
 
   } catch (error) {
@@ -71,7 +110,7 @@ export async function POST(request: NextRequest) {
     // Always return success to prevent email enumeration
     return NextResponse.json({
       success: true,
-      message: 'Jika email terdaftar, *Ukhti* akan menerima link reset password'
+      message: 'Jika email terdaftar, Ukhti akan menerima link reset password'
     });
   }
 }

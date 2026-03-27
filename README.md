@@ -12,7 +12,7 @@ Aplikasi Tahfidz Quran Digital untuk membantu para penghafal Al-Quran dalam mela
 
 ## 🛠 Teknologi Stack
 
-- **Frontend**: Next.js 16 dengan TypeScript
+- **Frontend**: Next.js 14/15 dengan TypeScript
 - **UI Framework**: shadcn/ui dengan Radix UI primitives
 - **Styling**: Tailwind CSS dengan custom MTI theme
 - **Authentication**: Supabase Auth

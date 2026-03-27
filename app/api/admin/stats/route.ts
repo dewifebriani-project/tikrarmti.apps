@@ -60,8 +60,8 @@ export async function GET(request: NextRequest) {
 
         // User counts
         supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('role', 'thalibah'),
-        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).in('role', ['ustadzah', 'musyrifah']),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).contains('roles', ['thalibah']),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).overlaps('roles', ['ustadzah', 'musyrifah']),
 
         // Pending counts
         supabaseAdmin.from('pendaftaran').select('*', { count: 'exact', head: true }).eq('status', 'pending'),

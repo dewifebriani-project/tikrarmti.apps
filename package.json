@@ -12,7 +12,8 @@
     "generate-build-info": "node scripts/generate-build-info.js",
     "update-selection": "npx tsx scripts/update-selection-status.ts",
     "debug:jurnal": "npx tsx scripts/quick-check-jurnal.ts",
-    "test:block-mapping": "npx tsx scripts/test-block-mapping.ts"
+    "test:block-mapping": "npx tsx scripts/test-block-mapping.ts",
+    "gen-types": "npx supabase gen types typescript --project-id nmbvklixthlqtkkgqnjl > types/supabase.ts"
   },
   "keywords": [
     "quran",

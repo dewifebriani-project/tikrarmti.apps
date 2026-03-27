@@ -18,15 +18,61 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { validatePhoneNumberFormat } from '@/lib/utils/sanitize'
 import { negaraList, provinsiList, zonaWaktuList } from '@/lib/data/registration-data'
-import { AlertCircle, CheckCircle, Loader2, User, Mail, MapPin, Calendar, Phone, Clock, Briefcase, Edit3, X } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader2, User, Mail, MapPin, Calendar, Phone, Clock, Briefcase, Edit3, X, GraduationCap, Award, Users } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 
 type ProfileMode = 'view' | 'edit'
+
+// Role-specific profile data types
+interface MuallimahProfile {
+  education?: string
+  occupation?: string
+  memorization_level?: string
+  memorized_juz?: string
+  preferred_juz?: string
+  teaching_experience?: string
+  teaching_years?: string
+  teaching_institutions?: string
+  preferred_schedule?: string
+  backup_schedule?: string
+  motivation?: string
+  special_skills?: string
+  health_condition?: string
+  tajweed_institution?: string
+  quran_institution?: string
+  teaching_communities?: string
+  memorized_tajweed_matan?: string
+  studied_matan_exegesis?: string
+  examined_juz?: string
+  certified_juz?: string
+  paid_class_interest?: string
+  class_type?: string
+  preferred_max_thalibah?: number
+  status?: string
+}
+
+interface MusyrifahProfile {
+  education?: string
+  occupation?: string
+  leadership_experience?: string
+  leadership_years?: string
+  leadership_roles?: string
+  management_skills?: string[]
+  team_management_experience?: string
+  preferred_schedule?: string
+  backup_schedule?: string
+  motivation?: string
+  leadership_philosophy?: string
+  special_achievements?: string
+  status?: string
+}
 
 export default function ProfilePage() {
   const router = useRouter()
   const { user, isLoading: authLoading, isAuthenticated } = useAuth()
 
   const [mode, setMode] = useState<ProfileMode>('view')
+  const [userRole, setUserRole] = useState<string>('')
   const [formData, setFormData] = useState({
     namaKunyah: '',
     namaLengkap: '',
@@ -43,6 +89,9 @@ export default function ProfilePage() {
     pekerjaan: '',
     alasanDaftar: '',
   })
+
+  const [muallimahData, setMuallimahData] = useState<MuallimahProfile>({})
+  const [musyrifahData, setMusyrifahData] = useState<MusyrifahProfile>({})
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -67,6 +116,11 @@ export default function ProfilePage() {
         if (response.ok) {
           const data = await response.json()
 
+          // Set user role
+          const roles = data.roles || []
+          const primaryRole = roles[0] || 'calon_thalibah'
+          setUserRole(primaryRole)
+
           // Pre-fill form with existing data
           setFormData(prev => ({
             ...prev,
@@ -85,6 +139,13 @@ export default function ProfilePage() {
             pekerjaan: data.pekerjaan || '',
             alasanDaftar: data.alasan_daftar || '',
           }))
+
+          // Load role-specific data
+          if (primaryRole === 'muallimah' && data.muallimah_profile) {
+            setMuallimahData(data.muallimah_profile)
+          } else if (primaryRole === 'musyrifah' && data.musyrifah_profile) {
+            setMusyrifahData(data.musyrifah_profile)
+          }
         }
       } catch (error) {
         console.error('Error loading user profile:', error)
@@ -156,7 +217,7 @@ export default function ProfilePage() {
     setErrorMessage('')
 
     try {
-      const requestData = {
+      const requestData: any = {
         nama_kunyah: formData.namaKunyah || undefined,
         full_name: formData.namaLengkap,
         negara: formData.negara,
@@ -171,6 +232,13 @@ export default function ProfilePage() {
         jenis_kelamin: formData.jenisKelamin,
         pekerjaan: formData.pekerjaan,
         alasan_daftar: formData.alasanDaftar,
+      }
+
+      // Add role-specific data
+      if (userRole === 'muallimah') {
+        Object.assign(requestData, muallimahData)
+      } else if (userRole === 'musyrifah') {
+        Object.assign(requestData, musyrifahData)
       }
 
       const response = await fetch('/api/user/profile/update', {
@@ -407,6 +475,15 @@ export default function ProfilePage() {
                 />
               </div>
             </Card>
+
+            {/* Role-specific profile sections in view mode */}
+            {userRole === 'muallimah' && (
+              <MuallimahProfileView data={muallimahData} />
+            )}
+
+            {userRole === 'musyrifah' && (
+              <MusyrifahProfileView data={musyrifahData} />
+            )}
           </div>
         ) : (
           // EDIT MODE
@@ -677,6 +754,25 @@ export default function ProfilePage() {
                 )}
               </div>
 
+              {/* Role-specific sections */}
+            {userRole === 'muallimah' && (
+              <MuallimahProfileFields
+                data={muallimahData}
+                onChange={setMuallimahData}
+                errors={errors}
+                onInputChange={handleInputChange}
+              />
+            )}
+
+            {userRole === 'musyrifah' && (
+              <MusyrifahProfileFields
+                data={musyrifahData}
+                onChange={setMusyrifahData}
+                errors={errors}
+                onInputChange={handleInputChange}
+              />
+            )}
+
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
@@ -729,5 +825,455 @@ function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string
         <p className="text-sm text-gray-900 break-words">{value}</p>
       </div>
     </div>
+  )
+}
+
+// Muallimah-specific profile fields component
+function MuallimahProfileFields({
+  data,
+  onChange,
+  errors,
+  onInputChange
+}: {
+  data: MuallimahProfile
+  onChange: (data: MuallimahProfile) => void
+  errors: Record<string, string>
+  onInputChange: (field: string, value: any) => void
+}) {
+  const handleChange = (field: keyof MuallimahProfile, value: any) => {
+    onChange({ ...data, [field]: value })
+  }
+
+  return (
+    <div className="space-y-6 pt-6 border-t border-gray-200">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <GraduationCap className="h-5 w-5 text-green-600" />
+          Profil Muallimah
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="muallimah_education">Pendidikan Terakhir</Label>
+          <Input
+            id="muallimah_education"
+            value={data.education || ''}
+            onChange={(e) => handleChange('education', e.target.value)}
+            placeholder="Contoh: S1 Pendidikan Islam"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="muallimah_occupation">Pekerjaan Saat Ini</Label>
+          <Input
+            id="muallimah_occupation"
+            value={data.occupation || ''}
+            onChange={(e) => handleChange('occupation', e.target.value)}
+            placeholder="Contoh: Guru Tahfidz"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="memorization_level">Tingkat Hafalan</Label>
+          <Select
+            value={data.memorization_level || ''}
+            onValueChange={(value) => handleChange('memorization_level', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih tingkat hafalan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="juz_30">Juz 30</SelectItem>
+              <SelectItem value="juz_29_30">Juz 29-30</SelectItem>
+              <SelectItem value="juz_1_30">Juz 1 (Al-Fatihah) + Juz 30</SelectItem>
+              <SelectItem value="5_juz_terakhir">5 Juz Terakhir</SelectItem>
+              <SelectItem value="10_juz_terakhir">10 Juz Terakhir</SelectItem>
+              <SelectItem value="15_juz">15 Juz</SelectItem>
+              <SelectItem value="20_juz">20 Juz</SelectItem>
+              <SelectItem value="25_juz">25 Juz</SelectItem>
+              <SelectItem value="30_juz">30 Juz (Seluruh Al-Quran)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="memorized_juz">Juz yang Dihafal (Sebutkan)</Label>
+          <Input
+            id="memorized_juz"
+            value={data.memorized_juz || ''}
+            onChange={(e) => handleChange('memorized_juz', e.target.value)}
+            placeholder="Contoh: Juz 1, 29, 30"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="preferred_juz">Juz yang Ingin Dibimbing</Label>
+          <Select
+            value={data.preferred_juz || ''}
+            onValueChange={(value) => handleChange('preferred_juz', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih juz" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30A">Juz 30A</SelectItem>
+              <SelectItem value="30B">Juz 30B</SelectItem>
+              <SelectItem value="29A">Juz 29A</SelectItem>
+              <SelectItem value="29B">Juz 29B</SelectItem>
+              <SelectItem value="28">Juz 28</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="teaching_years">Pengalaman Mengajar (Tahun)</Label>
+          <Input
+            id="teaching_years"
+            type="number"
+            value={data.teaching_years || ''}
+            onChange={(e) => handleChange('teaching_years', e.target.value)}
+            placeholder="Contoh: 2"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="teaching_institutions">Institusi Pengalaman Mengajar</Label>
+          <Input
+            id="teaching_institutions"
+            value={data.teaching_institutions || ''}
+            onChange={(e) => handleChange('teaching_institutions', e.target.value)}
+            placeholder="Sebutkan lembaga/tempat mengajar sebelumnya"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="teaching_experience">Deskripsi Pengalaman Mengajar</Label>
+          <Textarea
+            id="teaching_experience"
+            value={data.teaching_experience || ''}
+            onChange={(e) => handleChange('teaching_experience', e.target.value)}
+            placeholder="Ceritakan pengalaman mengajar Anda"
+            rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="preferred_schedule">Jadwal Utama yang Diinginkan</Label>
+          <Input
+            id="preferred_schedule"
+            value={data.preferred_schedule || ''}
+            onChange={(e) => handleChange('preferred_schedule', e.target.value)}
+            placeholder="Contoh: Senin-Kamis, 19:00-21:00 WIB"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="backup_schedule">Jadwal Cadangan</Label>
+          <Input
+            id="backup_schedule"
+            value={data.backup_schedule || ''}
+            onChange={(e) => handleChange('backup_schedule', e.target.value)}
+            placeholder="Contoh: Sabtu-Minggu, 09:00-11:00 WIB"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="motivation">Motivasi Menjadi Muallimah</Label>
+          <Textarea
+            id="motivation"
+            value={data.motivation || ''}
+            onChange={(e) => handleChange('motivation', e.target.value)}
+            placeholder="Ceritakan motivasi Anda"
+            rows={3}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="special_skills">Keahlian Khusus</Label>
+          <Textarea
+            id="special_skills"
+            value={data.special_skills || ''}
+            onChange={(e) => handleChange('special_skills', e.target.value)}
+            placeholder="Keahlian lain yang relevan (bahasa arab, ilmu tajwid, dll)"
+            rows={2}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Musyrifah-specific profile fields component
+function MusyrifahProfileFields({
+  data,
+  onChange,
+  errors,
+  onInputChange
+}: {
+  data: MusyrifahProfile
+  onChange: (data: MusyrifahProfile) => void
+  errors: Record<string, string>
+  onInputChange: (field: string, value: any) => void
+}) {
+  const handleChange = (field: keyof MusyrifahProfile, value: any) => {
+    onChange({ ...data, [field]: value })
+  }
+
+  return (
+    <div className="space-y-6 pt-6 border-t border-gray-200">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5 text-green-600" />
+          Profil Musyrifah
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="musyrifah_education">Pendidikan Terakhir</Label>
+          <Input
+            id="musyrifah_education"
+            value={data.education || ''}
+            onChange={(e) => handleChange('education', e.target.value)}
+            placeholder="Contoh: S1 Manajemen"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="musyrifah_occupation">Pekerjaan Saat Ini</Label>
+          <Input
+            id="musyrifah_occupation"
+            value={data.occupation || ''}
+            onChange={(e) => handleChange('occupation', e.target.value)}
+            placeholder="Contoh: HRD, Manager, dll"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="leadership_years">Pengalaman Kepemimpinan (Tahun)</Label>
+          <Input
+            id="leadership_years"
+            type="number"
+            value={data.leadership_years || ''}
+            onChange={(e) => handleChange('leadership_years', e.target.value)}
+            placeholder="Contoh: 3"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="preferred_schedule">Jadwal Utama yang Diinginkan</Label>
+          <Input
+            id="preferred_schedule"
+            value={data.preferred_schedule || ''}
+            onChange={(e) => handleChange('preferred_schedule', e.target.value)}
+            placeholder="Contoh: Senin-Kamis, 19:00-21:00 WIB"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="backup_schedule">Jadwal Cadangan</Label>
+          <Input
+            id="backup_schedule"
+            value={data.backup_schedule || ''}
+            onChange={(e) => handleChange('backup_schedule', e.target.value)}
+            placeholder="Contoh: Sabtu-Minggu, 09:00-11:00 WIB"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="leadership_experience">Deskripsi Pengalaman Kepemimpinan</Label>
+          <Textarea
+            id="leadership_experience"
+            value={data.leadership_experience || ''}
+            onChange={(e) => handleChange('leadership_experience', e.target.value)}
+            placeholder="Ceritakan pengalaman kepemimpinan Anda"
+            rows={3}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="leadership_roles">Peran Kepemimpinan yang Pernah Diemban</Label>
+          <Input
+            id="leadership_roles"
+            value={data.leadership_roles || ''}
+            onChange={(e) => handleChange('leadership_roles', e.target.value)}
+            placeholder="Contoh: Ketua Panitia, Koordinator Divisi, dll"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="team_management_experience">Pengalaman Manajemen Tim</Label>
+          <Textarea
+            id="team_management_experience"
+            value={data.team_management_experience || ''}
+            onChange={(e) => handleChange('team_management_experience', e.target.value)}
+            placeholder="Ceritakan pengalaman mengelola tim"
+            rows={3}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="motivation">Motivasi Menjadi Musyrifah</Label>
+          <Textarea
+            id="motivation"
+            value={data.motivation || ''}
+            onChange={(e) => handleChange('motivation', e.target.value)}
+            placeholder="Ceritakan motivasi Anda"
+            rows={3}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="leadership_philosophy">Filosofi Kepemimpinan</Label>
+          <Textarea
+            id="leadership_philosophy"
+            value={data.leadership_philosophy || ''}
+            onChange={(e) => handleChange('leadership_philosophy', e.target.value)}
+            placeholder="Bagaimana pendekatan Anda dalam memimpin?"
+            rows={2}
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <Label htmlFor="special_achievements">Pencapaian Khusus</Label>
+          <Textarea
+            id="special_achievements"
+            value={data.special_achievements || ''}
+            onChange={(e) => handleChange('special_achievements', e.target.value)}
+            placeholder="Pencapaian atau penghargaan yang relevan"
+            rows={2}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Muallimah profile view component
+function MuallimahProfileView({ data }: { data: MuallimahProfile }) {
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <GraduationCap className="h-5 w-5 text-green-600" />
+        Profil Muallimah
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InfoItem
+          icon={<GraduationCap className="h-4 w-4" />}
+          label="Pendidikan Terakhir"
+          value={data.education || '-'}
+        />
+        <InfoItem
+          icon={<Briefcase className="h-4 w-4" />}
+          label="Pekerjaan"
+          value={data.occupation || '-'}
+        />
+        <InfoItem
+          icon={<Award className="h-4 w-4" />}
+          label="Tingkat Hafalan"
+          value={data.memorization_level || '-'}
+        />
+        <InfoItem
+          icon={<Award className="h-4 w-4" />}
+          label="Juz yang Dihafal"
+          value={data.memorized_juz || '-'}
+        />
+        <InfoItem
+          icon={<Award className="h-4 w-4" />}
+          label="Juz yang Dibimbing"
+          value={data.preferred_juz || '-'}
+        />
+        <InfoItem
+          icon={<Calendar className="h-4 w-4" />}
+          label="Pengalaman Mengajar"
+          value={data.teaching_years ? `${data.teaching_years} tahun` : '-'}
+        />
+        <InfoItem
+          icon={<Clock className="h-4 w-4" />}
+          label="Jadwal Utama"
+          value={data.preferred_schedule || '-'}
+        />
+        <InfoItem
+          icon={<Clock className="h-4 w-4" />}
+          label="Jadwal Cadangan"
+          value={data.backup_schedule || '-'}
+        />
+        <div className="md:col-span-2">
+          <InfoItem
+            icon={<User className="h-4 w-4" />}
+            label="Motivasi"
+            value={data.motivation || '-'}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <InfoItem
+            icon={<User className="h-4 w-4" />}
+            label="Keahlian Khusus"
+            value={data.special_skills || '-'}
+          />
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+// Musyrifah profile view component
+function MusyrifahProfileView({ data }: { data: MusyrifahProfile }) {
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <Users className="h-5 w-5 text-green-600" />
+        Profil Musyrifah
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InfoItem
+          icon={<GraduationCap className="h-4 w-4" />}
+          label="Pendidikan Terakhir"
+          value={data.education || '-'}
+        />
+        <InfoItem
+          icon={<Briefcase className="h-4 w-4" />}
+          label="Pekerjaan"
+          value={data.occupation || '-'}
+        />
+        <InfoItem
+          icon={<Users className="h-4 w-4" />}
+          label="Pengalaman Kepemimpinan"
+          value={data.leadership_years ? `${data.leadership_years} tahun` : '-'}
+        />
+        <InfoItem
+          icon={<Clock className="h-4 w-4" />}
+          label="Jadwal Utama"
+          value={data.preferred_schedule || '-'}
+        />
+        <InfoItem
+          icon={<Clock className="h-4 w-4" />}
+          label="Jadwal Cadangan"
+          value={data.backup_schedule || '-'}
+        />
+        <div className="md:col-span-2">
+          <InfoItem
+            icon={<User className="h-4 w-4" />}
+            label="Peran Kepemimpinan"
+            value={data.leadership_roles || '-'}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <InfoItem
+            icon={<User className="h-4 w-4" />}
+            label="Motivasi"
+            value={data.motivation || '-'}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <InfoItem
+            icon={<User className="h-4 w-4" />}
+            label="Filosofi Kepemimpinan"
+            value={data.leadership_philosophy || '-'}
+          />
+        </div>
+      </div>
+    </Card>
   )
 }

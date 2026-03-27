@@ -63,9 +63,10 @@ export async function GET(request: NextRequest) {
       isMobile
     });
 
+    // Get basic user profile with roles
     const { data, error } = await supabase
       .from('users')
-      .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi')
+      .select('id, full_name, email, whatsapp, telegram, alamat, zona_waktu, tanggal_lahir, kota, tempat_lahir, negara, provinsi, nama_kunyah, jenis_kelamin, pekerjaan, alasan_daftar, roles')
       .eq('id', userId)
       .single()
 
@@ -100,8 +101,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Minimal object creation for better performance
-    const userProfile = {
+    // Base user profile
+    const userProfile: any = {
       id: data.id,
       full_name: data.full_name || '',
       email: data.email || '',
@@ -114,7 +115,83 @@ export async function GET(request: NextRequest) {
       tempat_lahir: data.tempat_lahir || '',
       negara: data.negara || '',
       provinsi: data.provinsi || '',
+      nama_kunyah: data.nama_kunyah || '',
+      jenis_kelamin: data.jenis_kelamin || '',
+      pekerjaan: data.pekerjaan || '',
+      alasan_daftar: data.alasan_daftar || '',
+      roles: data.roles || [],
       age: age.toString()
+    }
+
+    // Get role-specific data
+    const userRoles = data.roles || []
+    const primaryRole = userRoles[0] || 'calon_thalibah'
+
+    if (primaryRole === 'muallimah') {
+      const { data: muallimahData } = await supabase
+        .from('muallimah_registrations')
+        .select('*')
+        .eq('user_id', userId)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (muallimahData) {
+        userProfile.muallimah_profile = {
+          id: muallimahData.id,
+          education: muallimahData.education || '',
+          occupation: muallimahData.occupation || '',
+          memorization_level: muallimahData.memorization_level || '',
+          memorized_juz: muallimahData.memorized_juz || '',
+          preferred_juz: muallimahData.preferred_juz || '',
+          teaching_experience: muallimahData.teaching_experience || '',
+          teaching_years: muallimahData.teaching_years || '',
+          teaching_institutions: muallimahData.teaching_institutions || '',
+          preferred_schedule: muallimahData.preferred_schedule || '',
+          backup_schedule: muallimahData.backup_schedule || '',
+          motivation: muallimahData.motivation || '',
+          special_skills: muallimahData.special_skills || '',
+          health_condition: muallimahData.health_condition || '',
+          tajweed_institution: muallimahData.tajweed_institution || '',
+          quran_institution: muallimahData.quran_institution || '',
+          teaching_communities: muallimahData.teaching_communities || '',
+          memorized_tajweed_matan: muallimahData.memorized_tajweed_matan || '',
+          studied_matan_exegesis: muallimahData.studied_matan_exegesis || '',
+          examined_juz: muallimahData.examined_juz || '',
+          certified_juz: muallimahData.certified_juz || '',
+          paid_class_interest: muallimahData.paid_class_interest || '',
+          class_type: muallimahData.class_type || '',
+          preferred_max_thalibah: muallimahData.preferred_max_thalibah || null,
+          status: muallimahData.status || ''
+        }
+      }
+    } else if (primaryRole === 'musyrifah') {
+      const { data: musyrifahData } = await supabase
+        .from('musyrifah_registrations')
+        .select('*')
+        .eq('user_id', userId)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (musyrifahData) {
+        userProfile.musyrifah_profile = {
+          id: musyrifahData.id,
+          education: musyrifahData.education || '',
+          occupation: musyrifahData.occupation || '',
+          leadership_experience: musyrifahData.leadership_experience || '',
+          leadership_years: musyrifahData.leadership_years || '',
+          leadership_roles: musyrifahData.leadership_roles || '',
+          management_skills: musyrifahData.management_skills || [],
+          team_management_experience: musyrifahData.team_management_experience || '',
+          preferred_schedule: musyrifahData.preferred_schedule || '',
+          backup_schedule: musyrifahData.backup_schedule || '',
+          motivation: musyrifahData.motivation || '',
+          leadership_philosophy: musyrifahData.leadership_philosophy || '',
+          special_achievements: musyrifahData.special_achievements || '',
+          status: musyrifahData.status || ''
+        }
+      }
     }
 
     // Add cache headers for better performance

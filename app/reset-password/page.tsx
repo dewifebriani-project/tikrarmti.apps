@@ -54,30 +54,42 @@ function ResetPasswordPageContent() {
       console.log('Checking if user has active session...');
 
       try {
-        // Use getUser() instead of getSession() for server-side validation
+        // Use getUser() to validate recovery session
         const { data: { user }, error: userError } = await supabase.auth.getUser();
 
         console.log('Session check result:', {
           hasUser: !!user,
           email: user?.email,
-          error: userError?.message
+          error: userError?.message,
+          errorCode: (userError as any)?.code
         });
 
-        if (userError || !user) {
-          console.error('No valid session found');
-          setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link reset baru.');
+        if (userError) {
+          // Distinguish between different error types
+          if ((userError as any)?.code === 'session_not_found' || 
+              (userError as any)?.code === 'invalid_grant' ||
+              userError.message?.includes('expired')) {
+            console.error('Recovery session expired or invalid');
+            setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan gunakan fitur "Lupa Password" untuk meminta link baru.');
+          } else {
+            console.error('Session check error:', userError.message);
+            setError(`Terjadi kesalahan: ${userError.message || 'Unknown error'}`);
+          }
+        } else if (!user) {
+          console.error('No user found in session');
+          setError('Link reset password tidak valid atau tidak memiliki session. Silakan minta link reset baru.');
         }
 
         setSessionChecked(true);
       } catch (err: any) {
         console.error('Error checking session:', err);
-        setError(`Terjadi kesalahan: ${err.message || 'Unknown error'}`);
+        setError(`Terjadi kesalahan saat membaca session: ${err.message || 'Unknown error'}`);
         setSessionChecked(true);
       }
     };
 
     checkSession();
-  }, []);
+  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +125,17 @@ function ResetPasswordPageContent() {
 
       if (updateError) {
         console.error('Update password error:', updateError);
-        setError('Gagal memperbarui password. Silakan coba lagi.');
+        
+        // Distinguish between different error types
+        if (updateError.message?.includes('session') || 
+            updateError.message?.includes('expired') ||
+            (updateError as any)?.code === 'session_not_found') {
+          setError('Session kadaluarsa. Silakan gunakan fitur "Lupa Password" untuk meminta link reset baru.');
+        } else if (updateError.message?.includes('password')) {
+          setError(`Error password: ${updateError.message}`);
+        } else {
+          setError('Gagal memperbarui password. Silakan coba lagi.');
+        }
       } else {
         console.log('Password updated successfully');
         setSuccess(true);
@@ -128,7 +150,15 @@ function ResetPasswordPageContent() {
       }
     } catch (error: any) {
       console.error('Error updating password:', error);
-      setError(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
+      
+      // Specific error handling for session/token issues
+      if (error.message?.includes('session') || 
+          error.message?.includes('expired') ||
+          error.message?.includes('invalid')) {
+        setError('Sesi Ukhti kadaluarsa. Silakan gunakan fitur "Lupa Password" untuk meminta link reset baru.');
+      } else {
+        setError(error.message || 'Terjadi kesalahan. Silakan coba lagi.');
+      }
     } finally {
       setIsLoading(false);
     }

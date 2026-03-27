@@ -181,6 +181,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check blacklist - prevent blacklisted phone or email from registering
+    const { data: blacklistCheck, error: blacklistError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, whatsapp, blacklist_reason, is_blacklisted')
+      .or(`email.eq.${body.email},whatsapp.eq.${body.whatsapp}`)
+      .eq('is_blacklisted', true)
+      .maybeSingle();
+
+    if (!blacklistError && blacklistCheck) {
+      logger.warn('Blacklisted user attempted to register', {
+        email: body.email,
+        whatsapp: body.whatsapp,
+        matchedEmail: blacklistCheck.email,
+        matchedPhone: blacklistCheck.whatsapp,
+        reason: blacklistCheck.blacklist_reason,
+        ip
+      });
+
+      const matchedField = blacklistCheck.email === body.email ? 'email' : 'WhatsApp';
+      return ApiResponses.customValidationError([{
+        field: matchedField,
+        message: `${matchedField === 'email' ? 'Email' : 'Nomor WhatsApp'} ini telah di-blacklist dari sistem. Hubungi admin jika ini kesalahan.`,
+        code: 'BLACKLISTED'
+      }]);
+    }
+
     let newUser;
     let authUser;
 

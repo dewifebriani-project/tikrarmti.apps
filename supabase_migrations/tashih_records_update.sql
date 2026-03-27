@@ -65,7 +65,7 @@ CREATE POLICY "Admins can view all tashih records"
   USING (
     EXISTS (
       SELECT 1 FROM public.users
-      WHERE users.id = auth.uid() AND users.role = 'admin'
+      WHERE users.id = auth.uid() AND (users.roles @> ARRAY['admin']::text[])
     )
   );
 

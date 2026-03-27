@@ -54,6 +54,7 @@ import { DaftarUlangTab } from '@/components/DaftarUlangTab';
 import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
+import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
 
 interface Batch {
   id: string;
@@ -292,7 +293,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -515,7 +516,8 @@ export default function AdminPage() {
     { id: 'pairing' as TabType, name: 'Pairing', icon: HeartHandshake },
     { id: 'system-logs' as TabType, name: 'System Logs', icon: AlertCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText },
-    { id: 'rls-policies' as TabType, name: 'RLS Policies', icon: Shield }
+    { id: 'rls-policies' as TabType, name: 'RLS Policies', icon: Shield },
+    { id: 'blacklist' as TabType, name: 'Blacklist', icon: XCircle }
   ];
 
   if (loading) {
@@ -730,6 +732,7 @@ export default function AdminPage() {
         {activeTab === 'system-logs' && <SystemLogsTab isActive={activeTab === 'system-logs'} />}
         {activeTab === 'reports' && <ReportsTab />}
         {activeTab === 'rls-policies' && <AdminRlsPoliciesTab />}
+        {activeTab === 'blacklist' && <AdminBlacklistTab />}
       </div>
 
       {/* Exam Import Modal */}

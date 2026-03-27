@@ -20,11 +20,27 @@ export async function POST(request: Request) {
     // Use maybeSingle() to avoid error when no rows returned
     const { data: existingUser, error: checkError } = await supabaseAdmin
       .from('users')
-      .select('id')
+      .select('id, role, roles')
       .eq('id', userId)
       .maybeSingle()
 
     if (existingUser) {
+      // Check if roles array is missing or empty, but role exists
+      // This handles migration from role (singular) to roles (array)
+      if ((!existingUser.roles || existingUser.roles.length === 0) && existingUser.role) {
+        console.log('[ensure-user] Migrating role to roles array for user:', userId)
+        const { error: updateError } = await supabaseAdmin
+          .from('users')
+          .update({ roles: [existingUser.role] })
+          .eq('id', userId)
+
+        if (updateError) {
+          console.error('[ensure-user] Failed to migrate roles:', updateError)
+        } else {
+          console.log('[ensure-user] Successfully migrated roles for user:', userId)
+        }
+      }
+
       return NextResponse.json({
         success: true,
         existed: true,
@@ -74,6 +90,10 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
+    // Determine user role(s)
+    const userRole = userMetadata.role || 'calon_thalibah'
+    const userRoles = userMetadata.roles || [userRole]
+
     // Create user in users table with validated metadata
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
@@ -81,7 +101,8 @@ export async function POST(request: Request) {
         id: userId,
         email: userEmail,
         full_name: full_name || userMetadata.full_name || userEmail?.split('@')[0] || '',
-        role: userMetadata.role || 'calon_thalibah',
+        role: userRole, // For backward compatibility
+        roles: userRoles, // Primary roles array
         whatsapp: userMetadata.whatsapp,
         telegram: userMetadata.telegram,
         negara: userMetadata.negara,

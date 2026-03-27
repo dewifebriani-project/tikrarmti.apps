@@ -90,7 +90,19 @@ export default async function ProtectedLayout({
   if (!userData || userError) {
     console.error('[ProtectedLayout] User data error:', userError)
     console.error('[ProtectedLayout] User data:', userData)
+    console.error('[ProtectedLayout] Session user ID:', session?.user?.id)
+    console.error('[ProtectedLayout] User email:', user?.email)
     redirect('/login')
+  }
+
+  // Log roles for debugging
+  if (!userData.roles || userData.roles.length === 0) {
+    console.warn('[ProtectedLayout] User has no roles set:', {
+      userId: user.id,
+      email: user.email,
+      role: userData.role,
+      roles: userData.roles
+    })
   }
 
   // Pass user data to client components via props

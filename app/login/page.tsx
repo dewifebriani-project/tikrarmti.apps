@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Bug } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from '@/lib/supabase/client';
 
 function LoginPageContent() {
@@ -28,34 +28,11 @@ function LoginPageContent() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
-  const [showDebug, setShowDebug] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   // Set isClient flag after mount to prevent hydration mismatch
   useEffect(() => {
     setIsClient(true);
-
-    // Collect initial debug info
-    collectDebugInfo();
   }, []);
-
-  const collectDebugInfo = async () => {
-    try {
-      const session = await supabase.auth.getSession();
-      const debugData = {
-        timestamp: new Date().toISOString(),
-        hasSession: !!session.data.session,
-        sessionUser: session.data.session?.user || null,
-        cookies: document.cookie,
-        userAgent: navigator.userAgent,
-        currentUrl: window.location.href,
-      };
-      setDebugInfo(debugData);
-      console.log('[Login Debug] Initial state:', debugData);
-    } catch (error) {
-      console.error('[Login Debug] Error collecting info:', error);
-    }
-  };
 
   useEffect(() => {
     if (!isClient) return;
@@ -148,19 +125,6 @@ function LoginPageContent() {
       if (error) {
         console.error('Supabase auth error:', error);
 
-        // Update debug info with error
-        await collectDebugInfo();
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          loginAttempt: {
-            email: formData.email,
-            error: error,
-            errorMessage: error.message,
-            errorName: error.name,
-            errorStatus: error.status,
-          }
-        }));
-
         let errorMessage = error.message;
 
         // Provide more specific error messages for common issues
@@ -193,36 +157,6 @@ function LoginPageContent() {
 
         console.log('[Login Debug] User profile check result:', { userData, userError });
 
-        // Update debug info with successful login (AFTER userData is declared)
-        await collectDebugInfo();
-        setDebugInfo((prev: any) => ({
-          ...prev,
-          loginAttempt: {
-            email: formData.email,
-            success: true,
-            userId: data.user.id,
-            userEmail: data.user.email,
-            userData: userData,
-            userError: userError,
-          }
-        }));
-
-        // Store debug info in localStorage before redirect
-        const finalDebugInfo = {
-          timestamp: new Date().toISOString(),
-          email: formData.email,
-          userId: data.user.id,
-          userEmail: data.user.email,
-          userData: userData,
-          userError: userError,
-          userErrorCode: userError?.code,
-          userErrorMessage: userError?.message,
-          userErrorDetails: userError?.details,
-          userErrorHint: userError?.hint,
-        };
-        localStorage.setItem('loginDebugInfo', JSON.stringify(finalDebugInfo));
-        console.log('[Login Debug] Stored debug info to localStorage:', finalDebugInfo);
-
         if (userError && userError.code === 'PGRST116') {
           // User not found in database, create profile
           console.log('Creating user profile for authenticated user:', data.user.email);
@@ -231,11 +165,11 @@ function LoginPageContent() {
             .from('users')
             .insert({
               id: data.user.id,
-              email: data.user.email,
+              email: data.user.email || '',
               full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
               role: data.user.user_metadata?.role || 'calon_thalibah',
               created_at: new Date().toISOString(),
-            });
+            } as any);
 
           if (createError) {
             console.error('Error creating user profile:', createError);
@@ -468,44 +402,6 @@ function LoginPageContent() {
                   Daftar sebagai anggota baru
                 </Link>
               </div>
-
-              {/* Debug Toggle Button */}
-              <div className="mt-4 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDebug(!showDebug);
-                    collectDebugInfo();
-                  }}
-                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 mx-auto"
-                >
-                  <Bug className="w-3 h-3" />
-                  {showDebug ? 'Hide Debug' : 'Show Debug'}
-                </button>
-              </div>
-
-              {/* Debug Panel */}
-              {showDebug && debugInfo && (
-                <div className="mt-4 p-4 bg-gray-900 text-green-400 rounded-lg text-xs overflow-auto max-h-96">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold">Debug Info:</span>
-                    <span className="text-gray-400">{debugInfo.timestamp}</span>
-                  </div>
-                  <pre className="whitespace-pre-wrap break-words">
-                    {JSON.stringify(debugInfo, null, 2)}
-                  </pre>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
-                      alert('Debug info copied to clipboard');
-                    }}
-                    className="mt-2 px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs"
-                  >
-                    Copy to Clipboard
-                  </button>
-                </div>
-              )}
 
             </CardContent>
           </Card>
