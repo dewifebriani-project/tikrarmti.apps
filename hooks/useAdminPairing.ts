@@ -666,6 +666,5 @@ export function useAdminPairing() {
     handleBulkPair,
     handleAddToPair,
     getSortedMatchCandidates,
-    setRejectingId,
   }
 }
