@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const redirectUrl = `${appUrl}/auth/callback`;
+    const redirectUrl = `${appUrl}/auth/callback?type=recovery`;
     logger.info('Password reset attempt', {
       email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       redirectUrl,

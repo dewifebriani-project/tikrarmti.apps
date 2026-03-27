@@ -199,12 +199,23 @@ function AuthCallbackContent() {
         if (code) {
           console.log('Found authorization code, exchanging for session...');
 
+          // Check if this is a password recovery flow
+          // Supabase sends ?type=recovery&code=... for password reset links
+          const type = searchParams.get('type');
+          const isRecovery = type === 'recovery';
+          console.log('[Auth Callback] Code type:', type, 'isRecovery:', isRecovery);
+
           // Exchange code for session using PKCE
           const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
           if (exchangeError) {
             console.error('Error exchanging code for session:', exchangeError);
-            setError(`Failed to authenticate: ${exchangeError.message}`);
+            
+            if (isRecovery) {
+              setError('Link reset password sudah kadaluarsa atau tidak valid. Silakan gunakan fitur "Lupa Password" untuk meminta link baru.');
+            } else {
+              setError(`Failed to authenticate: ${exchangeError.message}`);
+            }
             setLoading(false);
             return;
           }
@@ -212,6 +223,13 @@ function AuthCallbackContent() {
           if (!exchangeData.session?.user?.email) {
             setError('Authentication failed. No user email found.');
             setLoading(false);
+            return;
+          }
+
+          // If this is a password recovery, redirect to reset-password page
+          if (isRecovery) {
+            console.log('Password recovery via PKCE detected, redirecting to reset-password...');
+            window.location.replace('/reset-password');
             return;
           }
 
