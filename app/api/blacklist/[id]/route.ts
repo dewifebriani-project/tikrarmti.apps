@@ -60,7 +60,7 @@ export async function DELETE(
     }
 
     if (!targetUser.is_blacklisted) {
-      return ApiResponses.badRequest('User is not blacklisted')
+      return ApiResponses.error('BAD_REQUEST', 'User is not blacklisted', undefined, 400)
     }
 
     // Update user to remove from blacklist

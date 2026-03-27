@@ -145,18 +145,18 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json()
     } catch (parseError) {
-      return ApiResponses.validationError([{ field: 'body', message: 'Invalid request body' }])
+      return ApiResponses.error('VALIDATION_ERROR', 'Invalid request body', undefined, 400)
     }
 
     const { targetUserId, reason, notes } = body
 
     // Validate required fields
     if (!targetUserId) {
-      return ApiResponses.validationError([{ field: 'targetUserId', message: 'Target user ID is required' }])
+      return ApiResponses.error('VALIDATION_ERROR', 'Target user ID is required', undefined, 400)
     }
 
     if (!reason || reason.trim().length === 0) {
-      return ApiResponses.validationError([{ field: 'reason', message: 'Reason is required' }])
+      return ApiResponses.error('VALIDATION_ERROR', 'Reason is required', undefined, 400)
     }
 
     // Check if target user exists
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (targetUser.is_blacklisted) {
-      return ApiResponses.badRequest('User is already blacklisted')
+      return ApiResponses.error('BAD_REQUEST', 'User is already blacklisted', undefined, 400)
     }
 
     // Update user to blacklisted
