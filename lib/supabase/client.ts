@@ -1,5 +1,4 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { Database } from '@/types/supabase'
 
 // Load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -25,7 +24,7 @@ export function createClient() {
   // Use createBrowserClient from @supabase/ssr for proper cookie handling
   // This ensures the client-side auth uses cookies that the server can read
   // IMPORTANT: createBrowserClient automatically handles cookies correctly
-  supabaseClient = createBrowserClient<Database>(
+  supabaseClient = createBrowserClient(
     supabaseUrl,
     supabaseAnonKey,
     {
@@ -43,7 +42,7 @@ export function createClient() {
         }
       }
     }
-  ) as any
+  )
 
   return supabaseClient
 }
