@@ -290,7 +290,7 @@ async function updateMuallimahProfile(
   if (body.quran_institution !== undefined) muallimahData.quran_institution = sanitizeGeneric(body.quran_institution, 100)
   if (body.teaching_communities !== undefined) muallimahData.teaching_communities = sanitizeGeneric(body.teaching_communities, 200)
   if (body.memorized_tajweed_matan !== undefined) muallimahData.memorized_tajweed_matan = sanitizeGeneric(body.memorized_tajweed_matan, 200)
-  if (body.studied_matan_exegesis !== undefined) muallimahData.studied_maten_exegesis = sanitizeGeneric(body.studied_matan_exegesis, 200)
+  if (body.studied_matan_exegesis !== undefined) muallimahData.studied_matan_exegesis = sanitizeGeneric(body.studied_matan_exegesis, 200)
   if (body.examined_juz !== undefined) muallimahData.examined_juz = sanitizeGeneric(body.examined_juz, 50)
   if (body.certified_juz !== undefined) muallimahData.certified_juz = sanitizeGeneric(body.certified_juz, 50)
   if (body.paid_class_interest !== undefined) muallimahData.paid_class_interest = sanitizeGeneric(body.paid_class_interest, 10)
