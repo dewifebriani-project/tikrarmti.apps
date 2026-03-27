@@ -7,7 +7,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Client-side only client - singleton pattern to prevent multiple instances
 // Uses createBrowserClient from @supabase/ssr for proper cookie handling
-let supabaseClient: ReturnType<typeof createBrowserClient<Database>> | null = null
+let supabaseClient: any = null
 
 export function createClient() {
   if (supabaseClient) {
