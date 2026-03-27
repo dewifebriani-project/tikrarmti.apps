@@ -53,7 +53,7 @@ export function createClient(options?: { cookies?: { maxAge?: number } }) {
         debug: process.env.NODE_ENV === 'development', // Enable debug in development
       }
     }
-  )
+  ) as any
 }
 
 // Alias for createClient - for backward compatibility
@@ -79,7 +79,7 @@ export function createBrowserClient() {
         detectSessionInUrl: true,
       }
     }
-  )
+  ) as any
 }
 
 // Create a client for authentication operations (login, signup, etc.)
@@ -102,7 +102,7 @@ export function createAuthClient() {
           persistSession: false
         }
       }
-    )
+    ) as any
   } catch (error) {
     console.error('❌ Failed to create Supabase auth client:', error);
     throw new Error(`Failed to create Supabase auth client: ${error instanceof Error ? error.message : 'Unknown error'}`);
