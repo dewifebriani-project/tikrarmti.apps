@@ -49,7 +49,7 @@ import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
 import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 import { AnalysisTab } from '@/components/AnalysisTab';
 import { SystemLogsTab } from '@/components/SystemLogsTab';
-import { AdminPairingTab } from '@/components/AdminPairingTab';
+import AdminPairingTab from '@/components/AdminPairingTab';
 import { DaftarUlangTab } from '@/components/DaftarUlangTab';
 import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';

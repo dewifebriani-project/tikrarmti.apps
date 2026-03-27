@@ -63,12 +63,12 @@ async function verifyAdmin() {
   }
 
   // Verify admin role from database
-  const supabaseAdmin = createSupabaseAdmin()
-  const { data: userData, error: dbError } = await supabaseAdmin
+  const supabaseAdmin = createSupabaseAdmin() as any
+  const { data: userData, error: dbError } = await (supabaseAdmin
     .from('users')
     .select('roles')
     .eq('id', user.id)
-    .single()
+    .single() as any)
 
   if (dbError || !userData || !userData.roles?.includes('admin')) {
     // Log forbidden access attempt
@@ -594,7 +594,7 @@ export async function getSystemLogsStats(filter: Omit<SystemLogFilter, 'limit' |
       supabaseGetUserErrors: 0,
     }
 
-    data?.forEach(log => {
+    data?.forEach((log: any) => {
       stats.bySeverity[log.severity] = (stats.bySeverity[log.severity] || 0) + 1
       stats.byErrorType[log.error_type] = (stats.byErrorType[log.error_type] || 0) + 1
       if (log.is_auth_error) stats.authErrors++

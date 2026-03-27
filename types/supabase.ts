@@ -141,7 +141,16 @@ export interface Database {
         Insert: any
         Update: any
       }
-      // Add other tables as placeholders to be filled by CLI
+      system_logs: {
+        Row: any
+        Insert: any
+        Update: any
+      }
+      [_: string]: {
+        Row: any
+        Insert: any
+        Update: any
+      }
     }
     Views: {
       [_ in never]: never
