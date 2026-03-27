@@ -63,12 +63,12 @@ async function verifyAdmin() {
   }
 
   // Verify admin role from database
-  const supabaseAdmin = createSupabaseAdmin() as any
-  const { data: userData, error: dbError } = await (supabaseAdmin
+  const supabaseAdmin = createSupabaseAdmin()
+  const { data: userData, error: dbError } = await supabaseAdmin
     .from('users')
     .select('roles')
     .eq('id', user.id)
-    .single() as any)
+    .single()
 
   if (dbError || !userData || !userData.roles?.includes('admin')) {
     // Log forbidden access attempt

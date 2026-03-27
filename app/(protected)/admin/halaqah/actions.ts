@@ -117,7 +117,7 @@ export async function getHalaqahs(filters?: HalaqahFilters) {
         .eq('batch_id', filters.batch_id)
 
       if (programs && programs.length > 0) {
-        const programIds = programs.map(p => p.id)
+        const programIds = programs.map((p: any) => p.id)
         query = query.in('program_id', programIds)
       } else {
         // No programs for this batch, return empty
@@ -155,7 +155,7 @@ export async function getHalaqahs(filters?: HalaqahFilters) {
 
     // Enrich with program, batch, student counts, and muallimah data
     const enrichedHalaqahs = await Promise.all(
-      halaqahs.map(async (halaqah) => {
+      halaqahs.map(async (halaqah: any) => {
         const [programData, studentCount, muallimaData] = await Promise.all([
           // Get program and batch data
           halaqah.program_id
@@ -469,7 +469,7 @@ export async function assignThalibahToHalaqah(params: AssignThalibahParams) {
       }
     }
 
-    const programMap = new Map(programs.map(p => [p.id, p]))
+    const programMap: Map<string, any> = new Map(programs.map((p: any) => [p.id, p]))
 
     // Get all halaqahs for this batch's programs
     const { data: halaqahs } = await supabaseAdmin
@@ -486,7 +486,7 @@ export async function assignThalibahToHalaqah(params: AssignThalibahParams) {
     }
 
     // Get current student counts for all halaqahs
-    const halaqahIds = halaqahs.map(h => h.id)
+    const halaqahIds = halaqahs.map((h: any) => h.id)
     const { data: studentCounts } = await supabaseAdmin
       .from('halaqah_students')
       .select('halaqah_id')
@@ -504,7 +504,7 @@ export async function assignThalibahToHalaqah(params: AssignThalibahParams) {
     }
 
     // Add _count to each halaqah
-    const halaqahsWithCounts = halaqahs.map(h => ({
+    const halaqahsWithCounts = halaqahs.map((h: any) => ({
       ...h,
       _count: {
         students: studentCountMap.get(h.id) || 0
@@ -512,15 +512,15 @@ export async function assignThalibahToHalaqah(params: AssignThalibahParams) {
     }))
 
     // Get muallimah data for all halaqahs
-    const muallimahIds = halaqahs.map(h => h.muallimah_id).filter(Boolean) as string[]
+    const muallimahIds = halaqahs.map((h: any) => h.muallimah_id).filter(Boolean) as string[]
     const { data: muallimahRegs } = await supabaseAdmin
       .from('muallimah_registrations')
       .select('user_id, preferred_juz, class_type')
       .in('user_id', muallimahIds)
       .eq('status', 'approved')
 
-    const muallimahMap = new Map(
-      muallimahRegs?.map(m => [m.user_id, m]) || []
+    const muallimahMap: Map<string, any> = new Map(
+      muallimahRegs?.map((m: any) => [m.user_id, m]) || []
     )
 
     // Get thalibah data with their chosen_juz
@@ -1486,7 +1486,7 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     }
 
     // Get the user IDs to check their daftar_ulang_submissions
-    const userIds = thalibahs.map(t => t.user_id)
+    const userIds = thalibahs.map((t: any) => t.user_id)
 
     // Fetch submissions to check which thalibah already have halaqah assignments
     let submissionsQuery = supabaseAdmin
@@ -1508,7 +1508,7 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     // Create a set of user_ids who already have halaqah assignments (either ujian or tashih)
     const thalibahWithHalaqah = new Set<string>()
     if (submissions) {
-      submissions.forEach(sub => {
+      submissions.forEach((sub: any) => {
         // If they have either ujian or tashih halaqah assigned
         if (sub.ujian_halaqah_id || sub.tashih_halaqah_id) {
           thalibahWithHalaqah.add(sub.user_id)
@@ -1519,7 +1519,7 @@ export async function getEligibleThalibahForHalaqah(batchId?: string) {
     console.log('[getEligibleThalibahForHalaqah] Total thalibah:', thalibahs.length, 'With halaqah:', thalibahWithHalaqah.size, 'batchId:', batchId)
 
     // Filter out thalibah who already have halaqah assignments
-    const eligibleThalibah = thalibahs.filter(t => !thalibahWithHalaqah.has(t.user_id))
+    const eligibleThalibah = thalibahs.filter((t: any) => !thalibahWithHalaqah.has(t.user_id))
 
     console.log('[getEligibleThalibahForHalaqah] Eligible thalibah:', eligibleThalibah.length)
 
