@@ -19,9 +19,7 @@ export async function GET(request: NextRequest) {
 
     // At least one parameter is required
     if (!phone && !email) {
-      return ApiResponses.validationError([
-        { field: 'phone', message: 'Either phone or email parameter is required' }
-      ])
+      return ApiResponses.error('VALIDATION_ERROR', 'Either phone or email parameter is required', undefined, 400)
     }
 
     const supabaseAdmin = createSupabaseAdmin()
