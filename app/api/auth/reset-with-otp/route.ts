@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const targetUser = users.find(u => u.email === email.toLowerCase().trim());
+    const targetUser = (users as any[]).find(u => u.email === email.toLowerCase().trim());
 
     if (!targetUser) {
       return NextResponse.json(
