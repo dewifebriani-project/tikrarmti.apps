@@ -19,6 +19,10 @@ export async function updateSession(request: NextRequest) {
       return response
     }
 
+    // Determine shared domain for cookies
+    const host = request.headers.get('host') || ''
+    const domain = host.includes('markaztikrar.id') ? '.markaztikrar.id' : undefined
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,35 +32,37 @@ export async function updateSession(request: NextRequest) {
             return request.cookies.getAll()
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              request.cookies.set({
-                name,
-                value,
-                ...options,
-              })
-              response.cookies.set({
-                name,
-                value,
-                ...options,
-              })
+            cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
+              const finalOptions = {
+                ...cookieOptions,
+                path: '/',
+                ...(domain ? { domain } : {}),
+              }
+              request.cookies.set({ name, value, ...finalOptions })
+              response.cookies.set({ name, value, ...finalOptions })
             })
           },
         },
         cookieOptions: {
           name: 'sb-mti-session',
+          path: '/',
+          ...(domain ? { domain } : {}),
         },
       }
     )
 
-    // IMPORTANT: Avoid calling getUser() on every single request if possible
-    // for performance, but it's required to refresh the session correctly.
-    // We wrap it in try-catch to prevent a malformed cookie from crashing the app.
-    const { data: { user }, error } = await supabase.auth.getUser()
-    
-    // If there's a serious auth error, we might want to clear the session
-    if (error) {
-      // console.warn('Middleware auth error:', error.message)
-    }
+    // Proactively clear legacy/conflicting cookies if they exist
+    const legacyCookies = ['sb-localhost-auth-token', 'sb-markaztikrar-auth-token', 'mti-auth', 'tikrar-mti']
+    legacyCookies.forEach(name => {
+      if (request.cookies.has(name)) {
+        response.cookies.set({ name, value: '', path: '/', maxAge: -1 })
+        if (domain) response.cookies.set({ name, value: '', path: '/', domain, maxAge: -1 })
+      }
+    })
+
+    // Refresh the session (if needed) and validate the user
+    // This will trigger setAll if the session was refreshed
+    await supabase.auth.getUser()
 
     return response
   } catch (err: any) {

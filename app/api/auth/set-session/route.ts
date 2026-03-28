@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Create server client using the standard helper
-    // This ensures correct cookie name 'sb-mti-session' is used
-    const supabase = createClient();
+    // We pass the response object so the helper can set cookies directly in it
+    const supabase = createClient({ response });
 
     // Set session with provided tokens
     const { data: sessionData, error: sessionError } = 

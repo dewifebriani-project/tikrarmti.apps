@@ -21,6 +21,10 @@ export function createClient() {
     throw new Error(errorMessage);
   }
 
+  // Determine shared domain for cookies
+  const isProd = typeof window !== 'undefined' && window.location.hostname.includes('markaztikrar.id');
+  const domain = isProd ? '.markaztikrar.id' : undefined;
+
   // Use createBrowserClient from @supabase/ssr for proper cookie handling
   // This ensures the client-side auth uses cookies that the server can read
   supabaseClient = createSupabaseBrowserClient(
@@ -29,6 +33,8 @@ export function createClient() {
     {
       cookieOptions: {
         name: 'sb-mti-session',
+        path: '/',
+        ...(domain ? { domain } : {}),
       },
       auth: {
         persistSession: true,
