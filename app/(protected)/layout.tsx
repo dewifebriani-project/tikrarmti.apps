@@ -119,9 +119,11 @@ export default async function ProtectedLayout({
   const rawRoles = [
     ...(userData?.roles || []),
     userData?.role,
+    ...(user.app_metadata?.roles || []),
+    user.app_metadata?.role,
     ...(user.user_metadata?.roles || []),
     user.user_metadata?.role
-  ].filter(Boolean) as string[]
+  ].filter(Boolean).map((r: any) => r.toString().toLowerCase()) as string[]
   
   // Unique roles, prioritized (Admin > Muallimah > Musyrifah > Thalibah > Calon)
   const synthesizedRoles = rawRoles.length > 0 
@@ -131,6 +133,16 @@ export default async function ProtectedLayout({
         return priorityA - priorityB
       })
     : ['calon_thalibah']
+
+  // TEMPORARY DEBUG LOG - WILL APPEAR IN SERVER SIDE CONSOLE
+  console.log('DEBUG [ProtectedLayout]:', {
+    email: user.email,
+    dbRole: userData?.role,
+    dbRolesArray: userData?.roles,
+    appMetadata: user.app_metadata,
+    userMetadata: user.user_metadata,
+    finalSynthesized: synthesizedRoles
+  })
 
   // Log roles for debugging
   if (synthesizedRoles.length === 0 || synthesizedRoles.includes('calon_thalibah') && synthesizedRoles.length === 1) {

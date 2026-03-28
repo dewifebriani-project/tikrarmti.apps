@@ -357,14 +357,27 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                           {(() => {
                             // Get primary role from roles array with backward compatibility
                             const primaryRole = user?.roles?.[0] || (user as any)?.role;
-                            switch (primaryRole) {
-                              case 'calon_thalibah': return 'Calon Thalibah';
-                              case 'thalibah': return 'Thalibah';
-                              case 'musyrifah': return 'Musyrifah';
-                              case 'muallimah': return 'Muallimah';
-                              case 'admin': return 'Administrator';
-                              default: return 'User';
+                            const allRoles = user?.roles?.join(', ') || (user as any)?.role || 'none';
+                            
+                            let roleLabel = 'User';
+                            switch (primaryRole?.toLowerCase()) {
+                              case 'calon_thalibah': roleLabel = 'Calon Thalibah'; break;
+                              case 'thalibah': roleLabel = 'Thalibah'; break;
+                              case 'musyrifah': roleLabel = 'Musyrifah'; break;
+                              case 'muallimah': roleLabel = 'Muallimah'; break;
+                              case 'admin': roleLabel = 'Administrator'; break;
                             }
+                            
+                            return (
+                              <>
+                                <span>{roleLabel}</span>
+                                {process.env.NODE_ENV === 'development' && (
+                                  <span className="block text-[10px] text-yellow-200 mt-0.5 opacity-80">
+                                    Debug: [{allRoles}]
+                                  </span>
+                                )}
+                              </>
+                            );
                           })()}
                         </p>
                       </div>
