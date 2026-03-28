@@ -107,8 +107,15 @@ export default async function ProtectedLayout({
     }
   }
 
-  // ROLES SYNTHESIS: Collect all roles from all possible sources
-  // This handles migration from singular 'role' to plural 'roles' array
+  // ROLE PRIORITY HIERARCHY – Ensures most important role is first in UI
+  const ROLE_PRIORITY: Record<string, number> = {
+    'admin': 1,
+    'muallimah': 2,
+    'musyrifah': 3,
+    'thalibah': 4,
+    'calon_thalibah': 5
+  }
+
   const rawRoles = [
     ...(userData?.roles || []),
     userData?.role,
@@ -116,9 +123,13 @@ export default async function ProtectedLayout({
     user.user_metadata?.role
   ].filter(Boolean) as string[]
   
-  // Unique roles, default to calon_thalibah if empty
+  // Unique roles, prioritized (Admin > Muallimah > Musyrifah > Thalibah > Calon)
   const synthesizedRoles = rawRoles.length > 0 
-    ? Array.from(new Set(rawRoles)) 
+    ? Array.from(new Set(rawRoles)).sort((a, b) => {
+        const priorityA = ROLE_PRIORITY[a] || 99
+        const priorityB = ROLE_PRIORITY[b] || 99
+        return priorityA - priorityB
+      })
     : ['calon_thalibah']
 
   // Log roles for debugging

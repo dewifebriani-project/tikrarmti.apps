@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest) {
 
     // Determine shared domain for cookies
     const host = request.headers.get('host') || ''
-    const domain = host.includes('markaztikrar.id') ? '.markaztikrar.id' : undefined
+    const domain = (host.includes('markaztikrar.id') && !host.includes('localhost')) ? '.markaztikrar.id' : undefined
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

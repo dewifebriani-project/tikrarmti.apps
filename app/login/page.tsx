@@ -103,11 +103,10 @@ function LoginPageContent() {
     setIsLoading(true);
     setErrors({});
     try {
-      // FORCE the redirect to the canonical root domain.
-      // This prevents issues where 'www' -> root redirects might strip the 'code' parameter.
-      const redirectUrl = 'https://markaztikrar.id/auth/callback';
+      // DYNAMIC REDIRECT: Use window.location.origin to match current environment (localhost or prod)
+      const redirectUrl = `${window.location.origin}/auth/callback`;
       
-      console.log('[Login] Initiating Google login with redirect:', redirectUrl);
+      console.log('[Login] Initiated Google login with dynamic redirect:', redirectUrl);
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

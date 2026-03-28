@@ -11,7 +11,8 @@ const getCookieDomain = () => {
   try {
     const headersList = headers()
     const host = headersList.get('host') || ''
-    if (host.includes('markaztikrar.id')) {
+    // Only use shared domain for markaztikrar.id (and not localhost)
+    if (host.includes('markaztikrar.id') && !host.includes('localhost')) {
       return '.markaztikrar.id'
     }
   } catch (e) {
