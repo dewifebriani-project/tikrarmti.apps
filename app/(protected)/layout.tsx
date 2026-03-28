@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ProtectedClientLayout from './ProtectedClientLayout'
 import { validateEnv } from '@/lib/env'
@@ -26,20 +25,9 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = cookies()
-
   // Create Supabase server client - READ ONLY cookies in Server Component
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-      },
-    }
-  )
+  // Using the standardized helper to ensure correct cookie name 'sb-mti-session'
+  const supabase = createClient()
 
   // PERFORMANCE OPTIMIZATION: Parallel fetching with smart error handling
   //
@@ -79,20 +67,24 @@ export default async function ProtectedLayout({
   const { data: { user }, error: authError } = authResult
   const { data: userData, error: userError } = userDataResult
 
-  // AUTH GUARD: Redirect to login if no valid session
-  // This is the PRIMARY auth check following arsitektur.md
+  // AUTH GUARD: Redirect to login if no valid session in Supabase Auth
   if (!user || authError) {
-    console.error('[ProtectedLayout] Auth error:', authError)
+    console.error('[ProtectedLayout] Auth error (Unauthenticated):', authError?.message)
     redirect('/login')
   }
 
-  // Redirect to login if user not found in database
+  // PROFILE GUARD: If authenticated with Supabase but missing from 'users' table
   if (!userData || userError) {
-    console.error('[ProtectedLayout] User data error:', userError)
-    console.error('[ProtectedLayout] User data:', userData)
-    console.error('[ProtectedLayout] Session user ID:', session?.user?.id)
-    console.error('[ProtectedLayout] User email:', user?.email)
-    redirect('/login')
+    console.warn('[ProtectedLayout] Profile missing for authenticated user:', user.email)
+    
+    // Check if we are already on a "complete profile" page to avoid loop
+    // But since this is the top-level layout, we'll redirect to a client-side component or special page
+    // For now, let's redirect to login with a special marker to help debugging
+    // OR create a temporary record? No, redirection is safer.
+    
+    // IMPROVEMENT: If it's a new Google user, they might just need a profile created.
+    // We'll redirect to a specific "completing profile" route instead of login.
+    redirect(`/login?message=profile_incomplete&email=${user.email}`)
   }
 
   // Log roles for debugging
