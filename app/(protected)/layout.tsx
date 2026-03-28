@@ -94,14 +94,29 @@ export default async function ProtectedLayout({
     }
   }
 
+  // ROLES SYNTHESIS: Collect all roles from all possible sources
+  // This handles migration from singular 'role' to plural 'roles' array
+  const rawRoles = [
+    ...(userData?.roles || []),
+    userData?.role,
+    ...(user.user_metadata?.roles || []),
+    user.user_metadata?.role
+  ].filter(Boolean) as string[]
+  
+  // Unique roles, default to calon_thalibah if empty
+  const synthesizedRoles = rawRoles.length > 0 
+    ? Array.from(new Set(rawRoles)) 
+    : ['calon_thalibah']
+
   // Log roles for debugging
-  if (userData && (!userData.roles || userData.roles.length === 0)) {
-    console.warn('[ProtectedLayout] User has no roles set:', {
-      userId: user.id,
-      email: user.email,
-      role: userData.role,
-      roles: userData.roles
-    })
+  if (synthesizedRoles.length === 0 || synthesizedRoles.includes('calon_thalibah') && synthesizedRoles.length === 1) {
+    if (userData && (userData.role === 'admin' || (userData.roles && userData.roles.includes('admin')))) {
+       console.warn('[ProtectedLayout] Admin role detection mismatch! Check data:', {
+         userId: user.id,
+         dbRole: userData.role,
+         dbRoles: userData.roles
+       })
+    }
   }
 
   // Pass user data to client components via props
@@ -111,7 +126,7 @@ export default async function ProtectedLayout({
         id: user.id,
         email: user.email || '',
         full_name: userData?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-        roles: userData?.roles || user.user_metadata?.roles || ['calon_thalibah'],
+        roles: synthesizedRoles,
         avatar_url: userData?.avatar_url,
         whatsapp: userData?.whatsapp,
         telegram: userData?.telegram,
