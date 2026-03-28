@@ -55,17 +55,30 @@ export default async function ProtectedLayout({
   const [authResult, userDataResult] = await Promise.all([
     // Validate session with Supabase Auth server (security critical)
     supabase.auth.getUser(),
-    // Fetch user data from database (RLS filtered by session user)
+    // Fetch user data from database
+    // Strategy: 
+    // 1. Try by ID (Standard)
+    // 2. Fallback to Email (if ID lookup fails/missing)
     supabase
       .from('users')
       .select('*')
       .eq('id', session.user.id)
       .single()
+      .then(async ({ data, error }) => {
+        if (!data || error) {
+          return supabase
+            .from('users')
+            .select('*')
+            .eq('email', session.user.email)
+            .maybeSingle();
+        }
+        return { data, error } as any;
+      })
   ])
 
   // Extract results
-  const { data: { user }, error: authError } = authResult
-  const { data: userData, error: userError } = userDataResult
+  const { data: { user }, error: authError } = authResult as any
+  const { data: userData, error: userError } = userDataResult as any
 
   // AUTH GUARD: Redirect to login if no valid session in Supabase Auth
   if (!user || authError) {

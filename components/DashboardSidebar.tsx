@@ -46,130 +46,129 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
 
   // Role-based navigation items
   const getNavItems = () => {
-    const userRoles = user?.roles || [];
+  const userRoles = (user?.roles || []).map(r => r.toLowerCase());
+  const userRole = ((user as any)?.role || '').toLowerCase();
+  
+  const isAdmin = userRoles.includes('admin') || userRole === 'admin';
+  const isMusyrifah = userRoles.includes('musyrifah') || userRole === 'musyrifah';
+  const isMuallimah = userRoles.includes('muallimah') || userRole === 'muallimah' || isAdmin;
+  
+  // Base items for all users
+  const baseItems = [
+    {
+      href: '/dashboard',
+      label: 'Dasbor',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/pendaftaran',
+      label: 'Pendaftaran Program',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/perjalanan-saya',
+      label: 'Perjalanan Saya',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+    },
+    {
+      href: '/jurnal-harian',
+      label: 'Jurnal Harian',
+      icon: <BookOpen className="h-6 w-6" />,
+    },
+    {
+      href: '/tashih',
+      label: 'Catatan Tashih',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536l12.232-12.232z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/ujian',
+      label: 'Ujian',
+      icon: <GraduationCap className="h-6 w-6" />,
+    },
+    {
+      href: '/kelulusan-sertifikat',
+      label: 'Sertifikat',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417l5.5-5.5m3.118-5.5a11.955 11.955 0 012.824 8.082" />
+        </svg>
+      ),
+    },
+    {
+      href: '/tagihan-pembayaran',
+      label: 'Tagihan & Pembayaran',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/profile',
+      label: 'Profil Saya',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/alumni',
+      label: 'Alumni',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5 9 5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5 9 5zm0 0v6" />
+        </svg>
+      ),
+    },
+  ];
 
-    const baseItems = [
-      {
-        href: '/dashboard',
-        label: 'Dasbor',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/pendaftaran',
-        label: 'Pendaftaran Program',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/perjalanan-saya',
-        label: 'Perjalanan Saya',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        ),
-      },
-      {
-        href: '/jurnal-harian',
-        label: 'Jurnal Harian',
-        icon: <BookOpen className="h-6 w-6" />,
-      },
-      {
-        href: '/tashih',
-        label: 'Catatan Tashih',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536l12.232-12.232z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/ujian',
-        label: 'Ujian',
-        icon: <GraduationCap className="h-6 w-6" />,
-      },
-      {
-        href: '/kelulusan-sertifikat',
-        label: 'Sertifikat',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 20.417l5.5-5.5m3.118-5.5a11.955 11.955 0 012.824 8.082" />
-          </svg>
-        ),
-      },
-      {
-        href: '/tagihan-pembayaran',
-        label: 'Tagihan & Pembayaran',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/profile',
-        label: 'Profil Saya',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/alumni',
-        label: 'Alumni',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5 9 5z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l9-5-9-5 9 5zm0 0v6" />
-          </svg>
-        ),
-      },
-    ];
+  // Add specialized panels
+  if (isMusyrifah) {
+    baseItems.push({
+      href: '/panel-musyrifah',
+      label: 'Panel Musyrifah',
+      icon: <Eye className="h-6 w-6" />,
+    });
+  }
 
-    // Role checks
-    const isAdmin = userRoles.includes('admin');
-    const isMusyrifah = userRoles.includes('musyrifah');
-    const isMuallimah = userRoles.includes('muallimah');
+  if (isMuallimah) {
+    baseItems.push({
+      href: '/panel-muallimah',
+      label: 'Panel Muallimah',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      ),
+    });
+  }
 
-    // Add musyrifah panel if user has musyrifah role
-    if (isMusyrifah) {
-      baseItems.push({
-        href: '/panel-musyrifah',
-        label: 'Panel Musyrifah',
-        icon: <Eye className="h-6 w-6" />,
-      });
-    }
-
-    // Add muallimah panel if user has muallimah or admin role
-    if (isMuallimah || isAdmin) {
-      baseItems.push({
-        href: '/panel-muallimah',
-        label: 'Panel Muallimah',
-        icon: (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        ),
-      });
-    }
-
-    // Add admin panel if user has admin role
-    if (isAdmin) {
-      baseItems.push({
-        href: '/admin',
-        label: 'Panel Admin',
-        icon: <Users className="h-6 w-6" />,
-      });
-    }
+  if (isAdmin) {
+    baseItems.push({
+      href: '/admin',
+      label: 'Panel Admin',
+      icon: <Users className="h-6 w-6" />,
+    });
+  }
 
     return baseItems;
   };

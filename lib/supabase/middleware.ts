@@ -7,7 +7,19 @@ import { NextResponse, type NextRequest } from 'next/server'
  */
 export async function updateSession(request: NextRequest) {
   // Create an initial response
-  let response = NextResponse.next({
+  const host = request.headers.get('host')
+  const protocol = request.headers.get('x-forwarded-proto') || 'https'
+  
+  // CANONICAL DOMAIN ENFORCEMENT
+  // Force www.markaztikrar.id -> markaztikrar.id
+  if (host === 'www.markaztikrar.id') {
+    const url = new URL(request.url)
+    url.hostname = 'markaztikrar.id'
+    url.protocol = protocol
+    return NextResponse.redirect(url, { status: 301 })
+  }
+
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
