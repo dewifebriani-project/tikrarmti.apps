@@ -73,21 +73,14 @@ export async function POST(request: Request) {
       negara: userMetadata.negara
     }
 
+    // Relaxed validation: If metadata is missing, we still create the record
+    // We only require userId and email (which we already have)
     const missingMetadata = Object.entries(requiredMetadataFields)
       .filter(([_, value]) => !value)
       .map(([field, _]) => field)
 
     if (missingMetadata.length > 0) {
-      console.warn('Cannot create user - missing required metadata:', {
-        userId,
-        missingMetadata
-      })
-      return NextResponse.json({
-        success: false,
-        error: `User profile incomplete. Please complete registration first. Missing fields: ${missingMetadata.join(', ')}`,
-        code: 'INCOMPLETE_METADATA',
-        redirect: '/auth/register'
-      }, { status: 400 })
+      console.log('[ensure-user] Metadata incomplete, but creating minimal profile for:', userId)
     }
 
     // Determine user role(s)

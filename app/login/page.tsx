@@ -103,11 +103,16 @@ function LoginPageContent() {
     setIsLoading(true);
     setErrors({});
     try {
-      const appUrl = window.location.origin;
+      // FORCE the redirect to the canonical root domain.
+      // This prevents issues where 'www' -> root redirects might strip the 'code' parameter.
+      const redirectUrl = 'https://markaztikrar.id/auth/callback';
+      
+      console.log('[Login] Initiating Google login with redirect:', redirectUrl);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${appUrl}/auth/callback`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -181,7 +186,6 @@ function LoginPageContent() {
             .single();
 
           if (userError && userError.code === 'PGRST116') {
-            // User not found in database, create profile
             console.log('Creating user profile for authenticated user:', data.user.email);
             await supabase
               .from('users')

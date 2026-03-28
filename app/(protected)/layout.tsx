@@ -73,22 +73,29 @@ export default async function ProtectedLayout({
     redirect('/login')
   }
 
-  // PROFILE GUARD: If authenticated with Supabase but missing from 'users' table
+  // PROFILE GUARD / FALLBACK: If authenticated with Supabase but missing from 'users' table
+  // We allow them in with a synthetic profile and attempt to create a record if missing.
   if (!userData || userError) {
-    console.warn('[ProtectedLayout] Profile missing for authenticated user:', user.email)
+    console.warn('[ProtectedLayout] Profile record missing in database for:', user.email)
     
-    // Check if we are already on a "complete profile" page to avoid loop
-    // But since this is the top-level layout, we'll redirect to a client-side component or special page
-    // For now, let's redirect to login with a special marker to help debugging
-    // OR create a temporary record? No, redirection is safer.
-    
-    // IMPROVEMENT: If it's a new Google user, they might just need a profile created.
-    // We'll redirect to a specific "completing profile" route instead of login.
-    redirect(`/login?message=profile_incomplete&email=${user.email}`)
+    // Attempt to create the missing profile record in the background (non-blocking)
+    if (user.id && user.email) {
+      supabase.from('users').insert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.email.split('@')[0],
+        role: 'calon_thalibah',
+        roles: ['calon_thalibah'],
+        created_at: new Date().toISOString(),
+      } as any).then(({ error }) => {
+        if (error) console.error('[ProtectedLayout] Background profile creation failed:', error.message)
+        else console.log('[ProtectedLayout] Background profile created successfully for:', user.email)
+      })
+    }
   }
 
   // Log roles for debugging
-  if (!userData.roles || userData.roles.length === 0) {
+  if (userData && (!userData.roles || userData.roles.length === 0)) {
     console.warn('[ProtectedLayout] User has no roles set:', {
       userId: user.id,
       email: user.email,
