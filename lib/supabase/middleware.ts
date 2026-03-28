@@ -72,6 +72,10 @@ export async function updateSession(request: NextRequest) {
           })
         },
       },
+      cookieOptions: {
+        name: 'mti-auth-session',
+      },
+      cookieEncoding: 'raw',
     }
   )
 

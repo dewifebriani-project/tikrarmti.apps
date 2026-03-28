@@ -35,6 +35,10 @@ export function createClient() {
         flowType: 'pkce', // Use PKCE flow for better security
         // No custom storage needed - createBrowserClient handles this internally
       },
+      cookieOptions: {
+        name: 'mti-auth-session',
+      },
+      cookieEncoding: 'raw',
       global: {
         headers: {
           'Accept': 'application/json',

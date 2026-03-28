@@ -32,98 +32,70 @@ function AuthCallbackContent() {
       try {
         setLoading(true);
 
-        // Log the full URL for debugging
-        console.log('[Auth Callback] Full URL:', window.location.href);
-        console.log('[Auth Callback] Search params:', Object.fromEntries(searchParams.entries()));
-        console.log('[Auth Callback] Hash:', window.location.hash);
+        const urlParams = Object.fromEntries(searchParams.entries());
+        const hash = typeof window !== 'undefined' ? window.location.hash : '';
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const hashTokens = Object.fromEntries(hashParams.entries());
 
-        // Check for errors in URL first
-        const error = searchParams.get('error');
-        if (error) {
-          debugOAuth('Callback Error', { error });
-          setError(`Authentication error: ${error}`);
+        // Log the full URL details for debugging
+        console.log('[Auth Callback] FULL URL:', window.location.href);
+        console.log('[Auth Callback] SEARCH PARAMS:', urlParams);
+        console.log('[Auth Callback] HASH FRAGMENT:', hash);
+        console.log('[Auth Callback] HASH PARAMS:', hashTokens);
+
+        // Check for error in URL
+        const errorParam = searchParams.get('error') || hashParams.get('error');
+        const errorDesc = searchParams.get('error_description') || hashParams.get('error_description');
+        
+        if (errorParam) {
+          debugOAuth('Callback Error', { error: errorParam, description: errorDesc });
+          console.error('[Auth Callback] ERROR IN URL:', errorParam, errorDesc);
+          setError(`Authentication error: ${errorDesc || errorParam}`);
           setLoading(false);
           return;
         }
 
-        // Check for authorization code (PKCE flow)
-        const code = searchParams.get('code');
+        // Identify recovery flow - could be in query (PKCE) or hash (Implicit)
+        const typeQuery = searchParams.get('type');
+        const typeHash = hashParams.get('type');
+        const isRecovery = typeQuery === 'recovery' || typeHash === 'recovery';
+        
+        console.log('[Auth Callback] FLOW DETECTION:', { 
+          isRecovery, 
+          typeQuery, 
+          typeHash,
+          hasCode: !!searchParams.get('code'),
+          hasHashAccessToken: !!hashParams.get('access_token')
+        });
 
-        // Note: Recovery links from Supabase come in hash fragment, not query params
-        // So we check for code first, then handle hash fragment below
-
-        // FIRST: Handle hash fragment BEFORE checking for code
-        // This is important because password recovery links use hash fragments
-        if (typeof window !== 'undefined' && window.location.hash) {
-          console.log('Hash fragment detected:', window.location.hash);
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        // FIRST: Handle hash fragment (Implicit Flow)
+        if (hash) {
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
-          const type = hashParams.get('type');
 
-          console.log('Hash params:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            type: type
-          });
+          if (accessToken) {
+            console.log('[Auth Callback] Implicit flow detected, setting session...');
 
-          // Check if this is a password recovery link
-          // Recovery links have type=recovery in hash fragment
-          if (type === 'recovery' && accessToken) {
-            console.log('Password recovery detected (type=' + type + '), setting session and redirecting...');
-
-            // First set the session
-            const { data: recoveryData, error: recoveryError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-
-            console.log('setSession result:', { data: recoveryData, error: recoveryError });
-
-            if (recoveryError) {
-              console.error('Recovery session error:', recoveryError);
-
-              // Distinguish between expired and other errors
-              if ((recoveryError as any)?.code === 'invalid_grant' ||
-                  recoveryError.message?.includes('expired') ||
-                  recoveryError.message?.includes('invalid') ||
-                  recoveryError.message?.includes('malformed')) {
-                setError('Link reset password sudah kadaluarsa atau tidak valid. Silakan gunakan fitur "Lupa Password" untuk meminta link baru.');
-              } else {
-                setError(`Error: ${recoveryError.message}`);
-              }
-
-              setLoading(false);
-              return;
-            }
-
-            if (!recoveryData.session) {
-              console.error('No session returned from setSession');
-              setError('Gagal membuat session dari link reset password. Silakan coba lagi.');
-              setLoading(false);
-              return;
-            }
-
-            console.log('Recovery session set successfully, redirecting to reset-password page...');
-            // Now redirect to reset-password page (session already set)
-            window.location.replace('/reset-password');
-            return;
-          }
-
-          // Handle other access tokens in hash (implicit flow)
-          if (accessToken && type !== 'recovery') {
-            console.log('Found access token in hash fragment, setting session...');
             const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
 
             if (sessionError) {
-              console.error('Error setting session from hash:', sessionError);
-              setError(`Failed to set session: ${sessionError.message}`);
+              console.error('[Auth Callback] Error setting session from hash:', sessionError);
+              setError(`Gagal membuat session: ${sessionError.message}`);
               setLoading(false);
               return;
             }
+
+            if (isRecovery) {
+              console.log('[Auth Callback] Recovery session set via hash, redirecting to reset-password...');
+              window.location.replace('/reset-password');
+              return;
+            }
+
+            // Normal OAuth / Magic Link login via hash
+            console.log('[Auth Callback] Session set successfully, syncing to server...');
 
             if (!sessionData.session?.user?.email) {
               setError('Authentication failed. No user email found.');
@@ -195,15 +167,11 @@ function AuthCallbackContent() {
           }
         }
 
-        // Check for authorization code (PKCE flow)
-        if (code) {
-          console.log('Found authorization code, exchanging for session...');
+        // SECOND: Handle authorization code (PKCE Flow)
+        const code = searchParams.get('code');
 
-          // Check if this is a password recovery flow
-          // Supabase sends ?type=recovery&code=... for password reset links
-          const type = searchParams.get('type');
-          const isRecovery = type === 'recovery';
-          console.log('[Auth Callback] Code type:', type, 'isRecovery:', isRecovery);
+        if (code) {
+          console.log('[Auth Callback] PKCE flow detected, exchanging code for session...');
 
           // Exchange code for session using PKCE
           const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);

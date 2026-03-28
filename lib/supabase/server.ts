@@ -19,27 +19,20 @@ export function createClient(options?: { cookies?: { maxAge?: number } }) {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
-            // Determine maxAge: use passed option, or default to 1 week if not session cookie
-            let maxAge = options?.cookies?.maxAge;
-            
-            if (maxAge === undefined) {
-               maxAge = 60 * 60 * 24 * 7; // Default 1 week
-            } else if (maxAge === 0) {
-               maxAge = undefined; // Session cookie
-            }
-
-            cookieStore.set(name, value, {
-              ...cookieOptions,
-              // SECURITY: Explicit cookie flags
-              httpOnly: true,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
-              maxAge: maxAge, 
-            })
-          })
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch (error) {
+            // Handle error (e.g. called from server component)
+            console.log('[Supabase Server] setAll warning (expected in SC):', error.message);
+          }
         },
       },
+      cookieOptions: {
+        name: 'mti-auth-session',
+      },
+      cookieEncoding: 'raw',
       auth: {
         autoRefreshToken: true,
         persistSession: true,

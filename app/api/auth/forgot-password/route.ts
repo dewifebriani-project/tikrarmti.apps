@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger-secure';
 
 // Helper function to validate URL
@@ -36,11 +36,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    // Create Supabase client using the standard server client (SSR-compatible)
+    const supabase = createClient();
 
     // Validate and construct redirect URL
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -67,7 +64,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const redirectUrl = `${appUrl}/auth/callback?type=recovery`;
+    // Standard callback URL without manual params to avoid Supabase appending issues
+    const redirectUrl = `${appUrl}/auth/callback`;
     logger.info('Password reset attempt', {
       email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       redirectUrl,
