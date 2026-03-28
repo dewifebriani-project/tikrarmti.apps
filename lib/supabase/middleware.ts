@@ -2,100 +2,73 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * MIDDLEWARE HELPER - The Cookie Refresher
- *
- * ARCHITECTURE V3 COMPLIANCE:
- * This function is the ONLY place where auth token refresh happens in middleware.
- *
- * What it does:
- * 1. Creates a Supabase client with custom cookie handlers
- * 2. Calls supabase.auth.getUser() which triggers token refresh if needed
- * 3. Returns a response with updated cookies in Set-Cookie headers
- *
- * Why this is critical:
- * - Server Components can't write cookies (Next.js streaming limitation)
- * - Without this, users will experience logout loops when token expires
- * - Middleware can write cookies via response headers
- *
- * Reference:
- * - arsitektur.md section 6 "Middleware (The Cookie Refresher)"
- * - https://supabase.com/docs/guides/auth/server-side/nextjs
+ * Updates the user's session and handles cookie persistence.
+ * This is called by the main middleware for every request.
  */
 export async function updateSession(request: NextRequest) {
-  // Create a mutable response reference
-  // IMPORTANT: We use the same response object throughout to preserve all cookie updates
-  const response = NextResponse.next({
+  // Create an initial response
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        // Read cookie from request
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        // Write cookie to both request and response
-        // CRITICAL: Do NOT create new response object here - mutate the existing one
-        set(name: string, value: string, options: CookieOptions) {
-          // Update request cookies (for Server Components to read)
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          // Update response cookies (for browser - this is what persists across requests)
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        // Remove cookie from both request and response
-        // CRITICAL: Do NOT create new response object here - mutate the existing one
-        remove(name: string, options: CookieOptions) {
-          // Update request cookies
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          // Update response cookies
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
-      cookieOptions: {
-        name: 'mti-auth-session',
-      },
-      cookieEncoding: 'raw',
+  try {
+    // SKIP auth check for auth callback and public auth routes to avoid interference
+    if (request.nextUrl.pathname.startsWith('/auth/')) {
+      return response
     }
-  )
 
-  // CRITICAL: This call triggers token refresh if needed
-  // DO NOT use getSession() - it doesn't validate with Auth server
-  // getUser() ensures the token is valid and refreshes if expired
-  //
-  // The Supabase SSR client will:
-  // 1. Check if access token is expired
-  // 2. If expired, use refresh token to get new access token
-  // 3. Call our cookie handlers above to persist new tokens
-  // 4. Return the updated user data
-  const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+              response.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+            })
+          },
+        },
+        cookieOptions: {
+          name: 'sb-mti-session',
+        },
+      }
+    )
 
-  // Optional: Log for debugging in development
-  if (process.env.NODE_ENV === 'development' && user) {
-    console.log('[Middleware] Session refreshed for user:', user.email)
+    // IMPORTANT: Avoid calling getUser() on every single request if possible
+    // for performance, but it's required to refresh the session correctly.
+    // We wrap it in try-catch to prevent a malformed cookie from crashing the app.
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    // If there's a serious auth error, we might want to clear the session
+    if (error) {
+      // console.warn('Middleware auth error:', error.message)
+    }
+
+    return response
+  } catch (err: any) {
+    // CRITICAL: If the Supabase library crashes (e.g. Invalid UTF-8 sequence),
+    // we catch it here and return a plain response to avoid a 500 error.
+    console.error('CRITICAL: Middleware Supabase Crash caught:', err.message);
+    
+    // Return a fresh response without the problematic state
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
   }
-
-  // Return response with potentially updated Set-Cookie headers
-  // The response.cookies.set() calls above will be serialized to Set-Cookie headers
-  return response
 }

@@ -1,4 +1,4 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient as createSupabaseBrowserClient } from '@supabase/ssr'
 
 // Load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -23,22 +23,19 @@ export function createClient() {
 
   // Use createBrowserClient from @supabase/ssr for proper cookie handling
   // This ensures the client-side auth uses cookies that the server can read
-  // IMPORTANT: createBrowserClient automatically handles cookies correctly
-  supabaseClient = createBrowserClient(
+  supabaseClient = createSupabaseBrowserClient(
     supabaseUrl,
     supabaseAnonKey,
     {
+      cookieOptions: {
+        name: 'sb-mti-session',
+      },
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'pkce', // Use PKCE flow for better security
-        // No custom storage needed - createBrowserClient handles this internally
+        flowType: 'pkce',
       },
-      cookieOptions: {
-        name: 'mti-auth-session',
-      },
-      cookieEncoding: 'raw',
       global: {
         headers: {
           'Accept': 'application/json',
@@ -50,3 +47,6 @@ export function createClient() {
 
   return supabaseClient
 }
+
+// Alias for ease of migration
+export const browserClient = createClient()

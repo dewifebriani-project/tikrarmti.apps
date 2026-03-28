@@ -1,13 +1,12 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // Load environment variables
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Server-side client that can read cookies - for API routes
-export function createClient(options?: { cookies?: { maxAge?: number } }) {
+// Server-side client that can read cookies - for API routes, Server Actions, and Server Components
+export function createClient() {
   const cookieStore = cookies()
 
   return createSupabaseServerClient(
@@ -23,76 +22,24 @@ export function createClient(options?: { cookies?: { maxAge?: number } }) {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             )
-          } catch (error) {
-            // Handle error (e.g. called from server component)
-            console.log('[Supabase Server] setAll warning (expected in SC):', error.message);
+          } catch (error: any) {
+            // This can be ignored if you have middleware refreshing user sessions.
+            console.log('[Supabase Server] setAll warning (expected in RSC):', error.message);
           }
         },
       },
       cookieOptions: {
-        name: 'mti-auth-session',
+        name: 'sb-mti-session',
       },
-      cookieEncoding: 'raw',
       auth: {
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        flowType: 'pkce', // Use PKCE flow for better security (must match client-side)
-        debug: process.env.NODE_ENV === 'development', // Enable debug in development
+        flowType: 'pkce',
       }
     }
   )
 }
 
-// Alias for createClient - for backward compatibility
+// Alias for ease of migration
 export const createServerClient = createClient
-
-// Client-side client for use in browser components
-export function createBrowserClient() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    const errorMessage = '❌ Supabase credentials missing:\n' +
-      `NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'SET' : 'MISSING'}\n` +
-      `NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET' : 'MISSING'}`;
-    console.error(errorMessage);
-    throw new Error(errorMessage);
-  }
-
-  return createSupabaseClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      }
-    }
-  )
-}
-
-// Create a client for authentication operations (login, signup, etc.)
-export function createAuthClient() {
-  if (!supabaseUrl || !supabaseAnonKey) {
-    const errorMessage = '❌ Supabase credentials missing:\n' +
-      `NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'SET' : 'MISSING'}\n` +
-      `NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET' : 'MISSING'}`;
-    console.error(errorMessage);
-    throw new Error(errorMessage);
-  }
-
-  try {
-    return createSupabaseClient(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: false
-        }
-      }
-    )
-  } catch (error) {
-    console.error('❌ Failed to create Supabase auth client:', error);
-    throw new Error(`Failed to create Supabase auth client: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}

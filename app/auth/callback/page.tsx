@@ -26,7 +26,8 @@ function AuthCallbackContent() {
         currentUrl: window.location.href,
         searchParams: Object.fromEntries(searchParams.entries()),
         hash: window.location.hash,
-        origin: window.location.origin
+        origin: window.location.origin,
+        cookies: document.cookie.split('; ').map(c => c.split('=')[0]).filter(c => c.includes('mti') || c.includes('sb-'))
       });
 
       try {
@@ -36,6 +37,11 @@ function AuthCallbackContent() {
         const hash = typeof window !== 'undefined' ? window.location.hash : '';
         const hashParams = new URLSearchParams(hash.substring(1));
         const hashTokens = Object.fromEntries(hashParams.entries());
+
+        // Log all cookies for debugging (sensitive info masked)
+        console.log('[Auth Callback] ALL COOKIE NAMES:', document.cookie.split(';').map(c => c.split('=')[0].trim()));
+        const verifierCookie = document.cookie.split('; ').find(row => row.startsWith('sb-mti-session-code-verifier'));
+        console.log('[Auth Callback] Code Verifier Cookie Present:', !!verifierCookie);
 
         // Log the full URL details for debugging
         console.log('[Auth Callback] FULL URL:', window.location.href);
@@ -401,9 +407,24 @@ function AuthCallbackContent() {
           <h1 className="text-2xl font-bold text-red-900 mb-4">
             Autentikasi Gagal
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-4">
             {error}
           </p>
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left text-xs border border-gray-200 font-mono">
+            <p className="font-bold mb-2 text-gray-700">DIAGNOSTIC INFO (Screenshot this):</p>
+            <p className="mb-1 text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">
+              ORIGIN: {typeof window !== 'undefined' ? window.location.origin : '...'}
+            </p>
+            <p className="mb-1 text-gray-500">
+              PATH: {typeof window !== 'undefined' ? window.location.pathname : '...'}
+            </p>
+            <p className="mb-1 text-gray-500">
+              CODE: {typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('code') ? 'PRESENT' : 'MISSING') : '...'}
+            </p>
+            <p className="text-gray-500 break-all">
+              COOKIES: {typeof document !== 'undefined' ? (document.cookie.split(';').map(c => c.split('=')[0].trim()).filter(c => c.includes('sb-mti') || c.includes('mti') || c.includes('pkce')).join(', ') || 'NONE') : '...'}
+            </p>
+          </div>
           <button
             onClick={() => router.push('/login')}
             className="px-6 py-3 bg-green-900 text-white rounded-lg hover:bg-green-800 transition-colors"

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
           },
         },
         cookieOptions: {
-          name: 'mti-auth-session',
+          name: 'sb-mti-session',
         },
       }
     );

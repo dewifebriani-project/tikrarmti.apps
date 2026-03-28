@@ -39,33 +39,13 @@ export async function POST(request: NextRequest) {
     // Create Supabase client using the standard server client (SSR-compatible)
     const supabase = createClient();
 
-    // Validate and construct redirect URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!appUrl) {
-      logger.error('Missing NEXT_PUBLIC_APP_URL environment variable');
-      return NextResponse.json(
-        { 
-          success: true,
-          message: 'Jika email terdaftar, Ukhti akan menerima link reset password'
-        }
-      );
-    }
-
-    if (!isValidUrl(appUrl)) {
-      logger.error('Invalid NEXT_PUBLIC_APP_URL', {
-        appUrl,
-        nodeEnv: process.env.NODE_ENV
-      });
-      return NextResponse.json(
-        { 
-          success: true,
-          message: 'Jika email terdaftar, Ukhti akan menerima link reset password'
-        }
-      );
-    }
-
-    // Standard callback URL without manual params to avoid Supabase appending issues
-    const redirectUrl = `${appUrl}/auth/callback`;
+    // Get dynamic origin from request headers for correct environment redirect
+    const host = request.headers.get('host');
+    const protocol = host?.includes('localhost') ? 'http' : 'https';
+    const dynamicOrigin = `${protocol}://${host}`;
+    
+    // Standard callback URL
+    const redirectUrl = `${dynamicOrigin}/auth/callback`;
     logger.info('Password reset attempt', {
       email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       redirectUrl,
