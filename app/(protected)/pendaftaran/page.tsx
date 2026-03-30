@@ -72,7 +72,7 @@ export default function PendaftaranPage() {
         ),
         admin: registrations.some(reg =>
           ['approved', 'pending'].includes(reg.status) && 
-          reg.program_name?.toLowerCase().includes('muallimah')
+          reg.program?.name?.toLowerCase().includes('muallimah')
         )
       }
     };
