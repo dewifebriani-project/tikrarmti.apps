@@ -11,6 +11,8 @@
  * - For client components: Import from this file (types/index.ts)
  */
 
+import type { User } from './database'
+
 // =====================================================
 // DATABASE TYPES - Re-export for convenience
 // =====================================================
