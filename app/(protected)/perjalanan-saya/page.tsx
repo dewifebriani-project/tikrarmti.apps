@@ -148,12 +148,12 @@ export default function PerjalananSaya() {
     if (registrations && registrations.length > 0) {
       return registrations[0]?.batch_id || null;
     }
-    // Fallback for Admin preview
-    if (isAdmin && activeBatch) {
+    // Fallback for thalibah and admin if no registration yet
+    if (activeBatch) {
       return activeBatch.id;
     }
     return null;
-  }, [registrations, isAdmin, activeBatch]);
+  }, [registrations, activeBatch]);
 
   // Fetch batch timeline data - safely handle undefined registrations
   const { batch, timeline: batchTimeline, isLoading: batchLoading } = useBatchTimeline(batchId, {
@@ -580,6 +580,24 @@ export default function PerjalananSaya() {
 
   const completedCount = timelineData.filter(item => item.status === 'completed').length;
   const totalCount = timelineData.length;
+
+  // Calculate dynamic finish estimation
+  const estimationFinish = useMemo(() => {
+    if (batch && batch.graduation_end_date) {
+      const greg = formatDateIndo(batch.graduation_end_date);
+      const hijri = toHijri(batch.graduation_end_date);
+      return { greg, hijri };
+    }
+    
+    // Fallback if no graduation date but have timeline
+    if (timelineData.length > 0) {
+      const lastItem = timelineData[timelineData.length - 1];
+      // Try to extract date from the last item's date string if batch.graduation_end_date is missing
+      return { greg: lastItem.date, hijri: lastItem.hijriDate };
+    }
+
+    return { greg: '-', hijri: '-' };
+  }, [batch, timelineData]);
 
   // Handle session expired error - must be before conditional returns
   useEffect(() => {
@@ -2625,48 +2643,17 @@ export default function PerjalananSaya() {
                   </p>
                 </div>
                 
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-2xl">
-                  <Sparkles className="w-4 h-4 text-green-600" />
-                  <p className="text-xs sm:text-sm text-green-800 font-bold">
-                    ESTIMASI SELESAI: <span className="uppercase tracking-wide">RAIBUL AWAL 1447 H</span>
-                  </p>
-                </div>
+                {estimationFinish.greg !== '-' && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-2xl">
+                    <Sparkles className="w-4 h-4 text-green-600" />
+                    <p className="text-xs sm:text-sm text-green-800 font-bold">
+                      ESTIMASI SELESAI: <span className="uppercase tracking-wide">{estimationFinish.greg} / {estimationFinish.hijri}</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Quick Actions */}
-              {registrationStatus?.hasRegistered && (
-                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
-                  <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Aksi Cepat</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {/* Daftar Ulang button - only for selected thalibah who haven't completed re-enrollment */}
-                    {registrationStatus.selectionStatus === 'selected' && !registrationStatus.registration?.re_enrollment_completed && (
-                      <Link href={`/daftar-ulang?batch_id=${batchId}`}>
-                        <Button
-                          size="sm"
-                          className="bg-orange-600 hover:bg-orange-700 text-white text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2"
-                        >
-                          <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                          <span className="hidden xs:inline">Daftar Ulang</span>
-                          <span className="xs:hidden">Daftar Ulang</span>
-                        </Button>
-                      </Link>
-                    )}
-                    <Link href="/jurnal-harian">
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
-                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                        <span className="hidden xs:inline">Jurnal Harian</span>
-                        <span className="xs:hidden">Jurnal</span>
-                      </Button>
-                    </Link>
-                    <Link href="/tashih">
-                      <Button size="sm" variant="outline" className="text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2">
-                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                        Tashih
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
+
             </CardContent>
           </Card>
         )}
