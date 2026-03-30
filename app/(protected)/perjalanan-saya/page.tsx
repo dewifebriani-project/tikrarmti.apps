@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyRegistrations, useAllRegistrations } from '@/hooks/useRegistrations';
+import { useActiveBatch } from '@/hooks/useBatches';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
