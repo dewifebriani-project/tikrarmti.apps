@@ -85,11 +85,11 @@ export function useAdminPairing() {
       .map(r => ({
         id: r.id, // submission id
         user_1_name: r.user_name,
-        user_2_name: r.partner_name,
+        user_2_name: r.partner_name || '-',
         user_1_time: r.main_time_slot,
         user_2_time: r.partner_details?.main_time_slot,
         user_1_juz: r.chosen_juz,
-        user_2_juz: r.partner_details?.chosen_juz
+        user_2_juz: r.partner_details?.chosen_juz || '-'
       }))
   }, [systemMatchRequests])
 
