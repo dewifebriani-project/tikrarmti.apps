@@ -140,7 +140,7 @@ export default function PendaftaranPage() {
         color: 'blue',
         benefits: [
           'Training manajerial dan kepemimpinan',
-          'Metode pembinaan santri modern',
+          'Metode pembinaan thalibah modern',
           'Sertifikasi musyrifah profesional',
           'Peluang karir di berbagai lembaga',
           'Networking dengan praktisi pendidikan'

@@ -854,7 +854,7 @@ function MusyrifahRegistrationContent() {
                   <h4 className="font-semibold text-blue-700">🎓 Training & Development</h4>
                   <ul className="text-sm space-y-1 text-gray-600">
                     <li>• Training manajerial dan kepemimpinan</li>
-                    <li>• Metode pembinaan santri modern</li>
+                    <li>• Metode pembinaan thalibah modern</li>
                     <li>• Sertifikasi musyrifah profesional</li>
                     <li>• Program leadership development</li>
                   </ul>

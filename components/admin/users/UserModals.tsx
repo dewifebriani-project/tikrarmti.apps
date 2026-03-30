@@ -82,7 +82,7 @@ export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps)
 
             {/* Informasi Pribadi */}
             <div className="space-y-4">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Profil Santriwati</h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Profil Thalibah</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 flex-shrink-0">
@@ -271,7 +271,7 @@ export function EditRoleModal({ user, isOpen, onClose, onSuccess }: EditRoleModa
           >
             <div className="flex flex-col gap-0.5">
               <span className="font-bold">THALIBAH</span>
-              <span className="text-xs opacity-70 font-medium">Akses standart sebagai santri aktif</span>
+              <span className="text-xs opacity-70 font-medium">Akses standart sebagai thalibah aktif</span>
             </div>
             {selectedRoles.includes('thalibah') && <CheckCircle className="h-5 w-5 text-emerald-600" />}
           </button>

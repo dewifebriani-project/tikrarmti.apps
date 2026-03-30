@@ -116,6 +116,7 @@ interface PairingData {
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  const [activeTab, setActiveTab] = useState<'status' | 'jadwal' | 'achievement'>('status');
   
   // Identify if user is Admin/Staff for preview mode
   const isAdmin = useMemo(() => {
@@ -145,10 +146,11 @@ export default function PerjalananSaya() {
 
   // Get batch_id from registration - fallback to active batch for Admins
   const batchId = useMemo(() => {
-    if (registrations && registrations.length > 0) {
-      return registrations[0]?.batch_id || null;
+    // Priority 1: Registration from DB
+    if (registrations && registrations.length > 0 && registrations[0].batch_id) {
+      return registrations[0].batch_id;
     }
-    // Fallback for thalibah and admin if no registration yet
+    // Priority 2: Fallback to Active Batch (for both students and admins)
     if (activeBatch) {
       return activeBatch.id;
     }
@@ -580,6 +582,7 @@ export default function PerjalananSaya() {
 
   const completedCount = timelineData.filter(item => item.status === 'completed').length;
   const totalCount = timelineData.length;
+  const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   // Calculate dynamic finish estimation
   const estimationFinish = useMemo(() => {
@@ -1018,12 +1021,12 @@ export default function PerjalananSaya() {
                       className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
                       strokeWidth="8"
                       strokeDasharray="251.2"
-                      strokeDashoffset={251.2 - (251.2 * completedCount) / totalCount}
+                      strokeDashoffset={251.2 - (251.2 * percentage) / 100}
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center font-bold text-lg sm:text-2xl">
-                    {Math.round((completedCount / totalCount) * 100)}%
+                    {percentage}%
                   </div>
                 </div>
                 <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
@@ -1045,22 +1048,40 @@ export default function PerjalananSaya() {
           </div>
         </div>
 
-        {/* Loading state */}
-        {isLoading && (
-          <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                <p className="mt-2 text-gray-600">Memuat data...</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* Dynamic Tab Navigation */}
+        <div className="flex p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200/50 w-full max-w-2xl mx-auto shadow-inner">
+          {[
+            { id: 'status', label: 'Status Pendaftaran', icon: CheckCircle, color: 'emerald' },
+            { id: 'jadwal', label: 'Jadwal Belajar', icon: Calendar, color: 'blue' },
+            { id: 'achievement', label: 'Pencapaian Saya', icon: Award, color: 'purple' },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-white shadow-lg text-emerald-700 font-bold scale-[1.02]' 
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-500' : 'text-gray-400'}`} />
+                <span className="text-xs sm:text-sm whitespace-nowrap">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
 
-        {/* Registration Status Alert (Hidden for Admin in Preview Mode) */}
-        {!isLoading && user && !registrationStatus?.hasRegistered && !isAdmin && (
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardContent className="p-6">
+        {/* Unified Content Container */}
+        <div className="relative min-h-[400px]">
+          {/* Tab 1: Status Pendaftaran */}
+          {activeTab === 'status' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {!isLoading && user && !registrationStatus?.hasRegistered && !isAdmin && (
+                  <Card className="border-yellow-200 bg-yellow-50 shadow-sm border-l-4 border-l-yellow-400">
+                    <CardContent className="p-6">
               <div className="flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                 <div className="flex-grow">
@@ -1503,10 +1524,14 @@ export default function PerjalananSaya() {
             </CardContent>
           </Card>
         )}
+      </div>
+    )}
 
-        {/* Timeline Container */}
-        {user && !isLoading && (
-          <div className="space-y-4 sm:space-y-6">
+            {/* Tab 2: Jadwal Pesantren */}
+            {activeTab === 'jadwal' && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {user && !isLoading && (
+                  <div className="space-y-4 sm:space-y-6">
             {/* Mobile & Tablet View - Single Column Timeline */}
             <div className="block lg:hidden">
               <div className="space-y-4 sm:space-y-6">
@@ -2575,11 +2600,16 @@ export default function PerjalananSaya() {
                 </div>
               </div>
             </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Progress Overview Summary */}
-        {user && !isLoading && (
+      {/* Tab 3: Pencapaian Saya */}
+      {activeTab === 'achievement' && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Progress Overview Summary */}
+                {user && !isLoading && (
           <Card className="overflow-hidden border-none shadow-xl bg-gradient-to-br from-white to-gray-50">
             <CardHeader className="pb-4 sm:pb-6 relative border-b border-gray-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2628,8 +2658,8 @@ export default function PerjalananSaya() {
               <div className="mt-3 sm:mt-4">
                 <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                   <div
-                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-1.5 sm:h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-1.5 sm:h-2 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(20,184,166,0.3)]"
+                    style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
               </div>
@@ -2676,32 +2706,35 @@ export default function PerjalananSaya() {
                   </div>
                 </div>
                 <div className="hidden lg:block">
-                  <div className="text-4xl font-bold">{Math.round((completedCount / totalCount) * 100)}%</div>
+                  <div className="text-4xl font-bold">{percentage}%</div>
                   <p className="text-green-100 text-sm">Progress</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        )}
+                )}
+              </div>
+            )}
 
-        {/* Edit Registration Modal */}
+          {/* Edit Registration Modal */}
         {registrationStatus?.registration && (
           <EditTikrarRegistrationModal
             isOpen={isEditModalOpen}
             onClose={() => setIsEditModalOpen(false)}
             onSuccess={handleEditSuccess}
             registration={{
-              id: registrationStatus.registration.id || registrationStatus.registrationId || '',
-              chosen_juz: registrationStatus.registration.chosen_juz || '',
-              main_time_slot: registrationStatus.registration.main_time_slot || '',
-              backup_time_slot: registrationStatus.registration.backup_time_slot || '',
-              full_name: registrationStatus.registration.full_name || user?.full_name,
-              wa_phone: registrationStatus.registration.wa_phone,
-              address: registrationStatus.registration.address,
-              motivation: registrationStatus.registration.motivation,
+              id: registrationStatus.registration?.id || registrationStatus.registrationId || '',
+              chosen_juz: registrationStatus.registration?.chosen_juz || '',
+              main_time_slot: registrationStatus.registration?.main_time_slot || '',
+              backup_time_slot: registrationStatus.registration?.backup_time_slot || '',
+              full_name: registrationStatus.registration?.full_name || user?.full_name,
+              wa_phone: registrationStatus.registration?.wa_phone,
+              address: registrationStatus.registration?.address,
+              motivation: registrationStatus.registration?.motivation,
             }}
           />
         )}
       </div>
-    );
+    </div>
+  );
 }

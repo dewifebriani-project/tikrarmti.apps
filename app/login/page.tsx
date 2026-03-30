@@ -276,7 +276,7 @@ function LoginPageContent() {
               </div>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-green-900 mb-2">Tikrar MTI Apps</h1>
-            <p className="text-gray-600">Portal Santri Markaz Tikrar Indonesia</p>
+            <p className="text-gray-600">Portal Thalibah Markaz Tikrar Indonesia</p>
           </div>
 
           {/* Login Form */}
