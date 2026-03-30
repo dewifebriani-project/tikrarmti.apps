@@ -172,41 +172,65 @@ export function TashihEntryForm({
                 {isDropdownOpen && (
                   <div className="absolute z-50 mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fadeInScale">
                     {/* Search Field inside dropdown */}
-                    <div className="p-2 border-b border-gray-50">
-                      <input 
-                        type="text"
-                        placeholder="Ketik nama ustadzah..."
-                        value={teacherSearch}
-                        onChange={(e) => setTeacherSearch(e.target.value)}
-                        className="w-full bg-gray-50 border-none rounded-lg p-2 text-[10px] font-bold text-gray-900 focus:ring-1 focus:ring-green-500 transition-all"
-                        onClick={(e) => e.stopPropagation()}
-                        autoFocus
-                      />
+                    <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <input 
+                          type="text"
+                          placeholder="Cari nama ustadzah..."
+                          value={teacherSearch}
+                          onChange={(e) => setTeacherSearch(e.target.value)}
+                          className="flex-grow bg-white border border-gray-200 rounded-lg p-2 text-[10px] font-bold text-gray-900 focus:ring-1 focus:ring-green-500 transition-all outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                      <p className="px-1 text-[8px] text-gray-400 font-bold uppercase tracking-tight">Ketik nama untuk mencari atau masukkan nama manual di atas</p>
                     </div>
                     
                     <div className="max-h-52 overflow-y-auto p-1.5 scrollbar-hide">
                       {isLoadingMuallimah ? (
-                        <div className="p-3 text-center text-[9px] font-bold text-gray-400 uppercase">Memuat...</div>
+                        <div className="p-4 text-center">
+                          <div className="inline-block w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin mb-2" />
+                          <div className="text-[9px] font-bold text-gray-400 uppercase">Memuat Daftar...</div>
+                        </div>
                       ) : filteredMuallimah.length > 0 ? (
-                        filteredMuallimah.map(m => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => {
-                              setFormData(prev => ({ ...prev, ustadzahId: m.id, ustadzahName: m.full_name }));
-                              setIsDropdownOpen(false);
-                              setTeacherSearch('');
-                            }}
-                            className={cn(
-                              "w-full text-left p-3 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all mb-1",
-                              formData.ustadzahId === m.id ? "bg-green-600 text-white shadow-md shadow-green-600/10" : "hover:bg-green-50 text-gray-700"
-                            )}
-                          >
-                            {m.full_name}
-                          </button>
-                        ))
+                        <>
+                          {filteredMuallimah.map(m => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, ustadzahId: m.id, ustadzahName: m.full_name }));
+                                setIsDropdownOpen(false);
+                                setTeacherSearch('');
+                              }}
+                              className={cn(
+                                "w-full text-left p-3 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all mb-1",
+                                formData.ustadzahId === m.id ? "bg-green-600 text-white shadow-md shadow-green-600/10" : "hover:bg-green-50 text-gray-700"
+                              )}
+                            >
+                              {m.full_name}
+                            </button>
+                          ))}
+                        </>
                       ) : (
-                        <div className="p-3 text-center text-[9px] font-bold text-gray-400 uppercase">Ustadzah tidak ditemukan</div>
+                        <div className="p-4 text-center">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase mb-3">Ustadzah tidak ditemukan</p>
+                          <Button 
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (teacherSearch.trim()) {
+                                setFormData(prev => ({ ...prev, ustadzahName: teacherSearch.trim(), ustadzahId: 'manual' }));
+                                setIsDropdownOpen(false);
+                              }
+                            }}
+                            className="w-full text-[9px] h-8 font-black uppercase tracking-widest border-amber-200 text-amber-700 hover:bg-amber-50"
+                          >
+                            Pakai Nama "{teacherSearch}"
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>

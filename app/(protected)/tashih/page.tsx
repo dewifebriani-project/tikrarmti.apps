@@ -185,7 +185,10 @@ export default function TashihPage() {
   }
 
   const loadAvailableMuallimah = async () => {
-    if (!batchId) return
+    if (!batchId) {
+      setIsLoadingMuallimah(false);
+      return;
+    }
     try {
       setIsLoadingMuallimah(true)
       const response = await fetch(`/api/muallimah/list?batch_id=${batchId}`)

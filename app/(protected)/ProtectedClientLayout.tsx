@@ -56,8 +56,28 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
   // Close sidebar on mobile when route changes
   const handleCloseSidebar = () => setIsSidebarOpen(false)
 
-  // Sidebar visibility - Enable for all users on desktop/tablet
-  const shouldShowSidebar = true;
+  const isStaffMember = isStaff(user.primaryRole)
+  const [shouldShowSidebar, setShouldShowSidebar] = useState(true)
+
+  // Reactive visibility based on role and viewport
+  useEffect(() => {
+    const checkVisibility = () => {
+      const isLargeScreen = window.innerWidth >= 1280
+      
+      if (isStaffMember) {
+        // Admins/Staff always have sidebar (drawer on mobile/tablet)
+        setShouldShowSidebar(true)
+      } else {
+        // Thalibah: Only show sidebar on true Desktop (XL screens)
+        // Tablet (up to LG/MD) will use bottom navbar only
+        setShouldShowSidebar(isLargeScreen)
+      }
+    }
+    
+    checkVisibility()
+    window.addEventListener('resize', checkVisibility)
+    return () => window.removeEventListener('resize', checkVisibility)
+  }, [isStaffMember])
 
   return (
     <AuthProvider serverUserData={{

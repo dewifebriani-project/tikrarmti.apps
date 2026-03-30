@@ -293,35 +293,52 @@ export default function GlobalAuthenticatedHeader({
                 disabled={!isMounted}
               >
                 {/* Avatar from Google/Gmail or generated from name */}
-                {(user as any)?.photoURL || user?.avatar_url ? (
-                  <Image
-                    src={(user as any)?.photoURL || user?.avatar_url || ''}
-                    alt="Profile"
-                    width={40}
-                    height={40}
-                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300 object-cover"
-                    unoptimized
-                    onError={(e) => {
-                      // Fallback to generated avatar if image fails to load
-                      e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email || 'User')}&background=15803d&color=fff&size=64&bold=true`;
-                    }}
-                  />
-                ) : user?.email ? (
-                  <Image
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=15803d&color=fff&size=64&bold=true`}
-                    alt="Profile"
-                    width={40}
-                    height={40}
-                    className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300"
-                    unoptimized
-                  />
-                ) : (
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-                    <span className="text-white font-bold text-sm lg:text-base">
-                      {(user?.full_name || 'U').charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                {(() => {
+                  const avatarUrl = (user as any)?.photoURL || user?.avatar_url;
+                  const nameForAvatar = encodeURIComponent(user?.full_name || user?.email || 'User');
+                  const uiAvatar = `https://ui-avatars.com/api/?name=${nameForAvatar}&background=15803d&color=fff&size=64&bold=true`;
+                  
+                  // If we have an avatar URL, try to show it
+                  if (avatarUrl) {
+                    return (
+                      <Image
+                        src={avatarUrl}
+                        alt="Profile"
+                        width={40}
+                        height={40}
+                        className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300 object-cover"
+                        unoptimized
+                        onError={(e) => {
+                          // If image fails, try ui-avatar
+                          e.currentTarget.src = uiAvatar;
+                        }}
+                      />
+                    );
+                  }
+
+                  // If no avatar but we have email, we can try Gravatar or UI Avatars
+                  if (user?.email) {
+                    return (
+                      <Image
+                        src={uiAvatar}
+                        alt="Profile"
+                        width={40}
+                        height={40}
+                        className="w-8 h-8 lg:w-10 lg:h-10 rounded-full shadow-md group-hover:shadow-lg transition-all duration-300"
+                        unoptimized
+                      />
+                    );
+                  }
+
+                  // Final fallback
+                  return (
+                    <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
+                      <span className="text-white font-bold text-sm lg:text-base">
+                        {(user?.full_name || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  );
+                })()}
                 <ChevronDown className={`w-4 h-4 text-gray-600 ${
                   showProfileDropdown ? 'rotate-180' : ''
                 }`} />

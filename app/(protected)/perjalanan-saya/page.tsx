@@ -8,7 +8,7 @@ import { useActiveBatch } from '@/hooks/useBatches';
 import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
@@ -909,10 +909,10 @@ export default function PerjalananSaya() {
     switch (status) {
       case 'completed':
         return {
-          iconBg: 'bg-teal-100',
-          iconColor: 'text-teal-600',
-          cardBorder: 'border-l-4 border-l-teal-500',
-          cardBg: 'bg-white',
+          iconBg: 'bg-green-100',
+          iconColor: 'text-green-600',
+          cardBorder: 'border-l-4 border-l-green-500',
+          cardBg: 'bg-white shadow-sm',
           textColor: 'text-gray-800'
         };
       case 'current':
@@ -920,16 +920,16 @@ export default function PerjalananSaya() {
           iconBg: 'bg-yellow-100',
           iconColor: 'text-yellow-600',
           cardBorder: 'border-l-4 border-l-yellow-500',
-          cardBg: 'bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border-2 border-yellow-300 shadow-lg',
-          textColor: 'text-gray-900'
+          cardBg: 'bg-gradient-to-br from-yellow-50 via-white to-amber-50 border-2 border-yellow-300 shadow-xl ring-2 ring-yellow-200/50 scale-[1.02] transform transition-all duration-500',
+          textColor: 'text-gray-900 font-medium'
         };
       case 'future':
         return {
           iconBg: 'bg-gray-100',
-          iconColor: 'text-gray-400',
-          cardBorder: 'border-l-4 border-l-gray-300',
-          cardBg: 'bg-gray-50',
-          textColor: 'text-gray-500'
+          iconColor: 'text-gray-300',
+          cardBorder: 'border-l-4 border-l-gray-200',
+          cardBg: 'bg-gray-50/50 opacity-80',
+          textColor: 'text-gray-400'
         };
     }
   };
@@ -960,29 +960,72 @@ export default function PerjalananSaya() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            Linimasa Perjalanan Hafalan <em>Ukhti</em>
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600">
-            Setiap langkah adalah bagian dari ikhtiar. Teruslah semangat hingga akhir!
-          </p>
-        </div>
+    <div className="space-y-6 sm:space-y-10 animate-fadeIn pb-20">
+        {/* Premium Header Section */}
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 p-6 sm:p-10 text-white shadow-2xl">
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl" />
+          
+          <div className="relative z-10 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold tracking-wider uppercase">
+                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                  <span>My Learning Journey</span>
+                </div>
+                <h1 className="text-3xl sm:text-5xl font-black tracking-tight">
+                  Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span>
+                </h1>
+                <p className="text-green-100/70 text-sm sm:text-lg max-w-xl font-medium leading-relaxed">
+                  "Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya." <span className="text-xs sm:text-sm opacity-60 block mt-1">(HR. Bukhari)</span>
+                </p>
+              </div>
 
-        {/* Admin Preview Mode Banner */}
-        {isAdmin && !registrationStatus?.hasRegistered && batch && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
-            <Info className="w-5 h-5 text-blue-600" />
-            <div>
-              <h3 className="text-sm font-bold text-blue-900">Mode Pratinjau Admin</h3>
-              <p className="text-xs text-blue-700">
-                Ukhti sedang melihat tampilan linimasa untuk {batch.name}. Anda melihat ini karena Anda adalah Admin dan belum memiliki pendaftaran pribadi.
-              </p>
+              {/* Stats Card in Header */}
+              <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center min-w-[140px] sm:min-w-[180px]">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      className="stroke-white/10 fill-none"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
+                      strokeWidth="8"
+                      strokeDasharray="251.2"
+                      strokeDashoffset={251.2 - (251.2 * completedCount) / totalCount}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center font-bold text-lg sm:text-2xl">
+                    {Math.round((completedCount / totalCount) * 100)}%
+                  </div>
+                </div>
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
+              </div>
             </div>
+
+            {/* Admin Preview Mode Banner (Inside Premium Header context) */}
+            {isAdmin && !registrationStatus?.hasRegistered && batch && (
+              <div className="p-4 bg-blue-500/20 backdrop-blur-md border border-blue-400/30 rounded-2xl flex items-center gap-3">
+                <Info className="w-5 h-5 text-blue-300" />
+                <div>
+                  <h3 className="text-xs sm:text-sm font-bold text-white">Mode Pratinjau Admin</h3>
+                  <p className="text-[10px] sm:text-xs text-blue-100/80 leading-relaxed">
+                    Melihat tampilan untuk <strong>{batch.name}</strong>. Anda melihat ini karena status Anda sebagai Admin.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Loading state */}
         {isLoading && (
@@ -1449,7 +1492,7 @@ export default function PerjalananSaya() {
             {/* Mobile & Tablet View - Single Column Timeline */}
             <div className="block lg:hidden">
               <div className="space-y-4 sm:space-y-6">
-                {timelineData.map((item) => {
+                {timelineData.map((item, index) => {
                   const styles = getStatusStyles(item.status);
 
                   // Check if this is the Daftar Ulang card and should be clickable
@@ -1463,8 +1506,16 @@ export default function PerjalananSaya() {
                                           !isCompleted;
 
                   const cardContent = (
-                    <Card className={`${styles.cardBg} ${styles.cardBorder} transition-all duration-300 hover:shadow-md ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
-                      <CardContent className="p-4 sm:p-6">
+                    <div className="relative">
+                      {/* Vertical connector for mobile */}
+                      {index < timelineData.length - 1 && (
+                        <div className="absolute left-[20px] sm:left-[24px] top-10 bottom-[-24px] sm:bottom-[-32px] w-0.5 bg-gradient-to-b from-gray-200 to-transparent z-0" />
+                      )}
+                      
+                      <Card className={`${styles.cardBg} ${styles.cardBorder} relative z-10 transition-all duration-500 hover:shadow-xl ${
+                        item.status === 'current' ? 'ring-2 ring-yellow-400 shadow-yellow-100' : ''
+                      } ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
+                        <CardContent className="p-5 sm:p-6">
                         <div className="flex items-start space-x-3 sm:space-x-4">
                           {/* Icon */}
                           <div className={`relative flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
@@ -1962,7 +2013,8 @@ export default function PerjalananSaya() {
                           </div>
                         </div>
                       </CardContent>
-                    </Card>
+                      </Card>
+                    </div>
                   );
 
                   // Wrap with Link if it's a Daftar Ulang card
@@ -1980,10 +2032,10 @@ export default function PerjalananSaya() {
             </div>
 
             {/* Desktop View - Two Column Timeline */}
-            <div className="hidden lg:block">
+            <div className="hidden lg:block relative py-10">
               <div className="relative">
-                {/* Vertical Line */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-gray-200"></div>
+                {/* Vertical Line - More prominent and elegant */}
+                <div className="absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-green-900/10 via-gray-200 to-transparent rounded-full"></div>
 
                 <div className="space-y-8">
                   {timelineData.map((item, index) => {
@@ -2508,17 +2560,25 @@ export default function PerjalananSaya() {
           </div>
         )}
 
-        {/* Progress Overview */}
+        {/* Progress Overview Summary */}
         {user && !isLoading && (
-          <Card className="mt-6 sm:mt-8">
-            <CardHeader className="pb-3 sm:pb-6">
-              <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl">
-                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
-                <span>Progres Perjalanan</span>
-              </CardTitle>
-              <CardDescription className="text-sm sm:text-base">
-                Tracking perjalanan hafalan Ukhti
-              </CardDescription>
+          <Card className="overflow-hidden border-none shadow-xl bg-gradient-to-br from-white to-gray-50">
+            <CardHeader className="pb-4 sm:pb-6 relative border-b border-gray-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 sm:p-3 bg-emerald-100 rounded-2xl">
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Statistik Perjalanan</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Ringkasan kemajuan hafalan Ukhti</CardDescription>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-2xl sm:text-3xl font-black text-emerald-600">{completedCount}<span className="text-xs sm:text-sm text-gray-400 font-medium">/{totalCount}</span></span>
+                  <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-tighter">Tahapan Selesai</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
@@ -2556,14 +2616,21 @@ export default function PerjalananSaya() {
                 </div>
               </div>
 
-              {/* Current Status */}
-              <div className="mt-3 sm:mt-4 flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-                <p className="text-xs sm:text-sm text-gray-600">
-                  Saat ini: <span className="font-medium text-gray-900 text-xs sm:text-sm">
-                    {timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}
-                  </span>
-                </p>
+              {/* Current Status Badge */}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-2xl">
+                  <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
+                  <p className="text-xs sm:text-sm text-yellow-800 font-bold">
+                    TAHAP SAAT INI: <span className="uppercase tracking-wide">{timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}</span>
+                  </p>
+                </div>
+                
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-2xl">
+                  <Sparkles className="w-4 h-4 text-green-600" />
+                  <p className="text-xs sm:text-sm text-green-800 font-bold">
+                    ESTIMASI SELESAI: <span className="uppercase tracking-wide">RAIBUL AWAL 1447 H</span>
+                  </p>
+                </div>
               </div>
 
               {/* Quick Actions */}
