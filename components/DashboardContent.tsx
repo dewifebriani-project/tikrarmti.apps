@@ -21,7 +21,8 @@ import {
   User,
   LayoutGrid,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  MapPin
 } from 'lucide-react'
 
 
@@ -49,7 +50,13 @@ export default function DashboardContent() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus()
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus()
-  const { prayerTimes, isLoading: prayersLoading, error: prayersError } = usePrayerTimes()
+  const { 
+    prayerTimes, 
+    hijriDate, 
+    gregorianDate, 
+    locationName, 
+    isLoading: prayersLoading 
+  } = usePrayerTimes()
 
   // Combined loading state
   // Note: Stats loading only matters if we are trying to fetch them
@@ -159,24 +166,24 @@ export default function DashboardContent() {
     return `${timeGreeting}, ${userName}!`
   }
 
-  // Convert Gregorian date to Hijri
-  const toHijri = (date: Date) => {
+  const toGregorianLabel = () => {
+    if (gregorianDate) return `${gregorianDate.day} ${gregorianDate.month} ${gregorianDate.year}`
+    return new Intl.DateTimeFormat('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(new Date())
+  }
+
+  const toHijriLabel = () => {
+    if (hijriDate) return `${hijriDate.day} ${hijriDate.month} ${hijriDate.year} ${hijriDate.designation}`
     const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       calendar: 'islamic-umalqura'
     }
-    return new Intl.DateTimeFormat('id-ID', options).format(date)
-  }
-
-  const toGregorian = (date: Date) => {
-    return new Intl.DateTimeFormat('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date)
+    return new Intl.DateTimeFormat('id-ID', options).format(new Date())
   }
 
   return (
@@ -198,12 +205,16 @@ export default function DashboardContent() {
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-green-50/70 text-xs sm:text-sm font-medium">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>{toGregorian(new Date())}</span>
+                    <span>{toGregorianLabel()}</span>
                   </div>
                   <div className="hidden sm:block text-green-50/30">|</div>
                   <div className="flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-yellow-400/50" />
-                    <span>{toHijri(new Date())}</span>
+                    <span>{toHijriLabel()}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-green-200/60 ml-1">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>{locationName}</span>
                   </div>
                 </div>
               </div>
