@@ -654,7 +654,8 @@ export default function PerjalananSaya() {
   // Check if user chose Juz 30 (no exam required)
   const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
 
-  const getTimeSlotLabel = (slotValue: string) => {
+  const getTimeSlotLabel = (slotValue: string | undefined) => {
+    if (!slotValue) return '-';
     // Nilai di database disimpan sebagai "06-09", "18-21", dll
     const slotLabels: Record<string, string> = {
       '04-06': '04-06 WIB',
@@ -727,7 +728,7 @@ export default function PerjalananSaya() {
     return age;
   };
 
-  const hasTimeSlotOverlap = (slot1: string, slot2: string): boolean => {
+  const hasTimeSlotOverlap = (slot1: string | undefined, slot2: string | undefined): boolean => {
     if (!slot1 || !slot2) return false;
 
     const parseSlot = (slot: string) => {

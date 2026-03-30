@@ -58,12 +58,12 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
     // Base items for the sidebar
     const baseItems: any[] = [];
 
-    // Admin/Staff Content
-    if (isAdmin) {
+    // Admin/Staff Content (Rank 60+)
+    if (isStaffGroup) {
       // SECTION: MONITORING
       baseItems.push({ type: 'header', label: 'Monitoring' });
       baseItems.push({
-        href: '/admin?tab=overview',
+        href: isAdmin ? '/admin?tab=overview' : '/dashboard',
         label: 'Ringkasan Statistik',
         icon: <BarChart3 className="h-5 w-5" />,
       });
@@ -75,11 +75,15 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Pendaftaran & Seleksi',
         icon: <ClipboardList className="h-5 w-5" />,
       });
-      baseItems.push({
-        href: '/admin?tab=exam-questions',
-        label: 'Bank Soal Seleksi',
-        icon: <FileText className="h-5 w-5" />,
-      });
+      
+      if (isAdmin) {
+        baseItems.push({
+          href: '/admin?tab=exam-questions',
+          label: 'Bank Soal Seleksi',
+          icon: <FileText className="h-5 w-5" />,
+        });
+      }
+
       baseItems.push({
         href: '/admin?tab=daftar-ulang',
         label: 'Daftar Ulang',
@@ -94,23 +98,25 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <Users className="h-5 w-5" />,
       });
       baseItems.push({
-        href: '/admin?tab=presensi',
+        href: '/presensi-jurnal',
         label: 'Presensi & Jurnal',
         icon: <BookOpen className="h-5 w-5" />,
       });
 
-      // SECTION: DATA MASTER
-      baseItems.push({ type: 'header', label: 'Pengaturan & Data' });
-      baseItems.push({
-        href: '/admin/users',
-        label: 'Manajemen Users',
-        icon: <Shield className="h-5 w-5" />,
-      });
-      baseItems.push({
-        href: '/admin?tab=batches',
-        label: 'Batch & Program',
-        icon: <Calendar className="h-5 w-5" />,
-      });
+      // SECTION: DATA MASTER (Admin Only)
+      if (isAdmin) {
+        baseItems.push({ type: 'header', label: 'Pengaturan & Data' });
+        baseItems.push({
+          href: '/admin/users',
+          label: 'Manajemen Users',
+          icon: <Shield className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin?tab=batches',
+          label: 'Batch & Program',
+          icon: <Calendar className="h-5 w-5" />,
+        });
+      }
     } 
     // Thalibah / Calon Thalibah Content
     else {
