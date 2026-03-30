@@ -9,6 +9,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 let supabaseClient: any = null
 
 export function createClient() {
+  if (typeof window === 'undefined') {
+    return createSupabaseBrowserClient(supabaseUrl, supabaseAnonKey)
+  }
+
   if (supabaseClient) {
     return supabaseClient
   }

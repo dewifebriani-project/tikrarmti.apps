@@ -12,21 +12,16 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const pathname = usePathname();
   return (
-    <div className="h-screen flex flex-col bg-main-background text-main overflow-hidden">
-      {/* Fixed Header - stays at top */}
-      <div className="flex-shrink-0 z-50">
-        <Header />
-      </div>
+    <div className="min-h-screen bg-main-background text-main">
+      <Header />
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <main>
-          {children}
-        </main>
+      {/* Content Area */}
+      <main>
+        {children}
+      </main>
 
-        {/* Footer - Only on landing page */}
-        {pathname === '/' && <Footer />}
-      </div>
+      {/* Footer - Only on landing page */}
+      {pathname === '/' && <Footer />}
     </div>
   );
 }
