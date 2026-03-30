@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
       "style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' blob: data: https://*.supabase.co https://*.googleusercontent.com; " +
       "font-src 'self' data:; " +
-      "connect-src 'self' https://*.supabase.co https://*.sentry.io https://*.google-analytics.com; " +
+      "connect-src 'self' https://*.supabase.co https://*.sentry.io https://*.google-analytics.com https://api.aladhan.com; " +
       "frame-src 'self'; " +
       "base-uri 'self'; " +
       "form-action 'self';"
