@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -357,8 +358,34 @@ export default function ProfilePage() {
             {/* Profile Header Card */}
             <Card className="p-6 bg-gradient-to-r from-green-900 to-green-800 text-white">
               <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center">
-                  <User className="h-10 w-10 text-white" />
+                {/* Actual Avatar instead of generic icon */}
+                <div className="flex-shrink-0">
+                  {(user as any)?.photoURL || user?.avatar_url ? (
+                    <Image
+                      src={(user as any)?.photoURL || user?.avatar_url || ''}
+                      alt="Profile"
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 rounded-full border-4 border-white/30 shadow-xl object-cover"
+                      unoptimized
+                      onError={(e) => {
+                        e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email || 'User')}&background=ffffff&color=15803d&size=128&bold=true`;
+                      }}
+                    />
+                  ) : user?.email ? (
+                    <Image
+                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || user?.email)}&background=ffffff&color=15803d&size=128&bold=true`}
+                      alt="Profile"
+                      width={80}
+                      height={80}
+                      className="w-20 h-20 rounded-full border-4 border-white/30 shadow-xl"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30 shadow-xl">
+                      <User className="h-10 w-10 text-white" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{formData.namaLengkap || '-'}</h2>
