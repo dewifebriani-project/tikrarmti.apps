@@ -69,6 +69,10 @@ export default function PendaftaranPage() {
       byRole: {
         thalibah: registrations.some(reg =>
           ['approved', 'pending'].includes(reg.status)
+        ),
+        admin: registrations.some(reg =>
+          ['approved', 'pending'].includes(reg.status) && 
+          reg.program_name?.toLowerCase().includes('muallimah')
         )
       }
     };
