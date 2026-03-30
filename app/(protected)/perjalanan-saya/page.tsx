@@ -1320,7 +1320,7 @@ export default function PerjalananSaya() {
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <Phone className="w-3 h-3" />
-                              <span>WhatsApp: <span className="font-bold text-rose-600">{partner?.wa_phone || partner?.whatsapp || '-'}</span></span>
+                              <span>WhatsApp: <span className="font-bold text-rose-600">{partner?.whatsapp || '-'}</span></span>
                             </div>
                           </div>
                           {partner?.whatsapp && (
