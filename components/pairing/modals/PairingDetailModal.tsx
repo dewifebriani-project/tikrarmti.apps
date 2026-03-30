@@ -7,7 +7,7 @@ interface Props {
   onClose: () => void
   loading: boolean
   detail: PairingDetail | null
-  calculateAge: (date: string) => number | string
+  calculateAge: (date: string | undefined | null) => number | string
   hasTimeSlotOverlap: (s1: string, s2: string) => boolean
 }
 
@@ -194,7 +194,7 @@ export function PairingDetailModal({
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Usia</p>
-                        <p className="text-xs text-gray-700">{calculateAge(detail.user_3.tanggal_lahir)}</p>
+                        <p className="text-xs text-gray-700">{calculateAge(detail.user_3?.tanggal_lahir)}</p>
                       </div>
                       <div className="flex gap-2">
                       <span className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">

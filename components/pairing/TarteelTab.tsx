@@ -7,7 +7,7 @@ interface Props {
   onApprove: (request: TarteelRequest) => void
   onRevert: (request: TarteelRequest) => void
   onChangePartnerType: (user: any, type: 'system_match') => void
-  calculateAge: (date: string) => number | string
+  calculateAge: (date: string | undefined | null) => number | string
 }
 
 export function TarteelTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge }: Props) {

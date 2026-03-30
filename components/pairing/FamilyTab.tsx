@@ -7,7 +7,7 @@ interface Props {
   onApprove: (request: FamilyRequest) => void
   onRevert: (request: FamilyRequest) => void
   onChangePartnerType: (user: any, type: 'system_match') => void
-  calculateAge: (date: string) => number | string
+  calculateAge: (date: string | undefined | null) => number | string
 }
 
 export function FamilyTab({ requests, onApprove, onRevert, onChangePartnerType, calculateAge }: Props) {

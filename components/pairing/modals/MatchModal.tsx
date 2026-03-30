@@ -10,7 +10,7 @@ interface Props {
   selectedMatch: MatchCandidate | null
   onSelectMatch: (match: MatchCandidate) => void
   onConfirm: () => void
-  calculateAge: (date: string) => number | string
+  calculateAge: (date: string | undefined | null) => number | string
   matchSortConfigs: SortConfig[]
   onMatchSort: (key: string) => void
 }

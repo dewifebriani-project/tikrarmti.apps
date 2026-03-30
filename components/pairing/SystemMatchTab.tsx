@@ -13,7 +13,7 @@ interface Props {
   onChangePartnerType: (user: any, type: 'family' | 'tarteel') => void
   sortConfigs: SortConfig[]
   onSort: (key: string) => void
-  calculateAge: (date: string) => number | string
+  calculateAge: (date: string | undefined | null) => number | string
   renderMatchAnalysis: (request: SystemMatchRequest) => React.ReactNode
   hasExistingPairings: boolean
 }
