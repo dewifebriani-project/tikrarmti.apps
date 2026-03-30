@@ -93,9 +93,9 @@ export interface LearningJourney {
 /**
  * Hook for fetching dashboard statistics
  */
-export function useDashboardStats() {
+export function useDashboardStats(enabled: boolean = true) {
   const { data, error, isLoading, mutate } = useSWR<DashboardStats>(
-    '/api/dashboard/stats',
+    enabled ? '/api/dashboard/stats' : null,
     async (url: string) => {
       try {
         const response = await fetch(url, {

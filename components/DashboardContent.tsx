@@ -33,23 +33,27 @@ import { useMyRegistrations } from '@/hooks/useRegistrations'
 import { usePrayerTimes } from '@/hooks/usePrayerTimes'
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 import { cn } from '@/lib/utils'
+import { isStaff } from '@/lib/roles'
 
 export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
   // No need for client-side auth checks or redirects
   const { user, isLoading } = useAuth()
+  
+  const userRole = user?.primaryRole || 'calon_thalibah'
+  const canSeeAdminStats = isStaff(userRole)
 
   // SWR hooks for data fetching
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
-  const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
+  const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats(canSeeAdminStats)
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus()
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus()
   const { prayerTimes, isLoading: prayersLoading, error: prayersError } = usePrayerTimes()
 
   // Combined loading state
-  // Note: User data is guaranteed by server layout, no need to check !user here
-  const isPageLoading = isLoading || batchLoading || statsLoading || registrationsLoading
+  // Note: Stats loading only matters if we are trying to fetch them
+  const isPageLoading = isLoading || batchLoading || (canSeeAdminStats && statsLoading) || registrationsLoading
 
   // Calculate registration status from SWR data
   const hasRegistered = registrations.length > 0
@@ -79,14 +83,13 @@ export default function DashboardContent() {
     return days[num] || `${dayNum}`
   }
 
-  // Calculate stats with fallback
-  // Total target hari = 13 pekan × 4 hari per pekan = 52 hari target
-  const totalHariTarget = 13 * 4; // 52 hari total target
-
+  // If thalibah, we use their jurnal progress for the main stats display
   const displayStats = {
     totalHariTarget: totalHariTarget,
-    hariAktual: stats?.hariAktual || 0,
-    persentaseProgress: stats?.persentaseProgress || 0
+    hariAktual: canSeeAdminStats ? (stats?.hariAktual || 0) : (jurnalStatus?.summary.completed_blocks || 0),
+    persentaseProgress: canSeeAdminStats 
+      ? (stats?.persentaseProgress || 0) 
+      : (jurnalStatus ? Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100) : 0)
   }
 
   // Loading state - Consistent across all devices
