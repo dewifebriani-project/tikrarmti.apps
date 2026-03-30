@@ -76,14 +76,11 @@ export async function GET(request: Request) {
       level: 'INFO'
     });
 
-    return ApiResponses.success(enrichedData, undefined, 200, {
-      pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit)
-      }
-    });
+    return ApiResponses.paginated(enrichedData, {
+      page,
+      limit,
+      total: count || 0
+    }, undefined, 200);
 
   } catch (error) {
     console.error('[Admin Batches API] Unexpected error (GET):', error);
