@@ -117,6 +117,7 @@ export default function GlobalAuthenticatedHeader({
       '/admin': 'Admin Dashboard',
       '/panel-musyrifah': 'Panel Musyrifah',
       '/panel-muallimah': 'Panel Muallimah',
+      '/presensi-jurnal': 'Presensi & Jurnal',
     };
 
     // Handle nested routes

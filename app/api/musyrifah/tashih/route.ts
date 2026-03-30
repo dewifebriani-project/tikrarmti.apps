@@ -104,11 +104,32 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const blok = searchParams.get('blok');
 
+    const batchId = searchParams.get('batch_id');
+    let activeBatchId = batchId;
+
+    if (!activeBatchId) {
+      const { data: activeBatch } = await supabase
+        .from('batches')
+        .select('id')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      activeBatchId = activeBatch?.id;
+    }
+
     // Get all thalibah from daftar_ulang_submissions with approved or submitted status
-    const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
+    let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
       .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
       .in('status', ['approved', 'submitted']);
+    
+    if (activeBatchId) {
+      submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
+    }
+
+    const { data: daftarUlangUsers, error: daftarUlangError } = await submissionsQuery;
 
     if (daftarUlangError) {
       console.error('[Musyrifah Tashih API] Database error (daftar_ulang):', daftarUlangError);
@@ -151,7 +172,7 @@ export async function GET(request: Request) {
     }
 
     let tashihRecords = allTashihRecords || [];
-    if (blok) {
+    if (blok && blok !== 'all') {
       tashihRecords = tashihRecords.filter((record: any) => {
         const bloks = parseBlokField(record.blok);
         return bloks.includes(blok);

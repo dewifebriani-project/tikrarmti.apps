@@ -318,10 +318,16 @@ export async function GET(request: Request) {
       }
     }
 
-    const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
+    let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
       .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
       .in('status', ['approved', 'submitted']);
+    
+    if (activeBatchId) {
+      submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
+    }
+
+    const { data: daftarUlangUsers, error: daftarUlangError } = await submissionsQuery;
 
     if (daftarUlangError) {
       console.error('[Musyrifah Jurnal API] daftar_ulang_submissions error:', daftarUlangError);
@@ -364,7 +370,7 @@ export async function GET(request: Request) {
         .order('tanggal_setor', { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (blok) {
+      if (blok && blok !== 'all') {
         chunkQuery = chunkQuery.eq('blok', blok);
       }
 

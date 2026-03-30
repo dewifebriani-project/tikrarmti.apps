@@ -233,47 +233,37 @@ function PresensiJurnalContent() {
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <Toaster position="top-right" />
       
-      {/* Premium Hero Section */}
-      <div className="relative overflow-hidden rounded-b-[3rem] bg-gradient-to-br from-green-950 via-green-900 to-emerald-900 pb-16 pt-10 text-white shadow-2xl">
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-medium mb-4">
-                <ClipboardList className="w-3.5 h-3.5 text-yellow-400" />
-                <span className="tracking-wider uppercase">Monitoring & Assessment</span>
+      {/* Compact Auth Header Style */}
+      <div className="bg-white border-b border-gray-100 mb-8 pt-6 pb-6 shadow-sm">
+        <div className="container mx-auto px-6">
+           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Monitoring Presensi & Jurnal</h1>
+                <p className="text-gray-500 text-sm mt-1 font-medium">Tinjau kehadiran dan jurnal harian thalibah secara terpusat.</p>
               </div>
-              <h1 className="text-4xl lg:text-5xl font-extrabold mb-3 tracking-tight">Presensi & Jurnal</h1>
-              <p className="text-green-50/70 text-lg max-w-2xl leading-relaxed">
-                Kelola kehadiran, tinjau catatan tashih, dan pantau jurnal harian thalibah secara terpusat untuk memastikan kualitas hafalan.
-              </p>
-            </div>
-            
-            <div className="hidden lg:flex gap-4">
-               <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10 w-40 text-center">
-                  <div className="text-3xl font-bold text-yellow-400">
-                    {activeTab === 'presensi' ? tashihEntries.length : jurnalEntries.length}
-                  </div>
-                  <div className="text-xs text-white/60 uppercase tracking-widest mt-1">Total Thalibah</div>
-               </div>
-               <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/10 w-40 text-center">
-                  <div className="text-3xl font-bold text-emerald-400">
-                    {activeTab === 'presensi' 
-                      ? Math.round(tashihEntries.reduce((acc, curr) => acc + curr.summary.completion_percentage, 0) / (tashihEntries.length || 1))
-                      : Math.round(jurnalEntries.reduce((acc, curr) => acc + (curr.summary?.completion_percentage || 0), 0) / (jurnalEntries.length || 1))
-                    }%
-                  </div>
-                  <div className="text-xs text-white/60 uppercase tracking-widest mt-1">Avg Progress</div>
-               </div>
-            </div>
-          </div>
+              <div className="flex gap-3">
+                 <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Total Thalibah</div>
+                    <div className="flex items-baseline gap-1">
+                      <div className="text-2xl font-bold text-green-900">{activeTab === 'presensi' ? tashihEntries.length : jurnalEntries.length}</div>
+                      <div className="text-xs text-gray-400 font-medium lowercase italic">jiwa</div>
+                    </div>
+                 </div>
+                 <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Avg Progress</div>
+                    <div className="text-2xl font-bold text-emerald-600">
+                      {activeTab === 'presensi' 
+                        ? Math.round(tashihEntries.reduce((acc, curr) => acc + curr.summary.completion_percentage, 0) / (tashihEntries.length || 1))
+                        : Math.round(jurnalEntries.reduce((acc, curr) => acc + (curr.summary?.completion_percentage || 0), 0) / (jurnalEntries.length || 1))
+                      }%
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
-
-        {/* Decorative Abstract Elements */}
-        <div className="absolute top-0 right-0 -mt-24 -mr-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-24 -ml-24 w-96 h-96 bg-yellow-500/5 rounded-full blur-3xl home-orb" />
       </div>
 
-      <div className="container mx-auto px-6 -mt-10 relative z-20">
+      <div className="container mx-auto px-6 relative z-20">
         {/* Navigation Tabs */}
         <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-md mx-auto sm:mx-0">
           <button
@@ -391,9 +381,6 @@ function PresensiJurnalContent() {
         @keyframes orb-float {
           0%, 100% { transform: translateY(0) scale(1); }
           50% { transform: translateY(-20px) scale(1.05); }
-        }
-        .home-orb {
-          animation: orb-float 10s ease-in-out infinite;
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
