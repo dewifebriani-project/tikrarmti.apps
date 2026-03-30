@@ -83,9 +83,9 @@ export async function GET(request: Request) {
       primaryRole: hasRequiredRank(profile.roles || [], ROLE_RANKS.admin) ? 'admin' : 'thalibah'
     };
 
-    return ApiResponses.success(userProfile, undefined, 200, {
-      'Cache-Control': 'private, max-age=60'
-    });
+    const response = ApiResponses.success(userProfile, undefined, 200);
+    response.headers.set('Cache-Control', 'private, max-age=60');
+    return response;
 
   } catch (error) {
     logger.error('[Profile API] Unexpected error:', error);
