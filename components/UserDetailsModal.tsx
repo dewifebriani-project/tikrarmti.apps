@@ -192,17 +192,17 @@ export default function UserDetailsModal({
                   <>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Nama Lengkap</span>
-                        <span>{user.namaLengkap || user.full_name || '-'}</span>
+                        <span>{user.full_name || '-'}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Nama Panggilan</span>
-                        <span>{user.namaPanggilan || '-'}</span>
+                        <span>{user.nama_kunyah || '-'}</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
                         <span className="text-gray-600">Tanggal Lahir</span>
                         <span className="flex items-center">
                           <Calendar className="w-4 h-4 mr-1 text-gray-400" />
-                          {user.tanggalLahir || '-'}
+                          {user.tanggal_lahir || '-'}
                         </span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-gray-100">
@@ -232,11 +232,11 @@ export default function UserDetailsModal({
                 <div className="space-y-3">
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">Tanggal Gabung</span>
-                    <span>{formatDate(user.createdAt)}</span>
+                    <span>{formatDate(user.created_at)}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">Terakhir Update</span>
-                    <span>{formatDate(user.updatedAt)}</span>
+                    <span>{formatDate(user.updated_at)}</span>
                   </div>
                 </div>
               </div>
