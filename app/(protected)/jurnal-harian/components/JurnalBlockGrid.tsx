@@ -15,7 +15,7 @@ export function JurnalBlockGrid({
   blocks,
   onBlockClick,
   isLoading = false
-}) {
+}: JurnalBlockGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

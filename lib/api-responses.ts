@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
-import { ApiResponseBuilder } from './api-wrapper'
+import { ApiResponseBuilder, HTTP_STATUS } from './api-wrapper'
 import { z } from 'zod'
+
+export { HTTP_STATUS }
 
 /**
  * Utility functions for Next.js API routes that combine ApiResponseBuilder with NextResponse
