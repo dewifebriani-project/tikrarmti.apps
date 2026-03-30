@@ -53,6 +53,11 @@ export function TashihEntryForm({
 }: TashihEntryFormProps) {
   const [formData, setFormData] = useState(initialData)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [teacherSearch, setTeacherSearch] = useState('')
+  
+  const filteredMuallimah = availableMuallimah.filter(m => 
+    m.full_name.toLowerCase().includes(teacherSearch.toLowerCase())
+  )
 
   const toggleMasalahTajwid = (id: string) => {
     setFormData(prev => ({
@@ -72,21 +77,27 @@ export function TashihEntryForm({
 
   return (
     <div className="space-y-4 animate-fadeInUp">
-      {/* Date & Block Info Card - Compact */}
+      {/* Date & Block Info Card - Interactive Date */}
       <Card className="glass-premium border-none shadow-md overflow-hidden rounded-2xl">
         <div className="bg-gradient-to-r from-green-900 to-green-800 p-3 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-green-200" />
             </div>
-            <div>
-              <p className="text-[9px] uppercase font-bold text-green-200/60 tracking-wider">
-                {new Date(formData.tanggalTashih).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+            <div className="flex flex-col">
+              <p className="text-[10px] font-black uppercase tracking-widest text-green-100 flex items-center gap-1.5 focus-within:ring-1 focus-within:ring-green-400 rounded transition-all">
+                <input 
+                  type="date"
+                  value={formData.tanggalTashih}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tanggalTashih: e.target.value }))}
+                  className="bg-transparent border-none p-0 text-green-50 text-[11px] font-black uppercase tracking-widest focus:ring-0 cursor-pointer [color-scheme:dark] h-4"
+                />
               </p>
+              <p className="text-[8px] text-green-200/60 font-medium uppercase tracking-tight">Klik tanggal untuk ubah</p>
             </div>
           </div>
-          <div className="px-2 py-0.5 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-            <span className="text-[10px] font-black uppercase tracking-tight">{formData.blok.join(', ')}</span>
+          <div className="px-3 py-1 bg-amber-500/20 backdrop-blur-sm rounded-xl border border-amber-500/30">
+            <span className="text-[11px] font-black uppercase text-amber-100 tracking-tighter">{formData.blok.join(', ')}</span>
           </div>
         </div>
       </Card>
@@ -160,15 +171,31 @@ export function TashihEntryForm({
 
                 {isDropdownOpen && (
                   <div className="absolute z-50 mt-2 w-full bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fadeInScale">
+                    {/* Search Field inside dropdown */}
+                    <div className="p-2 border-b border-gray-50">
+                      <input 
+                        type="text"
+                        placeholder="Ketik nama ustadzah..."
+                        value={teacherSearch}
+                        onChange={(e) => setTeacherSearch(e.target.value)}
+                        className="w-full bg-gray-50 border-none rounded-lg p-2 text-[10px] font-bold text-gray-900 focus:ring-1 focus:ring-green-500 transition-all"
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    </div>
+                    
                     <div className="max-h-52 overflow-y-auto p-1.5 scrollbar-hide">
-                      {availableMuallimah.length > 0 ? (
-                        availableMuallimah.map(m => (
+                      {isLoadingMuallimah ? (
+                        <div className="p-3 text-center text-[9px] font-bold text-gray-400 uppercase">Memuat...</div>
+                      ) : filteredMuallimah.length > 0 ? (
+                        filteredMuallimah.map(m => (
                           <button
                             key={m.id}
                             type="button"
                             onClick={() => {
                               setFormData(prev => ({ ...prev, ustadzahId: m.id, ustadzahName: m.full_name }));
                               setIsDropdownOpen(false);
+                              setTeacherSearch('');
                             }}
                             className={cn(
                               "w-full text-left p-3 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all mb-1",
@@ -179,7 +206,7 @@ export function TashihEntryForm({
                           </button>
                         ))
                       ) : (
-                        <div className="p-3 text-center text-[9px] font-bold text-gray-400 uppercase">Memuat...</div>
+                        <div className="p-3 text-center text-[9px] font-bold text-gray-400 uppercase">Ustadzah tidak ditemukan</div>
                       )}
                     </div>
                   </div>

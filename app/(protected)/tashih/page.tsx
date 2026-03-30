@@ -185,13 +185,13 @@ export default function TashihPage() {
   }
 
   const loadAvailableMuallimah = async () => {
-    if (!batchId || !juzToUse) return
+    if (!batchId) return
     try {
       setIsLoadingMuallimah(true)
-      const supabase = createClient()
-      const { data } = await supabase.from('muallimah_registrations').select('id, user_id, full_name, preferred_juz')
-        .eq('batch_id', batchId).order('full_name', { ascending: true })
-      setAvailableMuallimah(data || [])
+      const response = await fetch(`/api/muallimah/list?batch_id=${batchId}`)
+      if (!response.ok) throw new Error('Failed to fetch teachers')
+      const result = await response.json()
+      setAvailableMuallimah(result.data || [])
     } catch (error) {
       console.error('Error loading muallimah:', error)
     } finally {
