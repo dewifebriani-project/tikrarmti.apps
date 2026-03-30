@@ -110,7 +110,7 @@ export default function GlobalAuthenticatedHeader({
       '/ujian': 'Ujian',
       '/alumni': 'Ruang Alumni',
       '/statistik': 'Statistik',
-      '/tagihan-pembayaran': 'Tagihan & Pembayaran',
+      '/tagihan-pembayaran': 'Infaq & Donasi',
       '/donasi-dashboard': 'Donasi',
       '/lengkapi-profile': 'Edit Profil',
       '/pengaturan': 'Pengaturan',
@@ -178,7 +178,7 @@ export default function GlobalAuthenticatedHeader({
   const notifications = [
     { id: 1, title: 'Jurnal hari ini belum diisi', message: 'Jangan lupa mengisi jurnal harian Ukhti', time: '5 menit yang lalu', read: false },
     { id: 2, title: 'Ujian Tahfidz terdekat', message: 'Ujian juz 30 akan dilaksanakan besok', time: '1 jam yang lalu', read: false },
-    { id: 3, title: 'Pembayaran berhasil', message: 'Pembayaran bulan November telah diterima', time: '3 jam yang lalu', read: true },
+    { id: 3, title: 'Infaq berhasil', message: 'Infaq bulan November telah diterima', time: '3 jam yang lalu', read: true },
   ];
 
   const quickLinks = [

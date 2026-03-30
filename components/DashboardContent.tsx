@@ -468,7 +468,7 @@ export default function DashboardContent() {
             // Row 2
             { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '/ujian' },
             { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
-            { label: 'Pembayaran', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
+            { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
             { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
           ].map((item, i) => (
             <Link key={i} href={item.href} className="group min-w-0">
