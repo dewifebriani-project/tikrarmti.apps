@@ -55,8 +55,16 @@ export default function DashboardContent() {
     hijriDate, 
     gregorianDate, 
     locationName, 
-    isLoading: prayersLoading 
+    isLoading: prayersLoading,
+    updateManualCity
   } = usePrayerTimes()
+
+  const handleLocationChange = () => {
+    const newCity = window.prompt('Masukkan nama kota Ukhti untuk jadwal shalat (contoh: Bogor, Bandung, Surabaya):', locationName === 'Memuat...' ? '' : locationName)
+    if (newCity !== null) {
+      updateManualCity(newCity.trim() || null)
+    }
+  }
 
   // Combined loading state
   // Note: Stats loading only matters if we are trying to fetch them
@@ -212,10 +220,14 @@ export default function DashboardContent() {
                     <Sparkles className="w-3.5 h-3.5 text-yellow-400/50" />
                     <span>{toHijriLabel()}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-green-200/60 ml-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{locationName}</span>
-                  </div>
+                  <button 
+                    onClick={handleLocationChange}
+                    className="flex items-center gap-1 text-green-200/60 ml-1 hover:text-white transition-colors group"
+                    title="Klik untuk ganti lokasi"
+                  >
+                    <MapPin className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                    <span className="border-b border-transparent group-hover:border-white/30">{locationName}</span>
+                  </button>
                 </div>
               </div>
 
