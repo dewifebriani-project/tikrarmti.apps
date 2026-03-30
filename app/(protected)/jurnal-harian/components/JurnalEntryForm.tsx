@@ -3,8 +3,16 @@
 import React, { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Calendar, BookOpen, MessageSquare, Sparkles, Star, User, Phone, Mic, Headphones } from 'lucide-react'
+import { CheckCircle, Calendar, BookOpen, MessageSquare, Sparkles, Star, User, Phone, Mic, Headphones, ArrowRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface JurnalEntryFormProps {
   blockCode: string
@@ -67,6 +75,7 @@ export function JurnalEntryForm({
 
   const [showGhaibMenu, setShowGhaibMenu] = useState(false)
   const [ghaibCategory, setGhaibCategory] = useState<'partner' | 'tarteel' | 'keluarga' | null>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const toggleActivity = (id: string) => {
     if (id === 'tikrar_bi_al_ghaib_completed') {
@@ -107,6 +116,18 @@ export function JurnalEntryForm({
 
   const completedCount = activityOptions.filter(opt => (formData as any)[opt.id]).length
 
+  const handlePreSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setShowConfirm(true)
+  }
+
+  const handleFinalSubmit = () => {
+    setShowConfirm(false)
+    onSubmit(formData)
+  }
+
+  const selectedDateLabel = new Date(formData.tanggal_setor).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })
+
   return (
     <div className="space-y-4 animate-fadeInUp pb-12">
       {/* Informative Header - Date & Block */}
@@ -116,11 +137,16 @@ export function JurnalEntryForm({
              <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
                 <Calendar className="w-4 h-4 text-green-200" />
              </div>
-             <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-green-100">
-                  {new Date(formData.tanggal_setor).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+             <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-widest text-green-100 flex items-center gap-1.5">
+                  <input 
+                    type="date"
+                    value={formData.tanggal_setor}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, tanggal_setor: e.target.value }))}
+                    className="bg-transparent border-none p-0 text-green-50 text-[11px] font-black uppercase tracking-widest focus:ring-0 cursor-pointer [color-scheme:dark] h-4"
+                  />
                 </p>
-                <p className="text-[8px] text-green-200/60 font-medium uppercase tracking-tight">Entry Jurnal Harian</p>
+                <p className="text-[8px] text-green-200/60 font-medium uppercase tracking-tight">Klik tanggal untuk ubah</p>
              </div>
           </div>
           <div className="px-3 py-1 bg-amber-500/20 backdrop-blur-sm rounded-xl border border-amber-500/30">
@@ -129,7 +155,7 @@ export function JurnalEntryForm({
         </div>
       </Card>
 
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="space-y-4">
+      <form onSubmit={handlePreSubmit} className="space-y-4">
         {/* Activity Section */}
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase tracking-widest text-green-800/80 pl-1">
@@ -328,6 +354,70 @@ export function JurnalEntryForm({
            </Button>
         </div>
       </form>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none glass-premium rounded-[2rem]">
+          <div className="bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 p-8 text-white relative">
+             <div className="absolute top-0 right-0 p-8 opacity-5">
+                <CheckCircle className="w-32 h-32" />
+             </div>
+             <div className="relative z-10">
+                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-4">
+                   <Calendar className="w-6 h-6 text-green-200" />
+                </div>
+                <h3 className="text-xl font-bold uppercase tracking-tight">Konfirmasi Simpan</h3>
+                <p className="text-green-100/60 text-xs font-medium uppercase tracking-widest mt-1">Pastikan data yang Ukhti input benar</p>
+             </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+             <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-green-50 rounded-2xl border border-green-100">
+                   <div>
+                      <p className="text-[10px] font-black text-green-800/40 uppercase tracking-widest">Tanggal Tikrar</p>
+                      <p className="text-sm font-black text-green-900 uppercase">{selectedDateLabel}</p>
+                   </div>
+                   <div className="px-3 py-1 bg-green-600/10 rounded-lg border border-green-600/20">
+                      <span className="text-[11px] font-black text-green-700 uppercase tracking-tighter">{formData.blok}</span>
+                   </div>
+                </div>
+
+                <div className="space-y-2">
+                   <p className="text-[10px] font-black text-green-800/40 uppercase tracking-widest pl-1">Ringkasan Aktivitas ({completedCount})</p>
+                   <div className="grid grid-cols-1 gap-2">
+                      {activityOptions.filter(opt => (formData as any)[opt.id]).map(opt => (
+                        <div key={opt.id} className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                           <div className="w-6 h-6 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
+                              <opt.icon className="w-3.5 h-3.5" />
+                           </div>
+                           <span className="text-[10px] font-black text-gray-800 uppercase tracking-tight">{opt.name}</span>
+                           <CheckCircle className="w-3.5 h-3.5 text-green-500 ml-auto" />
+                        </div>
+                      ))}
+                   </div>
+                </div>
+             </div>
+
+             <div className="flex gap-3">
+                <Button 
+                   variant="ghost" 
+                   onClick={() => setShowConfirm(false)}
+                   className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-900"
+                >
+                   PERIKSA LAGI
+                </Button>
+                <Button 
+                   onClick={handleFinalSubmit}
+                   disabled={isSubmitting}
+                   className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-600/20"
+                >
+                   {isSubmitting ? 'MENYIMPAN...' : 'YA, SIMPAN'}
+                </Button>
+             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -83,13 +83,17 @@ export default function DashboardContent() {
     return days[num] || `${dayNum}`
   }
 
+  const totalHariTarget = canSeeAdminStats ? (stats?.totalHariTarget || 0) : (jurnalStatus?.summary.total_blocks || 0)
+
   // If thalibah, we use their jurnal progress for the main stats display
   const displayStats = {
     totalHariTarget: totalHariTarget,
     hariAktual: canSeeAdminStats ? (stats?.hariAktual || 0) : (jurnalStatus?.summary.completed_blocks || 0),
     persentaseProgress: canSeeAdminStats 
       ? (stats?.persentaseProgress || 0) 
-      : (jurnalStatus ? Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100) : 0)
+      : (jurnalStatus && (jurnalStatus.summary.total_blocks || 0) > 0 
+          ? Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100) 
+          : 0)
   }
 
   // Loading state - Consistent across all devices
@@ -516,7 +520,7 @@ export default function DashboardContent() {
             <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
                <div
                 className="bg-gradient-to-r from-green-600 to-green-400 h-full transition-all duration-1000 ease-out"
-                style={{ width: `${(displayStats.hariAktual / displayStats.totalHariTarget) * 100}%` }}
+                style={{ width: `${displayStats.persentaseProgress}%` }}
                />
             </div>
             <p className="mt-3 text-[11px] text-gray-400 italic text-center">
