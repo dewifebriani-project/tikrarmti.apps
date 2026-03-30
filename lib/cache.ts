@@ -95,7 +95,7 @@ export function cacheAsync<
 >(
   fn: (...args: Args) => Promise<Result>,
   keys: string[],
-  options: { revalidate: number | false | ((data: Result) => number) }
+  options: { revalidate: number | false, tags?: string[] }
 ): (...args: Args) => Promise<Result> {
   return unstable_cache(fn, keys, options) as (...args: Args) => Promise<Result>
 }
