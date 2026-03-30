@@ -94,7 +94,7 @@ export function cacheAsync<
   Result
 >(
   fn: (...args: Args) => Promise<Result>,
-  keys: readonly string[],
+  keys: string[],
   options: { revalidate: number | false | ((data: Result) => number) }
 ): (...args: Args) => Promise<Result> {
   return unstable_cache(fn, keys, options) as (...args: Args) => Promise<Result>
@@ -117,7 +117,7 @@ export async function invalidateCache(keyParts: string[]): Promise<void> {
  */
 export function createCachedFetcher<T>(
   queryFn: () => Promise<T>,
-  cacheKey: readonly string[],
+  cacheKey: string[],
   revalidate: number = CACHE_DURATIONS.MEDIUM
 ): () => Promise<T> {
   return cacheAsync(queryFn, cacheKey, { revalidate })
