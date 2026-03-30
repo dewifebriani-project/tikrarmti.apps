@@ -44,7 +44,7 @@ export default function BottomNavbar() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[60] pt-2 pointer-events-none md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-[60] pt-2 pointer-events-none lg:hidden">
       <div className="w-full relative pointer-events-auto">
         {/* Background Glass container */}
         <div className="glass-premium rounded-t-[32px] flex items-center justify-around px-2 py-3 shadow-2xl border-t border-white/50 h-[80px]">

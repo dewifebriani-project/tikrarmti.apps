@@ -7,7 +7,7 @@ import {
   X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight, Eye,
   LayoutGrid, ClipboardList, FileText, UserCheck, BarChart3, Calendar, Shield, Settings
 } from 'lucide-react';
-import { ROLE_RANKS, hasRequiredRank } from '@/lib/roles';
+import { ROLE_RANKS, hasRequiredRank, isStaff } from '@/lib/roles';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 
@@ -33,12 +33,12 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
   useEffect(() => {
     const mountTimer = setTimeout(() => {
       setIsMounted(true);
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024);
     }, 0);
 
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) {
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth < 1024) {
         setIsCollapsed(false);
       }
     };
@@ -53,11 +53,12 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
   // Role-based navigation items
   const getNavItems = () => {
     const isAdmin = hasRequiredRank(userRoles, ROLE_RANKS.admin);
+    const isStaffGroup = isStaff(userRoles);
     
-    // Base items for the sidebar (Management level focus)
+    // Base items for the sidebar
     const baseItems: any[] = [];
 
-    // Management Content: Only for Staff (Rank >= 60)
+    // Admin/Staff Content
     if (isAdmin) {
       // SECTION: MONITORING
       baseItems.push({ type: 'header', label: 'Monitoring' });
@@ -110,6 +111,47 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Batch & Program',
         icon: <Calendar className="h-5 w-5" />,
       });
+    } 
+    // Thalibah / Calon Thalibah Content
+    else {
+      baseItems.push({ type: 'header', label: 'Menu Utama' });
+      baseItems.push({
+        href: '/dashboard',
+        label: 'Dasbor',
+        icon: <LayoutGrid className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/jurnal-harian',
+        label: 'Jurnal Harian',
+        icon: <BookOpen className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/tashih',
+        label: 'Tashih Bacaan',
+        icon: <FileText className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/perjalanan-saya',
+        label: 'Perjalanan Saya',
+        icon: <BarChart3 className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/alumni',
+        label: 'Ruang Alumni',
+        icon: <Users className="h-5 w-5" />,
+      });
+
+      baseItems.push({ type: 'header', label: 'Profil' });
+      baseItems.push({
+        href: '/profile',
+        label: 'Edit Profil',
+        icon: <UserCheck className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/pengaturan',
+        label: 'Pengaturan',
+        icon: <Settings className="h-5 w-5" />,
+      });
     }
 
     return baseItems;
@@ -132,16 +174,16 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       {/* Mobile overlay - Only render after mount to prevent hydration mismatch */}
       {isMounted && isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] md:hidden transition-opacity duration-500"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] lg:hidden transition-opacity duration-500"
           onClick={onClose}
         />
       )}
 
       {/* Sidebar - Ensure consistent className between server and client */}
       <aside className={`
-        fixed md:sticky inset-y-0 md:top-0 left-0 z-[100] md:z-20 border-r border-gray-100
-        transform transition-all duration-500 ease-in-out md:h-screen shadow-[0_0_20px_rgba(0,0,0,0.05)]
-        ${isMounted && isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        fixed lg:sticky inset-y-0 lg:top-0 left-0 z-[100] lg:z-20 border-r border-gray-100
+        transform transition-all duration-500 ease-in-out lg:h-screen shadow-[0_0_20px_rgba(0,0,0,0.05)]
+        ${isMounted && isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${isCollapsed ? 'w-20' : 'w-60'}
       `}>
         <div className="flex flex-col h-full bg-white">

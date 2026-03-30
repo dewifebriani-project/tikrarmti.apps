@@ -56,8 +56,8 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
   // Close sidebar on mobile when route changes
   const handleCloseSidebar = () => setIsSidebarOpen(false)
 
-  // Sidebar visibility based on hierarchical rank (Staff/Admin)
-  const shouldShowSidebar = isStaff(user.primaryRole)
+  // Sidebar visibility - Enable for all users on desktop/tablet
+  const shouldShowSidebar = true;
 
   return (
     <AuthProvider serverUserData={{

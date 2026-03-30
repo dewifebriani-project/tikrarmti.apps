@@ -197,7 +197,7 @@ export default function GlobalAuthenticatedHeader({
           <div className="flex items-center space-x-3 md:space-x-4 flex-1">
             {/* Hamburger Menu - Only if showSidebarToggle is true */}
             {showSidebarToggle && (
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 <button
                   onClick={() => {
                     if (onMenuToggle) {
