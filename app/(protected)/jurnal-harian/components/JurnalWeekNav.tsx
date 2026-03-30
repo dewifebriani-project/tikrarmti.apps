@@ -19,7 +19,7 @@ export function JurnalWeekNav({
   onPrevious,
   onNext,
   weekRange
-}) {
+}: JurnalWeekNavProps) {
   const isFirstWeek = displayedWeekNumber <= 1;
   const isCurrentOrFutureWeek = displayedWeekNumber >= currentWeekNumber;
 
