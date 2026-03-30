@@ -158,6 +158,11 @@ export async function POST(request: Request) {
       return ApiResponses.databaseError(insertError);
     }
 
+    if (!result) {
+      logger.error('Registration insertion returned no result', { userId: context.userId });
+      return ApiResponses.serverError('Failed to retrieve registration ID after submission.');
+    }
+
     logger.info('Registration submitted successfully', { registrationId: result.id, userId: context.userId });
 
     return ApiResponses.success({ id: result.id }, 'Registration submitted successfully', 201);
