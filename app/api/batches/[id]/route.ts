@@ -4,7 +4,7 @@
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdmin } from '@/lib/supabase'
-import { ApiResponses, CACHE_CONTROL } from '@/lib/api-responses'
+import { ApiResponses } from '@/lib/api-responses'
 import { setCacheHeaders } from '@/lib/cache'
 import { getCachedBatch } from '@/lib/queries/batch'
 import { commonSchemas } from '@/lib/schemas'
