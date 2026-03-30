@@ -195,14 +195,12 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // unsafe-eval + unsafe-inline required in dev for Next.js React Fast Refresh & inline data scripts
-              // In production both are omitted to prevent XSS bypass
-              `script-src 'self'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval' 'unsafe-inline'" : ""}`,
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
-              "img-src 'self' data: https:",
+              "img-src 'self' data: https: https://*.supabase.co https://*.googleusercontent.com",
               "media-src 'self' blob: https://*.supabase.co",
-              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id",
+              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id https://*.sentry.io https://*.google-analytics.com",
             ].join('; ')
           },
           // Permissions-Policy removed from wildcard - use specific routes instead

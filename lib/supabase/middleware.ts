@@ -43,6 +43,21 @@ export async function updateSession(request: NextRequest) {
     res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     res.headers.set('X-DNS-Prefetch-Control', 'off')
     res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    
+    // Add Content Security Policy – Required for Next.js 14 hydration on markaztikrar.id
+    res.headers.set(
+      'Content-Security-Policy',
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' blob: data: https://*.supabase.co https://*.googleusercontent.com; " +
+      "font-src 'self' data:; " +
+      "connect-src 'self' https://*.supabase.co https://*.sentry.io https://*.google-analytics.com; " +
+      "frame-src 'self'; " +
+      "base-uri 'self'; " +
+      "form-action 'self';"
+    )
+    
     return res
   }
 
