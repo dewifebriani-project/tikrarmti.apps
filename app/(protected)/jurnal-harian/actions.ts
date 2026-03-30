@@ -36,11 +36,62 @@ export async function saveJurnalRecord(data: JurnalFormData) {
     return { success: false, error: 'Unauthorized. Silakan login kembali.' }
   }
 
-  // Debug log
-  console.log('[saveJurnalRecord] User ID:', authUser.id)
-  console.log('[saveJurnalRecord] Data:', data)
+  // 2. Sequential Validation - Ensure user doesn't skip blocks
+  try {
+    // We reuse the logic from the status API to get all blocks
+    // Fetch user's registrations to get his juz
+    const { data: registrations } = await supabase
+      .from('pendaftaran_tikrar_tahfidz')
+      .select('chosen_juz, daftar_ulang:daftar_ulang_submissions(confirmed_chosen_juz)')
+      .eq('user_id', authUser.id)
+      .in('status', ['approved', 'selected'])
+      .limit(1)
 
-  // Tashih validation removed - jurnal is now independent from tashih
+    const reg = registrations?.[0]
+    const juzCode = reg?.daftar_ulang?.[0]?.confirmed_chosen_juz || reg?.chosen_juz
+
+    if (juzCode) {
+      // Get all blocks for this juz
+      const { data: juzInfo } = await supabase.from('juz_options').select('*').eq('code', juzCode).single()
+      
+      if (juzInfo) {
+        const parts = ['A', 'B', 'C', 'D']
+        const totalPages = juzInfo.end_page - juzInfo.start_page + 1
+        const blockOffset = juzInfo.part === 'B' ? 10 : 0
+        const allBlockCodes: string[] = []
+
+        for (let week = 1; week <= totalPages; week++) {
+          const blockNumber = week + blockOffset
+          for (let i = 0; i < 4; i++) {
+            allBlockCodes.push(`H${blockNumber}${parts[i]}`)
+          }
+        }
+
+        // Get completed blocks
+        const { data: existingRecords } = await supabase
+          .from('jurnal_records')
+          .select('blok')
+          .eq('user_id', authUser.id)
+
+        const completedSet = new Set<string>()
+        existingRecords?.forEach(r => {
+          if (r.blok) completedSet.add(r.blok)
+        })
+
+        // Find current block index
+        const targetIndex = allBlockCodes.indexOf(data.blok)
+        if (targetIndex > 0) {
+          const prevBlock = allBlockCodes[targetIndex - 1]
+          if (!completedSet.has(prevBlock)) {
+            return { success: false, error: `Ukhti harus mengisi blok ${prevBlock} terlebih dahulu sebelum mengisi ${data.blok}.` }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[saveJurnalRecord] Sequence validation failed:', err)
+    // Continue if validation fails due to internal error, but log it
+  }
   try {
     const recordData = {
       user_id: authUser.id, // Menggunakan authUser.id dari server, dijamin sama dengan auth.uid()
