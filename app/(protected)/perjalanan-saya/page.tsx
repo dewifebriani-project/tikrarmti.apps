@@ -5,17 +5,18 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyRegistrations, useAllRegistrations } from '@/hooks/useRegistrations';
 import { useActiveBatch } from '@/hooks/useBatches';
-import { useDashboardStats, useLearningJourney, useUserProgress } from '@/hooks/useDashboard';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useDashboardStats, useLearningJourney, useUserProgress, useJurnalStatus } from '@/hooks/useDashboard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
 import { useBatchTimeline } from '@/hooks/useBatchTimeline';
 import { formatFullDateIndo, formatDateIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
-import { getRoleRank, ROLE_RANKS } from '@/lib/roles';
+import { getRoleRank, ROLE_RANKS, isStaff } from '@/lib/roles';
+import { cn } from '@/lib/utils';
 
 interface TimelineItem {
   id: number;
@@ -143,6 +144,28 @@ export default function PerjalananSaya() {
   const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch();
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
+  
+  const userRole = (user as any)?.primaryRole || 'thalibah';
+  const canSeeAdminStats = isStaff(userRole);
+  const { stats, isLoading: statsLoading } = useDashboardStats(canSeeAdminStats);
+  const { jurnalStatus, isLoading: jurnalLoading } = useJurnalStatus();
+
+  // Unified Statistics Logic (Same as Dashboard)
+  const statsOverview = useMemo(() => {
+    const totalHariTarget = canSeeAdminStats ? (stats?.totalHariTarget || 0) : (jurnalStatus?.summary.total_blocks || 0);
+    const hariAktual = canSeeAdminStats ? (stats?.hariAktual || 0) : (jurnalStatus?.summary.completed_blocks || 0);
+    const percentage = totalHariTarget > 0 ? Math.round((hariAktual / totalHariTarget) * 100) : 0;
+    
+    return {
+      totalHariTarget,
+      hariAktual,
+      percentage
+    };
+  }, [canSeeAdminStats, stats, jurnalStatus]);
+
+  const percentage = statsOverview.percentage;
+  const completedCount = statsOverview.hariAktual;
+  const totalCount = statsOverview.totalHariTarget;
 
   // Get batch_id from registration - fallback to active batch for Admins
   const batchId = useMemo(() => {
@@ -580,10 +603,6 @@ export default function PerjalananSaya() {
     return registrationStatus?.registration?.re_enrollment_completed !== true;
   }, [registrationStatus]);
 
-  const completedCount = timelineData.filter(item => item.status === 'completed').length;
-  const totalCount = timelineData.length;
-  const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
   // Calculate dynamic finish estimation
   const estimationFinish = useMemo(() => {
     if (batch && batch.graduation_end_date) {
@@ -1003,34 +1022,38 @@ export default function PerjalananSaya() {
                 </p>
               </div>
 
-              {/* Stats Card in Header */}
-              <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center min-w-[140px] sm:min-w-[180px]">
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="50%"
-                      cy="50%"
-                      r="45%"
-                      className="stroke-white/10 fill-none"
-                      strokeWidth="8"
-                    />
-                    <circle
-                      cx="50%"
-                      cy="50%"
-                      r="45%"
-                      className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
-                      strokeWidth="8"
-                      strokeDasharray="251.2"
-                      strokeDashoffset={251.2 - (251.2 * percentage) / 100}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center font-bold text-lg sm:text-2xl">
-                    {percentage}%
+                {/* Stats Card in Header */}
+                <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center min-w-[140px] sm:min-w-[180px]">
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="50%"
+                        cy="50%"
+                        r="45%"
+                        className="stroke-white/10 fill-none"
+                        strokeWidth="8"
+                      />
+                      <circle
+                        cx="50%"
+                        cy="50%"
+                        r="45%"
+                        className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
+                        strokeWidth="8"
+                        strokeDasharray="283"
+                        strokeDashoffset={283 - (283 * percentage) / 100}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <p className="text-[9px] text-green-200 uppercase tracking-widest font-black">Target</p>
+                      <p className="text-xl sm:text-2xl font-black leading-none">{completedCount}/{totalCount}</p>
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold">{percentage}%</div>
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
                   </div>
                 </div>
-                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
-              </div>
             </div>
 
             {/* Admin Preview Mode Banner (Inside Premium Header context) */}
@@ -1089,445 +1112,234 @@ export default function PerjalananSaya() {
                   <p className="text-yellow-700 text-sm mt-1">
                     Ukhti belum terdaftar di program Tikrar Tahfidz.
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    <Link href="/pendaftaran/tikrar-tahfidz" className="inline-block">
-                      <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                        Daftar Sekarang
-                      </Button>
-                    </Link>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        console.log('=== PERJALANAN SAYA DEBUG ===');
-                        try {
-                          const response = await fetch('/api/debug/registration', {
-                            credentials: 'include'
-                          });
-
-                          const data = await response.json();
-                          console.log('=== DEBUG DATA ===');
-                          console.log('User Info:', data.userInfo);
-                          console.log('Tikrar Registrations:', data.tikrarRegistrations);
-                          console.log('Daftar Ulang Submissions:', data.daftarUlangSubmissions);
-                          console.log('All Batches:', data.allBatches);
-                          console.log('API Response:', data.apiResponse);
-                          console.log('Summary:', data.summary);
-
-                          const tikrarCount = data.tikrarRegistrations?.count || 0;
-                          const muallimahCount = data.muallimahRegistrations?.count || 0;
-                          const hasOpenBatch = data.summary?.hasOpenBatch;
-                          const hasAnyValidBatch = data.summary?.hasAnyValidBatch;
-
-                          let message = `User: ${data.userInfo?.email}\n`;
-                          message += `Roles: ${data.userInfo?.roles?.join(', ') || 'none'}\n\n`;
-                          message += `Tikrar Registrations: ${tikrarCount}\n`;
-                          message += `Has Open Batch: ${hasOpenBatch ? 'YES' : 'NO'}\n`;
-                          message += `Has Any Valid Batch: ${hasAnyValidBatch ? 'YES' : 'NO'}\n\n`;
-                          message += `Check browser console for full details.`;
-
-                          alert(message);
-                        } catch (err) {
-                          console.error('Debug error:', err);
-                          alert('Error getting debug info. Check console.');
-                        }
-                      }}
-                    >
-                      Debug Info
-                    </Button>
-                  </div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Link href="/pendaftaran/tikrar-tahfidz" className="inline-block">
+                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                          Daftar Sekarang
+                        </Button>
+                      </Link>
+                    </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* User Info Card */}
-        {registrationStatus?.hasRegistered && (
-          <Card className="bg-green-50 border-green-200">
-            <CardHeader className="pb-3 sm:pb-6">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2 text-lg sm:text-xl text-green-900">
-                  <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-900" />
-                  <span>Status Pendaftaran</span>
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-3 sm:space-y-4">
-                {/* Basic Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Nama Lengkap</p>
-                    <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.full_name || user?.full_name || 'User'}</p>
-                  </div>
-                  {registrationStatus.registration?.batch_name && (
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-600">Batch</p>
-                      <p className="font-medium text-sm sm:text-base">{registrationStatus.registration?.batch_name}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Registration Details */}
-                {registrationStatus.registration && (
-                  <>
-                    {/* Juz Selection */}
-                    {registrationStatus.registration.chosen_juz && (
-                      <div className="bg-white rounded-lg p-3 border border-green-200">
-                        <div className="flex items-start space-x-2">
-                          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              {/* Tab 1: Status Pendaftaran Content */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* 1. Card Status Pendaftaran */}
+                {registrationStatus?.hasRegistered && (
+                  <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium group hover:shadow-2xl transition-all duration-500">
+                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                          <CheckCircle className="h-6 w-6" />
+                        </div>
+                        <div className={cn(
+                          "px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/20 uppercase tracking-wider",
+                          registrationStatus.registration?.status === 'approved' ? 'bg-white/20 text-white' : 'bg-yellow-400/20 text-yellow-100'
+                        )}>
+                          {registrationStatus.registration?.status === 'pending' ? 'Menunggu' :
+                           registrationStatus.registration?.status === 'approved' ? 'Aktif' :
+                           registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold leading-tight">Status Pendaftaran</CardTitle>
+                      <CardDescription className="text-emerald-50/80 text-xs mt-1">Konfirmasi pendaftaran Ukhti</CardDescription>
+                      <Sparkles className="absolute bottom-4 right-4 w-12 h-12 text-white/10" />
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-5 bg-white">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-gray-50 rounded-xl">
+                            <User className="h-4 w-4 text-emerald-600" />
+                          </div>
                           <div>
-                            <p className="text-xs sm:text-sm text-gray-600">Juz yang Dipilih</p>
-                            <p className="font-medium text-sm sm:text-base text-green-800">
-                              {getJuzLabel(registrationStatus.registration.chosen_juz)}
-                            </p>
+                            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nama Lengkap</p>
+                            <p className="text-sm font-semibold text-gray-800">{registrationStatus.registration?.full_name || user?.full_name || 'Ukhti'}</p>
                           </div>
                         </div>
-                      </div>
-                    )}
-
-                    {/* Time Slots */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {registrationStatus.registration.main_time_slot && (
-                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                          <div className="flex items-start space-x-2">
-                            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                            <div>
-                              <p className="text-xs sm:text-sm text-gray-600">Jadwal Utama</p>
-                              <p className="font-medium text-sm sm:text-base text-green-800">
-                                {getTimeSlotLabel(registrationStatus.registration.main_time_slot)}
-                              </p>
+                        {registrationStatus.registration?.batch_name && (
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-gray-50 rounded-xl">
+                              <Zap className="h-4 w-4 text-orange-500" />
                             </div>
-                          </div>
-                        </div>
-                      )}
-                      {registrationStatus.registration.backup_time_slot && (
-                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                          <div className="flex items-start space-x-2">
-                            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
                             <div>
-                              <p className="text-xs sm:text-sm text-gray-600">Jadwal Cadangan</p>
-                              <p className="font-medium text-sm sm:text-base text-green-800">
-                                {getTimeSlotLabel(registrationStatus.registration.backup_time_slot)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Contact Info */}
-                    {(registrationStatus.registration.wa_phone || registrationStatus.registration.address) && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {registrationStatus.registration.wa_phone && (
-                          <div className="bg-white rounded-lg p-3 border border-green-200">
-                            <div className="flex items-start space-x-2">
-                              <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-xs sm:text-sm text-gray-600">WhatsApp</p>
-                                <p className="font-medium text-sm sm:text-base text-green-800">
-                                  {registrationStatus.registration.wa_phone}
-                                </p>
-                              </div>
+                              <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Angkatan/Batch</p>
+                              <p className="text-sm font-semibold text-gray-800">{registrationStatus.registration?.batch_name}</p>
                             </div>
                           </div>
                         )}
-                        {registrationStatus.registration.address && (
-                          <div className="bg-white rounded-lg p-3 border border-green-200">
-                            <div className="flex items-start space-x-2">
-                              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-xs sm:text-sm text-gray-600">Alamat</p>
-                                <p className="font-medium text-sm sm:text-base text-green-800">
-                                  {registrationStatus.registration.address}
-                                </p>
-                              </div>
+                        <div className="pt-2 grid grid-cols-2 gap-4">
+                          {registrationStatus.registration?.chosen_juz && (
+                            <div className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                              <p className="text-[9px] uppercase font-bold text-emerald-600 tracking-widest mb-1">Pilihan Juz</p>
+                              <p className="text-xs font-bold text-emerald-900">{getJuzLabel(registrationStatus.registration.chosen_juz)}</p>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Class/Program Info - Only show if daftar ulang exists */}
-                    {registrationStatus.registration.daftar_ulang && (
-                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <div className="flex items-start space-x-2">
-                          <Award className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-grow">
-                            <p className="text-xs sm:text-sm text-gray-600 mb-2">Kelas & Program</p>
-                            <div className="space-y-2">
-                              {registrationStatus.registration.daftar_ulang.ujian_halaqah && (
-                                <div className="bg-white rounded p-2 border border-blue-100">
-                                  <p className="text-xs text-gray-600">Kelas Ujian</p>
-                                  <p className="font-medium text-sm text-blue-800">
-                                    {registrationStatus.registration.daftar_ulang.ujian_halaqah.name}
-                                  </p>
-                                  <p className="text-xs text-blue-600">
-                                    {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week)}, {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.ujian_halaqah.end_time}
-                                  </p>
-                                </div>
-                              )}
-                              {registrationStatus.registration.daftar_ulang.tashih_halaqah && (
-                                <div className="bg-white rounded p-2 border border-purple-100">
-                                  <p className="text-xs text-gray-600">Kelas Tashih</p>
-                                  <p className="font-medium text-sm text-purple-800">
-                                    {registrationStatus.registration.daftar_ulang.tashih_halaqah.name}
-                                  </p>
-                                  <p className="text-xs text-purple-600">
-                                    {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week)}, {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} - {registrationStatus.registration.daftar_ulang.tashih_halaqah.end_time}
-                                  </p>
-                                </div>
-                              )}
+                          )}
+                          {registrationStatus.registration?.main_time_slot && (
+                            <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100">
+                              <p className="text-[9px] uppercase font-bold text-blue-600 tracking-widest mb-1">Sesi Utama</p>
+                              <p className="text-xs font-bold text-blue-900">{getTimeSlotLabel(registrationStatus.registration.main_time_slot)}</p>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Partner Info - Only show if user has been paired */}
-                    {!isLoadingPairing && pairingData && (
-                      <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-lg p-3 border border-rose-200">
-                        <div className="flex items-start space-x-2">
-                          <HeartHandshake className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-grow w-full">
-                            <div className="flex items-center justify-between mb-3">
-                              <p className="text-xs sm:text-sm text-gray-600 font-medium">Pasangan Belajar</p>
-                              <div className="flex items-center gap-2">
-                                {(() => {
-                                  const pairingTypeInfo = getPairingTypeLabel(pairingData.pairing.pairing_type);
-                                  return (
-                                    <span className={`px-2 py-0.5 ${pairingTypeInfo.bgColor} ${pairingTypeInfo.textColor} rounded text-xs font-medium`}>
-                                      {pairingTypeInfo.label}
-                                    </span>
-                                  );
-                                })()}
-                                {pairingData.pairing.is_group_of_3 && (
-                                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
-                                    Grup 3
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Partners Grid */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                              {/* Partner 1 or 2 depending on current user's role */}
-                              {pairingData.pairing.user_role !== 'user_1' && (
-                                <div className="bg-white rounded-lg p-3 border border-rose-100">
-                                  <p className="text-xs text-gray-600 mb-1">Thalibah Pertama</p>
-                                  <p className="font-semibold text-sm text-rose-900 mb-2">{pairingData.user_1.full_name}</p>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                                      Juz {pairingData.user_1.chosen_juz}
-                                    </span>
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                      {pairingData.user_1.zona_waktu}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1 mb-2">
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Clock className="w-3 h-3" />
-                                      <span>W. Utama: <span className="font-medium text-green-700">{pairingData.user_1.main_time_slot}</span></span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Clock className="w-3 h-3" />
-                                      <span>W. Cadangan: <span className="font-medium text-orange-700">{pairingData.user_1.backup_time_slot}</span></span>
-                                    </div>
-                                  </div>
-                                  <p className="text-xs text-gray-600">Usia: {calculateAge(pairingData.user_1.tanggal_lahir)} tahun</p>
-                                  {pairingData.user_1.whatsapp && (
-                                    <a
-                                      href={`https://wa.me/${pairingData.user_1.whatsapp.replace(/[^0-9]/g, '')}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 mt-2 text-green-600 hover:text-green-700"
-                                      title="Chat di WhatsApp"
-                                    >
-                                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                      </svg>
-                                      <span className="text-xs font-medium">{pairingData.user_1.whatsapp}</span>
-                                    </a>
-                                  )}
-                                </div>
-                              )}
-                              {pairingData.pairing.user_role !== 'user_2' && (
-                                <div className="bg-white rounded-lg p-3 border border-purple-100">
-                                  <p className="text-xs text-gray-600 mb-1">Thalibah Kedua</p>
-                                  <p className="font-semibold text-sm text-purple-900 mb-2">{pairingData.user_2.full_name}</p>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                                      Juz {pairingData.user_2.chosen_juz}
-                                    </span>
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                      {pairingData.user_2.zona_waktu}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1 mb-2">
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Clock className="w-3 h-3" />
-                                      <span>W. Utama: <span className="font-medium text-green-700">{pairingData.user_2.main_time_slot}</span></span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Clock className="w-3 h-3" />
-                                      <span>W. Cadangan: <span className="font-medium text-orange-700">{pairingData.user_2.backup_time_slot}</span></span>
-                                    </div>
-                                  </div>
-                                  <p className="text-xs text-gray-600">Usia: {calculateAge(pairingData.user_2.tanggal_lahir)} tahun</p>
-                                  {pairingData.user_2.whatsapp && (
-                                    <a
-                                      href={`https://wa.me/${pairingData.user_2.whatsapp.replace(/[^0-9]/g, '')}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 mt-2 text-green-600 hover:text-green-700"
-                                      title="Chat di WhatsApp"
-                                    >
-                                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                      </svg>
-                                      <span className="text-xs font-medium">{pairingData.user_2.whatsapp}</span>
-                                    </a>
-                                  )}
-                                </div>
-                              )}
-                              {/* Third partner if exists */}
-                              {pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' && pairingData.user_3 && (
-                                <div className="bg-white rounded-lg p-3 border border-amber-100 sm:col-span-2">
-                                  <p className="text-xs text-gray-600 mb-1">Thalibah Ketiga</p>
-                                  <p className="font-semibold text-sm text-amber-900 mb-2">{pairingData.user_3.full_name}</p>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                                      Juz {pairingData.user_3.chosen_juz}
-                                    </span>
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                                      {pairingData.user_3.zona_waktu}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1 mb-2">
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Clock className="w-3 h-3" />
-                                      <span>W. Utama: <span className="font-medium text-green-700">{pairingData.user_3.main_time_slot}</span></span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Clock className="w-3 h-3" />
-                                      <span>W. Cadangan: <span className="font-medium text-orange-700">{pairingData.user_3.backup_time_slot}</span></span>
-                                    </div>
-                                  </div>
-                                  <p className="text-xs text-gray-600">Usia: {calculateAge(pairingData.user_3.tanggal_lahir)} tahun</p>
-                                  {pairingData.user_3.whatsapp && (
-                                    <a
-                                      href={`https://wa.me/${pairingData.user_3.whatsapp.replace(/[^0-9]/g, '')}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2 mt-2 text-green-600 hover:text-green-700"
-                                      title="Chat di WhatsApp"
-                                    >
-                                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                                      </svg>
-                                      <span className="text-xs font-medium">{pairingData.user_3.whatsapp}</span>
-                                    </a>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Compatibility Analysis */}
-                            <div className="bg-white rounded-lg p-3 border border-blue-100 mb-3">
-                              <p className="text-xs font-semibold text-gray-700 mb-2">Analisis Kecocokan</p>
-                              <div className="space-y-2">
-                                {pairingData.pairing.user_role !== 'user_1' && renderCompatibilityAnalysis(pairingData.current_user, pairingData.user_1, 'Thalibah Pertama')}
-                                {pairingData.pairing.user_role !== 'user_2' && renderCompatibilityAnalysis(pairingData.current_user, pairingData.user_2, 'Thalibah Kedua')}
-                                {pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' && pairingData.user_3 && renderCompatibilityAnalysis(pairingData.current_user, pairingData.user_3, 'Thalibah Ketiga')}
-                              </div>
-                            </div>
-
-                            {/* Advice Section */}
-                            {(() => {
-                              const partners = [
-                                pairingData.pairing.user_role !== 'user_1' ? pairingData.user_1 : null,
-                                pairingData.pairing.user_role !== 'user_2' ? pairingData.user_2 : null,
-                                pairingData.pairing.is_group_of_3 && pairingData.pairing.user_role !== 'user_3' ? pairingData.user_3 : null
-                              ].filter(Boolean);
-                              const advice = getMatchingAdvice(pairingData.current_user, partners);
-                              return (
-                                <div className={`rounded-lg p-3 border ${advice.bgColor} ${advice.borderColor}`}>
-                                  <div className="flex items-start gap-2">
-                                    <span className="text-lg sm:text-xl">{advice.icon}</span>
-                                    <div>
-                                      <p className={`text-xs sm:text-sm font-semibold ${advice.textColor} mb-1`}>{advice.title}</p>
-                                      <p className={`text-xs ${advice.textColor} leading-relaxed`}>{advice.message}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-
-                          {/* Edit Partner Button - Only for Family and Tarteel */}
-                          {(pairingData.pairing.pairing_type === 'family' || pairingData.pairing.pairing_type === 'tarteel') && (
-                            <button
-                              onClick={handleEditPartner}
-                              disabled={isUpdatingPartner}
-                              className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Edit className="w-4 h-4" />
-                              <span className="text-xs sm:text-sm font-medium">
-                                {isUpdatingPartner ? 'Menyimpan...' : `Edit Data ${pairingData.pairing.pairing_type === 'family' ? 'Keluarga' : 'Tarteel'}`}
-                              </span>
-                            </button>
                           )}
                         </div>
                       </div>
-                    )}
-                  </>
+                    </CardContent>
+                    <CardFooter className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          registrationStatus.registration?.status === 'approved' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'
+                        )} />
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                          Verified by Tikrar
+                        </span>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-bold text-xs" onClick={() => setIsEditModalOpen(true)}>
+                        Edit Profil
+                      </Button>
+                    </CardFooter>
+                  </Card>
                 )}
 
-                {/* Status Badge / Edit Button */}
-                {!registrationStatus.registration?.re_enrollment_completed &&
-                 !registrationStatus.registration?.daftar_ulang ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-green-300 text-green-700 hover:bg-green-100 min-h-[44px] sm:min-h-0"
-                    onClick={() => setIsEditModalOpen(true)}
-                  >
-                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span className="text-xs sm:text-sm">Edit Pendaftaran</span>
-                  </Button>
-                ) : (
-                  <div className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium ${
-                    registrationStatus.registration?.status === 'approved'
-                      ? 'bg-green-100 text-green-800'
-                      : registrationStatus.registration?.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : registrationStatus.registration?.status === 'rejected'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full mr-2 ${
-                      registrationStatus.registration?.status === 'approved'
-                        ? 'bg-green-600'
-                        : registrationStatus.registration?.status === 'pending'
-                        ? 'bg-yellow-600 animate-pulse'
-                        : registrationStatus.registration?.status === 'rejected'
-                        ? 'bg-red-600'
-                        : 'bg-gray-600'
-                    }`}></span>
-                    {registrationStatus.registration?.status === 'pending' ? 'Menunggu Persetujuan' :
-                     registrationStatus.registration?.status === 'approved' ? 'Disetujui' :
-                     registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                  </div>
+                {/* 2. Card Kelas & Program */}
+                {registrationStatus.registration?.daftar_ulang && (
+                  <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium group hover:shadow-2xl transition-all duration-500">
+                    <CardHeader className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                          <Award className="h-6 w-6" />
+                        </div>
+                        <div className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md border border-white/20 uppercase tracking-wider">
+                          Daftar Ulang
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold leading-tight">Kelas & Program</CardTitle>
+                      <CardDescription className="text-blue-50/80 text-xs mt-1">Status penempatan grup belajar</CardDescription>
+                      <Sparkles className="absolute bottom-4 right-4 w-12 h-12 text-white/5" />
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6 bg-white">
+                      <div className="space-y-4">
+                        {registrationStatus.registration.daftar_ulang.ujian_halaqah && (
+                          <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-100 group/item hover:bg-blue-50 transition-colors">
+                            <div className="flex items-start justify-between">
+                              <div className="flex gap-3">
+                                <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600">
+                                  <BadgeCheck className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Kelas Ujian</p>
+                                  <p className="text-sm font-bold text-blue-900">{registrationStatus.registration.daftar_ulang.ujian_halaqah.name}</p>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-blue-100 text-blue-600 rounded-lg">
+                                      <Calendar className="w-3 h-3" />
+                                      {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-blue-100 text-blue-600 rounded-lg">
+                                      <Clock className="w-3 h-3" />
+                                      {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} WIB
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {registrationStatus.registration.daftar_ulang.tashih_halaqah && (
+                          <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-100 group/item hover:bg-purple-50 transition-colors">
+                            <div className="flex items-start justify-between">
+                              <div className="flex gap-3">
+                                <div className="p-2 bg-white rounded-xl shadow-sm text-purple-600">
+                                  <Award className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-0.5">Kelas Tashih</p>
+                                  <p className="text-sm font-bold text-purple-900">{registrationStatus.registration.daftar_ulang.tashih_halaqah.name}</p>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-purple-100 text-purple-600 rounded-lg">
+                                      <Calendar className="w-3 h-3" />
+                                      {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-purple-100 text-purple-600 rounded-lg">
+                                      <Clock className="w-3 h-3" />
+                                      {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} WIB
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    )}
 
-            {/* Tab 2: Jadwal Pesantren */}
+                {/* 3. Card Pasangan Belajar */}
+                {!isLoadingPairing && pairingData && (
+                  <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium group hover:shadow-2xl transition-all duration-500 lg:col-span-1">
+                    <CardHeader className="bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-white relative">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                          <HeartHandshake className="h-6 w-6" />
+                        </div>
+                        {(() => {
+                           const info = getPairingTypeLabel(pairingData.pairing.pairing_type);
+                           return (
+                             <div className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md border border-white/20 uppercase tracking-wider">
+                               {info.label}
+                             </div>
+                           );
+                        })()}
+                      </div>
+                      <CardTitle className="text-xl font-bold leading-tight">Pasangan Belajar</CardTitle>
+                      <CardDescription className="text-rose-50/80 text-xs mt-1">Partner setoran & muraja'ah</CardDescription>
+                      <Sparkles className="absolute bottom-4 right-4 w-12 h-12 text-white/5" />
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4 bg-white">
+                      {[pairingData.user_1, pairingData.user_2, pairingData.user_3].filter(p => p && p.id !== user?.id).map((partner, idx) => (
+                        <div key={idx} className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-rose-50/30 transition-all duration-300">
+                          <div className="flex items-center gap-4 mb-3">
+                            <div className="h-10 w-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+                              {partner?.full_name?.charAt(0) || 'U'}
+                            </div>
+                            <div>
+                               <p className="text-sm font-bold text-gray-900">{partner?.full_name}</p>
+                               <div className="flex gap-2 mt-0.5">
+                                 <span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded-md uppercase">Juz {partner?.chosen_juz}</span>
+                                 <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md uppercase">{partner?.zona_waktu}</span>
+                               </div>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 mb-3">
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="w-3 h-3" />
+                              <span>Sesi: <span className="font-bold text-gray-700">{getTimeSlotLabel(partner?.main_time_slot)}</span></span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Phone className="w-3 h-3" />
+                              <span>WhatsApp: <span className="font-bold text-rose-600">{partner?.wa_phone || partner?.whatsapp || '-'}</span></span>
+                            </div>
+                          </div>
+                          {partner?.whatsapp && (
+                            <Button asChild variant="outline" size="sm" className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 h-9 font-bold text-[10px] uppercase">
+                              <a href={`https://wa.me/${partner.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                                Chat WhatsApp
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+               </div>
+            </div>
+          )}
+
+
+            {/* Tab 2: Jadwal Belajar */}
             {activeTab === 'jadwal' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {user && !isLoading && (
