@@ -446,55 +446,33 @@ export default function DashboardContent() {
         </div>
 
 
-        <div className="flex flex-row gap-2 sm:gap-4 lg:gap-6 w-full">
+        <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:gap-6 w-full">
           {[
             // Row 1
-            { label: 'Perjalanan Saya', sub: 'Riwayat Tikrar', icon: Clock, color: 'blue', href: '/perjalanan-saya' },
-            { label: 'Catatan Tashih', sub: 'Koreksi Hafalan', icon: ClipboardList, color: 'emerald', href: '/tashih' },
-            { label: 'Jurnal Harian', sub: 'Setoran Rutin', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
-            { label: 'Ujian Pekanan', sub: 'Evaluasi Mingguan', icon: Calendar, color: 'amber', href: '/ujian' },
+            { label: 'Perjalanan Saya', icon: Clock, color: 'blue', href: '/perjalanan-saya' },
+            { label: 'Catatan Tashih', icon: ClipboardList, color: 'emerald', href: '/tashih' },
+            { label: 'Jurnal Harian', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
+            { label: 'Ujian Pekanan', icon: Calendar, color: 'amber', href: '/ujian' },
+            // Row 2
+            { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '/ujian' },
+            { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
+            { label: 'Pembayaran', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
+            { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
           ].map((item, i) => (
-            <Link key={i} href={item.href} className="w-1/4 flex-shrink-0 group">
+            <Link key={i} href={item.href} className="group min-w-0">
               <div className="h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center">
                 <div className={cn(
-                  "w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1.5 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm",
+                  "w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1.5 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm flex-shrink-0",
                   item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
                   item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
                   item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
-                  item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
-                  "bg-gray-50 text-gray-600 border border-gray-100/50"
-                )}>
-                  <item.icon className="w-4 h-4 sm:w-7 sm:h-7" />
-                </div>
-                <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight">
-                  {item.label}
-                </h3>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="flex flex-row gap-2 sm:gap-4 lg:gap-6 w-full">
-          {[
-            // Row 2
-            { label: 'Ujian Akhir', sub: 'Cek Jadwal', icon: Award, color: 'blue', href: '/ujian' },
-            { label: 'Sertifikat', sub: 'Download', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
-            { label: 'Pembayaran', sub: 'Infaq & SPP', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
-            { label: 'Alumni', sub: 'Komunitas', icon: GraduationCap, color: 'purple', href: '/alumni' },
-          ].map((item, i) => (
-            <Link key={i} href={item.href} className="w-1/4 flex-shrink-0 group">
-              <div className="h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center">
-                <div className={cn(
-                  "w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1.5 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm",
-                  item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
-                  item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
                   item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
                   item.color === 'purple' ? "bg-purple-50 text-purple-600 border border-purple-100/50" :
                   "bg-gray-50 text-gray-600 border border-gray-100/50"
                 )}>
                   <item.icon className="w-4 h-4 sm:w-7 sm:h-7" />
                 </div>
-                <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight">
+                <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight truncate w-full px-0.5">
                   {item.label}
                 </h3>
               </div>
