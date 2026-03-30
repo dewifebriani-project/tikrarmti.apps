@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { ApiResponses } from '@/lib/api-responses';
 import { batchSchemas } from '@/lib/schemas';
-import { requireAdmin } from '@/lib/rbac';
+import { requireAdmin, requireAuth } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -26,7 +26,7 @@ const supabaseAdmin = createSupabaseAdmin();
 export async function GET(request: NextRequest) {
   try {
     const response = new NextResponse();
-    const authResult = await requireAdmin(response);
+    const authResult = await requireAuth(response);
     if (authResult) return authResult;
 
     const { searchParams } = new URL(request.url);
