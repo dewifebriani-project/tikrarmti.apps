@@ -107,14 +107,11 @@ export async function GET(request: Request) {
       }
     }
 
-    return ApiResponses.success(enrichedData, undefined, 200, {
-      pagination: {
-        page,
-        limit,
-        total: count || rawData.length,
-        totalPages: count ? Math.ceil(count / limit) : 1
-      }
-    });
+    return ApiResponses.paginated(enrichedData, {
+      page,
+      limit,
+      total: count || rawData.length,
+    }, undefined, 200);
 
   } catch (error) {
     console.error('[Admin Tikrar API] Unexpected error:', error);
