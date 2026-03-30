@@ -36,8 +36,10 @@ const nextConfig = {
   },
     // CORS configuration
   async headers() {
-    // Always allow multiple origins including the production domain
-    const allowedOrigins = 'https://markaztikrar.id, https://www.markaztikrar.id, https://192.168.110.223:3000, http://192.168.110.223:3000, http://localhost:3000, http://localhost:3001, http://localhost:3002, http://localhost:3003, *';
+    // Restrict allowed origins per environment — never use wildcard with credentials
+    const allowedOrigins = process.env.NODE_ENV === 'production'
+      ? 'https://markaztikrar.id'
+      : 'http://localhost:3000';
 
     return [
       {
@@ -193,7 +195,9 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              // unsafe-eval + unsafe-inline required in dev for Next.js React Fast Refresh & inline data scripts
+              // In production both are omitted to prevent XSS bypass
+              `script-src 'self'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval' 'unsafe-inline'" : ""}`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
               "img-src 'self' data: https:",

@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
-import { z } from 'zod';
 import { ApiResponses } from '@/lib/api-responses';
 import { programSchemas } from '@/lib/schemas';
+import { requireAdmin } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -25,11 +25,9 @@ const supabaseAdmin = createSupabaseAdmin();
  */
 export async function GET(request: NextRequest) {
   try {
-    // Temporarily disabled admin check for development
-    // const authResult = await requireAdmin(request);
-    // if (authResult instanceof NextResponse) {
-    //   return authResult;
-    // }
+    const authResult = await requireAdmin();
+    if (authResult) return authResult;
+
     const { searchParams } = new URL(request.url);
     const batchId = searchParams.get('batch_id');
     const status = searchParams.get('status');
@@ -62,7 +60,8 @@ export async function GET(request: NextRequest) {
       query = query.eq('batch_id', batchId);
     }
 
-    if (status) {
+    const VALID_PROGRAM_STATUSES = ['draft', 'open', 'ongoing', 'completed', 'cancelled'];
+    if (status && VALID_PROGRAM_STATUSES.includes(status)) {
       query = query.eq('status', status);
     }
 
@@ -89,11 +88,9 @@ export async function GET(request: NextRequest) {
 // POST /api/program - Create new program
 export async function POST(request: NextRequest) {
   try {
-    // Temporarily disabled admin check for development
-    // const authResult = await requireAdmin(request);
-    // if (authResult instanceof NextResponse) {
-    //   return authResult;
-    // }
+    const authResult = await requireAdmin();
+    if (authResult) return authResult;
+
     const body = await request.json();
 
     // Validate request body

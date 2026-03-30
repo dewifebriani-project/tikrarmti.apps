@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requireAdmin, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 // Validation schema for creating halaqah
 const createHalaqahSchema = z.object({
@@ -19,60 +20,38 @@ const createHalaqahSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // 1. Authorization check - Standardized via requireAdmin
+    const authError = await requireAdmin();
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized('Unable to get authorization context');
+
     const supabase = createClient();
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify user has muallimah or admin role
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const roles = userData?.roles || [];
-    const isAdmin = roles.includes('admin');
-    const isMuallimah = roles.includes('muallimah');
-
-    if (!isAdmin && !isMuallimah) {
-      return NextResponse.json({ error: 'Forbidden: Muallimah or Admin access required' }, { status: 403 });
-    }
-
-    // Parse and validate request body
+    // 2. Parse and validate request body
     const body = await request.json();
     const validationResult = createHalaqahSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json({
-        error: 'Validation error',
-        details: validationResult.error.issues,
-      }, { status: 400 });
+      return ApiResponses.validationError(validationResult.error.issues);
     }
 
     const data = validationResult.data;
 
-    // Determine muallimah_id:
-    // - Muallimah can only create for themselves
-    // - Admin can create for any muallimah (if specified)
-    let targetMuallimahId = user.id;
-    if (isAdmin && data.muallimah_id) {
-      // Verify the target muallimah exists and has muallimah role
+    // Determine teacher (muallimah) ID:
+    // - Admin can create for any user specified as teacher
+    let targetMuallimahId = data.muallimah_id || context.userId;
+    if (data.muallimah_id) {
+      // Verify the target user exists
       const { data: targetUser } = await supabase
         .from('users')
-        .select('roles')
+        .select('id')
         .eq('id', data.muallimah_id)
-        .single();
+        .maybeSingle();
 
-      if (!targetUser || !targetUser.roles?.includes('muallimah')) {
-        return NextResponse.json({ error: 'Target user is not a muallimah' }, { status: 400 });
+      if (!targetUser) {
+        return ApiResponses.error('VALIDATION_ERROR', 'Target teacher user not found', {}, 400);
       }
       targetMuallimahId = data.muallimah_id;
     }
@@ -84,10 +63,10 @@ export async function POST(request: Request) {
       .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!activeBatch) {
-      return NextResponse.json({ error: 'No active batch found' }, { status: 400 });
+      return ApiResponses.error('RESOURCE_NOT_FOUND', 'No active batch found', {}, 400);
     }
 
     // Create halaqah
@@ -108,13 +87,17 @@ export async function POST(request: Request) {
         status: 'active',
       })
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Create Halaqah API] Database error:', error);
+      return ApiResponses.databaseError(error);
+    }
 
-    return NextResponse.json({ success: true, data: halaqah });
-  } catch (error: any) {
-    console.error('Error in muallimah create halaqah API:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(halaqah, 'Halaqah created successfully');
+  } catch (error) {
+    console.error('[Create Halaqah API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
+

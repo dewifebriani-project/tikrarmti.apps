@@ -37,10 +37,7 @@ interface UserEditModalProps {
 
 const userRoles: UserRole[] = [
   'admin',
-  'muallimah',
-  'musyrifah',
-  'thalibah',
-  'calon_thalibah'
+  'thalibah'
 ];
 
 export default function UserEditModal({
@@ -57,7 +54,7 @@ export default function UserEditModal({
   }>({
     full_name: '',
     email: '',
-    role: 'calon_thalibah',
+    role: 'thalibah',
     phone: ''
   });
 
@@ -70,7 +67,7 @@ export default function UserEditModal({
       setFormData({
         full_name: user.full_name || '',
         email: user.email || '',
-        role: user.roles?.[0] || (user as any)?.role || 'calon_thalibah',
+        role: user.roles?.[0] || (user as any)?.role || 'thalibah',
         phone: user.phone || ''
       });
     }

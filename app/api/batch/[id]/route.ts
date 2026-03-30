@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
-import { requireAdmin } from '@/lib/auth-middleware';
+import { requireAdmin } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -9,11 +9,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check if user is authenticated and is admin
-    const authResult = await requireAdmin(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+    const authResult = await requireAdmin();
+    if (authResult) return authResult;
+
     const { id } = await params;
     const supabase = supabaseAdmin;
 
@@ -52,11 +50,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Temporarily disabled admin check for development
-    // const authResult = await requireAdmin(request);
-    // if (authResult instanceof NextResponse) {
-    //   return authResult;
-    // }
+    const authResult = await requireAdmin();
+    if (authResult) return authResult;
+
     const { id } = await params;
     const body = await request.json();
     const { name, description, start_date, end_date, registration_start_date, registration_end_date, status } = body;
@@ -108,11 +104,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Temporarily disabled admin check for development
-    // const authResult = await requireAdmin(request);
-    // if (authResult instanceof NextResponse) {
-    //   return authResult;
-    // }
+    const authResult = await requireAdmin();
+    if (authResult) return authResult;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -158,11 +152,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Check if user is authenticated and is admin
-    const authResult = await requireAdmin(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
+    const authResult = await requireAdmin();
+    if (authResult) return authResult;
+
     const { id } = await params;
     const supabase = supabaseAdmin;
 

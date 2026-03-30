@@ -6,7 +6,7 @@ export interface NotificationData {
   body: string;
   type: 'user_created' | 'user_updated' | 'user_deleted' | 'user_activated' | 'user_deactivated';
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class NotificationService {
@@ -157,12 +157,25 @@ export const NotificationTemplates = {
   })
 };
 
+// Type for additional notification data
+export interface UserNotificationData {
+  role?: string;
+  userId?: string;
+  updatedFields?: string[];
+}
+
+export interface AdminNotificationData {
+  adminName?: string;
+  role?: string;
+  updatedFields?: string[];
+}
+
 // Notification helper functions
 export const sendUserNotification = async (
   userEmail: string,
   type: NotificationData['type'],
   userName: string,
-  additionalData?: any
+  additionalData?: UserNotificationData
 ): Promise<boolean> => {
   const notificationService = NotificationService.getInstance();
 
@@ -172,7 +185,7 @@ export const sendUserNotification = async (
     case 'user_created':
       notificationTemplate = NotificationTemplates.userCreated(
         userName,
-        additionalData?.role || 'calon_thalibah'
+        additionalData?.role || 'thalibah'
       );
       break;
     case 'user_updated':
@@ -208,7 +221,7 @@ export const sendAdminNotification = async (
   adminEmail: string,
   action: 'created' | 'updated' | 'deleted',
   targetUserName: string,
-  additionalData?: any
+  additionalData?: AdminNotificationData
 ): Promise<boolean> => {
   const notificationService = NotificationService.getInstance();
 
@@ -220,7 +233,7 @@ export const sendAdminNotification = async (
       notificationTemplate = NotificationTemplates.adminUserCreated(
         additionalData?.adminName || 'Administrator',
         targetUserName,
-        additionalData?.role || 'calon_thalibah'
+        additionalData?.role || 'thalibah'
       );
       type = 'user_created';
       break;

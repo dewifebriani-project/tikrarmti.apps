@@ -41,10 +41,7 @@ interface UserCreateModalProps {
 
 const userRoles: UserRole[] = [
   'admin',
-  'muallimah',
-  'musyrifah',
   'thalibah',
-  'calon_thalibah'
 ];
 
 const indonesianCities = [
@@ -106,7 +103,7 @@ export default function UserCreateModal({
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'calon_thalibah' as UserRole,
+    role: 'thalibah' as UserRole,
     phone: '',
     personalInfo: {
       fullName: '',
@@ -206,7 +203,7 @@ export default function UserCreateModal({
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'calon_thalibah',
+        role: 'thalibah',
         phone: '',
         personalInfo: {
           fullName: '',
@@ -239,7 +236,7 @@ export default function UserCreateModal({
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'calon_thalibah',
+      role: 'thalibah',
       phone: '',
       personalInfo: {
         fullName: '',

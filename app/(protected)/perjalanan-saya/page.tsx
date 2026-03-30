@@ -14,6 +14,7 @@ import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
 import { useBatchTimeline } from '@/hooks/useBatchTimeline';
 import { formatFullDateIndo, formatDateIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
+import { getRoleRank, ROLE_RANKS } from '@/lib/roles';
 
 interface TimelineItem {
   id: number;
@@ -114,6 +115,13 @@ interface PairingData {
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
+  
+  // Identify if user is Admin/Staff for preview mode
+  const isAdmin = useMemo(() => {
+    const primaryRole = (user as any)?.primaryRole;
+    return getRoleRank(primaryRole) >= ROLE_RANKS.admin;
+  }, [user]);
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
   const [hasSessionError, setHasSessionError] = useState(false);
@@ -130,16 +138,21 @@ export default function PerjalananSaya() {
 
   // SWR hooks for data fetching - useAllRegistrations to show ALL registrations (no batch filter)
   const { registrations, isLoading: registrationsLoading, error: registrationsError } = useAllRegistrations();
+  const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch();
   const { progress } = useUserProgress();
   const { journey } = useLearningJourney();
 
-  // Get batch_id from registration - safely handle undefined registrations
+  // Get batch_id from registration - fallback to active batch for Admins
   const batchId = useMemo(() => {
     if (registrations && registrations.length > 0) {
       return registrations[0]?.batch_id || null;
     }
+    // Fallback for Admin preview
+    if (isAdmin && activeBatch) {
+      return activeBatch.id;
+    }
     return null;
-  }, [registrations]);
+  }, [registrations, isAdmin, activeBatch]);
 
   // Fetch batch timeline data - safely handle undefined registrations
   const { batch, timeline: batchTimeline, isLoading: batchLoading } = useBatchTimeline(batchId, {
@@ -151,8 +164,6 @@ export default function PerjalananSaya() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       console.log('[PerjalananSai] Admin button debug:', {
-        userRoles: user?.roles,
-        batchId,
         isAdmin: user?.roles?.includes('admin'),
         showButton: user?.roles?.includes('admin') && batchId
       });
@@ -959,6 +970,19 @@ export default function PerjalananSaya() {
           </p>
         </div>
 
+        {/* Admin Preview Mode Banner */}
+        {isAdmin && !registrationStatus?.hasRegistered && batch && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+            <Info className="w-5 h-5 text-blue-600" />
+            <div>
+              <h3 className="text-sm font-bold text-blue-900">Mode Pratinjau Admin</h3>
+              <p className="text-xs text-blue-700">
+                Ukhti sedang melihat tampilan linimasa untuk {batch.name}. Anda melihat ini karena Anda adalah Admin dan belum memiliki pendaftaran pribadi.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Loading state */}
         {isLoading && (
           <Card>
@@ -971,8 +995,8 @@ export default function PerjalananSaya() {
           </Card>
         )}
 
-        {/* Registration Status Alert */}
-        {!isLoading && user && !registrationStatus?.hasRegistered && (
+        {/* Registration Status Alert (Hidden for Admin in Preview Mode) */}
+        {!isLoading && user && !registrationStatus?.hasRegistered && !isAdmin && (
           <Card className="border-yellow-200 bg-yellow-50">
             <CardContent className="p-6">
               <div className="flex items-start space-x-3">
@@ -1002,8 +1026,6 @@ export default function PerjalananSaya() {
                           console.log('=== DEBUG DATA ===');
                           console.log('User Info:', data.userInfo);
                           console.log('Tikrar Registrations:', data.tikrarRegistrations);
-                          console.log('Muallimah Registrations:', data.muallimahRegistrations);
-                          console.log('Musyrifah Registrations:', data.musyrifahRegistrations);
                           console.log('Daftar Ulang Submissions:', data.daftarUlangSubmissions);
                           console.log('All Batches:', data.allBatches);
                           console.log('API Response:', data.apiResponse);
@@ -1017,7 +1039,6 @@ export default function PerjalananSaya() {
                           let message = `User: ${data.userInfo?.email}\n`;
                           message += `Roles: ${data.userInfo?.roles?.join(', ') || 'none'}\n\n`;
                           message += `Tikrar Registrations: ${tikrarCount}\n`;
-                          message += `Muallimah Registrations: ${muallimahCount}\n`;
                           message += `Has Open Batch: ${hasOpenBatch ? 'YES' : 'NO'}\n`;
                           message += `Has Any Valid Batch: ${hasAnyValidBatch ? 'YES' : 'NO'}\n\n`;
                           message += `Check browser console for full details.`;

@@ -3,9 +3,13 @@
 import { ReactNode, useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import DashboardSidebar from '@/components/DashboardSidebar'
+import BottomNavbar from '@/components/BottomNavbar'
 import GlobalAuthenticatedHeader from '@/components/GlobalAuthenticatedHeader'
+import { isStaff } from '@/lib/roles'
 import Footer from '@/components/Footer'
+
 import { AuthProvider } from '@/contexts/AuthContext'
+import { cn } from '@/lib/utils'
 
 interface ProtectedClientLayoutProps {
   children: ReactNode
@@ -13,6 +17,7 @@ interface ProtectedClientLayoutProps {
     id: string
     email: string
     full_name: string
+    primaryRole: string
     roles: string[]
     avatar_url?: string
     whatsapp?: string
@@ -51,6 +56,9 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
   // Close sidebar on mobile when route changes
   const handleCloseSidebar = () => setIsSidebarOpen(false)
 
+  // Sidebar visibility based on hierarchical rank (Staff/Admin)
+  const shouldShowSidebar = isStaff(user.primaryRole)
+
   return (
     <AuthProvider serverUserData={{
       ...user,
@@ -58,12 +66,14 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
       created_at: '',
       updated_at: ''
     } as any}>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        {/* Sidebar */}
-        <DashboardSidebar
-          isOpen={isSidebarOpen}
-          onClose={handleCloseSidebar}
-        />
+      <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+        {/* Sidebar - Only for Staff/Admin roles */}
+        {shouldShowSidebar ? (
+          <DashboardSidebar
+            isOpen={isSidebarOpen}
+            onClose={handleCloseSidebar}
+          />
+        ) : null}
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
@@ -74,23 +84,28 @@ export default function ProtectedClientLayout({ children, user }: ProtectedClien
                 onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
                 isSidebarOpen={isSidebarOpen}
                 isMounted={isMounted}
+                showSidebarToggle={shouldShowSidebar}
               />
             </div>
           )}
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto bg-gray-50 pt-0">
-            <main className="p-3 sm:p-4 lg:p-6">
+          <div className="flex-1 overflow-y-auto bg-gray-50 pt-0 pb-24 flex flex-col">
+
+            <main className="p-3 sm:p-4 lg:p-6 flex-grow">
               <div className="max-w-full">
                 {children}
               </div>
             </main>
 
-            {/* Footer */}
-            {!shouldHideHeaderFooter && <Footer />}
           </div>
         </div>
+
+        {/* Bottom Navbar - For all users on all platforms */}
+        {isMounted && <BottomNavbar />}
+
       </div>
     </AuthProvider>
   )
 }
+

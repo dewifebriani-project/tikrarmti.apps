@@ -90,7 +90,7 @@ export default function RekamSuaraPage() {
 
         const result = await response.json();
         const dataArray = result.data || [];
-        const data = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'calon_thalibah') : null;
+        const data = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'thalibah') : null;
 
         if (data) {
           setHasRegistration(true);
@@ -286,7 +286,7 @@ export default function RekamSuaraPage() {
 
       const myRegistration = await myRegistrationResponse.json();
       const dataArray = myRegistration.data || [];
-      const tikrarReg = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'calon_thalibah') : null;
+      const tikrarReg = Array.isArray(dataArray) ? dataArray.find(reg => reg.registration_type === 'thalibah') : null;
       const registrationId = tikrarReg?.id;
 
       if (!registrationId) {

@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 /**
  * Approve daftar ulang submission
  * - Changes status from 'submitted' to 'approved'
- * - Changes user role from 'calon_thalibah' to 'thalibah'
+ * - Ensures user role is 'thalibah' (binary system)
  * - Adds thalibah to halaqah_students (ujian and/or tashih)
  */
 export async function POST(
@@ -71,13 +71,16 @@ export async function POST(
       .single()
 
     if (userData?.roles) {
-      const currentRoles = userData.roles.filter((r: string) => r !== 'calon_thalibah')
+      const currentRoles = userData.roles.filter((r: string) => !['calon_thalibah', 'muallimah', 'musyrifah'].includes(r))
       // Add 'thalibah' if not already present
       const newRoles = Array.from(new Set([...currentRoles, 'thalibah']))
 
       const { error: roleUpdateError } = await supabase
         .from('users')
-        .update({ roles: newRoles })
+        .update({ 
+          roles: newRoles,
+          role: 'thalibah' // Canonical single role
+        })
         .eq('id', submission.user_id)
 
       if (roleUpdateError) {

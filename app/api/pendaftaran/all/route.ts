@@ -1,29 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server';
+import { getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 /**
  * GET /api/pendaftaran/all
  *
  * API for perjalanan-saya page - shows thalibah registrations from OPEN batches
  * Only queries pendaftaran_tikrar_tahfidz (thalibah registrations)
- * muallimah_registrations and musyrifah_registrations are NOT included
- * because they're unrelated to thalibah learning journey
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const supabase = createClient()
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const supabase = createClient();
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Get tikrar registrations with daftar ulang data embedded (with halaqah details)
+    // Get tikrar registrations with daftar ulang data embedded
     const { data: tikrarRegistrations, error: tikrarError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select(`
@@ -63,12 +55,12 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .eq('user_id', context.userId)
+      .order('created_at', { ascending: false });
 
     if (tikrarError) {
-      console.error('Error fetching tikrar registrations:', tikrarError)
-      throw tikrarError
+      console.error('[Pendaftaran All API] Database error:', tikrarError);
+      return ApiResponses.databaseError(tikrarError);
     }
 
     // Process registrations and embed daftar ulang data
@@ -78,34 +70,30 @@ export async function GET(request: NextRequest) {
         // Get daftar ulang submission for this batch
         const daftarUlang = reg.daftar_ulang && Array.isArray(reg.daftar_ulang)
           ? reg.daftar_ulang.find((du: any) => du.batch_id === reg.batch_id)
-          : null
+          : null;
 
         return {
           ...reg,
-          registration_type: 'calon_thalibah',
-          role: 'calon_thalibah',
+          registration_type: 'thalibah',
+          role: 'thalibah',
           status: reg.status || 'pending',
           batch_name: reg.batch?.name || null,
           daftar_ulang: daftarUlang || null,
-          // For backwards compatibility, set re_enrollment_completed if daftar ulang is approved
+          // For backwards compatibility
           re_enrollment_completed: daftarUlang?.status === 'approved' ? true : reg.re_enrollment_completed
-        }
-      })
+        };
+      });
 
     // Sort by created_at descending
-    allRegistrations.sort((a, b) => {
-      const dateA = new Date(a.created_at || 0)
-      const dateB = new Date(b.created_at || 0)
-      return dateB.getTime() - dateA.getTime()
-    })
+    allRegistrations.sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at || 0);
+      const dateB = new Date(b.created_at || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
 
-    return NextResponse.json({ data: allRegistrations })
-
+    return ApiResponses.success(allRegistrations);
   } catch (error) {
-    console.error('Error fetching registrations:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch registrations' },
-      { status: 500 }
-    )
+    console.error('[Pendaftaran All API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

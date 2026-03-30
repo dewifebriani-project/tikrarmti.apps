@@ -8,9 +8,8 @@ import { useMemo } from 'react'
  * Unified hook for consistent role checking on the client-side.
  * 
  * Usage:
- * const { hasRole, isAdmin, isMusyrifah } = useUserRoles();
+ * const { hasRole, isAdmin, isThalibah } = useUserRoles();
  * if (isAdmin) { ... }
- * if (hasRole('muallimah')) { ... }
  */
 export function useUserRoles() {
   const userData = useServerUserData()
@@ -50,12 +49,10 @@ export function useUserRoles() {
     hasAnyRole,
     hasAllRoles,
     
-    // Convenience flags
+    // Convenience flags (Simplified to Binary Roles)
     isAdmin: hasRole('admin'),
-    isMuallimah: hasRole('muallimah') || hasRole('ustadzah'),
-    isMusyrifah: hasRole('musyrifah'),
     isThalibah: hasRole('thalibah'),
-    isCalonThalibah: hasRole('calon_thalibah'),
+    isStaff: hasRole('admin'),
     
     // Loading/Auth state
     isLoading: false, // Context data is already server-provided

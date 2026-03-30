@@ -35,8 +35,8 @@ export async function GET(request: Request) {
       )
     }
 
-    const isAdmin = userData.role === 'admin' || userData.roles?.includes('admin')
-    const isMusyrifah = userData.role === 'musyrifah' || userData.roles?.includes('musyrifah')
+    const isAdmin = userData.roles?.includes('admin') ?? false
+    const isMusyrifah = userData.roles?.includes('musyrifah') ?? false
 
     if (!isAdmin && !isMusyrifah) {
       return NextResponse.json(

@@ -6,8 +6,8 @@ const supabaseAdmin = createSupabaseAdmin();
 
 /**
  * PATCH /api/admin/users/[id]/role
- * Update user role(s)
- * Body: { role: string, roles: string[] }
+ * Update user role(s) and status (blacklist)
+ * Body: { role?: string, roles?: string[], is_blacklisted?: boolean, blacklist_reason?: string, blacklist_notes?: string }
  */
 export async function PATCH(
   request: NextRequest,
@@ -49,10 +49,17 @@ export async function PATCH(
 
     // Get request body
     const body = await request.json();
-    const { role, roles } = body;
+    const { 
+      role, 
+      roles, 
+      is_blacklisted, 
+      blacklist_reason, 
+      blacklist_notes,
+      blacklist_at 
+    } = body;
 
     // Validate roles array
-    const validRoles = ['admin', 'calon_thalibah', 'thalibah', 'muallimah', 'musyrifah', 'pengurus'];
+    const validRoles = ['admin', 'thalibah'];
     if (roles) {
       const invalidRoles = roles.filter((r: string) => !validRoles.includes(r));
       if (invalidRoles.length > 0) {
@@ -71,17 +78,21 @@ export async function PATCH(
       );
     }
 
-    // Update user role(s)
+    // Update user role(s) and status
     const updateData: any = { updated_at: new Date().toISOString() };
 
-    if (role) updateData.role = role;
-    if (roles) updateData.roles = roles;
+    if (role !== undefined) updateData.role = role;
+    if (roles !== undefined) updateData.roles = roles;
+    if (is_blacklisted !== undefined) updateData.is_blacklisted = is_blacklisted;
+    if (blacklist_reason !== undefined) updateData.blacklist_reason = blacklist_reason;
+    if (blacklist_notes !== undefined) updateData.blacklist_notes = blacklist_notes;
+    if (blacklist_at !== undefined) updateData.blacklisted_at = blacklist_at;
 
     const { data: updatedUser, error: updateError } = await supabaseAdmin
       .from('users')
       .update(updateData)
       .eq('id', userId)
-      .select('id, email, full_name, role, roles, updated_at')
+      .select('id, email, full_name, role, roles, is_blacklisted, updated_at')
       .single();
 
     if (updateError) {

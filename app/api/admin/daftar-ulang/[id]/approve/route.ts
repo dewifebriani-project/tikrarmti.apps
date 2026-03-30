@@ -64,33 +64,26 @@ export async function POST(
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // Update user role: remove 'calon_thalibah' and add 'thalibah'
+    // Ensure user has 'thalibah' role and legacy roles are removed
     const userRoles = submission.user?.roles || [];
-    const updatedRoles = userRoles
-      .filter((r: string) => r !== 'calon_thalibah')
-      .filter((r: string) => r !== 'calon_thalibah') // Remove duplicates
-      .concat('thalibah');
-
-    // Remove 'thalibah' duplicates and ensure unique
-    const uniqueRoles = Array.from(new Set(updatedRoles));
+    const uniqueRoles = Array.from(new Set(
+      userRoles
+        .filter((r: string) => !['calon_thalibah', 'muallimah', 'musyrifah'].includes(r))
+        .concat('thalibah')
+    ));
 
     await supabaseAdmin
       .from('users')
       .update({
         roles: uniqueRoles,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        role: 'thalibah' // Canonical single role
       })
       .eq('id', submission.user_id);
 
-    console.log('[Approve Daftar Ulang] Updated user roles:', {
-      user_id: submission.user_id,
-      old_roles: userRoles,
-      new_roles: uniqueRoles
-    });
-
     return NextResponse.json({
       success: true,
-      message: `Submission for "${submission.user?.full_name}" has been approved. Role updated from calon_thalibah to thalibah.`,
+      message: `Pendaftaran ulang "${submission.user?.full_name}" berhasil disetujui.`,
       data: updated
     });
 

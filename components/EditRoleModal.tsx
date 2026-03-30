@@ -22,11 +22,7 @@ interface EditRoleModalProps {
 // Available roles
 const AVAILABLE_ROLES = [
   { id: 'admin', label: 'Admin', description: 'Full system access', color: 'bg-purple-100 text-purple-800 border-purple-300' },
-  { id: 'muallimah', label: 'Muallimah', description: 'Teacher/Ustadzah', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-  { id: 'musyrifah', label: 'Musyrifah', description: 'Supervisor', color: 'bg-green-100 text-green-800 border-green-300' },
-  { id: 'thalibah', label: 'Thalibah', description: 'Student', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-  { id: 'calon_thalibah', label: 'Calon Thalibah', description: 'Prospective Student', color: 'bg-orange-100 text-orange-800 border-orange-300' },
-  { id: 'pengurus', label: 'Pengurus', description: 'Management', color: 'bg-pink-100 text-pink-800 border-pink-300' },
+  { id: 'thalibah', label: 'Thalibah', description: 'Student', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
 ]
 
 export function EditRoleModal({ isOpen, onClose, onSuccess, user }: EditRoleModalProps) {

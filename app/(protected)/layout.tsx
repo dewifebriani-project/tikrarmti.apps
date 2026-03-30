@@ -1,7 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ProtectedClientLayout from './ProtectedClientLayout'
-import { validateEnv } from '@/lib/env'
+import { validateEnv, getOwnerEmails } from '@/lib/env'
+import {
+  extractRoles,
+  getPrimaryRole,
+  getRoleRank,
+  consolidateRoles,
+  isAdmin,
+  ADMIN_RANK,
+  STAFF_RANK_THRESHOLD
+} from '@/lib/roles'
 
 // Validate environment on server startup
 validateEnv()
@@ -25,144 +34,74 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Create Supabase server client - READ ONLY cookies in Server Component
-  // Using the standardized helper to ensure correct cookie name 'sb-mti-session'
   const supabase = createClient()
 
-  // PERFORMANCE OPTIMIZATION: Parallel fetching with smart error handling
-  //
-  // Strategy:
-  // 1. Get session from middleware-refreshed cookies (synchronous, instant)
-  // 2. Start BOTH auth validation AND database query in parallel
-  // 3. Wait for both to complete using Promise.all()
-  // 4. Validate results and redirect if needed
-  //
-  // This works because:
-  // - Middleware already refreshed the session
-  // - Session contains user.id we need for DB query
-  // - We validate auth result before using data
-  // - Reduces total latency by ~40-50% (parallel vs sequential)
+  // 1. SESSION GUARD: Ensure user is authenticated
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  // Get session from cookies (fast, synchronous from middleware-refreshed session)
-  const { data: { session } } = await supabase.auth.getSession()
-
-  // If no session at all, redirect immediately
-  if (!session?.user?.id) {
+  if (authError || !user) {
+    console.error('[ProtectedLayout] Auth error:', authError?.message)
     redirect('/login')
   }
 
-  // PARALLEL FETCH: Start both auth validation and DB query simultaneously
-  const [authResult, userDataResult] = await Promise.all([
-    // Validate session with Supabase Auth server (security critical)
-    supabase.auth.getUser(),
-    // Fetch user data from database
-    // Strategy: 
-    // 1. Try by ID (Standard)
-    // 2. Fallback to Email (if ID lookup fails/missing)
-    supabase
+  // 2. PROFILE FETCH: Get user data from database
+  // Use maybeSingle() to prevent crash on data integrity issues (duplicates)
+  let { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  // Fallback: If not found by ID, try fetching by email (robustness for ID mismatches)
+  if (!userData && user.email) {
+    const { data: emailData } = await supabase
       .from('users')
       .select('*')
-      .eq('id', session.user.id)
-      .single()
-      .then(async ({ data, error }) => {
-        if (!data || error) {
-          return supabase
-            .from('users')
-            .select('*')
-            .eq('email', session.user.email)
-            .maybeSingle();
-        }
-        return { data, error } as any;
-      })
-  ])
+      .eq('email', user.email)
+      .maybeSingle()
 
-  // Extract results
-  const { data: { user }, error: authError } = authResult as any
-  const { data: userData, error: userError } = userDataResult as any
-
-  // AUTH GUARD: Redirect to login if no valid session in Supabase Auth
-  if (!user || authError) {
-    console.error('[ProtectedLayout] Auth error (Unauthenticated):', authError?.message)
-    redirect('/login')
-  }
-
-  // PROFILE GUARD / FALLBACK: If authenticated with Supabase but missing from 'users' table
-  // We allow them in with a synthetic profile and attempt to create a record if missing.
-  if (!userData || userError) {
-    console.warn('[ProtectedLayout] Profile record missing in database for:', user.email)
-    
-    // Attempt to create the missing profile record in the background (non-blocking)
-    if (user.id && user.email) {
-      supabase.from('users').insert({
-        id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.email.split('@')[0],
-        role: 'calon_thalibah',
-        roles: ['calon_thalibah'],
-        created_at: new Date().toISOString(),
-      } as any).then(({ error }) => {
-        if (error) console.error('[ProtectedLayout] Background profile creation failed:', error.message)
-        else console.log('[ProtectedLayout] Background profile created successfully for:', user.email)
-      })
+    if (emailData) {
+      userData = emailData
+      console.log(`[ProtectedLayout] User found by email fallback: ${user.email}`)
     }
   }
 
-  // ROLE PRIORITY HIERARCHY – Ensures most important role is first in UI
-  const ROLE_PRIORITY: Record<string, number> = {
-    'admin': 1,
-    'muallimah': 2,
-    'musyrifah': 3,
-    'thalibah': 4,
-    'calon_thalibah': 5
+  // 3. ROLE SYNTHESIS: Rank-based primary role detection from DATABASE ONLY
+  // Consolidate roles from database with owner fallback (from environment)
+  const ownerEmails = getOwnerEmails()
+  const dbRoles = extractRoles(userData?.roles || [])
+
+  // Consolidate all roles with owner fallback
+  // Note: Deprecated 'role' field is no longer used - only 'roles' array
+  const distinctRoles = consolidateRoles(dbRoles, user.email, ownerEmails)
+
+  // Get primary role (highest rank)
+  const primaryRole = getPrimaryRole(distinctRoles)
+  const primaryRank = getRoleRank(primaryRole)
+
+  // Normalize primary role for client (ensure it's one of the valid roles)
+  // Map to the actual primary role from the 5-tier system
+  const normalizedRole = distinctRoles.includes(primaryRole) ? primaryRole : 'calon_thalibah'
+
+  // 4. PROFILE COMPLETION GUARD:
+  // If no database record exists, redirect to profile completion (unless Admin/Staff)
+  // We check primaryRank >= STAFF_RANK_THRESHOLD to allow Admin/Staff to bypass
+  if (!userData && primaryRank < STAFF_RANK_THRESHOLD) {
+    console.log('[ProtectedLayout] Profile incomplete. Redirecting to /lengkapi-profile')
+    redirect('/lengkapi-profile')
   }
 
-  const rawRoles = [
-    ...(userData?.roles || []),
-    userData?.role,
-    ...(user.app_metadata?.roles || []),
-    user.app_metadata?.role,
-    ...(user.user_metadata?.roles || []),
-    user.user_metadata?.role
-  ].filter(Boolean).map((r: any) => r.toString().toLowerCase()) as string[]
-  
-  // Unique roles, prioritized (Admin > Muallimah > Musyrifah > Thalibah > Calon)
-  const synthesizedRoles = rawRoles.length > 0 
-    ? Array.from(new Set(rawRoles)).sort((a, b) => {
-        const priorityA = ROLE_PRIORITY[a] || 99
-        const priorityB = ROLE_PRIORITY[b] || 99
-        return priorityA - priorityB
-      })
-    : ['calon_thalibah']
+  // Log synthesis for server-side debugging
+  console.log(`[ProtectedLayout] ${user.email} -> Primary: ${normalizedRole} (Rank: ${primaryRank}) Roles: ${distinctRoles.join(', ')}`)
 
-  // TEMPORARY DEBUG LOG - WILL APPEAR IN SERVER SIDE CONSOLE
-  console.log('DEBUG [ProtectedLayout]:', {
-    email: user.email,
-    dbRole: userData?.role,
-    dbRolesArray: userData?.roles,
-    appMetadata: user.app_metadata,
-    userMetadata: user.user_metadata,
-    finalSynthesized: synthesizedRoles
-  })
-
-  // Log roles for debugging
-  if (synthesizedRoles.length === 0 || synthesizedRoles.includes('calon_thalibah') && synthesizedRoles.length === 1) {
-    if (userData && (userData.role === 'admin' || (userData.roles && userData.roles.includes('admin')))) {
-       console.warn('[ProtectedLayout] Admin role detection mismatch! Check data:', {
-         userId: user.id,
-         dbRole: userData.role,
-         dbRoles: userData.roles
-       })
-    }
-  }
-
-  // Pass user data to client components via props
   return (
     <ProtectedClientLayout
       user={{
         id: user.id,
         email: user.email || '',
         full_name: userData?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-        roles: synthesizedRoles,
+        primaryRole: normalizedRole,
+        roles: distinctRoles,
         avatar_url: userData?.avatar_url,
         whatsapp: userData?.whatsapp,
         telegram: userData?.telegram,

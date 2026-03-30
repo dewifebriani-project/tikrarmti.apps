@@ -104,7 +104,7 @@ export function useAdminRlsPolicies() {
         case 'musyrifah':
           sql = `
             DROP POLICY IF EXISTS "Admins and Musyrifah can view all ${tableName}" ON public.${tableName};
-            CREATE POLICY "Admins and Musyrifah can view all ${tableName}" ON public.${tableName} FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND (users.role = 'admin' OR users.role = 'musyrifah' OR 'admin' = ANY(users.roles) OR 'musyrifah' = ANY(users.roles))));
+            CREATE POLICY "Admins and Musyrifah can view all ${tableName}" ON public.${tableName} FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid() AND (users.role = 'admin' OR 'admin' = ANY(users.roles))));
           `;
           break;
         case 'admin':

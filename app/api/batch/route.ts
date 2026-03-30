@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
-import { Batch } from '@/types/database';
-import { requireAdmin } from '@/lib/auth-middleware';
-import { z } from 'zod';
 import { ApiResponses } from '@/lib/api-responses';
 import { batchSchemas } from '@/lib/schemas';
+import { requireAdmin } from '@/lib/rbac';
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -27,15 +25,16 @@ const supabaseAdmin = createSupabaseAdmin();
  */
 export async function GET(request: NextRequest) {
   try {
-    // Temporarily disabled admin check for development
-    // const authResult = await requireAdmin(request);
-    // if (authResult instanceof NextResponse) {
-    //   return authResult;
-    // }
+    const response = new NextResponse();
+    const authResult = await requireAdmin(response);
+    if (authResult) return authResult;
+
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const rawStatus = searchParams.get('status');
     const search = searchParams.get('search');
     const limit = searchParams.get('limit');
+
+    const VALID_BATCH_STATUSES = ['draft', 'open', 'closed', 'archived'];
 
     const supabase = supabaseAdmin;
 
@@ -43,10 +42,12 @@ export async function GET(request: NextRequest) {
       .from('batches')
       .select('*');
 
-    // Apply filters
-    if (status) {
-      const statusArray = status.split(',');
-      query = query.in('status', statusArray);
+    // Apply filters — whitelist status values to prevent injection
+    if (rawStatus) {
+      const statusArray = rawStatus.split(',').filter(s => VALID_BATCH_STATUSES.includes(s));
+      if (statusArray.length > 0) {
+        query = query.in('status', statusArray);
+      }
     }
 
     if (search) {
@@ -79,11 +80,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Temporarily disabled admin check for development
-    // const authResult = await requireAdmin(request);
-    // if (authResult instanceof NextResponse) {
-    //   return authResult;
-    // }
+    const response = new NextResponse();
+    const authResult = await requireAdmin(response);
+    if (authResult) return authResult;
+
     const body = await request.json();
 
     // Validate request body

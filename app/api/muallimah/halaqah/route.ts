@@ -1,39 +1,22 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 export async function GET(request: Request) {
   try {
+    // 1. Authorization check - Standardized via requireAnyRole
+    const authError = await requireAnyRole(['admin', 'muallimah']);
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized('Unable to get authorization context');
+
     const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const muallimahId = searchParams.get('muallimah_id');
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify user has muallimah or admin role
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const roles = userData?.roles || [];
-    const isAdmin = roles.includes('admin');
-    const isMuallimah = roles.includes('muallimah');
-
-    if (!isAdmin && !isMuallimah) {
-      return NextResponse.json({ error: 'Forbidden: Muallimah or Admin access required' }, { status: 403 });
-    }
-
-    // Admin can view specific muallimah's halaqah, muallimah can only view their own
-    const targetMuallimahId = isAdmin && muallimahId ? muallimahId : user.id;
+    // Admin can view specific teacher's (muallimah) halaqah
+    const targetMuallimahId = muallimahId || context.userId;
 
     // Get halaqah where muallimah is assigned
     const query = supabase
@@ -55,11 +38,14 @@ export async function GET(request: Request) {
 
     const { data: halaqah, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Muallimah Halaqah API] Database error:', error);
+      return ApiResponses.databaseError(error);
+    }
 
     // For each halaqah, get thalibah progress data
     const halaqahWithProgress = await Promise.all(
-      (halaqah || []).map(async (h) => {
+      (halaqah || []).map(async (h: any) => {
         // Get thalibah IDs from this halaqah
         const thalibahIds = h.students?.map((s: any) => s.thalibah_id) || [];
 
@@ -122,9 +108,9 @@ export async function GET(request: Request) {
       })
     );
 
-    return NextResponse.json({ success: true, data: halaqahWithProgress || [] });
-  } catch (error: any) {
-    console.error('Error in muallimah halaqah API:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(halaqahWithProgress || []);
+  } catch (error) {
+    console.error('[Muallimah Halaqah API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

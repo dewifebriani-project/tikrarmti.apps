@@ -43,7 +43,7 @@ const createHalaqahSchema = z.object({
 })
 
 /**
- * Verify muallimah or admin role - MUST be called before any action
+ * Verify admin role for muallimah panel functions - MUST be called before any action
  */
 async function verifyAccess() {
   const supabase = createClient()
@@ -68,17 +68,16 @@ async function verifyAccess() {
 
   const roles = userData?.roles || []
   const isAdmin = roles.includes('admin')
-  const isMuallimah = roles.includes('muallimah')
 
-  if (!isAdmin && !isMuallimah) {
-    throw new Error('Forbidden - Muallimah or Admin access required')
+  if (!isAdmin) {
+    throw new Error('Forbidden - Admin access required')
   }
 
-  return { user, supabase, isAdmin, isMuallimah }
+  return { user, supabase, isAdmin }
 }
 
 /**
- * Create a new halaqah (Muallimah or Admin)
+ * Create a new halaqah (Admin Only)
  *
  * @param data Halaqah data to create
  * @returns Success status and optional error
@@ -86,7 +85,7 @@ async function verifyAccess() {
 export async function createHalaqah(data: CreateHalaqahData) {
   try {
     // Verify access first
-    const { user, supabase, isAdmin, isMuallimah } = await verifyAccess()
+    const { user, supabase, isAdmin } = await verifyAccess()
 
     // Validate input
     const validationResult = createHalaqahSchema.safeParse(data)
@@ -99,22 +98,21 @@ export async function createHalaqah(data: CreateHalaqahData) {
 
     const validatedData = validationResult.data
 
-    // Determine muallimah_id:
-    // - Muallimah can only create for themselves
-    // - Admin can create for any muallimah (if specified)
-    let targetMuallimahId = user.id
-    if (isAdmin && validatedData.muallimah_id) {
-      // Verify the target muallimah exists and has muallimah role
+    // Determine teacher (muallimah) ID:
+    // - Admin can create for any user specified as teacher
+    let targetMuallimahId = validatedData.muallimah_id || user.id
+    if (validatedData.muallimah_id) {
+      // Verify the target user exists
       const { data: targetUser } = await supabase
         .from('users')
-        .select('roles')
+        .select('id')
         .eq('id', validatedData.muallimah_id)
         .single()
 
-      if (!targetUser || !targetUser.roles?.includes('muallimah')) {
+      if (!targetUser) {
         return {
           success: false,
-          error: 'Target user is not a muallimah',
+          error: 'Target teacher user not found',
         }
       }
       targetMuallimahId = validatedData.muallimah_id

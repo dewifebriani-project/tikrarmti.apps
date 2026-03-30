@@ -651,7 +651,7 @@ export async function approveDaftarUlangSubmission(submissionId: string) {
       return { success: false, error: 'Gagal mengupdate status pendaftaran.' }
     }
 
-    // 4. Update user role: remove 'calon_thalibah', add 'thalibah'
+    // 4. Ensure user has 'thalibah' role and legacy roles are removed
     const userId = submission.user_id
     const { data: userData, error: userDataError } = await supabase
       .from('users')
@@ -664,14 +664,19 @@ export async function approveDaftarUlangSubmission(submissionId: string) {
       return { success: false, error: 'Gagal mengambil data user.' }
     }
 
-    const newRoles = userData.roles.filter((r: string) => r !== 'calon_thalibah')
-    if (!newRoles.includes('thalibah')) {
-      newRoles.push('thalibah')
-    }
+    const currentRoles = userData.roles || []
+    const cleanedRoles = Array.from(new Set(
+      currentRoles
+        .filter((r: string) => !['calon_thalibah', 'muallimah', 'musyrifah'].includes(r))
+        .concat('thalibah')
+    ))
 
     const { error: roleUpdateError } = await supabase
       .from('users')
-      .update({ roles: newRoles })
+      .update({ 
+        roles: cleanedRoles,
+        role: 'thalibah' // Canonical single role
+      })
       .eq('id', userId)
 
     if (roleUpdateError) {

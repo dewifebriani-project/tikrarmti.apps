@@ -23,9 +23,10 @@ export async function GET() {
     }
 
     const roles = userData?.roles || [];
-    if (!roles.includes('musyrifah')) {
-      return NextResponse.json({ error: 'Forbidden: Musyrifah access required' }, { status: 403 });
+    if (!roles.includes('admin')) {
+      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
+
 
     // Get all ujian results
     const { data: allResults, error } = await supabase

@@ -1,39 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 export async function GET(request: Request) {
   try {
+    // 1. Authorization check - Standardized via requireAnyRole
+    const authError = await requireAnyRole(['admin', 'muallimah']);
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized('Unable to get authorization context');
+
     const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user_id');
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify user has muallimah or admin role
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const roles = userData?.roles || [];
-    const isAdmin = roles.includes('admin');
-    const isMuallimah = roles.includes('muallimah');
-
-    if (!isAdmin && !isMuallimah) {
-      return NextResponse.json({ error: 'Forbidden: Muallimah or Admin access required' }, { status: 403 });
-    }
-
-    // Admin can view specific user's registration, muallimah can only view their own
-    const targetUserId = isAdmin && userId ? userId : user.id;
+    // Admin/Muallimah context
+    const isAdmin = context.roles.includes('admin');
+    const targetUserId = userId || context.userId;
 
     // Get muallimah registration
     let query = supabase
@@ -48,8 +32,13 @@ export async function GET(request: Request) {
     if (isAdmin && !userId) {
       // Admin viewing all registrations
       const { data: registrations, error } = await query;
-      if (error) throw error;
-      return NextResponse.json({ success: true, data: registrations || [] });
+      
+      if (error) {
+        console.error('[Muallimah Registration API] Database error (all):', error);
+        return ApiResponses.databaseError(error);
+      }
+      
+      return ApiResponses.success(registrations || []);
     } else {
       // Viewing specific registration (muallimah own, or admin viewing specific user)
       const { data: registration, error } = await query
@@ -57,11 +46,15 @@ export async function GET(request: Request) {
         .limit(1)
         .maybeSingle();
 
-      if (error) throw error;
-      return NextResponse.json({ success: true, data: registration });
+      if (error) {
+        console.error('[Muallimah Registration API] Database error (single):', error);
+        return ApiResponses.databaseError(error);
+      }
+      
+      return ApiResponses.success(registration);
     }
-  } catch (error: any) {
-    console.error('Error in muallimah registration API:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('[Muallimah Registration API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

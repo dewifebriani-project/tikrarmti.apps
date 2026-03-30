@@ -41,7 +41,7 @@ export const userSchemas = {
     email: commonSchemas.email,
     full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),
     phone: commonSchemas.phone.optional(),
-    role: z.enum(['calon_thalibah', 'thalibah', 'musyrifah', 'muallimah', 'admin']),
+    role: z.enum(['thalibah', 'admin']),
   }),
 
   // Registration form
@@ -52,7 +52,7 @@ export const userSchemas = {
       .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password harus mengandung huruf besar, kecil, dan angka'),
     full_name: z.string().min(3, 'Nama lengkap minimal 3 karakter'),
     phone: commonSchemas.phone.optional(),
-    role: z.enum(['calon_thalibah', 'thalibah', 'musyrifah', 'muallimah']),
+    role: z.enum(['thalibah']),
     confirm_password: z.string(),
   }).refine((data) => data.password === data.confirm_password, {
     message: 'Password dan konfirmasi password harus sama',
@@ -93,12 +93,21 @@ export const authSchemas = {
     whatsapp: commonSchemas.internationalPhone, // Use international phone format
     telegram: commonSchemas.internationalPhone.optional(), // Use international phone format
     zona_waktu: z.string().min(1, 'Zona waktu harus diisi'), // Accept any valid timezone string
-    tanggal_lahir: z.string().datetime({ offset: true }),
+    tanggal_lahir: z.string()
+      .datetime({ offset: true })
+      .refine(val => new Date(val) < new Date(), {
+        message: 'Tanggal lahir harus di masa lalu'
+      })
+      .refine(val => {
+        const age = new Date().getFullYear() - new Date(val).getFullYear()
+        return age >= 15 && age <= 100
+      }, {
+        message: 'Usia harus antara 15 hingga 100 tahun'
+      }),
     tempat_lahir: z.string().min(1, 'Tempat lahir harus diisi'),
     jenis_kelamin: z.enum(['Laki-laki', 'Perempuan']),
     pekerjaan: z.string().min(1, 'Pekerjaan harus diisi'),
     alasan_daftar: z.string().min(10, 'Alasan daftar minimal 10 karakter'),
-    role: z.enum(['calon_thalibah', 'thalibah', 'musyrifah', 'muallimah', 'admin']).default('calon_thalibah'),
     recaptchaToken: z.string().optional(),
   }),
 }

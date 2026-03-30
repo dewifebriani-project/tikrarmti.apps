@@ -1,37 +1,79 @@
-import { NextResponse } from 'next/server'
+import { ApiResponses, HTTP_STATUS } from '@/lib/api-responses'
 import { createClient } from '@/lib/supabase/server'
-import { createSupabaseAdmin } from '@/lib/supabase'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { getOwnerEmails } from '@/lib/env'
+import { consolidateRoles } from '@/lib/roles'
 
-const supabaseAdmin = createSupabaseAdmin()
+// WORKAROUND: Use anon key instead of service role due to Supabase bug
+// Service role JWT has wrong project ref in payload
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseWithAnon = createSupabaseClient(supabaseUrl, anonKey, {
+  db: { schema: 'public' },
+  auth: { autoRefreshToken: false, persistSession: false }
+})
 
+interface EnsureUserRequest {
+  userId: string
+  email?: string
+  full_name?: string
+  provider?: string
+}
+
+/**
+ * Ensure User Exists Endpoint
+ *
+ * Creates or updates a user record in the database.
+ * This is called after authentication to ensure the user exists in the users table.
+ *
+ * NOTE: This endpoint has relaxed validation to ensure users are created
+ * even with incomplete metadata. The user should complete their profile later.
+ */
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const body = await request.json() as EnsureUserRequest
     const { userId, email, full_name, provider = 'email' } = body
 
+    // Validate required fields
     if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'userId is required'
-      }, { status: 400 })
+      return ApiResponses.error(
+        'VALIDATION_ERROR',
+        'userId is required',
+        { field: 'userId' },
+        HTTP_STATUS.BAD_REQUEST
+      )
     }
 
-    // Check if user already exists in users table
-    // Use maybeSingle() to avoid error when no rows returned
-    const { data: existingUser, error: checkError } = await supabaseAdmin
+    // Get server client to read auth session (for user metadata)
+    const supabase = createClient()
+
+    // Check if user already exists in users table (using anon key with permissive policies)
+    const { data: existingUser, error: checkError } = await supabaseWithAnon
       .from('users')
-      .select('id, role, roles')
+      .select('id, email, role, roles')
       .eq('id', userId)
       .maybeSingle()
 
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 = not found, which is ok
+      console.error('[ensure-user] Error checking existing user:', checkError)
+      return ApiResponses.databaseError(checkError)
+    }
+
     if (existingUser) {
-      // Check if roles array is missing or empty, but role exists
-      // This handles migration from role (singular) to roles (array)
-      if ((!existingUser.roles || existingUser.roles.length === 0) && existingUser.role) {
-        console.log('[ensure-user] Migrating role to roles array for user:', userId)
-        const { error: updateError } = await supabaseAdmin
+      // Migrate from single role to roles array if needed
+      const needsMigration = !existingUser.roles || existingUser.roles.length === 0
+      if (needsMigration && existingUser.role) {
+        const ownerEmails = getOwnerEmails()
+        const consolidatedRoles = consolidateRoles(
+          [existingUser.role],
+          existingUser.email,
+          ownerEmails
+        )
+
+        const { error: updateError } = await supabaseWithAnon
           .from('users')
-          .update({ roles: [existingUser.role] })
+          .update({ roles: consolidatedRoles })
           .eq('id', userId)
 
         if (updateError) {
@@ -41,100 +83,61 @@ export async function POST(request: Request) {
         }
       }
 
-      return NextResponse.json({
-        success: true,
-        existed: true,
-        message: 'User already exists'
-      })
+      return ApiResponses.success(
+        { existed: true, userId: existingUser.id },
+        'User already exists'
+      )
     }
 
-    // User doesn't exist, create it using data from Supabase auth
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId)
-
-    if (authError || !authUser?.user) {
-      return NextResponse.json({
-        success: false,
-        error: 'User not found in Supabase auth'
-      }, { status: 404 })
+    // User doesn't exist, get user metadata from auth session or request body
+    const userEmail = email
+    if (!userEmail) {
+      return ApiResponses.error(
+        'VALIDATION_ERROR',
+        'email is required for new users',
+        { field: 'email' },
+        HTTP_STATUS.BAD_REQUEST
+      )
     }
 
-    const userMetadata = authUser.user.user_metadata || {}
-    const userEmail = authUser.user.email
+    // Determine user role(s) - use defaults since we can't access auth.admin
+    const ownerEmails = getOwnerEmails()
+    const userRole = 'thalibah' // Default role
+    const userRoles = consolidateRoles(
+      [userRole],
+      userEmail,
+      ownerEmails
+    )
 
-    // Validate that user metadata has all required fields before creating user
-    // IMPORTANT: Users should go through proper registration flow via /auth/register
-    // This endpoint should NOT create users with incomplete data
-    const requiredMetadataFields = {
-      tanggal_lahir: userMetadata.tanggal_lahir,
-      tempat_lahir: userMetadata.tempat_lahir,
-      pekerjaan: userMetadata.pekerjaan,
-      alasan_daftar: userMetadata.alasan_daftar,
-      jenis_kelamin: userMetadata.jenis_kelamin,
-      negara: userMetadata.negara
-    }
-
-    // Relaxed validation: If metadata is missing, we still create the record
-    // We only require userId and email (which we already have)
-    const missingMetadata = Object.entries(requiredMetadataFields)
-      .filter(([_, value]) => !value)
-      .map(([field, _]) => field)
-
-    if (missingMetadata.length > 0) {
-      console.log('[ensure-user] Metadata incomplete, but creating minimal profile for:', userId)
-    }
-
-    // Determine user role(s)
-    const userRole = userMetadata.role || 'calon_thalibah'
-    const userRoles = userMetadata.roles || [userRole]
-
-    // Create user in users table with validated metadata
-    const { data: newUser, error: insertError } = await supabaseAdmin
+    // Create user in users table (using anon key with permissive policies)
+    const { data: newUser, error: insertError } = await supabaseWithAnon
       .from('users')
       .insert({
         id: userId,
         email: userEmail,
-        full_name: full_name || userMetadata.full_name || userEmail?.split('@')[0] || '',
-        role: userRole, // For backward compatibility
-        roles: userRoles, // Primary roles array
-        whatsapp: userMetadata.whatsapp,
-        telegram: userMetadata.telegram,
-        negara: userMetadata.negara,
-        provinsi: userMetadata.provinsi,
-        kota: userMetadata.kota,
-        alamat: userMetadata.alamat,
-        zona_waktu: userMetadata.zona_waktu || 'WIB',
-        jenis_kelamin: userMetadata.jenis_kelamin,
-        tanggal_lahir: userMetadata.tanggal_lahir,
-        tempat_lahir: userMetadata.tempat_lahir,
-        pekerjaan: userMetadata.pekerjaan,
-        alasan_daftar: userMetadata.alasan_daftar,
+        full_name: full_name || userEmail?.split('@')[0] || '',
+        role: userRole,
+        roles: userRoles,
+        is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .select()
+      .select('id, email, full_name, roles, created_at')
       .single()
 
     if (insertError) {
-      console.error('Error creating user in users table:', insertError)
-      return NextResponse.json({
-        success: false,
-        error: insertError.message,
-        details: insertError.details
-      }, { status: 500 })
+      console.error('[ensure-user] Error creating user:', insertError)
+      return ApiResponses.databaseError(insertError)
     }
 
-    return NextResponse.json({
-      success: true,
-      existed: false,
-      user: newUser,
-      message: 'User created successfully'
-    })
+    return ApiResponses.success(
+      { existed: false, user: newUser },
+      'User created successfully',
+      HTTP_STATUS.CREATED
+    )
 
   } catch (error) {
-    console.error('Error in ensure-user endpoint:', error)
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    console.error('[ensure-user] Uncaught error:', error)
+    return ApiResponses.handleUnknown(error)
   }
 }

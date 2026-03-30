@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
     // Check if user is admin
     const { data: userData } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    const isAdmin = userData?.role === 'admin';
+    const isAdmin = userData?.roles?.includes('admin') ?? false;
 
     if (isAdmin) {
       // Admin can see all flags

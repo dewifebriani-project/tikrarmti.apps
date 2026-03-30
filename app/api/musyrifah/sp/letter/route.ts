@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-// Helper function to verify musyrifah or admin access
+// Helper function to verify admin access for musyrifah panel functions
 async function verifyMusyrifahOrAdminAccess(supabase: any) {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
@@ -19,8 +19,8 @@ async function verifyMusyrifahOrAdminAccess(supabase: any) {
   }
 
   const roles = userData?.roles || [];
-  if (!roles.includes('musyrifah') && !roles.includes('admin')) {
-    return { error: 'Forbidden: Musyrifah or Admin access required', status: 403 };
+  if (!roles.includes('admin')) {
+    return { error: 'Forbidden: Admin access required', status: 403 };
   }
 
   return { user: userData };

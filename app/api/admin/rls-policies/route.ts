@@ -1,5 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
+import { ApiResponses, HTTP_STATUS } from '@/lib/api-responses'
 import { NextRequest, NextResponse } from 'next/server'
+
+/**
+ * RLS Policies Management API
+ *
+ * SECURITY NOTES:
+ * - GET: Fetches RLS policies - requires admin access
+ * - POST: DISABLED for security reasons (SQL injection risk)
+ *
+ * The POST endpoint that allowed arbitrary SQL execution has been removed.
+ * Use direct database migrations or Supabase dashboard for schema changes.
+ */
+
+// List of allowed predefined SQL operations (if needed in the future)
+const ALLOWED_SQL_OPERATIONS = {
+  // Example: Only specific, pre-validated SQL can be executed
+  // 'fix_user_rls': 'ALTER TABLE users ENABLE ROW LEVEL SECURITY;',
+} as const
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,53 +29,28 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching RLS policies:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch RLS policies' },
-        { status: 500 }
-      )
+      return ApiResponses.databaseError(error)
     }
 
-    return NextResponse.json({ data: policies })
-  } catch (error: any) {
-    console.error('Error in RLS policies API:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
+    return ApiResponses.success({ policies })
+  } catch (error) {
+    return ApiResponses.handleUnknown(error)
   }
 }
 
+/**
+ * POST endpoint - DISABLED for security
+ *
+ * Previously allowed arbitrary SQL execution which is a critical security risk.
+ * If you need to execute SQL, use one of these secure alternatives:
+ * 1. Supabase Dashboard SQL Editor
+ * 2. Database migrations (supabase/migrations/*.sql)
+ * 3. Create a specific RPC function with parameterized queries
+ */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { action, sql } = body
-
-    if (action === 'apply_fix') {
-      const supabase = createClient()
-
-      // Execute SQL via admin function
-      const { data, error } = await supabase.rpc('admin_exec_sql', { sql_query: sql })
-
-      if (error) {
-        console.error('Error executing SQL:', error)
-        return NextResponse.json(
-          { error: 'Failed to execute SQL', details: error.message },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ success: true, data })
-    }
-
-    return NextResponse.json(
-      { error: 'Invalid action' },
-      { status: 400 }
-    )
-  } catch (error: any) {
-    console.error('Error in RLS policies POST API:', error)
-    return NextResponse.json(
-      { error: error.message || 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  // Security: Reject any POST requests to prevent SQL injection
+  return ApiResponses.forbidden(
+    'SQL execution via API is disabled for security. ' +
+    'Use Supabase Dashboard or database migrations instead.'
+  )
 }

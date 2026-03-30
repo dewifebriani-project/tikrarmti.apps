@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 // Validation schema for creating SP
 const createSPSchema = z.object({
@@ -14,7 +15,7 @@ const createSPSchema = z.object({
 
 // Validation schema for updating SP
 const updateSPSchema = z.object({
-  status: z.enum(['active', 'cancelled', 'expired']).optional(),
+  status: z.enum(['active', 'cancelled', 'resolved', 'appealed', 'expired']).optional(),
   notes: z.string().optional(),
   sp_type: z.enum(['permanent_do', 'temporary_do']).optional(),
   udzur_type: z.enum(['sakit', 'merawat_orang_tua', 'lainnya']).optional(),
@@ -22,43 +23,19 @@ const updateSPSchema = z.object({
   is_blacklisted: z.boolean().optional(),
 });
 
-// Helper function to verify musyrifah or admin access
-async function verifyMusyrifahOrAdminAccess(supabase: any) {
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('id, roles')
-    .eq('id', user.id)
-    .single();
-
-  if (userError || !userData) {
-    return { error: 'User not found', status: 404 };
-  }
-
-  const roles = userData?.roles || [];
-  if (!roles.includes('musyrifah') && !roles.includes('admin')) {
-    return { error: 'Forbidden: Musyrifah or Admin access required', status: 403 };
-  }
-
-  return { user: userData };
-}
-
 // =====================================================
 // GET - Fetch all SP records
 // =====================================================
 export async function GET(request: Request) {
   try {
-    const supabase = createClient();
+    // 1. Authorization check - Standardized via requireAnyRole
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
 
-    // Verify musyrifah or admin access
-    const authResult = await verifyMusyrifahOrAdminAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized('Unable to get authorization context');
+
+    const supabase = createClient();
 
     // Get URL parameters for filtering
     const { searchParams } = new URL(request.url);
@@ -69,7 +46,6 @@ export async function GET(request: Request) {
     const includeHistory = searchParams.get('include_history') === 'true';
 
     // Build query
-    // Use explicit FK constraint names to disambiguate multiple relationships to users table
     let query = supabase
       .from('surat_peringatan')
       .select(`
@@ -99,19 +75,20 @@ export async function GET(request: Request) {
       .order('issued_at', { ascending: false });
 
     // Apply filters
+    const VALID_SP_STATUSES = ['active', 'resolved', 'appealed', 'expired'];
     if (batchId) query = query.eq('batch_id', batchId);
     if (thalibahId) query = query.eq('thalibah_id', thalibahId);
     if (spLevel) query = query.eq('sp_level', parseInt(spLevel));
-    if (status) query = query.eq('status', status);
+    if (status && VALID_SP_STATUSES.includes(status)) query = query.eq('status', status);
 
     const { data: spRecords, error } = await query;
 
     if (error) {
-      // If table doesn't exist, return empty array
+      console.error('[Musyrifah SP API] Database error (GET):', error);
       if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-        return NextResponse.json({ success: true, data: [] });
+        return ApiResponses.success([], 'Table not found, returning empty');
       }
-      throw error;
+      return ApiResponses.databaseError(error);
     }
 
     // Fetch history if requested
@@ -147,14 +124,13 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: spRecords || [],
-      history: spHistory,
+    return ApiResponses.success({
+      spRecords: spRecords || [],
+      spHistory: spHistory,
     });
-  } catch (error: any) {
-    console.error('Error in SP API GET:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('[Musyrifah SP API] Unexpected error (GET):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
@@ -163,17 +139,15 @@ export async function GET(request: Request) {
 // =====================================================
 export async function POST(request: Request) {
   try {
+    // 1. Authorization check
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
+
     const supabase = createClient();
-
-    // Verify musyrifah or admin access
-    const authResult = await verifyMusyrifahOrAdminAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const body = await request.json();
-
-    // Validate request body
     const validatedData = createSPSchema.parse(body);
 
     // Check if thalibah exists
@@ -181,10 +155,10 @@ export async function POST(request: Request) {
       .from('users')
       .select('id, full_name')
       .eq('id', validatedData.thalibah_id)
-      .single();
+      .maybeSingle();
 
     if (!thalibah) {
-      return NextResponse.json({ error: 'Thalibah not found' }, { status: 404 });
+      return ApiResponses.notFound('Thalibah not found');
     }
 
     // Check if batch exists
@@ -192,10 +166,10 @@ export async function POST(request: Request) {
       .from('batches')
       .select('id, name')
       .eq('id', validatedData.batch_id)
-      .single();
+      .maybeSingle();
 
     if (!batch) {
-      return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
+      return ApiResponses.notFound('Batch not found');
     }
 
     // Check if SP already exists for this thalibah, batch, week
@@ -211,10 +185,8 @@ export async function POST(request: Request) {
     // Auto-calculate SP level based on existing active SP
     let spLevel = 1;
     if (existingSP) {
-      // If SP exists for this week, update to next level
       spLevel = Math.min(existingSP.sp_level + 1, 3);
     } else {
-      // Get latest SP level for this thalibah in this batch
       const { data: latestSP } = await supabase
         .from('surat_peringatan')
         .select('sp_level')
@@ -240,36 +212,23 @@ export async function POST(request: Request) {
         sp_level: spLevel,
         reason: validatedData.reason,
         notes: validatedData.notes,
-        issued_by: authResult.user.id,
+        issued_by: context.userId,
         status: 'active',
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      throw error;
+      console.error('[Musyrifah SP API] Database error (POST):', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // If this is SP3, check if we need to create history record
-    if (spLevel === 3) {
-      // This will be handled by a separate endpoint for proper DO processing
-    }
-
-    // Revalidate paths
     revalidatePath('/panel-musyrifah');
-    revalidatePath('/panel-musyrifah?tab=sp');
 
-    return NextResponse.json({
-      success: true,
-      data: newSP,
-      message: `SP${spLevel} berhasil diterbitkan`,
-    }, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating SP:', error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Invalid input data', details: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(newSP, `SP${spLevel} berhasil diterbitkan`, 201);
+  } catch (error) {
+    console.error('[Musyrifah SP API] Unexpected error (POST):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
@@ -278,53 +237,50 @@ export async function POST(request: Request) {
 // =====================================================
 export async function PUT(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
+
     const supabase = createClient();
-
-    // Verify musyrifah or admin access
-    const authResult = await verifyMusyrifahOrAdminAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const body = await request.json();
     const { id, ...updateData } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'SP ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'SP ID is required', {}, 400);
     }
 
-    // Validate request body (partial validation for update)
     const validatedData = updateSPSchema.parse(updateData);
 
-    // Check if SP exists
     const { data: existingSP } = await supabase
       .from('surat_peringatan')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existingSP) {
-      return NextResponse.json({ error: 'SP record not found' }, { status: 404 });
+      return ApiResponses.notFound('SP record not found');
     }
 
-    // Update SP record
     const { data: updatedSP, error } = await supabase
       .from('surat_peringatan')
       .update({
         ...validatedData,
-        reviewed_by: authResult.user.id,
+        reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      throw error;
+      console.error('[Musyrifah SP API] Database error (PUT):', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // If this is SP3 with sp_type set, create history record
+    // SP3 History handling
     if (existingSP.sp_level === 3 && validatedData.sp_type) {
       const { data: existingHistory } = await supabase
         .from('sp_history')
@@ -344,26 +300,18 @@ export async function PUT(request: Request) {
             total_sp_count: 3,
             udzur_type: validatedData.udzur_type,
             udzur_notes: validatedData.udzur_notes,
-            action_taken_by: authResult.user.id,
+            action_taken_by: context.userId,
             notes: validatedData.notes,
           });
       }
     }
 
-    // Revalidate paths
     revalidatePath('/panel-musyrifah');
-    revalidatePath('/panel-musyrifah?tab=sp');
 
-    return NextResponse.json({
-      success: true,
-      data: updatedSP,
-    });
-  } catch (error: any) {
-    console.error('Error updating SP:', error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Invalid input data', details: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(updatedSP, 'SP berhasil diperbarui');
+  } catch (error) {
+    console.error('[Musyrifah SP API] Unexpected error (PUT):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
@@ -372,57 +320,50 @@ export async function PUT(request: Request) {
 // =====================================================
 export async function DELETE(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
+
     const supabase = createClient();
-
-    // Verify musyrifah or admin access
-    const authResult = await verifyMusyrifahOrAdminAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'SP ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'SP ID is required', {}, 400);
     }
 
-    // Check if SP exists
     const { data: existingSP } = await supabase
       .from('surat_peringatan')
       .select('id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existingSP) {
-      return NextResponse.json({ error: 'SP record not found' }, { status: 404 });
+      return ApiResponses.notFound('SP record not found');
     }
 
-    // Soft delete by setting status to cancelled
     const { error } = await supabase
       .from('surat_peringatan')
       .update({
         status: 'cancelled',
-        reviewed_by: authResult.user.id,
+        reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);
 
     if (error) {
-      throw error;
+      console.error('[Musyrifah SP API] Database error (DELETE):', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Revalidate paths
     revalidatePath('/panel-musyrifah');
-    revalidatePath('/panel-musyrifah?tab=sp');
 
-    return NextResponse.json({
-      success: true,
-      message: 'SP berhasil dibatalkan',
-    });
-  } catch (error: any) {
-    console.error('Error cancelling SP:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success({ id }, 'SP berhasil dibatalkan');
+  } catch (error) {
+    console.error('[Musyrifah SP API] Unexpected error (DELETE):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

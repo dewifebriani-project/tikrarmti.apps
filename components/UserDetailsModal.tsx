@@ -63,13 +63,7 @@ export default function UserDetailsModal({
   const getRoleBadgeVariant = (role: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       'admin': 'destructive',
-      'tim_seleksi': 'secondary',
-      'tim_ujian_akhir': 'outline',
-      'muallimah': 'default',
-      'musyrifah': 'secondary',
-      'thalibah': 'default',
-      'calon_thalibah': 'outline',
-      'donatur': 'default'
+      'thalibah': 'default'
     };
     return variants[role] || 'outline';
   };

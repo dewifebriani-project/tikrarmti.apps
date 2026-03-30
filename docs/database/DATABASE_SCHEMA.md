@@ -592,9 +592,9 @@ CREATE TABLE public.users (
   jenis_kelamin character varying NOT NULL CHECK ((jenis_kelamin::text = ANY (ARRAY['Perempuan'::character varying::text, 'Laki-laki'::character varying::text])) OR jenis_kelamin IS NULL),
   negara character varying NOT NULL,
   nama_kunyah text,
+  -- Hierarchical roles array: prioritized by rank in lib/roles.ts
   roles ARRAY CHECK (roles <@ ARRAY['admin'::text, 'calon_thalibah'::text, 'thalibah'::text, 'muallimah'::text, 'musyrifah'::text, 'pengurus'::text]),
   current_tikrar_batch_id uuid,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT fk_users_current_tikrar_batch FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id),
-  CONSTRAINT users_current_tikrar_batch_id_fkey FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id)
+  CONSTRAINT fk_users_current_tikrar_batch FOREIGN KEY (current_tikrar_batch_id) REFERENCES public.batches(id)
 );

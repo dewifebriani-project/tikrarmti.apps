@@ -192,7 +192,7 @@ function LoginPageContent() {
                 id: data.user.id,
                 email: data.user.email || '',
                 full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
-                role: data.user.user_metadata?.role || 'calon_thalibah',
+                role: data.user.user_metadata?.role || 'thalibah',
                 created_at: new Date().toISOString(),
               } as any);
           }

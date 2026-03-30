@@ -66,13 +66,12 @@ export async function POST(request: Request) {
           continue
         }
 
-        // Remove calon_thalibah and add thalibah
-        const newRoles = (user.roles || [])
-          .filter((r: string) => r !== 'calon_thalibah')
-
-        if (!newRoles.includes('thalibah')) {
-          newRoles.push('thalibah')
-        }
+        // Binary system cleanup: remove any legacy roles and ensure 'thalibah' is present
+        const newRoles = Array.from(new Set(
+          (user.roles || [])
+            .filter((r: string) => !['calon_thalibah', 'muallimah', 'musyrifah'].includes(r))
+            .concat('thalibah')
+        ))
 
         // Update both roles (array) and role (varchar) for compatibility
         const { error: updateError } = await supabase

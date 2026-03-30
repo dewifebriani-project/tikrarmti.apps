@@ -1,98 +1,182 @@
-export interface User {
-  id: string;
-  email: string;
-  full_name: string;
-  nama_kunyah?: string;
-  phone?: string;
-  roles: UserRole[];
-  avatar_url?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  // Legacy fields for compatibility with existing forms
-  displayName?: string;
-  photoURL?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  isProfileComplete?: boolean;
-  // Supabase auth metadata fields (optional)
-  app_metadata?: {
-    provider?: string;
-    [key: string]: any;
-  };
-  user_metadata?: {
-    provider?: string;
-    full_name?: string;
-    name?: string;
-    avatar_url?: string;
-    picture?: string;
-    [key: string]: any;
-  };
-  phoneNumber?: string;
-  namaLengkap?: string;
-  namaPanggilan?: string;
-  tempatLahir?: string;
-  tanggalLahir?: string;
-  alamat?: string;
-  pendidikanTerakhir?: string;
-  pekerjaan?: string;
-  namaWali?: string;
-  nomorWali?: string;
-  hubunganWali?: string;
-  alasanDaftar?: string;
-  programYangDiikuti?: string[];
-  experience?: string;
-  motivation?: string;
-  target?: string;
-  availability?: string;
-  profilePhoto?: string;
-}
+/**
+ * Type Definitions for Tikrar MTI Apps
+ *
+ * This file exports:
+ * 1. Database types (from types/database.ts) - use for server-side operations
+ * 2. API Response types (from lib/api-wrapper.ts) - use for API responses
+ * 3. Frontend-specific types - use for client-side operations
+ *
+ * RECOMMENDATION:
+ * - For server components/API routes: Import directly from types/database.ts
+ * - For client components: Import from this file (types/index.ts)
+ */
 
-export type UserRole = 'calon_thalibah' | 'thalibah' | 'musyrifah' | 'muallimah' | 'admin';
+// =====================================================
+// DATABASE TYPES - Re-export for convenience
+// =====================================================
+export type {
+  // Role & Status Types
+  UserRole,
+  BatchStatus,
+  ProgramStatus,
+  HalaqahStatus,
+  PendaftaranStatus,
+  MentorRole,
+  HalaqahStudentStatus,
+  PresensiStatus,
+  JuzPart,
+  DaftarUlangStatus,
+  SPLevel,
+  SPStatus,
+  SPType,
+  SPReason,
+  UdzurType,
 
+  // Database Models
+  User,
+  Batch,
+  Program,
+  Halaqah,
+  Pendaftaran,
+  DaftarUlangSubmission,
+  HalaqahMentor,
+  HalaqahStudent,
+  Presensi,
+  JuzOption,
+  SuratPeringatan,
+  SPHistory,
+  PendingSP,
+  SPSummary,
+
+  // Joined Types
+  BatchWithPrograms,
+  ProgramWithBatch,
+  HalaqahWithProgram,
+  ProgramWithHalaqah,
+  UserWithPendaftaran,
+  PendaftaranWithDetails,
+
+  // Form Types
+  LoginForm,
+  RegisterForm,
+  BatchForm,
+  ProgramForm,
+  HalaqahForm,
+  PendaftaranForm,
+  PresensiForm,
+
+  // Dashboard Types
+  DashboardStats,
+  ThalibahDashboard,
+  MentorDashboard,
+
+  // Filter Types
+  BatchFilter,
+  ProgramFilter,
+  HalaqahFilter,
+  PendaftaranFilter,
+  PresensiFilter,
+  SPFilter,
+
+  // Input/Update Types
+  CreateSPInput,
+  UpdateSPInput,
+
+  // API Response Types
+  ApiResponse,
+  PaginatedResponse,
+} from './database'
+
+// =====================================================
+// API RESPONSE TYPES - Re-export from lib/api-wrapper.ts
+// =====================================================
+export type {
+  ApiResponse as ApiResponseType,
+  ApiError,
+  PaginatedResponse as ApiPaginatedResponse,
+} from '../lib/api-wrapper'
+
+// =====================================================
+// FRONTEND-SPECIFIC TYPES
+// =====================================================
+
+/**
+ * AuthContextType - Client-side authentication context
+ * Used by useAuth hook and AuthProvider
+ */
 export interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  loginWithEmail: (email: string, password: string) => Promise<any>;
-  loginWithGoogle: () => Promise<any>;
-  registerWithEmail: (email: string, password: string, userData?: any) => Promise<any>;
-  logout: () => Promise<void>;
-  updateUserProfile: (data: Partial<User>) => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  deleteUser: () => Promise<void>;
-  isProfileComplete: () => boolean;
-  isAdmin: () => boolean;
-  isSuperAdmin: () => boolean;
-  isCalonThalibah: () => boolean;
-  isThalibah: () => boolean;
-  isMusyrifah: () => boolean;
-  isMuallimah: () => boolean;
-  canAccessAdminPanel: () => boolean;
-  canAccessLearning: () => boolean;
-  canAccessPendaftaran: () => boolean;
+  user: User | null
+  loading: boolean
+  loginWithEmail: (email: string, password: string) => Promise<void>
+  loginWithGoogle: () => Promise<void>
+  registerWithEmail: (email: string, password: string, userData?: Partial<User>) => Promise<void>
+  logout: () => Promise<void>
+  updateUserProfile: (data: Partial<User>) => Promise<void>
+  resetPassword: (email: string) => Promise<void>
+  deleteUser: () => Promise<void>
+  isProfileComplete: () => boolean
+  isAdmin: () => boolean
+  isThalibah: () => boolean
+  canAccessAdminPanel: () => boolean
 }
 
-export interface PendaftaranData {
-  uid?: string;
-  email: string;
-  namaLengkap: string;
-  namaPanggilan: string;
-  tempatLahir: string;
-  tanggalLahir: string;
-  alamat: string;
-  nomorWhatsApp: string;
-  pendidikanTerakhir: string;
-  pekerjaan: string;
-  namaWali: string;
-  nomorWali: string;
-  hubunganWali: string;
-  alasanDaftar: string;
-  programTahfidz: string;
-  experience: string;
-  motivation: string;
-  target: string;
-  availability: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  status?: 'pending' | 'approved' | 'rejected';
+/**
+ * Server Action Response Type
+ * Standard response format for all server actions
+ */
+export interface ServerActionResponse<T = unknown> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
 }
+
+/**
+ * Legacy PendaftaranData type
+ * Kept for backward compatibility with existing forms
+ * @deprecated Use PendaftaranForm from types/database.ts instead
+ */
+export interface PendaftaranData {
+  uid?: string
+  email: string
+  namaLengkap: string
+  namaPanggilan: string
+  tempatLahir: string
+  tanggalLahir: string
+  alamat: string
+  nomorWhatsApp: string
+  pendidikanTerakhir: string
+  pekerjaan: string
+  namaWali: string
+  nomorWali: string
+  hubunganWali: string
+  alasanDaftar: string
+  programTahfidz: string
+  experience: string
+  motivation: string
+  target: string
+  availability: string
+  createdAt?: Date
+  updatedAt?: Date
+  status?: 'pending' | 'approved' | 'rejected'
+}
+
+// =====================================================
+// TYPE UTILITIES
+// =====================================================
+
+/**
+ * Make specific properties of T required
+ */
+export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>
+
+/**
+ * Make specific properties of T optional
+ */
+export type OptionalFields<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
+
+/**
+ * Extract the promise return type
+ */
+export type AsyncReturnType<T extends (...args: any) => Promise<any>> =
+  T extends (...args: any) => Promise<infer R> ? R : any

@@ -283,7 +283,9 @@ export default function PanelMusyrifahPage() {
     return 'overview';
   });
 
-  const isMusyrifah: boolean = !authLoading && user?.roles?.includes('musyrifah') === true;
+  const isAdmin: boolean = !authLoading && user?.roles?.includes('admin') === true;
+  const isAuthorized: boolean = !authLoading && isAdmin;
+
 
   // Data states
   const [stats, setStats] = useState<MusyrifahStats>({
@@ -350,21 +352,21 @@ export default function PanelMusyrifahPage() {
     console.log('Auth loading:', authLoading);
     console.log('User:', user);
     console.log('User roles:', user?.roles);
-    console.log('Is Musyrifah:', isMusyrifah);
+    console.log('Is Admin:', isAdmin);
 
     if (!authLoading) {
       if (!user) {
         console.log('No user found, redirecting to login');
         router.push('/login');
-      } else if (!user.roles?.includes('musyrifah')) {
-        console.log('User is not musyrifah, roles:', user.roles);
+      } else if (!isAdmin) {
+        console.log('User is not authorized (admin required), roles:', user.roles);
         router.push('/dashboard');
       } else {
-        console.log('Musyrifah access granted');
+        console.log('Admin access granted to musyrifah panel');
         setLoading(false);
       }
     }
-  }, [user, authLoading, router, isMusyrifah]);
+  }, [user, authLoading, router, isAdmin]);
 
   useEffect(() => {
     if (user) {

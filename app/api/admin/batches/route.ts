@@ -1,86 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { requireAdmin, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 import { auditBatchOperation, getClientIp, getUserAgent, logAudit } from '@/lib/audit-log';
+import { adminRateLimit } from '@/lib/rate-limiter';
+import { revalidatePath } from 'next/cache';
 
 const supabaseAdmin = createSupabaseAdmin();
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    // Use Supabase SSR client to get session
-    const supabase = createServerClient();
+    // 1. Authorization check
+    const authError = await requireAdmin();
+    if (authError) return authError;
 
-    // Get user session
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return NextResponse.json({
-        error: 'Unauthorized - Invalid session. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
+    // 2. Rate limit
+    if (adminRateLimit) {
+      const { success } = await adminRateLimit.limit(`admin:batches:${context.userId}`);
+      if (!success) return ApiResponses.rateLimit('Terlalu banyak permintaan.');
     }
 
-    // Check if user is admin using admin client
-    const { data: userData, error: dbError } = await supabaseAdmin
-      .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
-
-    if (dbError || !userData || !userData.roles?.includes('admin')) {
-      console.error('Admin check failed:', dbError, userData);
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Get pagination parameters from query string
+    // 3. Parse parameters
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const limit = Math.max(Math.min(parseInt(searchParams.get('limit') || '50'), 100), 1);
     const offset = (page - 1) * limit;
-    const status = searchParams.get('status');
+    const rawStatus = searchParams.get('status');
+    const VALID_BATCH_STATUSES = ['draft', 'open', 'ongoing', 'closed', 'archived'] as const;
+    const status = rawStatus && VALID_BATCH_STATUSES.includes(rawStatus as any) ? rawStatus : null;
 
-    // Build query for batches
+    // 4. Query
     let query = supabaseAdmin
       .from('batches')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
 
-    // Filter by status if provided
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
 
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1);
-
-    const { data, error } = await query;
+    const { data: batches, error, count } = await query.range(offset, offset + limit - 1);
 
     if (error) {
-      console.error('Error fetching batches:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch batches', details: error.message },
-        { status: 500 }
-      );
+      console.error('[Admin Batches API] Query error:', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Get total count for pagination
-    let countQuery = supabaseAdmin
-      .from('batches')
-      .select('*', { count: 'estimated', head: true });
-
-    if (status && status !== 'all') {
-      countQuery = countQuery.eq('status', status);
-    }
-
-    const { count } = await countQuery;
-    const totalCount = count || 0;
-
-    // Get program count for each batch
-    const batchIds = data?.map(b => b.id) || [];
+    // Enrich with program counts
+    const batchIds = batches?.map(b => b.id) || [];
     const programCounts = batchIds.length > 0 ? await Promise.all(
       batchIds.map(async (batchId) => {
         const { count } = await supabaseAdmin
@@ -91,93 +60,62 @@ export async function GET(request: NextRequest) {
       })
     ) : [];
 
-    // Enrich batch data with program counts
-    const enrichedData = data?.map(batch => ({
+    const enrichedData = batches?.map((batch: any) => ({
       ...batch,
       program_count: programCounts.find(pc => pc.batchId === batch.id)?.count || 0,
-      registered_percentage: batch.total_quota
-        ? Math.round(((batch.registered_count || 0) / batch.total_quota) * 100)
-        : null
     })) || [];
 
-    // Audit log for batch list access
+    // 5. Audit log
     await logAudit({
-      userId: user.id,
+      userId: context.userId,
       action: 'READ',
       resource: 'batches',
-      details: {
-        count: enrichedData.length,
-        page,
-        limit,
-        status_filter: status || 'all'
-      },
+      details: { count: enrichedData.length, page, limit, status_filter: status || 'all' },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
       level: 'INFO'
     });
 
-    return NextResponse.json({
-      success: true,
-      data: enrichedData,
+    return ApiResponses.success(enrichedData, undefined, 200, {
       pagination: {
         page,
         limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit)
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
       }
     });
 
   } catch (error) {
-    console.error('Server error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Admin Batches API] Unexpected error (GET):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
-// POST endpoint for creating/updating batches
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const supabase = createServerClient();
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // 1. Authorization check
+    const authError = await requireAdmin();
+    if (authError) return authError;
 
-    if (userError || !user) {
-      return NextResponse.json({
-        error: 'Unauthorized - Invalid session. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
-    const { data: userData, error: dbError } = await supabaseAdmin
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (dbError || !userData || userData.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
+    // 2. Rate limit
+    if (adminRateLimit) {
+      const { success } = await adminRateLimit.limit(`admin:batches:${context.userId}`);
+      if (!success) return ApiResponses.rateLimit('Terlalu banyak permintaan.');
     }
 
     const body = await request.json();
 
-    // Validate required fields
+    // 3. Validation
     if (!body.name || !body.start_date || !body.end_date) {
-      return NextResponse.json({
-        error: 'Missing required fields: name, start_date, end_date'
-      }, { status: 400 });
+      return ApiResponses.customValidationError([{ field: 'general', message: 'Missing required fields: name, start_date, end_date', code: 'REQUIRED' }]);
     }
 
-    // Helper function to convert empty string to null for date fields
-    const toDateOrNull = (value: any) => {
-      if (value === '' || value === null || value === undefined) return null;
-      return value;
-    };
+    const toDateOrNull = (value: any) => (value === '' || value === null || value === undefined) ? null : value;
 
-    // Prepare batch data
+    // 4. Prepare data
     const batchData: any = {
       name: body.name,
       description: body.description || null,
@@ -191,8 +129,6 @@ export async function POST(request: NextRequest) {
       total_quota: body.total_quota || 100,
       is_free: body.is_free ?? true,
       price: body.price || 0,
-
-      // Timeline phase dates for perjalanan-saya (convert empty strings to null)
       selection_start_date: toDateOrNull(body.selection_start_date),
       selection_end_date: toDateOrNull(body.selection_end_date),
       selection_result_date: toDateOrNull(body.selection_result_date),
@@ -208,83 +144,49 @@ export async function POST(request: NextRequest) {
       graduation_end_date: toDateOrNull(body.graduation_end_date),
     };
 
-    // Only include id if updating existing batch
     if (body.id) {
       batchData.id = body.id;
     } else {
-      // Only set registered_count for new batches
       batchData.registered_count = 0;
     }
 
-    // Insert or update batch
-    const { data, error } = await supabaseAdmin
+    // 5. Upsert
+    const { data: result, error: insertError } = await supabaseAdmin
       .from('batches')
       .upsert(batchData)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error upserting batch:', error);
-      console.error('Batch data being sent:', batchData);
-      console.error('Full error details:', JSON.stringify(error, null, 2));
-
-      // Audit log for failed operation
+    if (insertError) {
+      console.error('[Admin Batches API] Upsert error:', insertError);
       await logAudit({
-        userId: user.id,
+        userId: context.userId,
         action: body.id ? 'UPDATE' : 'CREATE',
         resource: 'batches',
-        details: {
-          batch_id: body.id,
-          batch_name: body.name,
-          error: error.message,
-          error_details: error.details,
-          error_hint: error.hint,
-          error_code: error.code,
-          attempted_changes: batchData
-        },
+        details: { batch_id: body.id, name: body.name, error: insertError.message },
         ipAddress: getClientIp(request),
         userAgent: getUserAgent(request),
         level: 'ERROR'
       });
-
-      return NextResponse.json(
-        {
-          error: 'Failed to save batch',
-          details: error.message,
-          hint: error.hint,
-          code: error.code
-        },
-        { status: 500 }
-      );
+      return ApiResponses.databaseError(insertError);
     }
 
-    // Audit log for successful batch create/update
+    // 6. Audit operation
     await auditBatchOperation(
-      user.id,
+      context.userId,
       body.id ? 'UPDATE' : 'CREATE',
-      data.id,
-      data.name,
-      {
-        status: data.status,
-        start_date: data.start_date,
-        end_date: data.end_date,
-        selection_start_date: data.selection_start_date,
-        selection_end_date: data.selection_end_date,
-        timeline_configured: !!(data.selection_start_date && data.selection_end_date)
-      },
+      result.id,
+      result.name,
+      { status: result.status, start_date: result.start_date },
       request
     );
 
-    return NextResponse.json({
-      success: true,
-      data
-    });
+    revalidatePath('/panel-admin/batches');
+
+    return ApiResponses.success(result, body.id ? 'Batch berhasil diperbarui' : 'Batch berhasil dibuat', body.id ? 200 : 201);
 
   } catch (error) {
-    console.error('Server error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Admin Batches API] Unexpected error (POST):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

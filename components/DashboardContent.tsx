@@ -3,12 +3,34 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { BookOpen, Target, TrendingUp, Calendar, CheckCircle, Clock, Award, FileText, Star, AlertCircle } from 'lucide-react'
+import {
+  BookOpen,
+  Target,
+  TrendingUp,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Award,
+  FileText,
+  ClipboardList,
+  GraduationCap,
+  Star,
+  AlertCircle,
+  Wallet,
+  Settings,
+  User,
+  LayoutGrid,
+  ChevronRight,
+  Sparkles
+} from 'lucide-react'
+
+
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
 import { useDashboardStats, useTashihStatus, useJurnalStatus } from '@/hooks/useDashboard'
 import { useMyRegistrations } from '@/hooks/useRegistrations'
+import { usePrayerTimes } from '@/hooks/usePrayerTimes'
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +45,7 @@ export default function DashboardContent() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus()
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus()
+  const { prayerTimes, isLoading: prayersLoading, error: prayersError } = usePrayerTimes()
 
   // Combined loading state
   // Note: User data is guaranteed by server layout, no need to check !user here
@@ -140,116 +163,133 @@ export default function DashboardContent() {
     return new Intl.DateTimeFormat('id-ID', options).format(date)
   }
 
+  const toGregorian = (date: Date) => {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date)
+  }
+
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Welcome Card - Consistent across all devices */}
-      <Card>
-        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-          <CardTitle className="text-lg sm:text-xl text-green-800">
-            Assalamu'alaikum, {getWelcomeMessage()}
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm text-green-600">
-            Selamat datang di dashboard Tikrar MTI Apps. Kelola pembelajaran dan progress hafalan Al-Qur'an Ukhti di sini.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      {/* Batch Announcement Card - Consistent across all devices */}
-      {activeBatch && !hasRegistered && (
-        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
-          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg font-medium text-orange-800 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-              Pendaftaran {activeBatch.name} Sedang Dibuka!
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-orange-700">
-              Program Tikrar Tahfidz MTI • Program Muallimah MTI • Program Musyrifah MTI
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="space-y-3 sm:space-y-4">
-              <p className="text-xs sm:text-sm text-orange-700">
-                Jangan lewatkan kesempatan untuk bergabung dengan batch ini. Kuota terbatas!
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div>
-                  <span className="font-medium text-orange-800">Tanggal Mulai:</span>
-                  <p className="text-orange-700">
-                    {new Date(activeBatch.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </p>
-                  <p className="text-orange-600 text-[10px] sm:text-xs italic">
-                    {toHijri(new Date(activeBatch.start_date))}
-                  </p>
-                </div>
-                <div>
-                  <span className="font-medium text-orange-800">Durasi:</span>
-                  <p className="text-orange-700">{activeBatch.duration_weeks || 13} pekan</p>
+    <div className="space-y-6 sm:space-y-8 animate-fadeInUp pb-10">
+      {/* Welcome Section - Premium Glassmorphism */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-900 to-green-800 p-6 sm:p-8 text-white shadow-2xl">
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-medium">
+                <Sparkles className="w-3 h-3 text-yellow-400" />
+                <span>Tikrar MTI Premium Hub</span>
+              </div>
+              
+              <div>
+                <h1 className="text-2xl sm:text-4xl font-bold mb-1">
+                  {getWelcomeMessage()}
+                </h1>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-green-50/70 text-xs sm:text-sm font-medium">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{toGregorian(new Date())}</span>
+                  </div>
+                  <div className="hidden sm:block text-green-50/30">|</div>
+                  <div className="flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400/50" />
+                    <span>{toHijri(new Date())}</span>
+                  </div>
                 </div>
               </div>
 
-              {activeBatch.total_quota && activeBatch.registered_count !== undefined && (
-                <div className="space-y-1.5 sm:space-y-2">
-                  <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="font-medium text-orange-800">Kuota Tersisa:</span>
-                    <span className="text-orange-700">
-                      {activeBatch.total_quota - activeBatch.registered_count} dari {activeBatch.total_quota}
-                    </span>
-                  </div>
-                  <div className="w-full bg-orange-200 rounded-full h-1.5 sm:h-2">
-                    <div
-                      className="bg-orange-500 h-1.5 sm:h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${((activeBatch.registered_count || 0) / activeBatch.total_quota) * 100}%` }}
-                    ></div>
-                  </div>
+              {/* Ultra-Compact Prayer Times Bar */}
+              {prayersLoading ? (
+                <div className="flex items-center gap-4 pt-2 animate-pulse">
+                   <div className="h-4 w-12 bg-white/10 rounded-full" />
+                   <div className="h-4 w-12 bg-white/10 rounded-full" />
+                   <div className="h-4 w-12 bg-white/10 rounded-full" />
+                </div>
+              ) : prayerTimes ? (
+                <div className="flex items-center gap-x-4 sm:gap-x-6 pt-3 overflow-x-auto scrollbar-hide">
+                  {[
+                    { label: 'Subuh', time: prayerTimes.Fajr },
+                    { label: 'Dzuhur', time: prayerTimes.Dhuhr },
+                    { label: 'Ashar', time: prayerTimes.Asr },
+                    { label: 'Maghrib', time: prayerTimes.Maghrib },
+                    { label: 'Isya', time: prayerTimes.Isha },
+                  ].map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 whitespace-nowrap">
+                      <div className="flex flex-col items-start leading-tight">
+                        <span className="text-[8px] font-bold text-green-200/40 uppercase tracking-tighter">{p.label}</span>
+                        <span className="text-sm font-black text-white tracking-tight">{p.time}</span>
+                      </div>
+                      {i < 4 && <div className="ml-1 h-4 w-px bg-white/10" />}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[10px] text-green-200/40 italic pt-2">
+                  Jadwal tidak tersedia
                 </div>
               )}
+            </div>
+            
+            <div className="hidden lg:block">
+              <div className="w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 flex flex-col items-center justify-center shadow-xl">
+                <p className="text-[10px] uppercase font-black text-green-200 tracking-widest">Pekan</p>
+                <p className="text-4xl font-black">{Math.floor(displayStats.hariAktual / 4) + 1}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                <Button asChild className="flex-1 min-w-[160px] sm:min-w-[200px] bg-orange-600 hover:bg-orange-700 text-white h-10 sm:h-auto">
-                  <Link href="/pendaftaran">
-                    Daftar Sekarang
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-60 h-60 bg-yellow-400/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-60 h-60 bg-green-400/10 rounded-full blur-3xl" />
+      </div>
+
+
+      {/* Batch Announcement - Modern Urgent Style */}
+      {activeBatch && !hasRegistered && (
+        <div className="group relative overflow-hidden rounded-3xl bg-white border border-orange-100 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1">
+          <div className="flex flex-col md:flex-row">
+            <div className="md:w-1/3 bg-gradient-to-br from-orange-500 to-orange-600 p-6 sm:p-8 text-white flex flex-col justify-center items-center text-center">
+              <AlertCircle className="h-12 w-12 mb-4 animate-float" />
+              <h2 className="text-xl font-bold mb-1">Pendaftaran Dibuka</h2>
+              <p className="text-orange-100 text-sm">{activeBatch.name}</p>
+            </div>
+            <div className="md:w-2/3 p-6 sm:p-8">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Bergabung Sekarang</h3>
+                  <p className="text-sm text-gray-500">Mulai langkah Ukhti menghafal Al-Qur'an dengan sistem Tikrar profesional.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Tanggal Mulai</p>
+                  <p className="text-sm font-semibold text-gray-800">{new Date(activeBatch.start_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Durasi</p>
+                  <p className="text-sm font-semibold text-gray-800">{activeBatch.duration_weeks || 13} pekan</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <Button asChild className="flex-1 rounded-2xl bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/30 h-12">
+                  <Link href="/pendaftaran" className="flex items-center justify-center gap-2">
+                    Daftar Program <ChevronRight className="w-4 h-4" />
                   </Link>
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Registration Status Card - Consistent across all devices */}
-      {hasRegistered && (
-        <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
-          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-            <CardTitle className="text-base sm:text-lg font-medium text-green-800 flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-              Status Pendaftaran: {registrationStatus.status === 'approved' ? 'Disetujui' : registrationStatus.status === 'pending' ? 'Menunggu Persetujuan' : 'Terdaftar'}
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm text-green-700">
-              {registrationStatus.status === 'approved'
-                ? 'Selamat! Pendaftaran Ukhti telah disetujui. Ukhti dapat mulai mengikuti program.'
-                : registrationStatus.status === 'pending'
-                ? 'Pendaftaran Ukhti sedang dalam proses review. Mohon tunggu persetujuan dari admin.'
-                : 'Ukhti telah terdaftar dalam program ini.'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              <Link href="/perjalanan-saya">
-                <Button className="bg-green-600 hover:bg-green-700 text-white h-10 sm:h-auto px-4 sm:px-6">
-                  Lihat Perjalanan Saya
-                </Button>
-              </Link>
-              <Link href="/pendaftaran">
-                <Button variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 h-10 sm:h-auto px-4 sm:px-6">
-                  Program Lainnya
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+
 
       {/* Class/Program Info Card - Show only if daftar ulang exists */}
       {registrationStatus.daftarUlang && (registrationStatus.daftarUlang.ujian_halaqah || registrationStatus.daftarUlang.tashih_halaqah) && (
@@ -301,184 +341,220 @@ export default function DashboardContent() {
           </CardContent>
         </Card>
       )}
-
-      {/* Tashih Progress Card - Show for active thalibah */}
+      {/* Tashih Progress Card - Simple Version */}
       {hasRegistered && tashihStatus && (
-        <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+        <Card className="overflow-hidden border-none shadow-xl glass-premium">
+          <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-emerald-800">
-                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                Progress Tashih
-              </CardTitle>
-              <Link href="/tashih">
-                <Button variant="outline" size="sm" className="text-xs h-8 border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-                  Buka Halaman Tashih
-                </Button>
-              </Link>
-            </div>
-            <CardDescription className="text-xs sm:text-sm text-emerald-700">
-              Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part} ({tashihStatus.juz_info.name})
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-blue-800 flex items-center justify-center gap-1">
-                  {tashihStatus.summary.total_blocks}
-                  <span className="text-[10px] text-blue-600 font-normal">
-                    ({Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%)
-                  </span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <BookOpen className="h-5 w-5" />
                 </div>
-                <div className="text-[10px] sm:text-xs text-blue-600">Total</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-green-800 flex items-center justify-center gap-1">
-                  {tashihStatus.summary.completed_blocks}
-                  <span className="text-[10px] text-green-600 font-normal">
-                    ({Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%)
-                  </span>
+                <div>
+                  <CardTitle className="text-sm sm:text-base font-bold text-gray-900">
+                    Progress Tashih
+                  </CardTitle>
+                  <CardDescription className="text-[10px] sm:text-xs font-medium text-emerald-700">
+                    Juz {tashihStatus.juz_info.juz_number} Part {tashihStatus.juz_info.part} ({tashihStatus.juz_info.name})
+                  </CardDescription>
                 </div>
-                <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
               </div>
-              <div className="text-center p-3 bg-amber-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-amber-800 flex items-center justify-center gap-1">
-                  {tashihStatus.summary.pending_blocks}
-                  <span className="text-[10px] text-amber-600 font-normal">
-                    ({Math.round((tashihStatus.summary.pending_blocks / tashihStatus.summary.total_blocks) * 100)}%)
-                  </span>
-                </div>
-                <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div>
-              <div className="flex justify-between text-xs sm:text-sm mb-1">
-                <span className="text-gray-600">Progress</span>
-                <span className="font-medium text-gray-800">
+              <div className="text-right">
+                <p className="text-lg sm:text-xl font-black text-emerald-700">
                   {Math.round((tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100)}%
-                </span>
+                </p>
+                <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                  {tashihStatus.summary.completed_blocks} / {tashihStatus.summary.total_blocks} Blok
+                </p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 to-teal-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
-                ></div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 pt-1">
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${(tashihStatus.summary.completed_blocks / tashihStatus.summary.total_blocks) * 100}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {/* Jurnal Progress Card - Simple Version */}
+      {hasRegistered && jurnalStatus && (
+        <Card className="overflow-hidden border-none shadow-xl glass-premium">
+          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/20">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm sm:text-base font-bold text-gray-900">
+                    Progress Jurnal
+                  </CardTitle>
+                  <CardDescription className="text-[10px] sm:text-xs font-medium text-purple-700">
+                    Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part} ({jurnalStatus.juz_info.name})
+                  </CardDescription>
+                </div>
               </div>
+              <div className="text-right">
+                <p className="text-lg sm:text-xl font-black text-purple-700">
+                  {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
+                </p>
+                <p className="text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                  {jurnalStatus.summary.completed_blocks} / {jurnalStatus.summary.total_blocks} Blok
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 pt-1">
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
+              ></div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Jurnal Progress Card - Show for active thalibah */}
-      {hasRegistered && jurnalStatus && (
-        <Card className="overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-purple-800">
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
-                Progress Jurnal
-              </CardTitle>
-              <Link href="/jurnal-harian">
-                <Button variant="outline" size="sm" className="text-xs h-8 border-purple-300 text-purple-700 hover:bg-purple-50">
-                  Buka Halaman Jurnal
+      {/* Main Services Access - Premium Grid */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <LayoutGrid className="w-5 h-5 text-green-700" />
+            Menu Layanan
+          </h2>
+        </div>
+
+
+        <div className="flex flex-row gap-2 sm:gap-4 lg:gap-6 w-full">
+          {[
+            // Row 1
+            { label: 'Perjalanan Saya', sub: 'Riwayat Tikrar', icon: Clock, color: 'blue', href: '/perjalanan-saya' },
+            { label: 'Catatan Tashih', sub: 'Koreksi Hafalan', icon: ClipboardList, color: 'emerald', href: '/tashih' },
+            { label: 'Jurnal Harian', sub: 'Setoran Rutin', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
+            { label: 'Ujian Pekanan', sub: 'Evaluasi Mingguan', icon: Calendar, color: 'amber', href: '/ujian' },
+          ].map((item, i) => (
+            <Link key={i} href={item.href} className="w-1/4 flex-shrink-0 group">
+              <div className="h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center">
+                <div className={cn(
+                  "w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1.5 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm",
+                  item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
+                  item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
+                  item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
+                  item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
+                  "bg-gray-50 text-gray-600 border border-gray-100/50"
+                )}>
+                  <item.icon className="w-4 h-4 sm:w-7 sm:h-7" />
+                </div>
+                <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight">
+                  {item.label}
+                </h3>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex flex-row gap-2 sm:gap-4 lg:gap-6 w-full">
+          {[
+            // Row 2
+            { label: 'Ujian Akhir', sub: 'Cek Jadwal', icon: Award, color: 'blue', href: '/ujian' },
+            { label: 'Sertifikat', sub: 'Download', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
+            { label: 'Pembayaran', sub: 'Infaq & SPP', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
+            { label: 'Alumni', sub: 'Komunitas', icon: GraduationCap, color: 'purple', href: '/alumni' },
+          ].map((item, i) => (
+            <Link key={i} href={item.href} className="w-1/4 flex-shrink-0 group">
+              <div className="h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center">
+                <div className={cn(
+                  "w-8 h-8 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1.5 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm",
+                  item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
+                  item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
+                  item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
+                  item.color === 'purple' ? "bg-purple-50 text-purple-600 border border-purple-100/50" :
+                  "bg-gray-50 text-gray-600 border border-gray-100/50"
+                )}>
+                  <item.icon className="w-4 h-4 sm:w-7 sm:h-7" />
+                </div>
+                <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight">
+                  {item.label}
+                </h3>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+
+
+
+
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium">
+          <CardHeader className="bg-gradient-to-br from-green-50 to-white/50 border-b border-green-50 px-6 py-5">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+              Statistik Hafalan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <p className="text-3xl font-black text-green-900">{displayStats.hariAktual}</p>
+                <p className="text-xs text-gray-500 font-medium">Hari Tikrar Selesai</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-gray-400">{displayStats.totalHariTarget}</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Target Total</p>
+              </div>
+            </div>
+            <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+               <div
+                className="bg-gradient-to-r from-green-600 to-green-400 h-full transition-all duration-1000 ease-out"
+                style={{ width: `${(displayStats.hariAktual / displayStats.totalHariTarget) * 100}%` }}
+               />
+            </div>
+            <p className="mt-3 text-[11px] text-gray-400 italic text-center">
+              "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya."
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Quick Links Card */}
+        <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium">
+          <CardHeader className="bg-gradient-to-br from-blue-50 to-white/50 border-b border-blue-50 px-6 py-5">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              Akses Cepat Jurnal
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              <Link href="/jurnal-harian" className="block">
+                <Button className="w-full rounded-2xl bg-green-800 hover:bg-green-900 h-12 flex items-center justify-between px-6">
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="w-5 h-5" />
+                    <span>Isi Jurnal Hari Ini</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 opacity-50" />
+                </Button>
+              </Link>
+              <Link href="/perjalanan-saya" className="block">
+                <Button variant="outline" className="w-full rounded-2xl border-gray-200 hover:bg-gray-50 h-12 flex items-center justify-between px-6">
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-gray-400" />
+                    <span>Riwayat Tikrar</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 opacity-30" />
                 </Button>
               </Link>
             </div>
-            <CardDescription className="text-xs sm:text-sm text-purple-700">
-              Juz {jurnalStatus.juz_info.juz_number} Part {jurnalStatus.juz_info.part} ({jurnalStatus.juz_info.name})
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-blue-800 flex items-center justify-center gap-1">
-                  {jurnalStatus.summary.total_blocks}
-                  <span className="text-[10px] text-blue-600 font-normal">
-                    ({Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%)
-                  </span>
-                </div>
-                <div className="text-[10px] sm:text-xs text-blue-600">Total</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-green-800 flex items-center justify-center gap-1">
-                  {jurnalStatus.summary.completed_blocks}
-                  <span className="text-[10px] text-green-600 font-normal">
-                    ({Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%)
-                  </span>
-                </div>
-                <div className="text-[10px] sm:text-xs text-green-600">Selesai</div>
-              </div>
-              <div className="text-center p-3 bg-amber-50 rounded-lg">
-                <div className="text-xl sm:text-2xl font-bold text-amber-800 flex items-center justify-center gap-1">
-                  {jurnalStatus.summary.pending_blocks}
-                  <span className="text-[10px] text-amber-600 font-normal">
-                    ({Math.round((jurnalStatus.summary.pending_blocks / jurnalStatus.summary.total_blocks) * 100)}%)
-                  </span>
-                </div>
-                <div className="text-[10px] sm:text-xs text-amber-600">Pending</div>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div>
-              <div className="flex justify-between text-xs sm:text-sm mb-1">
-                <span className="text-gray-600">Progress</span>
-                <span className="font-medium text-gray-800">
-                  {Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 sm:h-2.5">
-                <div
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 sm:h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100}%` }}
-                ></div>
-              </div>
-            </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Quick Actions - Consistent across all devices */}
-      <Card>
-        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
-          <CardTitle className="text-base sm:text-lg">Aksi Cepat</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Akses cepat ke fitur-fitur utama aplikasi
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 lg:gap-4">
-            <Link href="/jurnal-harian">
-              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
-                <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">Jurnal Harian</span>
-              </Button>
-            </Link>
-            <Link href="/tashih">
-              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
-                <BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">Tashih</span>
-              </Button>
-            </Link>
-            <Link href="/perjalanan-saya">
-              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
-                <Award className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">Progress</span>
-              </Button>
-            </Link>
-            <Link href="/perjalanan-saya">
-              <Button variant="outline" className="w-full justify-start h-auto py-2.5 sm:py-3 px-3 sm:px-4">
-                <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="text-sm">Perjalanan Saya</span>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Recent Activity (placeholder for future implementation) - Consistent across all devices */}
       <Card>

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdmin } from '@/lib/supabase';
 
 /**
- * Require admin authentication for API routes
- * @param request NextRequest object
- * @returns NextResponse if unauthorized, void otherwise
+ * @deprecated Use `requireAdmin()` from `@/lib/rbac` instead.
+ * This function is kept for backward compatibility only.
+ *
+ * Require admin authentication for API routes.
+ * Uses `roles` array (not deprecated single `role` field).
  */
 export async function requireAdmin(request: NextRequest) {
   const supabase = createServerClient();
@@ -20,14 +23,19 @@ export async function requireAdmin(request: NextRequest) {
     );
   }
 
-  // Check if user is admin
-  const { data: userData } = await supabase
+  // Use admin client to bypass RLS for role lookup
+  const adminClient = createSupabaseAdmin();
+  const { data: userData } = await adminClient
     .from('users')
-    .select('role')
+    .select('roles')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
-  if (!userData || userData.role !== 'admin') {
+  const isAdmin =
+    userData?.roles?.includes('admin') ||
+    user.app_metadata?.roles?.includes('admin');
+
+  if (!isAdmin) {
     return NextResponse.json(
       { error: 'Forbidden - Admin access required' },
       { status: 403 }

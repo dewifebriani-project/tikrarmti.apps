@@ -1,39 +1,66 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/** Allowed origins for state-changing API requests (CSRF protection). */
+const ALLOWED_ORIGINS =
+  process.env.NODE_ENV === 'production'
+    ? ['https://markaztikrar.id', 'https://www.markaztikrar.id']
+    : ['http://localhost:3000', 'http://localhost:3001']
+
+/**
+ * Validates the Origin header for mutating API requests to prevent CSRF.
+ * Returns true if the request should be blocked.
+ */
+function isCsrfViolation(request: NextRequest): boolean {
+  const method = request.method.toUpperCase()
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return false
+  if (!request.nextUrl.pathname.startsWith('/api/')) return false
+
+  const origin = request.headers.get('origin')
+  // Requests from same-origin (no Origin header, e.g. server actions) are allowed
+  if (!origin) return false
+
+  return !ALLOWED_ORIGINS.includes(origin)
+}
+
 /**
  * Updates the user's session and handles cookie persistence.
  * This is called by the main middleware for every request.
  */
 export async function updateSession(request: NextRequest) {
-  // Create an initial response
-  const host = request.headers.get('host')
-  const protocol = request.headers.get('x-forwarded-proto') || 'https'
-  
-  // CANONICAL DOMAIN ENFORCEMENT
-  // Force www.markaztikrar.id -> markaztikrar.id
-  if (host === 'www.markaztikrar.id') {
-    const url = new URL(request.url)
-    url.hostname = 'markaztikrar.id'
-    url.protocol = protocol
-    return NextResponse.redirect(url, { status: 301 })
+  // CSRF check — block state-changing requests from unknown origins
+  if (isCsrfViolation(request)) {
+    return NextResponse.json({ error: 'CSRF validation failed' }, { status: 403 })
   }
 
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  // Create an initial response
+
+  // Security headers helper (applied to all responses below)
+  const applySecurityHeaders = (res: NextResponse) => {
+    res.headers.set('X-Frame-Options', 'DENY')
+    res.headers.set('X-Content-Type-Options', 'nosniff')
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    res.headers.set('X-DNS-Prefetch-Control', 'off')
+    res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    return res
+  }
 
   try {
     // SKIP auth check for auth callback and public auth routes to avoid interference
     if (request.nextUrl.pathname.startsWith('/auth/')) {
-      return response
+      const res = NextResponse.next({ request: { headers: request.headers } })
+      return applySecurityHeaders(res)
     }
 
     // Determine shared domain for cookies
     const host = request.headers.get('host') || ''
     const domain = (host.includes('markaztikrar.id') && !host.includes('localhost')) ? '.markaztikrar.id' : undefined
+
+    // IMPORTANT: Use the official Supabase pattern — response must be recreated
+    // inside setAll so that refreshed cookies are forwarded to Server Components
+    // via the mutated request object.
+    let response = NextResponse.next({ request: { headers: request.headers } })
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,32 +78,32 @@ export async function updateSession(request: NextRequest) {
                 ...(domain ? { domain } : {}),
               }
               request.cookies.set({ name, value, ...finalOptions })
+            })
+            // Recreate response with mutated request so Server Components
+            // receive the updated cookies in their cookie store
+            response = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
+              const finalOptions = {
+                ...cookieOptions,
+                path: '/',
+                ...(domain ? { domain } : {}),
+              }
               response.cookies.set({ name, value, ...finalOptions })
             })
           },
         },
         cookieOptions: {
-          name: 'sb-mti-session',
           path: '/',
           ...(domain ? { domain } : {}),
         },
       }
     )
 
-    // Proactively clear legacy/conflicting cookies if they exist
-    const legacyCookies = ['sb-localhost-auth-token', 'sb-markaztikrar-auth-token', 'mti-auth', 'tikrar-mti']
-    legacyCookies.forEach(name => {
-      if (request.cookies.has(name)) {
-        response.cookies.set({ name, value: '', path: '/', maxAge: -1 })
-        if (domain) response.cookies.set({ name, value: '', path: '/', domain, maxAge: -1 })
-      }
-    })
-
     // Refresh the session (if needed) and validate the user
-    // This will trigger setAll if the session was refreshed
+    // If the token is refreshed, setAll is called and response is recreated above
     await supabase.auth.getUser()
 
-    return response
+    return applySecurityHeaders(response)
   } catch (err: any) {
     // CRITICAL: If the Supabase library crashes (e.g. Invalid UTF-8 sequence),
     // we catch it here and return a plain response to avoid a 500 error.

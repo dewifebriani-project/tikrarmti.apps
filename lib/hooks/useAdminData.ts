@@ -19,15 +19,23 @@ const fetcher = async (url: string) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
       console.error('[SWR Fetcher] Error response:', errorData);
-      const error: any = new Error(errorData.error || 'An error occurred while fetching the data');
+      const error: any = new Error(errorData.error?.message || errorData.error || 'An error occurred while fetching the data');
       error.info = errorData;
       error.status = response.status;
       throw error;
     }
 
     const result = await response.json();
-    console.log('[SWR Fetcher] Success:', url, 'Data length:', result.users?.length || result.data?.length || 'N/A');
-    return result;
+
+    // Handle ApiResponseBuilder format: { success: true, data: {...} }
+    // Unwrap data if it's in the standard API response format
+    const data = result.success ? result.data : result;
+
+    console.log('[SWR Fetcher] Success:', url, 'Full result:', result);
+    console.log('[SWR Fetcher] Unwrapped data:', data);
+    console.log('[SWR Fetcher] Users count:', data?.users?.length ?? 'N/A');
+
+    return data;
   } catch (err) {
     console.error('[SWR Fetcher] Exception:', err);
     throw err;
@@ -35,9 +43,30 @@ const fetcher = async (url: string) => {
 };
 
 // Hook for fetching users data
-export function useAdminUsers(enabled: boolean = true) {
+export function useAdminUsers(enabled: boolean = true, params: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  role?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+} = {}) {
+  // Build query string
+  const queryParams = new URLSearchParams();
+  if (params.page) queryParams.set('page', params.page.toString());
+  if (params.pageSize) queryParams.set('pageSize', params.pageSize.toString());
+  if (params.search) queryParams.set('search', params.search);
+  if (params.role) queryParams.set('role', params.role);
+  if (params.status) queryParams.set('status', params.status);
+  if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+  if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
+
+  const queryString = queryParams.toString();
+  const url = enabled ? `/api/admin/users${queryString ? `?${queryString}` : ''}` : null;
+
   const { data, error, isLoading, mutate } = useSWR(
-    enabled ? '/api/admin/users' : null,
+    url,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -45,22 +74,23 @@ export function useAdminUsers(enabled: boolean = true) {
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 2000,
-      dedupingInterval: 5000, // Prevent duplicate requests within 5 seconds
-      refreshInterval: 0, // Disable auto-refresh
+      dedupingInterval: 5000,
+      refreshInterval: 0,
       onError: (err) => {
         console.error('[useAdminUsers] Error:', err);
       },
       onSuccess: (data) => {
-        console.log('[useAdminUsers] Success, users count:', data?.users?.length);
+        console.log('[useAdminUsers] Success, users count:', data?.users?.length, 'total:', data?.pagination?.totalCount);
       }
     }
   );
 
   return {
     users: data?.users || [],
+    pagination: data?.pagination,
     isLoading,
     isError: error,
-    mutate, // For manual revalidation
+    mutate,
   };
 }
 
@@ -106,7 +136,7 @@ export function useAdminStats(enabled: boolean = true) {
       shouldRetryOnError: true,
       errorRetryCount: 2,
       errorRetryInterval: 1000,
-      dedupingInterval: 10000,
+      dedupingInterval: 2000,
       refreshInterval: 0, // Disable auto-refresh to prevent constant loading
       fallbackData: {
         stats: {
@@ -116,6 +146,7 @@ export function useAdminStats(enabled: boolean = true) {
           totalUsers: 0,
           totalThalibah: 0,
           totalMentors: 0,
+          totalBlacklisted: 0,
           pendingRegistrations: 0,
           pendingTikrar: 0,
         }

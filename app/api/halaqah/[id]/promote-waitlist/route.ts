@@ -30,13 +30,13 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: userData } = await supabase
+    const { data: userData } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('roles')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (!userData || !userData.role?.includes('admin')) {
+    if (!userData?.roles?.includes('admin')) {
       return NextResponse.json({ error: 'Forbidden - Admin only' }, { status: 403 });
     }
 

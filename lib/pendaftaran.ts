@@ -125,7 +125,7 @@ export const updateSelectionStatus = async (
   }
 }
 
-export const upgradeUserRoleToThalibah = async (user_id: string): Promise<void> => {
+export const ensureUserHasThalibahRole = async (user_id: string): Promise<void> => {
   try {
     const { error } = await supabaseAdmin
       .from('users')
@@ -136,10 +136,10 @@ export const upgradeUserRoleToThalibah = async (user_id: string): Promise<void> 
       .eq('id', user_id);
 
     if (error) throw error;
-    console.log(`User ${user_id} role upgraded from calon_thalibah to thalibah`);
+    console.log(`User ${user_id} verified as thalibah`);
   } catch (error) {
-    console.error('Error upgrading user role: ', error);
-    throw new Error('Gagal mengupgrade role user');
+    console.error('Error ensuring thalibah role: ', error);
+    throw new Error('Gagal memastikan role user');
   }
 };
 
@@ -163,7 +163,7 @@ export const updateApprovalStatus = async (
 
     // If approved and user_id is provided, upgrade user role to thalibah
     if (status === 'approved' && user_id) {
-      await upgradeUserRoleToThalibah(user_id);
+      await ensureUserHasThalibahRole(user_id);
     }
   } catch (error) {
     console.error('Error updating approval status: ', error);

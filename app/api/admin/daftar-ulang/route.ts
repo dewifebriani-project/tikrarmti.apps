@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
     if (batchId && batchId !== 'all') {
       query = query.eq('batch_id', batchId);
     }
-    if (status) {
+    const VALID_DAFTAR_ULANG_STATUSES = ['draft', 'submitted', 'approved', 'rejected'];
+    if (status && VALID_DAFTAR_ULANG_STATUSES.includes(status)) {
       query = query.eq('status', status);
     }
 

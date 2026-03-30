@@ -100,11 +100,7 @@ interface EditUserModalProps {
 // Available roles
 const AVAILABLE_ROLES = [
   { id: 'admin', label: 'Admin' },
-  { id: 'muallimah', label: 'Muallimah' },
-  { id: 'musyrifah', label: 'Musyrifah' },
   { id: 'thalibah', label: 'Thalibah' },
-  { id: 'calon_thalibah', label: 'Calon Thalibah' },
-  { id: 'pengurus', label: 'Pengurus' },
 ]
 
 export function EditUserModal({ isOpen, onClose, onSubmit, user }: EditUserModalProps) {
@@ -119,7 +115,7 @@ export function EditUserModal({ isOpen, onClose, onSubmit, user }: EditUserModal
         full_name: user.full_name || '',
         nama_kunyah: user.nama_kunyah || '',
         email: user.email || '',
-        role: user.role || 'calon_thalibah',
+        role: user.role || 'thalibah',
         roles: user.roles || [],
         whatsapp: user.whatsapp || '',
         telegram: user.telegram || '',

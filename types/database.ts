@@ -1,7 +1,7 @@
 // Database Types untuk Tikrar MTI Apps
 // Generated from database schema
 
-export type UserRole = 'calon_thalibah' | 'thalibah' | 'musyrifah' | 'muallimah' | 'admin';
+export type UserRole = 'admin' | 'musyrifah' | 'muallimah' | 'thalibah' | 'calon_thalibah';
 export type BatchStatus = 'draft' | 'open' | 'closed' | 'archived';
 export type ProgramStatus = 'draft' | 'open' | 'ongoing' | 'completed' | 'cancelled';
 export type HalaqahStatus = 'active' | 'inactive' | 'suspended';
@@ -31,6 +31,7 @@ export interface User {
   full_name: string;
   phone?: string;
   roles: UserRole[];
+  primaryRole?: UserRole;
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
@@ -133,8 +134,8 @@ export interface Pendaftaran {
   updated_at?: string;
   submitted_at?: string;
   // Multi-role support fields
-  registration_type?: 'calon_thalibah' | 'muallimah' | 'musyrifah';
-  role?: 'calon_thalibah' | 'muallimah' | 'musyrifah' | 'thalibah' | 'admin';
+  registration_type?: 'thalibah' | 'admin';
+  role?: 'thalibah' | 'admin';
   // Re-enrollment tracking fields
   re_enrollment_completed?: boolean;
   re_enrollment_completed_at?: string;

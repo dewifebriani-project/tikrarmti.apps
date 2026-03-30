@@ -38,7 +38,7 @@ export const ApiResponses = {
   error: (
     code: string,
     message: string,
-    details?: any,
+    details?: Record<string, unknown> | unknown,
     statusCode: number = 500
   ) => {
     const response = ApiResponseBuilder.error(code, message, details, statusCode)
@@ -111,6 +111,43 @@ export const ApiResponses = {
    */
   serverError: (message: string = 'Internal server error') => {
     const response = ApiResponseBuilder.serverError(message)
+    return NextResponse.json(response, { status: 500 })
+  },
+
+  /**
+   * Handle Supabase error with safe message (no sensitive data exposure)
+   */
+  databaseError: (error: { code?: string; message?: string; details?: string } | null | undefined) => {
+    // Log full error for debugging (server-side only)
+    if (error) {
+      console.error('[Database Error]', JSON.stringify(error))
+    }
+
+    // Return safe message to client
+    const response = ApiResponseBuilder.error(
+      'DATABASE_ERROR',
+      'A database error occurred. Please try again later.',
+      undefined,
+      500
+    )
+    return NextResponse.json(response, { status: 500 })
+  },
+
+  /**
+   * Handle unknown errors safely
+   */
+  handleUnknown: (error: unknown) => {
+    // Log full error for debugging (server-side only)
+    console.error('[Unknown Error]', error)
+
+    // Return safe message to client
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+    const response = ApiResponseBuilder.error(
+      'UNKNOWN_ERROR',
+      'An unexpected error occurred. Please try again later.',
+      process.env.NODE_ENV === 'development' ? { message } : undefined,
+      500
+    )
     return NextResponse.json(response, { status: 500 })
   }
 }

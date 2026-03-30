@@ -67,18 +67,9 @@ export default function PendaftaranPage() {
       approved: registrations.some(reg => reg.status === 'approved'),
       // Per-role registration status
       byRole: {
-        calon_thalibah: registrations.some(reg =>
-          (reg.registration_type === 'calon_thalibah' || reg.role === 'calon_thalibah') &&
+        thalibah: registrations.some(reg =>
           ['approved', 'pending'].includes(reg.status)
-        ),
-        muallimah: registrations.some(reg =>
-          (reg.registration_type === 'muallimah' || reg.role === 'muallimah') &&
-          ['approved', 'pending'].includes(reg.status)
-        ),
-        musyrifah: registrations.some(reg =>
-          (reg.registration_type === 'musyrifah' || reg.role === 'musyrifah') &&
-          ['approved', 'pending'].includes(reg.status)
-        ),
+        )
       }
     };
   }, [user, registrations]);
@@ -314,13 +305,11 @@ export default function PendaftaranPage() {
   };
 
   // Helper function to determine role from program type
-  const getRoleFromType = (type: PendaftaranType): 'calon_thalibah' | 'muallimah' | 'musyrifah' => {
-    if (type.title.toLowerCase().includes('muallimah')) {
-      return 'muallimah';
-    } else if (type.title.toLowerCase().includes('musyrifah')) {
-      return 'musyrifah';
+  const getRoleFromType = (type: PendaftaranType): 'thalibah' | 'admin' => {
+    if (type.title.toLowerCase().includes('muallimah') || type.title.toLowerCase().includes('musyrifah')) {
+      return 'admin';
     }
-    return 'calon_thalibah';
+    return 'thalibah';
   };
 
   // Helper function to check if user is registered for a specific role

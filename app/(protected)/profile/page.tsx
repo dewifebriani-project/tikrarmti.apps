@@ -20,6 +20,7 @@ import { validatePhoneNumberFormat } from '@/lib/utils/sanitize'
 import { negaraList, provinsiList, zonaWaktuList } from '@/lib/data/registration-data'
 import { AlertCircle, CheckCircle, Loader2, User, Mail, MapPin, Calendar, Phone, Clock, Briefcase, Edit3, X, GraduationCap, Award, Users } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
+import { hasRequiredRank, ROLE_RANKS } from '@/lib/roles'
 
 type ProfileMode = 'view' | 'edit'
 
@@ -116,9 +117,9 @@ export default function ProfilePage() {
         if (response.ok) {
           const data = await response.json()
 
-          // Set user role
-          const roles = data.roles || []
-          const primaryRole = roles[0] || 'calon_thalibah'
+          // Set simplified user role
+          const userRoles = data.roles || []
+          const primaryRole = hasRequiredRank(userRoles, ROLE_RANKS.admin) ? 'admin' : 'thalibah'
           setUserRole(primaryRole)
 
           // Pre-fill form with existing data
@@ -140,12 +141,7 @@ export default function ProfilePage() {
             alasanDaftar: data.alasan_daftar || '',
           }))
 
-          // Load role-specific data
-          if (primaryRole === 'muallimah' && data.muallimah_profile) {
-            setMuallimahData(data.muallimah_profile)
-          } else if (primaryRole === 'musyrifah' && data.musyrifah_profile) {
-            setMusyrifahData(data.musyrifah_profile)
-          }
+          // Note: Legacy muallimah/musyrifah profile data loading removed
         }
       } catch (error) {
         console.error('Error loading user profile:', error)
@@ -234,12 +230,7 @@ export default function ProfilePage() {
         alasan_daftar: formData.alasanDaftar,
       }
 
-      // Add role-specific data
-      if (userRole === 'muallimah') {
-        Object.assign(requestData, muallimahData)
-      } else if (userRole === 'musyrifah') {
-        Object.assign(requestData, musyrifahData)
-      }
+      // Role-specific data logic removed (Simplified to Admin/Thalibah)
 
       const response = await fetch('/api/user/profile/update', {
         method: 'PUT',
@@ -476,14 +467,7 @@ export default function ProfilePage() {
               </div>
             </Card>
 
-            {/* Role-specific profile sections in view mode */}
-            {userRole === 'muallimah' && (
-              <MuallimahProfileView data={muallimahData} />
-            )}
-
-            {userRole === 'musyrifah' && (
-              <MusyrifahProfileView data={musyrifahData} />
-            )}
+            {/* Role-specific profile sections removed */}
           </div>
         ) : (
           // EDIT MODE
@@ -754,24 +738,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Role-specific sections */}
-            {userRole === 'muallimah' && (
-              <MuallimahProfileFields
-                data={muallimahData}
-                onChange={setMuallimahData}
-                errors={errors}
-                onInputChange={handleInputChange}
-              />
-            )}
-
-            {userRole === 'musyrifah' && (
-              <MusyrifahProfileFields
-                data={musyrifahData}
-                onChange={setMusyrifahData}
-                errors={errors}
-                onInputChange={handleInputChange}
-              />
-            )}
+              {/* Role-specific sections removed */}
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">

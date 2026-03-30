@@ -1,67 +1,63 @@
-// API Route: /api/pendaftaran/tikrar/re-enroll
-// Confirm re-enrollment (daftar ulang) for calon thalibah who passed selection
-
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { logger } from '@/lib/logger-secure';
+import { getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 const supabaseAdmin = createSupabaseAdmin();
 
-export async function POST(request: NextRequest) {
+/**
+ * POST /api/pendaftaran/tikrar/re-enroll
+ * 
+ * Confirm re-enrollment (daftar ulang) for calon thalibah who passed selection.
+ */
+export async function POST(request: Request) {
   try {
-    const supabase = createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
     const body = await request.json();
     const { registrationId } = body;
 
     if (!registrationId) {
-      return NextResponse.json({ error: 'Registration ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Registration ID is required', {}, 400);
     }
 
-    // Get the registration details
+    // Get the registration details using admin client
     const { data: registration, error: regError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('id', registrationId)
-      .single();
+      .maybeSingle();
 
     if (regError) {
-      logger.error('Error fetching registration', { error: regError, registrationId });
-      return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
+      logger.error('[Pendaftaran Re-enroll] Database error (GET):', { error: regError, registrationId });
+      return ApiResponses.databaseError(regError);
     }
 
-    // Verify this registration belongs to the authenticated user
-    if (registration.user_id !== user.id) {
-      logger.warn('User attempted to re-enroll for different registration', {
-        userId: user.id,
+    if (!registration) return ApiResponses.notFound('Pendaftaran tidak ditemukan');
+
+    // Verify ownership
+    if (registration.user_id !== context.userId) {
+      logger.warn('[Pendaftaran Re-enroll] Ownership mismatch', {
+        userId: context.userId,
         registrationId,
         registrationUserId: registration.user_id
       });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return ApiResponses.forbidden('Akses ditolak');
     }
 
     // Check if already re-enrolled
     if (registration.re_enrollment_completed) {
-      return NextResponse.json({
-        success: true,
-        message: 'Already completed re-enrollment',
-        data: registration
-      });
+      return ApiResponses.success(registration, 'Daftar ulang sudah selesai.');
     }
 
-    // Check if status is approved (lulus seleksi)
+    // Check eligibility
     if (registration.status !== 'approved' && registration.selection_status !== 'passed') {
-      return NextResponse.json({
-        error: 'You must pass the selection process before re-enrolling',
+      return ApiResponses.error('NOT_ELIGIBLE', 'Ukhti harus lulus seleksi sebelum daftar ulang.', {
         currentStatus: registration.status,
         selectionStatus: registration.selection_status
-      }, { status: 400 });
+      }, 400);
     }
 
     // Update registration to mark re-enrollment as completed
@@ -70,82 +66,66 @@ export async function POST(request: NextRequest) {
       .update({
         re_enrollment_completed: true,
         re_enrollment_completed_at: new Date().toISOString(),
-        re_enrollment_confirmed_by: user.id,
+        re_enrollment_confirmed_by: context.userId,
         updated_at: new Date().toISOString()
       })
       .eq('id', registrationId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
-      logger.error('Error updating re-enrollment status', {
-        error: updateError,
-        registrationId,
-        userId: user.id
-      });
-      return NextResponse.json({ error: 'Failed to complete re-enrollment' }, { status: 500 });
+      logger.error('[Pendaftaran Re-enroll] Database error (POST update):', { error: updateError, registrationId });
+      return ApiResponses.databaseError(updateError);
     }
 
-    // The trigger will automatically update the user role to 'thalibah'
+    logger.info('[Pendaftaran Re-enroll] Success', { registrationId, userId: context.userId });
 
-    logger.info('Re-enrollment completed successfully', {
-      registrationId,
-      userId: user.id,
-      batchId: registration.batch_id
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Re-enrollment completed successfully! You are now a Thalibah.',
-      data: updatedRegistration
-    });
+    return ApiResponses.success(updatedRegistration, '🎉 Daftar ulang berhasil! Selamat datang, Thalibah.');
 
   } catch (error) {
-    logger.error('Error in POST /api/pendaftaran/tikrar/re-enroll', { error: error as Error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logger.error('[Pendaftaran Re-enroll] Unexpected error (POST):', { error: error as Error });
+    return ApiResponses.handleUnknown(error);
   }
 }
 
-// GET endpoint to check re-enrollment eligibility
-export async function GET(request: NextRequest) {
+/**
+ * GET /api/pendaftaran/tikrar/re-enroll
+ * 
+ * Check re-enrollment eligibility.
+ */
+export async function GET(request: Request) {
   try {
-    const supabase = createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = new URL(request.url);
     const registrationId = searchParams.get('registration_id');
 
     if (!registrationId) {
-      return NextResponse.json({ error: 'Registration ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Registration ID is required', {}, 400);
     }
 
-    // Get the registration details
     const { data: registration, error: regError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
       .select('*, batch:batches(*)')
       .eq('id', registrationId)
-      .single();
+      .maybeSingle();
 
     if (regError) {
-      logger.error('Error fetching registration', { error: regError, registrationId });
-      return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
+      logger.error('[Pendaftaran Re-enroll] Database error (GET check):', { error: regError, registrationId });
+      return ApiResponses.databaseError(regError);
     }
 
-    // Verify this registration belongs to the authenticated user
-    if (registration.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!registration) return ApiResponses.notFound('Pendaftaran tidak ditemukan');
+
+    if (registration.user_id !== context.userId) {
+      return ApiResponses.forbidden('Akses ditolak');
     }
 
-    // Check eligibility for re-enrollment
     const canReEnroll = registration.status === 'approved' || registration.selection_status === 'passed';
     const alreadyReEnrolled = registration.re_enrollment_completed === true;
 
-    return NextResponse.json({
-      success: true,
+    return ApiResponses.success({
       eligible: canReEnroll && !alreadyReEnrolled,
       alreadyReEnrolled,
       status: registration.status,
@@ -154,7 +134,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Error in GET /api/pendaftaran/tikrar/re-enroll', { error: error as Error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logger.error('[Pendaftaran Re-enroll] Unexpected error (GET):', { error: error as Error });
+    return ApiResponses.handleUnknown(error);
   }
 }

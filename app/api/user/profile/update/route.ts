@@ -112,9 +112,10 @@ export async function PUT(request: NextRequest) {
       return ApiResponses.notFound('User profile not found. Please complete your profile first.')
     }
 
-    // Determine user's primary role
+    // Determine if user has specific registration data to update
+    // We check the tables directly instead of relying on the (now legacy) roles array
     const userRoles = userData?.roles || []
-    const primaryRole = userRoles[0] || 'calon_thalibah'
+    const isAdmin = userRoles.includes('admin')
 
     // Update basic user profile (common fields for all roles)
     const validationResult = authSchemas.register.omit({
@@ -150,7 +151,7 @@ export async function PUT(request: NextRequest) {
     // Update users table
     logger.info('Updating user profile', {
       userId: user.id.substring(0, 8) + '...',
-      role: primaryRole,
+      isAdmin,
       ip
     })
 
@@ -173,13 +174,28 @@ export async function PUT(request: NextRequest) {
       return ApiResponses.serverError(`Failed to update profile: ${updateError.message}`)
     }
 
-    // Handle role-specific updates
+    // Handle role-specific updates (Muallimah/Musyrifah tables)
+    // We attempt these updates if the user has the relevant registration records
     let roleSpecificUpdateResult: any = null
 
-    if (primaryRole === 'muallimah') {
+    // Always check for registration updates if body contains relevant fields
+    const hasMuallimahFields = Object.keys(body).some(key => [
+      'teaching_experience', 'memorization_level', 'quran_institution'
+    ].includes(key))
+
+    const hasMusyrifahFields = Object.keys(body).some(key => [
+      'leadership_experience', 'team_management_experience'
+    ].includes(key))
+
+    if (hasMuallimahFields) {
       roleSpecificUpdateResult = await updateMuallimahProfile(supabaseAdmin, user.id, body, ip)
-    } else if (primaryRole === 'musyrifah') {
-      roleSpecificUpdateResult = await updateMusyrifahProfile(supabaseAdmin, user.id, body, ip)
+    }
+
+    if (hasMusyrifahFields) {
+      const musyrifahResult = await updateMusyrifahProfile(supabaseAdmin, user.id, body, ip)
+      if (musyrifahResult) {
+        roleSpecificUpdateResult = { ...roleSpecificUpdateResult, ...musyrifahResult }
+      }
     }
 
     // Also update user metadata in auth
@@ -209,7 +225,7 @@ export async function PUT(request: NextRequest) {
 
     logger.info('User profile updated successfully', {
       userId: user.id.substring(0, 8) + '...',
-      role: primaryRole,
+      isAdmin,
       ip
     })
 

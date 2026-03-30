@@ -82,7 +82,7 @@ export default function HalaqahPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users?role=musyrifah,muallimah');
+      const response = await fetch('/api/users?role=admin');
       const data = await response.json();
 
       if (response.ok) {
@@ -373,9 +373,9 @@ export default function HalaqahPage() {
                 required
               >
                 <option value="">Pilih Mentor</option>
-                {users.filter(user => (user.roles?.includes('muallimah') || (user as any)?.role === 'muallimah') || (user.roles?.includes('musyrifah') || (user as any)?.role === 'musyrifah')).map((user) => (
+                {users.filter(user => user.roles?.includes('admin') || (user as any)?.role === 'admin').map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.full_name} ({user.roles?.[0] || (user as any)?.role || 'User'})
+                    {user.full_name} (Admin)
                   </option>
                 ))}
               </select>

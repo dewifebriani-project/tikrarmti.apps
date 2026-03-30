@@ -44,12 +44,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Try to update
-    const newRoles = (currentUser.roles || [])
-      .filter((r: string) => r !== 'calon_thalibah')
-    if (!newRoles.includes('thalibah')) {
-      newRoles.push('thalibah')
-    }
+    // Binary system cleanup: remove legacy roles and ensure 'thalibah' is present
+    const newRoles = Array.from(new Set(
+      (currentUser.roles || [])
+        .filter((r: string) => !['calon_thalibah', 'muallimah', 'musyrifah'].includes(r))
+        .concat('thalibah')
+    ))
 
     const updateData = {
       roles: newRoles,

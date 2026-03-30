@@ -1,291 +1,240 @@
-Dokumen Arsitektur (Final Revisi V3) – Tikrarmti Apps
+# Dokumen Arsitektur (Final Revisi V5) – Tikrarmti Apps
 
-Daftar Isi
+Dokumen ini adalah acuan teknis utama ("Single Source of Truth") untuk pengembangan Tikrarmti Apps.
+**Diperbarui berdasarkan Security Audit 29 Maret 2026.**
 
-Pengantar
+## Daftar Isi
+1. [Prinsip Arsitektur](#prinsip-arsitektur)
+2. [Teknologi & Stack](#teknologi--stack)
+3. [Struktur Proyek](#struktur-proyek)
+4. [Arsitektur Autentikasi](#arsitektur-autentikasi)
+5. [Role-Based Access Control (Hierarchical RBAC)](#role-based-access-control-hierarchical-rbac)
+6. [API Standard & Keamanan](#api-standard--keamanan)
+7. [Keamanan Infrastruktur](#keamanan-infrastruktur)
+8. [Admin Preview Mode](#admin-preview-mode)
+9. [Aturan yang Tidak Boleh Dilanggar](#aturan-yang-tidak-boleh-dilanggar)
 
-Prinsip Arsitektur
+---
 
-Teknologi & Stack
+## 1. Prinsip Arsitektur
+- **Server-Side Authority**: Validasi sesi dan hak akses hanya dilakukan di server — tidak pernah di client.
+- **RLS as Final Guard**: Keamanan data mutlak berada di level database (Row Level Security).
+- **Fail Fast**: Jika konfigurasi kritis (env vars, Supabase keys) tidak tersedia, server harus crash saat startup — bukan saat request.
+- **Whitelist, not Blacklist**: Validasi input selalu menggunakan daftar nilai yang diizinkan (enum/whitelist), bukan blacklist atau sanity check parsial.
 
-Struktur Proyek
+---
 
-Arsitektur Autentikasi
+## 2. Teknologi & Stack
+- **Next.js 14**: App Router, Server Actions.
+- **Supabase SSR**: (`@supabase/ssr`) untuk manajemen Auth & Cookie.
+- **Tailwind CSS**: Desain UI modern dan responsif.
+- **Lucide React**: Konsistensi ikonografi.
+- **Zod**: Validasi input di semua API endpoints.
+- **Upstash Redis**: Rate limiting (wajib di production).
 
-Middleware (The Cookie Refresher)
+---
 
-Server Layout (The Security Gate)
-
-Role-Based Access Control (RBAC)
-
-Session Management
-
-Mutation Handling
-
-Data Fetching & Performance
-
-Keamanan
-
-1. Pengantar
-
-Dokumen ini adalah acuan teknis final ("Single Source of Truth") untuk pengembangan Tikrarmti Apps. Dokumen ini disusun berdasarkan best-practice Supabase SSR dan keterbatasan teknis Next.js 14 App Router.
-
-2. Prinsip Arsitektur
-
-Prinsip Utama
-
-Server-Side Validation Only: Client tidak pernah dipercaya untuk validasi sesi atau hak akses.
-
-RLS as Authority: Keamanan data mutlak berada di level database (Row Level Security).
-
-Middleware for Persistence: Middleware bertugas "menulis ulang" cookie sesi agar user tidak logout tiba-tiba (karena keterbatasan Server Component).
-
-Strict User Verification: Menggunakan getUser() bukan getSession() untuk gerbang keamanan utama.
-
-3. Teknologi & Stack
-
-Teknologi
-
-Penggunaan
-
-Next.js 14
-
-App Router, Server Actions
-
-Supabase SSR
-
-Auth & Cookie Management (@supabase/ssr)
-
-PostgreSQL
-
-Database & RLS Policies
-
-Zod
-
-Validasi Input (Schema)
-
-React 18
-
-UI Components
-
-4. Struktur Proyek
-
+## 3. Struktur Proyek
+```text
 tikrarmti.apps/
 ├── app/
-│   ├── (protected)/        # GROUP: Halaman butuh login
-│   │   ├── layout.tsx      # SECURITY GATE (getUser Check)
-│   │   ├── dashboard/
+│   ├── (protected)/        # Halaman butuh login & Role Synthesis
+│   │   ├── layout.tsx      # SECURITY GATE & ROLE SYNTHESIS
+│   │   ├── admin/          # Khusus Rank Admin
 │   │   └── ...
-│   ├── auth/               # Route Handler
-│   │   └── callback/       # Penukar Code -> Session
-│   │       └── route.ts
-│   ├── login/
-│   └── layout.tsx          # Root Layout
+│   ├── api/                # Route Handlers
+│   └── auth/               # Auth callback & logic
 ├── lib/
-│   └── supabase/
-│       ├── server.ts       # Client untuk Server Component/Action
-│       └── middleware.ts   # Client khusus Middleware
-├── middleware.ts           # Global Middleware
-└── ...
+│   ├── roles.ts            # SOURCE OF TRUTH: Role Ranks & Logic
+│   ├── rbac.ts             # SOURCE OF TRUTH: Auth middleware untuk API routes
+│   ├── schemas/index.ts    # SOURCE OF TRUTH: Zod validation schemas
+│   ├── supabase/           # Server/Middleware clients
+│   └── rate-limiter.ts     # Rate limiting (Upstash Redis)
+└── components/             # Shared UI components
+```
 
+---
 
+## 4. Arsitektur Autentikasi
 
-5. Arsitektur Autentikasi
+### The Security Gate (`app/(protected)/layout.tsx`)
+Setiap request ke halaman terproteksi diverifikasi di layout utama. Selain verifikasi sesi, sistem melakukan **Role Synthesis**:
+1. Mengambil data user dari database (`users` table).
+2. Mengidentifikasi `primaryRole` berdasarkan peringkat tertinggi di array `roles`.
+3. Mengirimkan `primaryRole` ke komponen client melalui props.
 
-Alur Request (The Lifecycle)
+### Auth Middleware untuk API Routes
+Semua API Route yang membutuhkan autentikasi harus menggunakan fungsi dari **`lib/rbac.ts`** — bukan `lib/auth-middleware.ts` (deprecated).
 
-Request Masuk: User membuka halaman /dashboard.
+```typescript
+// ✅ BENAR — gunakan lib/rbac.ts
+import { requireAdmin, requireRole, getAuthorizationContext } from '@/lib/rbac'
 
-Middleware: Mengecek cookie. Jika token hampir habis, middleware me-refresh token dan menulis cookie baru ke browser (Penting!).
+export async function GET(request: NextRequest) {
+  const authResult = await requireAdmin()
+  if (authResult) return authResult   // Returns NextResponse jika gagal
 
-Server Layout: Memanggil supabase.auth.getUser().
-
-Valid ke server Supabase? -> Lanjut.
-
-Tidak valid/Banned? -> Redirect /login.
-
-Page Render: Fetch data.
-
-Database (RLS): Memfilter data berdasarkan auth.uid().
-
-6. Middleware (The Cookie Refresher)
-
-MENGAPA WAJIB ADA?
-Meskipun Server Component bisa me-refresh token, mereka tidak bisa menyimpan token baru tersebut ke browser (keterbatasan Next.js Streaming). Tanpa middleware, user akan mengalami loop refresh yang lambat atau logout paksa.
-
-Kode: middleware.ts
-
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
-
-export async function middleware(request: NextRequest) {
-  // updateSession:
-  // 1. Cek token
-  // 2. Refresh jika perlu
-  // 3. Kembalikan Response dengan header Set-Cookie baru
-  return await updateSession(request)
+  // ... logika endpoint
 }
+```
 
-export const config = {
-  matcher: [
-    // Match semua path kecuali static files & images
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+```typescript
+// ❌ SALAH — jangan gunakan (deprecated)
+import { requireAdmin } from '@/lib/auth-middleware'
+const authResult = await requireAdmin(request)
+if (authResult instanceof NextResponse) { ... }
+```
+
+---
+
+## 5. Role-Based Access Control (Hierarchical RBAC)
+
+### Peringkat Role (ROLE_RANKS) — definisi canonical di `lib/roles.ts`
+| Role | Rank | Akses |
+|------|------|-------|
+| `admin` | 100 | Penuh — semua fitur + Preview Mode |
+| `musyrifah` | 80 | Panel musyrifah, monitoring jurnal, SP |
+| `muallimah` | 60 | Panel pengajar, tashih, nilai |
+| `thalibah` | 40 | Santri aktif — jurnal, tashih, profil |
+| `calon_thalibah` | 20 | Pendaftar baru — pendaftaran & seleksi |
+
+### Sistem Role Array
+User dapat memiliki **lebih dari satu role** (misal: admin sekaligus muallimah). Role disimpan di kolom `roles text[]` di tabel `users`.
+
+```typescript
+// ✅ BENAR — cek dengan roles array
+const isAdmin = userData.roles?.includes('admin') ?? false
+const isMusyrifah = userData.roles?.includes('musyrifah') ?? false
+```
+
+```typescript
+// ❌ SALAH — gunakan single role field (deprecated, akan dihapus)
+const isAdmin = userData.role === 'admin'
+```
+
+### Penggunaan di Client Component
+```typescript
+import { hasRequiredRank, ROLE_RANKS } from '@/lib/roles'
+
+if (hasRequiredRank(user.primaryRole, ROLE_RANKS.admin)) {
+  // Tampilkan fitur admin
 }
+```
 
+---
 
+## 6. API Standard & Keamanan
 
-Kode Helper: lib/supabase/middleware.ts
+### 6.1 Format Response
+```typescript
+// Success
+{ success: true, data: [...], message?: string }
 
-(Standard boilerplate dari dokumentasi Supabase SSR)
+// Error — TIDAK PERNAH menyertakan detail teknis database
+{ success: false, error: { code: string, message: string } }
+```
 
-7. Server Layout (The Security Gate)
+**Dilarang keras** mengirim `error.message`, `error.hint`, `error.code` Supabase ke client:
+```typescript
+// ❌ SALAH — membocorkan informasi database
+return NextResponse.json({ error: 'Failed', details: error.message, hint: error.hint })
 
-Ini adalah satu-satunya tempat di mana kita memutuskan user boleh masuk atau ditendang keluar.
+// ✅ BENAR — gunakan ApiResponses dari lib/api-responses.ts
+return ApiResponses.databaseError(error)
+// atau
+return NextResponse.json({ error: 'Operasi gagal' }, { status: 500 })
+```
 
-Kode: app/(protected)/layout.tsx
+### 6.2 Validasi Input
 
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+Semua input dari query params maupun request body harus divalidasi dengan Zod atau whitelist eksplisit:
 
-export default async function ProtectedLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const supabase = createClient()
+```typescript
+// ✅ Status parameter — wajib whitelist
+const VALID_STATUSES = ['draft', 'open', 'closed', 'archived'] as const
+const status = rawStatus && VALID_STATUSES.includes(rawStatus as any) ? rawStatus : null
 
-  // PENTING: Gunakan getUser(), bukan getSession()
-  // getUser() memverifikasi token langsung ke server Supabase Auth.
-  // Ini mencegah penggunaan token palsu atau token usang.
-  const { data: { user }, error } = await supabase.auth.getUser()
+// ✅ UUID parameter — wajib validasi sebelum query DB
+const uuidValidation = commonSchemas.uuid.safeParse(id)
+if (!uuidValidation.success) return ApiResponses.error('VALIDATION_ERROR', 'Invalid ID', {}, 400)
 
-  if (error || !user) {
-    redirect('/login')
-  }
+// ✅ Pagination — clamp nilai min/max
+const page = Math.max(parseInt(searchParams.get('page') || '1'), 1)
+const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50'), 1), 100)
+```
 
-  return <>{children}</>
-}
+### 6.3 Role di Registrasi
+Role user **wajib di-hardcode** di server, tidak pernah diambil dari request body:
+```typescript
+// ✅ BENAR — hardcode di server
+const role = 'thalibah'  // Public registration selalu calon_thalibah atau thalibah
 
+// ❌ SALAH — attacker bisa kirim role: 'admin'
+const { role = 'thalibah' } = body
+```
 
+---
 
-8. Role-Based Access Control (RBAC)
+## 7. Keamanan Infrastruktur
 
-Jangan Lakukan Ini di Client/Component:
-❌ if (user.role === 'admin') { showAdminButton() } // Tidak aman untuk proteksi data
+### 7.1 CORS
+CORS dikonfigurasi per environment di `next.config.js`:
+- **Production**: hanya `https://markaztikrar.id`
+- **Development**: hanya `http://localhost:3000`
 
-Lakukan Ini:
-✅ Gunakan RLS Policy di Database.
-✅ UI hanya menyembunyikan menu untuk UX, tapi keamanan tetap di DB.
+Tidak pernah menggunakan wildcard (`*`) bersamaan dengan `Access-Control-Allow-Credentials: true`.
 
-Contoh Policy (SQL)
+### 7.2 CSRF Protection
+Semua request POST/PUT/PATCH/DELETE ke `/api/` divalidasi `Origin` header-nya di `lib/supabase/middleware.ts`. Request dari origin yang tidak dikenal ditolak dengan status 403.
 
--- Hanya Admin yang boleh UPDATE tabel settings
-CREATE POLICY "Admin Update Settings"
-ON app_settings
-FOR UPDATE
-USING (
-  EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = auth.uid() AND role = 'admin'
-  )
-);
+### 7.3 Content Security Policy
+CSP dikonfigurasi di `next.config.js`. `unsafe-eval` **tidak diizinkan** di `script-src`. Jika Next.js membutuhkan inline scripts, gunakan pendekatan nonce-based.
 
+### 7.4 Rate Limiting
+Rate limiting wajib aktif di production menggunakan Upstash Redis. Jika `UPSTASH_REDIS_REST_URL` tidak dikonfigurasi di production, server akan menampilkan error di startup log.
 
+| Limiter | Batas | Digunakan di |
+|---------|-------|--------------|
+| `authRateLimit` | 5 req/menit per IP | `/api/auth/register`, `/api/auth/login` |
+| `generalApiRateLimit` | 100 req/menit | API umum |
+| `adminRateLimit` | 200 req/menit per user ID | Semua `/api/admin/*` endpoints |
 
-9. Session Management
+### 7.5 Supabase Client
+- **`createServerClient()`** — gunakan untuk operasi yang harus menghormati RLS (baca data user biasa).
+- **`createSupabaseAdmin()`** — gunakan hanya ketika RLS perlu di-bypass (operasi admin, role lookup). Akan `throw Error` jika env vars tidak tersedia.
 
-Cookie Name: Default Supabase (sb-<ref>-auth-token).
+```typescript
+// ✅ Untuk role lookup dan operasi admin
+const adminClient = createSupabaseAdmin()
 
-Configuration: Diatur otomatis oleh @supabase/ssr (Secure, HttpOnly, SameSite).
+// ✅ Untuk query yang harus menghormati RLS
+const supabase = createServerClient()
+```
 
-Handling: 100% otomatis.
+---
 
-Manual Touch: DILARANG. Jangan set/get cookie auth secara manual.
+## 8. Admin Preview Mode
+Admin dapat melihat halaman santri (Tashih, Jurnal, dll) tanpa memiliki pendaftaran aktif.
 
-10. Mutation Handling
+### Implementasi:
+1. **Frontend**: Jika data pendaftaran tidak ditemukan tetapi user adalah Admin, UI menampilkan banner "Mode Preview" (kuning) dan menggunakan data sampel/default.
+2. **API**: Route seperti `/api/dashboard/tashih-status` mendeteksi status Admin dan mengembalikan data simulasi (misal: Juz 30) alih-alih error 404.
 
-Gunakan Server Actions untuk mengubah data. Ini memastikan kode berjalan di server yang aman.
+---
 
-Contoh: actions/update-user.ts
+## 9. Aturan yang Tidak Boleh Dilanggar
 
-'use server'
+| # | Aturan | Alasan |
+|---|--------|--------|
+| 1 | Gunakan `lib/rbac.ts` untuk auth check di API, bukan `lib/auth-middleware.ts` | `auth-middleware.ts` deprecated, checks `role` lama |
+| 2 | Cek role dengan `roles?.includes('admin')`, bukan `role === 'admin'` | Kolom `role` tunggal akan dihapus; sistem pakai `roles[]` |
+| 3 | Jangan return `error.message`/`error.hint`/`error.code` Supabase ke client | Membocorkan skema database & celah SQL injection |
+| 4 | Selalu whitelist nilai `status` query param sebelum dipakai ke query DB | Mencegah injeksi nilai invalid |
+| 5 | Hardcode `role: 'thalibah'` di registrasi publik | Mencegah privilege escalation |
+| 6 | Jangan tambahkan placeholder/fallback di Supabase client | Silent failure lebih berbahaya dari crash |
+| 7 | Jangan gunakan wildcard CORS di production | Membatalkan perlindungan CSRF |
+| 8 | Validasi UUID sebelum query database | Mencegah 500 error dan kebocoran info |
 
-import { createClient } from '@/lib/supabase/server'
-import { z } from 'zod'
+---
 
-export async function updateUser(formData: FormData) {
-  const supabase = createClient()
-  
-  // 1. Validasi Auth (Double check, meski RLS sudah cover)
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Unauthorized' }
-
-  // 2. Validasi Data
-  // ... Zod parsing ...
-
-  // 3. Eksekusi DB
-  const { error } = await supabase
-    .from('profiles')
-    .update(parsedData)
-    .eq('id', user.id) // RLS akan memvalidasi ini juga
-
-  if (error) return { error: error.message }
-  return { success: true }
-}
-
-
-
-11. Data Fetching & Performance
-
-Pattern Utama
-
-Fetch data langsung di komponen halaman (page.tsx) sebagai Server Component.
-
-Parallel Data Fetching
-
-Jika mengambil data dari beberapa tabel, jangan gunakan await berurutan (Waterfall). Gunakan Promise.all untuk performa maksimal.
-
-// app/(protected)/dashboard/page.tsx
-export default async function Dashboard() {
-  const supabase = createClient()
-
-  // ✅ Good Practice: Parallel Fetching
-  const [userData, todosData] = await Promise.all([
-    supabase.from('profiles').select('*').single(),
-    supabase.from('todos').select('*') // RLS Applied
-  ])
-  
-  return (
-    <main>
-       <UserProfile data={userData.data} />
-       <TodoList data={todosData.data} />
-    </main>
-  )
-}
-
-
-
-Streaming & Suspense
-
-Untuk komponen yang memuat data lambat, bungkus dengan <Suspense> agar UI tidak blocking.
-
-12. Keamanan
-
-Checklist Audit:
-
-$$$$
-
- Middleware terpasang dan memanggil updateSession.
-
-$$$$
-
- Halaman terproteksi berada di dalam group route (protected) yang memiliki layout getUser().
-
-$$$$
-
- RLS Policy aktif (ALTER TABLE ... ENABLE ROW LEVEL SECURITY) untuk semua tabel.
-
-$$$$
-
- Tidak ada eksposur SERVICE_ROLE_KEY di client side env.
+*Terakhir diperbarui: 29 Maret 2026 — Post Security Audit*

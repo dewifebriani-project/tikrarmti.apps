@@ -1,57 +1,63 @@
 // API Route: /api/batches/[id]
 // Fetch single batch by ID
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { createSupabaseAdmin } from '@/lib/supabase';
-import { logger } from '@/lib/logger-secure';
+import { NextRequest } from 'next/server'
+import { createServerClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
+import { ApiResponses, CACHE_CONTROL } from '@/lib/api-responses'
+import { setCacheHeaders } from '@/lib/cache'
+import { getCachedBatch } from '@/lib/queries/batch'
+import { commonSchemas } from '@/lib/schemas'
 
-const supabaseAdmin = createSupabaseAdmin();
+const supabaseAdmin = createSupabaseAdmin()
 
+/**
+ * GET /api/batches/[id]
+ *
+ * Fetch a single batch by ID.
+ * Cached for 5 minutes since batches don't change frequently.
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = createServerClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return ApiResponses.unauthorized()
     }
 
-    const batchId = params.id;
+    const batchId = params.id
 
     if (!batchId) {
-      return NextResponse.json({ error: 'Batch ID required' }, { status: 400 });
+      return ApiResponses.error(
+        'VALIDATION_ERROR',
+        'Batch ID required',
+        { field: 'id' },
+        400
+      )
     }
 
-    // Fetch batch by ID
-    const { data: batch, error } = await supabaseAdmin
-      .from('batches')
-      .select('*')
-      .eq('id', batchId)
-      .single();
-
-    if (error) {
-      logger.error('Error fetching batch', { error, batchId });
-      return NextResponse.json({
-        error: 'Failed to fetch batch',
-        details: error.message
-      }, { status: 500 });
+    const uuidValidation = commonSchemas.uuid.safeParse(batchId)
+    if (!uuidValidation.success) {
+      return ApiResponses.error('VALIDATION_ERROR', 'Invalid batch ID format', { field: 'id' }, 400)
     }
+
+    // Use cached query for better performance
+    const batch = await getCachedBatch(supabaseAdmin, batchId)
 
     if (!batch) {
-      return NextResponse.json({
-        error: 'Batch not found'
-      }, { status: 404 });
+      return ApiResponses.notFound('Batch not found')
     }
 
-    // Return batch directly, not wrapped in { batch: ... }
-    return NextResponse.json(batch);
+    const response = ApiResponses.success(batch)
+
+    // Apply cache headers for 5-minute cache
+    return setCacheHeaders(response, 'MEDIUM')
 
   } catch (error) {
-    logger.error('Error in GET /api/batches/[id]', { error: error as Error });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return ApiResponses.handleUnknown(error)
   }
 }

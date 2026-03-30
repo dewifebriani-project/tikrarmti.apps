@@ -22,16 +22,17 @@ export async function GET(request: NextRequest) {
       .select('id, user_id, full_name, email, preferred_juz, preferred_max_thalibah, status')
       .eq('batch_id', batch_id);
 
-    if (status) {
+    const VALID_MUALLIMAH_REG_STATUSES = ['pending', 'approved', 'rejected'];
+    if (status && VALID_MUALLIMAH_REG_STATUSES.includes(status)) {
       query = query.eq('status', status);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('[Muallimah Registrations API] Error:', error);
+      console.error('[Muallimah Registrations API] Error:', error.code);
       return NextResponse.json(
-        { error: 'Failed to load muallimah registrations', details: error.message },
+        { error: 'Failed to load muallimah registrations' },
         { status: 500 }
       );
     }

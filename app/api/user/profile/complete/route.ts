@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         jenis_kelamin: validatedData.jenis_kelamin,
         pekerjaan: validatedData.pekerjaan,
         alasan_daftar: validatedData.alasan_daftar,
-        role: validatedData.role || 'calon_thalibah'
+        role: validatedData.role || 'thalibah'
       }
 
       // Check if user already exists in users table

@@ -22,9 +22,17 @@ interface GlobalAuthenticatedHeaderProps {
   onMenuToggle?: () => void;
   isSidebarOpen?: boolean;
   isMounted?: boolean;
+  showSidebarToggle?: boolean;
 }
 
-export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen, isMounted = false }: GlobalAuthenticatedHeaderProps) {
+
+export default function GlobalAuthenticatedHeader({
+  onMenuToggle,
+  isSidebarOpen,
+  isMounted = false,
+  showSidebarToggle = true
+}: GlobalAuthenticatedHeaderProps) {
+
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
@@ -181,35 +189,39 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
   ];
 
   return (
-    <header className="bg-white/98 backdrop-blur-xl shadow-lg border-b border-green-900/20 transition-all duration-300 w-full z-50">
+    <header className="glass-premium sticky top-0 shadow-sm border-b border-green-900/10 transition-all duration-300 w-full z-[50]">
+
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           {/* Left Section - Hamburger Menu & Page Title */}
-          <div className="flex items-center space-x-3 md:space-x-4 md:space-x-6 flex-1">
-            {/* Hamburger Menu - Mobile/Tablet */}
-            <div className="md:hidden">
-              <button
-                onClick={() => {
-                  if (onMenuToggle) {
-                    onMenuToggle();
-                  } else {
-                    setShowMobileMenu(!showMobileMenu);
-                  }
-                }}
-                className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50"
-                disabled={!isMounted}
-              >
-                {isMounted && (
-                  <>
-                    {isSidebarOpen !== undefined ? (
-                      isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
-                    ) : (
-                      showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
-                    )}
-                  </>
-                )}
-              </button>
-            </div>
+          <div className="flex items-center space-x-3 md:space-x-4 flex-1">
+            {/* Hamburger Menu - Only if showSidebarToggle is true */}
+            {showSidebarToggle && (
+              <div className="md:hidden">
+                <button
+                  onClick={() => {
+                    if (onMenuToggle) {
+                      onMenuToggle();
+                    } else {
+                      setShowMobileMenu(!showMobileMenu);
+                    }
+                  }}
+                  className="p-2 rounded-lg text-gray-600 hover:text-green-900 hover:bg-green-50 transition-colors"
+                  disabled={!isMounted}
+                >
+                  {isMounted && (
+                    <>
+                      {isSidebarOpen !== undefined ? (
+                        isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                      ) : (
+                        showMobileMenu ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />
+                      )}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
 
             {/* Page Title - Only show last breadcrumb (current page) */}
             <h1 className="text-base md:text-lg font-semibold text-green-900 truncate">
@@ -357,27 +369,12 @@ export default function GlobalAuthenticatedHeader({ onMenuToggle, isSidebarOpen,
                           {(() => {
                             // Get primary role from roles array with backward compatibility
                             const primaryRole = user?.roles?.[0] || (user as any)?.role;
-                            const allRoles = user?.roles?.join(', ') || (user as any)?.role || 'none';
                             
-                            let roleLabel = 'User';
                             switch (primaryRole?.toLowerCase()) {
-                              case 'calon_thalibah': roleLabel = 'Calon Thalibah'; break;
-                              case 'thalibah': roleLabel = 'Thalibah'; break;
-                              case 'musyrifah': roleLabel = 'Musyrifah'; break;
-                              case 'muallimah': roleLabel = 'Muallimah'; break;
-                              case 'admin': roleLabel = 'Administrator'; break;
+                              case 'thalibah': return 'Thalibah';
+                              case 'admin': return 'Administrator';
+                              default: return 'User';
                             }
-                            
-                            return (
-                              <>
-                                <span>{roleLabel}</span>
-                                {process.env.NODE_ENV === 'development' && (
-                                  <span className="block text-[10px] text-yellow-200 mt-0.5 opacity-80">
-                                    Debug: [{allRoles}]
-                                  </span>
-                                )}
-                              </>
-                            );
                           })()}
                         </p>
                       </div>

@@ -4,7 +4,7 @@ import { apiResponseSchemas } from './schemas'
 /**
  * Standard API Response Types
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: true
   data: T
   message?: string
@@ -16,12 +16,12 @@ export interface ApiError {
   error: {
     code: string
     message: string
-    details?: any
+    details?: Record<string, unknown> | unknown
   }
   timestamp: string
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T = unknown> {
   success: true
   data: T[]
   pagination: {
@@ -86,7 +86,7 @@ export class ApiResponseBuilder {
   static error(
     code: string,
     message: string,
-    details?: any,
+    details?: Record<string, unknown> | unknown,
     statusCode: number = 500
   ): ApiError & { statusCode: number } {
     const error: ApiError & { statusCode: number } = {

@@ -1,160 +1,106 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
+import { getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 export async function GET(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    if (!id) return ApiResponses.error('VALIDATION_ERROR', 'Registration ID is required', {}, 400);
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Registration ID is required' },
-        { status: 400 }
-      );
-    }
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
-    // Create server-side Supabase client
-    const supabase = createServerClient();
-
-    // IMPORTANT: Use getUser() not getSession() for security (per arsitektur.md)
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const supabase = createClient();
 
     // Fetch registration data
-    const { data: registration, error } = await supabase
+    const { data: registration, error: fetchError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching registration:', error);
-      return NextResponse.json(
-        { error: 'Registration not found' },
-        { status: 404 }
-      );
+    if (fetchError) {
+      console.error('[Pendaftaran ID API] Database error (GET):', fetchError);
+      return ApiResponses.databaseError(fetchError);
     }
+
+    if (!registration) return ApiResponses.notFound('Registration not found');
 
     // Check if the registration belongs to the current user
-    if (registration.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+    if (registration.user_id !== context.userId) {
+      return ApiResponses.forbidden('Access denied');
     }
 
-    return NextResponse.json(registration);
-
+    return ApiResponses.success(registration);
   } catch (error) {
-    console.error('Error in GET /api/pendaftaran/[id]:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Pendaftaran ID API] Unexpected error (GET):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
 export async function PUT(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    if (!id) return ApiResponses.error('VALIDATION_ERROR', 'Registration ID is required', {}, 400);
 
-    if (!id) {
-      return NextResponse.json(
-        { error: 'Registration ID is required' },
-        { status: 400 }
-      );
-    }
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized();
 
-    // Create server-side Supabase client
-    const supabase = createServerClient();
-
-    // IMPORTANT: Use getUser() not getSession() for security (per arsitektur.md)
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Get the update data from request body
-    const updateData = await request.json();
+    const body = await request.json();
+    const supabase = createClient();
 
     // First, verify the registration exists and belongs to the user
     const { data: existingRegistration, error: fetchError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('*')
+      .select('id, user_id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !existingRegistration) {
-      return NextResponse.json(
-        { error: 'Registration not found' },
-        { status: 404 }
-      );
+    if (fetchError) {
+      console.error('[Pendaftaran ID API] Database error (PUT check):', fetchError);
+      return ApiResponses.databaseError(fetchError);
     }
 
-    // Check if the registration belongs to the current user
-    if (existingRegistration.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
+    if (!existingRegistration) return ApiResponses.notFound('Registration not found');
+
+    // Check ownership
+    if (existingRegistration.user_id !== context.userId) {
+      return ApiResponses.forbidden('Access denied');
     }
 
     // Check if registration is already approved - prevent edits after approval
     if (existingRegistration.status === 'approved') {
-      return NextResponse.json(
-        { error: 'Cannot edit registration after approval' },
-        { status: 400 }
-      );
+      return ApiResponses.error('ALREADY_APPROVED', 'Pendaftaran sudah disetujui dan tidak dapat diubah.', {}, 400);
     }
 
     // Prepare update data
     const dataToUpdate = {
-      ...updateData,
+      ...body,
       updated_at: new Date().toISOString()
     };
 
     // Update the registration
-    const { data: updatedRegistration, error } = await supabase
+    const { data: updatedRegistration, error: updateError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
       .update(dataToUpdate)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error updating registration:', error);
-      return NextResponse.json(
-        { error: 'Failed to update registration' },
-        { status: 500 }
-      );
+    if (updateError) {
+      console.error('[Pendaftaran ID API] Database error (PUT update):', updateError);
+      return ApiResponses.databaseError(updateError);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Registration updated successfully',
-      registration: updatedRegistration
-    });
-
+    return ApiResponses.success(updatedRegistration, 'Registration updated successfully');
   } catch (error) {
-    console.error('Error in PUT /api/pendaftaran/[id]:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('[Pendaftaran ID API] Unexpected error (PUT):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

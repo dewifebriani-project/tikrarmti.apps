@@ -227,7 +227,7 @@ function RegisterPageContent() {
           jenis_kelamin: formData.jenisKelamin,
           pekerjaan: formData.pekerjaan,
           alasan_daftar: formData.alasanDaftar,
-          role: 'calon_thalibah'
+          role: 'thalibah'
         }),
       });
 

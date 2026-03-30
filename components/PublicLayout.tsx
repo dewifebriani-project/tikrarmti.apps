@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -9,6 +10,7 @@ interface PublicLayoutProps {
 }
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
+  const pathname = usePathname();
   return (
     <div className="h-screen flex flex-col bg-main-background text-main overflow-hidden">
       {/* Fixed Header - stays at top */}
@@ -22,8 +24,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           {children}
         </main>
 
-        {/* Footer */}
-        <Footer />
+        {/* Footer - Only on landing page */}
+        {pathname === '/' && <Footer />}
       </div>
     </div>
   );

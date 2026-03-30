@@ -98,8 +98,10 @@ export async function POST(request: NextRequest) {
       jenis_kelamin,
       pekerjaan,
       alasan_daftar,
-      role = 'calon_thalibah'
     } = body;
+
+    // Role is always 'thalibah' for public registration — never trust client input
+    const role = 'thalibah';
 
     // Note: Validation is handled by Zod schema above
 
@@ -131,7 +133,6 @@ export async function POST(request: NextRequest) {
       body.whatsapp = sanitizedWhatsApp;
       body.telegram = sanitizedTelegram;
       body.zona_waktu = sanitizedZonaWaktu;
-      body.role = role;
 
     } catch (error: any) {
       return ApiResponses.customValidationError([{ field: 'general', message: error.message || 'Input tidak valid', code: 'custom' }]);
@@ -296,7 +297,7 @@ export async function POST(request: NextRequest) {
           jenis_kelamin: body.jenis_kelamin,
           pekerjaan: body.pekerjaan,
           alasan_daftar: body.alasan_daftar,
-          role: body.role || existingUser.role,
+          role: existingUser.role || role,
           is_active: true,
         })
         .eq('email', body.email)

@@ -42,6 +42,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/admin',
     '/panel-musyrifah',
     '/panel-muallimah',
+    '/debug',
   ];
 
   // Check if current route is an auth route

@@ -32,7 +32,6 @@ export function createClient() {
     supabaseAnonKey,
     {
       cookieOptions: {
-        name: 'sb-mti-session',
         path: '/',
         ...(domain ? { domain } : {}),
       },
@@ -53,6 +52,3 @@ export function createClient() {
 
   return supabaseClient
 }
-
-// Alias for ease of migration
-export const browserClient = createClient()

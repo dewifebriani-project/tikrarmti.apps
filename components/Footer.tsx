@@ -8,7 +8,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-400">Powered by</span>
-            <span className="text-sm md:text-base font-semibold text-green-400">Amana Digital</span>
+            <span className="text-sm md:text-base font-semibold text-green-400">AQLI</span>
           </div>
         </div>
       </div>

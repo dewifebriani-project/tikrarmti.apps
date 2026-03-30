@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { createUser, updateUser } from './actions';
@@ -16,7 +16,9 @@ import {
   FileText,
   BarChart3,
   Plus,
+  LayoutGrid,
   UserPlus,
+
   ClipboardList,
   Clock,
   Award,
@@ -55,6 +57,8 @@ import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
+import { cn } from '@/lib/utils';
+
 
 interface Batch {
   id: string;
@@ -296,20 +300,38 @@ interface TikrarTahfidz {
 type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
 
 export default function AdminPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-900"></div>
+      </div>
+    }>
+      <AdminContent />
+    </Suspense>
+  );
+}
+
+function AdminContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
 
   // Initialize activeTab from localStorage or default to 'overview'
-  const [activeTab, setActiveTab] = useState<TabType>(() => {
-    if (typeof window !== 'undefined') {
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  // Handle tab from URL search parameters or localStorage
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabType;
+    if (tabParam) {
+      setActiveTab(tabParam);
+    } else {
       const savedTab = localStorage.getItem('adminActiveTab');
-      return (savedTab as TabType) || 'overview';
+      if (savedTab) setActiveTab(savedTab as TabType);
     }
-    return 'overview';
-  });
+  }, [searchParams]);
 
   // SECURITY NOTE: This is for UI conditional rendering ONLY.
   // Actual authorization is enforced server-side via RLS policies.
@@ -504,7 +526,6 @@ export default function AdminPage() {
 
   const tabs = [
     { id: 'overview' as TabType, name: 'Overview', icon: BarChart3 },
-    { id: 'users' as TabType, name: 'Users', icon: Users },
     { id: 'batches' as TabType, name: 'Batches', icon: Calendar },
     { id: 'programs' as TabType, name: 'Programs', icon: BookOpen },
     { id: 'halaqah' as TabType, name: 'Halaqah', icon: Users },
@@ -559,38 +580,61 @@ export default function AdminPage() {
           },
         }}
       />
-      {/* Admin Header */}
-      <div className="bg-white border-b border-gray-200 -m-6 mb-0 px-6 py-6 rounded-t-lg">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Kelola data master dan lihat laporan sistem
-        </p>
+      {/* Admin Header - Premium Gradient */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-900 to-green-800 p-8 text-white shadow-2xl mb-8 -mx-2 sm:mx-0">
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-medium mb-3">
+                <Shield className="w-3 h-3 text-yellow-400" />
+                <span>Tikrar MTI Authority Console</span>
+              </div>
+              <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+              <p className="text-green-50/80 text-sm max-w-xl">
+                Kelola data master, pendaftaran, dan pantau kesehatan sistem Markaz Tikrar Indonesia secara real-time.
+              </p>
+            </div>
+            <div className="hidden lg:block">
+              <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 flex flex-col items-center justify-center">
+                <LayoutGrid className="w-8 h-8 text-yellow-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-yellow-400/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-green-400/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 -m-6 mb-0 px-6">
-        <nav className="flex flex-wrap gap-x-4 sm:gap-x-6 lg:gap-x-8 overflow-x-auto scrollbar-hide" aria-label="Tabs">
+
+      {/* Tabs - Modern Pill Style */}
+      <div className="mb-8 overflow-x-auto pb-2 scrollbar-hide">
+        <nav className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-max" aria-label="Tabs">
           {tabs.map((tab) => {
             const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap
-                  ${activeTab === tab.id
-                    ? 'border-green-900 text-green-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }
-                `}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  router.push(`/admin?tab=${tab.id}`, { scroll: false });
+                }}
+                className={cn(
+                  "flex items-center gap-2 py-2.5 px-4 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300",
+                  isSelected
+                    ? "bg-white text-green-900 shadow-sm border border-green-900/10"
+                    : "text-gray-500 hover:text-green-800 hover:bg-white/50"
+                )}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="hidden sm:inline">{tab.name}</span>
+                <Icon className={cn("w-4 h-4 transition-transform", isSelected && "scale-110")} />
+                <span>{tab.name}</span>
               </button>
             );
           })}
         </nav>
       </div>
+
 
       {/* Content */}
       <div className="mt-6">
@@ -832,31 +876,37 @@ function OverviewTab({ stats }: { stats: any }) {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className={`flex-shrink-0 ${stat.color} rounded-md p-3`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                      <dd className="text-3xl font-bold text-gray-900">{stat.value}</dd>
-                    </dl>
-                  </div>
-                </div>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {statCards.map((stat, i) => {
+        const Icon = stat.icon;
+        return (
+          <div
+            key={stat.name}
+            className="group glass-premium rounded-3xl p-6 border border-white hover:border-green-100 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 animate-fadeInUp"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:rotate-12",
+                stat.color === 'bg-blue-500' ? "bg-blue-50 text-blue-600" :
+                stat.color === 'bg-indigo-500' ? "bg-indigo-50 text-indigo-600" :
+                stat.color === 'bg-green-500' ? "bg-green-50 text-green-600" :
+                stat.color === 'bg-purple-500' ? "bg-purple-50 text-purple-600" :
+                stat.color === 'bg-yellow-500' ? "bg-yellow-50 text-yellow-600" :
+                stat.color === 'bg-pink-500' ? "bg-pink-50 text-pink-600" :
+                stat.color === 'bg-red-500' ? "bg-red-50 text-red-600" :
+                "bg-orange-50 text-orange-600"
+              )}>
+                <Icon className="h-6 w-6" />
               </div>
             </div>
-          );
-        })}
-      </div>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{stat.name}</p>
+            <h4 className="text-3xl font-black text-gray-900">{stat.value}</h4>
+          </div>
+        );
+      })}
     </div>
+
   );
 }
 
@@ -2282,22 +2332,16 @@ function UsersTab({
         const getRoleBadge = (role: string) => {
           switch (role) {
             case 'admin': return 'bg-purple-100 text-purple-800 border-purple-300';
-            case 'muallimah': return 'bg-blue-100 text-blue-800 border-blue-300';
-            case 'ustadzah': return 'bg-blue-100 text-blue-800 border-blue-300';
-            case 'musyrifah': return 'bg-green-100 text-green-800 border-green-300';
             case 'thalibah': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-            case 'calon_thalibah': return 'bg-gray-100 text-gray-800 border-gray-300';
-            case 'pengurus': return 'bg-pink-100 text-pink-800 border-pink-300';
+            case 'muallimah': return 'bg-blue-100 text-blue-800 border-blue-300';
+            case 'musyrifah': return 'bg-green-100 text-green-800 border-green-300';
             default: return 'bg-gray-100 text-gray-800 border-gray-300';
           }
         };
 
         const formatRoleName = (role: string) => {
-          switch (role) {
-            case 'calon_thalibah': return 'Calon Thalibah';
-            case 'ustadzah': return 'Muallimah';
-            default: return role.charAt(0).toUpperCase() + role.slice(1);
-          }
+          if (role === 'ustadzah' || role === 'muallimah') return 'Muallimah';
+          return role.charAt(0).toUpperCase() + role.slice(1);
         };
 
         return (
@@ -2672,7 +2716,7 @@ Tim Markaz Tikrar Indonesia`;
 
   // Handle bulk upgrade selected/filtered users to thalibah
   const handleBulkUpgrade = async () => {
-    if (!confirm('Upgrade selected users to thalibah role? This will remove calon_thalibah role and add thalibah role.')) {
+    if (!confirm('Upgrade selected users to thalibah role?')) {
       return;
     }
 
@@ -3012,11 +3056,11 @@ Tim Markaz Tikrar Indonesia`;
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-yellow-800">Thalibah</h3>
               <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                {users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length}
+                {users.filter(u => u.role === 'thalibah').length}
               </span>
             </div>
             <p className="text-xs text-gray-600">
-              {users.length > 0 ? Math.round((users.filter(u => u.role === 'thalibah' || u.role === 'calon_thalibah').length / users.length) * 100) : 0}% of all users
+              {users.length > 0 ? Math.round((users.filter(u => u.role === 'thalibah').length / users.length) * 100) : 0}% of all users
             </p>
           </div>
         </div>
@@ -5776,7 +5820,7 @@ function MuallimahTab({ muallimah, batches, selectedBatchFilter, onBatchFilterCh
                 <div className="flex items-center justify-between bg-white rounded p-2 border border-blue-200">
                   <div>
                     <p className="text-sm font-medium text-gray-900">Thalibah Upgrade Trigger</p>
-                    <p className="text-xs text-gray-600">Auto-upgrades calon_thalibah to thalibah when daftar ulang is approved</p>
+                    <p className="text-xs text-gray-600">Auto-updates thalibah status when daftar ulang is approved</p>
                   </div>
                   <button
                     onClick={() => handleCopyMigrationSQL('20260117_add_auto_thalibah_role_trigger')}

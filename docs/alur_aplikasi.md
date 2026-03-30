@@ -3,7 +3,9 @@
 Dokumen ini menjelaskan alur kerja (workflow) aplikasi MTI dari perspektif pengguna (Thalibah) dan manajemen (Admin/Staf).
 
 ## 1. Fase Persiapan (Onboarding)
-*   **Registrasi & Login**: Calon Thalibah membuat akun melalui email/password atau login cepat menggunakan Google OAuth.
+*   **Registrasi & Login**: Calon Thalibah membuat akun melalui email/password. Email konfirmasi dikirim sebelum akun aktif.
+    *   *Security*: Role selalu di-set `thalibah` di server — tidak pernah diambil dari input user.
+    *   *Security*: Tanggal lahir divalidasi server-side: harus di masa lalu, usia 15–100 tahun.
 *   **Lengkapi Profil**: Setiap pengguna yang baru pertama kali masuk **wajib** melengkapi profil.
     *   *System Guard*: Selama profil belum lengkap, Thalibah akan diarahkan kembali ke halaman `/lengkapi-profile`.
     *   *Data Core*: Nama lengkap, alamat, No. WhatsApp, dan data dasar lainnya.
@@ -38,10 +40,16 @@ Inti dari aplikasi adalah siklus belajar selama 14 pekan:
     *   Pengumuman kelulusan semester/batch.
     *   Thalibah yang lulus dapat mengunduh **Sertifikat Digital** otomatis di menu `/kelulusan-sertifikat`.
 
-## 6. Peran & Manajemen
-*   **Admin**: Mengelola infrastruktur (Batch, Juz, Program, Hak Akses).
-*   **Muallimah (Guru)**: Melakukan penilaian seleksi, mengisi record Tashih, dan memberi nilai ujian.
-*   **Musyrifah (Pengawas/Wali)**: Memantau kedisiplinan dan memberikan Surat Peringatan (SP) bagi thalibah yang kurang aktif.
+## 6. Peran & Manajemen (Hierarchical RBAC)
+Sistem menggunakan peringkat role (rank) untuk menentukan luas akses. Setiap user dapat memiliki **lebih dari satu role** (disimpan sebagai array `roles[]` di database).
+
+*   **Admin (Rank 100)**: Pengelola pusat. Memiliki fitur **Preview Mode** untuk melihat semua halaman santri tanpa harus terdaftar di halaqah. Mengelola Batch, Program, dan Hak Akses.
+*   **Musyrifah (Rank 80)**: Pengawas kedisiplinan. Memantau jurnal harian thalibah dan memberikan Surat Peringatan (SP) jika diperlukan.
+*   **Muallimah (Rank 60)**: Pengajar/Penguji. Menilai seleksi, mengisi record Tashih, dan memberikan nilai ujian akhir.
+*   **Thalibah (Rank 40)**: Santri aktif yang mengikuti proses 14 pekan.
+*   **Calon Thalibah (Rank 20)**: Pengguna dalam fase pendaftaran dan seleksi.
+
+> **Catatan Developer**: Semua pengecekan role di API routes menggunakan `roles?.includes('role_name')` (array), bukan `role === 'role_name'` (string tunggal — deprecated). Lihat `docs/architecture/arsitektur.md` untuk detail lengkap.
 
 ---
-*Terakhir Diperbarui: 28 Maret 2026*
+*Terakhir Diperbarui: 29 Maret 2026 — Post Security Audit*

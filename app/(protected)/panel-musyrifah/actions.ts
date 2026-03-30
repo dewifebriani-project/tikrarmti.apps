@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 /**
- * Verify that the current user has musyrifah role
+ * Verify that the current user has admin role for musyrifah panel functions
  * Throws an error if not authorized
  */
 async function verifyMusyrifah() {
@@ -28,15 +28,15 @@ async function verifyMusyrifah() {
   }
 
   const roles = userData?.roles || [];
-  if (!roles.includes('musyrifah')) {
-    throw new Error('Forbidden: Musyrifah access required');
+  if (!roles.includes('admin')) {
+    throw new Error('Forbidden: Admin access required');
   }
 
   return user;
 }
 
 /**
- * Verify that the current user has musyrifah or admin role
+ * Verify that the current user has admin role for musyrifah panel functions
  * Throws an error if not authorized
  */
 async function verifyMusyrifahOrAdmin() {
@@ -59,8 +59,8 @@ async function verifyMusyrifahOrAdmin() {
   }
 
   const roles = userData?.roles || [];
-  if (!roles.includes('musyrifah') && !roles.includes('admin')) {
-    throw new Error('Forbidden: Musyrifah or Admin access required');
+  if (!roles.includes('admin')) {
+    throw new Error('Forbidden: Admin access required');
   }
 
   return userData;

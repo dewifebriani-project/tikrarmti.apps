@@ -174,8 +174,6 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
                               ${(() => {
                                 const primaryRole = data.user.roles?.[0] || (data.user as any)?.role;
                                 return primaryRole === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                  primaryRole === 'ustadzah' ? 'bg-blue-100 text-blue-800' :
-                                  primaryRole === 'musyrifah' ? 'bg-green-100 text-green-800' :
                                   primaryRole === 'thalibah' ? 'bg-yellow-100 text-yellow-800' :
                                   'bg-gray-100 text-gray-800';
                               })()}`}>

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 // Helper to normalize block code (ensure it starts with H)
 function normalizeBlokCode(code: string): string {
@@ -15,7 +16,6 @@ function normalizeBlokCode(code: string): string {
 }
 
 // Helper function to calculate week number from blok code
-// Same logic as tashih: H1A/H1B/H1C/H1D = week 1, H2A/H2B/H2C/H2D = week 2, etc.
 function calculateWeekFromBlok(blok: string | null): number | null {
   if (!blok) return null;
 
@@ -41,7 +41,6 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   blokCode = normalizeBlokCode(blokCode);
 
   // Extract number from blok code (e.g., "H1A" -> 1, "H11B" -> 11)
-  // Now we can rely on H prefix being there or simple number matching
   const match = blokCode.match(/H(\d+)/) || blokCode.match(/^(\d+)/);
   if (!match) return null;
 
@@ -49,15 +48,15 @@ function calculateWeekFromBlok(blok: string | null): number | null {
 
   // Map block number to week (H1-H10 = pekan 1-10, H11-H20 = pekan 1-10 for juz 2)
   if (blockNumber >= 1 && blockNumber <= 10) {
-    return blockNumber; // Juz 1: H1 = pekan 1, H2 = pekan 2, etc.
+    return blockNumber; 
   } else if (blockNumber >= 11 && blockNumber <= 20) {
-    return blockNumber - 10; // Juz 2: H11 = pekan 1, H12 = pekan 2, etc.
+    return blockNumber - 10; 
   }
 
   return null;
 }
 
-// Helper to generate all blocks (10 weeks, 4 blocks per week) for a juz - SAME AS TASHIH
+// Helper to generate all blocks (10 weeks, 4 blocks per week) for a juz
 function generateAllBlocks(juzInfo: any) {
   const allBlocks: any[] = [];
   const parts = ['A', 'B', 'C', 'D'];
@@ -87,7 +86,7 @@ function generateAllBlocks(juzInfo: any) {
   return allBlocks;
 }
 
-// Helper to calculate weekly status - LIKE TASHIH but for jurnal
+// Helper to calculate weekly status
 function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
   const blockStatus = new Map<string, { is_completed: boolean; jurnal_count: number; jurnal_date?: string }>();
 
@@ -114,7 +113,6 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
 
       // Mark each blok as completed
       blokCodes.forEach(rawBlokCode => {
-        // Normalize blok code to ensure it matches the generated H-format
         const blokCode = normalizeBlokCode(rawBlokCode);
 
         const current = blockStatus.get(blokCode);
@@ -154,14 +152,14 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
   return weeklyStatus;
 }
 
-// Validation schema for jurnal record (pekan is optional, will be calculated from blok)
+// Validation schema for jurnal record
 const jurnalRecordSchema = z.object({
   user_id: z.string().uuid(),
   tanggal_jurnal: z.string().optional(),
   tanggal_setor: z.string().optional(),
   juz_code: z.string().nullable().optional(),
   blok: z.string().nullable().optional(),
-  pekan: z.number().nullable().optional(), // Optional for backward compatibility
+  pekan: z.number().nullable().optional(),
   tashih_completed: z.boolean().optional(),
   rabth_completed: z.boolean().optional(),
   murajaah_count: z.number().optional(),
@@ -176,40 +174,16 @@ const jurnalRecordSchema = z.object({
   catatan_tambahan: z.string().nullable().optional(),
 });
 
-// Helper function to verify musyrifah access
-async function verifyMusyrifahAccess(supabase: any) {
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('roles')
-    .eq('id', user.id)
-    .single();
-
-  if (userError || !userData) {
-    return { error: 'User not found', status: 404 };
-  }
-
-  const roles = userData?.roles || [];
-  if (!roles.includes('musyrifah')) {
-    return { error: 'Forbidden: Musyrifah access required', status: 403 };
-  }
-
-  return { user };
-}
-
 export async function GET(request: Request) {
   try {
-    const supabase = createClient();
+    // 1. Authorization check - Standardized via requireAnyRole
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
 
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized('Unable to get authorization context');
+
+    const supabase = createClient();
 
     // Get URL parameters for filtering
     const { searchParams } = new URL(request.url);
@@ -225,7 +199,6 @@ export async function GET(request: Request) {
         juz_options: []
       };
 
-      // 1. Find users
       for (const name of debugNames) {
         const { data: users } = await supabase
           .from('users')
@@ -234,21 +207,18 @@ export async function GET(request: Request) {
 
         if (users && users.length > 0) {
           for (const u of users) {
-            // Get submission
             const { data: submission } = await supabase
               .from('daftar_ulang_submissions')
               .select('*')
               .eq('user_id', u.id)
-              .single();
+              .maybeSingle();
 
-            // Get records
             const { data: records } = await supabase
               .from('jurnal_records')
               .select('*')
               .eq('user_id', u.id)
               .order('created_at', { ascending: false });
 
-            // Test Block Generation for this user
             let generatedBlocks: any[] = [];
             let debugWeeklyStatus: any[] = [];
             let blockStatusDump: any = {};
@@ -258,16 +228,14 @@ export async function GET(request: Request) {
                 .from('juz_options')
                 .select('*')
                 .eq('code', submission.confirmed_chosen_juz)
-                .single();
+                .maybeSingle();
 
               if (juz) {
                 generatedBlocks = generateAllBlocks(juz);
                 debugWeeklyStatus = calculateWeeklyStatus(generatedBlocks, records || []);
 
-                // Dump status for first 2 weeks blocks
                 generatedBlocks.filter(b => b.week_number <= 2).forEach(b => {
                   const status = debugWeeklyStatus.find(w => w.week_number === b.week_number)?.blocks.find((ib: any) => ib.block_code === b.block_code);
-                  // Re-simulate map check
                   const hasJurnal = records?.some(r => normalizeBlokCode(r.blok) === b.block_code);
 
                   blockStatusDump[b.block_code] = {
@@ -291,25 +259,22 @@ export async function GET(request: Request) {
                 normalized_blok: normalizeBlokCode(r.blok || ''),
                 tanggal_setor: r.tanggal_setor
               })),
-              generated_blocks_sample: generatedBlocks.slice(0, 5) // Just first 5
+              generated_blocks_sample: generatedBlocks.slice(0, 5)
             });
           }
         }
       }
 
-      // 2. Get all Juz Options for reference
       const { data: allJuz } = await supabase.from('juz_options').select('*');
       debugData.juz_options = allJuz;
 
-      return NextResponse.json(debugData);
+      return ApiResponses.success(debugData);
     }
 
     const blok = searchParams.get('blok');
     const pekan = searchParams.get('pekan');
     const batchId = searchParams.get('batch_id');
 
-    // Get active batch if not specified
-    // Get active batch details for week calculation
     let activeBatchId = batchId;
     let currentWeek = 0;
 
@@ -320,13 +285,12 @@ export async function GET(request: Request) {
         .eq('status', 'open')
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+      
       activeBatchId = activeBatch?.id;
 
-      // Calculate current week
       if (activeBatch?.start_date) {
         const startDate = new Date(activeBatch.start_date);
-        // First week starts 1 week after batch start_date (Pekan Tashih)
         const firstWeekStart = new Date(startDate);
         firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
 
@@ -336,16 +300,14 @@ export async function GET(request: Request) {
         currentWeek = diffWeeks + 1;
       }
     } else {
-      // If batch_id provided, fetch its details
       const { data: batch } = await supabase
         .from('batches')
         .select('start_date, first_week_start_date')
         .eq('id', activeBatchId)
-        .single();
+        .maybeSingle();
 
       if (batch?.start_date) {
         const startDate = new Date(batch.start_date);
-        // First week starts 1 week after batch start_date (Pekan Tashih)
         const firstWeekStart = new Date(startDate);
         firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
 
@@ -356,18 +318,14 @@ export async function GET(request: Request) {
       }
     }
 
-    // =====================================================
-    // APPROACH LIKE TASHIH: Get users from daftar_ulang first
-    // =====================================================
-
-    // Get all thalibah from daftar_ulang_submissions with approved or submitted status
     const { data: daftarUlangUsers, error: daftarUlangError } = await supabase
       .from('daftar_ulang_submissions')
       .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
       .in('status', ['approved', 'submitted']);
 
     if (daftarUlangError) {
-      throw daftarUlangError;
+      console.error('[Musyrifah Jurnal API] daftar_ulang_submissions error:', daftarUlangError);
+      return ApiResponses.databaseError(daftarUlangError);
     }
 
     const daftarUlangUserIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
@@ -413,18 +371,14 @@ export async function GET(request: Request) {
       const { data: chunk, error: chunkError } = await chunkQuery;
 
       if (chunkError) {
-        if (chunkError.code === 'PGRST116' || chunkError.message.includes('does not exist')) {
-          hasMore = false;
-          break;
-        } else {
-          throw chunkError;
-        }
+        console.error('[Musyrifah Jurnal API] jurnal_records chunk error:', chunkError);
+        return ApiResponses.databaseError(chunkError);
       }
 
       if (chunk && chunk.length > 0) {
         allEntries = [...allEntries, ...chunk];
         if (chunk.length < pageSize) {
-          hasMore = false; // Last page
+          hasMore = false;
         } else {
           page++;
         }
@@ -435,29 +389,21 @@ export async function GET(request: Request) {
 
     const entries = allEntries;
 
-    // =====================================================
-    // LIKE TASHIH: Create entry for ALL users from daftar_ulang
-    // =====================================================
-
-    // Fetch user data for ALL daftar_ulang users
     const { data: usersData } = await supabase
       .from('users')
       .select('id, full_name, nama_kunyah, whatsapp')
       .in('id', daftarUlangUserIds);
 
-    // Create user map for quick lookup
     const userMap = new Map();
     usersData?.forEach((u: any) => {
       userMap.set(u.id, u);
     });
 
-    // Create daftar ulang map for quick lookup
     const daftarUlangMap = new Map();
     daftarUlangUsers?.forEach((d: any) => {
       daftarUlangMap.set(d.user_id, d);
     });
 
-    // Group jurnal entries by user
     const jurnalByUser = new Map();
     (entries || []).forEach((record: any) => {
       if (!jurnalByUser.has(record.user_id)) {
@@ -466,24 +412,24 @@ export async function GET(request: Request) {
       jurnalByUser.get(record.user_id).push(record);
     });
 
-    // Get all unique bloks from jurnal records
     const allBloks = new Set<string>();
     (entries || []).forEach((record: any) => {
       if (record.blok) {
-        // Handle both string and array format
-        const bloks = typeof record.blok === 'string' && record.blok.startsWith('[')
-          ? JSON.parse(record.blok)
-          : [record.blok];
-        bloks.forEach((b: any) => allBloks.add(normalizeBlokCode(b)));
+        try {
+          const bloks = typeof record.blok === 'string' && record.blok.startsWith('[')
+            ? JSON.parse(record.blok)
+            : [record.blok];
+          bloks.forEach((b: any) => allBloks.add(normalizeBlokCode(b)));
+        } catch {
+          allBloks.add(normalizeBlokCode(record.blok));
+        }
       }
     });
 
-    // Get all unique juz codes from daftar ulang (like tashih)
     const uniqueJuzCodes = new Set(
       daftarUlangUsers?.map((d: any) => d.confirmed_chosen_juz).filter(Boolean) || []
     );
 
-    // Fetch juz info for all unique juz codes (like tashih)
     const juzInfoMap = new Map();
     if (uniqueJuzCodes.size > 0) {
       const { data: juzOptions } = await supabase
@@ -496,33 +442,29 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch active SP records for all thalibah
     const { data: spRecords } = await supabase
       .from('surat_peringatan')
       .select('thalibah_id, sp_level, week_number, status, issued_at, reason, is_blacklisted')
       .eq('status', 'active')
       .in('thalibah_id', daftarUlangUserIds);
 
-    // Group SP by user and by week
-    const spByUser = new Map();
     const spByUserAndWeek = new Map();
+    const spByUser = new Map();
     spRecords?.forEach((sp: any) => {
       if (!spByUser.has(sp.thalibah_id)) {
         spByUser.set(sp.thalibah_id, []);
       }
       spByUser.get(sp.thalibah_id).push(sp);
-
-      // Also group by user and week for easy lookup
+      
       const key = `${sp.thalibah_id}-${sp.week_number}`;
       spByUserAndWeek.set(key, sp);
     });
 
-    // Build combined entries for ALL users (like tashih)
     const combinedEntries = daftarUlangUserIds.map((userId: string) => {
       const daftarUlang = daftarUlangMap.get(userId);
       const userJurnalRecords = jurnalByUser.get(userId) || [];
       const latestJurnal = userJurnalRecords.length > 0
-        ? userJurnalRecords.sort((a: any, b: any) =>
+        ? [...userJurnalRecords].sort((a: any, b: any) =>
           new Date(b.tanggal_setor || b.created_at).getTime() -
           new Date(a.tanggal_setor || a.created_at).getTime()
         )[0]
@@ -530,37 +472,30 @@ export async function GET(request: Request) {
       const juzCode = daftarUlang?.confirmed_chosen_juz;
       const juzInfo = juzCode ? juzInfoMap.get(juzCode) : null;
 
-      // Calculate weekly status (P1-P10) using NEW block-based approach like tashih
       let weeklyStatus: any[] = [];
       let totalBlocks = 0;
       let completedBlocks = 0;
 
       if (juzInfo) {
-        // Generate all expected blocks for this juz (like tashih)
         const allBlocks = generateAllBlocks(juzInfo);
         weeklyStatus = calculateWeeklyStatus(allBlocks, userJurnalRecords);
         totalBlocks = allBlocks.length;
         completedBlocks = allBlocks.filter(b => {
           const hasJurnal = userJurnalRecords.some((record: any) => {
-            // Handle both string and array format for blok
             let rBloks = [];
             if (record.blok && record.blok.startsWith('[')) {
               try { rBloks = JSON.parse(record.blok); } catch { rBloks = [record.blok]; }
             } else {
               rBloks = [record.blok];
             }
-
             return rBloks.some((rb: string) => normalizeBlokCode(rb) === b.block_code);
           });
           return hasJurnal;
         }).length;
 
-        // Add SP info to each week (preserve existing SP integration)
         weeklyStatus.forEach((week: any) => {
           const spKey = `${userId}-${week.week_number}`;
           const spForWeek = spByUserAndWeek.get(spKey);
-
-          // Add sp_info to the week
           week.sp_info = spForWeek ? {
             sp_level: spForWeek.sp_level,
             status: spForWeek.status,
@@ -569,21 +504,18 @@ export async function GET(request: Request) {
             is_blacklisted: spForWeek.is_blacklisted,
           } : null;
 
-          // Also add entries for backward compatibility (optional)
           week.entries = userJurnalRecords.filter((e: any) => {
-            const pekan = calculateWeekFromBlok(e.blok);
-            return pekan === week.week_number;
+            const pekanResult = calculateWeekFromBlok(e.blok);
+            return pekanResult === week.week_number;
           }).map((e: any) => ({
             ...e,
             pekan: calculateWeekFromBlok(e.blok),
           }));
         });
       } else {
-        // Fallback for users without juz info (should not happen normally)
         for (let week = 1; week <= 10; week++) {
           const spKey = `${userId}-${week}`;
           const spForWeek = spByUserAndWeek.get(spKey);
-
           weeklyStatus.push({
             week_number: week,
             total_blocks: 0,
@@ -602,9 +534,6 @@ export async function GET(request: Request) {
         }
       }
 
-      const weeksWithJurnal = weeklyStatus.filter((w: any) => w.completed_blocks > 0).length;
-
-      // Get SP summary for this user
       const userSPRecords = spByUser.get(userId) || [];
       const latestSP = userSPRecords.length > 0
         ? userSPRecords.reduce((latest: any, current: any) =>
@@ -621,7 +550,6 @@ export async function GET(request: Request) {
         reviewed_at: daftarUlang?.reviewed_at,
         user: userMap.get(userId) || null,
         weekly_status: weeklyStatus,
-        // NEW: Add summary like tashih
         summary: {
           total_blocks: totalBlocks,
           completed_blocks: completedBlocks,
@@ -629,7 +557,7 @@ export async function GET(request: Request) {
           completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0
         },
         jurnal_count: userJurnalRecords.length,
-        weeks_with_jurnal: weeksWithJurnal,
+        weeks_with_jurnal: weeklyStatus.filter((w: any) => w.completed_blocks > 0).length,
         has_jurnal: userJurnalRecords.length > 0,
         latest_jurnal: latestJurnal ? {
           id: latestJurnal.id,
@@ -642,7 +570,6 @@ export async function GET(request: Request) {
           ...r,
           pekan: calculateWeekFromBlok(r.blok),
         })),
-        // SP summary
         sp_summary: latestSP ? {
           sp_level: latestSP.sp_level,
           week_number: latestSP.week_number,
@@ -656,48 +583,33 @@ export async function GET(request: Request) {
 
     const uniqueBloks = Array.from(allBloks).sort();
 
-    return NextResponse.json({
-      success: true,
-      data: combinedEntries,
-      meta: {
-        bloks: uniqueBloks,
-        current_week: currentWeek
-      }
-    });
-  } catch (error: any) {
-    console.error('Error in musyrifah jurnal API:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(combinedEntries, undefined, 200);
+  } catch (error) {
+    console.error('[Musyrifah Jurnal API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
 // POST - Create a new jurnal record
 export async function POST(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
     const supabase = createClient();
-
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const body = await request.json();
-
-    // Validate request body
     const validatedData = jurnalRecordSchema.parse(body);
 
-    // Check if user exists
     const { data: targetUser } = await supabase
       .from('users')
       .select('id')
       .eq('id', validatedData.user_id)
-      .single();
+      .maybeSingle();
 
     if (!targetUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return ApiResponses.notFound('User not found');
     }
 
-    // Create jurnal record
     const { data: newRecord, error } = await supabase
       .from('jurnal_records')
       .insert({
@@ -706,58 +618,46 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      throw error;
+      console.error('[Create Jurnal API] Database error:', error);
+      return ApiResponses.databaseError(error);
     }
 
-    return NextResponse.json({
-      success: true,
-      data: newRecord,
-    }, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating jurnal record:', error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(newRecord, 'Jurnal record created successfully', 201);
+  } catch (error) {
+    console.error('[Create Jurnal API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
 // PUT - Update an existing jurnal record
 export async function PUT(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
     const supabase = createClient();
-
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const body = await request.json();
     const { id, ...updateData } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Record ID is required', {}, 400);
     }
 
-    // Validate request body (partial validation for update)
     const validatedData = jurnalRecordSchema.partial().parse(updateData);
 
-    // Check if record exists
     const { data: existingRecord } = await supabase
       .from('jurnal_records')
       .select('id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existingRecord) {
-      return NextResponse.json({ error: 'Jurnal record not found' }, { status: 404 });
+      return ApiResponses.notFound('Jurnal record not found');
     }
 
-    // Update jurnal record
     const { data: updatedRecord, error } = await supabase
       .from('jurnal_records')
       .update({
@@ -766,78 +666,53 @@ export async function PUT(request: Request) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      throw error;
+      console.error('[Update Jurnal API] Database error:', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Revalidate paths to refresh cache
     revalidatePath('/panel-musyrifah');
     revalidatePath('/dashboard');
 
-    return NextResponse.json({
-      success: true,
-      data: updatedRecord,
-    });
-  } catch (error: any) {
-    console.error('Error updating jurnal record:', error);
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(updatedRecord, 'Jurnal record updated successfully');
+  } catch (error) {
+    console.error('[Update Jurnal API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
 // DELETE - Delete a jurnal record
 export async function DELETE(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
     const supabase = createClient();
-
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Record ID is required', {}, 400);
     }
 
-    // Check if record exists
-    const { data: existingRecord } = await supabase
-      .from('jurnal_records')
-      .select('id')
-      .eq('id', id)
-      .single();
-
-    if (!existingRecord) {
-      return NextResponse.json({ error: 'Jurnal record not found' }, { status: 404 });
-    }
-
-    // Delete jurnal record
     const { error } = await supabase
       .from('jurnal_records')
       .delete()
       .eq('id', id);
 
     if (error) {
-      throw error;
+      console.error('[Delete Jurnal API] Database error:', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Revalidate paths to refresh cache
     revalidatePath('/panel-musyrifah');
     revalidatePath('/dashboard');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Jurnal record deleted successfully',
-    });
-  } catch (error: any) {
-    console.error('Error deleting jurnal record:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success({ id }, 'Jurnal record deleted successfully');
+  } catch (error) {
+    console.error('[Delete Jurnal API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

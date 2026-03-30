@@ -9,9 +9,17 @@ let redis: Redis | null = null;
 try {
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     redis = Redis.fromEnv();
+  } else if (process.env.NODE_ENV === 'production') {
+    // In production, rate limiting must be active — log a startup warning
+    console.error(
+      '[rate-limiter] UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not set. ' +
+      'Rate limiting is DISABLED. Set these env vars to protect the application.'
+    );
+  } else {
+    console.warn('[rate-limiter] Redis not configured, using in-memory rate limiting (dev only).');
   }
 } catch (error) {
-  console.warn("Redis not configured, falling back to in-memory rate limiting");
+  console.warn('[rate-limiter] Failed to initialize Redis, falling back to in-memory rate limiting:', error);
 }
 
 // Create a new ratelimiter that allows 10 requests per 10 seconds
@@ -32,6 +40,13 @@ export const authRateLimit = redis ? new Ratelimit({
 export const generalApiRateLimit = redis ? new Ratelimit({
   redis: redis,
   limiter: Ratelimit.slidingWindow(100, "60 s"), // 100 requests per minute
+  analytics: true,
+}) : null;
+
+// For admin endpoints — per user ID to prevent DoS from compromised accounts
+export const adminRateLimit = redis ? new Ratelimit({
+  redis: redis,
+  limiter: Ratelimit.slidingWindow(200, "60 s"), // 200 requests per minute per admin
   analytics: true,
 }) : null;
 

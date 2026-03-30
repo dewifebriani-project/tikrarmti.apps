@@ -131,9 +131,9 @@ export default function DaftarUlangPage() {
 
         const regData = await regResponse.json()
 
-        // Only get registrations for thalibah (calon_thalibah), not muallimah or musyrifah
+        // Get registrations for thalibah
         const selectedRegistration = regData.data?.find(
-          (r: any) => r.selection_status === 'selected' && r.role === 'calon_thalibah'
+          (r: any) => r.selection_status === 'selected' && r.role === 'thalibah'
         )
 
         if (!selectedRegistration) {
@@ -2210,7 +2210,7 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
               Setujui Daftar Ulang
             </Button>
             <p className="text-xs text-gray-500 mt-2">
-              Menyetujui akan mengubah status menjadi 'approved', mengubah role dari 'calon_thalibah' menjadi 'thalibah', dan menambahkan thalibah ke halaqah.
+              Menyetujui akan mengubah status menjadi 'approved', memastikan user memiliki role 'thalibah', dan menambahkan thalibah ke halaqah.
             </p>
           </div>
         )}

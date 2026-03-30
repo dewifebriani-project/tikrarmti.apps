@@ -66,7 +66,6 @@ export function createClient(options?: {
         },
       },
       cookieOptions: {
-        name: 'sb-mti-session',
         path: '/',
         ...(domain ? { domain } : {}),
       },

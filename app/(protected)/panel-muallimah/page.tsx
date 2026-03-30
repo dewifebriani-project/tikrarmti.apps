@@ -148,9 +148,8 @@ export default function PanelMuallimahPage() {
     return 'registration';
   });
 
-  const isMuallimah: boolean = !authLoading && user?.roles?.includes('muallimah') === true;
   const isAdmin: boolean = !authLoading && user?.roles?.includes('admin') === true;
-  const canAccess: boolean = isMuallimah || isAdmin;
+  const canAccess: boolean = isAdmin;
 
   // Data hooks
   const { registration, isLoading: registrationLoading, mutate: mutateRegistration } = useMuallimahRegistration(!authLoading && canAccess);
@@ -185,7 +184,7 @@ export default function PanelMuallimahPage() {
     console.log('Auth loading:', authLoading);
     console.log('User:', user);
     console.log('User roles:', user?.roles);
-    console.log('Is Muallimah:', isMuallimah);
+    console.log('Is Admin:', isAdmin);
     console.log('Is Admin:', isAdmin);
     console.log('Can Access:', canAccess);
 
@@ -194,14 +193,14 @@ export default function PanelMuallimahPage() {
         console.log('No user found, redirecting to login');
         router.push('/login');
       } else if (!canAccess) {
-        console.log('User is not muallimah or admin, roles:', user.roles);
+        console.log('User is not authorized (admin required), roles:', user.roles);
         router.push('/dashboard');
       } else {
-        console.log('Access granted:', isAdmin ? 'Admin' : 'Muallimah');
+        console.log('Admin access granted to muallimah panel');
         setLoading(false);
       }
     }
-  }, [user, authLoading, router, isMuallimah, isAdmin, canAccess]);
+  }, [user, authLoading, router, isAdmin, canAccess]);
 
   const handleCreateHalaqah = async (e: React.FormEvent) => {
     e.preventDefault();

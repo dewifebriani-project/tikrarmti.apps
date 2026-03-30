@@ -1,144 +1,120 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { createSupabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { ApiResponses } from '@/lib/api-responses';
+import { requireAdmin, getAuthorizationContext } from '@/lib/rbac';
 import { logAudit, getClientIp, getUserAgent } from '@/lib/audit-log';
 
-const supabaseAdmin = createSupabaseAdmin();
-
-export async function GET(request: NextRequest) {
+/**
+ * GET /api/admin/users
+ *
+ * List all users with pagination, search, and filtering.
+ * Requires admin role.
+ */
+export async function GET(request: Request) {
   try {
-    // Use Supabase SSR client to get session (same as middleware)
-    const supabase = createServerClient();
+    // 1. Authorization check
+    const authError = await requireAdmin();
+    if (authError) return authError;
 
-    // Get user session
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const context = await getAuthorizationContext();
+    if (!context) return ApiResponses.unauthorized('Unable to get authorization context');
 
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      return NextResponse.json({
-        error: 'Unauthorized - Invalid session. Please login again.',
-        needsLogin: true
-      }, { status: 401 });
-    }
+    // 2. Parse query parameters
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(parseInt(searchParams.get('page') || '1'), 1);
+    const pageSize = Math.max(Math.min(parseInt(searchParams.get('pageSize') || '50'), 100), 1);
+    const search = searchParams.get('search');
+    const role = searchParams.get('role');
+    const status = searchParams.get('status');
+    const sortBy = searchParams.get('sortBy');
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    // Check if user is admin using admin client
-    const { data: userData, error: dbError } = await supabaseAdmin
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    // WORKAROUND: Use specific settings for supabase client if needed, 
+    // but usually createSupabaseAdmin is preferred for admin routes.
+    // However, some routes prefer anon key if RLS allows it even for admins 
+    // to track the specific admin user in audit logs via session.
+    // In this case, we use service role (supabaseAdmin) for full user management.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    // 3. Build query
+    let query = supabase
       .from('users')
-      .select('roles')
-      .eq('id', user.id)
-      .single();
+      .select('*', { count: 'exact' });
 
-    if (dbError || !userData || !userData.roles?.includes('admin')) {
-      console.error('Admin check failed:', dbError, userData);
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    if (search) {
+      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,whatsapp.ilike.%${search}%`);
     }
 
-    // Get all users with their Tikrar batch info using admin client (bypasses RLS)
-    console.log('Fetching users...');
+    if (role && role !== 'all') {
+      query = query.contains('roles', [role]);
+    }
 
-    // Try to fetch with relationships first
-    let users;
-    let fetchError;
-
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('users')
-        .select(`
-          *,
-          current_batch:batches!users_current_tikrar_batch_id_fkey(
-            id,
-            name,
-            start_date,
-            end_date,
-            status
-          ),
-          tikrar_registrations:pendaftaran_tikrar_tahfidz!pendaftaran_tikrar_tahfidz_user_id_fkey(
-            id,
-            batch_id,
-            batch_name,
-            status,
-            selection_status,
-            re_enrollment_completed
-          ),
-          daftar_ulang_submissions:daftar_ulang_submissions!daftar_ulang_submissions_user_id_fkey(
-            id,
-            user_id,
-            batch_id,
-            registration_id,
-            status,
-            submitted_at,
-            reviewed_at
-          ),
-          muallimah_registrations:muallimah_registrations!muallimah_registrations_user_id_fkey(
-            id,
-            batch_id,
-            status
-          ),
-          musyrifah_registrations:musyrifah_registrations!musyrifah_registrations_user_id_fkey(
-            id,
-            batch_id,
-            status
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.warn('Error fetching users with relationships:', error);
-        fetchError = error;
-      } else if (data) {
-        // Map the response to flatten current_batch (it comes as array from Supabase)
-        users = data.map((user: any) => ({
-          ...user,
-          current_tikrar_batch: user.current_batch?.[0] || null,
-          current_batch: undefined,
-        }));
-        console.log(`Successfully fetched ${users?.length || 0} users with relationships`);
+    if (status && status !== 'all') {
+      if (status === 'blacklisted') {
+        query = query.eq('is_blacklisted', true);
+      } else if (status === 'active') {
+        query = query.eq('is_active', true).eq('is_blacklisted', false);
+      } else if (status === 'inactive') {
+        query = query.eq('is_active', false);
       }
-    } catch (err: any) {
-      console.warn('Exception fetching users with relationships:', err);
-      fetchError = err;
     }
 
-    // If relationship fetch failed, try without relationships
-    if (fetchError || !users) {
-      console.log('Retrying without relationships...');
-      const { data, error } = await supabaseAdmin
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
+    if (sortBy) {
+      query = query.order(sortBy as any, { ascending: sortOrder === 'asc' });
+    }
+    
+    query = query.range(from, to);
 
-      if (error) {
-        console.error('Error fetching users (fallback):', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        return NextResponse.json({
-          error: 'Failed to fetch users',
-          details: error.message,
-          code: error.code,
-          hint: error.hint
-        }, { status: 500 });
-      }
+    const { data: users, error, count } = await query;
 
-      users = data;
-      console.log(`Successfully fetched ${users?.length || 0} users (without relationships)`);
+    if (error) {
+      console.error('[Admin Users API] Query error:', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Audit log for users list access
+    const formattedUsers = users || [];
+    const totalCount = count || 0;
+    
+    console.log('[DEBUG Admin Users API] users data type:', Array.isArray(users) ? 'array' : typeof users);
+    console.log('[DEBUG Admin Users API] users length:', users?.length);
+    console.log('[DEBUG Admin Users API] count:', count);
+    console.log('[DEBUG Admin Users API] from / to:', from, '/', to);
+
+    // 4. Audit log
     await logAudit({
-      userId: user.id,
+      userId: context.userId,
       action: 'READ',
       resource: 'users',
       details: {
-        count: users?.length || 0,
-        with_relationships: !!users?.[0]?.current_tikrar_batch
+        page,
+        pageSize,
+        search: search || null,
+        role: role || 'all',
+        status: status || 'all',
+        resultCount: formattedUsers.length,
+        totalCount
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
       level: 'INFO'
     });
 
-    return NextResponse.json({ users: users || [] });
-  } catch (error: any) {
-    console.error('Error in admin users API:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success({
+      users: formattedUsers,
+      pagination: {
+        page,
+        pageSize,
+        totalCount,
+        totalPages: totalCount ? Math.ceil(totalCount / pageSize) : 0
+      }
+    });
+
+  } catch (error) {
+    console.error('[Admin Users API] Unexpected error:', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

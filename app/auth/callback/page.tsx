@@ -1,461 +1,84 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Crown } from "lucide-react";
-import { debugOAuth } from '@/lib/oauth-debug';
-import { getDeviceInfo, getAuthTimeout, shouldUseOptimizedOAuth } from '@/lib/platform-detection';
+import { Suspense } from 'react';
 
 function AuthCallbackContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let isHandled = false;
-    const handleCallback = async () => {
-      // Prevent multiple executions
-      if (isHandled) return;
-      isHandled = true;
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    if (error) {
+      window.location.replace(`/login?error=${encodeURIComponent(errorDescription || error)}`);
+      return;
+    }
 
-      // Log callback initiation with all URL details
-      debugOAuth('Callback Initiated', {
-        currentUrl: window.location.href,
-        searchParams: Object.fromEntries(searchParams.entries()),
-        hash: window.location.hash,
-        origin: window.location.origin,
-        cookies: document.cookie.split('; ').map(c => c.split('=')[0]).filter(c => c.includes('mti') || c.includes('sb-'))
-      });
+    const type = searchParams.get('type');
+    const supabase = createClient();
 
-      try {
-        setLoading(true);
+    let redirected = false;
+    const redirectOnce = (session: any) => {
+      if (redirected) return;
+      redirected = true;
 
-        const urlParams = Object.fromEntries(searchParams.entries());
-        const hash = typeof window !== 'undefined' ? window.location.hash : '';
-        const hashParams = new URLSearchParams(hash.substring(1));
-        const hashTokens = Object.fromEntries(hashParams.entries());
-
-        // Log all cookies for debugging (sensitive info masked)
-        console.log('[Auth Callback] ALL COOKIE NAMES:', document.cookie.split(';').map(c => c.split('=')[0].trim()));
-        const verifierCookie = document.cookie.split('; ').find(row => row.startsWith('sb-mti-session-code-verifier'));
-        console.log('[Auth Callback] Code Verifier Cookie Present:', !!verifierCookie);
-
-        // Log the full URL details for debugging
-        console.log('[Auth Callback] FULL URL:', window.location.href);
-        console.log('[Auth Callback] SEARCH PARAMS:', urlParams);
-        console.log('[Auth Callback] HASH FRAGMENT:', hash);
-        console.log('[Auth Callback] HASH PARAMS:', hashTokens);
-
-        // Check for error in URL
-        const errorParam = searchParams.get('error') || hashParams.get('error');
-        const errorDesc = searchParams.get('error_description') || hashParams.get('error_description');
-        
-        if (errorParam) {
-          debugOAuth('Callback Error', { error: errorParam, description: errorDesc });
-          console.error('[Auth Callback] ERROR IN URL:', errorParam, errorDesc);
-          setError(`Authentication error: ${errorDesc || errorParam}`);
-          setLoading(false);
-          return;
-        }
-
-        // Identify recovery flow - could be in query (PKCE) or hash (Implicit)
-        const typeQuery = searchParams.get('type');
-        const typeHash = hashParams.get('type');
-        const isRecovery = typeQuery === 'recovery' || typeHash === 'recovery';
-        
-        console.log('[Auth Callback] FLOW DETECTION:', { 
-          isRecovery, 
-          typeQuery, 
-          typeHash,
-          hasCode: !!searchParams.get('code'),
-          hasHashAccessToken: !!hashParams.get('access_token')
-        });
-
-        // FIRST: Handle hash fragment (Implicit Flow)
-        if (hash) {
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          if (accessToken) {
-            console.log('[Auth Callback] Implicit flow detected, setting session...');
-
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-
-            if (sessionError) {
-              console.error('[Auth Callback] Error setting session from hash:', sessionError);
-              setError(`Gagal membuat session: ${sessionError.message}`);
-              setLoading(false);
-              return;
-            }
-
-            if (isRecovery) {
-              console.log('[Auth Callback] Recovery session set via hash, redirecting to reset-password...');
-              window.location.replace('/reset-password');
-              return;
-            }
-
-            // Normal OAuth / Magic Link login via hash
-            console.log('[Auth Callback] Session set successfully, syncing to server...');
-
-            if (!sessionData.session?.user?.email) {
-              setError('Authentication failed. No user email found.');
-              setLoading(false);
-              return;
-            }
-
-            // Clear hash from URL
-            window.history.replaceState(null, '', window.location.pathname);
-
-            // Session is set, set server-side cookies first
-            const userEmail = sessionData.session.user.email;
-            const userId = sessionData.session.user.id;
-            const fullName = sessionData.session.user.user_metadata?.full_name || sessionData.session.user.user_metadata?.name;
-
-            console.log('User authenticated:', userEmail);
-
-            // Set server-side cookies for middleware authentication
-            try {
-              await fetch('/api/auth/set-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  access_token: accessToken,
-                  refresh_token: refreshToken || '',
-                }),
-              });
-              console.log('Server-side cookies set successfully');
-            } catch (err) {
-              console.error('Failed to set server-side cookies:', err);
-              // Continue anyway - client-side session is already set
-            }
-
-            // Ensure user exists in database BEFORE redirect
-            try {
-              const device = getDeviceInfo();
-              const provider = sessionData.session.user.app_metadata?.provider || 'email';
-
-              if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
-                console.log('Skipping ensure-user for optimized OAuth flow');
-              } else {
-                const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-                await fetch('/api/auth/ensure-user', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
-                  signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-              }
-            } catch (err: any) {
-              if (err.name === 'AbortError') {
-                console.warn('Ensure-user call timed out, continuing anyway');
-              } else {
-                console.error('Failed to ensure user:', err);
-              }
-            }
-
-            sessionStorage.removeItem('oauth_from_localhost');
-            console.log('Redirecting to dashboard...');
-
-            window.location.replace('/dashboard');
-            return;
-          }
-        }
-
-        // SECOND: Handle authorization code (PKCE Flow)
-        const code = searchParams.get('code');
-
-        if (code) {
-          console.log('[Auth Callback] PKCE flow detected, exchanging code for session...');
-
-          // Exchange code for session using PKCE
-          const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-          if (exchangeError) {
-            console.error('Error exchanging code for session:', exchangeError);
-            
-            if (isRecovery) {
-              setError('Link reset password sudah kadaluarsa atau tidak valid. Silakan gunakan fitur "Lupa Password" untuk meminta link baru.');
-            } else {
-              setError(`Failed to authenticate: ${exchangeError.message}`);
-            }
-            setLoading(false);
-            return;
-          }
-
-          if (!exchangeData.session?.user?.email) {
-            setError('Authentication failed. No user email found.');
-            setLoading(false);
-            return;
-          }
-
-          // If this is a password recovery, redirect to reset-password page
-          if (isRecovery) {
-            console.log('Password recovery via PKCE detected, redirecting to reset-password...');
-            window.location.replace('/reset-password');
-            return;
-          }
-
-          // Session is now set, set server-side cookies first
-          const userEmail = exchangeData.session.user.email;
-          const userId = exchangeData.session.user.id;
-          const fullName = exchangeData.session.user.user_metadata?.full_name || exchangeData.session.user.user_metadata?.name;
-
-          console.log('User authenticated:', userEmail);
-
-          // Set server-side cookies for middleware authentication
-          try {
-            await fetch('/api/auth/set-session', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                access_token: exchangeData.session.access_token,
-                refresh_token: exchangeData.session.refresh_token,
-              }),
-            });
-            console.log('Server-side cookies set successfully');
-          } catch (err) {
-            console.error('Failed to set server-side cookies:', err);
-            // Continue anyway - client-side session is already set
-          }
-
-          // Ensure user exists in database BEFORE redirect - with platform optimization
-          try {
-            const device = getDeviceInfo();
-            const provider = exchangeData.session.user.app_metadata?.provider || 'google';
-
-            // Skip ensure-user for mobile/tablet OAuth to speed up authentication
-            if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
-              console.log('Skipping ensure-user for optimized OAuth flow');
-            } else {
-              // Add timeout for ensure-user call
-              const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-              await fetch('/api/auth/ensure-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
-                signal: controller.signal
-              });
-
-              clearTimeout(timeoutId);
-            }
-          } catch (err: any) {
-            if (err.name === 'AbortError') {
-              console.warn('Ensure-user call timed out, continuing anyway');
-            } else {
-              console.error('Failed to ensure user:', err);
-            }
-            // Continue anyway - user might already exist
-          }
-
-          sessionStorage.removeItem('oauth_from_localhost');
-          console.log('Redirecting to dashboard...');
-
-          // Redirect after ensuring user exists
-          window.location.replace('/dashboard');
-          return;
-        }
-
-        // If no code or hash, try to get existing user session
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (userError || !user?.email) {
-          setError('No authorization code or session found. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        // At this point we have a valid user session - set server-side cookies first
-        const userEmail = user.email;
-        const userId = user.id;
-        const fullName = user.user_metadata?.full_name || user.user_metadata?.name;
-
-        console.log('User authenticated:', userEmail);
-
-        if (!userEmail) {
-          throw new Error('User email is required');
-        }
-
-        // Get session tokens for server-side cookies
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-          setError('Failed to get session tokens. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        // Set server-side cookies for middleware authentication
-        try {
-          await fetch('/api/auth/set-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              access_token: session.access_token,
-              refresh_token: session.refresh_token,
-            }),
-          });
-          console.log('Server-side cookies set successfully');
-        } catch (err) {
-          console.error('Failed to set server-side cookies:', err);
-          // Continue anyway - client-side session is already set
-        }
-
-        // Ensure user exists in database BEFORE redirect - with platform optimization
-        try {
-          const device = getDeviceInfo();
-          const provider = user.app_metadata?.provider || 'email';
-
-          // Skip ensure-user for mobile/tablet OAuth to speed up authentication
-          if (shouldUseOptimizedOAuth() && (provider === 'google' || provider === 'apple')) {
-            console.log('Skipping ensure-user for optimized OAuth flow');
-          } else {
-            // Add timeout for ensure-user call
-            const timeout = getAuthTimeout(device.isSlowConnection ? 5000 : 3000);
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-            await fetch('/api/auth/ensure-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId, email: userEmail, full_name: fullName, provider }),
-              signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-          }
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            console.warn('Ensure-user call timed out, continuing anyway');
-          } else {
-            console.error('Failed to ensure user:', err);
-          }
-          // Continue anyway - user might already exist
-        }
-
-        // Clear sessionStorage
-        sessionStorage.removeItem('oauth_from_localhost');
-
-        // Redirect after ensuring user exists
-        console.log('Redirecting to dashboard...');
-
-        // Use window.location.replace for immediate redirect (fastest, no history entry)
+      // detectSessionInUrl (built into createBrowserClient) already stored the
+      // session in browser cookies. Those cookies are sent with every request,
+      // so the server can read them directly — no extra set-session call needed.
+      if (type === 'recovery') {
+        window.location.replace('/reset-password');
+      } else {
         window.location.replace('/dashboard');
-        return;
-
-      } catch (err: any) {
-        console.error('Auth callback error:', err);
-        setError(err.message || 'An unexpected error occurred during authentication');
-        setLoading(false);
-        sessionStorage.removeItem('oauth_from_localhost');
       }
     };
 
-    handleCallback();
-  }, [router, searchParams]);
+    // detectSessionInUrl (built into createBrowserClient) auto-exchanges the
+    // ?code= param when the client initializes. We just listen for the result.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        redirectOnce(session);
+      } else if (event === 'SIGNED_OUT') {
+        window.location.replace('/login?error=Authentication+failed');
+      }
+    });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-900 to-yellow-600 rounded-2xl flex items-center justify-center">
-              <Crown className="w-8 h-8 text-white animate-pulse" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-green-900 mb-4">
-            Mengautentikasi...
-          </h1>
-          <p className="text-gray-600 mb-6 text-sm">
-            Mohon tunggu sebentar
-          </p>
-          <div className="flex justify-center">
-            <div className="w-8 h-8 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </div>
+    // In case detectSessionInUrl already completed before the subscription was set
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        redirectOnce(session);
+      }
+    });
+
+    // Timeout fallback: if nothing happens in 10s, redirect to login
+    const timeout = setTimeout(() => {
+      if (!redirected) {
+        window.location.replace('/login?error=Authentication+timeout');
+      }
+    }, 10000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-green-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600">Mengautentikasi...</p>
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-red-900 mb-4">
-            Autentikasi Gagal
-          </h1>
-          <p className="text-gray-600 mb-4">
-            {error}
-          </p>
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg text-left text-xs border border-gray-200 font-mono">
-            <p className="font-bold mb-2 text-gray-700">DIAGNOSTIC INFO (Screenshot this):</p>
-            <p className="mb-1 text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">
-              ORIGIN: {typeof window !== 'undefined' ? window.location.origin : '...'}
-            </p>
-            <p className="mb-1 text-gray-500">
-              PATH: {typeof window !== 'undefined' ? window.location.pathname : '...'}
-            </p>
-            <p className="mb-1 text-gray-500">
-              CODE: {typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('code') ? 'PRESENT' : 'MISSING') : '...'}
-            </p>
-            <p className="text-gray-500 break-all">
-              COOKIES: {typeof document !== 'undefined' ? (document.cookie.split(';').map(c => c.split('=')[0].trim()).filter(c => c.includes('sb-mti') || c.includes('mti') || c.includes('pkce')).join(', ') || 'NONE') : '...'}
-            </p>
-          </div>
-          <button
-            onClick={() => router.push('/login')}
-            className="px-6 py-3 bg-green-900 text-white rounded-lg hover:bg-green-800 transition-colors"
-          >
-            Kembali ke Halaman Login
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }
 
-export default function AuthCallback() {
+export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-900 to-yellow-600 rounded-2xl flex items-center justify-center">
-              <Crown className="w-8 h-8 text-white animate-pulse" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold text-green-900 mb-4">
-            Memuat...
-          </h1>
-          <div className="flex justify-center">
-            <div className="w-8 h-8 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </div>
+        <div className="w-10 h-10 border-2 border-green-900 border-t-transparent rounded-full animate-spin"></div>
       </div>
     }>
       <AuthCallbackContent />

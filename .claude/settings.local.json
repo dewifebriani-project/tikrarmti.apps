@@ -207,7 +207,11 @@
       "Bash(git -C \"d:\\\\tikrarmti.apps\" commit -m \"$\\(cat <<''EOF''\nfix: Replace Map/Set iteration with compatible methods\n\nUse Array.from\\(\\) and .concat\\(\\) instead of spread operators for Set/Map to avoid TypeScript downlevelIteration error.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git -C \"d:\\\\tikrarmti.apps\" log --oneline -3)",
       "Bash(git ls-tree HEAD .env.local)",
-      "Bash(wc -l \"d:\\\\01_PROJECTS\\\\tikrarmti.apps\\\\app\\\\\\(protected\\)\\\\profile\\\\page.tsx\")"
+      "Bash(wc -l \"d:\\\\01_PROJECTS\\\\tikrarmti.apps\\\\app\\\\\\(protected\\)\\\\profile\\\\page.tsx\")",
+      "Bash(where pg_dump)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" --host=db.nmbvklixthlqtkkgqnjl.supabase.co --port=5432 --username=postgres --dbname=postgres --no-owner --no-privileges --file=tikrar_backup.sql)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" \"postgresql://postgres:N379kjM491XzNcVQ@db.nmbvklixthlqtkkgqnjl.supabase.co:5432/postgres\" --no-owner --no-privileges --file=tikrar_backup.sql)",
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" \"postgresql://postgres.Nmbvklixthlqtkkgqnjl:N379kjM491XzNcVQ@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres\" --no-owner --no-privileges --file=tikrar_backup.sql)"
     ],
     "deny": [],
     "ask": []

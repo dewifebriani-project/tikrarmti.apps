@@ -107,7 +107,7 @@ export async function createUser(data: CreateUserData) {
     const userData = {
       email: data.email.toLowerCase().trim(),
       full_name: data.full_name || '',
-      role: data.role || 'calon_thalibah',
+      role: data.role || 'thalibah',
       whatsapp: data.whatsapp || null,
       telegram: data.telegram || null,
       provinsi: data.provinsi || null,

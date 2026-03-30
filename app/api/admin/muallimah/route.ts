@@ -20,20 +20,31 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Check if user is admin using admin client
-    const { data: userData, error: dbError } = await supabaseAdmin
+    // Check if user is admin - more robust check
+    const { data: userRecords, error: dbError } = await supabaseAdmin
       .from('users')
       .select('roles')
-      .eq('id', user.id)
-      .single();
+      .eq('email', user.email);
+
+    const userData = userRecords && userRecords.length > 0 ? userRecords[0] : null;
 
     if (dbError || !userData || !userData.roles?.includes('admin')) {
-      console.error('Admin check failed:', dbError, userData);
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
+      // Fallback to auth metadata roles
+      const authRoles = user.app_metadata?.roles || user.user_metadata?.roles || [];
+      if (!authRoles.includes('admin')) {
+        console.error('[Muallimah API] Admin check failed:', {
+          email: user.email,
+          dbError: dbError?.message,
+          count: userRecords?.length || 0,
+          userData
+        });
+        return NextResponse.json(
+          { error: 'Forbidden - Admin access required' },
+          { status: 403 }
+        );
+      }
     }
+
 
     // Get pagination parameters from query string
     const { searchParams } = new URL(request.url);

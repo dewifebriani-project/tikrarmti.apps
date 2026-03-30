@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
+import { ApiResponses } from '@/lib/api-responses';
 
 // Helper function to parse blok field (can be string or array)
 function parseBlokField(blok: any): string[] {
@@ -93,42 +94,13 @@ function calculateWeeklyStatus(allBlocks: any[], tashihRecords: any[]) {
   return weeklyStatus;
 }
 
-// Helper function to verify musyrifah access
-async function verifyMusyrifahAccess(supabase: any) {
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('roles')
-    .eq('id', user.id)
-    .single();
-
-  if (userError || !userData) {
-    return { error: 'User not found', status: 404 };
-  }
-
-  const roles = userData?.roles || [];
-  if (!roles.includes('musyrifah')) {
-    return { error: 'Forbidden: Musyrifah access required', status: 403 };
-  }
-
-  return { user };
-}
-
 export async function GET(request: Request) {
   try {
+    // 1. Authorization check - Standardized via requireAnyRole
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
     const supabase = createClient();
-
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
-    // Get URL parameters for filtering
     const { searchParams } = new URL(request.url);
     const blok = searchParams.get('blok');
 
@@ -139,16 +111,13 @@ export async function GET(request: Request) {
       .in('status', ['approved', 'submitted']);
 
     if (daftarUlangError) {
-      throw daftarUlangError;
+      console.error('[Musyrifah Tashih API] Database error (daftar_ulang):', daftarUlangError);
+      return ApiResponses.databaseError(daftarUlangError);
     }
 
     const userIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
     if (userIds.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: [],
-        meta: { bloks: [] }
-      });
+      return ApiResponses.success([], 'No thalibah found');
     }
 
     // Fetch user data separately
@@ -175,6 +144,11 @@ export async function GET(request: Request) {
       .order('waktu_tashih', { ascending: false });
 
     const { data: allTashihRecords, error: tashihError } = await tashihQuery;
+
+    if (tashihError) {
+      console.error('[Musyrifah Tashih API] Database error (tashih_records):', tashihError);
+      return ApiResponses.databaseError(tashihError);
+    }
 
     let tashihRecords = allTashihRecords || [];
     if (blok) {
@@ -273,50 +247,40 @@ export async function GET(request: Request) {
 
     const uniqueBloks = Array.from(allBloks).sort();
 
-    return NextResponse.json({
-      success: true,
-      data: combinedEntries,
-      meta: {
-        bloks: uniqueBloks,
-      }
-    });
-  } catch (error: any) {
-    console.error('Error in musyrifah tashih API:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(combinedEntries, undefined, 200);
+  } catch (error) {
+    console.error('[Musyrifah Tashih API] Unexpected error (GET):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
-// PUT - Update a tashih record (e.g., remove a specific block from multi-block record)
+// PUT - Update a tashih record
 export async function PUT(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
     const supabase = createClient();
-
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const body = await request.json();
     const { id, blok } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Record ID is required', {}, 400);
     }
 
     if (blok === undefined || blok === null) {
-      return NextResponse.json({ error: 'Blok field is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Blok field is required', {}, 400);
     }
 
     // Check if record exists
     const { data: existingRecord } = await supabase
       .from('tashih_records')
-      .select('*')
+      .select('id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existingRecord) {
-      return NextResponse.json({ error: 'Tashih record not found' }, { status: 404 });
+      return ApiResponses.notFound('Tashih record not found');
     }
 
     // Update the blok field
@@ -325,44 +289,36 @@ export async function PUT(request: Request) {
       .update({ blok: blok || null })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      throw error;
+      console.error('[Musyrifah Tashih API] Database error (PUT):', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Revalidate paths to refresh cache
     revalidatePath('/panel-musyrifah');
     revalidatePath('/tashih');
     revalidatePath('/dashboard');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Tashih record berhasil diupdate',
-      data: updatedRecord,
-    });
-  } catch (error: any) {
-    console.error('Error updating tashih record:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success(updatedRecord, 'Tashih record berhasil diupdate');
+  } catch (error) {
+    console.error('[Musyrifah Tashih API] Unexpected error (PUT):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }
 
 // DELETE - Delete a tashih record
 export async function DELETE(request: Request) {
   try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
     const supabase = createClient();
-
-    // Verify musyrifah access
-    const authResult = await verifyMusyrifahAccess(supabase);
-    if (authResult.error) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Record ID is required' }, { status: 400 });
+      return ApiResponses.error('VALIDATION_ERROR', 'Record ID is required', {}, 400);
     }
 
     // Check if record exists
@@ -370,10 +326,10 @@ export async function DELETE(request: Request) {
       .from('tashih_records')
       .select('id, user_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existingRecord) {
-      return NextResponse.json({ error: 'Tashih record not found' }, { status: 404 });
+      return ApiResponses.notFound('Tashih record not found');
     }
 
     // Delete tashih record
@@ -383,20 +339,17 @@ export async function DELETE(request: Request) {
       .eq('id', id);
 
     if (error) {
-      throw error;
+      console.error('[Musyrifah Tashih API] Database error (DELETE):', error);
+      return ApiResponses.databaseError(error);
     }
 
-    // Revalidate paths to refresh cache
     revalidatePath('/panel-musyrifah');
     revalidatePath('/tashih');
     revalidatePath('/dashboard');
 
-    return NextResponse.json({
-      success: true,
-      message: 'Tashih record berhasil dihapus',
-    });
-  } catch (error: any) {
-    console.error('Error deleting tashih record:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return ApiResponses.success({ id }, 'Tashih record berhasil dihapus');
+  } catch (error) {
+    console.error('[Musyrifah Tashih API] Unexpected error (DELETE):', error);
+    return ApiResponses.handleUnknown(error);
   }
 }

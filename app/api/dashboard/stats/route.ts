@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { DashboardStats } from '@/hooks/useDashboard'
+import { requireAdmin } from '@/lib/rbac'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const response = new NextResponse()
+    const authResult = await requireAdmin(response)
+    if (authResult) return authResult
+
+    const supabase = createClient({ response })
 
     // Get total users count
     const { count: totalUsers, error: usersError } = await supabase
