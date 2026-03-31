@@ -3,6 +3,13 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
+  
+  // DEBUG LOGGING
+  const params: Record<string, string> = {};
+  searchParams.forEach((value, key) => { params[key] = value; });
+  console.log('[auth/callback] FULL URL:', request.url);
+  console.log('[auth/callback] PARAMS:', params);
+
   const code = searchParams.get('code');
   // "next" is the dynamic redirect path as standard in Supabase workflows.
   const next = searchParams.get('next') ?? '/dashboard';
