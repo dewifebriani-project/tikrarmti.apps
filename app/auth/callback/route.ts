@@ -18,19 +18,24 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const supabase = createClient();
+    // Initial response to be populated with session cookies
+    let response = NextResponse.next({ request: { headers: request.headers } });
+    
+    // Pass the response object to createClient so cookies are attached!
+    const supabase = createClient({ response });
     
     // Server-side exchange of the OAuth / Recovery code for a session.
-    // This allows @supabase/ssr to set the chunked cookies deterministically on the server response!
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    console.log('[auth/callback] Exchanging code for session...');
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data.user) {
-      
+    if (exchangeError) {
+      console.error('[auth/callback] Exchange code failed:', exchangeError.message, exchangeError.status);
+      return NextResponse.redirect(`${origin}/login?error=Authentication+failed&reason=${encodeURIComponent(exchangeError.message)}`);
+    }
+
+    if (data.user) {
       // Automatic Profile Creation for Google OAuth Users
-      // When a new user logs in via Google, they bypass the manual registration,
-      // so we must ensure they have a record in `public.users` to receive a role.
       try {
-        // Query to see if they exist yet
         const { error: userError } = await supabase
           .from('users')
           .select('id')
@@ -39,7 +44,6 @@ export async function GET(request: NextRequest) {
 
         if (userError && userError.code === 'PGRST116') {
           console.log('[auth/callback] Creating new user profile for:', data.user.email);
-          // Insert missing user profile
           await supabase
             .from('users')
             .insert({
@@ -56,13 +60,16 @@ export async function GET(request: NextRequest) {
 
       // Route handling depending on the workflow triggered
       if (type === 'recovery') {
+        console.log('[auth/callback] Recovery detected, redirecting to reset-password');
         return NextResponse.redirect(`${origin}/reset-password`);
       }
       
+      console.log('[auth/callback] Success, redirecting to:', next);
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  // If no code is present, or exchangeCodeForSession failed
+  // If no code is present or no user data
+  console.warn('[auth/callback] No code present or data.user is missing');
   return NextResponse.redirect(`${origin}/login?error=Authentication+failed`);
 }

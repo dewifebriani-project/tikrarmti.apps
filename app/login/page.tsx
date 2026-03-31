@@ -378,7 +378,7 @@ function LoginPageContent() {
                       <span>Memproses...</span>
                     </div>
                   ) : (
-                    <span className="font-semibold">Masuk</span>
+                    <span className="font-semibold text-white">Bismillah, Masuk</span>
                   )}
                 </Button>
               </form>

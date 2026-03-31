@@ -42,7 +42,6 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/admin',
     '/panel-musyrifah',
     '/panel-muallimah',
-    '/debug',
   ];
 
   // Check if current route is an auth route
@@ -56,11 +55,6 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
 
   // Combine pendaftaran routes with authenticated routes
   const requiresAuth = isAuthenticatedRoute || isPendaftaranRoute;
-
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!isMounted) {
-    return <>{children}</>;
-  }
 
   // Use donasi layout for donasi dashboard
   if (pathname === '/donasi-dashboard') {

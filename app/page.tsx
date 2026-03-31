@@ -25,11 +25,11 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="min-h-[80vh] sm:min-h-screen flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30 pt-16 sm:pt-20 lg:pt-20">
+      <section className="min-h-[70vh] sm:min-h-[85vh] flex items-center justify-center relative bg-gradient-to-br from-green-50/50 via-white to-yellow-50/30 pt-12 sm:pt-16 lg:pt-16">
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10">
   
           {/* Simple Badge */}
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-2 sm:mb-4">
             <Badge className="bg-green-900 text-white border-0 px-4 sm:px-6 py-2 sm:py-3 text-sm font-semibold shadow-lg">
               <Crown className="w-4 h-4 mr-2" />
               Program Tahfidz Gratis
@@ -37,25 +37,25 @@ export default function Home() {
           </div>
 
           {/* Clean Heading */}
-          <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold text-black mb-6 sm:mb-8 leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-black mb-4 sm:mb-6 leading-tight">
             Wujudkan Mimpi
             <span className="block bg-gradient-to-r from-green-900 via-green-800 to-yellow-600 bg-clip-text text-transparent mt-1 sm:mt-2 font-extrabold">Menjadi Hafidzah</span>
           </h2>
 
           {/* Concise Description */}
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-2xl sm:max-w-3xl mx-auto mb-4 sm:mb-6 leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-xl text-gray-700 max-w-2xl sm:max-w-3xl mx-auto mb-2 sm:mb-3 leading-relaxed">
             dengan Niat Bulat dan Komitmen Jangka Panjang
           </p>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-xl sm:max-w-3xl mx-auto mb-8 sm:mb-16 leading-relaxed">
+          <p className="text-base sm:text-lg md:text-lg text-gray-600 max-w-xl sm:max-w-3xl mx-auto mb-6 sm:mb-10 leading-relaxed">
             Metode Tikrar 40x: Pembelajaran Intensif, Terstruktur, dan Menghasilkan Hafalan Kuat.
           </p>
 
           {/* Action Button */}
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-12 sm:mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center mb-10 sm:mb-12">
             <Button
               asChild
               size="lg"
-              className="bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-12 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+              className="bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-10 sm:px-12 py-5 sm:py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
             >
               <Link href="/register" className="flex items-center gap-3">
                 <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
@@ -66,7 +66,7 @@ export default function Home() {
               asChild
               variant="outline"
               size="lg"
-              className="border-2 border-green-900 text-green-900 hover:bg-green-50 px-12 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+              className="border-2 border-green-900 text-green-900 hover:bg-green-50 px-10 sm:px-12 py-5 sm:py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
             >
               <Link href="/metode" className="flex items-center gap-3">
                 <Star className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
@@ -77,7 +77,7 @@ export default function Home() {
               asChild
               variant="ghost"
               size="lg"
-              className="text-green-900 hover:bg-green-50 px-8 py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
+              className="text-green-900 hover:bg-green-50 px-6 sm:px-8 py-5 sm:py-6 text-lg font-semibold rounded-2xl transition-all duration-300 hover:scale-105"
             >
               <a href="#faq" className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-3">
@@ -93,17 +93,17 @@ export default function Home() {
 
           {/* Quick Login */}
           <div className="text-center">
-            <p className="text-gray-600 mb-4 text-base sm:text-lg">Sudah bergabung?</p>
+            <p className="text-gray-600 mb-2 sm:mb-3 text-base sm:text-lg">Sudah bergabung?</p>
             <Button
               asChild
               size="lg"
-              className="bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-10 sm:px-12 py-6 text-xl sm:text-2xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
+              className="bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-8 sm:px-10 py-5 sm:py-6 text-lg sm:text-xl font-bold rounded-2xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl group"
             >
               <Link href="/login" className="flex items-center gap-2 sm:gap-3">
                 <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
-                <span>Masuk</span>
+                <span>Bismillah, Masuk</span>
               </Link>
             </Button>
           </div>

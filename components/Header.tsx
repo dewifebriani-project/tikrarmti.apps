@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Header() {
   return (
-    <header className="bg-white/95 backdrop-blur-xl shadow-md border-b border-green-900/20 w-full">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl shadow-md border-b border-green-900/20 w-full">
       <div className="container mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-3 md:py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-2 sm:space-x-2 md:space-x-3 group flex-shrink-0">
           <Image
@@ -41,7 +41,7 @@ export default function Header() {
             className="hidden md:flex bg-green-900 hover:bg-green-800 text-white text-sm md:text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group border-green-900 hover:border-green-900"
           >
             <Link href="/login" className="flex items-center gap-2">
-              <span className="hidden lg:inline">Masuk</span>
+              <span className="hidden lg:inline">Bismillah, Masuk</span>
               <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -54,7 +54,7 @@ export default function Header() {
             className="md:hidden bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 text-white px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
           >
             <Link href="/login" className="flex items-center gap-2">
-              <span>Masuk</span>
+              <span>Bismillah, Masuk</span>
               <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
