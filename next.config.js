@@ -112,7 +112,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=()'
+            value: 'camera=(), microphone=(self), geolocation=(self)'
           },
           // No cache for dynamic content
           {
@@ -154,7 +154,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
+            value: 'camera=(), microphone=(), geolocation=(self)'
           },
           // No cache for dynamic content
           {
@@ -212,7 +212,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
               "img-src 'self' data: https: https://*.supabase.co https://*.googleusercontent.com",
               "media-src 'self' blob: https://*.supabase.co",
-              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id https://*.sentry.io https://*.google-analytics.com https://api.aladhan.com",
+              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id https://*.sentry.io https://*.google-analytics.com https://api.aladhan.com https://api.bigdatacloud.net",
             ].join('; ')
           },
           // Permissions-Policy removed from wildcard - use specific routes instead
