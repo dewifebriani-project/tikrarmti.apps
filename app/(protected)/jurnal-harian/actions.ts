@@ -106,16 +106,14 @@ export async function saveJurnalRecord(data: JurnalFormData) {
       tikrar_bi_an_nadzar_completed: data.tikrar_bi_an_nadzar_completed,
       tasmi_record_count: data.tasmi_record_completed ? 1 : 0,
       simak_record_completed: data.simak_record_completed,
-      tikrar_bi_al_ghaib_count: data.tikrar_bi_al_ghaib_type ? 1 : 0,
-      tikrar_bi_al_ghaib_type: data.tikrar_bi_al_ghaib_20x_multi.length > 0
-        ? data.tikrar_bi_al_ghaib_20x_multi[0]
-        : (data.tikrar_bi_al_ghaib_subtype || data.tikrar_bi_al_ghaib_type),
-      tikrar_bi_al_ghaib_40x: (data.tikrar_bi_al_ghaib_type && !data.tikrar_bi_al_ghaib_subtype?.endsWith('_20') && data.tikrar_bi_al_ghaib_20x_multi.length === 0)
+      tikrar_bi_al_ghaib_count: data.tikrar_bi_al_ghaib_type || data.tikrar_bi_al_ghaib_20x_multi.length > 0 ? 1 : 0,
+      tikrar_bi_al_ghaib_type: data.tikrar_bi_al_ghaib_type || (data.tikrar_bi_al_ghaib_20x_multi.length > 0 ? data.tikrar_bi_al_ghaib_20x_multi[0] : null),
+      tikrar_bi_al_ghaib_40x: (data.tikrar_bi_al_ghaib_type && !data.tikrar_bi_al_ghaib_type.endsWith('_20') && data.tikrar_bi_al_ghaib_20x_multi.length === 0)
         ? [data.tikrar_bi_al_ghaib_type]
         : null,
       tikrar_bi_al_ghaib_20x: data.tikrar_bi_al_ghaib_20x_multi.length > 0
         ? data.tikrar_bi_al_ghaib_20x_multi
-        : (data.tikrar_bi_al_ghaib_subtype?.endsWith('_20') ? [data.tikrar_bi_al_ghaib_subtype] : null),
+        : (data.tikrar_bi_al_ghaib_type?.endsWith('_20') ? [data.tikrar_bi_al_ghaib_type] : null),
       tarteel_screenshot_url: data.tarteel_screenshot_url || null,
       tafsir_completed: data.tafsir_completed,
       menulis_completed: data.menulis_completed,
@@ -147,6 +145,75 @@ export async function saveJurnalRecord(data: JurnalFormData) {
     return {
       success: false,
       error: error?.message || 'Terjadi kesalahan tidak terduga'
+    }
+  }
+}
+
+export async function uploadJurnalScreenshot(formData: FormData) {
+  const supabase = createClient()
+
+  // 1. Validasi Auth
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+  if (!authUser || authError) {
+    return { success: false, error: 'Unauthorized. Silakan login kembali.' }
+  }
+
+  const file = formData.get('file') as File
+  if (!file) {
+    return { success: false, error: 'Tidak ada file yang diupload.' }
+  }
+
+  // Validate file type (only images)
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+  if (!allowedTypes.includes(file.type)) {
+    return { success: false, error: 'Format file harus gambar (JPG, PNG).' }
+  }
+
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  if (file.size > maxSize) {
+    return { success: false, error: 'Ukuran file maksimal 5MB.' }
+  }
+
+  try {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${authUser.id}/${Date.now()}_jurnal_tarteel.${fileExt}`
+    const filePath = `jurnal/${fileName}`
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError)
+      return {
+        success: false,
+        error: `Gagal mengupload file: ${uploadError.message}`
+      }
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('documents')
+      .getPublicUrl(filePath)
+
+    return {
+      success: true,
+      data: {
+        url: publicUrl,
+        path: filePath,
+        name: file.name
+      },
+      message: 'File berhasil diupload'
+    }
+  } catch (error: any) {
+    console.error('Upload jurnal screenshot error:', error)
+    return {
+      success: false,
+      error: error?.message || 'Terjadi kesalahan saat upload file'
     }
   }
 }

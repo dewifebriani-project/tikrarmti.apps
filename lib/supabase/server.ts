@@ -27,7 +27,9 @@ export function createClient(options?: {
   response?: NextResponse 
 }) {
   const cookieStore = cookies()
+  const PERSISTENT_MAX_AGE = 60 * 60 * 24 * 365; // 365 days
   const domain = getCookieDomain()
+  const maxAge = options?.cookies?.maxAge ?? PERSISTENT_MAX_AGE;
 
   return createSupabaseServerClient(
     supabaseUrl,
@@ -42,7 +44,7 @@ export function createClient(options?: {
             cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
               const finalOptions = {
                 ...cookieOptions,
-                ...(options?.cookies?.maxAge !== undefined ? { maxAge: options.cookies.maxAge } : {}),
+                maxAge,
                 path: '/',
                 // Always use shared domain if available to prevent www mismatch
                 ...(domain ? { domain } : {}),

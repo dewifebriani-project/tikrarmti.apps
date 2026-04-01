@@ -458,7 +458,7 @@ export default function DashboardContent() {
         </div>
 
 
-        <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:gap-6 w-full">
+        <div className="grid grid-cols-4 gap-2 sm:gap-6 w-full">
           {[
             // Row 1
             { label: 'Perjalanan Saya', icon: Clock, color: 'blue', href: '/perjalanan-saya' },
@@ -472,9 +472,9 @@ export default function DashboardContent() {
             { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
           ].map((item, i) => (
             <Link key={i} href={item.href} className="group min-w-0">
-              <div className="h-full glass-premium rounded-xl sm:rounded-3xl p-1 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center justify-center min-h-[70px] sm:min-h-0">
+            <div className="h-full glass-premium rounded-2xl sm:rounded-3xl p-2 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center justify-center min-h-[95px] sm:min-h-0">
                 <div className={cn(
-                  "w-7 h-7 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm flex-shrink-0",
+                  "w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-1.5 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm flex-shrink-0",
                   item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
                   item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
                   item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
@@ -482,9 +482,9 @@ export default function DashboardContent() {
                   item.color === 'purple' ? "bg-purple-50 text-purple-600 border border-purple-100/50" :
                   "bg-gray-50 text-gray-600 border border-gray-100/50"
                 )}>
-                  <item.icon className="w-3.5 h-3.5 sm:w-7 sm:h-7" />
+                  <item.icon className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
-                <h3 className="text-[7.5px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight w-full px-0.5 break-words">
+                <h3 className="text-[10px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-tight w-full px-0.5 break-words">
                   {item.label}
                 </h3>
               </div>

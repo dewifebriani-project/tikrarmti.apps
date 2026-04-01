@@ -42,14 +42,44 @@ export async function POST(request: NextRequest) {
     // Get dynamic origin from request headers for correct environment redirect
     const host = request.headers.get('host');
     const protocol = host?.includes('localhost') ? 'http' : 'https';
-    const dynamicOrigin = `${protocol}://${host}`;
     
-    // Standard callback URL
-    const redirectUrl = `${dynamicOrigin}/auth/callback`;
-    logger.info('Password reset attempt', {
+    // Canonical origin detection:
+    // 1. Prioritize environment variable if set
+    // 2. Fallback to the SITE URL 'https://markaztikrar.id' (non-www) in production 
+    //    to match Supabase Site URL setting exactly.
+    // 3. Otherwise use the dynamic host header
+    let dynamicOrigin = `${protocol}://${host}`;
+    if (process.env.NODE_ENV === 'production') {
+      if (process.env.NEXT_PUBLIC_SITE_URL) {
+        dynamicOrigin = process.env.NEXT_PUBLIC_SITE_URL;
+      } else if (host?.includes('markaztikrar.id')) {
+        // Use non-www as base for redirect to match the Site URL in Supabase
+        dynamicOrigin = 'https://markaztikrar.id';
+      }
+    }
+    
+    // PHASE 4 SIMPLIFICATION:
+    // We remove type=recovery and next=... from the redirectTo to see if Supabase
+    // is rejecting the URL because of the query parameters.
+    // If this works, we will land on the /dashboard (default) and know why it failed.
+    const path = '/auth/callback';
+    const redirectUrl = `${dynamicOrigin}${path}`;
+    
+    // Using console.error to ensure it shows up in production/local terminal logs
+    console.error('[auth/forgot-password] PHASE 4 DIAGNOSTIC:', {
+      constructedRedirectUrl: redirectUrl,
+      rawHost: host,
+      detectedProtocol: protocol,
+      resolvedOrigin: dynamicOrigin,
+      nodeEnv: process.env.NODE_ENV,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'PRESENT' : 'MISSING'
+    });
+
+    logger.info('Password reset link requested', {
       email: email.replace(/(.{2}).*(@.*)/, '$1***$2'),
       redirectUrl,
-      nodeEnv: process.env.NODE_ENV
+      host,
+      protocol
     });
 
     // Generate password reset link

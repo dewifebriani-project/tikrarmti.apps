@@ -37,6 +37,7 @@ export function createClient() {
     {
       cookieOptions: {
         path: '/',
+        maxAge: 31536000, // 1 year
         ...(domain ? { domain } : {}),
       },
       auth: {

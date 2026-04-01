@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     // If remember_me is false, set maxAge to 0 (session cookie)
     const cookieOptions = {
       cookies: {
-        maxAge: remember_me ? 60 * 60 * 24 * 7 : 0
+        maxAge: remember_me ? 60 * 60 * 24 * 365 : 0 // 1 year if remember_me
       }
     }
 

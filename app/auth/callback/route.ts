@@ -2,25 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
+  // GET SEARCH PARAMS
   const { searchParams, origin } = new URL(request.url);
   
-  // DEBUG LOGGING
+  // PARAMS DEBUG LOGGING - Using console.error to ensure visibility in production/local terminal
   const params: Record<string, string> = {};
   searchParams.forEach((value, key) => { params[key] = value; });
-  console.log('[auth/callback] FULL URL:', request.url);
-  console.log('[auth/callback] PARAMS:', params);
+  console.error('[auth/callback] PHASE 4 INCOMING URL:', request.url);
+  console.error('[auth/callback] PHASE 4 PARAMS:', params);
 
   const code = searchParams.get('code');
-  // "next" is the dynamic redirect path as standard in Supabase workflows.
-  const next = searchParams.get('next') ?? '/dashboard';
-  // "type" is typically sent when users do Password Recovery ('recovery').
-  const type = searchParams.get('type');
-  
   // Also check for error parameters from Google OAuth
   const errorMsg = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
   
   if (errorMsg) {
+    console.error('[auth/callback] Redirected from Auth server with error:', { errorMsg, errorDescription });
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorDescription || errorMsg)}`);
   }
 
@@ -37,7 +34,9 @@ export async function GET(request: NextRequest) {
 
     if (exchangeError) {
       console.error('[auth/callback] Exchange code failed:', exchangeError.message, exchangeError.status);
-      return NextResponse.redirect(`${origin}/login?error=Authentication+failed&reason=${encodeURIComponent(exchangeError.message)}`);
+      const errorMsg = encodeURIComponent('Authentication failed');
+      const reason = encodeURIComponent(exchangeError.message);
+      return NextResponse.redirect(`${origin}/login?error=${errorMsg}&reason=${reason}`);
     }
 
     if (data.user) {
@@ -66,17 +65,41 @@ export async function GET(request: NextRequest) {
       }
 
       // Route handling depending on the workflow triggered
-      if (type === 'recovery') {
-        console.log('[auth/callback] Recovery detected, redirecting to reset-password');
+      // We check for type='recovery' or next='/reset-password' to prioritize the recovery UI
+      const nextPathFromUrl = searchParams.get('next');
+      const authTypeFromUrl = searchParams.get('type');
+      
+      const nextPath = nextPathFromUrl || '/dashboard';
+      const authType = authTypeFromUrl;
+
+      // EXTREMELY ROBUST RECOVERY DETECTION
+      // We look for type=recovery OR next=/reset-password OR if the path contains reset-password
+      const isRecoveryFlow = 
+        authType === 'recovery' || 
+        nextPath === '/reset-password' || 
+        nextPath.includes('reset-password') ||
+        request.url.includes('type=recovery');
+      
+      console.error('[auth/callback] PHASE 4 EVALUATION:', { 
+        authType, 
+        nextPath, 
+        isRecoveryFlow,
+        origin,
+        codeProvided: !!code
+      });
+
+      if (isRecoveryFlow) {
+        console.error('[auth/callback] RECOVERY CONFIRMED -> Redirecting to /reset-password');
         return NextResponse.redirect(`${origin}/reset-password`);
       }
       
-      console.log('[auth/callback] Success, redirecting to:', next);
-      return NextResponse.redirect(`${origin}${next}`);
+      console.error('[auth/callback] FALLBACK REDIRECT ->', nextPath);
+      return NextResponse.redirect(`${origin}${nextPath}`);
     }
   }
 
   // If no code is present or no user data
-  console.warn('[auth/callback] No code present or data.user is missing');
-  return NextResponse.redirect(`${origin}/login?error=Authentication+failed`);
+  console.warn('[auth/callback] Auth failed: No code present or data.user missing');
+  const errorReason = !code ? 'missing_code' : 'no_user_session';
+  return NextResponse.redirect(`${origin}/login?error=Authentication+failed&reason=${errorReason}`);
 }

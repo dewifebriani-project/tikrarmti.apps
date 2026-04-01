@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Calendar, BookOpen, MessageSquare, Sparkles, Star, User, Phone, Mic, Headphones, ArrowRight, X } from 'lucide-react'
+import { CheckCircle, Calendar, BookOpen, MessageSquare, Sparkles, Star, User, Phone, Mic, Headphones, ArrowRight, X, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -13,6 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { uploadJurnalScreenshot } from '../actions'
+import { toast } from 'sonner'
+import { Loader2 as Spinner } from 'lucide-react'
 
 interface JurnalEntryFormProps {
   blockCode: string
@@ -68,6 +71,7 @@ export function JurnalEntryForm({
     tikrar_bi_al_ghaib_completed: false,
     tikrar_bi_al_ghaib_type: null,
     tikrar_bi_al_ghaib_20x_multi: [],
+    tarteel_screenshot_url: null,
     tafsir_completed: false,
     menulis_completed: false,
     catatan_tambahan: ''
@@ -76,6 +80,7 @@ export function JurnalEntryForm({
   const [showGhaibMenu, setShowGhaibMenu] = useState(false)
   const [ghaibCategory, setGhaibCategory] = useState<'partner' | 'tarteel' | 'keluarga' | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   const toggleActivity = (id: string) => {
     if (id === 'tikrar_bi_al_ghaib_completed') {
@@ -114,10 +119,43 @@ export function JurnalEntryForm({
     })
   }
 
+  const handleTarteelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploading(true)
+    try {
+      const uploadData = new FormData()
+      uploadData.append('file', file)
+      
+      const result = await uploadJurnalScreenshot(uploadData)
+      if (result.success && result.data) {
+        setFormData((prev: any) => ({
+          ...prev,
+          tarteel_screenshot_url: result.data.url
+        }))
+        toast.success('Screenshot berhasil diunggah')
+      } else {
+        toast.error(result.error || 'Gagal mengunggah screenshot')
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat mengunggah')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const completedCount = activityOptions.filter(opt => (formData as any)[opt.id]).length
 
   const handlePreSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validation for Tarteel
+    if (formData.tikrar_bi_al_ghaib_type === 'tarteel_40' && !formData.tarteel_screenshot_url) {
+      toast.error('Ukhti wajib mengunggah screenshot aplikasi Tarteel sebagai bukti.')
+      return
+    }
+
     setShowConfirm(true)
   }
 
@@ -273,8 +311,65 @@ export function JurnalEntryForm({
                                   </button>
                                 </>
                               )}
-                              {/* Tarteel is now instant, category button handles it */}
-                              {ghaibCategory === 'tarteel' && null}
+                              {ghaibCategory === 'tarteel' && (
+                                <div className="w-full space-y-3">
+                                  <div className="bg-white p-4 rounded-2xl border border-dashed border-green-300 flex flex-col items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                                      <Upload className="w-6 h-6 text-green-600" />
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-[10px] font-black text-green-900 uppercase">Upload Bukti Tarteel</p>
+                                      <p className="text-[8px] text-gray-500 font-medium mt-1">Upload hasil pengerjaan di aplikasi Tarteel</p>
+                                    </div>
+                                    
+                                    {formData.tarteel_screenshot_url ? (
+                                      <div className="flex items-center gap-2 bg-green-100 px-3 py-1.5 rounded-full border border-green-200">
+                                        <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                                        <span className="text-[9px] font-black text-green-800 uppercase">Sudah diunggah</span>
+                                        <button 
+                                          type="button"
+                                          onClick={() => setFormData((prev: any) => ({ ...prev, tarteel_screenshot_url: null }))}
+                                          className="p-1 hover:bg-green-200 rounded-full text-green-700"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="relative w-full">
+                                        <input
+                                          type="file"
+                                          accept="image/*"
+                                          onChange={handleTarteelUpload}
+                                          className="absolute inset-0 opacity-0 cursor-pointer"
+                                          disabled={isUploading}
+                                        />
+                                        <Button
+                                          type="button"
+                                          disabled={isUploading}
+                                          className="w-full h-10 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[9px] font-black uppercase"
+                                        >
+                                          {isUploading ? (
+                                            <Spinner className="w-3.5 h-3.5 animate-spin mr-2" />
+                                          ) : (
+                                            <Upload className="w-3.5 h-3.5 mr-2" />
+                                          )}
+                                          PILIH FILE GAMBAR
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      setShowGhaibMenu(false)
+                                      setGhaibCategory(null)
+                                    }}
+                                    className="w-full h-10 bg-green-900 text-white rounded-xl text-[9px] font-black uppercase"
+                                  >
+                                    LANJUTKAN
+                                  </Button>
+                                </div>
+                              )}
                               {ghaibCategory === 'keluarga' && (
                                 <div className="flex flex-wrap items-center justify-center gap-2 w-full">
                                   {[

@@ -78,6 +78,9 @@ export async function updateSession(request: NextRequest) {
     // via the mutated request object.
     let response = NextResponse.next({ request: { headers: request.headers } })
 
+    // Persistent Session: Force 1-year maxAge for all auth cookies
+    const PERSISTENT_MAX_AGE = 60 * 60 * 24 * 365; // 365 days
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -91,6 +94,7 @@ export async function updateSession(request: NextRequest) {
               const finalOptions = {
                 ...cookieOptions,
                 path: '/',
+                maxAge: PERSISTENT_MAX_AGE,
                 ...(domain ? { domain } : {}),
               }
               request.cookies.set({ name, value, ...finalOptions })
@@ -102,6 +106,7 @@ export async function updateSession(request: NextRequest) {
               const finalOptions = {
                 ...cookieOptions,
                 path: '/',
+                maxAge: PERSISTENT_MAX_AGE,
                 ...(domain ? { domain } : {}),
               }
               response.cookies.set({ name, value, ...finalOptions })
@@ -110,6 +115,7 @@ export async function updateSession(request: NextRequest) {
         },
         cookieOptions: {
           path: '/',
+          maxAge: PERSISTENT_MAX_AGE,
           ...(domain ? { domain } : {}),
         },
       }
