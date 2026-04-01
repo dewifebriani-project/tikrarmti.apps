@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, User, Calendar, MapPin, Phone, Mail, Award, Users, ClipboardCheck, Activity, Loader2 } from 'lucide-react';
+import { X, User, Calendar, MapPin, Phone, Mail, Award, Users, ClipboardCheck, Activity, Loader2, Key } from 'lucide-react';
+import { resetUserPassword } from '@/app/(protected)/admin/actions';
+import { toast } from 'react-hot-toast';
 
 interface UserDetailModalProps {
   isOpen: boolean;
@@ -61,6 +63,22 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
   const getDayName = (day: number) => {
     const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     return days[day] || '-';
+  };
+
+  const handleResetPassword = async () => {
+    if (!confirm('Apakah Antum yakin ingin me-reset password user ini ke MTI123!?')) return;
+
+    try {
+      const result = await resetUserPassword(userId);
+      if (result.success) {
+        toast.success(result.message || 'Password berhasil di-reset!');
+      } else {
+        toast.error(result.error || 'Gagal me-reset password');
+      }
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast.error('Terjadi kesalahan saat me-reset password');
+    }
   };
 
   return (
@@ -255,9 +273,25 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
                           <dd className="mt-1 text-sm text-gray-900">{formatDate(data.user.updated_at)}</dd>
                         </div>
                       </dl>
+
+                      <div className="mt-8 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <h4 className="text-sm font-bold text-orange-900 mb-2 flex items-center gap-2">
+                          <Key className="w-4 h-4" />
+                          Administrative Actions
+                        </h4>
+                        <button
+                          onClick={handleResetPassword}
+                          className="w-full py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white rounded-md text-sm font-medium transition-colors"
+                        >
+                          Reset Password ke Default (MTI123!)
+                        </button>
+                        <p className="mt-2 text-[10px] text-orange-700">
+                          * Gunakan fitur ini jika thalibah lupa password dan tidak bisa me-reset secara mandiri.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Registrations Tab */}
                 {activeTab === 'registrations' && (

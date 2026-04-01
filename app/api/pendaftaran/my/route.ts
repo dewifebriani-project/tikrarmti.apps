@@ -88,21 +88,28 @@ export async function GET(request: Request) {
     }
 
     // 4. Structure final response
-    // We include all registrations found, but we map them consistently
-    const allRegistrations = tikrarRegistrations.map((reg: any) => {
-      const batch = Array.isArray(reg.batch) ? reg.batch[0] : reg.batch;
-      const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id);
+    // We include registrations from both OPEN and CLOSED batches.
+    // 'closed' usually means registration is over but the batch is ACTIVE for ongoing students.
+    const allRegistrations = tikrarRegistrations
+      .map((reg: any) => {
+        const batch = Array.isArray(reg.batch) ? reg.batch[0] : reg.batch;
+        const daftarUlang = daftarUlangSubmissions?.find(dus => dus.registration_id === reg.id);
 
-      return {
-        ...reg,
-        batch: batch || null,
-        registration_type: 'thalibah',
-        role: 'thalibah',
-        status: reg.status || 'pending',
-        batch_name: batch?.name || null,
-        daftar_ulang: daftarUlang || null
-      };
-    });
+        return {
+          ...reg,
+          batch: batch || null,
+          registration_type: 'thalibah',
+          role: 'thalibah',
+          status: reg.status || 'pending',
+          batch_name: batch?.name || null,
+          daftar_ulang: daftarUlang || null
+        };
+      })
+      .filter((reg: any) => {
+        // Only show registrations from active/meaningful batches to the dashboard
+        // We include 'open' (recruiting) and 'closed' (ongoing)
+        return reg.batch?.status === 'open' || reg.batch?.status === 'closed';
+      });
 
     // 5. Sort by recency
     allRegistrations.sort((a: any, b: any) => {

@@ -19,7 +19,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { validatePhoneNumberFormat } from '@/lib/utils/sanitize'
 import { negaraList, provinsiList, zonaWaktuList } from '@/lib/data/registration-data'
-import { AlertCircle, CheckCircle, Loader2, User, Mail, MapPin, Calendar, Phone, Clock, Briefcase, Edit3, X, GraduationCap, Award, Users } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader2, User, Mail, MapPin, Calendar, Phone, Clock, Briefcase, Edit3, X, GraduationCap, Award, Users, Shield, Key, Eye, EyeOff } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'react-hot-toast'
 import { Textarea } from '@/components/ui/textarea'
 import { hasRequiredRank, ROLE_RANKS } from '@/lib/roles'
 
@@ -495,6 +497,8 @@ export default function ProfilePage() {
             </Card>
 
             {/* Role-specific profile sections removed */}
+            {/* Account Security Section */}
+            {mode === 'view' && <AccountSecurity />}
           </div>
         ) : (
           // EDIT MODE
@@ -1268,6 +1272,133 @@ function MusyrifahProfileView({ data }: { data: MusyrifahProfile }) {
           />
         </div>
       </div>
+    </Card>
+  )
+}
+
+// Account security component for password changes
+function AccountSecurity() {
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [passwords, setPasswords] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  })
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (passwords.newPassword.length < 6) {
+      toast.error('Password minimal 6 karakter')
+      return
+    }
+
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      toast.error('Konfirmasi password tidak cocok')
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.updateUser({
+        password: passwords.newPassword
+      })
+
+      if (error) throw error
+
+      toast.success('Password berhasil diperbarui!')
+      setPasswords({ newPassword: '', confirmPassword: '' })
+      setIsChangingPassword(false)
+    } catch (error: any) {
+      console.error('Password change error:', error)
+      toast.error(error.message || 'Gagal memperbarui password')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Card className="p-6 border-orange-100 bg-orange-50/30">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <Shield className="h-5 w-5 text-orange-600" />
+        Keamanan Akun
+      </h3>
+
+      {!isChangingPassword ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Kata Sandi</p>
+            <p className="text-sm text-gray-500">Ubah kata sandi Antum secara berkala untuk keamanan.</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => setIsChangingPassword(true)}
+            className="border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+          >
+            <Key className="h-4 w-4 mr-2" />
+            Ubah Password
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Password Baru</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={passwords.newPassword}
+                  onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                  placeholder="Minimal 6 karakter"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Konfirmasi Password Baru</Label>
+              <Input
+                id="confirmPassword"
+                type={showPassword ? "text" : "password"}
+                value={passwords.confirmPassword}
+                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                placeholder="Ulangi password baru"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setIsChangingPassword(false)
+                setPasswords({ newPassword: '', confirmPassword: '' })
+              }}
+              disabled={isLoading}
+            >
+              Batal
+            </Button>
+            <Button
+              type="submit"
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Menyimpan...' : 'Simpan Password'}
+            </Button>
+          </div>
+        </form>
+      )}
     </Card>
   )
 }
