@@ -22,21 +22,34 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    // Initial response to be populated with session cookies
-    let response = NextResponse.next({ request: { headers: request.headers } });
+    // 1. Determine the target path first
+    const nextPathFromUrl = searchParams.get('next');
+    const authTypeFromUrl = searchParams.get('type');
+    const nextPath = nextPathFromUrl || '/dashboard';
+    const authType = authTypeFromUrl;
+
+    const isRecoveryFlow = 
+      authType === 'recovery' || 
+      nextPath === '/reset-password' || 
+      nextPath.includes('reset-password') ||
+      request.url.includes('type=recovery');
+
+    const targetUrl = isRecoveryFlow ? `${origin}/reset-password` : `${origin}${nextPath}`;
     
-    // Pass the response object to createClient so cookies are attached!
+    // 2. Create the redirect response EARLY
+    let response = NextResponse.redirect(targetUrl);
+    
+    // 3. Pass the redirect response to createClient so cookies are attached to it!
     const supabase = createClient({ response });
     
-    // Server-side exchange of the OAuth / Recovery code for a session.
-    console.log('[auth/callback] Exchanging code for session...');
+    // 4. Server-side exchange of the OAuth / Recovery code for a session.
+    console.log('[auth/callback] Exchanging code for session with target:', targetUrl);
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
     if (exchangeError) {
-      console.error('[auth/callback] Exchange code failed:', exchangeError.message, exchangeError.status);
+      console.error('[auth/callback] Exchange code failed:', exchangeError.message);
       const errorMsg = encodeURIComponent('Authentication failed');
-      const reason = encodeURIComponent(exchangeError.message);
-      return NextResponse.redirect(`${origin}/login?error=${errorMsg}&reason=${reason}`);
+      return NextResponse.redirect(`${origin}/login?error=${errorMsg}&reason=${encodeURIComponent(exchangeError.message)}`);
     }
 
     if (data.user) {
@@ -64,37 +77,8 @@ export async function GET(request: NextRequest) {
         console.warn('[auth/callback] Non-blocking profile check/creation failed:', profileErr);
       }
 
-      // Route handling depending on the workflow triggered
-      // We check for type='recovery' or next='/reset-password' to prioritize the recovery UI
-      const nextPathFromUrl = searchParams.get('next');
-      const authTypeFromUrl = searchParams.get('type');
-      
-      const nextPath = nextPathFromUrl || '/dashboard';
-      const authType = authTypeFromUrl;
-
-      // EXTREMELY ROBUST RECOVERY DETECTION
-      // We look for type=recovery OR next=/reset-password OR if the path contains reset-password
-      const isRecoveryFlow = 
-        authType === 'recovery' || 
-        nextPath === '/reset-password' || 
-        nextPath.includes('reset-password') ||
-        request.url.includes('type=recovery');
-      
-      console.error('[auth/callback] PHASE 4 EVALUATION:', { 
-        authType, 
-        nextPath, 
-        isRecoveryFlow,
-        origin,
-        codeProvided: !!code
-      });
-
-      if (isRecoveryFlow) {
-        console.error('[auth/callback] RECOVERY CONFIRMED -> Redirecting to /reset-password');
-        return NextResponse.redirect(`${origin}/reset-password`);
-      }
-      
-      console.error('[auth/callback] FALLBACK REDIRECT ->', nextPath);
-      return NextResponse.redirect(`${origin}${nextPath}`);
+      console.error('[auth/callback] SUCCESS -> Redirecting to:', targetUrl);
+      return response;
     }
   }
 
