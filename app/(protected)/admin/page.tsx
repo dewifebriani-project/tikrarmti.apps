@@ -40,7 +40,7 @@ import {
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
-import { UserDetailModal } from '@/components/UserDetailModal';
+import { UserDetailDashboardModal as UserDetailModal } from '@/components/UserDetailDashboardModal';
 import AdminApprovalModal from '@/components/AdminApprovalModalFixed';
 import { useAdminUsers, useAdminTikrar, useAdminStats } from '@/lib/hooks/useAdminData';
 import { AdminExamQuestions } from '@/components/AdminExamQuestions';
