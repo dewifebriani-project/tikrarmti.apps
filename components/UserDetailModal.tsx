@@ -66,7 +66,8 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
   };
 
   const handleResetPassword = async () => {
-    if (!confirm('Apakah Antum yakin ingin me-reset password user ini ke MTI123!?')) return;
+    if (typeof window === 'undefined') return;
+    if (!window.confirm('Apakah Antum yakin ingin me-reset password user ini ke MTI123!?')) return;
 
     try {
       const result = await resetUserPassword(userId);
