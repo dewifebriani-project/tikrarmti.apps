@@ -60,7 +60,8 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
     return time.substring(0, 5);
   };
 
-  const getDayName = (day: number) => {
+  const getDayName = (day: number | undefined) => {
+    if (day === undefined) return '-';
     const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
     return days[day] || '-';
   };
@@ -189,14 +190,8 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
                         <div>
                           <dt className="text-sm font-medium text-gray-500">Role</dt>
                           <dd className="mt-1">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                              ${(() => {
-                                const primaryRole = data.user.roles?.[0] || (data.user as any)?.role;
-                                return primaryRole === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                  primaryRole === 'thalibah' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800';
-                              })()}`}>
-                              {data.user.roles?.[0] || (data.user as any)?.role || 'User'}
+                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                              {(data.user.roles?.[0] || data.user.role) || 'User'}
                             </span>
                           </dd>
                         </div>
