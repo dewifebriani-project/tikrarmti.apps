@@ -82,6 +82,17 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
     }
   };
 
+  const getRoleStyle = (user: any) => {
+    const primaryRole = user.roles?.[0] || (user as any)?.role;
+    if (primaryRole === 'admin') return 'bg-purple-100 text-purple-800';
+    if (primaryRole === 'thalibah') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  const getRoleLabel = (user: any) => {
+    return user.roles?.[0] || (user as any)?.role || 'User';
+  };
+
   const modalBody = (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
       <div className="relative bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
@@ -189,14 +200,8 @@ export function UserDetailModal({ isOpen, onClose, userId }: UserDetailModalProp
                         <div>
                           <dt className="text-sm font-medium text-gray-500">Role</dt>
                           <dd className="mt-1">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                              ${(() => {
-                                const primaryRole = data.user.roles?.[0] || (data.user as any)?.role;
-                                return primaryRole === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                  primaryRole === 'thalibah' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800';
-                              })()}`}>
-                              {data.user.roles?.[0] || (data.user as any)?.role || 'User'}
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleStyle(data.user)}`}>
+                              {getRoleLabel(data.user)}
                             </span>
                           </dd>
                         </div>
