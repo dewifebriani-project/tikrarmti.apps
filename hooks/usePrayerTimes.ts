@@ -60,8 +60,28 @@ export function usePrayerTimes() {
             timeout: 5000,
             maximumAge: 3600000 
           });
-        }).catch((e) => {
-          console.log('[usePrayerTimes] Geolocation failed or denied, falling back to manual/cache');
+        }).catch(async (e) => {
+          console.log('[usePrayerTimes] Geolocation failed or denied, trying IP fallback');
+          
+          // IP-based fallback (New!)
+          try {
+            const ipRes = await fetch('https://ipapi.co/json/');
+            if (ipRes.ok) {
+              const ipData = await ipRes.json();
+              if (ipData.latitude && ipData.longitude) {
+                console.log('[usePrayerTimes] IP Location detected:', ipData.city);
+                return {
+                  coords: {
+                    latitude: ipData.latitude,
+                    longitude: ipData.longitude
+                  }
+                } as any;
+              }
+            }
+          } catch (ipErr) {
+            console.warn('[usePrayerTimes] IP Fallback failed:', ipErr);
+          }
+          
           return null;
         });
       }

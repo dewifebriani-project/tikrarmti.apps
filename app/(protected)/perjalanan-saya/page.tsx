@@ -117,7 +117,7 @@ interface PairingData {
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'jadwal' | 'achievement'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'jadwal' | 'achievement'>('jadwal');
   
   // Identify if user is Admin/Staff for preview mode
   const isAdmin = useMemo(() => {
@@ -950,27 +950,33 @@ export default function PerjalananSaya() {
     switch (status) {
       case 'completed':
         return {
-          iconBg: 'bg-green-100',
-          iconColor: 'text-green-600',
-          cardBorder: 'border-l-4 border-l-green-500',
-          cardBg: 'bg-white shadow-sm',
-          textColor: 'text-gray-800'
+          cardBg: 'bg-white',
+          cardBorder: 'border-emerald-100',
+          textColor: 'text-emerald-900',
+          iconBg: 'bg-emerald-100/50',
+          iconColor: 'text-emerald-600',
+          dotColor: 'bg-emerald-500',
+          lineColor: 'bg-emerald-500'
         };
       case 'current':
         return {
+          cardBg: 'bg-gradient-to-br from-yellow-50 to-white',
+          cardBorder: 'border-yellow-200 shadow-yellow-100',
+          textColor: 'text-yellow-900',
           iconBg: 'bg-yellow-100',
           iconColor: 'text-yellow-600',
-          cardBorder: 'border-l-4 border-l-yellow-500',
-          cardBg: 'bg-gradient-to-br from-yellow-50 via-white to-amber-50 border-2 border-yellow-300 shadow-xl ring-2 ring-yellow-200/50 scale-[1.02] transform transition-all duration-500',
-          textColor: 'text-gray-900 font-medium'
+          dotColor: 'bg-yellow-500',
+          lineColor: 'bg-yellow-200'
         };
-      case 'future':
+      default:
         return {
+          cardBg: 'bg-gray-50/50',
+          cardBorder: 'border-gray-100 opacity-60',
+          textColor: 'text-gray-400',
           iconBg: 'bg-gray-100',
-          iconColor: 'text-gray-300',
-          cardBorder: 'border-l-4 border-l-gray-200',
-          cardBg: 'bg-gray-50/50 opacity-80',
-          textColor: 'text-gray-400'
+          iconColor: 'text-gray-400',
+          dotColor: 'bg-gray-200',
+          lineColor: 'bg-gray-100'
         };
     }
   };
@@ -1345,61 +1351,67 @@ export default function PerjalananSaya() {
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {user && !isLoading && (
                   <div className="space-y-4 sm:space-y-6">
-            {/* Mobile & Tablet View - Single Column Timeline */}
+            {/* Mobile & Tablet View - Single Column Milestone Journey */}
             <div className="block lg:hidden">
-              <div className="space-y-4 sm:space-y-6">
+              <div className="relative pl-10 pt-4 space-y-12">
+                {/* Vertical Path - Gradient based on progress */}
+                <div className="absolute left-4 top-4 bottom-4 w-1.5 bg-gray-100 rounded-full">
+                  <div 
+                    className="absolute top-0 left-0 w-full bg-gradient-to-b from-emerald-500 to-emerald-400 rounded-full transition-all duration-1000"
+                    style={{ height: `${percentage}%` }}
+                  ></div>
+                </div>
+
                 {timelineData.map((item, index) => {
                   const styles = getStatusStyles(item.status);
+                  const isLast = index === timelineData.length - 1;
 
-                  // Check if this is the Daftar Ulang card and should be clickable
-                  // CLICKABLE for draft status OR no daftar ulang yet (user can complete/submit)
-                  // NOT clickable for submitted/approved (already completed)
-                  const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                  const isCompleted = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
+                  // Selection Task Logic (Simplified for clarity)
                   const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
-                                          (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
-                                          !registrationStatus.registration?.re_enrollment_completed &&
-                                          !isCompleted;
+                                           (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
+                                           !registrationStatus.registration?.re_enrollment_completed;
 
-                  const cardContent = (
-                    <div className="relative">
-                      {/* Vertical connector for mobile */}
-                      {index < timelineData.length - 1 && (
-                        <div className="absolute left-[20px] sm:left-[24px] top-10 bottom-[-24px] sm:bottom-[-32px] w-0.5 bg-gradient-to-b from-gray-200 to-transparent z-0" />
-                      )}
-                      
-                      <Card className={`${styles.cardBg} ${styles.cardBorder} relative z-10 transition-all duration-500 hover:shadow-xl ${
-                        item.status === 'current' ? 'ring-2 ring-yellow-400 shadow-yellow-100' : ''
-                      } ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
-                        <CardContent className="p-5 sm:p-6">
-                        <div className="flex items-start space-x-3 sm:space-x-4">
-                          {/* Icon */}
-                          <div className={`relative flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 ${styles.iconBg} rounded-full flex items-center justify-center ${item.status === 'current' ? 'ring-4 ring-yellow-200' : 'ring-4 ring-white'} shadow-sm`}>
-                            <div className={`w-4 h-4 sm:w-5 sm:h-5 ${styles.iconColor}`}>
+                  return (
+                    <div key={item.id} className="relative group">
+                      {/* Anchor/Dot on the path */}
+                      <div className={`absolute -left-8 top-5 w-4 h-4 rounded-full ring-4 ring-white shadow-sm z-20 transition-all duration-500 ${
+                        styles.dotColor
+                      } ${item.status === 'current' ? 'scale-150 animate-pulse' : ''}`}>
+                         {item.status === 'completed' && <CheckCircle className="w-4 h-4 text-white -ml-0.5 -mt-0.5 scale-75" />}
+                      </div>
+
+                      <Card className={`${styles.cardBg} ${styles.cardBorder} relative z-10 transition-all duration-500 hover:shadow-2xl rounded-3xl overflow-hidden glass-premium group-hover:-translate-y-1 ${
+                        item.status === 'current' ? 'ring-2 ring-yellow-400' : ''
+                      }`}>
+                        {/* Status Label (Top Right) */}
+                        {item.status === 'current' && (
+                          <div className="absolute top-0 right-0 px-4 py-1.5 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase rounded-bl-2xl tracking-tighter">
+                            Aktivitas Sekarang
+                          </div>
+                        )}
+
+                        <CardContent className="p-6">
+                          {/* Date & Icon */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className={`p-3 rounded-2xl ${styles.iconBg} ${styles.iconColor}`}>
                               {item.icon}
                             </div>
-                            {item.status === 'current' && (
-                              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                            )}
+                            <div className="text-right">
+                               <p className={`text-[10px] font-black uppercase tracking-widest ${styles.textColor} opacity-60 mb-1`}>
+                                 {item.day !== '-' ? item.day : 'Pekan'}
+                               </p>
+                               <p className={`text-xs font-bold ${styles.textColor}`}>
+                                 {item.date}
+                               </p>
+                               {item.hijriDate !== '-' && (
+                                 <p className="text-[10px] text-gray-400 mt-0.5">{item.hijriDate}</p>
+                               )}
+                            </div>
                           </div>
 
-                          {/* Content */}
-                          <div className="flex-grow min-w-0">
-                            {/* Date */}
-                            {item.day !== '-' && (
-                              <div className={`text-xs sm:text-sm ${styles.textColor} mb-1.5 sm:mb-2 font-medium`}>
-                                {item.day} • {item.date}
-                                {item.hijriDate !== '-' && <span className="block text-xs mt-0.5 sm:mt-1">{item.hijriDate}</span>}
-                              </div>
-                            )}
-                            {item.day === '-' && (
-                              <div className={`text-xs sm:text-sm ${styles.textColor} mb-1.5 sm:mb-2 font-medium`}>
-                                {item.date}
-                              </div>
-                            )}
-
-                            {/* Title */}
-                            <h3 className={`text-base sm:text-lg font-bold mb-1.5 sm:mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
+                          {/* Title & Desc */}
+                          <div className="space-y-4">
+                            <h3 className={`text-xl font-black ${styles.textColor} tracking-tight leading-tight`}>
                               {item.title}
                             </h3>
 
@@ -1887,50 +1899,62 @@ export default function PerjalananSaya() {
               </div>
             </div>
 
-            {/* Desktop View - Two Column Timeline */}
-            <div className="hidden lg:block relative py-10">
-              <div className="relative">
-                {/* Vertical Line - More prominent and elegant */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 w-1 h-full bg-gradient-to-b from-green-900/10 via-gray-200 to-transparent rounded-full"></div>
+            {/* Desktop View - Premium Milestone Path */}
+            <div className="hidden lg:block relative py-20 px-10">
+              {/* Central Path - Flowing Gradient */}
+              <div className="absolute left-1/2 transform -translate-x-1/2 w-2 h-full bg-gray-50 rounded-full overflow-hidden">
+                <div 
+                  className="absolute top-0 left-0 w-full bg-gradient-to-b from-emerald-600 via-emerald-400 to-emerald-200 rounded-full transition-all duration-1000"
+                  style={{ height: `${percentage}%` }}
+                ></div>
+              </div>
 
-                <div className="space-y-8">
-                  {timelineData.map((item, index) => {
-                    const styles = getStatusStyles(item.status);
-                    const isLeftSide = index % 2 === 0;
+              <div className="space-y-32">
+                {timelineData.map((item, index) => {
+                  const styles = getStatusStyles(item.status);
+                  const isLeftSide = index % 2 === 0;
 
-                    // Check if this is the Daftar Ulang card and should be clickable
-                    // NOT clickable if already submitted/approved (has daftar ulang)
-                    // CLICKABLE if selected/approved BUT no daftar ulang yet
-                    const daftarUlang = registrationStatus.registration?.daftar_ulang;
-                    const hasSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
-                    const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
-                                            (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
-                                            !registrationStatus.registration?.re_enrollment_completed &&
-                                            !hasSubmittedOrApproved;
+                  const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
+                                           (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
+                                           !registrationStatus.registration?.re_enrollment_completed;
 
-                    const cardContent = (
-                      <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
-                        {/* Card */}
-                        <div className={`w-5/12 ${isLeftSide ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
-                          <Card className={`${styles.cardBg} ${styles.cardBorder} transition-all duration-300 hover:shadow-md ${isDaftarUlangCard ? 'cursor-pointer hover:ring-2 hover:ring-orange-400' : ''}`}>
-                            <CardContent className="p-6">
-                              {/* Date */}
-                              {item.day !== '-' && (
-                                <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
-                                  {item.day} • {item.date}
-                                  {item.hijriDate !== '-' && <span className="block text-xs mt-1">{item.hijriDate}</span>}
-                                </div>
-                              )}
-                              {item.day === '-' && (
-                                <div className={`text-sm ${styles.textColor} mb-2 font-medium`}>
-                                  {item.date}
-                                </div>
-                              )}
+                  return (
+                    <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
+                      {/* Milestone Dot on Central Path */}
+                      <div className={`absolute left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full border-4 border-white shadow-xl z-30 transition-all duration-700 flex items-center justify-center ${
+                        styles.dotColor
+                      } ${item.status === 'current' ? 'scale-125 ring-8 ring-yellow-400/20' : ''}`}>
+                         {item.status === 'completed' ? (
+                           <CheckCircle className="w-5 h-5 text-white" />
+                         ) : item.status === 'current' ? (
+                           <Sparkles className="w-5 h-5 text-white animate-spin-slow" />
+                         ) : null}
+                      </div>
 
-                              {/* Title */}
-                              <h3 className={`text-lg font-bold mb-2 ${item.status === 'current' ? 'text-yellow-600' : styles.textColor}`}>
-                                {item.title}
-                              </h3>
+                      {/* Card - Symmetrical Design */}
+                      <div className={`w-[45%] ${isLeftSide ? 'pr-12 text-right' : 'pl-12 text-left'}`}>
+                        <Card className={`${styles.cardBg} ${styles.cardBorder} relative z-10 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 rounded-[32px] overflow-hidden glass-premium group ${
+                          item.status === 'current' ? 'ring-2 ring-yellow-400' : ''
+                        }`}>
+                          {/* Inner Glow/Gradient */}
+                          {item.status === 'current' && (
+                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-transparent pointer-events-none" />
+                          )}
+
+                          <CardContent className="p-8">
+                            <div className={`flex items-start gap-4 mb-6 ${isLeftSide ? 'flex-row-reverse' : 'flex-row'}`}>
+                              <div className={`p-4 rounded-2xl ${styles.iconBg} ${styles.iconColor} shadow-inner`}>
+                                {item.icon}
+                              </div>
+                              <div className="flex-grow">
+                                <p className={`text-xs font-black uppercase tracking-[0.2em] ${styles.textColor} opacity-60 mb-2`}>
+                                  {item.day !== '-' ? item.day : 'Pekan'} • {item.date}
+                                </p>
+                                <h3 className={`text-2xl font-black ${styles.textColor} tracking-tight leading-none`}>
+                                  {item.title}
+                                </h3>
+                              </div>
+                            </div>
 
                               {/* Description */}
                               {item.id === 1 && registrationStatus?.hasRegistered ? (
