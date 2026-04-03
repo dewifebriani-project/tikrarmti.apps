@@ -431,7 +431,7 @@ export async function POST(request: Request) {
     return ApiResponses.success(newRecord, 'Tashih record berhasil dibuat', 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return ApiResponses.error('VALIDATION_ERROR', 'Invalid data format', error.errors, 400);
+      return ApiResponses.validationError(error.issues);
     }
     console.error('[Musyrifah Tashih API] Unexpected error (POST):', error);
     return ApiResponses.handleUnknown(error);

@@ -633,6 +633,9 @@ export async function POST(request: Request) {
 
     return ApiResponses.success(newRecord, 'Jurnal record created successfully', 201);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return ApiResponses.validationError(error.issues);
+    }
     console.error('[Create Jurnal API] Unexpected error:', error);
     return ApiResponses.handleUnknown(error);
   }
@@ -684,6 +687,9 @@ export async function PUT(request: Request) {
 
     return ApiResponses.success(updatedRecord, 'Jurnal record updated successfully');
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return ApiResponses.validationError(error.issues);
+    }
     console.error('[Update Jurnal API] Unexpected error:', error);
     return ApiResponses.handleUnknown(error);
   }
