@@ -277,12 +277,19 @@ export default function TashihPage() {
   const handleSubmit = async (formData: any) => {
     if (!user) { toast.error('Silakan login'); return }
     setIsSubmitting(true)
+    const submissionData = {
+      blok: formData.blok.join(','),
+      lokasi: formData.lokasi,
+      lokasi_detail: formData.lokasiDetail,
+      ustadzah_id: formData.ustadzahId,
+      nama_pemeriksa: formData.ustadzahName,
+      jumlah_kesalahan_tajwid: formData.jumlahKesalahanTajwid,
+      masalah_tajwid: formData.masalahTajwid,
+      catatan_tambahan: formData.catatanTambahan,
+      waktu_tashih: new Date(formData.tanggalTashih).toISOString()
+    }
     try {
-      const result = await saveTashihRecord({
-        ...formData,
-        blok: formData.blok.join(','),
-        waktu_tashih: new Date(formData.tanggalTashih).toISOString()
-      })
+      const result = await saveTashihRecord(submissionData as any)
       if (result.success) {
         toast.success(result.message)
         await loadWeekRecords(); await mutateTashihStatus()
