@@ -13,6 +13,8 @@ import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
+import { TimelineMilestone } from '@/components/TimelineMilestone';
+import { TimelineItemWithStatus } from '@/components/TimelineMilestone';
 import { useBatchTimeline } from '@/hooks/useBatchTimeline';
 import { formatFullDateIndo, formatDateIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
 import { getRoleRank, ROLE_RANKS, isStaff } from '@/lib/roles';
@@ -114,10 +116,26 @@ interface PairingData {
   } | null;
 }
 
+// Helper functions for formatting
+const getJuzLabel = (juz: string | undefined | null) => {
+  if (!juz) return '-';
+  const cleanJuz = juz.toUpperCase();
+  if (cleanJuz.endsWith('A') || cleanJuz.endsWith('B')) {
+    return `Juz ${cleanJuz.slice(0, -1)} (Bagian ${cleanJuz.slice(-1)})`;
+  }
+  return `Juz ${cleanJuz}`;
+};
+
+const getDayNameFromNumber = (dayNum: number | undefined | null) => {
+  if (dayNum === undefined || dayNum === null) return '-';
+  const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  return days[dayNum] || '-';
+};
+
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'jadwal' | 'achievement'>('jadwal');
+  const [activeTab, setActiveTab] = useState<'status' | 'jadwal' | 'achievement'>('status');
   
   // Identify if user is Admin/Staff for preview mode
   const isAdmin = useMemo(() => {
@@ -1008,7 +1026,7 @@ export default function PerjalananSaya() {
 
   return (
     <div className="space-y-6 sm:space-y-10 animate-fadeIn pb-20">
-        {/* Premium Header Section */}
+      {/* Premium Header Section */}
         <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 p-6 sm:p-10 text-white shadow-2xl">
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
@@ -1029,38 +1047,38 @@ export default function PerjalananSaya() {
                 </p>
               </div>
 
-                {/* Stats Card in Header */}
-                <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center min-w-[140px] sm:min-w-[180px]">
-                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="45%"
-                        className="stroke-white/10 fill-none"
-                        strokeWidth="8"
-                      />
-                      <circle
-                        cx="50%"
-                        cy="50%"
-                        r="45%"
-                        className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
-                        strokeWidth="8"
-                        strokeDasharray="283"
-                        strokeDashoffset={283 - (283 * percentage) / 100}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-[9px] text-green-200 uppercase tracking-widest font-black">Target</p>
-                      <p className="text-xl sm:text-2xl font-black leading-none">{completedCount}/{totalCount}</p>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold">{percentage}%</div>
-                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
+              {/* Stats Card in Header */}
+              <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center min-w-[140px] sm:min-w-[180px]">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      className="stroke-white/10 fill-none"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50%"
+                      cy="50%"
+                      r="45%"
+                      className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
+                      strokeWidth="8"
+                      strokeDasharray="283"
+                      strokeDashoffset={283 - (283 * percentage) / 100}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-[9px] text-green-200 uppercase tracking-widest font-black">Target</p>
+                    <p className="text-xl sm:text-2xl font-black leading-none">{completedCount}/{totalCount}</p>
                   </div>
                 </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold">{percentage}%</div>
+                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
+                </div>
+              </div>
             </div>
 
             {/* Admin Preview Mode Banner (Inside Premium Header context) */}
@@ -1077,6 +1095,8 @@ export default function PerjalananSaya() {
             )}
           </div>
         </div>
+
+
 
         {/* Dynamic Tab Navigation */}
         <div className="flex p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200/50 w-full max-w-2xl mx-auto shadow-inner">
@@ -1109,6 +1129,22 @@ export default function PerjalananSaya() {
           {/* Tab 1: Status Pendaftaran */}
           {activeTab === 'status' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Milestone Timeline Integrated Here */}
+              {user && !isLoading && (
+                <TimelineMilestone 
+                  timelineData={timelineData}
+                  registrationStatus={registrationStatus}
+                  user={user}
+                  percentage={percentage}
+                  batchId={batchId}
+                  examEligibility={examEligibility}
+                  isJuz30={isJuz30}
+                  getStatusStyles={getStatusStyles}
+                  getDayNameFromNumber={getDayNameFromNumber}
+                  getJuzLabel={getJuzLabel}
+                />
+              )}
+
               {!isLoading && user && !registrationStatus?.hasRegistered && !isAdmin && (
                   <Card className="border-yellow-200 bg-yellow-50 shadow-sm border-l-4 border-l-yellow-400">
                     <CardContent className="p-6">
@@ -1351,1096 +1387,22 @@ export default function PerjalananSaya() {
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {user && !isLoading && (
                   <div className="space-y-4 sm:space-y-6">
-            {/* Mobile & Tablet View - Single Column Milestone Journey */}
-            <div className="block lg:hidden">
-              <div className="relative pl-10 pt-4 space-y-12">
-                {/* Vertical Path - Gradient based on progress */}
-                <div className="absolute left-4 top-4 bottom-4 w-1.5 bg-gray-100 rounded-full">
-                  <div 
-                    className="absolute top-0 left-0 w-full bg-gradient-to-b from-emerald-500 to-emerald-400 rounded-full transition-all duration-1000"
-                    style={{ height: `${percentage}%` }}
-                  ></div>
-                </div>
-
-                {timelineData.map((item, index) => {
-                  const styles = getStatusStyles(item.status);
-                  const isLast = index === timelineData.length - 1;
-
-                  // Selection Task Logic (Simplified for clarity)
-                  const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
-                                           (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
-                                           !registrationStatus.registration?.re_enrollment_completed;
-
-                  return (
-                    <div key={item.id} className="relative group">
-                      {/* Anchor/Dot on the path */}
-                      <div className={`absolute -left-8 top-5 w-4 h-4 rounded-full ring-4 ring-white shadow-sm z-20 transition-all duration-500 ${
-                        styles.dotColor
-                      } ${item.status === 'current' ? 'scale-150 animate-pulse' : ''}`}>
-                         {item.status === 'completed' && <CheckCircle className="w-4 h-4 text-white -ml-0.5 -mt-0.5 scale-75" />}
-                      </div>
-
-                      <Card className={`${styles.cardBg} ${styles.cardBorder} relative z-10 transition-all duration-500 hover:shadow-2xl rounded-3xl overflow-hidden glass-premium group-hover:-translate-y-1 ${
-                        item.status === 'current' ? 'ring-2 ring-yellow-400' : ''
-                      }`}>
-                        {/* Status Label (Top Right) */}
-                        {item.status === 'current' && (
-                          <div className="absolute top-0 right-0 px-4 py-1.5 bg-yellow-400 text-yellow-900 text-[10px] font-black uppercase rounded-bl-2xl tracking-tighter">
-                            Aktivitas Sekarang
-                          </div>
-                        )}
-
-                        <CardContent className="p-6">
-                          {/* Date & Icon */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div className={`p-3 rounded-2xl ${styles.iconBg} ${styles.iconColor}`}>
-                              {item.icon}
-                            </div>
-                            <div className="text-right">
-                               <p className={`text-[10px] font-black uppercase tracking-widest ${styles.textColor} opacity-60 mb-1`}>
-                                 {item.day !== '-' ? item.day : 'Pekan'}
-                               </p>
-                               <p className={`text-xs font-bold ${styles.textColor}`}>
-                                 {item.date}
-                               </p>
-                               {item.hijriDate !== '-' && (
-                                 <p className="text-[10px] text-gray-400 mt-0.5">{item.hijriDate}</p>
-                               )}
-                            </div>
-                          </div>
-
-                          {/* Title & Desc */}
-                          <div className="space-y-4">
-                            <h3 className={`text-xl font-black ${styles.textColor} tracking-tight leading-tight`}>
-                              {item.title}
-                            </h3>
-
-                            {/* Description */}
-                            {item.id === 1 && registrationStatus?.hasRegistered ? (
-                              <div className="space-y-1.5">
-                                <div className="flex items-start space-x-2">
-                                  <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                                  <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                    Pendaftaran pada {(() => {
-                                      const regDate = registrationStatus.registration?.registration_date || registrationStatus.registration?.submitted_at || registrationStatus.registration?.created_at;
-                                      return regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia';
-                                    })()}.
-                                  </p>
-                                </div>
-                                <div className="flex items-start space-x-2">
-                                  <CheckCircle className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 ${registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-gray-500'}`} />
-                                  <p className={`text-xs sm:text-sm leading-relaxed ${
-                                    registrationStatus.registration?.status === 'approved' ? 'text-green-700 font-bold' :
-                                    registrationStatus.registration?.status === 'pending' ? 'text-yellow-700 font-semibold' :
-                                    registrationStatus.registration?.status === 'rejected' ? 'text-red-700 font-semibold' :
-                                    styles.textColor
-                                  }`}>
-                                    Status: {registrationStatus.registration?.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration?.status === 'approved' ? 'Disetujui ✓' : registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                                  </p>
-                                </div>
-                              </div>
-                            ) : item.hasSelectionTasks && registrationStatus?.registration?.status === 'approved' ? (
-                              <div className="space-y-3">
-                                <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                  {item.description}
-                                </p>
-
-                                {/* Debug log for selection tasks */}
-                                {(() => {
-                                  console.log('🔍 Selection Tasks Debug:', {
-                                    hasSelectionTasks: item.hasSelectionTasks,
-                                    registrationStatus: registrationStatus?.registration?.status,
-                                    userId: user?.id,
-                                    userRoles: user?.roles,
-                                    userRoleLegacy: (user as any)?.role
-                                  });
-                                  return null;
-                                })()}
-
-                                {/* Information message for students */}
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
-                                  <div className="flex items-start space-x-3">
-                                    <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                                    <div>
-                                      <h4 className="text-sm font-semibold text-green-800 mb-1">Fitur Seleksi Sudah Dibuka!</h4>
-                                      <p className="text-xs text-green-700">
-                                        Silakan klik card di bawah untuk mengerjakan ujian seleksi. Pastikan <em>Ukhti</em> sudah menyiapkan diri dengan baik.
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                  {/* Card Rekam Suara - Always clickable */}
-                                  {registrationStatus?.hasOralSubmission ? (
-                                    <Link href="/seleksi/rekam-suara">
-                                      <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                        <CardContent className="p-3 sm:p-4">
-                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                                            </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-sm sm:text-base font-semibold text-green-900">Rekam Suara</h4>
-                                              <p className="text-xs text-green-700">Sudah terkirim - Klik untuk lihat</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-xs text-green-800 mb-2">
-                                            Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                          </p>
-                                          <p className="text-xs text-gray-600 italic">
-                                            Status: {registrationStatus?.oralAssessmentStatus === 'pending' ? 'Menunggu penilaian' :
-                                                     registrationStatus?.oralAssessmentStatus === 'pass' ? 'Lulus' :
-                                                     registrationStatus?.oralAssessmentStatus === 'fail' ? 'Tidak lulus' : 'Belum dinilai'}
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    </Link>
-                                  ) : (
-                                    <Link href="/seleksi/rekam-suara">
-                                      <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                        <CardContent className="p-3 sm:p-4">
-                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center`}>
-                                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                              </svg>
-                                            </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-sm sm:text-base font-semibold text-red-900">Rekam Suara</h4>
-                                              <p className="text-xs text-red-700">Ujian lisan - Klik untuk mulai</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-xs text-red-800 font-medium">
-                                            Klik untuk merekam bacaan Al-Fath ayat 29
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    </Link>
-                                  )}
-
-                                  {/* Card Pilihan Ganda - Available for all users during selection period */}
-                                  {isJuz30 ? (
-                                    // Juz 30 - No exam required
-                                    <Card className={`border-2 border-gray-300 bg-gray-50`}>
-                                      <CardContent className="p-3 sm:p-4">
-                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full flex items-center justify-center`}>
-                                            <Info className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-                                          </div>
-                                          <div className="flex-grow">
-                                            <h4 className="text-sm sm:text-base font-semibold text-gray-900">Pilihan Ganda</h4>
-                                            <p className="text-xs text-gray-700">Tidak wajib ujian</p>
-                                          </div>
-                                        </div>
-                                        <p className="text-xs text-gray-600 font-medium">
-                                          Untuk Juz 30, hanya diperlukan rekaman suara
-                                        </p>
-                                      </CardContent>
-                                    </Card>
-                                  ) : registrationStatus?.writtenQuizSubmittedAt ? (
-                                    <>
-                                      <Link href="/seleksi/pilihan-ganda/review">
-                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                          <CardContent className="p-3 sm:p-4">
-                                            <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                              <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                                              </div>
-                                              <div className="flex-grow">
-                                                <h4 className="text-sm sm:text-base font-semibold text-green-900">Pilihan Ganda</h4>
-                                                <p className="text-xs text-green-700">Sudah dikerjakan - Klik untuk lihat hasil</p>
-                                              </div>
-                                            </div>
-                                            <p className="text-xs text-green-800 mb-2">
-                                              Nilai: {registrationStatus?.examScore ?? '-'}/100
-                                            </p>
-                                            <p className="text-xs text-gray-600 italic">
-                                              Dikirim: {registrationStatus?.writtenQuizSubmittedAt ? new Date(registrationStatus.writtenQuizSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                            </p>
-                                          </CardContent>
-                                        </Card>
-                                      </Link>
-                                    </>
-                                  ) : examEligibility?.attemptsRemaining === 0 ? (
-                                    // Max attempts reached - disabled card
-                                    <Card className={`border-2 border-red-300 bg-red-50 cursor-not-allowed opacity-70`}>
-                                      <CardContent className="p-3 sm:p-4">
-                                        <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                          <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center`}>
-                                            <Ban className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                                          </div>
-                                          <div className="flex-grow">
-                                            <h4 className="text-sm sm:text-base font-semibold text-red-900">Pilihan Ganda</h4>
-                                            <p className="text-xs text-red-700">Kesempatan ujian habis</p>
-                                          </div>
-                                        </div>
-                                        <p className="text-xs text-red-800 font-medium">
-                                          Telah digunakan {examEligibility.attemptsUsed}/{examEligibility.maxAttempts}x percobaan
-                                        </p>
-                                      </CardContent>
-                                    </Card>
-                                  ) : (
-                                    <Link href="/seleksi/pilihan-ganda">
-                                      <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                        <CardContent className="p-3 sm:p-4">
-                                          <div className="flex items-center space-x-2 sm:space-x-3 mb-2">
-                                            <div className={`w-8 h-8 sm:w-10 sm:h-10 bg-purple-200 rounded-full flex items-center justify-center`}>
-                                              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                                              </svg>
-                                            </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-sm sm:text-base font-semibold text-purple-900">Pilihan Ganda</h4>
-                                              <p className="text-xs text-purple-700">Ujian tulisan - Klik untuk mulai</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-xs text-purple-800 font-medium">
-                                            Ujian pilihan ganda tentang Al-Qur'an
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    </Link>
-                                  )}
-                                </div>
-                              </div>
-                            ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
-                              <div className="space-y-2">
-                                <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                  {item.description}
-                                </p>
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2 sm:p-3">
-                                  <p className="text-xs text-yellow-800">
-                                    <span className="font-semibold">Status:</span> Menunggu konfirmasi admin untuk membuka tahapan seleksi
-                                  </p>
-                                </div>
-                              </div>
-                            ) : item.id === 4 ? (
-                              // Daftar Ulang - Show status and akad files
-                              (() => {
-                                const daftarUlang = registrationStatus.registration?.daftar_ulang;
-
-                                // Show daftar ulang info based on status
-                                // draft: belum selesai, submitted/approved: selesai
-                                const isSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
-                                const isDraft = daftarUlang?.status === 'draft';
-
-                                if (daftarUlang && isSubmittedOrApproved) {
-                                  // Show completed status for submitted or approved
-                                  return (
-                                    <div className="space-y-2">
-                                      <div className="flex items-start space-x-2">
-                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
-                                          Daftar ulang selesai ✓
-                                        </p>
-                                      </div>
-
-                                      {/* Show akad files */}
-                                      {daftarUlang.akad_files && daftarUlang.akad_files.length > 0 && (
-                                        <div className="mt-2 space-y-1">
-                                          <p className={`text-xs ${styles.textColor} font-medium`}>File Akad:</p>
-                                          {daftarUlang.akad_files.map((file: { url: string; name: string }, idx: number) => (
-                                            <a
-                                              key={idx}
-                                              href={file.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                                            >
-                                              <FileText className="w-3 h-3" />
-                                              {file.name}
-                                            </a>
-                                          ))}
-                                        </div>
-                                      )}
-
-                                      {/* Show program/class info */}
-                                      {registrationStatus.registration?.program && (
-                                        <div className="mt-2">
-                                          <p className={`text-xs ${styles.textColor} font-medium`}>Kelas:</p>
-                                          <p className="text-xs text-green-700 font-semibold">{registrationStatus.registration.program.name}</p>
-                                        </div>
-                                      )}
-
-                                      {/* Show halaqah information */}
-                                      {(daftarUlang.ujian_halaqah || daftarUlang.tashih_halaqah) && (
-                                        <div className="mt-2 space-y-2">
-                                          <p className={`text-xs ${styles.textColor} font-medium`}>Jadwal Halaqah:</p>
-
-                                          {/* Ujian Halaqah */}
-                                          {daftarUlang.ujian_halaqah && (
-                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                                              <p className="text-xs font-semibold text-blue-800 mb-1">Ujian Halaqah</p>
-                                              <p className="text-xs text-blue-700">{daftarUlang.ujian_halaqah.name}</p>
-                                              <p className="text-xs text-blue-600">
-                                                {getDayNameFromNumber(daftarUlang.ujian_halaqah.day_of_week)}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
-                                              </p>
-                                            </div>
-                                          )}
-
-                                          {/* Tashih Halaqah */}
-                                          {daftarUlang.tashih_halaqah && (
-                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
-                                              <p className="text-xs font-semibold text-purple-800 mb-1">Tashih Halaqah</p>
-                                              <p className="text-xs text-purple-700">{daftarUlang.tashih_halaqah.name}</p>
-                                              <p className="text-xs text-purple-600">
-                                                {getDayNameFromNumber(daftarUlang.tashih_halaqah.day_of_week)}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {daftarUlang.submitted_at && (
-                                        <p className={`text-xs ${styles.textColor} mt-1`}>
-                                          Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </p>
-                                      )}
-                                    </div>
-                                  );
-                                } else if (daftarUlang && isDraft) {
-                                  // Draft status - show as incomplete
-                                  return (
-                                    <div className="space-y-2">
-                                      <div className="flex items-start space-x-2">
-                                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
-                                        <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
-                                          Draft - Belum dikirim
-                                        </p>
-                                      </div>
-                                      <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                        Silakan lengkapi dan kirim formulir daftar ulang.
-                                      </p>
-                                    </div>
-                                  );
-                                } else {
-                                  // No daftar ulang yet - show status indicating belum mendaftar ulang
-                                  const isEligible = registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved';
-
-                                  return (
-                                    <div className="space-y-2">
-                                      {isEligible ? (
-                                        <>
-                                          <div className="flex items-start space-x-2">
-                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
-                                            <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
-                                              Belum mendaftar ulang
-                                            </p>
-                                          </div>
-                                          <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                            Silakan isi formulir daftar ulang untuk mengkonfirmasi keikutsertaan.
-                                          </p>
-                                        </>
-                                      ) : (
-                                        <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                          {item.description}
-                                        </p>
-                                      )}
-                                    </div>
-                                  );
-                                }
-                              })()
-                            ) : item.id === 3 ? (
-                              // Hasil Seleksi - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
-                              (() => {
-                                const oralStatus = registrationStatus?.oralAssessmentStatus;
-                                const chosenJuz = registrationStatus?.chosenJuz?.toUpperCase() || '';
-                                const examScore = registrationStatus?.examScore;
-                                const isJuz30 = chosenJuz.startsWith('30');
-
-                                // Calculate adjusted juz based on written quiz score
-                                let finalJuz = chosenJuz;
-                                let juzAdjusted = false;
-                                let juzAdjustmentReason = '';
-
-                                if (oralStatus === 'pass' && examScore !== null && examScore !== undefined && examScore < 70) {
-                                  if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
-                                    finalJuz = '29A';
-                                    juzAdjusted = true;
-                                    juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
-                                  } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
-                                    finalJuz = '30A';
-                                    juzAdjusted = true;
-                                    juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
-                                  }
-                                }
-
-                                // CASE 1: Lulus Oral Test -> Tikrar Tahfidz MTI (regardless of written test score)
-                                if (oralStatus === 'pass') {
-                                  return (
-                                    <div className="space-y-3">
-                                      <div className="bg-green-50 border-2 border-green-300 rounded-lg p-3 sm:p-4">
-                                        <div className="flex items-start space-x-3">
-                                          <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                                          <div>
-                                            <h4 className="text-base sm:text-lg font-bold text-green-900 mb-2">
-                                              Selamat! Ukhti Lulus ke Tikrar Tahfidz MTI
-                                            </h4>
-                                            <p className="text-xs sm:text-sm text-green-800 leading-relaxed">
-                                              Alhamdulillah, Ukhti telah lulus seleksi penerimaan program Tikrar Tahfidz MTI.
-                                              Teruslah bermuhasabah dan perbaiki diri demi menjadi hafidzah yang lebih baik.
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      <div className="grid grid-cols-1 gap-2">
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                                          <p className="text-xs text-gray-600">Rekam Suara</p>
-                                          <p className="text-sm font-bold text-green-700">Lulus ✓</p>
-                                        </div>
-                                        {!isJuz30 && (
-                                          <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                                            <p className="text-xs text-gray-600">Pilihan Ganda</p>
-                                            {examScore !== null && examScore !== undefined ? (
-                                              <>
-                                                <p className="text-sm font-bold text-green-700">
-                                                  {examScore} - {examScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
-                                                </p>
-                                                {juzAdjusted && (
-                                                  <p className="text-xs text-blue-700 mt-1">
-                                                    {juzAdjustmentReason}
-                                                  </p>
-                                                )}
-                                              </>
-                                            ) : (
-                                              <p className="text-sm text-yellow-700 italic">
-                                                Belum dikerjakan
-                                              </p>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {/* Show final juz placement - always show */}
-                                      <div className={`bg-green-50 border ${juzAdjusted ? 'border-green-200' : 'border-emerald-200'} rounded-lg p-2`}>
-                                        <p className="text-xs text-gray-600">Juz Penempatan Final</p>
-                                        <p className="text-sm font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
-                                        {juzAdjusted && (
-                                          <p className="text-xs text-green-600">Diperbarui berdasarkan nilai pilihan ganda</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                // CASE 2: Gagal Oral Test -> Pra-Tikrar (Kelas Persiapan)
-                                else if (oralStatus === 'fail') {
-                                  return (
-                                    <div className="space-y-3">
-                                      <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-3 sm:p-4">
-                                        <div className="flex items-start space-x-3">
-                                          <Target className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 mt-0.5 flex-shrink-0" />
-                                          <div>
-                                            <h4 className="text-base sm:text-lg font-bold text-orange-900 mb-2">
-                                              Ukhti Masuk Kelas Pra-Tikrar
-                                            </h4>
-                                            <p className="text-xs sm:text-sm text-orange-800 leading-relaxed">
-                                              Alhamdulillah, Ukhti diterima di kelas Pra-Tikrar (Kelas Khusus Persiapan Tikrar Tahfidz MTI).
-                                              Kelas ini dirancang khusus untuk mempersiapkan Ukhti agar lebih siap mengikuti program Tikrar Tahfidz.
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-2">
-                                        <p className="text-xs text-gray-600">Rekam Suara</p>
-                                        <p className="text-sm font-bold text-orange-700">Perlu Peningkatan</p>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                // CASE 3: Menunggu Hasil Oral Test
-                                else if (oralStatus === 'pending' || oralStatus === 'not_submitted') {
-                                  return (
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
-                                      <div className="flex items-start space-x-3">
-                                        <Clock className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                                        <div>
-                                          <h4 className="text-sm font-semibold text-yellow-800 mb-1">Menunggu Hasil Seleksi</h4>
-                                          <p className="text-xs text-yellow-700">
-                                            Hasil seleksi akan diumumkan pada tanggal yang telah ditentukan.
-                                            Semua peserta akan lulus ke Tikrar Tahfidz MTI atau Pra-Tikrar.
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                // Default fallback
-                                return (
-                                  <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                    {item.description}
-                                  </p>
-                                );
-                              })()
-                            ) : (
-                              <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                      </Card>
-                    </div>
-                  );
-
-                  // Wrap with Link if it's a Daftar Ulang card
-                  if (isDaftarUlangCard) {
-                    return (
-                      <Link key={item.id} href={`/daftar-ulang?batch_id=${batchId}`} className="block no-underline">
-                        {cardContent}
-                      </Link>
-                    );
-                  }
-
-                  return cardContent;
-                })}
-              </div>
-            </div>
-
-            {/* Desktop View - Premium Milestone Path */}
-            <div className="hidden lg:block relative py-20 px-10">
-              {/* Central Path - Flowing Gradient */}
-              <div className="absolute left-1/2 transform -translate-x-1/2 w-2 h-full bg-gray-50 rounded-full overflow-hidden">
-                <div 
-                  className="absolute top-0 left-0 w-full bg-gradient-to-b from-emerald-600 via-emerald-400 to-emerald-200 rounded-full transition-all duration-1000"
-                  style={{ height: `${percentage}%` }}
-                ></div>
-              </div>
-
-              <div className="space-y-32">
-                {timelineData.map((item, index) => {
-                  const styles = getStatusStyles(item.status);
-                  const isLeftSide = index % 2 === 0;
-
-                  const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
-                                           (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
-                                           !registrationStatus.registration?.re_enrollment_completed;
-
-                  return (
-                    <div key={item.id} className={`relative flex items-center ${isLeftSide ? 'justify-start' : 'justify-end'}`}>
-                      {/* Milestone Dot on Central Path */}
-                      <div className={`absolute left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full border-4 border-white shadow-xl z-30 transition-all duration-700 flex items-center justify-center ${
-                        styles.dotColor
-                      } ${item.status === 'current' ? 'scale-125 ring-8 ring-yellow-400/20' : ''}`}>
-                         {item.status === 'completed' ? (
-                           <CheckCircle className="w-5 h-5 text-white" />
-                         ) : item.status === 'current' ? (
-                           <Sparkles className="w-5 h-5 text-white animate-spin-slow" />
-                         ) : null}
-                      </div>
-
-                      {/* Card - Symmetrical Design */}
-                      <div className={`w-[45%] ${isLeftSide ? 'pr-12 text-right' : 'pl-12 text-left'}`}>
-                        <Card className={`${styles.cardBg} ${styles.cardBorder} relative z-10 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 rounded-[32px] overflow-hidden glass-premium group ${
-                          item.status === 'current' ? 'ring-2 ring-yellow-400' : ''
-                        }`}>
-                          {/* Inner Glow/Gradient */}
-                          {item.status === 'current' && (
-                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-transparent pointer-events-none" />
-                          )}
-
-                          <CardContent className="p-8">
-                            <div className={`flex items-start gap-4 mb-6 ${isLeftSide ? 'flex-row-reverse' : 'flex-row'}`}>
-                              <div className={`p-4 rounded-2xl ${styles.iconBg} ${styles.iconColor} shadow-inner`}>
-                                {item.icon}
-                              </div>
-                              <div className="flex-grow">
-                                <p className={`text-xs font-black uppercase tracking-[0.2em] ${styles.textColor} opacity-60 mb-2`}>
-                                  {item.day !== '-' ? item.day : 'Pekan'} • {item.date}
-                                </p>
-                                <h3 className={`text-2xl font-black ${styles.textColor} tracking-tight leading-none`}>
-                                  {item.title}
-                                </h3>
-                              </div>
-                            </div>
-
-                              {/* Description */}
-                              {item.id === 1 && registrationStatus?.hasRegistered ? (
-                                <div className="space-y-2">
-                                  <div className="flex items-start space-x-2">
-                                    <Calendar className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                                    <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                      Pendaftaran pada {(() => {
-                                        const regDate = registrationStatus.registration?.registration_date || registrationStatus.registration?.submitted_at || registrationStatus.registration?.created_at;
-                                        return regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia';
-                                      })()}.
-                                    </p>
-                                  </div>
-                                  <div className="flex items-start space-x-2">
-                                    <CheckCircle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${registrationStatus.registration?.status === 'approved' ? 'text-green-600' : 'text-gray-500'}`} />
-                                    <p className={`text-sm leading-relaxed ${
-                                      registrationStatus.registration?.status === 'approved' ? 'text-green-700 font-bold' :
-                                      registrationStatus.registration?.status === 'pending' ? 'text-yellow-700 font-semibold' :
-                                      registrationStatus.registration?.status === 'rejected' ? 'text-red-700 font-semibold' :
-                                      styles.textColor
-                                    }`}>
-                                      Status: {registrationStatus.registration?.status === 'pending' ? 'Menunggu konfirmasi' : registrationStatus.registration?.status === 'approved' ? 'Disetujui ✓' : registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : item.hasSelectionTasks && registrationStatus?.registration?.status === 'approved' ? (
-                                <div className="space-y-3">
-                                  <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                    {item.description}
-                                  </p>
-
-                                  {/* Information message for students */}
-                                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                    <div className="flex items-start space-x-3">
-                                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                                      <div>
-                                        <h4 className="text-sm font-semibold text-green-800 mb-1">Fitur Seleksi Sudah Dibuka!</h4>
-                                        <p className="text-xs text-green-700">
-                                          Silakan klik card di bawah untuk mengerjakan ujian seleksi. Pastikan <em>Ukhti</em> sudah menyiapkan diri dengan baik.
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-3">
-                                    {/* Card Rekam Suara - Always clickable */}
-                                    {registrationStatus?.hasOralSubmission ? (
-                                      <Link href="/seleksi/rekam-suara">
-                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                          <CardContent className="p-4">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                              <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                              </div>
-                                              <div className="flex-grow">
-                                                <h4 className="text-base font-semibold text-green-900">Rekam Suara</h4>
-                                                <p className="text-sm text-green-700">Sudah terkirim - Klik untuk lihat</p>
-                                              </div>
-                                            </div>
-                                            <p className="text-sm text-green-800 mb-2">
-                                              Dikirim: {registrationStatus?.oralSubmittedAt ? new Date(registrationStatus.oralSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                            </p>
-                                            <p className="text-xs text-gray-600 italic">
-                                              Status: {registrationStatus?.oralAssessmentStatus === 'pending' ? 'Menunggu penilaian' :
-                                                       registrationStatus?.oralAssessmentStatus === 'pass' ? 'Lulus' :
-                                                       registrationStatus?.oralAssessmentStatus === 'fail' ? 'Tidak lulus' : 'Belum dinilai'}
-                                            </p>
-                                          </CardContent>
-                                        </Card>
-                                      </Link>
-                                    ) : (
-                                      <Link href="/seleksi/rekam-suara">
-                                        <Card className={`border-2 border-red-300 bg-white hover:bg-red-50 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                          <CardContent className="p-4">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                              <div className={`w-10 h-10 bg-red-100 rounded-full flex items-center justify-center`}>
-                                                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                                </svg>
-                                              </div>
-                                              <div className="flex-grow">
-                                                <h4 className="text-base font-semibold text-red-900">Rekam Suara</h4>
-                                                <p className="text-sm text-red-700">Ujian lisan - Klik untuk mulai</p>
-                                              </div>
-                                            </div>
-                                            <p className="text-sm text-red-800 font-medium">
-                                              Klik untuk merekam bacaan Al-Fath ayat 29
-                                            </p>
-                                          </CardContent>
-                                        </Card>
-                                      </Link>
-                                    )}
-
-                                    {/* Card Pilihan Ganda - Available for all users during selection period */}
-                                    {isJuz30 ? (
-                                      // Juz 30 - No exam required
-                                      <Card className={`border-2 border-gray-300 bg-gray-50`}>
-                                        <CardContent className="p-4">
-                                          <div className="flex items-center space-x-3 mb-2">
-                                            <div className={`w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center`}>
-                                              <Info className="w-5 h-5 text-gray-600" />
-                                            </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-base font-semibold text-gray-900">Pilihan Ganda</h4>
-                                              <p className="text-sm text-gray-700">Tidak wajib ujian</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-sm text-gray-600 font-medium">
-                                            Untuk Juz 30, hanya diperlukan rekaman suara
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    ) : registrationStatus?.writtenQuizSubmittedAt ? (
-                                      <Link href="/seleksi/pilihan-ganda">
-                                        <Card className={`border-2 border-green-300 bg-green-50 hover:bg-green-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                          <CardContent className="p-4">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                              <div className={`w-10 h-10 bg-green-100 rounded-full flex items-center justify-center`}>
-                                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                              </div>
-                                              <div className="flex-grow">
-                                                <h4 className="text-base font-semibold text-green-900">Pilihan Ganda</h4>
-                                                <p className="text-sm text-green-700">Sudah dikerjakan - Klik untuk lihat</p>
-                                              </div>
-                                            </div>
-                                            <p className="text-sm text-green-800 mb-2">
-                                              Nilai: {registrationStatus?.examScore ?? '-'}/100
-                                            </p>
-                                            <p className="text-sm text-gray-600 italic">
-                                              Dikirim: {registrationStatus?.writtenQuizSubmittedAt ? new Date(registrationStatus.writtenQuizSubmittedAt).toLocaleDateString('id-ID') : '-'}
-                                            </p>
-                                          </CardContent>
-                                        </Card>
-                                      </Link>
-                                    ) : examEligibility?.attemptsRemaining === 0 ? (
-                                      // Max attempts reached - disabled card
-                                      <Card className={`border-2 border-red-300 bg-red-50 cursor-not-allowed opacity-70`}>
-                                        <CardContent className="p-4">
-                                          <div className="flex items-center space-x-3 mb-2">
-                                            <div className={`w-10 h-10 bg-red-100 rounded-full flex items-center justify-center`}>
-                                              <Ban className="w-5 h-5 text-red-600" />
-                                            </div>
-                                            <div className="flex-grow">
-                                              <h4 className="text-base font-semibold text-red-900">Pilihan Ganda</h4>
-                                              <p className="text-sm text-red-700">Kesempatan ujian habis</p>
-                                            </div>
-                                          </div>
-                                          <p className="text-sm text-red-800 font-medium">
-                                            Telah digunakan {examEligibility.attemptsUsed}/{examEligibility.maxAttempts}x percobaan
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    ) : (
-                                      <Link href="/seleksi/pilihan-ganda">
-                                        <Card className={`border-2 border-purple-300 bg-purple-50 hover:bg-purple-100 cursor-pointer transition-all duration-200 hover:shadow-md`}>
-                                          <CardContent className="p-4">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                              <div className={`w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center`}>
-                                                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                                                </svg>
-                                              </div>
-                                              <div className="flex-grow">
-                                                <h4 className="text-base font-semibold text-purple-900">Pilihan Ganda</h4>
-                                                <p className="text-sm text-purple-700">Ujian tulisan - Klik untuk mulai</p>
-                                              </div>
-                                            </div>
-                                            <p className="text-sm text-purple-800 font-medium">
-                                              Ujian pilihan ganda tentang Al-Qur'an
-                                            </p>
-                                          </CardContent>
-                                        </Card>
-                                      </Link>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : item.hasSelectionTasks && (!registrationStatus?.hasRegistered || registrationStatus?.registration?.status !== 'approved') ? (
-                                <div className="space-y-2">
-                                  <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                    {item.description}
-                                  </p>
-                                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                    <p className="text-sm text-yellow-800">
-                                      <span className="font-semibold">Status:</span> Menunggu konfirmasi admin untuk membuka tahapan seleksi
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : item.id === 4 ? (
-                              // Daftar Ulang - Show status and akad files
-                              (() => {
-                                const daftarUlang = registrationStatus.registration?.daftar_ulang;
-
-                                // Show daftar ulang info based on status
-                                // draft: belum selesai, submitted/approved: selesai
-                                const isSubmittedOrApproved = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
-                                const isDraft = daftarUlang?.status === 'draft';
-
-                                if (daftarUlang && isSubmittedOrApproved) {
-                                  // Show completed status for submitted or approved
-                                  return (
-                                    <div className="space-y-2">
-                                      <div className="flex items-start space-x-2">
-                                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                                        <p className={`text-xs sm:text-sm text-green-700 font-bold leading-relaxed`}>
-                                          Daftar ulang selesai ✓
-                                        </p>
-                                      </div>
-
-                                      {/* Show akad files */}
-                                      {daftarUlang.akad_files && daftarUlang.akad_files.length > 0 && (
-                                        <div className="mt-2 space-y-1">
-                                          <p className={`text-xs ${styles.textColor} font-medium`}>File Akad:</p>
-                                          {daftarUlang.akad_files.map((file: { url: string; name: string }, idx: number) => (
-                                            <a
-                                              key={idx}
-                                              href={file.url}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                                            >
-                                              <FileText className="w-3 h-3" />
-                                              {file.name}
-                                            </a>
-                                          ))}
-                                        </div>
-                                      )}
-
-                                      {/* Show program/class info */}
-                                      {registrationStatus.registration?.program && (
-                                        <div className="mt-2">
-                                          <p className={`text-xs ${styles.textColor} font-medium`}>Kelas:</p>
-                                          <p className="text-xs text-green-700 font-semibold">{registrationStatus.registration.program.name}</p>
-                                        </div>
-                                      )}
-
-                                      {/* Show halaqah information */}
-                                      {(daftarUlang.ujian_halaqah || daftarUlang.tashih_halaqah) && (
-                                        <div className="mt-2 space-y-2">
-                                          <p className={`text-xs ${styles.textColor} font-medium`}>Jadwal Halaqah:</p>
-
-                                          {/* Ujian Halaqah */}
-                                          {daftarUlang.ujian_halaqah && (
-                                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                                              <p className="text-xs font-semibold text-blue-800 mb-1">Ujian Halaqah</p>
-                                              <p className="text-xs text-blue-700">{daftarUlang.ujian_halaqah.name}</p>
-                                              <p className="text-xs text-blue-600">
-                                                {getDayNameFromNumber(daftarUlang.ujian_halaqah.day_of_week)}, {daftarUlang.ujian_halaqah.start_time} - {daftarUlang.ujian_halaqah.end_time}
-                                              </p>
-                                            </div>
-                                          )}
-
-                                          {/* Tashih Halaqah */}
-                                          {daftarUlang.tashih_halaqah && (
-                                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
-                                              <p className="text-xs font-semibold text-purple-800 mb-1">Tashih Halaqah</p>
-                                              <p className="text-xs text-purple-700">{daftarUlang.tashih_halaqah.name}</p>
-                                              <p className="text-xs text-purple-600">
-                                                {getDayNameFromNumber(daftarUlang.tashih_halaqah.day_of_week)}, {daftarUlang.tashih_halaqah.start_time} - {daftarUlang.tashih_halaqah.end_time}
-                                              </p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {daftarUlang.submitted_at && (
-                                        <p className={`text-xs ${styles.textColor} mt-1`}>
-                                          Dikirim pada {new Date(daftarUlang.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                        </p>
-                                      )}
-                                    </div>
-                                  );
-                                } else if (daftarUlang && isDraft) {
-                                  // Draft status - show as incomplete
-                                  return (
-                                    <div className="space-y-2">
-                                      <div className="flex items-start space-x-2">
-                                        <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
-                                        <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
-                                          Draft - Belum dikirim
-                                        </p>
-                                      </div>
-                                      <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                        Silakan lengkapi dan kirim formulir daftar ulang.
-                                      </p>
-                                    </div>
-                                  );
-                                } else {
-                                  // No daftar ulang yet - show status indicating belum mendaftar ulang
-                                  const isEligible = registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved';
-
-                                  return (
-                                    <div className="space-y-2">
-                                      {isEligible ? (
-                                        <>
-                                          <div className="flex items-start space-x-2">
-                                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0 text-orange-600" />
-                                            <p className={`text-xs sm:text-sm text-orange-700 font-semibold leading-relaxed`}>
-                                              Belum mendaftar ulang
-                                            </p>
-                                          </div>
-                                          <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                            Silakan isi formulir daftar ulang untuk mengkonfirmasi keikutsertaan.
-                                          </p>
-                                        </>
-                                      ) : (
-                                        <p className={`text-xs sm:text-sm ${styles.textColor} leading-relaxed`}>
-                                          {item.description}
-                                        </p>
-                                      )}
-                                    </div>
-                                  );
-                                }
-                              })()
-                            ) : item.id === 3 ? (
-                                // Hasil Seleksi - Desktop view - NEW LOGIC: Everyone passes to either Tikrar Tahfidz MTI or Pra-Tikrar
-                                (() => {
-                                  const oralStatus = registrationStatus?.oralAssessmentStatus;
-                                  const chosenJuz = registrationStatus?.chosenJuz?.toUpperCase() || '';
-                                  const examScore = registrationStatus?.examScore;
-                                  const isJuz30 = chosenJuz.startsWith('30');
-
-                                  // Calculate adjusted juz based on written quiz score
-                                  let finalJuz = chosenJuz;
-                                  let juzAdjusted = false;
-                                  let juzAdjustmentReason = '';
-
-                                  if (oralStatus === 'pass' && examScore !== null && examScore !== undefined && examScore < 70) {
-                                    if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
-                                      finalJuz = '29A';
-                                      juzAdjusted = true;
-                                      juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
-                                    } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
-                                      finalJuz = '30A';
-                                      juzAdjusted = true;
-                                      juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
-                                    }
-                                  }
-
-                                  // CASE 1: Lulus Oral Test -> Tikrar Tahfidz MTI (regardless of written test score)
-                                  if (oralStatus === 'pass') {
-                                    return (
-                                      <div className="space-y-3">
-                                        <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                                          <div className="flex items-start space-x-3">
-                                            <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                                            <div>
-                                              <h4 className="text-lg font-bold text-green-900 mb-2">
-                                                Selamat! Ukhti Lulus ke Tikrar Tahfidz MTI
-                                              </h4>
-                                              <p className="text-sm text-green-800 leading-relaxed">
-                                                Alhamdulillah, Ukhti telah lulus seleksi penerimaan program Tikrar Tahfidz MTI.
-                                                Teruslah bermuhasabah dan perbaiki diri demi menjadi hafidzah yang lebih baik.
-                                              </p>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-3">
-                                          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                            <p className="text-sm text-gray-600">Rekam Suara</p>
-                                            <p className="text-base font-bold text-green-700">Lulus ✓</p>
-                                          </div>
-                                          {!isJuz30 && (
-                                            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                              <p className="text-sm text-gray-600">Pilihan Ganda</p>
-                                              {examScore !== null && examScore !== undefined ? (
-                                                <>
-                                                  <p className="text-base font-bold text-green-700">
-                                                    {examScore} - {examScore < 70 ? 'Perlu Penyesuaian Juz' : 'Penempatan Halaqah'}
-                                                  </p>
-                                                  {juzAdjusted && (
-                                                    <p className="text-sm text-blue-700 mt-1">
-                                                      {juzAdjustmentReason}
-                                                    </p>
-                                                  )}
-                                                </>
-                                              ) : (
-                                                <p className="text-base text-yellow-700 italic">
-                                                  Belum dikerjakan
-                                                </p>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {/* Show final juz placement - always show */}
-                                        <div className={`bg-green-50 border ${juzAdjusted ? 'border-green-200' : 'border-emerald-200'} rounded-lg p-3`}>
-                                          <p className="text-sm text-gray-600">Juz Penempatan Final</p>
-                                          <p className="text-base font-bold text-green-700">{getJuzLabel(finalJuz)}</p>
-                                          {juzAdjusted && (
-                                            <p className="text-sm text-green-600">Diperbarui berdasarkan nilai pilihan ganda</p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  // CASE 2: Gagal Oral Test -> Pra-Tikrar (Kelas Persiapan)
-                                  else if (oralStatus === 'fail') {
-                                    return (
-                                      <div className="space-y-3">
-                                        <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
-                                          <div className="flex items-start space-x-3">
-                                            <Target className="w-6 h-6 text-orange-600 mt-0.5 flex-shrink-0" />
-                                            <div>
-                                              <h4 className="text-lg font-bold text-orange-900 mb-2">
-                                                Ukhti Masuk Kelas Pra-Tikrar
-                                              </h4>
-                                              <p className="text-sm text-orange-800 leading-relaxed">
-                                                Alhamdulillah, Ukhti diterima di kelas Pra-Tikrar (Kelas Khusus Persiapan Tikrar Tahfidz MTI).
-                                                Kelas ini dirancang khusus untuk mempersiapkan Ukhti agar lebih siap mengikuti program Tikrar Tahfidz.
-                                              </p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                                          <p className="text-sm text-gray-600">Rekam Suara</p>
-                                          <p className="text-base font-bold text-orange-700">Perlu Peningkatan</p>
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  // CASE 3: Menunggu Hasil Oral Test
-                                  else if (oralStatus === 'pending' || oralStatus === 'not_submitted') {
-                                    return (
-                                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                        <div className="flex items-start space-x-3">
-                                          <Clock className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                                          <div>
-                                            <h4 className="text-sm font-semibold text-yellow-800 mb-1">Menunggu Hasil Seleksi</h4>
-                                            <p className="text-sm text-yellow-700">
-                                              Hasil seleksi akan diumumkan pada tanggal yang telah ditentukan.
-                                              Semua peserta akan lulus ke Tikrar Tahfidz MTI atau Pra-Tikrar.
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  // Default fallback
-                                  return (
-                                    <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                      {item.description}
-                                    </p>
-                                  );
-                                })()
-                              ) : (
-                                <p className={`text-sm ${styles.textColor} leading-relaxed`}>
-                                  {item.description}
-                                </p>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </div>
-
-                        {/* Center Icon */}
-                        <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
-                          <div className={`w-12 h-12 ${styles.iconBg} rounded-full flex items-center justify-center ring-4 ring-white shadow-sm ${item.status === 'current' ? 'ring-4 ring-yellow-200' : ''}`}>
-                            <div className={styles.iconColor}>
-                              {item.icon}
-                            </div>
-                            {item.status === 'current' && (
-                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-
-                    // Wrap with Link if it's a Daftar Ulang card
-                    if (isDaftarUlangCard) {
-                      return (
-                        <Link key={item.id} href={`/daftar-ulang?batch_id=${batchId}`} className="block no-underline">
-                          {cardContent}
-                        </Link>
-                      );
-                    }
-
-                    return cardContent;
-                  })}
-                </div>
-              </div>
-            </div>
+                    <TimelineMilestone 
+                      timelineData={timelineData}
+                      registrationStatus={registrationStatus}
+                      user={user}
+                      percentage={percentage}
+                      batchId={batchId}
+                      examEligibility={examEligibility}
+                      isJuz30={isJuz30}
+                      getStatusStyles={getStatusStyles}
+                      getDayNameFromNumber={getDayNameFromNumber}
+                      getJuzLabel={getJuzLabel}
+                    />
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
       {/* Tab 3: Pencapaian Saya */}
       {activeTab === 'achievement' && (
@@ -2547,31 +1509,31 @@ export default function PerjalananSaya() {
                   <p className="text-green-100 text-sm">Progress</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-                )}
-              </div>
+                </CardContent>
+              </Card>
             )}
-
-          {/* Edit Registration Modal */}
-        {registrationStatus?.registration && (
-          <EditTikrarRegistrationModal
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSuccess={handleEditSuccess}
-            registration={{
-              id: registrationStatus.registration?.id || registrationStatus.registrationId || '',
-              chosen_juz: registrationStatus.registration?.chosen_juz || '',
-              main_time_slot: registrationStatus.registration?.main_time_slot || '',
-              backup_time_slot: registrationStatus.registration?.backup_time_slot || '',
-              full_name: registrationStatus.registration?.full_name || user?.full_name,
-              wa_phone: registrationStatus.registration?.wa_phone,
-              address: registrationStatus.registration?.address,
-              motivation: registrationStatus.registration?.motivation,
-            }}
-          />
+          </div>
         )}
       </div>
+
+      {/* Edit Registration Modal */}
+      {registrationStatus?.registration && (
+        <EditTikrarRegistrationModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+          registration={{
+            id: registrationStatus.registration?.id || '',
+            chosen_juz: registrationStatus.registration?.chosen_juz || '',
+            main_time_slot: registrationStatus.registration?.main_time_slot || '',
+            backup_time_slot: registrationStatus.registration?.backup_time_slot || '',
+            full_name: registrationStatus.registration?.full_name || user?.full_name || '',
+            wa_phone: registrationStatus.registration?.wa_phone || '',
+            address: registrationStatus.registration?.address,
+            motivation: registrationStatus.registration?.motivation,
+          }}
+        />
+      )}
     </div>
   );
 }

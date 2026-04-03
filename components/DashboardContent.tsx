@@ -115,60 +115,6 @@ export default function DashboardContent() {
           : 0)
   }
 
-  // Loading state - Consistent across all devices
-  if (isPageLoading) {
-    return (
-      <div className="space-y-4 sm:space-y-6">
-        {/* Welcome card skeleton */}
-        <Card>
-          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-            <div className="h-5 sm:h-6 bg-gray-200 rounded w-1/3 animate-pulse"></div>
-            <div className="h-3.5 sm:h-4 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
-          </CardHeader>
-        </Card>
-
-        {/* Stats cards skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
-                <div className="h-3.5 sm:h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
-                <div className="h-7 sm:h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Progress card skeleton */}
-        <Card>
-          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
-            <div className="h-4 sm:h-5 bg-gray-200 rounded w-1/3 animate-pulse"></div>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-            <div className="space-y-2.5 sm:space-y-3">
-              <div className="h-1.5 sm:h-2 bg-gray-200 rounded animate-pulse"></div>
-              <div className="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // Error state
-  if (batchError || statsError) {
-    return (
-      <div className="space-y-6">
-        <SWRErrorFallback
-          error={batchError || statsError || new Error('Failed to load dashboard data')}
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    )
-  }
-
   // Get welcome theme based on time
   const welcomeTheme = React.useMemo(() => {
     const hour = new Date().getHours()
@@ -263,6 +209,61 @@ export default function DashboardContent() {
 
     return activities.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5)
   }, [canSeeAdminStats, stats, tashihStatus, jurnalStatus])
+
+  // Loading state - Consistent across all devices
+  if (isPageLoading) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        {/* Welcome card skeleton */}
+        <Card>
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <div className="h-5 sm:h-6 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+            <div className="h-3.5 sm:h-4 bg-gray-200 rounded w-1/2 animate-pulse mt-2"></div>
+          </CardHeader>
+        </Card>
+
+        {/* Stats cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+                <div className="h-3.5 sm:h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+                <div className="h-7 sm:h-8 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Progress card skeleton */}
+        <Card>
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-4">
+            <div className="h-4 sm:h-5 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="space-y-2.5 sm:space-y-3">
+              <div className="h-1.5 sm:h-2 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-1.5 sm:h-2 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Error state
+  if (batchError || statsError) {
+    return (
+      <div className="space-y-6">
+        <SWRErrorFallback
+          error={batchError || statsError || new Error('Failed to load dashboard data')}
+          onRetry={() => window.location.reload()}
+        />
+      </div>
+    )
+  }
+
 
   const toGregorianLabel = () => {
     if (gregorianDate) return `${gregorianDate.day} ${gregorianDate.month} ${gregorianDate.year}`
