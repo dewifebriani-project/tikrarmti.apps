@@ -411,7 +411,7 @@ function PresensiJurnalContent() {
                     e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
                   )} 
                   onRefresh={loadData}
-                  onShowRecords={(user, blockCode, records) => {
+                  onShowRecords={(user: any, blockCode: string, records: any[]) => {
                     setSelectedBlockRecords({ user, blockCode, records, type: 'presensi' });
                   }}
                 />
@@ -422,8 +422,7 @@ function PresensiJurnalContent() {
                     e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
                   )} 
                   onRefresh={loadData}
-                  currentWeek={jurnalEntries[0]?.weekly_status.length || 10}
-                  onShowRecords={(user, blockCode, records) => {
+                  onShowRecords={(user: any, blockCode: string, records: any[]) => {
                     setSelectedBlockRecords({ user, blockCode, records, type: 'jurnal' });
                   }}
                 />
@@ -576,7 +575,13 @@ function EffectHandler({ onOpenModal }: { onOpenModal: (detail: any) => void }) 
 
 // --- sub components ---
 
-function TashihTabSimple({ entries, onRefresh, onShowRecords }: any) {
+interface TashihTabProps {
+  entries: TashihEntry[];
+  onRefresh: () => void;
+  onShowRecords: (user: any, blockCode: string, records: any[]) => void;
+}
+
+function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -704,7 +709,13 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: any) {
   );
 }
 
-function JurnalTabSimple({ entries, onRefresh, onShowRecords }: any) {
+interface JurnalTabProps {
+  entries: JurnalUserEntry[];
+  onRefresh: () => void;
+  onShowRecords: (user: any, blockCode: string, records: any[]) => void;
+}
+
+function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
