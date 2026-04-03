@@ -31,7 +31,8 @@ import {
   MessageSquare,
   ChevronRight,
   UserCheck,
-  ClipboardList
+  ClipboardList,
+  Minus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -180,6 +181,41 @@ function PresensiJurnalContent() {
   const [selectedBlok, setSelectedBlok] = useState<string>('all');
   const [availableBloks, setAvailableBloks] = useState<string[]>([]);
   const [currentWeek, setCurrentWeek] = useState<number>(0);
+  
+  const [selectedBlockRecords, setSelectedBlockRecords] = useState<{
+    user: any;
+    blockCode: string;
+    records: any[];
+    type: 'presensi' | 'jurnal';
+  } | null>(null);
+  
+  const [isInputModalOpen, setIsInputModalOpen] = useState(false);
+  const [inputTarget, setInputTarget] = useState<{
+    user: any;
+    blockCode: string;
+    type: 'presensi' | 'jurnal';
+  } | null>(null);
+  const [muallimahList, setMuallimahList] = useState<any[]>([]);
+
+  const handleDeleteRecord = async (id: string, type: 'presensi' | 'jurnal') => {
+    if (!window.confirm('Apakah Ukhti yakin ingin menghapus record ini? Tindakan ini tidak dapat dibatalkan.')) return;
+    
+    try {
+      const endpoint = type === 'presensi' ? `/api/musyrifah/tashih?id=${id}` : `/api/musyrifah/jurnal?id=${id}`;
+      const response = await fetch(endpoint, { method: 'DELETE' });
+      
+      if (response.ok) {
+        toast.success('Record berhasil dihapus');
+        setSelectedBlockRecords(null);
+        loadData();
+      } else {
+        const result = await response.json();
+        toast.error(result.error || 'Gagal menghapus record');
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan saat menghapus');
+    }
+  };
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -191,8 +227,34 @@ function PresensiJurnalContent() {
   useEffect(() => {
     if (user && !authLoading) {
       loadData();
+      if (activeTab === 'presensi') {
+        loadMuallimah();
+      }
     }
   }, [user, authLoading, activeTab, selectedBlok]);
+
+  const loadMuallimah = async () => {
+    try {
+      const supabase = createClient();
+      const { data: activeBatch } = await supabase
+        .from('batches')
+        .select('id')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeBatch) {
+        const response = await fetch(`/api/muallimah/list?batch_id=${activeBatch.id}`);
+        if (response.ok) {
+          const result = await response.json();
+          setMuallimahList(result.data || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading muallimah:', error);
+    }
+  };
 
   const loadData = async () => {
     setDataLoading(true);
@@ -233,7 +295,6 @@ function PresensiJurnalContent() {
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <Toaster position="top-right" />
       
-      {/* Compact Auth Header Style */}
       <div className="bg-white border-b border-gray-100 mb-8 pt-6 pb-6 shadow-sm">
         <div className="container mx-auto px-6">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -264,7 +325,6 @@ function PresensiJurnalContent() {
       </div>
 
       <div className="container mx-auto px-6 relative z-20">
-        {/* Navigation Tabs */}
         <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-md mx-auto sm:mx-0">
           <button
             onClick={() => {
@@ -298,7 +358,6 @@ function PresensiJurnalContent() {
           </button>
         </div>
 
-        {/* Filters and Actions */}
         <div className="flex flex-col md:flex-row gap-4 mb-8 justify-between items-end">
           <div className="flex flex-wrap gap-3 items-end w-full lg:w-auto">
             <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[300px]">
@@ -335,16 +394,8 @@ function PresensiJurnalContent() {
               <ArrowUpDown className={cn("w-5 h-5 transition-transform duration-500", dataLoading && "rotate-180")} />
             </button>
           </div>
-          
-          <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-green-900 text-white rounded-xl font-bold text-sm shadow-lg shadow-green-900/20 hover:bg-green-800 transition-all transition-transform active:scale-95 group">
-              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
-              <span>Input {activeTab === 'presensi' ? 'Tashih' : 'Jurnal'} Baru</span>
-            </button>
-          </div>
         </div>
 
-        {/* Content Area */}
         <div className="relative">
           {dataLoading ? (
              <div className="bg-white/60 backdrop-blur-md rounded-3xl p-20 flex flex-col items-center justify-center border border-white shadow-xl animate-pulse">
@@ -360,6 +411,9 @@ function PresensiJurnalContent() {
                     e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
                   )} 
                   onRefresh={loadData}
+                  onShowRecords={(user, blockCode, records) => {
+                    setSelectedBlockRecords({ user, blockCode, records, type: 'presensi' });
+                  }}
                 />
               ) : (
                 <JurnalTabSimple 
@@ -368,35 +422,161 @@ function PresensiJurnalContent() {
                     e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
                   )} 
                   onRefresh={loadData}
-                  currentWeek={currentWeek}
+                  currentWeek={jurnalEntries[0]?.weekly_status.length || 10}
+                  onShowRecords={(user, blockCode, records) => {
+                    setSelectedBlockRecords({ user, blockCode, records, type: 'jurnal' });
+                  }}
                 />
               )}
             </div>
           )}
         </div>
+
+        {/* Detailed Record Modal */}
+        {selectedBlockRecords && (
+          <div className="fixed inset-0 bg-green-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-white animate-fadeInScale">
+              <div className="bg-gradient-to-r from-green-900 to-emerald-900 p-6 text-white flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-bold">Detail {selectedBlockRecords.type === 'presensi' ? 'Tashih' : 'Jurnal'}</h3>
+                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">
+                    {selectedBlockRecords.user?.full_name} • Blok {selectedBlockRecords.blockCode}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                      const type = selectedBlockRecords.type;
+                      const user = selectedBlockRecords.user;
+                      const blockCode = selectedBlockRecords.blockCode;
+                      setSelectedBlockRecords(null);
+                      setTimeout(() => {
+                        setInputTarget({ user, blockCode, type });
+                        setIsInputModalOpen(true);
+                      }, 100);
+                    }}
+                    className="p-2 hover:bg-white/10 rounded-full transition-all text-white"
+                    title="Tambah Record Baru"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => setSelectedBlockRecords(null)}
+                    className="p-2 hover:bg-white/10 rounded-full transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 max-h-[60vh] overflow-y-auto scrollbar-hide space-y-4">
+                {selectedBlockRecords.records.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">Tidak ada record ditemukan</p>
+                  </div>
+                ) : (
+                  selectedBlockRecords.records.map((record, idx) => (
+                    <div key={record.id || idx} className="bg-gray-50 rounded-2xl p-5 border border-gray-100 flex justify-between items-start group">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-3 h-3 text-green-700" />
+                          <span className="text-xs font-bold text-gray-900">
+                             {new Date(record.tanggal_setor || record.waktu_tashih || record.created_at).toLocaleDateString('id-ID', {
+                               day: 'numeric', month: 'long', year: 'numeric'
+                             })}
+                          </span>
+                        </div>
+                        {selectedBlockRecords.type === 'presensi' ? (
+                          <div className="space-y-1">
+                             <div className="text-[10px] text-gray-500 font-medium">Ustadzah: <span className="font-bold text-gray-700">{record.nama_pemeriksa || '-'}</span></div>
+                             <div className="text-[10px] text-gray-500 font-medium">Kesalahan: <span className="font-bold text-red-600">{record.jumlah_kesalahan_tajwid || 0}</span></div>
+                             {record.catatan_tambahan && <div className="text-[10px] text-gray-500 italic mt-2 border-l-2 border-green-200 pl-2">"{record.catatan_tambahan}"</div>}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                             <div className="flex flex-wrap gap-1">
+                                {record.rabth_completed && <span className="text-[8px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md font-bold uppercase">Rabth</span>}
+                                {record.murajaah_count > 0 && <span className="text-[8px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-bold uppercase">Murajaah</span>}
+                                {record.tikrar_bi_al_ghaib_count > 0 && <span className="text-[8px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-bold uppercase">Ghaib</span>}
+                             </div>
+                             {record.catatan_tambahan && <div className="text-[10px] text-gray-500 italic mt-2 border-l-2 border-green-200 pl-2">"{record.catatan_tambahan}"</div>}
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteRecord(record.id, selectedBlockRecords.type)}
+                        className="p-2.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        title="Hapus Record"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
+                 <button 
+                  onClick={() => setSelectedBlockRecords(null)}
+                  className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold text-xs hover:bg-gray-100 transition-all"
+                 >
+                   Tutup
+                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Input Modal */}
+        {isInputModalOpen && inputTarget && (
+          <InputRecordModal 
+            target={inputTarget}
+            onClose={() => {
+              setIsInputModalOpen(false);
+              setInputTarget(null);
+            }}
+            onSuccess={() => {
+              setIsInputModalOpen(false);
+              setInputTarget(null);
+              loadData();
+            }}
+            muallimahList={muallimahList}
+          />
+        )}
       </div>
       
-      {/* Styles for the page */}
+      <EffectHandler 
+        onOpenModal={(detail) => {
+          setInputTarget(detail);
+          setIsInputModalOpen(true);
+        }} 
+      />
+      
       <style jsx global>{`
-        @keyframes orb-float {
-          0%, 100% { transform: translateY(0) scale(1); }
-          50% { transform: translateY(-20px) scale(1.05); }
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-fadeInScale { animation: fadeInScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
       `}</style>
     </div>
   );
 }
 
-// --- Simplified Component Implementations ---
+function EffectHandler({ onOpenModal }: { onOpenModal: (detail: any) => void }) {
+  useEffect(() => {
+    const handler = (e: any) => onOpenModal(e.detail);
+    window.addEventListener('open-input-modal', handler);
+    return () => window.removeEventListener('open-input-modal', handler);
+  }, [onOpenModal]);
+  return null;
+}
 
-function TashihTabSimple({ entries, onRefresh }: { entries: TashihEntry[], onRefresh: () => void }) {
+// --- sub components ---
+
+function TashihTabSimple({ entries, onRefresh, onShowRecords }: any) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -406,17 +586,15 @@ function TashihTabSimple({ entries, onRefresh }: { entries: TashihEntry[], onRef
     setExpandedRows(newExpanded);
   };
 
-  if (entries.length === 0) {
-     return (
-        <div className="bg-white rounded-3xl p-16 text-center shadow-xl border border-gray-100">
-           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UserCheck className="w-10 h-10 text-gray-300" />
-           </div>
-           <h3 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Data Tashih</h3>
-           <p className="text-gray-500 max-w-sm mx-auto">Thalibah Anda belum memiliki catatan tashih untuk blok ini.</p>
-        </div>
-     );
-  }
+  if (entries.length === 0) return (
+    <div className="bg-white rounded-3xl p-16 text-center shadow-xl border border-gray-100">
+      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <UserCheck className="w-10 h-10 text-gray-300" />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Data Tashih</h3>
+      <p className="text-gray-500 max-w-sm mx-auto">Thalibah Anda belum memiliki catatan tashih.</p>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
@@ -436,17 +614,17 @@ function TashihTabSimple({ entries, onRefresh }: { entries: TashihEntry[], onRef
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {entries.map((entry) => (
+            {entries.map((entry: any) => (
               <React.Fragment key={entry.user_id}>
                 <tr className={cn("hover:bg-green-50/30 transition-colors group", expandedRows.has(entry.user_id) && "bg-green-50/20")}>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-green-900 font-bold shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-green-900 font-bold">
                         {entry.user?.full_name?.charAt(0) || 'T'}
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{entry.user?.full_name}</div>
-                        <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">{entry.user?.nama_kunyah || entry.user?.id.slice(0, 8)}</div>
+                        <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">{entry.user?.nama_kunyah}</div>
                       </div>
                     </div>
                   </td>
@@ -456,68 +634,63 @@ function TashihTabSimple({ entries, onRefresh }: { entries: TashihEntry[], onRef
                     </span>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex flex-col items-center gap-1">
                       <div className="text-xs font-bold text-gray-700">{entry.summary.completion_percentage}%</div>
-                      <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
-                          style={{ width: `${entry.summary.completion_percentage}%` }}
-                        />
-                      </div>
-                      <div className="text-[9px] text-gray-400 font-medium uppercase tracking-tighter">
-                        {entry.summary.completed_blocks}/{entry.summary.total_blocks} Blok
+                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: `${entry.summary.completion_percentage}%` }} />
                       </div>
                     </div>
                   </td>
                   {[1, 2, 3, 4, 5].map(p => (
                     <td key={p} className="px-4 py-5 text-center">
-                      <WeekBubble week={entry.weekly_status.find(w => w.week_number === p)} />
+                      <WeekBubble week={entry.weekly_status.find((w: any) => w.week_number === p)} />
                     </td>
                   ))}
                   <td className="px-6 py-5 text-right">
-                    <div className="flex justify-end gap-2">
-                       <button 
-                        onClick={() => toggleRow(entry.user_id)}
-                        className="p-2 text-gray-400 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all"
-                       >
-                          {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-4 h-4" />}
-                       </button>
-                       <button className="p-2 text-gray-400 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all">
-                          <Plus className="w-4 h-4" />
-                       </button>
-                    </div>
+                    <button onClick={() => toggleRow(entry.user_id)} className="p-2 text-gray-400 hover:text-green-900">
+                      {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </td>
                 </tr>
                 {expandedRows.has(entry.user_id) && (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 bg-gray-50/50">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                         {entry.weekly_status.slice(0, 10).map(week => (
-                            <div key={week.week_number} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                               <div className="flex justify-between items-center mb-4">
-                                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Pekan {week.week_number}</h4>
-                                  <span className={cn(
-                                    "px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase",
-                                    week.is_completed ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                                  )}>
-                                    {week.is_completed ? 'Tuntas' : `${week.completed_blocks}/4`}
-                                  </span>
-                               </div>
-                               <div className="grid grid-cols-2 gap-2">
-                                  {week.blocks.map(block => (
-                                    <div key={block.block_code} className={cn(
+                        {entry.weekly_status.slice(0, 10).map((week: any) => (
+                          <div key={week.week_number} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                             <div className="flex justify-between items-center mb-4 border-b border-gray-50 pb-2">
+                                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pekan {week.week_number}</h4>
+                                <span className="text-[10px] font-bold text-green-700">{week.completed_blocks}/4</span>
+                             </div>
+                             <div className="grid grid-cols-2 gap-2">
+                                {week.blocks.map((block: any) => (
+                                  <button 
+                                    key={block.block_code} 
+                                    onClick={() => {
+                                      const records = entry.tashih_records.filter((r: any) => {
+                                        const bloks = typeof r.blok === 'string' ? r.blok.split(',').map((b: string) => b.trim()) : (r.blok || []);
+                                        return bloks.includes(block.block_code);
+                                      });
+                                      if (block.is_completed) {
+                                        onShowRecords(entry.user, block.block_code, records);
+                                      } else {
+                                        window.dispatchEvent(new CustomEvent('open-input-modal', { detail: { user: entry.user, blockCode: block.block_code, type: 'presensi' } }));
+                                      }
+                                    }}
+                                    className={cn(
                                       "p-2 rounded-xl border-2 text-center transition-all",
                                       block.is_completed 
-                                        ? "bg-green-50 border-green-200 text-green-700" 
-                                        : "bg-white border-gray-100 text-gray-300"
-                                    )}>
-                                      <div className="text-xs font-bold">{block.block_code}</div>
-                                      <div className="text-[9px] font-medium">{block.is_completed ? 'Sudah' : 'Belum'}</div>
-                                    </div>
-                                  ))}
-                               </div>
-                            </div>
-                         ))}
+                                        ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
+                                        : "bg-white border-gray-100 text-gray-300 hover:border-green-100 hover:bg-green-50/50 group"
+                                    )}
+                                  >
+                                    <div className={cn("text-xs font-bold", !block.is_completed && "text-gray-300 group-hover:text-green-600")}>{block.block_code}</div>
+                                    <div className="text-[9px] font-medium">{block.is_completed ? 'Sudah' : 'Input'}</div>
+                                  </button>
+                                ))}
+                             </div>
+                          </div>
+                        ))}
                       </div>
                     </td>
                   </tr>
@@ -531,7 +704,7 @@ function TashihTabSimple({ entries, onRefresh }: { entries: TashihEntry[], onRef
   );
 }
 
-function JurnalTabSimple({ entries, onRefresh, currentWeek }: { entries: JurnalUserEntry[], onRefresh: () => void, currentWeek: number }) {
+function JurnalTabSimple({ entries, onRefresh, onShowRecords }: any) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -541,17 +714,7 @@ function JurnalTabSimple({ entries, onRefresh, currentWeek }: { entries: JurnalU
     setExpandedRows(newExpanded);
   };
 
-  if (entries.length === 0) {
-    return (
-       <div className="bg-white rounded-3xl p-16 text-center shadow-xl border border-gray-100">
-          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-             <BookOpen className="w-10 h-10 text-gray-300" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Jurnal</h3>
-          <p className="text-gray-500 max-w-sm mx-auto">Thalibah Anda belum mengisi jurnal harian untuk periode ini.</p>
-       </div>
-    );
-  }
+  if (entries.length === 0) return <div className="bg-white p-20 text-center">Belum ada jurnal.</div>;
 
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
@@ -559,128 +722,103 @@ function JurnalTabSimple({ entries, onRefresh, currentWeek }: { entries: JurnalU
         <table className="min-w-full divide-y divide-gray-100">
           <thead>
             <tr className="bg-gray-50/50">
-              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Thalibah</th>
-              <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Juz</th>
-              <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Progress</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P1</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P2</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P3</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P4</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P5</th>
-              <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aksi</th>
+              <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase">Thalibah</th>
+              <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">Juz</th>
+              <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">Progress</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P1</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P2</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P3</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P4</th>
+              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P5</th>
+              <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {entries.map((entry) => (
+            {entries.map((entry: any) => (
               <React.Fragment key={entry.user_id}>
                 <tr className={cn("hover:bg-green-50/30 transition-colors group", expandedRows.has(entry.user_id) && "bg-green-50/20")}>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-green-900 font-bold shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-green-900 font-bold">
                         {entry.user?.full_name?.charAt(0) || 'T'}
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{entry.user?.full_name}</div>
-                        <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">
-                          {entry.sp_summary ? (
-                            <span className="text-red-500 font-bold">SP {entry.sp_summary.sp_level} • Pekan {entry.sp_summary.week_number}</span>
-                          ) : (
-                            entry.user?.nama_kunyah || entry.user?.id.slice(0, 8)
-                          )}
-                        </div>
+                        <div className="text-[10px] text-gray-400">{entry.user?.nama_kunyah}</div>
                       </div>
                     </div>
                   </td>
+                  <td className="px-6 py-5 text-center text-xs font-bold text-emerald-700">{entry.confirmed_chosen_juz || '-'}</td>
                   <td className="px-6 py-5 text-center">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
-                      {entry.confirmed_chosen_juz || '-'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-center">
-                    <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex flex-col items-center gap-1">
                       <div className="text-xs font-bold text-gray-700">{entry.summary?.completion_percentage || 0}%</div>
-                      <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
-                          style={{ width: `${entry.summary?.completion_percentage || 0}%` }}
-                        />
-                      </div>
-                      <div className="text-[9px] text-gray-400 font-medium uppercase tracking-tighter">
-                        {entry.summary?.completed_blocks || 0}/{entry.summary?.total_blocks || 1} Blok
+                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-500" style={{ width: `${entry.summary?.completion_percentage || 0}%` }} />
                       </div>
                     </div>
                   </td>
                   {[1, 2, 3, 4, 5].map(p => (
                     <td key={p} className="px-4 py-5 text-center">
-                      <WeekBubbleJurnal week={entry.weekly_status.find(w => w.week_number === p)} />
+                      <WeekBubbleJurnal week={entry.weekly_status.find((w: any) => w.week_number === p)} />
                     </td>
                   ))}
                   <td className="px-6 py-5 text-right">
-                    <div className="flex justify-end gap-2">
-                       <button 
-                        onClick={() => toggleRow(entry.user_id)}
-                        className="p-2 text-gray-400 hover:text-green-900 hover:bg-green-50 rounded-lg transition-all"
-                       >
-                          {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-4 h-4" />}
-                       </button>
-                       <a 
-                        href={`https://wa.me/${entry.user?.whatsapp}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="p-2 text-gray-400 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all"
-                       >
-                          <MessageSquare className="w-4 h-4" />
-                       </a>
-                    </div>
+                    <button onClick={() => toggleRow(entry.user_id)} className="p-2 text-gray-400 hover:text-green-900">
+                      {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </td>
                 </tr>
                 {expandedRows.has(entry.user_id) && (
                   <tr>
                     <td colSpan={9} className="px-6 py-8 bg-gray-50/50">
-                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                          <h4 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
-                             <LayoutGrid className="w-4 h-4 text-green-900" />
-                             Detail Jurnal Per Blok
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                             {entry.weekly_status.map(week => (
-                                <div key={week.week_number} className="space-y-3">
-                                   <div className="flex justify-between items-center border-b border-gray-50 pb-2">
-                                      <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Pekan {week.week_number}</span>
-                                      {week.sp_info && <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded">SP{week.sp_info.sp_level}</span>}
-                                   </div>
-                                   <div className="grid grid-cols-2 gap-2">
-                                      {week.blocks.map(block => (
-                                         <div key={block.block_code} className={cn(
-                                            "p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center min-h-[50px]",
-                                            block.is_completed 
-                                              ? "bg-green-50 border-green-200 text-green-900" 
-                                              : "bg-white border-gray-100 text-gray-200"
-                                         )}>
-                                            <div className="text-[10px] font-bold">{block.block_code}</div>
-                                            {block.is_completed && <div className="text-[8px] font-medium opacity-60">{block.jurnal_count} Record</div>}
-                                         </div>
-                                      ))}
-                                   </div>
-                                </div>
-                             ))}
-                          </div>
-                          
-                          <div className="mt-8 pt-6 border-t border-gray-100 flex flex-wrap gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-md bg-green-500" />
-                                <span>Sudah Diisi</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-md bg-white border border-gray-200" />
-                                <span>Belum Diisi</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded-md bg-red-100 border border-red-300" />
-                                <span>Kena SP</span>
-                             </div>
-                          </div>
-                       </div>
+                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                         <h4 className="text-xs font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <LayoutGrid className="w-4 h-4 text-green-900" />
+                            Detail Jurnal Harian
+                         </h4>
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                            {entry.weekly_status.map((week: any) => (
+                               <div key={week.week_number} className="space-y-3">
+                                  <div className="border-b border-gray-50 pb-2">
+                                     <span className="text-[10px] font-bold text-gray-400 uppercase">Pekan {week.week_number}</span>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                     {week.blocks.map((block: any) => (
+                                        <button 
+                                           key={block.block_code} 
+                                           onClick={() => {
+                                             const records = entry.jurnal_records.filter((r: any) => {
+                                               const normalizedRaw = r.blok || '';
+                                               if (normalizedRaw.startsWith('[')) {
+                                                 try {
+                                                   const parsed = JSON.parse(normalizedRaw);
+                                                   return Array.isArray(parsed) && parsed.includes(block.block_code);
+                                                 } catch { return false; }
+                                               }
+                                               return normalizedRaw === block.block_code;
+                                             });
+                                             if (block.is_completed) {
+                                               onShowRecords(entry.user, block.block_code, records);
+                                             } else {
+                                                window.dispatchEvent(new CustomEvent('open-input-modal', { detail: { user: entry.user, blockCode: block.block_code, type: 'jurnal' } }));
+                                             }
+                                           }}
+                                           className={cn(
+                                              "p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center min-h-[50px] group",
+                                              block.is_completed 
+                                                ? "bg-green-50 border-green-200 text-green-900 hover:bg-green-100" 
+                                                : "bg-white border-gray-100 text-gray-300 hover:border-green-100 hover:bg-green-50/50"
+                                           )}
+                                        >
+                                           <div className={cn("text-[10px] font-bold", !block.is_completed && "text-gray-300 group-hover:text-green-600")}>{block.block_code}</div>
+                                           <div className="text-[8px] font-medium uppercase">{block.is_completed ? 'Sudah' : 'Input'}</div>
+                                        </button>
+                                     ))}
+                                  </div>
+                               </div>
+                            ))}
+                         </div>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -693,55 +831,233 @@ function JurnalTabSimple({ entries, onRefresh, currentWeek }: { entries: JurnalU
   );
 }
 
-function WeekBubble({ week }: { week?: any }) {
-  if (!week) return <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-200 text-xs">-</div>;
-
-  if (week.is_completed) return (
-     <div className="w-8 h-8 rounded-full bg-green-900 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-        ✓
-     </div>
-  );
-  
-  const incomplete = week.total_blocks - week.completed_blocks;
-  if (incomplete === week.total_blocks) return (
-     <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 border-2 border-red-100 flex items-center justify-center text-[10px] font-bold shadow-sm">
-        0/4
-     </div>
-  );
-
+function WeekBubble({ week }: any) {
+  if (!week) return <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto" />;
+  const pct = (week.completed_blocks / week.total_blocks) * 100;
   return (
-     <div className="w-8 h-8 rounded-full bg-yellow-50 text-yellow-700 border-2 border-yellow-100 flex items-center justify-center text-[10px] font-bold shadow-sm">
-        {week.completed_blocks}/4
-     </div>
+    <div className="relative w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto overflow-hidden">
+      <div className="absolute bottom-0 left-0 right-0 bg-green-500/20" style={{ height: `${pct}%` }} />
+      {week.is_completed && <div className="absolute inset-0 flex items-center justify-center"><CheckCircle className="w-3 h-3 text-green-600" /></div>}
+    </div>
   );
 }
 
-function WeekBubbleJurnal({ week }: { week?: any }) {
-  if (!week) return <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-200 text-xs">-</div>;
-
-  if (week.sp_info) {
-     return (
-        <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 border-2 border-red-400 flex items-center justify-center text-[10px] font-black shadow-sm" title={week.sp_info.reason}>
-           SP{week.sp_info.sp_level}
-        </div>
-     );
-  }
-
-  if (week.is_completed) return (
-    <div className="w-8 h-8 rounded-full bg-green-900 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-       ✓
+function WeekBubbleJurnal({ week }: any) {
+  if (!week) return <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto" />;
+  const pct = (week.completed_blocks / week.total_blocks) * 100;
+  return (
+    <div className="relative w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto overflow-hidden">
+      <div className="absolute bottom-0 left-0 right-0 bg-emerald-500/20" style={{ height: `${pct}%` }} />
+      {week.is_completed && <div className="absolute inset-0 flex items-center justify-center"><CheckCircle className="w-3 h-3 text-emerald-600" /></div>}
     </div>
   );
+}
 
-  if (week.completed_blocks === 0) return (
-    <div className="w-8 h-8 rounded-full bg-gray-50 text-gray-300 border border-gray-100 flex items-center justify-center text-[10px] font-bold">
-       0/4
-    </div>
-  );
+function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tashihData, setTashihData] = useState({
+    lokasi: 'mti' as 'mti' | 'luar',
+    lokasiDetail: '',
+    ustadzahId: '',
+    ustadzahName: '',
+    jumlahKesalahanTajwid: 0,
+    masalahTajwid: [] as string[],
+    catatanTambahan: '',
+    tanggalTashih: new Date().toISOString().slice(0, 10)
+  });
+
+  const [jurnalData, setJurnalData] = useState({
+    tanggalSetor: new Date().toISOString().slice(0, 10),
+    tashihCompleted: true,
+    rabthCompleted: false,
+    murajaahCount: 1,
+    simakMurattalCount: 0,
+    tikrarBiAnNadzarCompleted: false,
+    tasmiRecordCount: 0,
+    simakRecordCompleted: false,
+    tikrarBiAlGhaibCount: 0,
+    tafsirCompleted: false,
+    menulisCompleted: false,
+    catatanTambahan: ''
+  });
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (target.type === 'presensi') {
+        const response = await fetch('/api/musyrifah/tashih', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: target.user.id,
+            blok: target.blockCode,
+            lokasi: tashihData.lokasi,
+            lokasi_detail: tashihData.lokasiDetail,
+            ustadzah_id: tashihData.ustadzahId === 'manual' ? null : (tashihData.ustadzahId || null),
+            nama_pemeriksa: tashihData.ustadzahName,
+            jumlah_kesalahan_tajwid: tashihData.jumlahKesalahanTajwid,
+            masalah_tajwid: tashihData.masalahTajwid,
+            catatan_tambahan: tashihData.catatanTambahan,
+            waktu_tashih: new Date(tashihData.tanggalTashih).toISOString()
+          })
+        });
+        if (response.ok) { toast.success('Berhasil menyimpan tashih'); onSuccess(); }
+      } else {
+        const response = await fetch('/api/musyrifah/jurnal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: target.user.id,
+            blok: target.blockCode,
+            tanggal_setor: new Date(jurnalData.tanggalSetor).toISOString(),
+            tashih_completed: jurnalData.tashihCompleted,
+            rabth_completed: jurnalData.rabthCompleted,
+            murajaah_count: jurnalData.murajaahCount,
+            simak_murattal_count: jurnalData.simakMurattalCount,
+            tikrar_bi_an_nadzar_completed: jurnalData.tikrarBiAnNadzarCompleted,
+            tasmi_record_count: jurnalData.tasmiRecordCount,
+            simak_record_completed: jurnalData.simakRecordCompleted,
+            tikrar_bi_al_ghaib_count: jurnalData.tikrarBiAlGhaibCount,
+            tafsir_completed: jurnalData.tafsirCompleted,
+            menulis_completed: jurnalData.menulisCompleted,
+            catatan_tambahan: jurnalData.catatanTambahan
+          })
+        });
+        if (response.ok) { toast.success('Berhasil menyimpan jurnal'); onSuccess(); }
+      }
+    } catch (error) { toast.error('Error'); }
+    finally { setIsSubmitting(false); }
+  };
+
+  const toggleMasalahTajwid = (id: string) => {
+    setTashihData(prev => ({
+      ...prev,
+      masalahTajwid: prev.masalahTajwid.includes(id)
+        ? prev.masalahTajwid.filter(m => m !== id)
+        : [...prev.masalahTajwid, id]
+    }));
+  };
 
   return (
-    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 border-2 border-emerald-100 flex items-center justify-center text-[10px] font-bold shadow-sm">
-       {week.completed_blocks}/4
+    <div className="fixed inset-0 bg-green-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-white animate-fadeInScale">
+        <div className="bg-gradient-to-r from-green-900 to-emerald-800 p-6 text-white flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-bold">Bantu Input {target.type === 'presensi' ? 'Tashih' : 'Jurnal'}</h3>
+            <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">{target.user?.full_name} • Blok {target.blockCode}</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all"><X className="w-5 h-5" /></button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto scrollbar-hide space-y-6">
+          {target.type === 'presensi' ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tanggal</label>
+                  <input type="date" value={tashihData.tanggalTashih} onChange={e => setTashihData({...tashihData, tanggalTashih: e.target.value})} className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold shadow-inner border-0" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lokasi</label>
+                  <select value={tashihData.lokasi} onChange={e => setTashihData({...tashihData, lokasi: e.target.value as any})} className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold shadow-inner border-0">
+                    <option value="mti">Markaz (MTI)</option>
+                    <option value="luar">Luar MTI</option>
+                  </select>
+                </div>
+              </div>
+
+              {tashihData.lokasi === 'mti' ? (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ustadzah</label>
+                  <select 
+                    value={tashihData.ustadzahId}
+                    onChange={e => {
+                      const m = muallimahList.find((x: any) => x.id === e.target.value);
+                      setTashihData({...tashihData, ustadzahId: e.target.value, ustadzahName: m?.full_name || ''});
+                    }}
+                    className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold shadow-inner border-0"
+                  >
+                    <option value="">Pilih Ustadzah...</option>
+                    {muallimahList.map((m: any) => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+                    <option value="manual">+ Nama Lainnya</option>
+                  </select>
+                  {tashihData.ustadzahId === 'manual' && (
+                    <input type="text" placeholder="Nama ustadzah..." value={tashihData.ustadzahName} onChange={e => setTashihData({...tashihData, ustadzahName: e.target.value})} className="w-full mt-2 bg-gray-50 border-2 border-green-100 rounded-xl p-3 text-sm font-bold" />
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Detail Lokasi</label>
+                  <input type="text" value={tashihData.lokasiDetail} onChange={e => setTashihData({...tashihData, lokasiDetail: e.target.value, ustadzahName: e.target.value})} className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold shadow-inner border-0" />
+                </div>
+              )}
+
+              <div className="bg-green-50 p-6 rounded-3xl border border-green-100 flex flex-col items-center gap-4">
+                <label className="text-[10px] font-bold text-green-700 uppercase tracking-widest">Total Kesalahan</label>
+                <div className="flex items-center gap-8">
+                  <button type="button" onClick={() => setTashihData({...tashihData, jumlahKesalahanTajwid: Math.max(0, tashihData.jumlahKesalahanTajwid - 1)})} className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center"><Minus className="w-5 h-5"/></button>
+                  <span className="text-4xl font-black text-gray-900">{tashihData.jumlahKesalahanTajwid}</span>
+                  <button type="button" onClick={() => setTashihData({...tashihData, jumlahKesalahanTajwid: tashihData.jumlahKesalahanTajwid + 1})} className="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center"><Plus className="w-5 h-5"/></button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Masalah Tajwid</label>
+                <div className="flex flex-wrap gap-2">
+                  {['mad', 'qolqolah', 'ghunnah', 'ikhfa', 'idghom', 'izhar', 'waqaf', 'makhroj'].map(opt => (
+                    <button key={opt} type="button" onClick={() => toggleMasalahTajwid(opt)} className={cn("px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border-2 transition-all", tashihData.masalahTajwid.includes(opt) ? "bg-red-600 border-red-600 text-white" : "bg-white border-gray-100 text-gray-400")}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tanggal Setor</label>
+                <input type="date" value={jurnalData.tanggalSetor} onChange={e => setJurnalData({...jurnalData, tanggalSetor: e.target.value})} className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold shadow-inner border-0" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700">Tashih?</span>
+                    <input type="checkbox" checked={jurnalData.tashihCompleted} onChange={e => setJurnalData({...jurnalData, tashihCompleted: e.target.checked})} className="w-5 h-5 accent-green-600" />
+                 </div>
+                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-700">Rabth?</span>
+                    <input type="checkbox" checked={jurnalData.rabthCompleted} onChange={e => setJurnalData({...jurnalData, rabthCompleted: e.target.checked})} className="w-5 h-5 accent-green-600" />
+                 </div>
+              </div>
+              <div className="space-y-3">
+                 <div className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <span className="text-xs font-bold text-gray-700">Murajaah</span>
+                    <div className="flex items-center gap-3">
+                       <button type="button" onClick={() => setJurnalData({...jurnalData, murajaahCount: Math.max(0, jurnalData.murajaahCount-1)})}><Minus className="w-4 h-4"/></button>
+                       <span className="text-lg font-black">{jurnalData.murajaahCount}</span>
+                       <button type="button" onClick={() => setJurnalData({...jurnalData, murajaahCount: jurnalData.murajaahCount+1})}><Plus className="w-4 h-4"/></button>
+                    </div>
+                 </div>
+                 <div className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                    <span className="text-xs font-bold text-gray-700">Tikrar Ghaib</span>
+                    <div className="flex items-center gap-3">
+                       <button type="button" onClick={() => setJurnalData({...jurnalData, tikrarBiAlGhaibCount: Math.max(0, jurnalData.tikrarBiAlGhaibCount-1)})}><Minus className="w-4 h-4"/></button>
+                       <span className="text-lg font-black">{jurnalData.tikrarBiAlGhaibCount}</span>
+                       <button type="button" onClick={() => setJurnalData({...jurnalData, tikrarBiAlGhaibCount: jurnalData.tikrarBiAlGhaibCount+1})}><Plus className="w-4 h-4"/></button>
+                    </div>
+                 </div>
+              </div>
+            </>
+          )}
+
+          <div className="space-y-1 shadow-inner rounded-2xl bg-gray-50 p-2">
+            <textarea placeholder="Catatan Admin..." className="w-full bg-transparent border-0 rounded-xl p-2 text-sm font-bold h-20 resize-none outline-none" value={target.type === 'presensi' ? tashihData.catatanTambahan : jurnalData.catatanTambahan} onChange={e => target.type === 'presensi' ? setTashihData({...tashihData, catatanTambahan: e.target.value}) : setJurnalData({...jurnalData, catatanTambahan: e.target.value})} />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button type="submit" disabled={isSubmitting} className="flex-1 bg-green-900 text-white font-bold py-4 rounded-2xl shadow-lg disabled:bg-gray-200">{isSubmitting ? 'Menyimpan...' : 'Simpan Data'}</button>
+            <button type="button" onClick={onClose} className="px-6 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl">Batal</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

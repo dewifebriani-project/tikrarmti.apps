@@ -19,7 +19,15 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
   }, []);
 
   // Auth routes that don't need any wrapper (login, register)
-  const authRoutes = ['/login', '/register', '/auth/callback'];
+  const authRoutes = [
+    '/login', 
+    '/register', 
+    '/auth', 
+    '/lupa-password', 
+    '/reset-password', 
+    '/verifikasi-otp',
+    '/forgot-password'
+  ];
 
   // Pendaftaran routes that need authentication
   const pendaftaranRoutes = ['/pendaftaran', '/lengkapi-profile'];
@@ -38,10 +46,13 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/tagihan-pembayaran',
     '/donasi-dashboard',
     '/pengaturan',
-    '/profil',
+    '/profile',
     '/admin',
     '/panel-musyrifah',
     '/panel-muallimah',
+    '/presensi-jurnal',
+    '/exam',
+    '/kelulusan-sertifikat',
   ];
 
   // Check if current route is an auth route

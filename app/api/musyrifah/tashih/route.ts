@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
 import { ApiResponses } from '@/lib/api-responses';
+import { z } from 'zod';
 
 // Helper function to parse blok field (can be string or array)
 function parseBlokField(blok: any): string[] {
@@ -14,6 +15,20 @@ function parseBlokField(blok: any): string[] {
   }
   return [];
 }
+
+// Validation schema for tashih record
+const tashihRecordSchema = z.object({
+  user_id: z.string().uuid(),
+  blok: z.string().nullable().optional(),
+  lokasi: z.string().optional(),
+  lokasi_detail: z.string().nullable().optional(),
+  ustadzah_id: z.string().nullable().optional(),
+  nama_pemeriksa: z.string().nullable().optional(),
+  jumlah_kesalahan_tajwid: z.number().optional(),
+  masalah_tajwid: z.array(z.string()).optional(),
+  catatan_tambahan: z.string().nullable().optional(),
+  waktu_tashih: z.string().optional(),
+});
 
 // Helper to generate all blocks (10 weeks, 4 blocks per week) for a juz
 function generateAllBlocks(juzInfo: any) {
@@ -371,6 +386,54 @@ export async function DELETE(request: Request) {
     return ApiResponses.success({ id }, 'Tashih record berhasil dihapus');
   } catch (error) {
     console.error('[Musyrifah Tashih API] Unexpected error (DELETE):', error);
+    return ApiResponses.handleUnknown(error);
+  }
+}
+
+// POST - Create a new tashih record for a thalibah
+export async function POST(request: Request) {
+  try {
+    const authError = await requireAnyRole(['admin', 'musyrifah']);
+    if (authError) return authError;
+
+    const supabase = createClient();
+    const body = await request.json();
+    const validatedData = tashihRecordSchema.parse(body);
+
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', validatedData.user_id)
+      .maybeSingle();
+
+    if (!targetUser) {
+      return ApiResponses.notFound('Thalibah not found');
+    }
+
+    const { data: newRecord, error } = await supabase
+      .from('tashih_records')
+      .insert({
+        ...validatedData,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Musyrifah Tashih API] Database error (POST):', error);
+      return ApiResponses.databaseError(error);
+    }
+
+    revalidatePath('/panel-musyrifah');
+    revalidatePath('/tashih');
+    revalidatePath('/dashboard');
+
+    return ApiResponses.success(newRecord, 'Tashih record berhasil dibuat', 201);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return ApiResponses.error('VALIDATION_ERROR', 'Invalid data format', error.errors, 400);
+    }
+    console.error('[Musyrifah Tashih API] Unexpected error (POST):', error);
     return ApiResponses.handleUnknown(error);
   }
 }

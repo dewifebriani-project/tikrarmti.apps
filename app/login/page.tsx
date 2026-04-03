@@ -175,41 +175,18 @@ function LoginPageContent() {
         setNotificationType('success');
         setShowNotification(true);
 
-        // Check if user profile exists, create if not (non-blocking)
-        try {
-          console.log('[Login Debug] Checking user profile for:', data.user.id);
-          const { data: userData, error: userError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', data.user.id)
-            .single();
-
-          if (userError && userError.code === 'PGRST116') {
-            console.log('Creating user profile for authenticated user:', data.user.email);
-            await supabase
-              .from('users')
-              .insert({
-                id: data.user.id,
-                email: data.user.email || '',
-                full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
-                role: data.user.user_metadata?.role || 'thalibah',
-                created_at: new Date().toISOString(),
-              } as any);
-          }
-        } catch (profileErr) {
-          console.warn('Profile check failed, continuing anyway:', profileErr);
-        }
-
-        // Small delay to ensure cookies are propagated
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         // Check if there's a redirect URL from middleware
         const redirectUrl = searchParams.get('redirect');
         const targetUrl = redirectUrl && redirectUrl !== '/login' ? redirectUrl : '/dashboard';
 
-        // Use window.location.href for full page reload to ensure
-        // middleware picks up the session cookies correctly
-        window.location.href = targetUrl;
+        console.log('[Login] Redirecting to:', targetUrl);
+
+        // Small delay to ensure cookies are propagated
+        // Using window.location.replace for a clean redirection that clears history state
+        setTimeout(() => {
+          window.location.replace(targetUrl);
+        }, 300);
+        
         return; // Prevent further execution
       }
     } catch (error: any) {

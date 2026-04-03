@@ -533,11 +533,6 @@
     padding-right: 1rem !important;
   }
 
-  /* Prevent horizontal scroll */
-  .grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-  }
 
   /* Ensure text doesn't overflow */
   h1, h2, h3, h4, h5, h6 {
