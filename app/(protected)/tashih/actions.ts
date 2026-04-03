@@ -36,7 +36,7 @@ export async function saveTashihRecord(data: TashihFormData) {
       blok: data.blok,
       lokasi: data.lokasi,
       lokasi_detail: data.lokasi_detail || null,
-      ustadzah_id: data.ustadzah_id || null,
+      ustadzah_id: data.ustadzah_id === 'manual' ? null : (data.ustadzah_id || null),
       nama_pemeriksa: data.nama_pemeriksa || null,
       jumlah_kesalahan_tajwid: data.jumlah_kesalahan_tajwid,
       masalah_tajwid: data.masalah_tajwid,

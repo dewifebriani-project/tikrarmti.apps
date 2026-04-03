@@ -879,14 +879,13 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
 
   const [jurnalData, setJurnalData] = useState({
     tanggalSetor: new Date().toISOString().slice(0, 10),
-    tashihCompleted: true,
     rabthCompleted: false,
-    murajaahCount: 1,
-    simakMurattalCount: 0,
+    murajaahCompleted: false,
+    simakMurattalCompleted: false,
     tikrarBiAnNadzarCompleted: false,
-    tasmiRecordCount: 0,
+    tasmiRecordCompleted: false,
     simakRecordCompleted: false,
-    tikrarBiAlGhaibCount: 0,
+    tikrarBiAlGhaibCompleted: false,
     tafsirCompleted: false,
     menulisCompleted: false,
     catatanTambahan: ''
@@ -922,14 +921,14 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
             user_id: target.user.id,
             blok: target.blockCode,
             tanggal_setor: new Date(jurnalData.tanggalSetor).toISOString(),
-            tashih_completed: jurnalData.tashihCompleted,
+            tashih_completed: true,
             rabth_completed: jurnalData.rabthCompleted,
-            murajaah_count: jurnalData.murajaahCount,
-            simak_murattal_count: jurnalData.simakMurattalCount,
+            murajaah_count: jurnalData.murajaahCompleted ? 1 : 0,
+            simak_murattal_count: jurnalData.simakMurattalCompleted ? 1 : 0,
             tikrar_bi_an_nadzar_completed: jurnalData.tikrarBiAnNadzarCompleted,
-            tasmi_record_count: jurnalData.tasmiRecordCount,
+            tasmi_record_count: jurnalData.tasmiRecordCompleted ? 1 : 0,
             simak_record_completed: jurnalData.simakRecordCompleted,
-            tikrar_bi_al_ghaib_count: jurnalData.tikrarBiAlGhaibCount,
+            tikrar_bi_al_ghaib_count: jurnalData.tikrarBiAlGhaibCompleted ? 1 : 0,
             tafsir_completed: jurnalData.tafsirCompleted,
             menulis_completed: jurnalData.menulisCompleted,
             catatan_tambahan: jurnalData.catatanTambahan
@@ -1028,32 +1027,36 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tanggal Setor</label>
                 <input type="date" value={jurnalData.tanggalSetor} onChange={e => setJurnalData({...jurnalData, tanggalSetor: e.target.value})} className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold shadow-inner border-0" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-700">Tashih?</span>
-                    <input type="checkbox" checked={jurnalData.tashihCompleted} onChange={e => setJurnalData({...jurnalData, tashihCompleted: e.target.checked})} className="w-5 h-5 accent-green-600" />
-                 </div>
-                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-700">Rabth?</span>
-                    <input type="checkbox" checked={jurnalData.rabthCompleted} onChange={e => setJurnalData({...jurnalData, rabthCompleted: e.target.checked})} className="w-5 h-5 accent-green-600" />
-                 </div>
-              </div>
-              <div className="space-y-3">
-                 <div className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                    <span className="text-xs font-bold text-gray-700">Murajaah</span>
-                    <div className="flex items-center gap-3">
-                       <button type="button" onClick={() => setJurnalData({...jurnalData, murajaahCount: Math.max(0, jurnalData.murajaahCount-1)})}><Minus className="w-4 h-4"/></button>
-                       <span className="text-lg font-black">{jurnalData.murajaahCount}</span>
-                       <button type="button" onClick={() => setJurnalData({...jurnalData, murajaahCount: jurnalData.murajaahCount+1})}><Plus className="w-4 h-4"/></button>
-                    </div>
-                 </div>
-                 <div className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                    <span className="text-xs font-bold text-gray-700">Tikrar Ghaib</span>
-                    <div className="flex items-center gap-3">
-                       <button type="button" onClick={() => setJurnalData({...jurnalData, tikrarBiAlGhaibCount: Math.max(0, jurnalData.tikrarBiAlGhaibCount-1)})}><Minus className="w-4 h-4"/></button>
-                       <span className="text-lg font-black">{jurnalData.tikrarBiAlGhaibCount}</span>
-                       <button type="button" onClick={() => setJurnalData({...jurnalData, tikrarBiAlGhaibCount: jurnalData.tikrarBiAlGhaibCount+1})}><Plus className="w-4 h-4"/></button>
-                    </div>
+
+              <div className="space-y-4">
+                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aktivitas Harian (Ceklist Blok)</label>
+                 <div className="grid grid-cols-1 gap-2">
+                    {[
+                      { id: 'rabthCompleted', label: 'Rabth (Menyambung)' },
+                      { id: 'murajaahCompleted', label: 'Murajaah Blok Sebelum' },
+                      { id: 'simakMurattalCompleted', label: 'Simak Murattal' },
+                      { id: 'tikrarBiAnNadzarCompleted', label: 'Tikrar Bi An Nadzar (per Blok)' },
+                      { id: 'tasmiRecordCompleted', label: 'Tasmi Record' },
+                      { id: 'simakRecordCompleted', label: 'Simak Record (per Blok)' },
+                      { id: 'tikrarBiAlGhaibCompleted', label: 'Tikrar Bi Al Ghaib (per Blok)' },
+                      { id: 'tafsirCompleted', label: 'Tafsir (per Blok)' },
+                      { id: 'menulisCompleted', label: 'Menulis (per Blok)' },
+                    ].map(activity => (
+                      <label key={activity.id} className={cn(
+                        "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer",
+                        (jurnalData as any)[activity.id] ? "bg-green-50 border-green-200 text-green-900" : "bg-white border-gray-100 text-gray-400"
+                      )}>
+                        <span className="text-xs font-bold">{activity.label}</span>
+                        <div className="relative">
+                          <input 
+                            type="checkbox" 
+                            checked={(jurnalData as any)[activity.id]} 
+                            onChange={e => setJurnalData({...jurnalData, [activity.id]: e.target.checked})} 
+                            className="w-5 h-5 accent-green-600 rounded-lg" 
+                          />
+                        </div>
+                      </label>
+                    ))}
                  </div>
               </div>
             </>

@@ -414,6 +414,7 @@ export async function POST(request: Request) {
       .from('tashih_records')
       .insert({
         ...validatedData,
+        ustadzah_id: validatedData.ustadzah_id === 'manual' ? null : (validatedData.ustadzah_id || null),
         created_at: new Date().toISOString(),
       })
       .select()
