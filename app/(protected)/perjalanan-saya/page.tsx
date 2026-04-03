@@ -13,27 +13,11 @@ import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
-import { TimelineMilestone } from '@/components/TimelineMilestone';
-import { TimelineItemWithStatus } from '@/components/TimelineMilestone';
+import { TimelineMilestone, TimelineItem, TimelineItemWithStatus } from '@/components/TimelineMilestone';
 import { useBatchTimeline } from '@/hooks/useBatchTimeline';
 import { formatFullDateIndo, formatDateIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
 import { getRoleRank, ROLE_RANKS, isStaff } from '@/lib/roles';
 import { cn } from '@/lib/utils';
-
-interface TimelineItem {
-  id: number;
-  date: string;
-  day: string;
-  hijriDate: string;
-  title: string;
-  description: string;
-  icon: React.ReactElement;
-  hasSelectionTasks?: boolean;
-}
-
-interface TimelineItemWithStatus extends TimelineItem {
-  status: 'completed' | 'current' | 'future';
-}
 
 // Extended type for tikrar registration with all fields from pendaftaran_tikrar_tahfidz table
 interface TikrarRegistration extends Pendaftaran {
