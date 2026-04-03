@@ -169,7 +169,7 @@ export default function DashboardContent() {
     }
 
     // Student activities
-    const activities = []
+    const activities: any[] = []
     
     // Add Tashih activities
     if (tashihStatus?.blocks) {
