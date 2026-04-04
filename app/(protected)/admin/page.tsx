@@ -86,6 +86,7 @@ interface Batch {
   final_exam_end_date?: string;
   graduation_start_date?: string;
   graduation_end_date?: string;
+  holiday_dates?: string[];
 }
 
 interface Program {
@@ -425,10 +426,10 @@ function AdminContent() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
-      console.error('Request aborted after 10 seconds for tab:', activeTab);
+      console.error('Request aborted after 30 seconds for tab:', activeTab);
       toast.error(`Loading timeout for ${activeTab}. Please try again.`);
       setDataLoading(false);
-    }, 10000); // Reduced to 10 second timeout
+    }, 30000); // 30 second timeout
 
     try {
       console.log('=== Starting data load for tab:', activeTab, '===', new Date().toISOString());
@@ -442,7 +443,7 @@ function AdminContent() {
         console.log('Tikrar data handled by SWR');
       } else if (activeTab === 'batches') {
         console.log('Fetching batches via API...');
-        const response = await fetch('/api/admin/batches');
+        const response = await fetch('/api/admin/batches', { signal: controller.signal });
         if (!response.ok) {
           const errorData = await response.json();
           console.error('Error loading batches:', errorData);
@@ -494,7 +495,7 @@ function AdminContent() {
       } else if (activeTab === 'users') {
         // Load batches first (needed for muallimah filter)
         if (batches.length === 0) {
-          const batchResponse = await fetch('/api/admin/batches');
+          const batchResponse = await fetch('/api/admin/batches', { signal: controller.signal });
           if (batchResponse.ok) {
             const batchResult = await batchResponse.json();
             console.log(`Batches loaded: ${batchResult.data?.length || 0} records`);
@@ -503,7 +504,7 @@ function AdminContent() {
         }
 
         // Load muallimah data when users tab is active
-        const response = await fetch('/api/admin/muallimah?skipCount=true');
+        const response = await fetch('/api/admin/muallimah?skipCount=true', { signal: controller.signal });
         if (!response.ok) {
           const errorData = await response.json();
           console.error('Error loading muallimah:', errorData);
@@ -1084,6 +1085,7 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
     final_exam_end_date: extractDate(batch?.final_exam_end_date),
     graduation_start_date: extractDate(batch?.graduation_start_date),
     graduation_end_date: extractDate(batch?.graduation_end_date),
+    holiday_dates: Array.isArray(batch?.holiday_dates) ? batch.holiday_dates.map(d => extractDate(d)) : [],
   });
   const [saving, setSaving] = useState(false);
   const [showTimelineConfig, setShowTimelineConfig] = useState(false);
@@ -1426,6 +1428,56 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Holiday Management */}
+              <div className="bg-red-50 p-4 rounded-lg">
+                <h5 className="text-sm font-semibold text-red-900 mb-3 flex items-center justify-between">
+                  <span>Tanggal Libur & Break</span>
+                  <span className="text-[10px] font-normal text-red-700 italic">Pekan akan bergeser otomatis</span>
+                </h5>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <input 
+                      type="date" 
+                      id="holiday-input"
+                      className="flex-1 border border-gray-300 rounded-md py-1.5 px-3 text-sm focus:ring-red-500 focus:border-red-500"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const input = document.getElementById('holiday-input') as HTMLInputElement;
+                        if (!input?.value) return;
+                        if (formData.holiday_dates.includes(input.value)) return;
+                        setFormData({ ...formData, holiday_dates: [...formData.holiday_dates, input.value].sort() });
+                        input.value = '';
+                      }}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded-md text-xs font-bold hover:bg-red-700 transition-all shadow-sm"
+                    >
+                      Tambah Libur
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {formData.holiday_dates.length === 0 ? (
+                      <p className="text-[10px] text-gray-400 italic">Belum ada tanggal libur yang diatur.</p>
+                    ) : (
+                      formData.holiday_dates.map(date => (
+                        <div key={date} className="flex items-center gap-2 bg-white border border-red-200 px-2.5 py-1 rounded-full text-xs font-semibold text-red-800 shadow-sm">
+                          <Clock className="w-3 h-3" />
+                          {new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          <button 
+                             type="button"
+                             onClick={() => setFormData({ ...formData, holiday_dates: formData.holiday_dates.filter(d => d !== date) })}
+                             className="text-red-400 hover:text-red-700 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

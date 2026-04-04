@@ -17,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { LogoutConfirmModal } from '@/components/LogoutConfirmModal';
 
 interface GlobalAuthenticatedHeaderProps {
   onMenuToggle?: () => void;
@@ -39,6 +40,7 @@ export default function GlobalAuthenticatedHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -435,29 +437,10 @@ export default function GlobalAuthenticatedHeader({
                     <div className="border-t border-gray-100 my-2"></div>
 
                     <button
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('BUTTON: Logout clicked');
-
-                        // Show loading state immediately for fast response
-                        const buttonElement = e.currentTarget;
-                        buttonElement.disabled = true;
-                        buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
-
-                        // Show confirmation dialog AFTER showing loading state (non-blocking)
-                        setTimeout(() => {
-                          if (!window.confirm('Apakah <em>Ukhti</em> yakin ingin keluar?')) {
-                            console.log('BUTTON: User cancelled logout');
-                            // Reset button state
-                            buttonElement.disabled = false;
-                            buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="w-6 h-6 sm:w-5 sm:h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span>Keluar</span></div>';
-                            return;
-                          }
-
-                          console.log('BUTTON: User confirmed logout');
-                          performLogout();
-                        }, 50);
+                        setShowLogoutModal(true);
                       }}
                       type="button"
                       aria-label="Keluar dari akun"
@@ -472,6 +455,14 @@ export default function GlobalAuthenticatedHeader({
             </div>
           </div>
         </div>
+
+        {/* Beautiful Logout Modal */}
+        <LogoutConfirmModal 
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={performLogout}
+          isLoggingOut={isLoggingOut}
+        />
 
         {/* Mobile Menu */}
         {isMounted && showMobileMenu && (
@@ -494,27 +485,10 @@ export default function GlobalAuthenticatedHeader({
             {/* Mobile Logout Button */}
             <div className="mt-4 pt-4 border-t border-green-900/20">
               <button
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-
-                  // Show loading state immediately for fast response
-                  const buttonElement = e.currentTarget;
-                  buttonElement.disabled = true;
-                  buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Keluar...</span></div>';
-
-                  // Show confirmation dialog AFTER showing loading state
-                  setTimeout(() => {
-                    if (!window.confirm('Apakah <em>Ukhti</em> yakin ingin keluar?')) {
-                      // Reset button state
-                      buttonElement.disabled = false;
-                      buttonElement.innerHTML = '<div class="flex items-center justify-center gap-2"><svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg><span>Keluar</span></div>';
-                      return;
-                    }
-
-                    // Perform logout
-                    performLogout();
-                  }, 50);
+                  setShowLogoutModal(true);
                 }}
                 type="button"
                 aria-label="Keluar dari akun"

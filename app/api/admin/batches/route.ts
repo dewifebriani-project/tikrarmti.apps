@@ -139,6 +139,7 @@ export async function POST(request: Request) {
       final_exam_end_date: toDateOrNull(body.final_exam_end_date),
       graduation_start_date: toDateOrNull(body.graduation_start_date),
       graduation_end_date: toDateOrNull(body.graduation_end_date),
+      holiday_dates: body.holiday_dates || [],
     };
 
     if (body.id) {

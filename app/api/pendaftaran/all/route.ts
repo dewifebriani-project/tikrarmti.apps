@@ -32,6 +32,7 @@ export async function GET(request: Request) {
           confirmed_main_time_slot,
           confirmed_backup_time_slot,
           status,
+          created_at,
           submitted_at,
           reviewed_at,
           akad_files,

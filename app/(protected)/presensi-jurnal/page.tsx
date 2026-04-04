@@ -173,7 +173,7 @@ function PresensiJurnalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal'>('presensi');
+  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal'>('jurnal');
   const [dataLoading, setDataLoading] = useState(false);
   const [jurnalEntries, setJurnalEntries] = useState<JurnalUserEntry[]>([]);
   const [tashihEntries, setTashihEntries] = useState<TashihEntry[]>([]);
@@ -181,6 +181,7 @@ function PresensiJurnalContent() {
   const [selectedBlok, setSelectedBlok] = useState<string>('all');
   const [availableBloks, setAvailableBloks] = useState<string[]>([]);
   const [currentWeek, setCurrentWeek] = useState<number>(0);
+  const [overrideWeek, setOverrideWeek] = useState<number>(0);
   
   const [selectedBlockRecords, setSelectedBlockRecords] = useState<{
     user: any;
@@ -278,7 +279,11 @@ function PresensiJurnalContent() {
       const result = await response.json();
       setJurnalEntries(result.data || []);
       if (result.availableBloks) setAvailableBloks(result.availableBloks);
-      if (result.currentWeek) setCurrentWeek(result.currentWeek);
+      if (result.currentWeek) {
+        setCurrentWeek(result.currentWeek);
+        // Only set override if it's the first load or 0
+        if (overrideWeek === 0) setOverrideWeek(result.currentWeek);
+      }
     }
   };
 
@@ -328,21 +333,6 @@ function PresensiJurnalContent() {
         <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-md mx-auto sm:mx-0">
           <button
             onClick={() => {
-              setActiveTab('presensi');
-              router.push('/presensi-jurnal?tab=presensi', { scroll: false });
-            }}
-            className={cn(
-              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
-              activeTab === 'presensi'
-                ? "bg-green-900 text-white shadow-lg shadow-green-900/20"
-                : "text-gray-500 hover:text-green-900 hover:bg-green-50"
-            )}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Presensi (Tashih)</span>
-          </button>
-          <button
-            onClick={() => {
               setActiveTab('jurnal');
               router.push('/presensi-jurnal?tab=jurnal', { scroll: false });
             }}
@@ -355,6 +345,21 @@ function PresensiJurnalContent() {
           >
             <BookOpen className="w-4 h-4" />
             <span>Jurnal Harian</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('presensi');
+              router.push('/presensi-jurnal?tab=presensi', { scroll: false });
+            }}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              activeTab === 'presensi'
+                ? "bg-green-900 text-white shadow-lg shadow-green-900/20"
+                : "text-gray-500 hover:text-green-900 hover:bg-green-50"
+            )}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Presensi (Tashih)</span>
           </button>
         </div>
 
@@ -386,6 +391,20 @@ function PresensiJurnalContent() {
                 ))}
               </select>
             </div>
+            {activeTab === 'jurnal' && (
+              <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Pekan Aktif (Remind)</label>
+                <select
+                  value={overrideWeek}
+                  onChange={(e) => setOverrideWeek(Number(e.target.value))}
+                  className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 min-w-[120px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
+                >
+                  {[...Array(10)].map((_, i) => (
+                    <option key={i+1} value={i+1}>Pekan {i+1} {i+1 === currentWeek ? '(Sesuai Jadwal)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <button 
               onClick={loadData}
               className="p-2.5 bg-white text-gray-500 rounded-xl shadow-sm hover:text-green-900 hover:bg-green-50 transition-all group"
@@ -406,10 +425,13 @@ function PresensiJurnalContent() {
             <div className="space-y-6">
               {activeTab === 'presensi' ? (
                 <TashihTabSimple 
-                  entries={tashihEntries.filter(e => 
-                    e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                    e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
-                  )} 
+                  entries={tashihEntries
+                    .filter(e => 
+                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
+                  } 
                   onRefresh={loadData}
                   onShowRecords={(user: any, blockCode: string, records: any[]) => {
                     setSelectedBlockRecords({ user, blockCode, records, type: 'presensi' });
@@ -417,10 +439,14 @@ function PresensiJurnalContent() {
                 />
               ) : (
                 <JurnalTabSimple 
-                  entries={jurnalEntries.filter(e => 
-                    e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                    e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
-                  )} 
+                  entries={jurnalEntries
+                    .filter(e => 
+                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
+                  } 
+                  currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
                   onShowRecords={(user: any, blockCode: string, records: any[]) => {
                     setSelectedBlockRecords({ user, blockCode, records, type: 'jurnal' });
@@ -591,6 +617,8 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) 
     setExpandedRows(newExpanded);
   };
 
+  const allWeeks = Array.from(new Set(entries.flatMap(e => e.weekly_status.map(w => w.week_number)))).sort((a, b) => a - b);
+
   if (entries.length === 0) return (
     <div className="bg-white rounded-3xl p-16 text-center shadow-xl border border-gray-100">
       <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -610,11 +638,9 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) 
               <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Thalibah</th>
               <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Juz</th>
               <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">Progress</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P1</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P2</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P3</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P4</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">P5</th>
+              {allWeeks.map(p => (
+                <th key={p} className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest border-l border-gray-100/50">P{p}</th>
+              ))}
               <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aksi</th>
             </tr>
           </thead>
@@ -629,7 +655,9 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) 
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{entry.user?.full_name}</div>
-                        <div className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">{entry.user?.nama_kunyah}</div>
+                        <div className="text-[10px] text-gray-400 font-medium tracking-tighter">
+                          {entry.user?.nama_kunyah} • {entry.user?.whatsapp || '-'}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -646,20 +674,31 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) 
                       </div>
                     </div>
                   </td>
-                  {[1, 2, 3, 4, 5].map(p => (
-                    <td key={p} className="px-4 py-5 text-center">
+                  {allWeeks.map(p => (
+                    <td key={p} className="px-4 py-5 text-center border-l border-gray-50/50">
                       <WeekBubble week={entry.weekly_status.find((w: any) => w.week_number === p)} />
                     </td>
                   ))}
                   <td className="px-6 py-5 text-right">
-                    <button onClick={() => toggleRow(entry.user_id)} className="p-2 text-gray-400 hover:text-green-900">
-                      {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    <div className="flex items-center justify-end">
+                       <button 
+                          onClick={() => toggleRow(entry.user_id)} 
+                          className={cn(
+                             "flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all shadow-sm border font-bold text-[10px] uppercase tracking-wider",
+                             expandedRows.has(entry.user_id)
+                                ? "bg-green-600 text-white border-green-700"
+                                : "bg-green-50 text-green-700 border-green-200 hover:bg-green-600 hover:text-white"
+                          )}
+                       >
+                         {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-3.5 h-3.5" />}
+                         <span>{expandedRows.has(entry.user_id) ? 'Tutup' : 'Lihat'}</span>
+                       </button>
+                    </div>
                   </td>
                 </tr>
                 {expandedRows.has(entry.user_id) && (
                   <tr>
-                    <td colSpan={9} className="px-6 py-8 bg-gray-50/50">
+                    <td colSpan={allWeeks.length + 4} className="px-6 py-8 bg-gray-50/50">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {entry.weekly_status.slice(0, 10).map((week: any) => (
                           <div key={week.week_number} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -683,14 +722,16 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) 
                                       }
                                     }}
                                     className={cn(
-                                      "p-2 rounded-xl border-2 text-center transition-all",
+                                      "p-2 rounded-xl border-2 text-center transition-all flex flex-col items-center justify-center min-h-[50px] shadow-sm font-bold",
                                       block.is_completed 
-                                        ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" 
-                                        : "bg-white border-gray-100 text-gray-300 hover:border-green-100 hover:bg-green-50/50 group"
+                                        ? "bg-green-600 border-green-700 text-white hover:bg-green-700" 
+                                        : block.tashih_count > 0
+                                          ? "bg-yellow-400 border-yellow-500 text-yellow-950 hover:bg-yellow-500"
+                                          : "bg-red-500 border-red-600 text-white hover:bg-red-600"
                                     )}
                                   >
-                                    <div className={cn("text-xs font-bold", !block.is_completed && "text-gray-300 group-hover:text-green-600")}>{block.block_code}</div>
-                                    <div className="text-[9px] font-medium">{block.is_completed ? 'Sudah' : 'Input'}</div>
+                                      <div className="text-xs">{block.block_code}</div>
+                                      <div className="text-[8px] uppercase">{block.is_completed ? 'Sudah' : 'Input'}</div>
                                   </button>
                                 ))}
                              </div>
@@ -711,11 +752,12 @@ function TashihTabSimple({ entries, onRefresh, onShowRecords }: TashihTabProps) 
 
 interface JurnalTabProps {
   entries: JurnalUserEntry[];
+  currentWeek: number;
   onRefresh: () => void;
   onShowRecords: (user: any, blockCode: string, records: any[]) => void;
 }
 
-function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) {
+function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords }: JurnalTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -724,6 +766,8 @@ function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) 
     else newExpanded.add(userId);
     setExpandedRows(newExpanded);
   };
+
+  const allWeeks = Array.from(new Set(entries.flatMap(e => e.weekly_status.map(w => w.week_number)))).sort((a, b) => a - b);
 
   if (entries.length === 0) return <div className="bg-white p-20 text-center">Belum ada jurnal.</div>;
 
@@ -736,11 +780,9 @@ function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) 
               <th className="px-6 py-4 text-left text-[10px] font-bold text-gray-400 uppercase">Thalibah</th>
               <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">Juz</th>
               <th className="px-6 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">Progress</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P1</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P2</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P3</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P4</th>
-              <th className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase">P5</th>
+              {allWeeks.map(p => (
+                <th key={p} className="px-4 py-4 text-center text-[10px] font-bold text-gray-400 uppercase border-l border-gray-100/50">P{p}</th>
+              ))}
               <th className="px-6 py-4 text-right text-[10px] font-bold text-gray-400 uppercase">Aksi</th>
             </tr>
           </thead>
@@ -755,11 +797,49 @@ function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) 
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{entry.user?.full_name}</div>
-                        <div className="text-[10px] text-gray-400">{entry.user?.nama_kunyah}</div>
+                        <div className="text-[10px] text-gray-400 font-medium tracking-tighter">
+                          {entry.user?.nama_kunyah} • {entry.user?.whatsapp || '-'}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-center text-xs font-bold text-emerald-700">{entry.confirmed_chosen_juz || '-'}</td>
+                  <td className="px-6 py-5 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+                        {entry.confirmed_chosen_juz || '-'}
+                      </span>
+                      {entry.user?.whatsapp && entry.summary?.completed_blocks < entry.summary?.total_blocks && (
+                        <button 
+                          onClick={() => {
+                            const missingBlocks: string[] = [];
+                            entry.weekly_status.forEach((w: any) => {
+                              // Hanya ambil blok dari pekan aktif ke belakang
+                              if (currentWeek > 0 && w.week_number > currentWeek) return;
+                              
+                              w.blocks.forEach((b: any) => {
+                                if (!b.is_completed) missingBlocks.push(b.block_code);
+                              });
+                            });
+
+                            if (missingBlocks.length === 0) {
+                              toast.error('Semua blok sudah dilaporkan');
+                              return;
+                            }
+
+                            const phone = entry.user.whatsapp.replace(/[^0-9]/g, '').replace(/^0/, '62');
+                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nSemoga Ukhti selalu dalam penjagaan Allah ﷻ. Aamiin.\n\nSekadar mengingatkan untuk laporan *Jurnal Harian Tikrar*.\n\nBerdasarkan data hari ini, beberapa blok berikut *belum dilaporkan*:\n👉 *${missingBlocks.slice(0, 15).join(', ')}${missingBlocks.length > 15 ? ' ...' : ''}*\n\nMohon segera dilengkapi ya Ukhti, karena batas waktu laporan adalah setiap *Ahad pukul 24.00 WIB*.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
+                            
+                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+                          }}
+                          className="flex items-center gap-1.5 px-2 py-1 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-sm text-[9px] font-bold uppercase tracking-tighter border border-emerald-700"
+                          title="Kirim Pengingat WhatsApp"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>Chat</span>
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-5 text-center">
                     <div className="flex flex-col items-center gap-1">
                       <div className="text-xs font-bold text-gray-700">{entry.summary?.completion_percentage || 0}%</div>
@@ -768,20 +848,31 @@ function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) 
                       </div>
                     </div>
                   </td>
-                  {[1, 2, 3, 4, 5].map(p => (
-                    <td key={p} className="px-4 py-5 text-center">
+                  {allWeeks.map(p => (
+                    <td key={p} className="px-4 py-5 text-center border-l border-gray-50/50">
                       <WeekBubbleJurnal week={entry.weekly_status.find((w: any) => w.week_number === p)} />
                     </td>
                   ))}
                   <td className="px-6 py-5 text-right">
-                    <button onClick={() => toggleRow(entry.user_id)} className="p-2 text-gray-400 hover:text-green-900">
-                      {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    <div className="flex items-center justify-end">
+                      <button 
+                        onClick={() => toggleRow(entry.user_id)} 
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all shadow-sm border font-bold text-[10px] uppercase tracking-wider",
+                          expandedRows.has(entry.user_id)
+                            ? "bg-green-600 text-white border-green-700"
+                            : "bg-green-50 text-green-700 border-green-200 hover:bg-green-600 hover:text-white"
+                        )}
+                      >
+                        {expandedRows.has(entry.user_id) ? <ChevronDown className="w-4 h-4 rotate-180" /> : <Eye className="w-3.5 h-3.5" />}
+                        <span>{expandedRows.has(entry.user_id) ? 'Tutup' : 'Lihat'}</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 {expandedRows.has(entry.user_id) && (
                   <tr>
-                    <td colSpan={9} className="px-6 py-8 bg-gray-50/50">
+                    <td colSpan={allWeeks.length + 4} className="px-6 py-8 bg-gray-50/50">
                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                          <h4 className="text-xs font-bold text-gray-900 mb-6 flex items-center gap-2">
                             <LayoutGrid className="w-4 h-4 text-green-900" />
@@ -815,14 +906,16 @@ function JurnalTabSimple({ entries, onRefresh, onShowRecords }: JurnalTabProps) 
                                              }
                                            }}
                                            className={cn(
-                                              "p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center min-h-[50px] group",
+                                              "p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center min-h-[50px] shadow-sm font-bold",
                                               block.is_completed 
-                                                ? "bg-green-50 border-green-200 text-green-900 hover:bg-green-100" 
-                                                : "bg-white border-gray-100 text-gray-300 hover:border-green-100 hover:bg-green-50/50"
+                                                ? "bg-green-600 border-green-700 text-white hover:bg-green-700" 
+                                                : block.jurnal_count > 0
+                                                  ? "bg-yellow-400 border-yellow-500 text-yellow-950 hover:bg-yellow-500"
+                                                  : "bg-red-500 border-red-600 text-white hover:bg-red-600"
                                            )}
                                         >
-                                           <div className={cn("text-[10px] font-bold", !block.is_completed && "text-gray-300 group-hover:text-green-600")}>{block.block_code}</div>
-                                           <div className="text-[8px] font-medium uppercase">{block.is_completed ? 'Sudah' : 'Input'}</div>
+                                           <div className="text-[10px] font-bold">{block.block_code}</div>
+                                           <div className="text-[8px] font-bold uppercase">{block.is_completed ? 'Sudah' : 'Input'}</div>
                                         </button>
                                      ))}
                                   </div>
@@ -846,9 +939,20 @@ function WeekBubble({ week }: any) {
   if (!week) return <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto" />;
   const pct = (week.completed_blocks / week.total_blocks) * 100;
   return (
-    <div className="relative w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto overflow-hidden">
-      <div className="absolute bottom-0 left-0 right-0 bg-green-500/20" style={{ height: `${pct}%` }} />
-      {week.is_completed && <div className="absolute inset-0 flex items-center justify-center"><CheckCircle className="w-3 h-3 text-green-600" /></div>}
+    <div 
+      className={cn(
+        "relative w-5 h-5 rounded-full mx-auto overflow-hidden border",
+        pct === 0 
+          ? "bg-red-500 border-red-600" 
+          : pct === 100 
+            ? "bg-green-600 border-green-700" 
+            : "border-yellow-500 shadow-sm"
+      )}
+      style={pct > 0 && pct < 100 ? { 
+        background: `conic-gradient(#16a34a 0% ${pct}%, #facc15 ${pct}% 100%)` 
+      } : {}}
+    >
+      {week.is_completed && <div className="absolute inset-0 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white shadow-sm" /></div>}
     </div>
   );
 }
@@ -857,9 +961,20 @@ function WeekBubbleJurnal({ week }: any) {
   if (!week) return <div className="w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto" />;
   const pct = (week.completed_blocks / week.total_blocks) * 100;
   return (
-    <div className="relative w-5 h-5 rounded-full bg-gray-50 border border-gray-100 mx-auto overflow-hidden">
-      <div className="absolute bottom-0 left-0 right-0 bg-emerald-500/20" style={{ height: `${pct}%` }} />
-      {week.is_completed && <div className="absolute inset-0 flex items-center justify-center"><CheckCircle className="w-3 h-3 text-emerald-600" /></div>}
+    <div 
+      className={cn(
+        "relative w-5 h-5 rounded-full mx-auto overflow-hidden border",
+        pct === 0 
+          ? "bg-red-500 border-red-600" 
+          : pct === 100 
+            ? "bg-green-600 border-green-700" 
+            : "border-yellow-500 shadow-sm"
+      )}
+      style={pct > 0 && pct < 100 ? { 
+        background: `conic-gradient(#16a34a 0% ${pct}%, #facc15 ${pct}% 100%)` 
+      } : {}}
+    >
+      {week.is_completed && <div className="absolute inset-0 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white shadow-sm" /></div>}
     </div>
   );
 }

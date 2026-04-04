@@ -8,9 +8,10 @@ import { useActiveBatch } from '@/hooks/useBatches';
 import { useDashboardStats, useLearningJourney, useUserProgress, useJurnalStatus } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
+import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
 import { TimelineMilestone, TimelineItem, TimelineItemWithStatus } from '@/components/TimelineMilestone';
@@ -35,6 +36,8 @@ interface TikrarRegistration extends Pendaftaran {
   exam_score?: number;
   written_quiz_submitted_at?: string;
   selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
+  final_juz?: string;
+  oral_total_score?: number;
   // daftar_ulang is now inherited from Pendaftaran interface
 }
 
@@ -110,36 +113,31 @@ const getJuzLabel = (juz: string | undefined | null) => {
   return `Juz ${cleanJuz}`;
 };
 
-const getDayNameFromNumber = (dayNum: number | undefined | null) => {
+const getDayNameFromNumber = (dayNum: number | string | undefined | null) => {
   if (dayNum === undefined || dayNum === null) return '-';
+  const num = typeof dayNum === 'string' ? parseInt(dayNum) : dayNum;
   const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  return days[dayNum] || '-';
+  return days[num] || '-';
 };
 
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
   const [isClient, setIsClient] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'jadwal' | 'achievement'>('status');
-  
-  // Identify if user is Admin/Staff for preview mode
-  const isAdmin = useMemo(() => {
-    const primaryRole = (user as any)?.primaryRole;
-    return getRoleRank(primaryRole) >= ROLE_RANKS.admin;
-  }, [user]);
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
   const [hasSessionError, setHasSessionError] = useState(false);
   const [pairingData, setPairingData] = useState<PairingData | null>(null);
   const [isLoadingPairing, setIsLoadingPairing] = useState(false);
-  const [isEditPartnerModalOpen, setIsEditPartnerModalOpen] = useState(false);
-  const [editPartnerData, setEditPartnerData] = useState({
-    partner_name: '',
-    partner_relationship: '',
-    partner_notes: '',
-    partner_wa_phone: ''
-  });
-  const [isUpdatingPartner, setIsUpdatingPartner] = useState(false);
+  
+  // Review Modal States
+  const [reviewType, setReviewType] = useState<'written' | 'oral' | 'akad' | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  // Identify if user is Admin/Staff for preview mode
+  const isAdmin = useMemo(() => {
+    const primaryRole = (user as any)?.primaryRole;
+    return getRoleRank(primaryRole) >= ROLE_RANKS.admin;
+  }, [user]);
 
   // SWR hooks for data fetching - useAllRegistrations to show ALL registrations (no batch filter)
   const { registrations, isLoading: registrationsLoading, error: registrationsError } = useAllRegistrations();
@@ -188,58 +186,6 @@ export default function PerjalananSaya() {
     selectionStatus: registrations?.[0]?.selection_status
   });
 
-  // Debug log for admin button
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[PerjalananSai] Admin button debug:', {
-        isAdmin: user?.roles?.includes('admin'),
-        showButton: user?.roles?.includes('admin') && batchId
-      });
-    }
-  }, [user, batchId]);
-
-  // Debug log for batch data
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      console.log('[PerjalananSaya Page] Batch data:', {
-        batchId,
-        batchLoading,
-        hasBatch: !!batch,
-        batchDates: batch ? {
-          registration_start: batch.registration_start_date,
-          registration_end: batch.registration_end_date,
-          selection_start: batch.selection_start_date,
-          selection_end: batch.selection_end_date,
-          selection_result: batch.selection_result_date,
-          re_enrollment: batch.re_enrollment_date,
-          opening_class: batch.opening_class_date,
-        } : null,
-        willUseDynamic: !!(batch && (batch.registration_start_date || batch.re_enrollment_date || batch.opening_class_date))
-      });
-    }
-  }, [batch, batchId, batchLoading]);
-
-  // Fetch exam eligibility
-  // FIXED: Don't fetch directly in useEffect, use SWR hook instead (follows arsitektur.md)
-  // For now, disable this to prevent error
-  /*
-  useEffect(() => {
-    const fetchExamEligibility = async () => {
-      if (!isAuthenticated) return;
-      try {
-        const res = await fetch('/api/exam/eligibility');
-        if (res.ok) {
-          const data = await res.json();
-          setExamEligibility(data.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch exam eligibility:', error);
-      }
-    };
-    fetchExamEligibility();
-  }, [isAuthenticated]);
-  */
-
   // Calculate registration status from SWR data - safely handle undefined registrations
   const registrationStatus = useMemo(() => {
     if (!user || !registrations || registrations.length === 0) {
@@ -253,21 +199,6 @@ export default function PerjalananSaya() {
     const approvedRegistration = registrations.find(reg => reg.status === 'approved');
     const registration = (approvedRegistration || registrations[0]) as TikrarRegistration;
 
-    // Debug log untuk daftar_ulang
-    console.log('[PerjalananSaya] Registration debug:', {
-      totalRegistrations: registrations.length,
-      allRegistrations: registrations.map(r => ({ id: r.id, status: r.status })),
-      registrationId: registration?.id,
-      registrationStatus: registration?.status,
-      hasAnyRegistration,
-      hasActiveRegistration,
-      approved: !!approvedRegistration,
-      rejected: registrations.some(reg => reg.status === 'rejected'),
-      hasDaftarUlang: !!registration?.daftar_ulang,
-      daftarUlang: registration?.daftar_ulang,
-      reEnrollmentCompleted: registration?.re_enrollment_completed
-    });
-
     return {
       hasRegistered: hasAnyRegistration, // Show timeline for all registered users (including rejected)
       registration,
@@ -279,28 +210,107 @@ export default function PerjalananSaya() {
       hasOralSubmission: !!(
         registration?.oral_submission_url ||
         (registration?.oral_assessment_status && registration?.oral_assessment_status !== 'pending') ||
+        (registration?.oral_total_score != null && registration?.oral_total_score > 0) ||
         (registration?.oral_score != null && registration?.oral_score > 0)
       ),
       oralSubmissionUrl: registration?.oral_submission_url,
       oralSubmittedAt: registration?.oral_submitted_at,
       oralAssessmentStatus: registration?.oral_assessment_status || 'pending',
+      oralScore: registration?.oral_total_score || (registration as any)?.oral_score,
       registrationId: registration?.id,
       chosenJuz: registration?.chosen_juz,
-      examScore: registration?.exam_score,
-      writtenQuizSubmittedAt: registration?.written_quiz_submitted_at,
+      examScore: registration?.exam_score || (registration as any)?.written_quiz_score,
+      writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
       selectionStatus: registration?.selection_status || 'pending',
     };
   }, [user, registrations]);
 
+  const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
+
   const isLoading = authLoading || registrationsLoading;
+
+  // PHASE TRACKER LOGIC
+  const phases = useMemo(() => {
+    if (!user || isLoading) return [];
+
+    const isProfileComplete = !!(user.full_name && user.whatsapp && (user as any).tanggal_lahir);
+    const isSelectionDone = registrationStatus?.selectionStatus && registrationStatus.selectionStatus !== 'pending';
+    const isEnrollmentDone = registrationStatus?.registration?.re_enrollment_completed === true;
+    
+    const today = new Date();
+    const reviewWeekEnd = batch?.review_week_end_date ? new Date(batch.review_week_end_date) : null;
+    const isLearningDone = isEnrollmentDone && reviewWeekEnd && today > reviewWeekEnd;
+
+    const graduationEnd = batch?.graduation_end_date ? new Date(batch.graduation_end_date) : null;
+    const isGraduationDone = isLearningDone && graduationEnd && today > graduationEnd;
+
+    // Sub-phase detailed logic & data formatting
+    const hasOral = !!(registrationStatus?.hasOralSubmission);
+    const hasWritten = !!(registrationStatus?.writtenQuizSubmittedAt || registrationStatus?.examScore);
+    const hasAkad = !!(registrationStatus?.registration?.daftar_ulang);
+    const hasPartner = !!(pairingData);
+    
+    const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
+
+    return [
+      { 
+        id: 1, name: 'Persiapan', status: isProfileComplete ? 'completed' : 'current', 
+        desc: batch?.registration_start_date ? `${formatDateIndo(batch.registration_start_date)} - ${formatDateIndo(batch.registration_end_date || '')}` : 'Lengkapi Profil', 
+        icon: <User className="w-4 h-4" />,
+        subPhases: [
+          { name: 'Buat Akun', done: true, data: user?.email },
+          { name: 'Lengkapi Profil', done: isProfileComplete, data: isProfileComplete ? `${user.full_name} (${user.whatsapp})` : 'Belum lengkap', reviewType: isProfileComplete ? 'profile' : null }
+        ]
+      },
+      { 
+        id: 2, name: 'Seleksi', status: isSelectionDone ? 'completed' : (isProfileComplete ? 'current' : 'future'), 
+        desc: batch?.selection_start_date ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date || '')}` : 'Ujian & Hasil', 
+        icon: <FileText className="w-4 h-4" />,
+        subPhases: [
+          { name: 'Ujian Tertulis', done: hasWritten, data: hasWritten ? `Nilai: ${registrationStatus.examScore ?? '-'}` : 'Belum dikerjakan', reviewType: hasWritten ? 'written' : null },
+          { name: 'Ujian Lisan', done: hasOral, data: hasOral ? (registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai') : 'Belum rekaman', reviewType: hasOral ? 'oral' : null },
+          { name: 'Pengumuman', done: isSelectionDone, data: isSelectionDone ? `Placement: Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}` : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') }
+        ]
+      },
+      { 
+        id: 3, name: 'Daftar Ulang', status: isEnrollmentDone ? 'completed' : (isSelectionDone ? 'current' : 'future'), 
+        desc: batch?.re_enrollment_date ? `Mulai ${formatDateIndo(batch.re_enrollment_date)}` : 'Akad & Pasangan', 
+        icon: <CheckCircle className="w-4 h-4" />,
+        subPhases: [
+          { name: 'Review Akad', done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
+          { name: 'Pilih Pasangan', done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
+          { name: 'Verifikasi', done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
+        ]
+      },
+      { 
+        id: 4, name: 'Masa Belajar', status: isLearningDone ? 'completed' : (isEnrollmentDone ? 'current' : 'future'), 
+        desc: batch?.opening_class_date ? `Aktif s/d ${formatDateIndo(batch.review_week_end_date || '')}` : 'Pekan 1 - 12', 
+        icon: <BookOpen className="w-4 h-4" />,
+        subPhases: [
+          { name: 'Opening Class', done: isEnrollmentDone && today > new Date(batch?.opening_class_date || ''), data: batch?.opening_class_date ? formatDateIndo(batch.opening_class_date) : '-' },
+          { name: 'Jurnal Tikrar', done: percentage >= 80, data: isEnrollmentDone ? `Progres: ${percentage}%` : 'Belum mulai' },
+          { name: 'Muraja’ah', done: isLearningDone, data: isLearningDone ? 'Selesai' : (today > (reviewWeekEnd || new Date()) ? 'Berlangsung' : 'Akan datang') }
+        ]
+      },
+      { 
+        id: 5, name: 'Kelulusan', status: isGraduationDone ? 'completed' : (isLearningDone ? 'current' : 'future'), 
+        desc: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : 'Wisuda & Sertifikat', 
+        icon: <Award className="w-4 h-4" />,
+        subPhases: [
+          { name: 'Ujian Akhir', done: isGraduationDone, data: isGraduationDone ? 'Selesai ✓' : '-' },
+          { name: 'Wisuda', done: isGraduationDone, data: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : '-' },
+          { name: 'Sertifikat', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
+        ]
+      },
+    ];
+  }, [user, isLoading, registrationStatus, batch, percentage, pairingData]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Helper to get icon based on type - define BEFORE useMemo to avoid circular dependency
+  // Helper to get icon based on type
   const getIconForType = (type: string) => {
-    // Return default icon for now
     return (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -310,36 +320,13 @@ export default function PerjalananSaya() {
 
   // Function to parse Indonesian date string
   const parseIndonesianDate = (dateStr: string): Date => {
-    // Handle special case for "Pekan" - return a date in the future
     if (dateStr.includes('Pekan')) {
-      // For "Pekan 1 2026", return date around that time
-      if (dateStr.includes('1')) {
-        return new Date('2026-01-12');
-      } else if (dateStr.includes('2') || dateStr.includes('11')) {
-        return new Date('2026-03-23');
-      } else if (dateStr.includes('12')) {
-        return new Date('2026-03-30');
-      } else if (dateStr.includes('13')) {
-        return new Date('2026-04-06');
-      } else if (dateStr.includes('14')) {
-        return new Date('2026-04-13');
-      }
       return new Date('2026-01-12');
     }
 
     const months: { [key: string]: number } = {
-      'Januari': 0,
-      'Februari': 1,
-      'Maret': 2,
-      'April': 3,
-      'Mei': 4,
-      'Juni': 5,
-      'Juli': 6,
-      'Agustus': 7,
-      'September': 8,
-      'Oktober': 9,
-      'November': 10,
-      'Desember': 11
+      'Januari': 0, 'Februari': 1, 'Maret': 2, 'April': 3, 'Mei': 4, 'Juni': 5,
+      'Juli': 6, 'Agustus': 7, 'September': 8, 'Oktober': 9, 'November': 10, 'Desember': 11
     };
 
     const parts = dateStr.split(' ');
@@ -352,9 +339,7 @@ export default function PerjalananSaya() {
 
   // Create timeline data from batch or fallback to hardcoded data
   const baseTimelineData: TimelineItem[] = useMemo(() => {
-    // If we have batch data with any timeline dates, use it to create timeline
     if (batch && (batch.registration_start_date || batch.re_enrollment_date || batch.opening_class_date)) {
-      // Helper to format date range
       const formatDateRange = (start: string | null | undefined, end: string | null | undefined): string => {
         if (!start || !end) return '';
         return `${formatDateIndo(start)} - ${formatDateIndo(end)}`;
@@ -362,7 +347,6 @@ export default function PerjalananSaya() {
 
       const items: TimelineItem[] = [];
 
-      // 1. Registration
       if (batch.registration_start_date && batch.registration_end_date) {
         items.push({
           id: 1,
@@ -371,15 +355,10 @@ export default function PerjalananSaya() {
           hijriDate: batch.registration_start_date ? toHijri(batch.registration_start_date) : '6 - 19 Jumadil Akhir 1446',
           title: 'Mendaftar Program',
           description: 'Pendaftaran awal program tahfidz',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          )
+          icon: getIconForType('registration')
         });
       }
 
-      // 2. Selection
       if (batch.selection_start_date && batch.selection_end_date) {
         items.push({
           id: 2,
@@ -388,16 +367,11 @@ export default function PerjalananSaya() {
           hijriDate: batch.selection_start_date ? toHijri(batch.selection_start_date) : '20 Jumadil Akhir - 3 Rajab 1446',
           title: 'Seleksi',
           description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          ),
+          icon: getIconForType('selection'),
           hasSelectionTasks: true
         });
       }
 
-      // 3. Selection Result
       if (batch.selection_result_date) {
         items.push({
           id: 3,
@@ -406,16 +380,11 @@ export default function PerjalananSaya() {
           hijriDate: toHijri(batch.selection_result_date),
           title: 'Pengumuman Hasil Seleksi',
           description: 'Pengumuman hasil seleksi.',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          ),
+          icon: getIconForType('result'),
           hasSelectionTasks: false
         });
       }
 
-      // 4. Re-enrollment
       if (batch.re_enrollment_date) {
         items.push({
           id: 4,
@@ -424,15 +393,10 @@ export default function PerjalananSaya() {
           hijriDate: toHijri(batch.re_enrollment_date),
           title: 'Mendaftar Ulang',
           description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )
+          icon: getIconForType('enrollment')
         });
       }
 
-      // 5. Opening Class
       if (batch.opening_class_date) {
         items.push({
           id: 5,
@@ -441,193 +405,57 @@ export default function PerjalananSaya() {
           hijriDate: toHijri(batch.opening_class_date),
           title: 'Kelas Perdana Gabungan',
           description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
-          icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          )
-        });
-      }
-
-      // 6. First Week (Tashih)
-      if (batch.first_week_start_date && batch.first_week_end_date) {
-        items.push({
-          id: 6,
-          date: `Pekan 1 (${formatDateRange(batch.first_week_start_date, batch.first_week_end_date)})`,
-          day: getDayNameIndo(batch.first_week_start_date),
-          hijriDate: toHijri(batch.first_week_start_date),
-          title: 'Pekan 1 - Tashih',
-          description: 'Minggu pertama pembelajaran - Tashih',
-          icon: getIconForType('learning')
-        });
-      }
-
-      // 7. Main Learning (Weeks 2-11)
-      if (batch.first_week_end_date && batch.review_week_start_date) {
-        const week2Start = new Date(batch.first_week_end_date);
-        week2Start.setDate(week2Start.getDate() + 1);
-        const week11End = new Date(batch.review_week_start_date);
-        week11End.setDate(week11End.getDate() - 1);
-        items.push({
-          id: 7,
-          date: `Pekan 2-11 (${formatDateIndo(week2Start.toISOString().split('T')[0])} - ${formatDateIndo(week11End.toISOString().split('T')[0])})`,
-          day: getDayNameIndo(batch.first_week_end_date),
-          hijriDate: toHijri(batch.first_week_end_date),
-          title: 'Pekan 2-11 - Pembelajaran',
-          description: '10 minggu pembelajaran inti - Hafalan & Muraja\'ah',
-          icon: getIconForType('learning')
-        });
-      }
-
-      // 8. Review Week
-      if (batch.review_week_start_date && batch.review_week_end_date) {
-        items.push({
-          id: 8,
-          date: `Pekan 12 (${formatDateRange(batch.review_week_start_date, batch.review_week_end_date)})`,
-          day: getDayNameIndo(batch.review_week_start_date),
-          hijriDate: toHijri(batch.review_week_start_date),
-          title: 'Pekan 12 - Muraja\'ah',
-          description: 'Minggu pengulangan dan persiapan ujian',
-          icon: getIconForType('learning')
-        });
-      }
-
-      // 9. Final Exam
-      if (batch.final_exam_start_date && batch.final_exam_end_date) {
-        items.push({
-          id: 9,
-          date: `Pekan 13 (${formatDateRange(batch.final_exam_start_date, batch.final_exam_end_date)})`,
-          day: getDayNameIndo(batch.final_exam_start_date),
-          hijriDate: toHijri(batch.final_exam_start_date),
-          title: 'Pekan 13 - Ujian Akhir',
-          description: 'Ujian akhir tahfidz',
-          icon: getIconForType('assessment')
-        });
-      }
-
-      // 10. Graduation
-      if (batch.graduation_start_date && batch.graduation_end_date) {
-        items.push({
-          id: 10,
-          date: `Pekan 14 (${formatDateRange(batch.graduation_start_date, batch.graduation_end_date)})`,
-          day: getDayNameIndo(batch.graduation_start_date),
-          hijriDate: toHijri(batch.graduation_start_date),
-          title: 'Pekan 14 - Wisuda',
-          description: 'Wisuda dan pemberian sertifikat',
-          icon: getIconForType('completion')
+          icon: getIconForType('opening')
         });
       }
 
       return items;
     }
-
-    // No batch data - return empty array
     return [];
-  }, [batch, getIconForType]);
+  }, [batch]);
 
   // Calculate timeline status dynamically based on current date and registration status
   const timelineData = useMemo((): TimelineItemWithStatus[] => {
-    // If not client-side yet, return all items as 'future' to prevent hydration mismatch
     if (!isClient) {
-      return baseTimelineData.map(item => ({
-        ...item,
-        status: 'future' as const
-      }));
+      return baseTimelineData.map(item => ({ ...item, status: 'future' as const }));
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0);
 
     return baseTimelineData.map((item, index) => {
-      // If first item and user has registered, mark as completed
-      if (index === 0 && registrationStatus?.hasRegistered) {
-        return {
-          ...item,
-          status: 'completed' as const
-        };
-      }
-
-      // Special handling for selection result (id: 3)
-      // If user is already selected or not selected, mark selection phases as completed
+      if (index === 0 && registrationStatus?.hasRegistered) return { ...item, status: 'completed' as const };
+      
       const isSelected = registrationStatus?.selectionStatus === 'selected';
       const isNotSelected = registrationStatus?.selectionStatus === 'not_selected';
       const isWaitlist = registrationStatus?.selectionStatus === 'waitlist';
 
-      if (item.id === 2 && (isSelected || isNotSelected || isWaitlist)) {
-        // Oral test - completed if selection status is determined
-        return {
-          ...item,
-          status: 'completed' as const
-        };
-      }
-
-      if (item.id === 3) {
-        // Selection result
-        if (isSelected || isNotSelected || isWaitlist) {
-          // If selection status is determined, this is completed
-          return {
-            ...item,
-            status: 'completed' as const
-          };
-        }
-        // Otherwise, check the date
-      }
+      if (item.id === 2 && (isSelected || isNotSelected || isWaitlist)) return { ...item, status: 'completed' as const };
+      if (item.id === 3 && (isSelected || isNotSelected || isWaitlist)) return { ...item, status: 'completed' as const };
 
       const itemDate = parseIndonesianDate(item.date);
       itemDate.setHours(0, 0, 0, 0);
 
-      let status: 'completed' | 'current' | 'future';
-
-      // Calculate difference in days
       const diffTime = itemDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-      if (diffDays < 0) {
-        status = 'completed';
-      } else if (diffDays === 0) {
-        // Current status only for today
-        status = 'current';
-      } else {
-        status = 'future';
-      }
-
       return {
         ...item,
-        status
+        status: diffDays < 0 ? 'completed' : (diffDays === 0 ? 'current' : 'future')
       };
     });
-  }, [isClient, registrationStatus, baseTimelineData, parseIndonesianDate]);
+  }, [isClient, registrationStatus, baseTimelineData]);
 
-  // Check if edit button should be shown (before re_enrollment_completed is true)
-  const canEditRegistration = useMemo(() => {
-    // Edit allowed if re_enrollment_completed is not true (false, null, or undefined)
-    return registrationStatus?.registration?.re_enrollment_completed !== true;
-  }, [registrationStatus]);
-
-  // Calculate dynamic finish estimation
   const estimationFinish = useMemo(() => {
     if (batch && batch.graduation_end_date) {
-      const greg = formatDateIndo(batch.graduation_end_date);
-      const hijri = toHijri(batch.graduation_end_date);
-      return { greg, hijri };
+      return { greg: formatDateIndo(batch.graduation_end_date), hijri: toHijri(batch.graduation_end_date) };
     }
-    
-    // Fallback if no graduation date but have timeline
-    if (timelineData.length > 0) {
-      const lastItem = timelineData[timelineData.length - 1];
-      // Try to extract date from the last item's date string if batch.graduation_end_date is missing
-      return { greg: lastItem.date, hijri: lastItem.hijriDate };
-    }
-
     return { greg: '-', hijri: '-' };
-  }, [batch, timelineData]);
+  }, [batch]);
 
-  // Handle session expired error - must be before conditional returns
   useEffect(() => {
     if (registrationsError && (registrationsError as any).code === 'SESSION_EXPIRED') {
       setHasSessionError(true);
-      // Redirect to login after a short delay
       const timer = setTimeout(() => {
         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
       }, 2000);
@@ -635,872 +463,111 @@ export default function PerjalananSaya() {
     }
   }, [registrationsError]);
 
-  // Helper functions for display - must be before conditional returns
-  const getJuzLabel = (juzValue: string) => {
-    const juzLabels: Record<string, string> = {
-      '30A': 'Juz 30A (halaman 1-10)',
-      '30B': 'Juz 30B (halaman 11-24)',
-      '28A': 'Juz 28A (halaman 1-10)',
-      '28B': 'Juz 28B (halaman 11-20)',
-      '1A': 'Juz 1A (halaman 1-10)',
-      '1B': 'Juz 1B (halaman 11-20)',
-      '28': 'Juz 28',
-      '29': 'Juz 29',
-      '29A': 'Juz 29A (halaman 1-10)',
-      '29B': 'Juz 29B (halaman 11-20)',
-      '1': 'Juz 1',
-    };
-    return juzLabels[juzValue] || `Juz ${juzValue}`;
-  };
-
-  // Check if user chose Juz 30 (no exam required)
-  const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
-
-  const getTimeSlotLabel = (slotValue: string | undefined) => {
-    if (!slotValue) return '-';
-    // Nilai di database disimpan sebagai "06-09", "18-21", dll
-    const slotLabels: Record<string, string> = {
-      '04-06': '04-06 WIB',
-      '06-09': '06-09 WIB',
-      '09-12': '09-12 WIB',
-      '12-15': '12-15 WIB',
-      '15-18': '15-18 WIB',
-      '18-21': '18-21 WIB',
-      '21-24': '21-24 WIB',
-      // Legacy values untuk compatibility
-      'pagi': '06-09 WIB',
-      'siang': '12-15 WIB',
-      'sore': '15-18 WIB',
-      'malam': '18-21 WIB',
-    };
-
-    return slotLabels[slotValue] || `${slotValue} WIB`;
-  };
-
-  const getDayNameFromNumber = (dayNum: number | string | undefined) => {
-    const days = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
-    if (dayNum === undefined) return '';
-    const num = typeof dayNum === 'string' ? parseInt(dayNum) : dayNum;
-    return days[num] || `${dayNum}`;
-  };
-
-  const calculateAge = (birthDate: string | null | undefined) => {
-    if (!birthDate) return '-';
-
-    let birth: Date;
-    // Try parsing ISO format (YYYY-MM-DD)
-    if (birthDate.includes('-')) {
-      const parts = birthDate.split('-');
-      if (parts.length === 3) {
-        const year = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1; // JS months are 0-indexed
-        const day = parseInt(parts[2]);
-        birth = new Date(year, month, day);
-      } else {
-        birth = new Date(birthDate);
-      }
-    } else if (birthDate.includes('/')) {
-      // Try parsing slash format (DD/MM/YYYY or YYYY/MM/DD)
-      const parts = birthDate.split('/');
-      if (parts.length === 3) {
-        // Assume DD/MM/YYYY format (common in Indonesia)
-        const day = parseInt(parts[0]);
-        const month = parseInt(parts[1]) - 1;
-        const year = parseInt(parts[2]);
-        birth = new Date(year, month, day);
-      } else {
-        birth = new Date(birthDate);
-      }
-    } else {
-      birth = new Date(birthDate);
-    }
-
-    if (isNaN(birth.getTime())) {
-      return '-';
-    }
-
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-
-    return age;
-  };
-
-  const hasTimeSlotOverlap = (slot1: string | undefined, slot2: string | undefined): boolean => {
-    if (!slot1 || !slot2) return false;
-
-    const parseSlot = (slot: string) => {
-      const [start, end] = slot.split('-').map(Number);
-      return { start, end };
-    };
-
-    const s1 = parseSlot(slot1);
-    const s2 = parseSlot(slot2);
-
-    return s1.start < s2.end && s2.start < s1.end;
-  };
-
-  const renderCompatibilityAnalysis = (currentUser: any, partner: any, partnerLabel: string) => {
-    const juzMatch = currentUser.chosen_juz === partner.chosen_juz;
-    const zonaMatch = currentUser.zona_waktu === partner.zona_waktu;
-    const mainTimeMatch = hasTimeSlotOverlap(currentUser.main_time_slot, partner.main_time_slot);
-    const backupTimeMatch = hasTimeSlotOverlap(currentUser.backup_time_slot, partner.backup_time_slot) ||
-                            hasTimeSlotOverlap(currentUser.backup_time_slot, partner.main_time_slot) ||
-                            hasTimeSlotOverlap(currentUser.main_time_slot, partner.backup_time_slot);
-
-    return (
-      <div key={partnerLabel} className="space-y-1.5">
-        <p className="text-xs font-medium text-gray-700 mb-1.5">Kecocokan dengan {partnerLabel}:</p>
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`w-1.5 h-1.5 rounded-full ${juzMatch ? 'bg-green-500' : 'bg-amber-500'}`}></span>
-          <span className={juzMatch ? 'text-green-700' : 'text-amber-700'}>
-            Juz: {juzMatch ? 'Sama ✓' : 'Beda'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`w-1.5 h-1.5 rounded-full ${zonaMatch ? 'bg-green-500' : 'bg-amber-500'}`}></span>
-          <span className={zonaMatch ? 'text-green-700' : 'text-amber-700'}>
-            Zona: {zonaMatch ? 'Sama ✓' : 'Beda'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`w-1.5 h-1.5 rounded-full ${mainTimeMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
-          <span className={mainTimeMatch ? 'text-green-700' : 'text-red-700'}>
-            W. Utama: {mainTimeMatch ? 'Cocok ✓' : 'Tidak cocok'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className={`w-1.5 h-1.5 rounded-full ${backupTimeMatch ? 'bg-green-500' : 'bg-red-500'}`}></span>
-          <span className={backupTimeMatch ? 'text-green-700' : 'text-red-700'}>
-            W. Cadangan: {backupTimeMatch ? 'Cocok ✓' : 'Tidak cocok'}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  const getMatchingAdvice = (currentUser: any, partners: any[]) => {
-    let hasPerfectMatches = false;
-    let hasSomeMatches = false;
-    let hasNoMatches = true;
-
-    for (const partner of partners) {
-      if (!partner) continue;
-
-      const juzMatch = currentUser.chosen_juz === partner.chosen_juz;
-      const zonaMatch = currentUser.zona_waktu === partner.zona_waktu;
-      const mainTimeMatch = hasTimeSlotOverlap(currentUser.main_time_slot, partner.main_time_slot);
-
-      if (juzMatch && zonaMatch && mainTimeMatch) {
-        hasPerfectMatches = true;
-        hasNoMatches = false;
-      } else if (juzMatch || zonaMatch || mainTimeMatch) {
-        hasSomeMatches = true;
-        hasNoMatches = false;
-      }
-    }
-
-    if (hasPerfectMatches) {
-      return {
-        icon: '✨',
-        title: 'Alhamdulillah, Kecocokan Baik!',
-        message: 'Ukhti mendapatkan pasangan dengan kecocokan yang baik. Semoga ikhtiar ini membawa keberkahan dalam menghafal dan mengamalkan Al-Qur\'an bersama.',
-        bgColor: 'bg-green-50',
-        borderColor: 'border-green-200',
-        textColor: 'text-green-800'
-      };
-    } else if (hasSomeMatches) {
-      return {
-        icon: '💪',
-        title: 'Sabar dan Ikhlas',
-        message: 'Wahai Ukhti yang mulia, sistem berpasangan ini ditentukan dengan logika berlapis untuk kebaikan bersama. Terimalah pasangan sebagai ujian kesabaran dan kesempatan untuk berbagi ilmu. Jangan ragu untuk berkomunikasi dengan pasangan mencari waktu yang sesuai.',
-        bgColor: 'bg-amber-50',
-        borderColor: 'border-amber-200',
-        textColor: 'text-amber-800'
-      };
-    } else {
-      return {
-        icon: '🤲',
-        title: 'Ujian Kesabaran',
-        message: 'Wahai Ukhti yang mulia, semua takdir Allah adalah yang terbaik. Sistem berpasangan ini ditentukan dengan logika berlapis. Perbedaan ini adalah kesempatan untuk belajar toleransi, berkomunikasi, dan mencari solusi bersama. Mari berikhtiar mencari waktu yang bisa disepakati bersama pasangan.',
-        bgColor: 'bg-orange-50',
-        borderColor: 'border-orange-200',
-        textColor: 'text-orange-800'
-      };
-    }
-  };
-
-  const getPairingTypeLabel = (pairingType: string) => {
-    switch (pairingType) {
-      case 'self_match':
-        return { label: 'Self Match', bgColor: 'bg-blue-100', textColor: 'text-blue-800' };
-      case 'family':
-        return { label: 'Family', bgColor: 'bg-pink-100', textColor: 'text-pink-800' };
-      case 'tarteel':
-        return { label: 'Tarteel', bgColor: 'bg-teal-100', textColor: 'text-teal-800' };
-      case 'system_match':
-        return { label: 'System Match', bgColor: 'bg-purple-100', textColor: 'text-purple-800' };
-      default:
-        return { label: pairingType, bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
-    }
-  };
-
-  const handleEditPartner = async () => {
-    if (!pairingData || !pairingData.submission_id) return;
-
-    const isFamily = pairingData.pairing.pairing_type === 'family';
-    const isTarteel = pairingData.pairing.pairing_type === 'tarteel';
-
-    if (!isFamily && !isTarteel) {
-      alert('Hanya pasangan Family dan Tarteel yang bisa diedit.');
-      return;
-    }
-
-    // Get current values
-    const currentName = pairingData.partner_details?.partner_name || '';
-    const currentRelationship = pairingData.partner_details?.partner_relationship || '';
-    const currentNotes = pairingData.partner_details?.partner_notes || '';
-    const currentPhone = pairingData.partner_details?.partner_wa_phone || '';
-
-    // Prompt for new values
-    const fieldLabel = isFamily ? 'keluarga' : 'Tarteel';
-    const newName = prompt(`Masukkan nama ${fieldLabel}:`, currentName);
-    if (newName === null) return; // User cancelled
-
-    const newRelationship = isFamily ? prompt('Masukkan hubungan:', currentRelationship) : currentRelationship;
-    if (isFamily && newRelationship === null) return;
-
-    const newNotes = prompt('Masukkan catatan:', currentNotes);
-    if (newNotes === null) return;
-
-    const newPhone = prompt('Masukkan nomor WhatsApp:', currentPhone);
-    if (newPhone === null) return;
-
-    // Update via API
-    setIsUpdatingPartner(true);
-    try {
-      const response = await fetch('/api/user/pairing/update', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          submission_id: pairingData.submission_id,
-          partner_name: newName,
-          partner_relationship: newRelationship,
-          partner_notes: newNotes,
-          partner_wa_phone: newPhone,
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        alert('Data pasangan berhasil diperbarui!');
-        // Refresh pairing data
-        fetchPairingData(batchId);
-      } else {
-        alert(result.error || 'Gagal memperbarui data pasangan.');
-      }
-    } catch (error) {
-      console.error('Error updating partner:', error);
-      alert('Terjadi kesalahan saat memperbarui data pasangan.');
-    } finally {
-      setIsUpdatingPartner(false);
-    }
-  };
-
   const fetchPairingData = async (currentBatchId: string | null) => {
     if (!user || !currentBatchId) return;
-
     setIsLoadingPairing(true);
     try {
-      const response = await fetch(`/api/user/pairing?batch_id=${currentBatchId}`, {
-        cache: 'no-store'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch pairing data');
-      }
-
+      const response = await fetch(`/api/user/pairing?batch_id=${currentBatchId}`, { cache: 'no-store' });
       const result = await response.json();
-      if (result.success) {
-        setPairingData(result.data);
-      }
+      if (result.success) setPairingData(result.data);
     } catch (error) {
       console.error('Error fetching pairing data:', error);
-      setPairingData(null);
     } finally {
       setIsLoadingPairing(false);
     }
   };
 
-  // Fetch pairing data when batchId changes
   useEffect(() => {
-    if (batchId && user) {
-      fetchPairingData(batchId);
-    }
+    if (batchId && user) fetchPairingData(batchId);
   }, [batchId, user]);
 
-  const handleEditSuccess = () => {
-    // Trigger SWR revalidation to refresh data
-    window.location.reload();
-  };
+  const handleEditSuccess = () => window.location.reload();
 
   const getStatusStyles = (status: 'completed' | 'current' | 'future') => {
     switch (status) {
-      case 'completed':
-        return {
-          cardBg: 'bg-white',
-          cardBorder: 'border-emerald-100',
-          textColor: 'text-emerald-900',
-          iconBg: 'bg-emerald-100/50',
-          iconColor: 'text-emerald-600',
-          dotColor: 'bg-emerald-500',
-          lineColor: 'bg-emerald-500'
-        };
-      case 'current':
-        return {
-          cardBg: 'bg-gradient-to-br from-yellow-50 to-white',
-          cardBorder: 'border-yellow-200 shadow-yellow-100',
-          textColor: 'text-yellow-900',
-          iconBg: 'bg-yellow-100',
-          iconColor: 'text-yellow-600',
-          dotColor: 'bg-yellow-500',
-          lineColor: 'bg-yellow-200'
-        };
-      default:
-        return {
-          cardBg: 'bg-gray-50/50',
-          cardBorder: 'border-gray-100 opacity-60',
-          textColor: 'text-gray-400',
-          iconBg: 'bg-gray-100',
-          iconColor: 'text-gray-400',
-          dotColor: 'bg-gray-200',
-          lineColor: 'bg-gray-100'
-        };
+      case 'completed': return { cardBg: 'bg-white', cardBorder: 'border-emerald-100', textColor: 'text-emerald-900', iconBg: 'bg-emerald-100/50', iconColor: 'text-emerald-600', dotColor: 'bg-emerald-500', lineColor: 'bg-emerald-500' };
+      case 'current': return { cardBg: 'bg-gradient-to-br from-yellow-50 to-white', cardBorder: 'border-yellow-200 shadow-yellow-100', textColor: 'text-yellow-900', iconBg: 'bg-yellow-100', iconColor: 'text-yellow-600', dotColor: 'bg-yellow-500', lineColor: 'bg-yellow-200' };
+      default: return { cardBg: 'bg-gray-50/50', cardBorder: 'border-gray-100 opacity-60', textColor: 'text-gray-400', iconBg: 'bg-gray-100', iconColor: 'text-gray-400', dotColor: 'bg-gray-200', lineColor: 'bg-gray-100' };
     }
   };
 
-  // Don't render if session expired
-  if (hasSessionError) {
-    return (
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Sesi Berakhir</h3>
-            <p className="text-yellow-700 mb-4">Mohon login kembali untuk melanjutkan.</p>
-            <p className="text-sm text-yellow-600">Mengalihkan ke halaman login...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getPairingTypeLabel = (pairingType: string) => {
+    switch (pairingType) {
+      case 'self_match': return { label: 'Self Match' };
+      case 'family': return { label: 'Family' };
+      case 'tarteel': return { label: 'Tarteel' };
+      case 'system_match': return { label: 'System Match' };
+      default: return { label: pairingType };
+    }
+  };
 
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!isClient) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
+  const getTimeSlotLabel = (slotValue: string | undefined) => {
+    if (!slotValue) return '-';
+    const slotLabels: Record<string, string> = {
+      '04-06': '04-06 WIB', '06-09': '06-09 WIB', '09-12': '09-12 WIB', '12-15': '12-15 WIB',
+      '15-18': '15-18 WIB', '18-21': '18-21 WIB', '21-24': '21-24 WIB'
+    };
+    return slotLabels[slotValue] || `${slotValue} WIB`;
+  };
+
+  if (hasSessionError) return <div className="p-12 text-center">Sesi berakhir, mengalihkan...</div>;
+  if (!isClient) return <div className="flex h-screen items-center justify-center">Loading...</div>;
 
   return (
-    <div className="space-y-6 sm:space-y-10 animate-fadeIn pb-20">
-      {/* Premium Header Section */}
-        <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 p-6 sm:p-10 text-white shadow-2xl">
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl" />
-          
-          <div className="relative z-10 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-semibold tracking-wider uppercase">
-                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                  <span>My Learning Journey</span>
-                </div>
-                <h1 className="text-3xl sm:text-5xl font-black tracking-tight">
-                  Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span>
-                </h1>
-                <p className="text-green-100/70 text-sm sm:text-lg max-w-xl font-medium leading-relaxed">
-                  "Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya." <span className="text-xs sm:text-sm opacity-60 block mt-1">(HR. Bukhari)</span>
-                </p>
-              </div>
-
-              {/* Stats Card in Header */}
-              <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:p-6 flex flex-col items-center justify-center min-w-[140px] sm:min-w-[180px]">
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 mb-2">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="50%"
-                      cy="50%"
-                      r="45%"
-                      className="stroke-white/10 fill-none"
-                      strokeWidth="8"
-                    />
-                    <circle
-                      cx="50%"
-                      cy="50%"
-                      r="45%"
-                      className="stroke-emerald-400 fill-none transition-all duration-1000 ease-out"
-                      strokeWidth="8"
-                      strokeDasharray="283"
-                      strokeDashoffset={283 - (283 * percentage) / 100}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="text-[9px] text-green-200 uppercase tracking-widest font-black">Target</p>
-                    <p className="text-xl sm:text-2xl font-black leading-none">{completedCount}/{totalCount}</p>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold">{percentage}%</div>
-                  <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-emerald-300">Target Tercapai</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Admin Preview Mode Banner (Inside Premium Header context) */}
-            {isAdmin && !registrationStatus?.hasRegistered && batch && (
-              <div className="p-4 bg-blue-500/20 backdrop-blur-md border border-blue-400/30 rounded-2xl flex items-center gap-3">
-                <Info className="w-5 h-5 text-blue-300" />
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-white">Mode Pratinjau Admin</h3>
-                  <p className="text-[10px] sm:text-xs text-blue-100/80 leading-relaxed">
-                    Melihat tampilan untuk <strong>{batch.name}</strong>. Anda melihat ini karena status Anda sebagai Admin.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+    <div className="space-y-10 sm:space-y-16 animate-fadeIn pb-20">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 p-8 sm:p-12 text-white shadow-2xl">
+        <div className="relative z-10 space-y-6">
+          <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span></h1>
+          <p className="text-green-100/70 text-lg max-w-xl font-medium">"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya."</p>
         </div>
-
-
-
-        {/* Dynamic Tab Navigation */}
-        <div className="flex p-1.5 bg-gray-100/80 backdrop-blur-md rounded-2xl border border-gray-200/50 w-full max-w-2xl mx-auto shadow-inner">
-          {[
-            { id: 'status', label: 'Status Pendaftaran', icon: CheckCircle, color: 'emerald' },
-            { id: 'jadwal', label: 'Jadwal Belajar', icon: Calendar, color: 'blue' },
-            { id: 'achievement', label: 'Pencapaian Saya', icon: Award, color: 'purple' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 rounded-xl transition-all duration-300 ${
-                  isActive 
-                    ? 'bg-white shadow-lg text-emerald-700 font-bold scale-[1.02]' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-500' : 'text-gray-400'}`} />
-                <span className="text-xs sm:text-sm whitespace-nowrap">{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Unified Content Container */}
-        <div className="relative min-h-[400px]">
-          {/* Tab 1: Status Pendaftaran */}
-          {activeTab === 'status' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {/* Milestone Timeline Integrated Here */}
-              {user && !isLoading && (
-                <TimelineMilestone 
-                  timelineData={timelineData}
-                  registrationStatus={registrationStatus}
-                  user={user}
-                  percentage={percentage}
-                  batchId={batchId}
-                  examEligibility={examEligibility}
-                  isJuz30={isJuz30}
-                  getStatusStyles={getStatusStyles}
-                  getDayNameFromNumber={getDayNameFromNumber}
-                  getJuzLabel={getJuzLabel}
-                />
-              )}
-
-              {!isLoading && user && !registrationStatus?.hasRegistered && !isAdmin && (
-                  <Card className="border-yellow-200 bg-yellow-50 shadow-sm border-l-4 border-l-yellow-400">
-                    <CardContent className="p-6">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                <div className="flex-grow">
-                  <h3 className="font-medium text-yellow-800">Belum Mendaftar</h3>
-                  <p className="text-yellow-700 text-sm mt-1">
-                    Ukhti belum terdaftar di program Tikrar Tahfidz.
-                  </p>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Link href="/pendaftaran/tikrar-tahfidz" className="inline-block">
-                        <Button size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
-                          Daftar Sekarang
-                        </Button>
-                      </Link>
-                    </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-              {/* Tab 1: Status Pendaftaran Content */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* 1. Card Status Pendaftaran */}
-                {registrationStatus?.hasRegistered && (
-                  <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium group hover:shadow-2xl transition-all duration-500">
-                    <CardHeader className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                          <CheckCircle className="h-6 w-6" />
-                        </div>
-                        <div className={cn(
-                          "px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border border-white/20 uppercase tracking-wider",
-                          registrationStatus.registration?.status === 'approved' ? 'bg-white/20 text-white' : 'bg-yellow-400/20 text-yellow-100'
-                        )}>
-                          {registrationStatus.registration?.status === 'pending' ? 'Menunggu' :
-                           registrationStatus.registration?.status === 'approved' ? 'Aktif' :
-                           registrationStatus.registration?.status === 'rejected' ? 'Ditolak' : 'Ditarik'}
-                        </div>
-                      </div>
-                      <CardTitle className="text-xl font-bold leading-tight">Status Pendaftaran</CardTitle>
-                      <CardDescription className="text-emerald-50/80 text-xs mt-1">Konfirmasi pendaftaran Ukhti</CardDescription>
-                      <Sparkles className="absolute bottom-4 right-4 w-12 h-12 text-white/10" />
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-5 bg-white">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gray-50 rounded-xl">
-                            <User className="h-4 w-4 text-emerald-600" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Nama Lengkap</p>
-                            <p className="text-sm font-semibold text-gray-800">{registrationStatus.registration?.full_name || user?.full_name || 'Ukhti'}</p>
-                          </div>
-                        </div>
-                        {registrationStatus.registration?.batch_name && (
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-gray-50 rounded-xl">
-                              <Zap className="h-4 w-4 text-orange-500" />
-                            </div>
-                            <div>
-                              <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Angkatan/Batch</p>
-                              <p className="text-sm font-semibold text-gray-800">{registrationStatus.registration?.batch_name}</p>
-                            </div>
-                          </div>
-                        )}
-                        <div className="pt-2 grid grid-cols-2 gap-4">
-                          {registrationStatus.registration?.chosen_juz && (
-                            <div className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-                              <p className="text-[9px] uppercase font-bold text-emerald-600 tracking-widest mb-1">Pilihan Juz</p>
-                              <p className="text-xs font-bold text-emerald-900">{getJuzLabel(registrationStatus.registration.chosen_juz)}</p>
-                            </div>
-                          )}
-                          {registrationStatus.registration?.main_time_slot && (
-                            <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100">
-                              <p className="text-[9px] uppercase font-bold text-blue-600 tracking-widest mb-1">Sesi Utama</p>
-                              <p className="text-xs font-bold text-blue-900">{getTimeSlotLabel(registrationStatus.registration.main_time_slot)}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-2 h-2 rounded-full",
-                          registrationStatus.registration?.status === 'approved' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'
-                        )} />
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                          Verified by Tikrar
-                        </span>
-                      </div>
-                      <Button variant="ghost" size="sm" className="h-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-bold text-xs" onClick={() => setIsEditModalOpen(true)}>
-                        Edit Profil
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                )}
-
-                {/* 2. Card Kelas & Program */}
-                {registrationStatus.registration?.daftar_ulang && (
-                  <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium group hover:shadow-2xl transition-all duration-500">
-                    <CardHeader className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                          <Award className="h-6 w-6" />
-                        </div>
-                        <div className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md border border-white/20 uppercase tracking-wider">
-                          Daftar Ulang
-                        </div>
-                      </div>
-                      <CardTitle className="text-xl font-bold leading-tight">Kelas & Program</CardTitle>
-                      <CardDescription className="text-blue-50/80 text-xs mt-1">Status penempatan grup belajar</CardDescription>
-                      <Sparkles className="absolute bottom-4 right-4 w-12 h-12 text-white/5" />
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-6 bg-white">
-                      <div className="space-y-4">
-                        {registrationStatus.registration.daftar_ulang.ujian_halaqah && (
-                          <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-100 group/item hover:bg-blue-50 transition-colors">
-                            <div className="flex items-start justify-between">
-                              <div className="flex gap-3">
-                                <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600">
-                                  <BadgeCheck className="h-4 w-4" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Kelas Ujian</p>
-                                  <p className="text-sm font-bold text-blue-900">{registrationStatus.registration.daftar_ulang.ujian_halaqah.name}</p>
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-blue-100 text-blue-600 rounded-lg">
-                                      <Calendar className="w-3 h-3" />
-                                      {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.ujian_halaqah.day_of_week)}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-blue-100 text-blue-600 rounded-lg">
-                                      <Clock className="w-3 h-3" />
-                                      {registrationStatus.registration.daftar_ulang.ujian_halaqah.start_time} WIB
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {registrationStatus.registration.daftar_ulang.tashih_halaqah && (
-                          <div className="p-4 bg-purple-50/30 rounded-2xl border border-purple-100 group/item hover:bg-purple-50 transition-colors">
-                            <div className="flex items-start justify-between">
-                              <div className="flex gap-3">
-                                <div className="p-2 bg-white rounded-xl shadow-sm text-purple-600">
-                                  <Award className="h-4 w-4" />
-                                </div>
-                                <div>
-                                  <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-0.5">Kelas Tashih</p>
-                                  <p className="text-sm font-bold text-purple-900">{registrationStatus.registration.daftar_ulang.tashih_halaqah.name}</p>
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-purple-100 text-purple-600 rounded-lg">
-                                      <Calendar className="w-3 h-3" />
-                                      {getDayNameFromNumber(registrationStatus.registration.daftar_ulang.tashih_halaqah.day_of_week)}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-white border border-purple-100 text-purple-600 rounded-lg">
-                                      <Clock className="w-3 h-3" />
-                                      {registrationStatus.registration.daftar_ulang.tashih_halaqah.start_time} WIB
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* 3. Card Pasangan Belajar */}
-                {!isLoadingPairing && pairingData && (
-                  <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium group hover:shadow-2xl transition-all duration-500 lg:col-span-1">
-                    <CardHeader className="bg-gradient-to-br from-rose-500 to-pink-600 p-6 text-white relative">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
-                          <HeartHandshake className="h-6 w-6" />
-                        </div>
-                        {(() => {
-                           const info = getPairingTypeLabel(pairingData.pairing.pairing_type);
-                           return (
-                             <div className="px-4 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md border border-white/20 uppercase tracking-wider">
-                               {info.label}
-                             </div>
-                           );
-                        })()}
-                      </div>
-                      <CardTitle className="text-xl font-bold leading-tight">Pasangan Belajar</CardTitle>
-                      <CardDescription className="text-rose-50/80 text-xs mt-1">Partner setoran & muraja'ah</CardDescription>
-                      <Sparkles className="absolute bottom-4 right-4 w-12 h-12 text-white/5" />
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4 bg-white">
-                      {[pairingData.user_1, pairingData.user_2, pairingData.user_3].filter(p => p && p.id !== user?.id).map((partner, idx) => (
-                        <div key={idx} className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 hover:bg-rose-50/30 transition-all duration-300">
-                          <div className="flex items-center gap-4 mb-3">
-                            <div className="h-10 w-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
-                              {partner?.full_name?.charAt(0) || 'U'}
-                            </div>
-                            <div>
-                               <p className="text-sm font-bold text-gray-900">{partner?.full_name}</p>
-                               <div className="flex gap-2 mt-0.5">
-                                 <span className="text-[9px] font-bold px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded-md uppercase">Juz {partner?.chosen_juz}</span>
-                                 <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-md uppercase">{partner?.zona_waktu}</span>
-                               </div>
-                            </div>
-                          </div>
-                          <div className="space-y-1.5 mb-3">
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Clock className="w-3 h-3" />
-                              <span>Sesi: <span className="font-bold text-gray-700">{getTimeSlotLabel(partner?.main_time_slot)}</span></span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Phone className="w-3 h-3" />
-                              <span>WhatsApp: <span className="font-bold text-rose-600">{partner?.whatsapp || '-'}</span></span>
-                            </div>
-                          </div>
-                          {partner?.whatsapp && (
-                            <Button asChild variant="outline" size="sm" className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 h-9 font-bold text-[10px] uppercase">
-                              <a href={`https://wa.me/${partner.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
-                                Chat WhatsApp
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
-               </div>
-            </div>
-          )}
-
-
-            {/* Tab 2: Jadwal Belajar */}
-            {activeTab === 'jadwal' && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {user && !isLoading && (
-                  <div className="space-y-4 sm:space-y-6">
-                    <TimelineMilestone 
-                      timelineData={timelineData}
-                      registrationStatus={registrationStatus}
-                      user={user}
-                      percentage={percentage}
-                      batchId={batchId}
-                      examEligibility={examEligibility}
-                      isJuz30={isJuz30}
-                      getStatusStyles={getStatusStyles}
-                      getDayNameFromNumber={getDayNameFromNumber}
-                      getJuzLabel={getJuzLabel}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-      {/* Tab 3: Pencapaian Saya */}
-      {activeTab === 'achievement' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                {/* Progress Overview Summary */}
-                {user && !isLoading && (
-          <Card className="overflow-hidden border-none shadow-xl bg-gradient-to-br from-white to-gray-50">
-            <CardHeader className="pb-4 sm:pb-6 relative border-b border-gray-100">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 sm:p-3 bg-emerald-100 rounded-2xl">
-                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Statistik Perjalanan</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Ringkasan kemajuan hafalan Ukhti</CardDescription>
-                  </div>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-2xl sm:text-3xl font-black text-emerald-600">{completedCount}<span className="text-xs sm:text-sm text-gray-400 font-medium">/{totalCount}</span></span>
-                  <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-tighter">Tahapan Selesai</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0">
-                <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Progres Perjalanan</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">
-                    {completedCount} dari {totalCount} tahapan selesai
-                  </p>
-                </div>
-
-                {/* Progress Dots - Responsive */}
-                <div className="flex items-center space-x-1 sm:space-x-2 max-w-xs sm:max-w-none overflow-x-auto pb-1 sm:pb-0">
-                  {timelineData.map((item, index) => (
-                    <div
-                      key={index}
-                      className={`flex-shrink-0 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all duration-300 ${
-                        item.status === 'completed'
-                          ? 'bg-teal-500'
-                          : item.status === 'current'
-                          ? 'w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 animate-pulse'
-                          : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mt-3 sm:mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                  <div
-                    className="bg-gradient-to-r from-teal-500 to-teal-600 h-1.5 sm:h-2 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(20,184,166,0.3)]"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Current Status Badge */}
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-2xl">
-                  <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
-                  <p className="text-xs sm:text-sm text-yellow-800 font-bold">
-                    TAHAP SAAT INI: <span className="uppercase tracking-wide">{timelineData.find(item => item.status === 'current')?.title || 'Menunggu tahap berikutnya'}</span>
-                  </p>
-                </div>
-                
-                {estimationFinish.greg !== '-' && (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-2xl">
-                    <Sparkles className="w-4 h-4 text-green-600" />
-                    <p className="text-xs sm:text-sm text-green-800 font-bold">
-                      ESTIMASI SELESAI: <span className="uppercase tracking-wide">{estimationFinish.greg} / {estimationFinish.hijri}</span>
-                    </p>
-                  </div>
-                )}
-              </div>
-
-
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Motivation Card */}
-        {user && !isLoading && (
-          <Card className="mt-8 bg-gradient-to-r from-green-600 to-green-700 text-white border-0">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center space-x-3">
-                    <Award className="h-8 w-8" />
-                    <div>
-                      <h3 className="text-xl font-bold">Tetap Konsisten!</h3>
-                      <p className="text-green-100">
-                        Ukhti telah menyelesaikan {completedCount} tahapan dari {totalCount} tahapan.
-                        Pertahankan konsistensi Ukhti!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="hidden lg:block">
-                  <div className="text-4xl font-bold">{percentage}%</div>
-                  <p className="text-green-100 text-sm">Progress</p>
-                </div>
-              </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Edit Registration Modal */}
+      {/* 5-Phase Premium Progress Tracker */}
+      <div className="max-w-6xl mx-auto w-full px-4">
+        <div className="relative bg-white/40 backdrop-blur-md border border-white shadow-xl rounded-[2rem] p-6 sm:p-10">
+          <h2 className="text-center text-emerald-900 font-black text-lg mb-10 uppercase tracking-widest">Fase Perjalanan Ukhti</h2>
+          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            {phases.map((phase, idx) => (
+              <div key={phase.id} className="relative flex md:flex-col items-center gap-4 md:gap-3 w-full md:w-[18%]">
+                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg", phase.status === 'completed' ? "bg-emerald-500 text-white" : phase.status === 'current' ? "bg-yellow-400 text-yellow-900" : "bg-white text-gray-300")}>
+                  {phase.status === 'completed' ? <CheckCircle className="w-6 h-6" /> : phase.icon}
+                </div>
+                <div className="flex flex-col md:items-center text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Fase {phase.id}</p>
+                  <h4 className="text-sm font-bold text-gray-900">{phase.name}</h4>
+                  <div className="mt-2 space-y-1">
+                    {phase.subPhases.map((sub, sIdx) => (
+                      <div key={sIdx} className="flex items-center gap-2">
+                        <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", sub.done ? "bg-emerald-500" : "bg-gray-200")} />
+                        <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 group">
+                          <span className="text-[9px] font-bold text-gray-900">{sub.name}</span>
+                          <span className="text-[9px] font-medium text-gray-400">—</span>
+                          <span className="text-[9px] font-medium text-gray-500">{sub.data}</span>
+                          {(sub as any).reviewType && (
+                            <button 
+                              onClick={() => { 
+                                setReviewType((sub as any).reviewType); 
+                                setIsReviewModalOpen(true); 
+                              }} 
+                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors"
+                              title={`Review ${sub.name}`}
+                            >
+                              <Eye className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Action Modals */}
       {registrationStatus?.registration && (
         <EditTikrarRegistrationModal
           isOpen={isEditModalOpen}
@@ -1518,6 +585,16 @@ export default function PerjalananSaya() {
           }}
         />
       )}
+
+      {/* Global Review Modal */}
+      <ReviewSubmissionModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        type={reviewType}
+        registrationStatus={registrationStatus}
+        pairingData={pairingData}
+        user={user}
+      />
     </div>
   );
 }
