@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react';
 import { Shield, Users, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAdminUsers, useAdminStats } from '@/lib/hooks/useAdminData';
+import { resetUserPassword } from '../actions';
+import { toast } from 'sonner';
 import { UserStats } from '@/components/admin/users/UserStats';
 import { UserFilters } from '@/components/admin/users/UserFilters';
 import { UserTable } from '@/components/admin/users/UserTable';
@@ -58,9 +60,25 @@ export default function AdminUsersPage() {
     });
   };
 
-  const handleAction = (action: 'detail' | 'role' | 'blacklist', user: AdminUser) => {
+  const handleAction = async (action: 'detail' | 'role' | 'blacklist' | 'resetPassword', user: AdminUser) => {
+    if (action === 'resetPassword') {
+      if (window.confirm(`Reset password untuk ${user.full_name || user.email} menjadi default 'MTI123!'?`)) {
+        try {
+          const result = await resetUserPassword(user.id);
+          if (result.success) {
+            toast.success(result.message || 'Password reset successful');
+          } else {
+            toast.error(result.error || 'Failed to reset password');
+          }
+        } catch (error) {
+          toast.error('Unexpected error resetting password');
+        }
+      }
+      return;
+    }
+    
     setSelectedUser(user);
-    setActiveModal(action);
+    setActiveModal(action as 'detail' | 'role' | 'blacklist');
   };
 
   const closeModal = () => {

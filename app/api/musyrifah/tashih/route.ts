@@ -43,7 +43,7 @@ function generateAllBlocks(juzInfo: any) {
     for (let i = 0; i < 4; i++) {
       const part = parts[i];
       const blockCode = `H${blockNumber}${part}`;
-      const blockPage = Math.min(weekStartPage + i, juzInfo.end_page);
+      const blockPage = Math.min(weekStartPage, juzInfo.end_page);
 
       allBlocks.push({
         block_code: blockCode,
@@ -132,6 +132,24 @@ export async function GET(request: Request) {
         .maybeSingle();
       
       activeBatchId = activeBatch?.id;
+    }
+
+    let currentWeek = 0;
+    const { data: batch } = await supabase
+      .from('batches')
+      .select('start_date')
+      .eq('id', activeBatchId)
+      .maybeSingle();
+
+    if (batch?.start_date) {
+      const startDate = new Date(batch.start_date);
+      const firstWeekStart = new Date(startDate);
+      firstWeekStart.setDate(firstWeekStart.getDate() + (1 * 7));
+
+      const now = new Date();
+      const diffTime = now.getTime() - firstWeekStart.getTime();
+      const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+      currentWeek = diffWeeks + 1;
     }
 
     // Get all thalibah from daftar_ulang_submissions with approved or submitted status
@@ -264,7 +282,12 @@ export async function GET(request: Request) {
           total_blocks: totalBlocks,
           completed_blocks: completedBlocks,
           pending_blocks: totalBlocks - completedBlocks,
-          completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0
+          completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0,
+          current_week: currentWeek,
+          target_blocks: Math.max(0, Math.min(currentWeek * 4, totalBlocks)),
+          completion_percentage_target: (currentWeek > 0) 
+            ? Math.min(100, Math.round((completedBlocks / Math.min(currentWeek * 4, totalBlocks)) * 100))
+            : 0
         },
         has_tashih: userTashihRecords.length > 0,
         tashih_count: userTashihRecords.length,

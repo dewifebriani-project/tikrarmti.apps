@@ -107,6 +107,9 @@ interface JurnalUserEntry {
     completed_blocks: number;
     pending_blocks: number;
     completion_percentage: number;
+    completion_percentage_target?: number;
+    target_blocks?: number;
+    current_week?: number;
   };
   jurnal_count: number;
   jurnal_records: JurnalEntry[];
@@ -146,6 +149,9 @@ interface TashihEntry {
     completed_blocks: number;
     pending_blocks: number;
     completion_percentage: number;
+    completion_percentage_target?: number;
+    target_blocks?: number;
+    current_week?: number;
   };
   has_tashih: boolean;
   tashih_records: any[];
@@ -827,7 +833,7 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords }: Jur
                             }
 
                             const phone = entry.user.whatsapp.replace(/[^0-9]/g, '').replace(/^0/, '62');
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nSemoga Ukhti selalu dalam penjagaan Allah ﷻ. Aamiin.\n\nSekadar mengingatkan untuk laporan *Jurnal Harian Tikrar*.\n\nBerdasarkan data hari ini, beberapa blok berikut *belum dilaporkan*:\n👉 *${missingBlocks.slice(0, 15).join(', ')}${missingBlocks.length > 15 ? ' ...' : ''}*\n\nMohon segera dilengkapi ya Ukhti, karena batas waktu laporan adalah setiap *Ahad pukul 24.00 WIB*.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
+                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nSemoga Ukhti selalu dalam penjagaan Allah ﷻ. Aamiin.\n\nSekadar mengingatkan untuk laporan *Jurnal Harian Tikrar*.\n\nBerdasarkan data hari ini, beberapa blok berikut *belum dilaporkan* (sampai Pekan ${overrideWeek}):\n👉 *${missingBlocks.slice(0, 15).join(', ')}${missingBlocks.length > 15 ? ' ...' : ''}*\n\nMohon segera dilengkapi ya Ukhti, karena batas waktu laporan adalah setiap *Ahad pukul 24.00 WIB*.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
                             
                             window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
                           }}
@@ -841,10 +847,29 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords }: Jur
                     </div>
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="text-xs font-bold text-gray-700">{entry.summary?.completion_percentage || 0}%</div>
-                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-emerald-500" style={{ width: `${entry.summary?.completion_percentage || 0}%` }} />
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className="flex flex-col items-center leading-none">
+                         <div className={cn(
+                            "text-base font-black leading-none",
+                            (entry.summary?.completion_percentage_target || 0) >= 100 ? "text-emerald-700" :
+                            (entry.summary?.completion_percentage_target || 0) >= 70 ? "text-amber-600" : "text-rose-600"
+                         )}>
+                            {entry.summary?.completion_percentage_target || 0}%
+                         </div>
+                         <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter mt-1">Target</div>
+                      </div>
+                      <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner border border-gray-200/50">
+                        <div 
+                           className={cn(
+                              "h-full transition-all duration-700",
+                              (entry.summary?.completion_percentage_target || 0) >= 100 ? "bg-emerald-500" :
+                              (entry.summary?.completion_percentage_target || 0) >= 70 ? "bg-amber-400" : "bg-rose-500"
+                           )} 
+                           style={{ width: `${entry.summary?.completion_percentage_target || 0}%` }} 
+                        />
+                      </div>
+                      <div className="text-[10px] font-medium text-gray-400 italic">
+                         Total: {entry.summary?.completion_percentage || 0}%
                       </div>
                     </div>
                   </td>

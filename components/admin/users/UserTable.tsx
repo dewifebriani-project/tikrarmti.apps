@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, Shield, User, Clock, ChevronLeft, ChevronRight, Ban, CheckCircle, Info } from 'lucide-react';
+import { MoreHorizontal, Shield, User, Clock, ChevronLeft, ChevronRight, Ban, CheckCircle, Info, Key } from 'lucide-react';
 import { AdminUser } from './types';
 import { cn } from '@/lib/utils';
 
@@ -14,7 +14,7 @@ interface UserTableProps {
     totalPages: number;
   } | null;
   onPageChange: (page: number) => void;
-  onAction: (action: 'detail' | 'role' | 'blacklist', user: AdminUser) => void;
+  onAction: (action: 'detail' | 'role' | 'blacklist' | 'resetPassword', user: AdminUser) => void;
 }
 
 export function UserTable({ users, isLoading, pagination, onPageChange, onAction }: UserTableProps) {
@@ -156,6 +156,14 @@ export function UserTable({ users, isLoading, pagination, onPageChange, onAction
                       >
                         <Ban className="h-4 w-4" />
                         {user.is_blacklisted ? 'Whitelist' : 'Ban'}
+                      </button>
+                      <button
+                        onClick={() => onAction('resetPassword', user)}
+                        className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium text-xs flex items-center gap-1.5 transition-colors"
+                        title="Reset Password ke MTI123!"
+                      >
+                        <Key className="h-4 w-4" />
+                        Reset
                       </button>
                     </div>
                   </td>

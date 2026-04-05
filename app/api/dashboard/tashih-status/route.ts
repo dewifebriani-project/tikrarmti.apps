@@ -42,13 +42,12 @@ async function processJuzStatus(supabase: any, user: any, activeRegistration: an
   // Generate all blocks for this juz dynamically
   const allBlocks: TashihBlockStatus[] = []
   const parts = ['A', 'B', 'C', 'D']
-  const totalPages = juzInfo.end_page - juzInfo.start_page + 1
-  const totalWeeks = totalPages
+  const totalWeeks = 10
   const blockOffset = juzInfo.part === 'B' ? 10 : 0
 
   for (let week = 1; week <= totalWeeks; week++) {
     const blockNumber = week + blockOffset
-    const weekPage = juzInfo.start_page + (week - 1)
+    const weekPage = Math.min(juzInfo.start_page + (week - 1), juzInfo.end_page)
     for (let i = 0; i < 4; i++) {
       allBlocks.push({
         block_code: `H${blockNumber}${parts[i]}`,

@@ -69,14 +69,14 @@ function generateAllBlocks(juzInfo: any) {
     for (let i = 0; i < 4; i++) {
       const part = parts[i];
       const blockCode = `H${blockNumber}${part}`;
-      const blockPage = Math.min(weekStartPage + i, juzInfo.end_page);
+      const blockPage = Math.min(weekStartPage, juzInfo.end_page);
 
       allBlocks.push({
         block_code: blockCode,
         week_number: week,
         part,
-        start_page: blockPage,
-        end_page: blockPage,
+        start_page: Math.min(weekStartPage, juzInfo.end_page),
+        end_page: Math.min(weekStartPage, juzInfo.end_page),
         is_completed: false,
         jurnal_count: 0
       });
@@ -560,7 +560,12 @@ export async function GET(request: Request) {
           total_blocks: totalBlocks,
           completed_blocks: completedBlocks,
           pending_blocks: totalBlocks - completedBlocks,
-          completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0
+          completion_percentage: totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0,
+          current_week: currentWeek,
+          target_blocks: Math.max(0, Math.min(currentWeek * 4, totalBlocks)),
+          completion_percentage_target: (currentWeek > 0) 
+            ? Math.min(100, Math.round((completedBlocks / Math.min(currentWeek * 4, totalBlocks)) * 100))
+            : 0
         },
         jurnal_count: userJurnalRecords.length,
         weeks_with_jurnal: weeklyStatus.filter((w: any) => w.completed_blocks > 0).length,
