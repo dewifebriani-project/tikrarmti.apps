@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { createUser, updateUser } from './actions';
+import { createUser, updateUser, resetUserPassword } from './actions';
 import toast, { Toaster } from 'react-hot-toast';
 import { OralAssessment } from '@/components/OralAssessment';
 import {
@@ -2336,6 +2336,21 @@ function UsersTab({
   };
 
   const filteredUsers = getFilteredUsers();
+  
+  const handleResetPassword = async (user: User) => {
+    if (window.confirm(`Reset password untuk ${user.full_name || user.email} menjadi default 'MTI123!'?`)) {
+      try {
+        const result = await resetUserPassword(user.id);
+        if (result.success) {
+          toast.success(result.message || 'Password reset successful');
+        } else {
+          toast.error(result.error || 'Failed to reset password');
+        }
+      } catch (error) {
+        toast.error('Unexpected error resetting password');
+      }
+    }
+  };
 
   // Build columns dynamically based on active sub-tab
   const getColumns = (): Column<User>[] => {
@@ -3123,6 +3138,7 @@ Tim Markaz Tikrar Indonesia`;
         columns={columns}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onResetPassword={handleResetPassword}
         rowKey="id"
         searchPlaceholder="Search users by name, email, phone, or role..."
         emptyMessage="No users found"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Eye, Settings, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Edit2, Eye, Settings, X, Key } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -22,6 +22,7 @@ export interface DataTableProps<T> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   onView?: (row: T) => void;
+  onResetPassword?: (row: T) => void;
   onRowClick?: (row: T) => void;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -39,6 +40,7 @@ export function AdminDataTable<T extends Record<string, any>>({
   onEdit,
   onDelete,
   onView,
+  onResetPassword,
   onRowClick,
   searchPlaceholder = 'Search...',
   emptyMessage = 'No data found',
@@ -195,7 +197,7 @@ export function AdminDataTable<T extends Record<string, any>>({
     setCurrentPage(1);
   }, [searchQuery, filters]);
 
-  const hasActions = onEdit || onDelete || onView;
+  const hasActions = onEdit || onDelete || onView || onResetPassword;
 
   return (
     <div className="space-y-4">
@@ -385,6 +387,18 @@ export function AdminDataTable<T extends Record<string, any>>({
                                 title="View"
                               >
                                 <Eye className="w-5 h-5" />
+                              </button>
+                            )}
+                            {onResetPassword && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onResetPassword(row);
+                                }}
+                                className="text-amber-600 hover:text-amber-900"
+                                title="Reset Password"
+                              >
+                                <Key className="w-4 h-4" />
                               </button>
                             )}
                             {onEdit && (
