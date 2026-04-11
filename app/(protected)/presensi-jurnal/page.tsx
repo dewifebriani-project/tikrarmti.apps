@@ -987,7 +987,7 @@ interface TashihTabProps {
   onPageChange: (page: number) => void;
 }
 
-function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, pagination, onPageChange }: TashihTabProps) {
+function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange }: TashihTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
