@@ -65,6 +65,7 @@ interface JurnalEntry {
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
+    is_blacklisted?: boolean;
   };
 }
 
@@ -79,6 +80,7 @@ interface JurnalUserEntry {
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
+    is_blacklisted?: boolean;
   };
   weekly_status: Array<{
     week_number: number;
@@ -131,6 +133,7 @@ interface TashihEntry {
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
+    is_blacklisted?: boolean;
   };
   weekly_status: Array<{
     week_number: number;
