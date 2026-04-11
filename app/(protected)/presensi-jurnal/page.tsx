@@ -256,6 +256,15 @@ interface TashihEntry {
   };
   has_tashih: boolean;
   tashih_records: any[];
+  sp_summary?: {
+    sp_level: number;
+    week_number: number;
+    issued_at: string;
+    reason: string;
+    is_blacklisted: boolean;
+    total_active_sp: number;
+    sp_type?: string;
+  } | null;
   latest_tashih: {
     waktu_tashih: string;
     blok: string;
