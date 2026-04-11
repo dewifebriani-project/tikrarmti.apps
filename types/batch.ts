@@ -69,7 +69,8 @@ export type EnrollmentStatus =
   | 'active'
   | 'completed'
   | 'graduated'
-  | 'dropped';
+  | 'dropped'
+  | 'dropout';
 
 export interface BatchEnrollment {
   id: string;

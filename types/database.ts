@@ -5,12 +5,12 @@ export type UserRole = 'admin' | 'musyrifah' | 'muallimah' | 'thalibah' | 'calon
 export type BatchStatus = 'draft' | 'open' | 'closed' | 'archived';
 export type ProgramStatus = 'draft' | 'open' | 'ongoing' | 'completed' | 'cancelled';
 export type HalaqahStatus = 'active' | 'inactive' | 'suspended';
-export type PendaftaranStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'completed';
+export type PendaftaranStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'completed' | 'dropout';
 export type MentorRole = 'ustadzah' | 'musyrifah';
 export type HalaqahStudentStatus = 'active' | 'transferred' | 'graduated' | 'dropped';
 export type PresensiStatus = 'hadir' | 'izin' | 'sakit' | 'alpha';
 export type JuzPart = 'A' | 'B';
-export type DaftarUlangStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+export type DaftarUlangStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'dropout';
 
 export interface JuzOption {
   id: string;
