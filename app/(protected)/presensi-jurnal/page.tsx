@@ -198,6 +198,7 @@ interface JurnalUserEntry {
       issued_at: string;
       reason: string;
       is_blacklisted: boolean;
+      sp_type?: string;
     } | null;
   }>;
   summary?: {
@@ -218,6 +219,7 @@ interface JurnalUserEntry {
     reason: string;
     is_blacklisted: boolean;
     total_active_sp: number;
+    sp_type?: string;
   } | null;
 }
 

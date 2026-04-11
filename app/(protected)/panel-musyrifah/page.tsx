@@ -120,6 +120,7 @@ interface JurnalUserEntry {
       issued_at: string;
       reason: string;
       is_blacklisted: boolean;
+      sp_type?: string;
     } | null;
     entries: JurnalEntry[]; // For backward compatibility
   }>;
@@ -148,6 +149,7 @@ interface JurnalUserEntry {
     reason: string;
     is_blacklisted: boolean;
     total_active_sp: number;
+    sp_type?: string;
   } | null;
 }
 
