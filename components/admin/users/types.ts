@@ -32,3 +32,36 @@ export interface AdminUser {
     status: string;
   } | null;
 }
+
+export interface MuallimahRegistration {
+  id: string;
+  user_id: string;
+  batch_id: string;
+  full_name: string;
+  birth_date: string;
+  birth_place: string;
+  address: string;
+  whatsapp: string;
+  email: string;
+  education: string;
+  occupation: string;
+  memorization_level: string;
+  memorized_juz: string;
+  preferred_juz: string;
+  teaching_experience: string;
+  teaching_years: string;
+  teaching_institutions: string;
+  preferred_schedule: string;
+  backup_schedule: string;
+  timezone: string;
+  motivation?: string;
+  special_skills?: string;
+  health_condition?: string;
+  status: 'pending' | 'review' | 'approved' | 'rejected' | 'waitlist';
+  submitted_at: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  batch?: {
+    name: string;
+  };
+}

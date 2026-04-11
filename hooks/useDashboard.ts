@@ -569,9 +569,10 @@ export interface JurnalStatusData {
 /**
  * Hook for fetching tashih block status for dashboard
  */
-export function useTashihStatus() {
+export function useTashihStatus(userId?: string) {
+  const queryString = userId ? `?user_id=${userId}` : ''
   const { data, error, isLoading, mutate } = useSWR<TashihStatusData | null>(
-    '/api/dashboard/tashih-status',
+    `/api/dashboard/tashih-status${queryString}`,
     async (url: string): Promise<TashihStatusData | null> => {
       try {
         console.log('[useTashihStatus] Fetching...')
@@ -624,9 +625,10 @@ export function useTashihStatus() {
 /**
  * Hook for fetching jurnal block status for dashboard
  */
-export function useJurnalStatus() {
+export function useJurnalStatus(userId?: string) {
+  const queryString = userId ? `?user_id=${userId}` : ''
   const { data, error, isLoading, mutate } = useSWR<JurnalStatusData | null>(
-    '/api/dashboard/jurnal-status',
+    `/api/dashboard/jurnal-status${queryString}`,
     async (url: string): Promise<JurnalStatusData | null> => {
       try {
         console.log('[useJurnalStatus] Fetching...')

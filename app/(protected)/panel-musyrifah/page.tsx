@@ -985,6 +985,7 @@ function JurnalTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JurnalEntry | null>(null);
   const [selectedThalibah, setSelectedThalibah] = useState<JurnalUserEntry | null>(null);
+  const [prefilledBlock, setPrefilledBlock] = useState<{ block_code: string; week_number: number } | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
@@ -1432,16 +1433,27 @@ Tim Markaz Tikrar Indonesia`;
                                               key={block.block_code}
                                               className={`text-center p-2 rounded-lg border-2 transition-all ${block.is_completed
                                                 ? 'border-green-400 bg-green-50 text-green-700'
-                                                : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'
+                                                : 'border-gray-200 bg-white text-gray-600 hover:border-green-400 cursor-pointer'
                                                 }`}
                                               title={block.is_completed
                                                 ? `Sudah ada jurnal (${block.jurnal_count} record)`
-                                                : `Belum ada jurnal`
+                                                : `Klik untuk input jurnal blok ${block.block_code}`
                                               }
+                                              onClick={() => {
+                                                if (!block.is_completed) {
+                                                  setSelectedThalibah(userData);
+                                                  setPrefilledBlock({ block_code: block.block_code, week_number: week.week_number });
+                                                  setShowCreateModal(true);
+                                                }
+                                              }}
                                             >
                                               <div className="text-xs font-bold">{block.block_code}</div>
                                               <div className="text-[10px] text-gray-500 mt-1">
-                                                {block.is_completed ? `${block.jurnal_count} jurnal` : 'Belum'}
+                                                {block.is_completed ? `${block.jurnal_count} jurnal` : (
+                                                  <span className="flex items-center justify-center gap-0.5 text-green-600 font-semibold">
+                                                    <Plus className="w-3 h-3" /> Input
+                                                  </span>
+                                                )}
                                               </div>
                                               {/* Show delete button for blocks with jurnal records */}
                                               {block.is_completed && recordsForBlock.length > 0 && (
@@ -1449,7 +1461,8 @@ Tim Markaz Tikrar Indonesia`;
                                                   {recordsForBlock.map((record: any) => (
                                                     <button
                                                       key={record.id}
-                                                      onClick={async () => {
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
                                                         const entryDate = new Date(record.tanggal_setor).toLocaleDateString('id-ID');
                                                         if (confirm(`Hapus record jurnal untuk blok ${block.block_code}?\n\nTanggal: ${entryDate}\nBlok: ${block.block_code}`)) {
                                                           try {
@@ -1622,6 +1635,7 @@ Tim Markaz Tikrar Indonesia`;
                   toast.success('Jurnal berhasil ditambahkan');
                   setShowCreateModal(false);
                   setSelectedThalibah(null);
+                  setPrefilledBlock(null);
                   onRefresh();
                 } catch (err) {
                   toast.error('Gagal menambah jurnal');
@@ -1641,6 +1655,13 @@ Tim Markaz Tikrar Indonesia`;
                     className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
                   />
                   <p className="mt-1 text-sm text-gray-500">{displayName(selectedThalibah.user)}</p>
+                  {prefilledBlock && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-xs text-green-700">
+                        <span className="font-semibold">Auto-fill:</span> Blok {prefilledBlock.block_code} (Pekan {prefilledBlock.week_number}) — Juz {selectedThalibah.confirmed_chosen_juz}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -1660,6 +1681,7 @@ Tim Markaz Tikrar Indonesia`;
                   <input
                     type="date"
                     name="tanggal_jurnal"
+                    defaultValue={new Date().toISOString().split('T')[0]}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
                   />
                 </div>
@@ -1668,6 +1690,7 @@ Tim Markaz Tikrar Indonesia`;
                   <input
                     type="date"
                     name="tanggal_setor"
+                    defaultValue={new Date().toISOString().split('T')[0]}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
                   />
                 </div>
@@ -1678,7 +1701,9 @@ Tim Markaz Tikrar Indonesia`;
                   <input
                     type="text"
                     name="juz_code"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    defaultValue={prefilledBlock && selectedThalibah ? (selectedThalibah.confirmed_chosen_juz || '') : ''}
+                    readOnly={!!prefilledBlock}
+                    className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2 ${prefilledBlock ? 'bg-gray-100 text-gray-600' : ''}`}
                     placeholder="1, 2, 30"
                   />
                 </div>
@@ -1687,8 +1712,10 @@ Tim Markaz Tikrar Indonesia`;
                   <input
                     type="text"
                     name="blok"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
-                    placeholder="1, 2, 3"
+                    defaultValue={prefilledBlock ? prefilledBlock.block_code : ''}
+                    readOnly={!!prefilledBlock}
+                    className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2 ${prefilledBlock ? 'bg-gray-100 text-gray-600' : ''}`}
+                    placeholder="H1A, H2B"
                   />
                 </div>
                 <div>
@@ -1696,7 +1723,9 @@ Tim Markaz Tikrar Indonesia`;
                   <input
                     type="number"
                     name="pekan"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    defaultValue={prefilledBlock ? prefilledBlock.week_number : ''}
+                    readOnly={!!prefilledBlock}
+                    className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2 ${prefilledBlock ? 'bg-gray-100 text-gray-600' : ''}`}
                     placeholder="1"
                   />
                 </div>
@@ -1741,6 +1770,7 @@ Tim Markaz Tikrar Indonesia`;
                   onClick={() => {
                     setShowCreateModal(false);
                     setSelectedThalibah(null);
+                    setPrefilledBlock(null);
                   }}
                   className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                 >
@@ -1920,6 +1950,9 @@ function TashihTab({ entries, onRefresh, selectedBlok, onBlokChange, availableBl
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [showCreateTashihModal, setShowCreateTashihModal] = useState(false);
+  const [tashihSelectedUser, setTashihSelectedUser] = useState<TashihEntry | null>(null);
+  const [tashihPrefilledBlock, setTashihPrefilledBlock] = useState<{ block_code: string; week_number: number } | null>(null);
 
   const toggleRow = (userId: string) => {
     const newExpanded = new Set(expandedRows);
@@ -1996,7 +2029,11 @@ Tim Markaz Tikrar Indonesia`;
         <h2 className="text-2xl font-bold text-gray-900">Catatan Tashih</h2>
         <div className="flex gap-2">
           <button
-            onClick={() => {/* TODO: Implement add tashih */ }}
+            onClick={() => {
+              setTashihSelectedUser(null);
+              setTashihPrefilledBlock(null);
+              setShowCreateTashihModal(true);
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -2178,6 +2215,17 @@ Tim Markaz Tikrar Indonesia`;
                         <td className="px-2 py-2 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-1">
                             <button
+                              onClick={() => {
+                                setTashihSelectedUser(entry);
+                                setTashihPrefilledBlock(null);
+                                setShowCreateTashihModal(true);
+                              }}
+                              className="text-green-600 hover:text-green-900 p-1"
+                              title="Input Tashih"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => {/* Open detail modal */ }}
                               className="text-indigo-600 hover:text-indigo-900 p-1"
                               title="Detail Blok"
@@ -2238,20 +2286,32 @@ Tim Markaz Tikrar Indonesia`;
                                               key={block.block_code}
                                               className={`text-center p-2 rounded-lg border-2 transition-all ${block.is_completed
                                                 ? 'border-green-400 bg-green-50 text-green-700'
-                                                : 'border-gray-200 bg-white text-gray-600 hover:border-red-300'
+                                                : 'border-gray-200 bg-white text-gray-600 hover:border-green-400 cursor-pointer'
                                                 }`}
                                               title={block.is_completed
                                                 ? `Sudah ditashih`
-                                                : `Belum ditashih`
+                                                : `Klik untuk input tashih blok ${block.block_code}`
                                               }
+                                              onClick={() => {
+                                                if (!block.is_completed) {
+                                                  setTashihSelectedUser(entry);
+                                                  setTashihPrefilledBlock({ block_code: block.block_code, week_number: week.week_number });
+                                                  setShowCreateTashihModal(true);
+                                                }
+                                              }}
                                             >
                                               <div className="text-xs font-bold">{block.block_code}</div>
                                               <div className="text-[10px] text-gray-500 mt-1">
-                                                {block.is_completed ? 'Selesai' : 'Belum'}
+                                                {block.is_completed ? 'Selesai' : (
+                                                  <span className="flex items-center justify-center gap-0.5 text-green-600 font-semibold">
+                                                    <Plus className="w-3 h-3" /> Input
+                                                  </span>
+                                                )}
                                               </div>
                                               {block.is_completed && recordForBlock && (
                                                 <button
-                                                  onClick={async () => {
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
                                                     if (confirm(`Hapus blok ${block.block_code} dari record tashih ini?\n\nTanggal: ${new Date(recordForBlock.waktu_tashih).toLocaleDateString('id-ID')}\nBlok dalam record ini: ${typeof recordForBlock.blok === 'string' ? recordForBlock.blok : recordForBlock.blok?.join(', ')}`)) {
                                                       try {
                                                         // If record has multiple blocks, remove only this block
@@ -2431,6 +2491,181 @@ Tim Markaz Tikrar Indonesia`;
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Create Tashih Modal */}
+      {showCreateTashihModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {tashihSelectedUser ? `Input Tashih: ${displayName(tashihSelectedUser)}` : 'Tambah Tashih Baru'}
+            </h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const data = {
+                  user_id: tashihSelectedUser?.user_id || formData.get('user_id') as string,
+                  blok: formData.get('blok') as string,
+                  lokasi: formData.get('lokasi') as string || 'online',
+                  lokasi_detail: formData.get('lokasi_detail') as string || null,
+                  nama_pemeriksa: formData.get('nama_pemeriksa') as string || null,
+                  jumlah_kesalahan_tajwid: formData.get('jumlah_kesalahan_tajwid') ? Number(formData.get('jumlah_kesalahan_tajwid')) : 0,
+                  catatan_tambahan: formData.get('catatan_tambahan') as string || null,
+                  waktu_tashih: formData.get('waktu_tashih') ? new Date(formData.get('waktu_tashih') as string).toISOString() : new Date().toISOString(),
+                };
+
+                try {
+                  const response = await fetch('/api/musyrifah/tashih', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                  });
+
+                  if (!response.ok) {
+                    const error = await response.json();
+                    toast.error(error.error || 'Gagal menambah tashih');
+                    return;
+                  }
+
+                  toast.success('Tashih berhasil ditambahkan');
+                  setShowCreateTashihModal(false);
+                  setTashihSelectedUser(null);
+                  setTashihPrefilledBlock(null);
+                  onRefresh();
+                } catch (err) {
+                  toast.error('Gagal menambah tashih');
+                }
+              }}
+              className="space-y-4"
+            >
+              {tashihSelectedUser ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Thalibah</label>
+                  <input
+                    type="text"
+                    name="user_id"
+                    required
+                    readOnly
+                    value={tashihSelectedUser.user_id}
+                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 text-gray-600 shadow-sm border p-2"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">{displayName(tashihSelectedUser)}</p>
+                  {tashihPrefilledBlock && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-xs text-green-700">
+                        <span className="font-semibold">Auto-fill:</span> Blok {tashihPrefilledBlock.block_code} (Pekan {tashihPrefilledBlock.week_number}) — Juz {tashihSelectedUser.confirmed_chosen_juz}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">User ID *</label>
+                  <input
+                    type="text"
+                    name="user_id"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="Masukkan UUID user"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Blok *</label>
+                <input
+                  type="text"
+                  name="blok"
+                  required
+                  defaultValue={tashihPrefilledBlock ? tashihPrefilledBlock.block_code : ''}
+                  readOnly={!!tashihPrefilledBlock}
+                  className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2 ${tashihPrefilledBlock ? 'bg-gray-100 text-gray-600' : ''}`}
+                  placeholder="H1A, H2B, H3C"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Lokasi</label>
+                  <select
+                    name="lokasi"
+                    defaultValue="online"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  >
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Detail Lokasi</label>
+                  <input
+                    type="text"
+                    name="lokasi_detail"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="Zoom / Masjid dll"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nama Pemeriksa</label>
+                  <input
+                    type="text"
+                    name="nama_pemeriksa"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                    placeholder="Nama ustadzah"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Jumlah Kesalahan Tajwid</label>
+                  <input
+                    type="number"
+                    name="jumlah_kesalahan_tajwid"
+                    defaultValue={0}
+                    min={0}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Waktu Tashih</label>
+                <input
+                  type="datetime-local"
+                  name="waktu_tashih"
+                  defaultValue={new Date().toISOString().slice(0, 16)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Catatan Tambahan</label>
+                <textarea
+                  name="catatan_tambahan"
+                  rows={3}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-900 focus:ring-green-900 border p-2"
+                  placeholder="Catatan tambahan..."
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800"
+                >
+                  Simpan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateTashihModal(false);
+                    setTashihSelectedUser(null);
+                    setTashihPrefilledBlock(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

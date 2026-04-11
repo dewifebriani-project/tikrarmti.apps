@@ -1,19 +1,26 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Shield, Users, ArrowLeft } from 'lucide-react';
+import { useState, useTransition, useEffect } from 'react';
+import { Shield, Users, ArrowLeft, RefreshCw, Eye } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useAdminUsers, useAdminStats } from '@/lib/hooks/useAdminData';
+import { useRouter } from 'next/navigation';
+import { useAdminUsers, useAdminStats, useMuallimahRegistrations, useAdminBatches } from '@/lib/hooks/useAdminData';
 import { resetUserPassword } from '../actions';
 import { toast } from 'sonner';
 import { UserStats } from '@/components/admin/users/UserStats';
 import { UserFilters } from '@/components/admin/users/UserFilters';
 import { UserTable } from '@/components/admin/users/UserTable';
 import { UserDetailModal, EditRoleModal, BlacklistModal } from '@/components/admin/users/UserModals';
-import { AdminUser } from '@/components/admin/users/types';
+import { MuallimahRegistration, AdminUser } from '@/components/admin/users/types';
+import { MuallimahTable } from '@/components/admin/users/MuallimahTable';
+import { MuallimahDetailModal } from '@/components/admin/users/MuallimahDetailModal';
 import { Toaster } from 'sonner';
 
 export default function AdminUsersPage() {
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
   // --- STATE ---
   const [filterState, setFilterState] = useState({
     page: 1,
@@ -24,8 +31,17 @@ export default function AdminUsersPage() {
   });
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [activeModal, setActiveModal] = useState<'detail' | 'role' | 'blacklist' | null>(null);
+  const [activeModal, setActiveModal] = useState<'detail' | 'role' | 'blacklist' | 'muallimahDetail' | null>(null);
+  const [selectedMuallimah, setSelectedMuallimah] = useState<MuallimahRegistration | null>(null);
+  const [activeTab, setActiveTab] = useState<'users' | 'muallimah'>('users');
+  const [muallimahPage, setMuallimahPage] = useState(1);
+  const [muallimahBatchId, setMuallimahBatchId] = useState<string>('all');
   const [isPending, startTransition] = useTransition();
+
+  // Handle Hydration - Delay rendering until client is ready
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // --- DATA FETCHING ---
   const { 
@@ -40,6 +56,22 @@ export default function AdminUsersPage() {
     isLoading: statsLoading, 
     mutate: mutateStats 
   } = useAdminStats(true);
+
+  const {
+    batches,
+    isLoading: batchesLoading
+  } = useAdminBatches(true);
+
+  // Hook for muallimah registrations
+  const {
+    registrations: muallimahData,
+    pagination: muallimahPagination,
+    isLoading: muallimahLoading,
+    mutate: mutateMuallimah
+  } = useMuallimahRegistrations(activeTab === 'muallimah', { 
+    page: muallimahPage,
+    batchId: muallimahBatchId === 'all' ? undefined : muallimahBatchId
+  });
 
   // --- HANDLERS ---
   const handleFilterChange = (newFilters: Partial<typeof filterState>) => {
@@ -60,7 +92,12 @@ export default function AdminUsersPage() {
     });
   };
 
-  const handleAction = async (action: 'detail' | 'role' | 'blacklist' | 'resetPassword', user: AdminUser) => {
+  const handleAction = async (action: 'detail' | 'role' | 'blacklist' | 'resetPassword' | 'preview', user: AdminUser) => {
+    if (action === 'preview') {
+      router.push(`/dashboard?user_id=${user.id}`);
+      return;
+    }
+
     if (action === 'resetPassword') {
       if (window.confirm(`Reset password untuk ${user.full_name || user.email} menjadi default 'MTI123!'?`)) {
         try {
@@ -87,16 +124,20 @@ export default function AdminUsersPage() {
   };
 
   const handleRefresh = async () => {
-    await Promise.all([mutateUsers(), mutateStats()]);
+    await Promise.all([mutateUsers(), mutateStats(), mutateMuallimah()]);
   };
 
   // Prepare stats for UserStats component
   const statsData = {
-    totalUsers: stats.totalUsers || 0,
-    totalAdmins: stats.totalMentors || 0,
-    totalThalibah: stats.totalThalibah || 0,
-    totalBlacklisted: stats.totalBlacklisted || 0,
+    totalUsers: stats?.totalUsers || 0,
+    totalAdmins: stats?.totalMentors || 0,
+    totalThalibah: stats?.totalThalibah || 0,
+    totalBlacklisted: stats?.totalBlacklisted || 0,
   };
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-gray-50/50" />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
@@ -148,21 +189,90 @@ export default function AdminUsersPage() {
           onCardClick={handleStatClick}
         />
 
-        {/* Filters & Search */}
-        <UserFilters 
-          onFilterChange={(f) => handleFilterChange(f)} 
-          onRefresh={handleRefresh}
-          isLoading={usersLoading || isPending}
-        />
+        {/* Custom Tabs */}
+        <div className="flex items-center gap-6 border-b border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
+           <button
+             onClick={() => setActiveTab('users')}
+             className={cn(
+                "pb-4 px-2 text-sm font-bold transition-all relative",
+                activeTab === 'users' ? "text-green-900" : "text-gray-400 hover:text-gray-600"
+             )}
+           >
+             Database Users
+             {activeTab === 'users' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-900 rounded-full" />}
+           </button>
+           <button
+             onClick={() => setActiveTab('muallimah')}
+             className={cn(
+                "pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2",
+                activeTab === 'muallimah' ? "text-green-900" : "text-gray-400 hover:text-gray-600"
+             )}
+           >
+             Pendaftaran Muallimah
+             <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">New</span>
+             {activeTab === 'muallimah' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-900 rounded-full" />}
+           </button>
+        </div>
 
-        {/* User Table */}
-        <UserTable 
-          users={users} 
-          isLoading={usersLoading || isPending}
-          pagination={pagination}
-          onPageChange={(p) => handleFilterChange({ page: p })}
-          onAction={handleAction}
-        />
+        {activeTab === 'users' ? (
+          <>
+            {/* Filters & Search - only for users tab */}
+            <UserFilters 
+              onFilterChange={(f) => handleFilterChange(f)} 
+              onRefresh={handleRefresh}
+              isLoading={usersLoading || isPending}
+            />
+
+            {/* User Table */}
+            <UserTable 
+              users={users} 
+              isLoading={usersLoading || isPending}
+              pagination={pagination}
+              onPageChange={(p) => handleFilterChange({ page: p })}
+              onAction={handleAction}
+            />
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+               <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-1.5 min-w-[200px]">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Filter Batch</label>
+                    <select
+                      value={muallimahBatchId}
+                      onChange={(e) => setMuallimahBatchId(e.target.value)}
+                      className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-green-900/10 transition-all cursor-pointer outline-none"
+                    >
+                      <option value="all">Semua Batch</option>
+                      {batches?.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+               </div>
+               
+               <button 
+                 onClick={handleRefresh}
+                 disabled={muallimahLoading}
+                 className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:text-green-900 hover:bg-green-50 transition-all border border-gray-100"
+                 title="Refresh Data"
+               >
+                 <RefreshCw className={cn("w-5 h-5", muallimahLoading && "animate-spin")} />
+               </button>
+            </div>
+
+            <MuallimahTable 
+              registrations={muallimahData}
+              isLoading={muallimahLoading}
+              pagination={muallimahPagination}
+              onPageChange={(p) => setMuallimahPage(p)}
+              onViewDetail={(reg) => {
+                setSelectedMuallimah(reg);
+                setActiveModal('muallimahDetail');
+              }}
+            />
+          </>
+        )}
       </div>
 
       {/* --- MODALS --- */}
@@ -189,6 +299,17 @@ export default function AdminUsersPage() {
           isOpen={true} 
           onClose={closeModal}
           onSuccess={handleRefresh}
+        />
+      )}
+
+      {selectedMuallimah && activeModal === 'muallimahDetail' && (
+        <MuallimahDetailModal 
+          registration={selectedMuallimah}
+          isOpen={true}
+          onClose={() => {
+            setSelectedMuallimah(null);
+            setActiveModal(null);
+          }}
         />
       )}
     </div>

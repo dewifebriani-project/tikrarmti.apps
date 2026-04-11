@@ -177,7 +177,7 @@ export async function GET(request: Request) {
     // Fetch user data separately
     const { data: usersData } = await supabase
       .from('users')
-      .select('id, full_name, nama_kunyah, whatsapp')
+      .select('id, full_name, nama_kunyah, whatsapp, is_blacklisted')
       .in('id', userIds);
 
     const userMap = new Map();

@@ -242,3 +242,39 @@ export function useAdminPrograms(enabled: boolean = true, batchId?: string) {
     mutate,
   };
 }
+
+// Hook for fetching muallimah registrations
+export function useMuallimahRegistrations(enabled: boolean = true, params: {
+  page?: number;
+  batchId?: string;
+  userId?: string;
+} = {}) {
+  const queryParams = new URLSearchParams();
+  if (params.page) queryParams.set('page', params.page.toString());
+  if (params.batchId) queryParams.set('batchId', params.batchId);
+  if (params.userId) queryParams.set('userId', params.userId);
+
+  const queryString = queryParams.toString();
+  const url = enabled ? `/api/admin/muallimah${queryString ? `?${queryString}` : ''}` : null;
+
+  const { data, error, isLoading, mutate } = useSWR(
+    url,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000,
+      onSuccess: (data) => {
+        console.log('[useMuallimahRegistrations] Success, count:', data?.data?.length);
+      }
+    }
+  );
+
+  return {
+    registrations: data?.data || [],
+    pagination: data?.pagination,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+}

@@ -7,12 +7,9 @@ import { ApiResponses } from '@/lib/api-responses';
 // Helper to normalize block code (ensure it starts with H)
 function normalizeBlokCode(code: string): string {
   if (!code) return code;
-  // If it's just a number or number+letter but missing H, add it
-  // But be careful not to double add if format matches H\d...
-  if (/^H\d/.test(code)) return code;
-  // If it matches array format, don't touch it here, handle inside logic
-  if (code.startsWith('[')) return code;
-  return `H${code}`;
+  const cleanCode = code.trim().toUpperCase();
+  if (cleanCode.startsWith('H')) return cleanCode;
+  return `H${cleanCode}`;
 }
 
 // Helper function to calculate week number from blok code
@@ -92,7 +89,7 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
 
   // Initialize all blocks as not completed
   allBlocks.forEach(block => {
-    blockStatus.set(block.block_code, { is_completed: false, jurnal_count: 0 });
+    blockStatus.set(normalizeBlokCode(block.block_code), { is_completed: false, jurnal_count: 0 });
   });
 
   // Mark blocks that have jurnal records
@@ -113,17 +110,28 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
 
       // Mark each blok as completed
       blokCodes.forEach(rawBlokCode => {
-        const blokCode = normalizeBlokCode(rawBlokCode);
-
-        const current = blockStatus.get(blokCode);
-        if (current) {
-          current.is_completed = true;
-          current.jurnal_count += 1;
-          if (!current.jurnal_date || new Date(record.tanggal_setor || record.created_at) > new Date(current.jurnal_date)) {
-            current.jurnal_date = record.tanggal_setor || record.created_at;
-          }
-          blockStatus.set(blokCode, current);
+        if (!rawBlokCode) return;
+        
+        let subBloks: string[] = [];
+        if (typeof rawBlokCode === 'string') {
+          // If the element itself is comma-separated (legacy or bulk input)
+          subBloks = rawBlokCode.split(',').map(s => s.trim()).filter(Boolean);
+        } else {
+          subBloks = [String(rawBlokCode)];
         }
+
+        subBloks.forEach(sCode => {
+          const blokCode = normalizeBlokCode(sCode);
+          const current = blockStatus.get(blokCode);
+          if (current) {
+            current.is_completed = true;
+            current.jurnal_count += 1;
+            if (!current.jurnal_date || new Date(record.tanggal_setor || record.created_at) > new Date(current.jurnal_date)) {
+              current.jurnal_date = record.tanggal_setor || record.created_at;
+            }
+            blockStatus.set(blokCode, current);
+          }
+        });
       });
     }
   });
@@ -132,7 +140,7 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
   for (let week = 1; week <= 10; week++) {
     const weekBlocks = allBlocks.filter(b => b.week_number === week);
     const completedBlocks = weekBlocks.filter(b => {
-      const status = blockStatus.get(b.block_code);
+      const status = blockStatus.get(normalizeBlokCode(b.block_code));
       return status?.is_completed || false;
     });
 
@@ -143,8 +151,8 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
       is_completed: completedBlocks.length === weekBlocks.length,
       blocks: weekBlocks.map(b => ({
         ...b,
-        is_completed: blockStatus.get(b.block_code)?.is_completed || false,
-        jurnal_count: blockStatus.get(b.block_code)?.jurnal_count || 0
+        is_completed: blockStatus.get(normalizeBlokCode(b.block_code))?.is_completed || false,
+        jurnal_count: blockStatus.get(normalizeBlokCode(b.block_code))?.jurnal_count || 0
       }))
     });
   }
@@ -191,7 +199,7 @@ export async function GET(request: Request) {
 
     // DEBUG MODE: Return raw data for specific users to troubleshoot
     if (debugMode) {
-      const debugNames = ['Afifah', 'Aam', 'Agustina'];
+      const debugNames = ['Afifah', 'Aam', 'Agustina', 'Meyntie', 'Enih'];
       const debugData: any = {
         timestamp: new Date().toISOString(),
         target_names: debugNames,
@@ -397,7 +405,7 @@ export async function GET(request: Request) {
 
     const { data: usersData } = await supabase
       .from('users')
-      .select('id, full_name, nama_kunyah, whatsapp')
+      .select('id, full_name, nama_kunyah, whatsapp, is_blacklisted')
       .in('id', daftarUlangUserIds);
 
     const userMap = new Map();
@@ -487,16 +495,33 @@ export async function GET(request: Request) {
         weeklyStatus = calculateWeeklyStatus(allBlocks, userJurnalRecords);
         totalBlocks = allBlocks.length;
         completedBlocks = allBlocks.filter(b => {
-          const hasJurnal = userJurnalRecords.some((record: any) => {
-            let rBloks = [];
-            if (record.blok && record.blok.startsWith('[')) {
-              try { rBloks = JSON.parse(record.blok); } catch { rBloks = [record.blok]; }
+          const targetCode = normalizeBlokCode(b.block_code);
+          return userJurnalRecords.some((record: any) => {
+            if (!record.blok) return false;
+            
+            // Get all block codes from this record
+            let blokCodes: string[] = [];
+            if (typeof record.blok === 'string') {
+              if (record.blok.startsWith('[')) {
+                try {
+                  const parsed = JSON.parse(record.blok);
+                  blokCodes = Array.isArray(parsed) ? parsed : [record.blok];
+                } catch {
+                  blokCodes = [record.blok];
+                }
+              } else {
+                // Split multi-block strings
+                blokCodes = record.blok.split(',').map((s: string) => s.trim()).filter(Boolean);
+              }
+            } else if (Array.isArray(record.blok)) {
+              blokCodes = record.blok;
             } else {
-              rBloks = [record.blok];
+              blokCodes = [String(record.blok)];
             }
-            return rBloks.some((rb: string) => normalizeBlokCode(rb) === b.block_code);
+
+            // Check if any code in the record matches the target block
+            return blokCodes.some(c => normalizeBlokCode(String(c)) === targetCode);
           });
-          return hasJurnal;
         }).length;
 
         weeklyStatus.forEach((week: any) => {

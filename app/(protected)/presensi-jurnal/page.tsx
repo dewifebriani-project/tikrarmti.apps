@@ -179,7 +179,7 @@ function PresensiJurnalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal'>('jurnal');
+  const [activeTab, setActiveTab] = useState<'presensi' | 'jurnal' | 'blacklist'>('jurnal');
   const [dataLoading, setDataLoading] = useState(false);
   const [jurnalEntries, setJurnalEntries] = useState<JurnalUserEntry[]>([]);
   const [tashihEntries, setTashihEntries] = useState<TashihEntry[]>([]);
@@ -226,8 +226,8 @@ function PresensiJurnalContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'jurnal' || tab === 'presensi') {
-      setActiveTab(tab as 'presensi' | 'jurnal');
+    if (tab === 'jurnal' || tab === 'presensi' || tab === 'blacklist') {
+      setActiveTab(tab as 'presensi' | 'jurnal' | 'blacklist');
     }
   }, [searchParams]);
 
@@ -317,17 +317,32 @@ function PresensiJurnalContent() {
                  <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Total Thalibah</div>
                     <div className="flex items-baseline gap-1">
-                      <div className="text-2xl font-bold text-green-900">{activeTab === 'presensi' ? tashihEntries.length : jurnalEntries.length}</div>
+                      <div className="text-2xl font-bold text-green-900">
+                        {activeTab === 'presensi' 
+                          ? tashihEntries.filter(e => !e.user?.is_blacklisted).length 
+                          : activeTab === 'jurnal'
+                            ? jurnalEntries.filter(e => !e.user?.is_blacklisted).length
+                            : tashihEntries.filter(e => e.user?.is_blacklisted).length
+                        }
+                      </div>
                       <div className="text-xs text-gray-400 font-medium lowercase italic">jiwa</div>
                     </div>
                  </div>
                  <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Avg Progress</div>
                     <div className="text-2xl font-bold text-emerald-600">
-                      {activeTab === 'presensi' 
-                        ? Math.round(tashihEntries.reduce((acc, curr) => acc + curr.summary.completion_percentage, 0) / (tashihEntries.length || 1))
-                        : Math.round(jurnalEntries.reduce((acc, curr) => acc + (curr.summary?.completion_percentage || 0), 0) / (jurnalEntries.length || 1))
-                      }%
+                      {(() => {
+                        if (activeTab === 'blacklist') {
+                          const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
+                          return Math.round(blacklisted.reduce((acc, curr) => acc + curr.summary.completion_percentage, 0) / (blacklisted.length || 1));
+                        }
+                        if (activeTab === 'presensi') {
+                          const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
+                          return Math.round(active.reduce((acc, curr) => acc + curr.summary.completion_percentage, 0) / (active.length || 1));
+                        }
+                        const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
+                        return Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completion_percentage || 0), 0) / (active.length || 1));
+                      })()}%
                     </div>
                  </div>
               </div>
@@ -336,7 +351,7 @@ function PresensiJurnalContent() {
       </div>
 
       <div className="container mx-auto px-6 relative z-20">
-        <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-md mx-auto sm:mx-0">
+        <div className="flex p-1.5 bg-white shadow-xl shadow-green-900/5 rounded-2xl mb-8 w-full max-w-lg mx-auto sm:mx-0">
           <button
             onClick={() => {
               setActiveTab('jurnal');
@@ -350,7 +365,8 @@ function PresensiJurnalContent() {
             )}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Jurnal Harian</span>
+            <span className="hidden sm:inline">Jurnal Harian</span>
+            <span className="sm:hidden">Jurnal</span>
           </button>
           <button
             onClick={() => {
@@ -365,7 +381,23 @@ function PresensiJurnalContent() {
             )}
           >
             <UserCheck className="w-4 h-4" />
-            <span>Presensi (Tashih)</span>
+            <span className="hidden sm:inline">Presensi (Tashih)</span>
+            <span className="sm:hidden">Tashih</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('blacklist');
+              router.push('/presensi-jurnal?tab=blacklist', { scroll: false });
+            }}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-300",
+              activeTab === 'blacklist'
+                ? "bg-rose-700 text-white shadow-lg shadow-rose-900/20"
+                : "text-gray-500 hover:text-rose-700 hover:bg-rose-50"
+            )}
+          >
+            <Ban className="w-4 h-4" />
+            <span>Blacklist</span>
           </button>
         </div>
 
@@ -429,9 +461,26 @@ function PresensiJurnalContent() {
              </div>
           ) : (
             <div className="space-y-6">
-              {activeTab === 'presensi' ? (
+              {activeTab === 'blacklist' ? (
                 <TashihTabSimple 
                   entries={tashihEntries
+                    .filter(e => e.user?.is_blacklisted)
+                    .filter(e => 
+                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
+                  } 
+                  currentWeek={overrideWeek || currentWeek}
+                  onRefresh={loadData}
+                  onShowRecords={(user: any, blockCode: string, records: any[]) => {
+                    setSelectedBlockRecords({ user, blockCode, records, type: 'presensi' });
+                  }}
+                />
+              ) : activeTab === 'presensi' ? (
+                <TashihTabSimple 
+                  entries={tashihEntries
+                    .filter(e => !e.user?.is_blacklisted)
                     .filter(e => 
                       e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                       e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -447,6 +496,7 @@ function PresensiJurnalContent() {
               ) : (
                 <JurnalTabSimple 
                   entries={jurnalEntries
+                    .filter(e => !e.user?.is_blacklisted)
                     .filter(e => 
                       e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                       e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -476,22 +526,6 @@ function PresensiJurnalContent() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => {
-                      const type = selectedBlockRecords.type;
-                      const user = selectedBlockRecords.user;
-                      const blockCode = selectedBlockRecords.blockCode;
-                      setSelectedBlockRecords(null);
-                      setTimeout(() => {
-                        setInputTarget({ user, blockCode, type });
-                        setIsInputModalOpen(true);
-                      }, 100);
-                    }}
-                    className="p-2 hover:bg-white/10 rounded-full transition-all text-white"
-                    title="Tambah Record Baru"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
                   <button 
                     onClick={() => setSelectedBlockRecords(null)}
                     className="p-2 hover:bg-white/10 rounded-full transition-all"
@@ -538,7 +572,7 @@ function PresensiJurnalContent() {
                       </div>
                       <button 
                         onClick={() => handleDeleteRecord(record.id, selectedBlockRecords.type)}
-                        className="p-2.5 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        className="p-2.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all"
                         title="Hapus Record"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -733,7 +767,7 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords }: Tas
                                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pekan {week.week_number}</h4>
                                 <span className="text-[10px] font-bold text-green-700">{week.completed_blocks}/4</span>
                              </div>
-                             <div className="grid grid-cols-2 gap-2">
+                             <div className="grid grid-cols-4 gap-2">
                                 {week.blocks.map((block: any) => (
                                   <button 
                                     key={block.block_code} 
@@ -930,7 +964,7 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords }: Jur
                                   <div className="border-b border-gray-50 pb-2">
                                      <span className="text-[10px] font-bold text-gray-400 uppercase">Pekan {week.week_number}</span>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-2">
+                                  <div className="grid grid-cols-4 gap-2">
                                      {week.blocks.map((block: any) => (
                                         <button 
                                            key={block.block_code} 
@@ -1073,7 +1107,14 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
             waktu_tashih: new Date(tashihData.tanggalTashih).toISOString()
           })
         });
-        if (response.ok) { toast.success('Berhasil menyimpan tashih'); onSuccess(); }
+        const result = await response.json();
+        if (response.ok) { 
+          toast.success('Berhasil menyimpan tashih'); 
+          onSuccess(); 
+        } else {
+          const errorMsg = typeof result.error === 'object' ? (result.error.message || result.error.code) : result.error;
+          toast.error(errorMsg || 'Gagal menyimpan tashih');
+        }
       } else {
         const response = await fetch('/api/musyrifah/jurnal', {
           method: 'POST',
@@ -1095,9 +1136,19 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
             catatan_tambahan: jurnalData.catatanTambahan
           })
         });
-        if (response.ok) { toast.success('Berhasil menyimpan jurnal'); onSuccess(); }
+        const result = await response.json();
+        if (response.ok) { 
+          toast.success('Berhasil menyimpan jurnal'); 
+          onSuccess(); 
+        } else {
+          const errorMsg = typeof result.error === 'object' ? (result.error.message || result.error.code) : result.error;
+          toast.error(errorMsg || 'Gagal menyimpan jurnal');
+        }
       }
-    } catch (error) { toast.error('Error'); }
+    } catch (error: any) { 
+      console.error('Input Error:', error);
+      toast.error('Terjadi kesalahan sistem'); 
+    }
     finally { setIsSubmitting(false); }
   };
 
@@ -1111,7 +1162,7 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-green-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-fadeIn">
+    <div className="fixed inset-0 bg-green-900/60 backdrop-blur-md z-[9999] flex items-start sm:items-center justify-center p-4 pt-24 pb-40 overflow-y-auto animate-fadeIn">
       <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-white animate-fadeInScale">
         <div className="bg-gradient-to-r from-green-900 to-emerald-800 p-6 text-white flex justify-between items-center">
           <div>
@@ -1121,7 +1172,8 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-all"><X className="w-5 h-5" /></button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 max-h-[75vh] overflow-y-auto scrollbar-hide space-y-6">
+        <form id="record-form" onSubmit={handleSubmit}>
+          <div className="p-6 max-h-[60vh] overflow-y-auto scrollbar-hide space-y-6">
           {target.type === 'presensi' ? (
             <>
               <div className="grid grid-cols-2 gap-3">
@@ -1223,15 +1275,34 @@ function InputRecordModal({ target, onClose, onSuccess, muallimahList }: any) {
             </>
           )}
 
-          <div className="space-y-1 shadow-inner rounded-2xl bg-gray-50 p-2">
-            <textarea placeholder="Catatan Admin..." className="w-full bg-transparent border-0 rounded-xl p-2 text-sm font-bold h-20 resize-none outline-none" value={target.type === 'presensi' ? tashihData.catatanTambahan : jurnalData.catatanTambahan} onChange={e => target.type === 'presensi' ? setTashihData({...tashihData, catatanTambahan: e.target.value}) : setJurnalData({...jurnalData, catatanTambahan: e.target.value})} />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button type="submit" disabled={isSubmitting} className="flex-1 bg-green-900 text-white font-bold py-4 rounded-2xl shadow-lg disabled:bg-gray-200">{isSubmitting ? 'Menyimpan...' : 'Simpan Data'}</button>
-            <button type="button" onClick={onClose} className="px-6 bg-gray-100 text-gray-500 font-bold py-4 rounded-2xl">Batal</button>
+            <div className="space-y-1 shadow-inner rounded-2xl bg-gray-50 p-2">
+              <textarea 
+                placeholder="Catatan Admin..." 
+                className="w-full bg-transparent border-0 rounded-xl p-2 text-sm font-bold h-20 resize-none outline-none" 
+                value={target.type === 'presensi' ? tashihData.catatanTambahan : jurnalData.catatanTambahan} 
+                onChange={e => target.type === 'presensi' ? setTashihData({...tashihData, catatanTambahan: e.target.value}) : setJurnalData({...jurnalData, catatanTambahan: e.target.value})} 
+              />
+            </div>
           </div>
         </form>
+
+        <div className="p-6 pb-32 md:pb-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+          <button 
+            type="submit" 
+            form="record-form"
+            disabled={isSubmitting} 
+            className="flex-1 bg-green-900 text-white font-bold py-4 rounded-2xl shadow-lg disabled:bg-gray-200"
+          >
+            {isSubmitting ? 'Menyimpan...' : 'Simpan Data'}
+          </button>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="px-6 bg-white border border-gray-200 text-gray-500 font-bold py-4 rounded-2xl hover:bg-gray-50 transition-all"
+          >
+            Batal
+          </button>
+        </div>
       </div>
     </div>
   );

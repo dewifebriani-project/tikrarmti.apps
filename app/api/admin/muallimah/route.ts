@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '1000'), 1000);
     const offset = (page - 1) * limit;
     const batchId = searchParams.get('batchId');
+    const userIdArg = searchParams.get('userId');
 
     // Fetch muallimah data with admin client (bypasses RLS)
     console.log('Starting muallimah data fetch at', new Date().toISOString());
@@ -70,6 +71,11 @@ export async function GET(request: NextRequest) {
     // Filter by batch if specified
     if (batchId && batchId !== 'all') {
       query = query.eq('batch_id', batchId);
+    }
+
+    // Filter by user if specified
+    if (userIdArg) {
+      query = query.eq('user_id', userIdArg);
     }
 
     // Only apply range if NOT skipping count
@@ -99,6 +105,10 @@ export async function GET(request: NextRequest) {
 
       if (batchId && batchId !== 'all') {
         countQuery = countQuery.eq('batch_id', batchId);
+      }
+
+      if (userIdArg) {
+        countQuery = countQuery.eq('user_id', userIdArg);
       }
 
       const { count } = await countQuery;

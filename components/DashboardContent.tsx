@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 
 
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
@@ -44,16 +45,20 @@ export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
   // No need for client-side auth checks or redirects
   const { user, isLoading } = useAuth()
+  const { push } = useRouter()
+  const searchParams = useSearchParams()
+  const targetUserId = searchParams.get('user_id')
   
   const userRole = user?.primaryRole || 'calon_thalibah'
   const canSeeAdminStats = isStaff(userRole)
+  const isImpersonating = !!(targetUserId && userRole === 'admin')
 
   // SWR hooks for data fetching
   const { activeBatch, isLoading: batchLoading, error: batchError } = useActiveBatch()
   const { stats, isLoading: statsLoading, error: statsError } = useDashboardStats(canSeeAdminStats)
-  const { registrations, isLoading: registrationsLoading } = useMyRegistrations()
-  const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus()
-  const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus()
+  const { registrations, isLoading: registrationsLoading } = useMyRegistrations(targetUserId || undefined)
+  const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined)
+  const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined)
   const { 
     prayerTimes, 
     hijriDate, 
@@ -510,6 +515,25 @@ export default function DashboardContent() {
 
       {/* 5. Menu Layanan */}
       <div className="space-y-4">
+        {isImpersonating && (
+          <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 flex items-center justify-between">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-amber-400 mr-2" />
+              <span className="text-amber-800 font-medium">
+                Mode Preview: Melihat Dashboard Thalibah (ID: {targetUserId})
+              </span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-amber-600 hover:text-amber-800"
+              onClick={() => push('/dashboard')}
+            >
+              Keluar Preview
+            </Button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-green-700" />

@@ -15,6 +15,11 @@ export async function GET(request: Request) {
     const context = await getAuthorizationContext({ response });
     if (!context) return ApiResponses.unauthorized();
 
+    const { searchParams } = new URL(request.url)
+    const targetUserId = searchParams.get('user_id')
+    const isAdmin = context.roles.includes('admin')
+    const impersonatedUserId = (isAdmin && targetUserId) ? targetUserId : context.userId
+
     const supabase = createClient({ response });
     const supabaseAdmin = createSupabaseAdmin();
 
@@ -26,7 +31,7 @@ export async function GET(request: Request) {
         program:programs(*),
         batch:batches(*)
       `)
-      .eq('user_id', context.userId)
+      .eq('user_id', impersonatedUserId)
       .order('created_at', { ascending: false });
 
     if (errorById) {
@@ -37,8 +42,8 @@ export async function GET(request: Request) {
 
     // 2. Fallback matching if no records found by user_id
     // This is critical for users who registered via older systems or as guests
-    if (tikrarRegistrations.length === 0 && context.email) {
-      console.log(`[Pendaftaran My] No records for user_id ${context.userId}. Searching by email fallback: ${context.email}`);
+    if (tikrarRegistrations.length === 0 && !targetUserId && context.email) {
+      console.log(`[Pendaftaran My] No records for user_id ${impersonatedUserId}. Searching by email fallback: ${context.email}`);
       
       // Search by email (case-insensitive) using admin client to bypass RLS
       const { data: tikrarByEmail, error: fallbackError } = await supabaseAdmin
@@ -80,7 +85,7 @@ export async function GET(request: Request) {
         ujian_halaqah:halaqah!daftar_ulang_submissions_ujian_halaqah_id_fkey(*),
         tashih_halaqah:halaqah!daftar_ulang_submissions_tashih_halaqah_id_fkey(*)
       `)
-      .eq('user_id', context.userId)
+      .eq('user_id', impersonatedUserId)
       .order('created_at', { ascending: false });
 
     if (daftarUlangError) {

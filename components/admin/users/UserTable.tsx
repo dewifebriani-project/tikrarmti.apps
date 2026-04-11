@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, Shield, User, Clock, ChevronLeft, ChevronRight, Ban, CheckCircle, Info, Key } from 'lucide-react';
+import { MoreHorizontal, Shield, User, Clock, ChevronLeft, ChevronRight, Ban, CheckCircle, Info, Key, Eye } from 'lucide-react';
 import { AdminUser } from './types';
 import { cn } from '@/lib/utils';
 
@@ -14,7 +14,7 @@ interface UserTableProps {
     totalPages: number;
   } | null;
   onPageChange: (page: number) => void;
-  onAction: (action: 'detail' | 'role' | 'blacklist' | 'resetPassword', user: AdminUser) => void;
+  onAction: (action: 'detail' | 'role' | 'blacklist' | 'resetPassword' | 'preview', user: AdminUser) => void;
 }
 
 export function UserTable({ users, isLoading, pagination, onPageChange, onAction }: UserTableProps) {
@@ -135,6 +135,14 @@ export function UserTable({ users, isLoading, pagination, onPageChange, onAction
                       >
                         <Info className="h-4 w-4" />
                         Profil
+                      </button>
+                      <button
+                        onClick={() => onAction('preview', user)}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-xs flex items-center gap-1.5 transition-colors"
+                        title="Preview Dashboard Thalibah"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Preview
                       </button>
                       <button
                         onClick={() => onAction('role', user)}

@@ -119,7 +119,7 @@ async function processJuzStatus(supabase: any, user: any, activeRegistration: an
   })
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const response = new NextResponse()
     const context = await getAuthorizationContext({ response })
@@ -129,7 +129,17 @@ export async function GET() {
     }
 
     const supabase = createClient({ response })
-    const user = { id: context.userId, email: context.email }
+    const { searchParams } = new URL(request.url)
+    const targetUserId = searchParams.get('user_id')
+    
+    // Authorization: Use provided user_id only if requester is admin
+    const isAdmin = isUserAdmin(context)
+    const impersonatedUserId = (isAdmin && targetUserId) ? targetUserId : context.userId
+    const user = { id: impersonatedUserId, email: context.email }
+
+    if (isAdmin && targetUserId) {
+      console.log(`[Tashih Status] Admin ${context.email} impersonating user_id: ${targetUserId}`)
+    }
 
     // Get user's active registration with daftar ulang
     const { data: registrations, error: regsError } = await supabase
@@ -150,7 +160,7 @@ export async function GET() {
         )
       `)
       .eq('user_id', user.id)
-      .in('status', ['approved', 'selected'])
+      .in('status', ['approved', 'selected', 'registered'])
 
     if (regsError) {
       return NextResponse.json({ success: false, error: 'Failed to fetch registrations', details: regsError }, { status: 500 })

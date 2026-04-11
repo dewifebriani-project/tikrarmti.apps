@@ -45,9 +45,10 @@ export interface PendaftaranForm {
 /**
  * Hook for fetching user's registrations (with batch filter - for dashboard)
  */
-export function useMyRegistrations() {
+export function useMyRegistrations(userId?: string) {
+  const queryString = userId ? `?user_id=${userId}` : ''
   const { data, error, isLoading, mutate } = useSWR<Pendaftaran[]>(
-    '/api/pendaftaran/my',
+    `/api/pendaftaran/my${queryString}`,
     getFetcher,
     {
       revalidateOnFocus: true, // Refresh on focus for better UX
