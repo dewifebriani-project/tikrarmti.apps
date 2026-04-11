@@ -29,24 +29,24 @@ export const ratelimit = redis ? new Ratelimit({
   analytics: true,
 }) : null;
 
-// For registration and login endpoints - more restrictive
+// For registration and login endpoints - moderate limits
 export const authRateLimit = redis ? new Ratelimit({
   redis: redis,
-  limiter: Ratelimit.slidingWindow(20, "60 s"), // Increased to 20 requests per minute
+  limiter: Ratelimit.slidingWindow(50, "60 s"), // 50 requests per minute - generous for shared IPs
   analytics: true,
 }) : null;
 
 // For general API endpoints
 export const generalApiRateLimit = redis ? new Ratelimit({
   redis: redis,
-  limiter: Ratelimit.slidingWindow(500, "60 s"), // Increased to 500 requests per minute
+  limiter: Ratelimit.slidingWindow(1000, "60 s"), // 1000 requests per minute
   analytics: true,
 }) : null;
 
 // For admin endpoints — per user ID to prevent DoS from compromised accounts
 export const adminRateLimit = redis ? new Ratelimit({
   redis: redis,
-  limiter: Ratelimit.slidingWindow(1000, "60 s"), // Increased to 1000 requests per minute
+  limiter: Ratelimit.slidingWindow(2000, "60 s"), // 2000 requests per minute
   analytics: true,
 }) : null;
 
@@ -101,8 +101,8 @@ export async function checkRateLimit(
     result = await limiter.limit(identifier);
   } else {
     // Use in-memory fallback
-    const window = 60; // Default window in seconds (matched to 1 min)
-    const max = 50; // Increased default max requests
+    const window = 120; // 2-minute window for shared IP tolerance
+    const max = 200; // Generous limit for in-memory mode
     result = checkInMemoryLimit(identifier, window, max);
   }
 

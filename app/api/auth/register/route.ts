@@ -255,6 +255,13 @@ export async function POST(request: NextRequest) {
       } else if (signUpError.message?.includes('A user with this email has already been registered')) {
         errorMessage = 'Email sudah terdaftar di sistem. Silakan login atau gunakan email lain.';
         errorField = 'email';
+      } else if (
+        signUpError.status === 429 ||
+        signUpError.message?.toLowerCase().includes('rate limit') ||
+        signUpError.message?.toLowerCase().includes('too many requests')
+      ) {
+        // Supabase GoTrue rate limit — return 429 so frontend can handle it
+        return ApiResponses.rateLimit('Terlalu banyak percobaan pendaftaran. Silakan tunggu beberapa menit sebelum mencoba kembali.');
       }
 
       return ApiResponses.customValidationError([{ field: errorField, message: errorMessage, code: 'custom' }]);

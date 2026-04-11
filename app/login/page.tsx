@@ -163,7 +163,14 @@ function LoginPageContent() {
         if (error.message === 'Invalid login credentials') {
           errorMessage = 'Email atau password salah. Silakan periksa kembali.';
         } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox <em>Ukhti</em>.';
+          errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox Ukhti.';
+        } else if (
+          error.message.toLowerCase().includes('rate limit') ||
+          error.message.toLowerCase().includes('too many requests') ||
+          error.message.toLowerCase().includes('request rate limit reached') ||
+          error.status === 429
+        ) {
+          errorMessage = 'Terlalu banyak percobaan login. Silakan tunggu 1-2 menit sebelum mencoba kembali. Jika masih bermasalah, coba gunakan login Google.';
         }
 
         throw new Error(errorMessage);

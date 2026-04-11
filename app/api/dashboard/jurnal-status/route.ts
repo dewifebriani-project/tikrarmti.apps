@@ -104,6 +104,22 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
     }
   }
 
+  // Get current active SP
+  let activeSP = null
+  if (activeRegistration.id !== 'preview-id') {
+    const { data: spRecords } = await supabase
+      .from('surat_peringatan')
+      .select('sp_level, week_number, issued_at, reason, is_blacklisted, sp_type')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('sp_level', { ascending: false })
+      .limit(1)
+    
+    if (spRecords && spRecords.length > 0) {
+      activeSP = spRecords[0]
+    }
+  }
+
   return NextResponse.json({
     success: true,
     data: {
@@ -113,7 +129,15 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
       summary: {
         total_blocks: allBlocks.length,
         completed_blocks: allBlocks.filter(b => b.is_completed).length,
-        pending_blocks: allBlocks.filter(b => !b.is_completed).length
+        pending_blocks: allBlocks.filter(b => !b.is_completed).length,
+        sp_summary: activeSP ? {
+          sp_level: activeSP.sp_level,
+          week_number: activeSP.week_number,
+          issued_at: activeSP.issued_at,
+          reason: activeSP.reason,
+          is_blacklisted: activeSP.is_blacklisted,
+          sp_type: activeSP.sp_type,
+        } : null
       }
     }
   })

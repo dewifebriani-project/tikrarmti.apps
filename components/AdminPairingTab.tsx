@@ -82,9 +82,9 @@ export default function AdminPairingTab() {
 
   const hasTimeSlotOverlap = (s1: string, s2: string) => {
     if (!s1 || !s2) return false
-    const extractHours = (s: string) => s.match(/\d{2}:\d{2}/g) || []
-    const h1 = extractHours(s1)
-    const h2 = extractHours(s2)
+    const extractHours = (s: string): string[] => s.match(/\d{2}:\d{2}/g) || []
+    const h1: string[] = extractHours(s1)
+    const h2: string[] = extractHours(s2)
     return h1.some(time => h2.includes(time))
   }
 

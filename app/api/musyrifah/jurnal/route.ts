@@ -279,12 +279,23 @@ export async function GET(request: Request) {
       return ApiResponses.success(debugData);
     }
 
+    // Already defined at the top of the GET function
     const blok = searchParams.get('blok');
     const pekan = searchParams.get('pekan');
     const batchId = searchParams.get('batch_id');
+    const statusParam = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const offset = (page - 1) * limit;
 
     let activeBatchId = batchId;
     let currentWeek = 0;
+
+    // Define allowed statuses based on the request
+    let targetStatuses = ['approved', 'submitted'];
+    if (statusParam === 'dropout') {
+      targetStatuses = ['dropout'];
+    }
 
     if (!activeBatchId) {
       const { data: activeBatch } = await supabase
@@ -326,10 +337,24 @@ export async function GET(request: Request) {
       }
     }
 
+    // First, get total count
+    let countQuery = supabase
+      .from('daftar_ulang_submissions')
+      .select('*', { count: 'exact', head: true })
+      .in('status', targetStatuses);
+    
+    if (activeBatchId) {
+      countQuery = countQuery.eq('batch_id', activeBatchId);
+    }
+    const { count: totalCount } = await countQuery;
+
+    // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
-      .in('status', ['approved', 'submitted']);
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!user_id(full_name, nama_kunyah, avatar_url, whatsapp)')
+      .in('status', targetStatuses)
+      .order('confirmed_full_name', { ascending: true })
+      .range(offset, offset + limit - 1);
     
     if (activeBatchId) {
       submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
@@ -344,64 +369,46 @@ export async function GET(request: Request) {
 
     const daftarUlangUserIds = daftarUlangUsers?.map((d: any) => d.user_id) || [];
 
-    let allEntries: any[] = [];
-    let page = 0;
-    let hasMore = true;
-    const pageSize = 1000;
+    // Performance Optimization: Fetch all necessary records for the 20 users in one go
+    // instead of looping in chunks. 20 users will have a manageable number of records.
+    let recordsQuery = supabase
+      .from('jurnal_records')
+      .select(`
+          id,
+          user_id,
+          tanggal_jurnal,
+          tanggal_setor,
+          juz_code,
+          blok,
+          tashih_completed,
+          rabth_completed,
+          murajaah_count,
+          simak_murattal_count,
+          tikrar_bi_an_nadzar_completed,
+          tasmi_record_count,
+          simak_record_completed,
+          tikrar_bi_al_ghaib_count,
+          tafsir_completed,
+          menulis_completed,
+          total_duration_minutes,
+          catatan_tambahan,
+          created_at,
+          updated_at
+        `)
+      .in('user_id', daftarUlangUserIds)
+      .order('tanggal_setor', { ascending: false });
 
-    while (hasMore) {
-      let chunkQuery = supabase
-        .from('jurnal_records')
-        .select(`
-            id,
-            user_id,
-            tanggal_jurnal,
-            tanggal_setor,
-            juz_code,
-            blok,
-            tashih_completed,
-            rabth_completed,
-            murajaah_count,
-            simak_murattal_count,
-            tikrar_bi_an_nadzar_completed,
-            tasmi_record_count,
-            simak_record_completed,
-            tikrar_bi_al_ghaib_count,
-            tafsir_completed,
-            menulis_completed,
-            total_duration_minutes,
-            catatan_tambahan,
-            created_at,
-            updated_at
-          `)
-        .in('user_id', daftarUlangUserIds)
-        .order('tanggal_setor', { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (blok && blok !== 'all') {
-        chunkQuery = chunkQuery.eq('blok', blok);
-      }
-
-      const { data: chunk, error: chunkError } = await chunkQuery;
-
-      if (chunkError) {
-        console.error('[Musyrifah Jurnal API] jurnal_records chunk error:', chunkError);
-        return ApiResponses.databaseError(chunkError);
-      }
-
-      if (chunk && chunk.length > 0) {
-        allEntries = [...allEntries, ...chunk];
-        if (chunk.length < pageSize) {
-          hasMore = false;
-        } else {
-          page++;
-        }
-      } else {
-        hasMore = false;
-      }
+    // Apply blok filter if specified
+    if (blok && blok !== 'all') {
+      recordsQuery = recordsQuery.eq('blok', blok);
     }
 
-    const entries = allEntries;
+    const { data: entries, error: jurnalError } = await recordsQuery;
+
+    if (jurnalError) {
+      console.error('[Musyrifah Jurnal API] jurnal_records error:', jurnalError);
+      return ApiResponses.databaseError(jurnalError);
+    }
 
     const { data: usersData } = await supabase
       .from('users')
@@ -458,7 +465,7 @@ export async function GET(request: Request) {
 
     const { data: spRecords } = await supabase
       .from('surat_peringatan')
-      .select('thalibah_id, sp_level, week_number, status, issued_at, reason, is_blacklisted')
+      .select('thalibah_id, sp_level, week_number, status, issued_at, reason, is_blacklisted, sp_type')
       .eq('status', 'active')
       .in('thalibah_id', daftarUlangUserIds);
 
@@ -533,6 +540,7 @@ export async function GET(request: Request) {
             issued_at: spForWeek.issued_at,
             reason: spForWeek.reason,
             is_blacklisted: spForWeek.is_blacklisted,
+            sp_type: spForWeek.sp_type,
           } : null;
 
           week.entries = userJurnalRecords.filter((e: any) => {
@@ -612,6 +620,7 @@ export async function GET(request: Request) {
           issued_at: latestSP.issued_at,
           reason: latestSP.reason,
           is_blacklisted: latestSP.is_blacklisted,
+          sp_type: latestSP.sp_type,
           total_active_sp: userSPRecords.length,
         } : null,
       };
@@ -619,7 +628,24 @@ export async function GET(request: Request) {
 
     const uniqueBloks = Array.from(allBloks).sort();
 
-    return ApiResponses.success(combinedEntries, undefined, 200);
+    const stats = {
+      total_active_thalibah: totalCount || 0,
+      total_blacklist: combinedEntries.filter((e: any) => e.user?.is_blacklisted).length,
+      overall_avg_progress: combinedEntries.length > 0
+        ? Math.round(combinedEntries.reduce((acc: number, curr: any) => acc + (curr.summary?.completion_percentage_target || 0), 0) / combinedEntries.length)
+        : 0
+    };
+
+    return ApiResponses.success({
+      entries: combinedEntries,
+      meta: {
+        totalCount: totalCount || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((totalCount || 0) / limit),
+        stats
+      }
+    }, undefined, 200);
   } catch (error) {
     console.error('[Musyrifah Jurnal API] Unexpected error:', error);
     return ApiResponses.handleUnknown(error);

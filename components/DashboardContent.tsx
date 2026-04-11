@@ -26,7 +26,9 @@ import {
   LayoutGrid,
   ChevronRight,
   Sparkles,
-  MapPin
+  MapPin,
+  UserX,
+  AlertTriangle
 } from 'lucide-react'
 
 
@@ -290,6 +292,36 @@ export default function DashboardContent() {
     return new Intl.DateTimeFormat('id-ID', options).format(new Date())
   }
 
+  const isDropout = registrationStatus.registered && registrationStatus.status === 'dropout';
+
+  if (isDropout) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] px-4">
+        <Card className="max-w-md w-full border-rose-100 shadow-2xl shadow-rose-900/10 rounded-[2.5rem] overflow-hidden">
+          <div className="bg-rose-600 h-2 w-full" />
+          <CardContent className="p-10 text-center space-y-6">
+            <div className="w-24 h-24 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-rose-100 animate-bounce-slow">
+              <UserX className="w-12 h-12" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Afwan Ukhti,</h2>
+              <p className="text-gray-500 font-medium leading-relaxed">
+                Status antum saat ini adalah <span className="text-rose-600 font-black">Dropout (DO)</span> sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.
+              </p>
+            </div>
+            <div className="pt-4">
+              <Link href="/pendaftaran">
+                <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-6 rounded-2xl shadow-lg shadow-rose-900/20 transition-all border-b-4 border-rose-800 active:border-b-0 active:translate-y-1">
+                  Hubungi Admin / Cek Pendaftaran
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeInUp pb-10">
       {/* Welcome Section - Premium Glassmorphism */}
@@ -377,6 +409,58 @@ export default function DashboardContent() {
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-60 h-60 bg-black/10 rounded-full blur-3xl" />
       </div>
 
+
+      {/* SP Warning Banner */}
+      {!canSeeAdminStats && jurnalStatus?.summary?.sp_summary && (
+        <div className={cn(
+          "relative overflow-hidden rounded-[2rem] p-6 shadow-2xl border-l-8 animate-fadeIn",
+          jurnalStatus.summary.sp_summary.sp_level === 3 ? "bg-rose-50 border-rose-600 shadow-rose-950/5" :
+          jurnalStatus.summary.sp_summary.sp_level === 2 ? "bg-orange-50 border-orange-500 shadow-orange-950/5" :
+          "bg-amber-50 border-amber-400 shadow-amber-950/5"
+        )}>
+          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+            <div className={cn(
+              "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+              jurnalStatus.summary.sp_summary.sp_level === 3 ? "bg-rose-600 text-white" :
+              jurnalStatus.summary.sp_summary.sp_level === 2 ? "bg-orange-500 text-white" :
+              "bg-amber-400 text-yellow-900"
+            )}>
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-2">
+                <span className={cn(
+                  "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                  jurnalStatus.summary.sp_summary.sp_level === 3 ? "bg-rose-600 text-white" :
+                  jurnalStatus.summary.sp_summary.sp_level === 2 ? "bg-orange-500 text-white" :
+                  "bg-amber-400 text-yellow-900"
+                )}>
+                  Peringatan Level {jurnalStatus.summary.sp_summary.sp_level}
+                </span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/50 px-2 py-1 rounded-full border border-gray-100">
+                  Diterbitkan Pekan {jurnalStatus.summary.sp_summary.week_number}
+                </span>
+              </div>
+              <h3 className={cn(
+                "text-xl font-black mb-1 leading-tight",
+                jurnalStatus.summary.sp_summary.sp_level === 3 ? "text-rose-900" :
+                jurnalStatus.summary.sp_summary.sp_level === 2 ? "text-orange-950" :
+                "text-amber-950"
+              )}>
+                {jurnalStatus.summary.sp_summary.sp_type === 'permanent_do' ? 'Status: Drop Out Permanen' :
+                 jurnalStatus.summary.sp_summary.sp_type === 'temporary_do' ? 'Status: Drop Out Sementara' :
+                 jurnalStatus.summary.sp_summary.sp_level === 3 ? 'Peringatan Terakhir (SP 3)' :
+                 `Perlu Perhatian: Surat Peringatan ${jurnalStatus.summary.sp_summary.sp_level}`}
+              </h3>
+              <p className="text-sm font-medium text-gray-600 max-w-2xl">
+                Alasan: <span className="font-bold text-gray-900">"{jurnalStatus.summary.sp_summary.reason}"</span>. 
+                {jurnalStatus.summary.sp_summary.sp_type ? " Ukhti telah dinonaktifkan dari program ini secara sistem." : " Mohon segera hubungi Musyrifah Ukhti untuk koordinasi lebih lanjut agar progres hafalan tetap terjaga."}
+              </p>
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-white/30 rounded-full blur-3xl opacity-50" />
+        </div>
+      )}
 
       {/* 2. Progress Jurnal & Tashih */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">

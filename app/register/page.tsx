@@ -239,6 +239,11 @@ function RegisterPageContent() {
 
         // Redirect immediately to login page
         window.location.href = '/login?message=registration_success';
+      } else if (response.status === 429) {
+        // Rate limit from our API or Supabase
+        setErrors({ general: 'Terlalu banyak percobaan pendaftaran. Silakan tunggu 2-3 menit sebelum mencoba kembali.' });
+        setIsLoading(false);
+        return;
       } else {
         // Extract error message from various possible formats
         const getErrorMessage = (response: any): string => {
@@ -307,7 +312,19 @@ function RegisterPageContent() {
 
         const errorMessage = getErrorMessage(data);
         console.log('[DEBUG] Final error message:', errorMessage, 'Type:', typeof errorMessage);
-        setErrors({ general: errorMessage });
+        
+        // Check for rate limit messages from Supabase GoTrue
+        const lowerMsg = typeof errorMessage === 'string' ? errorMessage.toLowerCase() : '';
+        if (
+          lowerMsg.includes('rate limit') ||
+          lowerMsg.includes('too many requests') ||
+          lowerMsg.includes('request rate limit reached') ||
+          lowerMsg.includes('email rate limit')
+        ) {
+          setErrors({ general: 'Terlalu banyak percobaan pendaftaran. Silakan tunggu 2-3 menit sebelum mencoba kembali.' });
+        } else {
+          setErrors({ general: errorMessage });
+        }
         setIsLoading(false);
       }
     } catch (error) {

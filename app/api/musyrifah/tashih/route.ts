@@ -118,9 +118,20 @@ export async function GET(request: Request) {
     const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const blok = searchParams.get('blok');
-
     const batchId = searchParams.get('batch_id');
+    const statusParam = searchParams.get('status');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const offset = (page - 1) * limit;
+
     let activeBatchId = batchId;
+    let currentWeek = 0;
+
+    // Define allowed statuses based on the request
+    let targetStatuses = ['approved', 'submitted'];
+    if (statusParam === 'dropout') {
+      targetStatuses = ['dropout'];
+    }
 
     if (!activeBatchId) {
       const { data: activeBatch } = await supabase
@@ -134,7 +145,6 @@ export async function GET(request: Request) {
       activeBatchId = activeBatch?.id;
     }
 
-    let currentWeek = 0;
     const { data: batch } = await supabase
       .from('batches')
       .select('start_date')
@@ -152,11 +162,24 @@ export async function GET(request: Request) {
       currentWeek = diffWeeks + 1;
     }
 
-    // Get all thalibah from daftar_ulang_submissions with approved or submitted status
+    // First, get total count
+    let countQuery = supabase
+      .from('daftar_ulang_submissions')
+      .select('*', { count: 'exact', head: true })
+      .in('status', targetStatuses);
+    
+    if (activeBatchId) {
+      countQuery = countQuery.eq('batch_id', activeBatchId);
+    }
+    const { count: totalCount } = await countQuery;
+
+    // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_chosen_juz, status, submitted_at, reviewed_at')
-      .in('status', ['approved', 'submitted']);
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!user_id(full_name, nama_kunyah, avatar_url, whatsapp)')
+      .in('status', targetStatuses)
+      .order('confirmed_full_name', { ascending: true })
+      .range(offset, offset + limit - 1);
     
     if (activeBatchId) {
       submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
@@ -306,7 +329,24 @@ export async function GET(request: Request) {
 
     const uniqueBloks = Array.from(allBloks).sort();
 
-    return ApiResponses.success(combinedEntries, undefined, 200);
+    const stats = {
+      total_active_thalibah: totalCount || 0,
+      total_blacklist: combinedEntries.filter((e: any) => e.user?.is_blacklisted).length,
+      overall_avg_progress: combinedEntries.length > 0
+        ? Math.round(combinedEntries.reduce((acc: number, curr: any) => acc + (curr.summary?.completion_percentage_target || 0), 0) / combinedEntries.length)
+        : 0
+    };
+
+    return ApiResponses.success({
+      entries: combinedEntries,
+      meta: {
+        totalCount: totalCount || 0,
+        page,
+        limit,
+        totalPages: Math.ceil((totalCount || 0) / limit),
+        stats
+      }
+    }, undefined, 200);
   } catch (error) {
     console.error('[Musyrifah Tashih API] Unexpected error (GET):', error);
     return ApiResponses.handleUnknown(error);
