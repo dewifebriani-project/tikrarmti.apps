@@ -76,6 +76,9 @@ export default function DashboardContent() {
       updateManualCity(newCity.trim() || null)
     }
   }
+  
+  const [activitiesPage, setActivitiesPage] = useState(1)
+  const activitiesPerPage = 5
 
   // Combined loading state
   // Note: Stats loading only matters if we are trying to fetch them
@@ -109,17 +112,15 @@ export default function DashboardContent() {
     return days[num] || `${dayNum}`
   }
 
-  const totalHariTarget = canSeeAdminStats ? (stats?.totalHariTarget || 0) : (jurnalStatus?.summary.total_blocks || 0)
+  const totalHariTarget = (jurnalStatus?.summary.total_blocks || (canSeeAdminStats ? stats?.totalHariTarget : 0) || 0)
 
-  // If thalibah, we use their jurnal progress for the main stats display
+  // If thalibah info exists, we prioritize it for the main stats display
   const displayStats = {
     totalHariTarget: totalHariTarget,
-    hariAktual: canSeeAdminStats ? (stats?.hariAktual || 0) : (jurnalStatus?.summary.completed_blocks || 0),
-    persentaseProgress: canSeeAdminStats 
-      ? (stats?.persentaseProgress || 0) 
-      : (jurnalStatus && (jurnalStatus.summary.total_blocks || 0) > 0 
-          ? Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100) 
-          : 0)
+    hariAktual: (jurnalStatus?.summary.completed_blocks || (canSeeAdminStats ? stats?.hariAktual : 0) || 0),
+    persentaseProgress: (jurnalStatus && (jurnalStatus.summary.total_blocks || 0) > 0)
+      ? Math.round((jurnalStatus.summary.completed_blocks / jurnalStatus.summary.total_blocks) * 100)
+      : (canSeeAdminStats ? stats?.persentaseProgress : 0) || 0
   }
 
   // Get welcome theme based on time
@@ -214,7 +215,7 @@ export default function DashboardContent() {
       })
     }
 
-    return activities.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5)
+    return activities.sort((a, b) => b.date.getTime() - a.date.getTime())
   }, [canSeeAdminStats, stats, tashihStatus, jurnalStatus])
 
   // Loading state - Consistent across all devices
@@ -670,22 +671,53 @@ export default function DashboardContent() {
         <CardContent className="px-6 py-4">
           <div className="space-y-4">
             {recentActivity.length > 0 ? (
-              recentActivity.map((activity, i) => (
-                <div key={i} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("p-2 rounded-xl bg-gray-50", activity.color)}>
-                      <activity.icon className="w-4 h-4" />
+              <>
+                {recentActivity
+                  .slice((activitiesPage - 1) * activitiesPerPage, activitiesPage * activitiesPerPage)
+                  .map((activity, i) => (
+                    <div key={i} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("p-2 rounded-xl bg-gray-50", activity.color)}>
+                          <activity.icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-900">{activity.title}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(activity.date)}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-green-500 transition-colors" />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">{activity.title}</p>
-                      <p className="text-[10px] text-gray-400">
-                        {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(activity.date)}
-                      </p>
-                    </div>
+                  ))
+                }
+
+                {recentActivity.length > activitiesPerPage && (
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActivitiesPage(p => Math.max(1, p - 1))}
+                      disabled={activitiesPage === 1}
+                      className="text-[10px] font-bold uppercase tracking-widest h-8"
+                    >
+                      Sebelumnya
+                    </Button>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Hal {activitiesPage} dari {Math.ceil(recentActivity.length / activitiesPerPage)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActivitiesPage(p => Math.min(Math.ceil(recentActivity.length / activitiesPerPage), p + 1))}
+                      disabled={activitiesPage >= Math.ceil(recentActivity.length / activitiesPerPage)}
+                      className="text-[10px] font-bold uppercase tracking-widest h-8"
+                    >
+                      Selanjutnya
+                    </Button>
                   </div>
-                  <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-green-500 transition-colors" />
-                </div>
-              ))
+                )}
+              </>
             ) : (
               <div className="text-center py-8 text-gray-400">
                 <Clock className="h-10 w-10 mx-auto mb-3 opacity-20" />

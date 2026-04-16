@@ -1,7 +1,9 @@
 'use client';
 
-import { Loader2, FileText, ShieldCheck, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Loader2, FileText, ShieldCheck, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
+import { cn } from '@/lib/utils';
 
 interface BlacklistTableProps {
   blacklistedUsers: any[];
@@ -57,7 +59,20 @@ export function BlacklistTable({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm text-gray-600">{user.whatsapp || '-'}</p>
+                    {user.whatsapp ? (
+                      <a 
+                        href={getWhatsAppUrl(user.whatsapp, user.full_name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1.5"
+                        title="Chat WhatsApp"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {user.whatsapp}
+                      </a>
+                    ) : (
+                      <p className="text-sm text-gray-400">-</p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <p className="text-sm text-gray-600 max-w-xs truncate">{user.blacklist_reason || '-'}</p>
@@ -73,6 +88,17 @@ export function BlacklistTable({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {user.whatsapp && (
+                        <a 
+                          href={getWhatsAppUrl(user.whatsapp, user.full_name, `Assalamu'alaikum ${user.full_name || 'Thalibah'},\n\nIni adalah pesan dari admin Markaz Tikrar Indonesia terkait status akun Anda.\n\nJazakillahu khairan`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition-colors"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          Chat
+                        </a>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => onViewDetails(user)}>
                         <FileText className="h-3 w-3 mr-1" /> Detail
                       </Button>

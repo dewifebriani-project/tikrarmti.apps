@@ -10,10 +10,12 @@ import {
   ExternalLink,
   BookOpen,
   Calendar,
-  GraduationCap
+  GraduationCap,
+  MessageSquare
 } from 'lucide-react';
 import { MuallimahRegistration } from './types';
 import { cn } from '@/lib/utils';
+import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
 
 interface MuallimahTableProps {
   registrations: MuallimahRegistration[];
@@ -115,9 +117,15 @@ export function MuallimahTable({ registrations, isLoading, pagination, onPageCha
                         <span className="text-sm font-bold text-gray-900 truncate">
                           {reg.full_name}
                         </span>
-                        <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1 rounded inline-block w-fit mt-0.5">
+                        <a 
+                          href={getWhatsAppUrl(reg.whatsapp, reg.full_name)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1 rounded inline-block w-fit mt-0.5 hover:bg-emerald-100 transition-colors"
+                          title="Chat WhatsApp"
+                        >
                           {reg.whatsapp}
-                        </span>
+                        </a>
                         <span className="text-[10px] text-gray-400 truncate">{reg.email}</span>
                       </div>
                     </div>
@@ -159,13 +167,25 @@ export function MuallimahTable({ registrations, isLoading, pagination, onPageCha
                     {getStatusBadge(reg.status)}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => onViewDetail?.(reg)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-green-50 text-gray-600 hover:text-green-700 transition-all border border-transparent hover:border-green-100 font-bold text-xs"
-                    >
-                      <span>Detail</span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <a 
+                        href={getWhatsAppUrl(reg.whatsapp, reg.full_name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-all border border-emerald-100 font-bold text-xs shadow-sm"
+                        title="Chat via WhatsApp"
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>Chat</span>
+                      </a>
+                      <button 
+                        onClick={() => onViewDetail?.(reg)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-green-50 text-gray-600 hover:text-green-700 transition-all border border-transparent hover:border-green-100 font-bold text-xs"
+                      >
+                        <span>Detail</span>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

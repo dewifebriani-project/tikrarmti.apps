@@ -129,6 +129,7 @@ export async function GET(request: Request) {
 
     // Define allowed statuses based on the request
     let targetStatuses = ['approved', 'submitted'];
+    const isBlacklisted = searchParams.get('is_blacklisted') === 'true';
     if (statusParam === 'dropout') {
       targetStatuses = ['dropout'];
     }
@@ -165,9 +166,15 @@ export async function GET(request: Request) {
     // First, get total count
     let countQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('*', { count: 'exact', head: true })
+      .select('*, users!inner(is_blacklisted)', { count: 'exact', head: true })
       .in('status', targetStatuses);
     
+    if (isBlacklisted) {
+      countQuery = countQuery.eq('users.is_blacklisted', true);
+    } else if (statusParam !== 'dropout') {
+      countQuery = countQuery.eq('users.is_blacklisted', false);
+    }
+
     if (activeBatchId) {
       countQuery = countQuery.eq('batch_id', activeBatchId);
     }
@@ -176,10 +183,16 @@ export async function GET(request: Request) {
     // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!user_id(full_name, nama_kunyah, avatar_url, whatsapp)')
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!inner(full_name, nama_kunyah, avatar_url, whatsapp, is_blacklisted)')
       .in('status', targetStatuses)
       .order('confirmed_full_name', { ascending: true })
       .range(offset, offset + limit - 1);
+    
+    if (isBlacklisted) {
+      submissionsQuery = submissionsQuery.eq('users.is_blacklisted', true);
+    } else if (statusParam !== 'dropout') {
+      submissionsQuery = submissionsQuery.eq('users.is_blacklisted', false);
+    }
     
     if (activeBatchId) {
       submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
@@ -329,9 +342,15 @@ export async function GET(request: Request) {
 
     const uniqueBloks = Array.from(allBloks).sort();
 
+    // Get global blacklist count for stats
+    const { count: globalBlacklistCount } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_blacklisted', true);
+
     const stats = {
       total_active_thalibah: totalCount || 0,
-      total_blacklist: combinedEntries.filter((e: any) => e.user?.is_blacklisted).length,
+      total_blacklist: globalBlacklistCount || 0,
       overall_avg_progress: combinedEntries.length > 0
         ? Math.round(combinedEntries.reduce((acc: number, curr: any) => acc + (curr.summary?.completion_percentage_target || 0), 0) / combinedEntries.length)
         : 0

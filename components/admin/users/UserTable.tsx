@@ -1,8 +1,9 @@
 'use client';
 
-import { MoreHorizontal, Shield, User, Clock, ChevronLeft, ChevronRight, Ban, CheckCircle, Info, Key, Eye } from 'lucide-react';
+import { MoreHorizontal, Shield, User, Clock, ChevronLeft, ChevronRight, Ban, CheckCircle, Info, Key, Eye, MessageSquare } from 'lucide-react';
 import { AdminUser } from './types';
 import { cn } from '@/lib/utils';
+import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
 
 interface UserTableProps {
   users: AdminUser[];
@@ -75,11 +76,13 @@ export function UserTable({ users, isLoading, pagination, onPageChange, onAction
                   <td className="px-6 py-4">
                     {user.whatsapp ? (
                       <a 
-                        href={`https://wa.me/${user.whatsapp.replace(/\D/g, '').startsWith('0') ? '62' + user.whatsapp.replace(/\D/g, '').substring(1) : user.whatsapp.replace(/\D/g, '')}`}
+                        href={getWhatsAppUrl(user.whatsapp, user.full_name)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1"
+                        className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1.5"
+                        title="Chat WhatsApp"
                       >
+                        <MessageSquare className="h-3.5 w-3.5" />
                         {user.whatsapp}
                       </a>
                     ) : (
@@ -128,6 +131,19 @@ export function UserTable({ users, isLoading, pagination, onPageChange, onAction
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <a 
+                        href={getWhatsAppUrl(user.whatsapp || '', user.full_name)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          "px-3 py-1.5 rounded-lg font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm border",
+                          user.whatsapp ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-100" : "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed pointer-events-none"
+                        )}
+                        title={user.whatsapp ? "Chat via WhatsApp" : "No WhatsApp number"}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        Chat
+                      </a>
                       <button
                         onClick={() => onAction('detail', user)}
                         className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs flex items-center gap-1.5 transition-colors"

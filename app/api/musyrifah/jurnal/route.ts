@@ -284,6 +284,8 @@ export async function GET(request: Request) {
     const pekan = searchParams.get('pekan');
     const batchId = searchParams.get('batch_id');
     const statusParam = searchParams.get('status');
+    const isBlacklisted = searchParams.get('is_blacklisted') === 'true';
+    const isDropout = searchParams.get('is_dropout') === 'true';
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = (page - 1) * limit;
@@ -293,7 +295,7 @@ export async function GET(request: Request) {
 
     // Define allowed statuses based on the request
     let targetStatuses = ['approved', 'submitted'];
-    if (statusParam === 'dropout') {
+    if (statusParam === 'dropout' || isDropout) {
       targetStatuses = ['dropout'];
     }
 
@@ -340,9 +342,16 @@ export async function GET(request: Request) {
     // First, get total count
     let countQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('*', { count: 'exact', head: true })
+      .select('*, users!daftar_ulang_submissions_user_id_fkey!inner(is_blacklisted)', { count: 'exact', head: true })
       .in('status', targetStatuses);
     
+    if (isBlacklisted) {
+      countQuery = countQuery.eq('users.is_blacklisted', true);
+    } else if (!isDropout && statusParam !== 'dropout') {
+      // For general journals, exclude blacklisted users unless specifically requested
+      countQuery = countQuery.eq('users.is_blacklisted', false);
+    }
+
     if (activeBatchId) {
       countQuery = countQuery.eq('batch_id', activeBatchId);
     }
@@ -351,10 +360,16 @@ export async function GET(request: Request) {
     // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!user_id(full_name, nama_kunyah, avatar_url, whatsapp)')
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!daftar_ulang_submissions_user_id_fkey!inner(full_name, nama_kunyah, avatar_url, whatsapp, is_blacklisted)')
       .in('status', targetStatuses)
       .order('confirmed_full_name', { ascending: true })
       .range(offset, offset + limit - 1);
+    
+    if (isBlacklisted) {
+      submissionsQuery = submissionsQuery.eq('users.is_blacklisted', true);
+    } else if (!isDropout && statusParam !== 'dropout') {
+      submissionsQuery = submissionsQuery.eq('users.is_blacklisted', false);
+    }
     
     if (activeBatchId) {
       submissionsQuery = submissionsQuery.eq('batch_id', activeBatchId);
@@ -628,9 +643,15 @@ export async function GET(request: Request) {
 
     const uniqueBloks = Array.from(allBloks).sort();
 
+    // Get global blacklist count for stats
+    const { count: globalBlacklistCount } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_blacklisted', true);
+
     const stats = {
       total_active_thalibah: totalCount || 0,
-      total_blacklist: combinedEntries.filter((e: any) => e.user?.is_blacklisted).length,
+      total_blacklist: globalBlacklistCount || 0,
       overall_avg_progress: combinedEntries.length > 0
         ? Math.round(combinedEntries.reduce((acc: number, curr: any) => acc + (curr.summary?.completion_percentage_target || 0), 0) / combinedEntries.length)
         : 0

@@ -300,6 +300,7 @@ function PresensiJurnalContent() {
     setIsMounted(true);
   }, []);
   const [selectedBlok, setSelectedBlok] = useState<string>('all');
+  const [rowsPerPage, setRowsPerPage] = useState<number>(20);
   const [availableBloks, setAvailableBloks] = useState<string[]>([]);
   const [currentWeek, setCurrentWeek] = useState<number>(0);
   const [overrideWeek, setOverrideWeek] = useState<number>(0);
@@ -395,7 +396,22 @@ function PresensiJurnalContent() {
         loadMuallimah();
       }
     }
-  }, [user, authLoading, activeTab, selectedBlok, currentPage]);
+  }, [user, authLoading, activeTab, selectedBlok, currentPage, rowsPerPage]);
+
+  // Debounced search
+  useEffect(() => {
+    if (!user || authLoading) return;
+    
+    const handler = setTimeout(() => {
+      if (currentPage === 1) {
+        loadData();
+      } else {
+        setCurrentPage(1);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const loadMuallimah = async () => {
     try {
@@ -423,8 +439,13 @@ function PresensiJurnalContent() {
   const loadData = async () => {
     setDataLoading(true);
     try {
+      const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+      const limitParam = `&limit=${rowsPerPage}`;
+      const pageParam = `&page=${currentPage}`;
+      
       if (activeTab === 'jurnal' || activeTab === 'dropout') {
-        const response = await fetch(`/api/musyrifah/jurnal?blok=${selectedBlok}&page=${currentPage}${activeTab === 'dropout' ? '&status=dropout' : ''}`);
+        const typeParam = activeTab === 'dropout' ? '&status=dropout&is_dropout=true' : '';
+        const response = await fetch(`/api/musyrifah/jurnal?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}`);
         if (response.ok) {
           const result = await response.json();
           const entries = result.data?.entries || [];
@@ -440,7 +461,8 @@ function PresensiJurnalContent() {
           }
         }
       } else {
-        const response = await fetch(`/api/musyrifah/tashih?blok=${selectedBlok}&page=${currentPage}`);
+        const typeParam = activeTab === 'blacklist' ? '&is_blacklisted=true' : '';
+        const response = await fetch(`/api/musyrifah/tashih?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}`);
         if (response.ok) {
           const result = await response.json();
           const entries = result.data?.entries || [];
@@ -516,26 +538,31 @@ function PresensiJurnalContent() {
                  </div>
                  <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Avg Progress</div>
-                     <div className="text-2xl font-bold text-emerald-600">
-                       {!isMounted ? '0' : (() => {
-                         if (activeTab === 'blacklist') {
-                           const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
-                           return blacklisted.length > 0 
-                             ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
-                             : 0;
-                         }
-                         if (activeTab === 'presensi') {
-                           const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
-                           return active.length > 0
-                             ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                             : 0;
-                         }
-                         const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
-                         return active.length > 0
-                           ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                           : 0;
-                       })()}%
-                     </div>
+                      <div className="text-2xl font-bold text-emerald-600">
+                        {!isMounted ? '0' : (() => {
+                          // Try to use the overall stat from API first
+                          if (pagination?.stats?.overall_avg_progress !== undefined) {
+                            return pagination.stats.overall_avg_progress;
+                          }
+
+                          if (activeTab === 'blacklist') {
+                            const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
+                            return blacklisted.length > 0 
+                              ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
+                              : 0;
+                          }
+                          if (activeTab === 'presensi') {
+                            const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
+                            return active.length > 0
+                              ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
+                              : 0;
+                          }
+                          const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
+                          return active.length > 0
+                            ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
+                            : 0;
+                        })()}%
+                      </div>
                  </div>
               </div>
            </div>
@@ -627,6 +654,24 @@ function PresensiJurnalContent() {
                 />
               </div>
             </div>
+            
+            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[120px]">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Tampilkan</label>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 w-full focus:ring-2 focus:ring-green-900/20 transition-all outline-none appearance-none cursor-pointer"
+              >
+                <option value={10}>10 Baris</option>
+                <option value={20}>20 Baris</option>
+                <option value={50}>50 Baris</option>
+                <option value={100}>100 Baris</option>
+              </select>
+            </div>
+
             <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Filter Blok</label>
               <select
@@ -641,6 +686,22 @@ function PresensiJurnalContent() {
                 {availableBloks.map(b => (
                   <option key={b} value={b}>Blok {b}</option>
                 ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Tampilkan</label>
+              <select
+                value={rowsPerPage}
+                onChange={(e) => {
+                  setRowsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-white border-0 shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-700 min-w-[100px] focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
+              >
+                <option value={10}>10 Data</option>
+                <option value={20}>20 Data</option>
+                <option value={50}>50 Data</option>
+                <option value={100}>100 Data</option>
               </select>
             </div>
             {activeTab === 'jurnal' && (
@@ -677,14 +738,7 @@ function PresensiJurnalContent() {
             <div className="space-y-6">
               {activeTab === 'dropout' ? (
                 <JurnalTabSimple 
-                  entries={jurnalEntries
-                    .filter(e => e.sp_summary?.sp_type === 'permanent_do' || e.sp_summary?.sp_type === 'temporary_do')
-                    .filter(e => 
-                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
-                  } 
+                  entries={jurnalEntries} 
                   currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
@@ -697,17 +751,11 @@ function PresensiJurnalContent() {
                     setIsIssueSPModalOpen(true);
                   }}
                   onDropout={handleDropout}
+                  emptyMessage="Tidak ada thalibah dalam daftar Drop Out."
                 />
               ) : activeTab === 'blacklist' ? (
                 <TashihTabSimple 
-                  entries={tashihEntries
-                    .filter(e => e.user?.is_blacklisted)
-                    .filter(e => 
-                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
-                  } 
+                  entries={tashihEntries} 
                   currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
@@ -720,17 +768,14 @@ function PresensiJurnalContent() {
                     setIsIssueSPModalOpen(true);
                   }}
                   onDropout={handleDropout}
+                  emptyMessage={{
+                    title: "Tidak Ada Thalibah Blacklist",
+                    description: "Belum ada thalibah yang terdaftar dalam daftar hitam (blacklist)."
+                  }}
                 />
               ) : activeTab === 'presensi' ? (
                 <TashihTabSimple 
-                  entries={tashihEntries
-                    .filter(e => !e.user?.is_blacklisted && !(e.sp_summary?.sp_type === 'permanent_do' || e.sp_summary?.sp_type === 'temporary_do'))
-                    .filter(e => 
-                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
-                  } 
+                  entries={tashihEntries} 
                   currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
@@ -746,14 +791,7 @@ function PresensiJurnalContent() {
                 />
               ) : (
                 <JurnalTabSimple 
-                  entries={jurnalEntries
-                    .filter(e => !e.user?.is_blacklisted && !(e.sp_summary?.sp_type === 'permanent_do' || e.sp_summary?.sp_type === 'temporary_do'))
-                    .filter(e => 
-                      e.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                      e.user?.nama_kunyah?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .sort((a, b) => (a.user?.full_name || '').localeCompare(b.user?.full_name || ''))
-                  } 
+                  entries={jurnalEntries} 
                   currentWeek={overrideWeek || currentWeek}
                   onRefresh={loadData}
                   onPageChange={setCurrentPage}
@@ -985,9 +1023,10 @@ interface TashihTabProps {
   onDropout: (userId: string, batchId: string, name: string) => void;
   pagination: any;
   onPageChange: (page: number) => void;
+  emptyMessage?: { title: string; description: string };
 }
 
-function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange }: TashihTabProps) {
+function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange, emptyMessage }: TashihTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -1004,8 +1043,8 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
       <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
         <UserCheck className="w-10 h-10 text-gray-300" />
       </div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Data Tashih</h3>
-      <p className="text-gray-500 max-w-sm mx-auto">Thalibah Anda belum memiliki catatan tashih.</p>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">{emptyMessage?.title || 'Belum Ada Data Tashih'}</h3>
+      <p className="text-gray-500 max-w-sm mx-auto">{emptyMessage?.description || 'Thalibah Anda belum memiliki catatan tashih.'}</p>
     </div>
   );
 
@@ -1244,9 +1283,10 @@ interface JurnalTabProps {
   onDropout: (userId: string, batchId: string, name: string) => void;
   pagination: any;
   onPageChange: (page: number) => void;
+  emptyMessage?: string;
 }
 
-function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange }: JurnalTabProps) {
+function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIssueSP, onDropout, pagination, onPageChange, emptyMessage }: JurnalTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRow = (userId: string) => {
@@ -1258,7 +1298,14 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
 
   const allWeeks = Array.from(new Set(entries.flatMap(e => e.weekly_status.map(w => w.week_number)))).sort((a, b) => a - b);
 
-  if (entries.length === 0) return <div className="bg-white p-20 text-center">Belum ada jurnal.</div>;
+  if (entries.length === 0) return (
+    <div className="bg-white rounded-3xl p-16 text-center shadow-xl border border-gray-100">
+      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <BookOpen className="w-10 h-10 text-gray-300" />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">{emptyMessage || 'Belum ada jurnal.'}</h3>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
