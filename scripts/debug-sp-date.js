@@ -1,10 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
+require('dotenv').config({ path: '.env.local' });
 
-// Hardcoded for debugging purposes (simulating the environment)
-const supabaseUrl = "https://nmbvklixthlqtkkgqnjl.supabase.co";
-// Using the same anon key we used successfully before
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tYnZrbGl4dGhscXRra2dxbmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzkyNTMzMzcsImV4cCI6MjA1NDgzMzMzN30.C6dM4Q1X82i7E0q501n25c1F30f423z422k5c01r02";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

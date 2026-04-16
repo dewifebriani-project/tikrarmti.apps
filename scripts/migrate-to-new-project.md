@@ -1,12 +1,12 @@
 # MIGRASI KE SUPABASE PROJECT BARU
 
 ## Project Lama (Source)
-- URL: https://nmbvklixthlqtkkgqnjl.supabase.co
+- URL: https://old-project-id.supabase.co
 - Database: `tikrarmti_apps`
 
 ## Project Baru (Target)
-- URL: https://lhqbqzrghdbbmstnhple.supabase.co
-- Database: `lhqbqzrghdbbmstnhple`
+- URL: https://new-project-id.supabase.co
+- Database: `new_database`
 
 ## ⚠️ Baca Dulu: Perbedaan Schema
 
@@ -167,9 +167,9 @@ WHERE email IN (SELECT DISTINCT email FROM public.users);
 ## Langkah 4: Update .env.local
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL="https://lhqbqzrghdbbmstnhple.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."  # PASTIKAN INI SERVICE ROLE KEY!
+NEXT_PUBLIC_SUPABASE_URL="https://your-project-id.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key-here"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key-here"  # PASTIKAN INI SERVICE ROLE KEY!
 ```
 
 ## Langkah 5: Verify

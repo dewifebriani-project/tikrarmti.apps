@@ -1,7 +1,7 @@
 /**
  * Clean phone number: remove +62, spaces, dashes, parentheses
  */
-export function cleanPhoneNumber(phoneNumber: string): string {
+export function cleanPhoneNumber(phoneNumber: string | null | undefined): string {
   if (!phoneNumber) return '';
   
   let clean = phoneNumber.replace(/\D/g, '');
@@ -17,7 +17,7 @@ export function cleanPhoneNumber(phoneNumber: string): string {
 /**
  * Generate WhatsApp URL with optional message
  */
-export function getWhatsAppUrl(phoneNumber: string, name?: string, customMessage?: string): string {
+export function getWhatsAppUrl(phoneNumber: string | null | undefined, name?: string | null, customMessage?: string): string {
   const cleanPhone = cleanPhoneNumber(phoneNumber);
   if (!cleanPhone) return '';
 
