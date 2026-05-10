@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" font-family="'Inter', 'Poppins', system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E5238"/>
+      <stop offset="60%" stop-color="#064E3B"/>
+      <stop offset="100%" stop-color="#022C20"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE9A8"/>
+      <stop offset="40%" stop-color="#E5B947"/>
+      <stop offset="70%" stop-color="#C28F2E"/>
+      <stop offset="100%" stop-color="#7A5418"/>
+    </linearGradient>
+    <linearGradient id="goldShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF7D0"/>
+      <stop offset="50%" stop-color="#E5B947"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <radialGradient id="greenGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#22C55E" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#22C55E" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="islamic" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M60 10 L110 60 L60 110 L10 60 Z" fill="none" stroke="#FFD66B" stroke-opacity="0.07" stroke-width="1.5"/>
+      <circle cx="60" cy="60" r="22" fill="none" stroke="#FFD66B" stroke-opacity="0.06" stroke-width="1"/>
+      <path d="M60 38 L75 60 L60 82 L45 60 Z" fill="none" stroke="#FFD66B" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+  <rect width="1080" height="1080" fill="url(#islamic)"/>
+
+  <!-- Mihrab arch silhouette -->
+  <path d="M540 50 Q280 50 280 280 L280 1080 L800 1080 L800 280 Q800 50 540 50 Z" fill="none" stroke="#FFD66B" stroke-opacity="0.08" stroke-width="2"/>
+
+  <!-- Background glow accent -->
+  <ellipse cx="540" cy="640" rx="320" ry="280" fill="url(#greenGlow)"/>
+
+  <!-- LOGO -->
+  <g transform="translate(540, 145)">
+    <!-- Hexagonal gold frame -->
+    <g transform="translate(-90, -55)">
+      <path d="M90 0 L165 45 L165 110 L90 155 L15 110 L15 45 Z" fill="none" stroke="url(#goldShine)" stroke-width="5"/>
+      <path d="M90 8 L160 50 L160 105 L90 147 L20 105 L20 50 Z" fill="none" stroke="url(#gold)" stroke-width="2" opacity="0.6"/>
+    </g>
+    <text x="0" y="-15" text-anchor="middle" font-size="22" font-weight="900" fill="url(#goldShine)" letter-spacing="2">MARKAZ</text>
+    <text x="0" y="14" text-anchor="middle" font-size="22" font-weight="900" fill="url(#goldShine)" letter-spacing="2">TIKRAR</text>
+    <text x="0" y="38" text-anchor="middle" font-size="13" font-weight="700" fill="url(#gold)" letter-spacing="4">INDONESIA</text>
+  </g>
+
+  <!-- HEADLINE -->
+  <g transform="translate(540, 290)" text-anchor="middle">
+    <text y="0" font-size="68" font-weight="900" fill="url(#goldShine)" letter-spacing="-1">Hafal Al-Qur'an</text>
+    <text y="78" font-size="68" font-weight="900" fill="#FFFFFF" letter-spacing="-1">Lebih Terukur</text>
+    <text y="156" font-size="68" font-weight="900" fill="#FFFFFF" letter-spacing="-1">&amp; Istiqomah!</text>
+    <text y="208" font-size="24" font-weight="500" fill="#D1FAE5">Nikmati Petualangan 14 Pekan Menuju Syahadah Hafalan</text>
+  </g>
+
+  <!-- VISUAL: Phone mockup with progress -->
+  <g transform="translate(540, 700)">
+    <!-- Phone body -->
+    <g transform="translate(-105, -180)">
+      <rect x="0" y="0" width="210" height="380" rx="32" fill="#0a1f17" stroke="url(#goldShine)" stroke-width="3"/>
+      <rect x="8" y="8" width="194" height="364" rx="26" fill="#0F2A20"/>
+      <!-- Notch -->
+      <rect x="80" y="14" width="50" height="8" rx="4" fill="#000"/>
+      <!-- Status bar text -->
+      <text x="105" y="60" text-anchor="middle" font-size="14" font-weight="700" fill="#10B981">Tikrar</text>
+      <!-- Tabs -->
+      <rect x="22" y="78" width="68" height="22" rx="6" fill="#10B981" opacity="0.9"/>
+      <text x="56" y="93" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Dashboard</text>
+      <text x="120" y="93" font-size="10" font-weight="600" fill="#94a3b8">Tashih</text>
+      <text x="160" y="93" font-size="10" font-weight="600" fill="#94a3b8">Jurnal</text>
+      <!-- Circular progress -->
+      <g transform="translate(105, 180)">
+        <circle r="60" fill="none" stroke="#1f3a2c" stroke-width="14"/>
+        <circle r="60" fill="none" stroke="#22C55E" stroke-width="14" stroke-linecap="round"
+                stroke-dasharray="320 60" transform="rotate(-90)" filter="url(#softGlow)"/>
+        <text y="6" text-anchor="middle" font-size="28" font-weight="900" fill="#fff">85%</text>
+        <text y="26" text-anchor="middle" font-size="9" fill="#86efac">PROGRES HAFALAN</text>
+      </g>
+      <!-- Card row 1 -->
+      <rect x="20" y="270" width="170" height="32" rx="8" fill="#16321F"/>
+      <circle cx="36" cy="286" r="8" fill="#22C55E"/>
+      <text x="54" y="284" font-size="9" font-weight="700" fill="#86efac">Ratib Tikrar</text>
+      <text x="54" y="296" font-size="9" font-weight="900" fill="#fff">85%</text>
+      <!-- Card row 2 -->
+      <rect x="20" y="312" width="170" height="32" rx="8" fill="#16321F"/>
+      <circle cx="36" cy="328" r="8" fill="#FFD66B"/>
+      <text x="54" y="326" font-size="9" font-weight="700" fill="#FCD34D">Murajaah</text>
+      <text x="54" y="338" font-size="9" font-weight="900" fill="#fff">12 Hari Streak</text>
+    </g>
+
+    <!-- Floating Quran book (left) -->
+    <g transform="translate(-260, -50)" filter="url(#softGlow)">
+      <ellipse cx="0" cy="55" rx="60" ry="10" fill="#000" opacity="0.4"/>
+      <path d="M-50 30 Q0 0 50 30 L50 50 Q0 25 -50 50 Z" fill="url(#goldShine)"/>
+      <path d="M-50 30 Q0 0 50 30 L50 50 Q0 25 -50 50 Z" fill="none" stroke="#7A5418" stroke-width="1"/>
+      <line x1="0" y1="13" x2="0" y2="44" stroke="#7A5418" stroke-width="1.5"/>
+      <text x="-25" y="42" font-size="6" fill="#7A5418" font-weight="700">القرآن</text>
+      <text x="10" y="42" font-size="6" fill="#7A5418" font-weight="700">الكريم</text>
+    </g>
+
+    <!-- Gold checkmark badge (left bottom) -->
+    <g transform="translate(-220, 80)" filter="url(#softGlow)">
+      <circle r="42" fill="#0E5238" stroke="url(#goldShine)" stroke-width="3"/>
+      <path d="M-18 0 L-5 14 L20 -14" fill="none" stroke="url(#goldShine)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Big gold check (right) -->
+    <g transform="translate(180, -120) rotate(15)" filter="url(#softGlow)">
+      <path d="M-30 0 L-5 30 L40 -35" fill="none" stroke="url(#goldShine)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Star badge (right bottom) -->
+    <g transform="translate(220, 80)" filter="url(#softGlow)">
+      <circle r="42" fill="#0E5238" stroke="url(#goldShine)" stroke-width="3"/>
+      <path d="M0 -22 L7 -7 L23 -5 L11 6 L14 22 L0 14 L-14 22 L-11 6 L-23 -5 L-7 -7 Z" fill="url(#goldShine)"/>
+    </g>
+
+    <!-- Sparkle particles -->
+    <circle cx="-180" cy="-150" r="3" fill="#FCD34D" opacity="0.9"/>
+    <circle cx="200" cy="-180" r="2" fill="#FCD34D" opacity="0.7"/>
+    <circle cx="-140" cy="160" r="2.5" fill="#FCD34D" opacity="0.8"/>
+    <circle cx="160" cy="180" r="3" fill="#FCD34D" opacity="0.9"/>
+  </g>
+
+  <!-- CTA BUTTON -->
+  <g transform="translate(540, 925)" filter="url(#strongGlow)">
+    <rect x="-220" y="-32" width="440" height="64" rx="32" fill="#0E5238" stroke="url(#goldShine)" stroke-width="3"/>
+    <rect x="-215" y="-28" width="430" height="56" rx="28" fill="none" stroke="url(#gold)" stroke-width="1" opacity="0.6"/>
+    <text y="9" text-anchor="middle" font-size="32" font-weight="900" fill="#fff" letter-spacing="0.5">Daftar Sekarang!</text>
+  </g>
+
+  <!-- FOOTER CONTACT -->
+  <g transform="translate(0, 1010)" font-size="16" font-weight="700">
+    <!-- Website -->
+    <g transform="translate(180, 0)">
+      <circle cx="0" cy="0" r="22" fill="none" stroke="url(#goldShine)" stroke-width="2"/>
+      <circle cx="0" cy="0" r="22" fill="#0E5238" opacity="0.3"/>
+      <path d="M-12 0 H12 M0 -12 V12 M-10 -6 Q0 -2 10 -6 M-10 6 Q0 2 10 6" fill="none" stroke="url(#goldShine)" stroke-width="1.5"/>
+      <text x="36" y="-3" fill="#FCD34D" font-size="11" font-weight="800" letter-spacing="2">WEBSITE</text>
+      <text x="36" y="15" fill="#fff" font-size="15">markaztikrar.id</text>
+    </g>
+    <!-- WhatsApp -->
+    <g transform="translate(490, 0)">
+      <circle cx="0" cy="0" r="22" fill="none" stroke="url(#goldShine)" stroke-width="2"/>
+      <circle cx="0" cy="0" r="22" fill="#0E5238" opacity="0.3"/>
+      <path d="M-10 -2 a10 10 0 1 1 4 8 L-10 9 L-7 4 a10 10 0 0 1 -3 -6 Z" fill="none" stroke="url(#goldShine)" stroke-width="1.6"/>
+      <text x="36" y="-3" fill="#FCD34D" font-size="11" font-weight="800" letter-spacing="2">WHATSAPP</text>
+      <text x="36" y="15" fill="#fff" font-size="15">081330000784</text>
+    </g>
+    <!-- Link -->
+    <g transform="translate(820, 0)">
+      <circle cx="0" cy="0" r="22" fill="none" stroke="url(#goldShine)" stroke-width="2"/>
+      <circle cx="0" cy="0" r="22" fill="#0E5238" opacity="0.3"/>
+      <path d="M-10 -3 a6 6 0 0 1 6 -6 H2 a6 6 0 0 1 0 12 M10 3 a6 6 0 0 1 -6 6 H-2 a6 6 0 0 1 0 -12" fill="none" stroke="url(#goldShine)" stroke-width="1.8" stroke-linecap="round"/>
+      <text x="36" y="-3" fill="#FCD34D" font-size="11" font-weight="800" letter-spacing="2">LINK</text>
+      <text x="36" y="15" fill="#fff" font-size="14">lynk.id/markaztikrar.id</text>
+    </g>
+  </g>
+</svg>

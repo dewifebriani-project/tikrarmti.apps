@@ -2491,13 +2491,16 @@ function UsersTab({
           phoneNumber = '62' + phoneNumber;
         }
 
-        // Pesan islami untuk mengajak daftar Tikrar Tahfidz Batch 2
+        // Pesan islami untuk mengajak daftar Tikrar Tahfidz
         const userName = user.full_name || user.nama_kunyah || '';
+        const activeBatch = batches.find(b => b.status === 'open' || b.status === 'ongoing') || batches[0];
+        const batchName = activeBatch?.name || 'Tikrar Tahfidz MTI';
+        
         const message = `Assalamu'alaikum warahmatullahi wabarakatuh, Ukhti ${userName}
 
 Barakallahu fiik atas minat dan semangat Ukhti untuk menghafal Al-Qur'an 🌙
 
-Kami dari Markaz Tikrar Indonesia ingin mengingatkan bahwa *Program Tikrar Tahfidz MTI Batch 2* akan segera dimulai, in syaa Allah.
+Kami dari Markaz Tikrar Indonesia ingin mengingatkan bahwa *Program ${batchName}* akan segera dimulai, in syaa Allah.
 
 📖 "Dan sesungguhnya telah Kami mudahkan Al-Qur'an untuk peringatan, maka adakah orang yang mau mengambil pelajaran?" (QS. Al-Qamar: 17)
 

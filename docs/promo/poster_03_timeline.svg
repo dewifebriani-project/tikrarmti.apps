@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" font-family="'Inter', 'Poppins', system-ui, sans-serif">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F4D26B"/>
+      <stop offset="50%" stop-color="#C28F2E"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E5238"/>
+      <stop offset="100%" stop-color="#022C20"/>
+    </linearGradient>
+    <linearGradient id="trackGreen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22C55E"/>
+      <stop offset="100%" stop-color="#0E5238"/>
+    </linearGradient>
+    <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1.5" fill="#064E3B" opacity="0.07"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#064E3B" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- BG -->
+  <rect width="1080" height="1080" fill="#FAFAF7"/>
+  <rect width="1080" height="1080" fill="url(#dots)"/>
+
+  <!-- Top header bar -->
+  <rect x="0" y="0" width="1080" height="220" fill="url(#emerald)"/>
+  <path d="M0 220 L1080 220 L1080 235 L540 215 L0 235 Z" fill="url(#emerald)"/>
+
+  <!-- Logo + title -->
+  <g transform="translate(540, 90)">
+    <g transform="translate(-65, -45)">
+      <path d="M65 0 L120 32 L120 80 L65 112 L10 80 L10 32 Z" fill="none" stroke="url(#gold)" stroke-width="3.5"/>
+    </g>
+    <text x="0" y="-14" text-anchor="middle" font-size="16" font-weight="900" fill="url(#gold)" letter-spacing="2">MARKAZ</text>
+    <text x="0" y="6" text-anchor="middle" font-size="16" font-weight="900" fill="url(#gold)" letter-spacing="2">TIKRAR</text>
+    <text x="0" y="26" text-anchor="middle" font-size="10" font-weight="700" fill="url(#gold)" letter-spacing="3">INDONESIA</text>
+  </g>
+
+  <text x="540" y="180" text-anchor="middle" font-size="22" font-weight="700" fill="#FFD66B" letter-spacing="6">METODE PEMBELAJARAN</text>
+
+  <!-- HEADLINE -->
+  <g transform="translate(540, 300)" text-anchor="middle">
+    <text y="0" font-size="76" font-weight="900" fill="#064E3B" letter-spacing="-2">14 Pekan Menuju</text>
+    <text y="80" font-size="76" font-weight="900" fill="url(#gold)" letter-spacing="-2">Syahadah Hafalan</text>
+  </g>
+
+  <!-- TIMELINE -->
+  <g transform="translate(540, 530)">
+    <!-- Track -->
+    <rect x="-420" y="-6" width="840" height="12" rx="6" fill="#E5E7EB"/>
+    <rect x="-420" y="-6" width="840" height="12" rx="6" fill="url(#trackGreen)" opacity="0.85"/>
+
+    <!-- Phase 1: Seleksi -->
+    <g transform="translate(-360, 0)">
+      <circle r="32" fill="#FFFFFF" stroke="#0E5238" stroke-width="4"/>
+      <text y="6" text-anchor="middle" font-size="18" font-weight="900" fill="#0E5238">1</text>
+      <g transform="translate(0, 80)" text-anchor="middle">
+        <text y="0" font-size="14" font-weight="800" fill="#064E3B">Seleksi</text>
+        <text y="20" font-size="11" fill="#6B7280">Pendaftaran</text>
+      </g>
+    </g>
+
+    <!-- Phase 2: Pembukaan -->
+    <g transform="translate(-180, 0)">
+      <circle r="32" fill="#FFFFFF" stroke="#0E5238" stroke-width="4"/>
+      <text y="6" text-anchor="middle" font-size="18" font-weight="900" fill="#0E5238">2</text>
+      <g transform="translate(0, 80)" text-anchor="middle">
+        <text y="0" font-size="14" font-weight="800" fill="#064E3B">Pembukaan</text>
+        <text y="20" font-size="11" fill="#6B7280">Kelas Perdana</text>
+      </g>
+    </g>
+
+    <!-- Phase 3: Pekan 1-11 -->
+    <g transform="translate(0, 0)">
+      <circle r="38" fill="url(#emerald)" stroke="url(#gold)" stroke-width="4" filter="url(#shadow)"/>
+      <text y="-2" text-anchor="middle" font-size="14" font-weight="900" fill="#FCD34D">PEKAN</text>
+      <text y="14" text-anchor="middle" font-size="14" font-weight="900" fill="#FFFFFF">1-11</text>
+      <g transform="translate(0, 86)" text-anchor="middle">
+        <text y="0" font-size="14" font-weight="800" fill="#064E3B">Halaqah Tikrar</text>
+        <text y="20" font-size="11" fill="#6B7280">Setoran Harian</text>
+      </g>
+    </g>
+
+    <!-- Phase 4: Pekan 12 Review -->
+    <g transform="translate(180, 0)">
+      <circle r="32" fill="#FFFFFF" stroke="url(#gold)" stroke-width="4"/>
+      <text y="-2" text-anchor="middle" font-size="9" font-weight="900" fill="#0E5238">PEKAN</text>
+      <text y="11" text-anchor="middle" font-size="14" font-weight="900" fill="#0E5238">12</text>
+      <g transform="translate(0, 80)" text-anchor="middle">
+        <text y="0" font-size="14" font-weight="800" fill="#064E3B">Murajaah</text>
+        <text y="20" font-size="11" fill="#6B7280">Review Akhir</text>
+      </g>
+    </g>
+
+    <!-- Phase 5: Syahadah -->
+    <g transform="translate(360, 0)">
+      <circle r="38" fill="url(#gold)" stroke="#0E5238" stroke-width="4" filter="url(#shadow)"/>
+      <text y="-2" text-anchor="middle" font-size="9" font-weight="900" fill="#064E3B">PEKAN</text>
+      <text y="14" text-anchor="middle" font-size="16" font-weight="900" fill="#064E3B">13-14</text>
+      <g transform="translate(0, 86)" text-anchor="middle">
+        <text y="0" font-size="14" font-weight="900" fill="url(#gold)">SYAHADAH</text>
+        <text y="20" font-size="11" fill="#6B7280">Ujian &amp; Kelulusan</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Stats row -->
+  <g transform="translate(540, 760)" text-anchor="middle">
+    <g transform="translate(-280, 0)">
+      <circle r="50" fill="#FFFFFF" stroke="#0E5238" stroke-width="3" filter="url(#shadow)"/>
+      <text y="-3" font-size="28" font-weight="900" fill="#0E5238">14</text>
+      <text y="20" font-size="11" font-weight="700" fill="#6B7280">PEKAN</text>
+    </g>
+    <g transform="translate(-93, 0)">
+      <circle r="50" fill="#FFFFFF" stroke="url(#gold)" stroke-width="3" filter="url(#shadow)"/>
+      <text y="-3" font-size="28" font-weight="900" fill="url(#gold)">5</text>
+      <text y="20" font-size="11" font-weight="700" fill="#6B7280">JUZ</text>
+    </g>
+    <g transform="translate(93, 0)">
+      <circle r="50" fill="#FFFFFF" stroke="#0E5238" stroke-width="3" filter="url(#shadow)"/>
+      <text y="-3" font-size="28" font-weight="900" fill="#0E5238">100%</text>
+      <text y="20" font-size="11" font-weight="700" fill="#6B7280">TERPANTAU</text>
+    </g>
+    <g transform="translate(280, 0)">
+      <circle r="50" fill="#FFFFFF" stroke="url(#gold)" stroke-width="3" filter="url(#shadow)"/>
+      <text y="-3" font-size="28" font-weight="900" fill="url(#gold)">1</text>
+      <text y="20" font-size="11" font-weight="700" fill="#6B7280">SYAHADAH</text>
+    </g>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(540, 905)">
+    <rect x="-220" y="-32" width="440" height="64" rx="32" fill="url(#emerald)" filter="url(#shadow)"/>
+    <rect x="-215" y="-28" width="430" height="56" rx="28" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    <text y="9" text-anchor="middle" font-size="26" font-weight="900" fill="#fff" letter-spacing="0.5">Mulai Perjalananmu &#8594;</text>
+  </g>
+
+  <!-- FOOTER -->
+  <g transform="translate(540, 1015)" text-anchor="middle">
+    <text y="0" font-size="13" font-weight="700" fill="#9CA3AF" letter-spacing="3">INFORMASI &amp; PENDAFTARAN</text>
+    <text y="24" font-size="16" font-weight="800" fill="#064E3B">markaztikrar.id  &#8226;  WA 081330000784  &#8226;  lynk.id/markaztikrar.id</text>
+  </g>
+</svg>

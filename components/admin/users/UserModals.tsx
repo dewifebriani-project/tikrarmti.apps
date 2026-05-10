@@ -1,10 +1,13 @@
 'use client';
 
-import { X, Shield, Ban, CheckCircle, Info, Calendar, MapPin, Briefcase, Phone, Mail, User, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
-import { AdminUser } from './types';
+import { X, Shield, Ban, CheckCircle, Info, Calendar, MapPin, Briefcase, Phone, Mail, User, Clock, AlertTriangle, RefreshCw, Eye, MessageSquare, Key } from 'lucide-react';
+import { AdminUser, MuallimahRegistration } from './types';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+// Re-export specific modal
+export { MergeUserModal } from './MergeUserModal';
 
 // --- USER DETAIL MODAL ---
 interface UserDetailModalProps {

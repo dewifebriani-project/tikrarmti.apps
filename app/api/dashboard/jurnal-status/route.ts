@@ -42,10 +42,11 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
   // Generate all blocks for this juz dynamically
   const allBlocks: JurnalBlockStatus[] = []
   const parts = ['A', 'B', 'C', 'D']
-  const totalWeeks = 10
+  const ziyadahWeeks = 10
   const blockOffset = juzInfo.part === 'B' ? 10 : 0
 
-  for (let week = 1; week <= totalWeeks; week++) {
+  // 1. Ziyadah Weeks (Pekan 1-10)
+  for (let week = 1; week <= ziyadahWeeks; week++) {
     const blockNumber = week + blockOffset
     const weekPage = Math.min(juzInfo.start_page + (week - 1), juzInfo.end_page)
     for (let i = 0; i < 4; i++) {
@@ -59,6 +60,40 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
         jurnal_count: 0
       })
     }
+  }
+
+  // 2. Murajaah Week (Pekan 11)
+  // Berdasarkan jadwal 7 hari: Senin-Ahad
+  const murajaahSchedule = [
+    { day: 'Senin', range: [1, 3], parts: ['A', 'B'], target: '4×', code: 'M1' },
+    { day: 'Selasa', range: [3, 5], parts: ['C', 'D'], target: '4×', code: 'M2' },
+    { day: 'Rabu', range: [1, 5], parts: ['A', 'D'], target: '2×', code: 'M3' },
+    { day: 'Kamis', range: [6, 8], parts: ['A', 'B'], target: '4×', code: 'M4' },
+    { day: 'Jum\'at', range: [8, 10], parts: ['C', 'D'], target: '4×', code: 'M5' },
+    { day: 'Sabtu', range: [6, 10], parts: ['A', 'D'], target: '2×', code: 'M6' },
+    { day: 'Ahad', range: [1, 10], parts: ['A', 'D'], target: '1×', code: 'M7' },
+  ]
+
+  for (const item of murajaahSchedule) {
+    const startWeek = item.range[0]
+    const endWeek = item.range[1]
+    const startPage = Math.min(juzInfo.start_page + (startWeek - 1), juzInfo.end_page)
+    const endPage = Math.min(juzInfo.start_page + (endWeek - 1), juzInfo.end_page)
+    
+    // Label untuk UI
+    const startBlok = `H${startWeek + blockOffset}${item.parts[0]}`
+    const endBlok = `H${endWeek + blockOffset}${item.parts[1] || item.parts[0]}`
+
+    allBlocks.push({
+      block_code: item.code,
+      week_number: 11,
+      part: item.day, // Gunakan part untuk nama hari
+      start_page: startPage,
+      end_page: endPage,
+      is_completed: false,
+      jurnal_count: 0,
+      label: `${item.day}: ${startBlok}-${endBlok} (${item.target})`
+    } as any)
   }
 
   // Get all jurnal records for this user (skip for preview-id mock)

@@ -4,11 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { requireAnyRole, getAuthorizationContext } from '@/lib/rbac';
 import { ApiResponses } from '@/lib/api-responses';
 
-// Helper to normalize block code (ensure it starts with H)
+// Helper to normalize block code (ensure it starts with H or M)
 function normalizeBlokCode(code: string): string {
   if (!code) return code;
   const cleanCode = code.trim().toUpperCase();
-  if (cleanCode.startsWith('H')) return cleanCode;
+  if (cleanCode.startsWith('H') || cleanCode.startsWith('M')) return cleanCode;
   return `H${cleanCode}`;
 }
 
@@ -37,6 +37,15 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   // Normalize code first
   blokCode = normalizeBlokCode(blokCode);
 
+  // Handle Murajaah blocks (M1-M7)
+  if (blokCode.startsWith('M')) {
+    const murajaahMatch = blokCode.match(/M(\d+)/);
+    if (murajaahMatch) {
+      const mNumber = parseInt(murajaahMatch[1], 10);
+      if (mNumber >= 1 && mNumber <= 7) return 11;
+    }
+  }
+
   // Extract number from blok code (e.g., "H1A" -> 1, "H11B" -> 11)
   const match = blokCode.match(/H(\d+)/) || blokCode.match(/^(\d+)/);
   if (!match) return null;
@@ -53,12 +62,13 @@ function calculateWeekFromBlok(blok: string | null): number | null {
   return null;
 }
 
-// Helper to generate all blocks (10 weeks, 4 blocks per week) for a juz
+// Helper to generate all blocks (Ziyadah 10 weeks + Murajaah 2 weeks) for a juz
 function generateAllBlocks(juzInfo: any) {
   const allBlocks: any[] = [];
   const parts = ['A', 'B', 'C', 'D'];
   const blockOffset = juzInfo.part === 'B' ? 10 : 0;
 
+  // 1. Ziyadah Weeks (1-10)
   for (let week = 1; week <= 10; week++) {
     const blockNumber = week + blockOffset;
     const weekStartPage = juzInfo.start_page + (week - 1);
@@ -66,7 +76,6 @@ function generateAllBlocks(juzInfo: any) {
     for (let i = 0; i < 4; i++) {
       const part = parts[i];
       const blockCode = `H${blockNumber}${part}`;
-      const blockPage = Math.min(weekStartPage, juzInfo.end_page);
 
       allBlocks.push({
         block_code: blockCode,
@@ -78,6 +87,38 @@ function generateAllBlocks(juzInfo: any) {
         jurnal_count: 0
       });
     }
+  }
+
+  // 2. Murajaah Week (Pekan 11)
+  const murajaahSchedule = [
+    { day: 'Senin', range: [1, 3], parts: ['A', 'B'], target: '4×', code: 'M1' },
+    { day: 'Selasa', range: [3, 5], parts: ['C', 'D'], target: '4×', code: 'M2' },
+    { day: 'Rabu', range: [1, 5], parts: ['A', 'D'], target: '2×', code: 'M3' },
+    { day: 'Kamis', range: [6, 8], parts: ['A', 'B'], target: '4×', code: 'M4' },
+    { day: 'Jum\'at', range: [8, 10], parts: ['C', 'D'], target: '4×', code: 'M5' },
+    { day: 'Sabtu', range: [6, 10], parts: ['A', 'D'], target: '2×', code: 'M6' },
+    { day: 'Ahad', range: [1, 10], parts: ['A', 'D'], target: '1×', code: 'M7' },
+  ];
+
+  for (const item of murajaahSchedule) {
+    const startWeek = item.range[0];
+    const endWeek = item.range[1];
+    const startPage = Math.min(juzInfo.start_page + (startWeek - 1), juzInfo.end_page);
+    const endPage = Math.min(juzInfo.start_page + (endWeek - 1), juzInfo.end_page);
+    
+    const startBlok = `H${startWeek + blockOffset}${item.parts[0]}`;
+    const endBlok = `H${endWeek + blockOffset}${item.parts[1] || item.parts[0]}`;
+
+    allBlocks.push({
+      block_code: item.code,
+      week_number: 11,
+      part: item.day,
+      start_page: startPage,
+      end_page: endPage,
+      is_completed: false,
+      jurnal_count: 0,
+      label: `${item.day}: ${startBlok}-${endBlok} (${item.target})`
+    });
   }
 
   return allBlocks;
@@ -137,8 +178,12 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
   });
 
   const weeklyStatus: any[] = [];
-  for (let week = 1; week <= 10; week++) {
+  const maxWeek = Math.max(...allBlocks.map(b => b.week_number), 10);
+  
+  for (let week = 1; week <= maxWeek; week++) {
     const weekBlocks = allBlocks.filter(b => b.week_number === week);
+    if (weekBlocks.length === 0 && week > 10) continue; // Skip empty weeks after 10
+
     const completedBlocks = weekBlocks.filter(b => {
       const status = blockStatus.get(normalizeBlokCode(b.block_code));
       return status?.is_completed || false;
@@ -148,7 +193,7 @@ function calculateWeeklyStatus(allBlocks: any[], jurnalRecords: any[]) {
       week_number: week,
       total_blocks: weekBlocks.length,
       completed_blocks: completedBlocks.length,
-      is_completed: completedBlocks.length === weekBlocks.length,
+      is_completed: weekBlocks.length > 0 && completedBlocks.length === weekBlocks.length,
       blocks: weekBlocks.map(b => ({
         ...b,
         is_completed: blockStatus.get(normalizeBlokCode(b.block_code))?.is_completed || false,
@@ -360,7 +405,7 @@ export async function GET(request: Request) {
     // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!daftar_ulang_submissions_user_id_fkey!inner(full_name, nama_kunyah, avatar_url, whatsapp, is_blacklisted)')
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!daftar_ulang_submissions_user_id_fkey!inner(full_name, nama_kunyah, avatar_url, whatsapp, email, is_blacklisted)')
       .in('status', targetStatuses)
       .order('confirmed_full_name', { ascending: true })
       .range(offset, offset + limit - 1);
@@ -427,7 +472,7 @@ export async function GET(request: Request) {
 
     const { data: usersData } = await supabase
       .from('users')
-      .select('id, full_name, nama_kunyah, whatsapp, is_blacklisted')
+      .select('id, full_name, nama_kunyah, whatsapp, email, is_blacklisted')
       .in('id', daftarUlangUserIds);
 
     const userMap = new Map();

@@ -157,7 +157,7 @@ function MuallimahRegistrationContent() {
 
   // Set batchId from URL parameter or activeBatch
   useEffect(() => {
-    const batchFromUrl = searchParams.get('batch');
+    const batchFromUrl = searchParams.get('batchId') || searchParams.get('batch');
     if (batchFromUrl) {
       setBatchId(batchFromUrl);
       fetchBatchInfo(batchFromUrl);
@@ -328,11 +328,39 @@ function MuallimahRegistrationContent() {
         .single();
 
       if (error) throw error;
+      
+      // Calculate duration_weeks if not present
+      if (data && !data.duration_weeks && data.start_date && data.end_date) {
+        const start = new Date(data.start_date);
+        const end = new Date(data.end_date);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        data.duration_weeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+      }
+      
       setBatchInfo(data);
     } catch (error) {
       console.error('Error fetching batch info:', error);
       toast.error('Gagal memuat informasi batch');
     }
+  };
+
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return dateString || '';
+    }
+  };
+
+  const formatDateRange = (start: string, end: string) => {
+    if (!start || !end) return '';
+    return `${formatDate(start)} - ${formatDate(end)}`;
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -510,7 +538,7 @@ function MuallimahRegistrationContent() {
               Formulir Pendaftaran Mu'allimah
             </h1>
             <p className="text-gray-600 max-w-2xl mx-auto text-xs sm:text-sm">
-              Batch 2 (Juz 1, 28, 29, 30) • Durasi 13 Pekan (5 Januari - 5 April 2026)
+              {batchInfo?.name || 'Memuat...'} • Durasi {batchInfo?.duration_weeks || '13'} Pekan ({formatDateRange(batchInfo?.start_date, batchInfo?.end_date)})
             </p>
           </div>
 
@@ -522,29 +550,17 @@ function MuallimahRegistrationContent() {
                 <p className="font-semibold text-green-800">Hayyakillah</p>
                 <p className="font-semibold text-green-800">Ahlan wasahlan Mu'allimaty kesayangan..</p>
 
-                <p className="font-medium text-gray-900">📝 Formulir ini adalah formulir pendaftaran Mu'allimah MTI Batch 2</p>
+                <p className="font-medium text-gray-900">📝 Formulir ini adalah formulir pendaftaran Mu'allimah MTI {batchInfo?.name || '...'}</p>
 
-                <p className="font-medium text-gray-900">📆 Durasi program: InsyaAllah selama 13 Pekan dimulai dari tanggal 5 Januari - 5 April 2026 untuk target hafalan 1/2 juz.</p>
+                <p className="font-medium text-gray-900">📆 Durasi program: InsyaAllah selama {batchInfo?.duration_weeks || '13'} Pekan ({formatDateRange(batchInfo?.start_date, batchInfo?.end_date)}) untuk target hafalan 1/2 juz.</p>
                 <ul className="list-none pl-0 space-y-1 text-gray-700">
                   <li className="flex items-center gap-2">
                     <span className="text-green-600">•</span>
-                    <span>Pekan 1 (5-11 Januari): Tashih</span>
+                    <span>Tashih wajib sekali sepekan untuk kurikulum ziyadah pekan depan, jadwal menyesuaikan</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-green-600">•</span>
-                    <span>Pekan 2-11 (12 Januari - 5 April): Ziyadah</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>(Catatan: 15-29 Maret adalah Libur Lebaran)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>Pekan 12 (6-12 April): Muroja'ah</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-green-600">•</span>
-                    <span>Pekan 13 (13-19 April): Ujian</span>
+                    <span>Ziyadah: Dilaksanakan selama program berlangsung</span>
                   </li>
                 </ul>
 
@@ -884,7 +900,7 @@ function MuallimahRegistrationContent() {
 
                   <div className="space-y-2 overflow-x-auto pb-2">
                     <Label>Juz yang Bersedia Diampu *</Label>
-                    <p className="text-xs text-gray-500 mb-2">Pilih juz yang ukhti bersedia diampu (Batch 2: Juz 1, 28, 29, 30)</p>
+                    <p className="text-xs text-gray-500 mb-2">Pilih juz yang ukhti bersedia diampu ({batchInfo?.name || '...'})</p>
                     <div className="flex flex-wrap gap-3">
                       {['1', '28', '29', '30'].map((juzNum) => (
                         <label

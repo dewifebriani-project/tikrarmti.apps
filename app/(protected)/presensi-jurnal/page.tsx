@@ -161,6 +161,7 @@ interface JurnalEntry {
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
+    email: string | null;
     is_blacklisted?: boolean;
   };
 }
@@ -176,6 +177,7 @@ interface JurnalUserEntry {
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
+    email: string | null;
     is_blacklisted?: boolean;
   };
   weekly_status: Array<{
@@ -231,6 +233,7 @@ interface TashihEntry {
     full_name: string | null;
     nama_kunyah: string | null;
     whatsapp: string | null;
+    email: string | null;
     is_blacklisted?: boolean;
   };
   weekly_status: Array<{
@@ -338,8 +341,12 @@ function PresensiJurnalContent() {
   const [muallimahList, setMuallimahList] = useState<any[]>([]);
 
   const handleDropout = async (thalibahId: string, batchId: string, name: string) => {
+    if (!batchId) {
+      toast.error('Batch tidak ditemukan untuk thalibah ini');
+      return;
+    }
     if (!window.confirm(`Apakah Ukhti yakin ingin melakukan Dropout (DO) pada thalibah ${name}? Ini akan memindahkan data ke Tab DO.`)) return;
-    
+
     try {
       setDataLoading(true);
       const response = await fetch('/api/musyrifah/dropout', {
@@ -353,7 +360,7 @@ function PresensiJurnalContent() {
         loadData();
       } else {
         const result = await response.json();
-        toast.error(result.error || 'Gagal melakukan DO');
+        toast.error(result.error?.message || result.error || 'Gagal melakukan DO');
       }
     } catch (error) {
       toast.error('Terjadi kesalahan saat DO');
@@ -375,7 +382,7 @@ function PresensiJurnalContent() {
         loadData();
       } else {
         const result = await response.json();
-        toast.error(result.error || 'Gagal menghapus record');
+        toast.error(result.error?.message || result.error || 'Gagal menghapus record');
       }
     } catch (error) {
       toast.error('Terjadi kesalahan saat menghapus');
@@ -1080,8 +1087,15 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{entry.user?.full_name}</div>
-                        <div className="text-[10px] text-gray-400 font-medium tracking-tighter">
-                          {entry.user?.nama_kunyah} • {entry.user?.whatsapp || '-'}
+                        <div className="flex flex-col leading-tight">
+                          <div className="text-[10px] text-gray-400 font-medium tracking-tighter">
+                            {entry.user?.nama_kunyah} • {entry.user?.whatsapp || '-'}
+                          </div>
+                          {entry.user?.email && (
+                            <div className="text-[9px] text-gray-300 font-medium truncate max-w-[150px]" title={entry.user.email}>
+                              {entry.user.email}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1339,8 +1353,15 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                       </div>
                       <div>
                         <div className="text-sm font-bold text-gray-900">{entry.user?.full_name}</div>
-                        <div className="text-[10px] text-gray-400 font-medium tracking-tighter">
-                          {entry.user?.nama_kunyah} • {entry.user?.whatsapp || '-'}
+                        <div className="flex flex-col leading-tight">
+                          <div className="text-[10px] text-gray-400 font-medium tracking-tighter">
+                            {entry.user?.nama_kunyah} • {entry.user?.whatsapp || '-'}
+                          </div>
+                          {entry.user?.email && (
+                            <div className="text-[9px] text-gray-300 font-medium truncate max-w-[150px]" title={entry.user.email}>
+                              {entry.user.email}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1910,7 +1931,7 @@ function IssueSPModal({ target, onClose, onSuccess }: { target: any, onClose: ()
         onSuccess();
       } else {
         const result = await response.json();
-        toast.error(result.error || 'Gagal menerbitkan SP');
+        toast.error(result.error?.message || result.error || 'Gagal menerbitkan SP');
       }
     } catch (error) {
       toast.error('Terjadi kesalahan sistem');

@@ -48,6 +48,15 @@ export async function saveJurnalRecord(data: JurnalFormData) {
       .limit(1)
 
     const reg = registrations?.[0]
+    
+    // Check if user is registered/approved
+    if (!reg) {
+      return { 
+        success: false, 
+        error: 'Afwan Ukhti, akun ini belum terdaftar atau pendaftaran belum disetujui untuk batch aktif. Jurnal hanya bisa diisi oleh thalibah yang terdaftar resmi.' 
+      }
+    }
+
     const juzCode = reg?.daftar_ulang?.[0]?.confirmed_chosen_juz || reg?.chosen_juz
 
     if (juzCode) {
@@ -60,11 +69,17 @@ export async function saveJurnalRecord(data: JurnalFormData) {
         const blockOffset = juzInfo.part === 'B' ? 10 : 0
         const allBlockCodes: string[] = []
 
-        for (let week = 1; week <= totalPages; week++) {
+        // 1. Ziyadah Weeks (Pekan 1-10)
+        for (let week = 1; week <= 10; week++) {
           const blockNumber = week + blockOffset
           for (let i = 0; i < 4; i++) {
             allBlockCodes.push(`H${blockNumber}${parts[i]}`)
           }
+        }
+
+        // 2. Murajaah Week (M1-M7)
+        for (let i = 1; i <= 7; i++) {
+          allBlockCodes.push(`M${i}`)
         }
 
         // Get completed blocks

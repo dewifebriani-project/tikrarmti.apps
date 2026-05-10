@@ -1,10 +1,16 @@
 'use client';
 
-import { Search, Filter, RefreshCw, X } from 'lucide-react';
+import { Search, Filter, RefreshCw, X, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 interface UserFiltersProps {
-  onFilterChange: (filters: { search: string; role: string; status: string }) => void;
+  onFilterChange: (filters: { 
+    search: string; 
+    role: string; 
+    status: string;
+    detectDuplicates: boolean;
+  }) => void;
   onRefresh: () => void;
   isLoading: boolean;
 }
@@ -13,19 +19,21 @@ export function UserFilters({ onFilterChange, onRefresh, isLoading }: UserFilter
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('all');
   const [status, setStatus] = useState('all');
+  const [detectDuplicates, setDetectDuplicates] = useState(false);
 
   // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      onFilterChange({ search, role, status });
+      onFilterChange({ search, role, status, detectDuplicates });
     }, 500);
     return () => clearTimeout(timer);
-  }, [search, role, status]);
+  }, [search, role, status, detectDuplicates]);
 
   const handleClear = () => {
     setSearch('');
     setRole('all');
     setStatus('all');
+    setDetectDuplicates(false);
   };
 
   return (
@@ -80,12 +88,26 @@ export function UserFilters({ onFilterChange, onRefresh, isLoading }: UserFilter
           <div className="h-8 w-px bg-gray-200 mx-1 hidden lg:block" />
 
           <button
+            onClick={() => setDetectDuplicates(!detectDuplicates)}
+            className={cn(
+              "px-3 py-2.5 rounded-xl border text-sm font-bold transition-all flex items-center gap-2",
+              detectDuplicates 
+                ? "bg-orange-50 border-orange-200 text-orange-700 shadow-sm ring-2 ring-orange-500/10" 
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            )}
+            title="Tampilkan akun dengan nomor WhatsApp ganda"
+          >
+            <Shield className={cn("h-4 w-4", detectDuplicates ? "fill-orange-700/10" : "")} />
+            <span>Deteksi Duplikat</span>
+          </button>
+
+          <button
             onClick={onRefresh}
             disabled={isLoading}
             className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 disabled:opacity-50 transition-all flex items-center gap-2"
             title="Refresh Data"
           >
-            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={cn("h-5 w-5", isLoading && "animate-spin")} />
             <span className="lg:hidden text-sm font-medium">Refresh</span>
           </button>
 

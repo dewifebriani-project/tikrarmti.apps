@@ -82,21 +82,5 @@
       "url": "/tashih",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/desktop-home.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Home screen on desktop"
-    },
-    {
-      "src": "/screenshots/mobile-home.png",
-      "sizes": "375x667",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Home screen on mobile"
-    }
   ]
 }

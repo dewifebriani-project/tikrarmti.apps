@@ -81,7 +81,9 @@ export default function JurnalHarianPage() {
   const activeRegistration = registrations.find((reg: any) =>
     reg.batch?.status === 'open' &&
     (reg.status === 'approved' || reg.selection_status === 'selected')
-  ) || registrations[0]
+  )
+
+  const hasNoActiveRegistration = !activeRegistration && !isAdmin
 
   const juzToUse = activeRegistration?.daftar_ulang?.confirmed_chosen_juz ||
                       (activeRegistration as any)?.chosen_juz ||
@@ -121,6 +123,11 @@ export default function JurnalHarianPage() {
   }
 
   const handleBlockClick = (blockCode: string, weekNumber: number) => {
+    if (hasNoActiveRegistration) {
+      toast.error('Maaf Ukhti, silakan mendaftar terlebih dahulu untuk dapat mengisi jurnal.')
+      return
+    }
+
     // Reset form for the specific block
     const blockData = jurnalStatus?.blocks.find(b => b.block_code === blockCode)
     
@@ -129,6 +136,7 @@ export default function JurnalHarianPage() {
     setJurnalData(prev => ({ 
       ...prev, 
       blok: blockCode,
+      label: (blockData as any)?.label,
       rabth_completed: false,
       murajaah_completed: false,
       simak_murattal_completed: false,
@@ -148,7 +156,7 @@ export default function JurnalHarianPage() {
     try {
       const result = await saveJurnalRecord({
         ...data,
-        weekNumber: Math.ceil(parseInt(data.blok.match(/H(\d+)/)?.[1] || '1') / 1) // Logic per individual block
+        weekNumber: data.blok.startsWith('M') ? 11 : Math.ceil(parseInt(data.blok.match(/H(\d+)/)?.[1] || '1') / 1)
       })
       if (result.success) {
         toast.success(result.message)
@@ -168,17 +176,35 @@ export default function JurnalHarianPage() {
     return <div className="flex justify-center items-center py-24"><Loader2 className="h-10 w-10 animate-spin text-green-900" /></div>
   }
 
-  if (!jurnalStatus && !isAdmin) {
-    return (
-      <div className="text-center py-12 glass-premium rounded-3xl m-4">
-        <h2 className="text-xl font-bold text-gray-800">Halaqah Belum Aktif</h2>
-        <p className="text-gray-500 mt-2">Pendaftaran Ukhti sedang diproses.</p>
-      </div>
-    )
-  }
-
+  // NOTE: We don't return early if !jurnalStatus anymore, 
+  // because we want to show the read-only view with the banner.
+  
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6 animate-fadeInUp">
+      {/* Registration Banner for Unauthorized Users */}
+      {hasNoActiveRegistration && (
+        <div className="relative group overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 shadow-xl border border-emerald-500/20 mb-4 transition-all hover:shadow-emerald-900/10">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700" />
+          <div className="relative flex flex-col md:flex-row items-center gap-4 text-white">
+            <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+              <Info className="h-7 w-7 text-white" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-lg font-bold">Ukhti Belum Terdaftar</h3>
+              <p className="text-emerald-50 text-xs opacity-90 leading-relaxed max-w-sm">
+                Afwan, saat ini Ukhti hanya bisa melihat progres. Silakan mendaftar di Batch berikutnya untuk mendapatkan akses penuh Jurnal Harian.
+              </p>
+            </div>
+            <a 
+              href="/pendaftaran/tikrar-tahfidz"
+              className="px-5 py-2.5 bg-white text-emerald-700 rounded-2xl font-bold text-sm shadow-lg hover:bg-emerald-50 transition-all active:scale-95 border-b-4 border-emerald-100/50"
+            >
+              Mendaftar Sekarang
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <JurnalHeader 
         title={viewMode === 'form' ? "Entry Jurnal Harian" : "Jurnal Harian"} 
@@ -187,19 +213,26 @@ export default function JurnalHarianPage() {
         progress={jurnalStatus ? {
           completed: jurnalStatus.summary.completed_blocks,
           total: jurnalStatus.summary.total_blocks
-        } : undefined}
+        } : (isAdmin ? { completed: 0, total: 40 } : undefined)}
       />
 
       {viewMode === 'status' ? (
         <>
           {/* Grid Section */}
-          {jurnalStatus && (
+          {(jurnalStatus || isAdmin || hasNoActiveRegistration) && (
             <JurnalStatusGrid 
-              blocks={jurnalStatus.blocks} 
+              blocks={jurnalStatus?.blocks || []} 
               currentWeekNumber={currentWeekNumber}
               onBlockClick={handleBlockClick}
               isAdminPreview={isAdmin && !activeRegistration}
             />
+          )}
+
+          {(!jurnalStatus && !isAdmin && !hasNoActiveRegistration) && (
+            <div className="text-center py-12 glass-premium rounded-3xl">
+              <h2 className="text-xl font-bold text-gray-800">Halaqah Belum Aktif</h2>
+              <p className="text-gray-500 mt-2">Pendaftaran Ukhti sedang diproses.</p>
+            </div>
           )}
         </>
       ) : (

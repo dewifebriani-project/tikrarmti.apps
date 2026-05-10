@@ -12,7 +12,6 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840], // Responsive image sizes for all devices
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384], // Icon and thumbnail sizes
     remotePatterns: [
@@ -51,7 +50,7 @@ const nextConfig = {
     // Restrict allowed origins per environment — never use wildcard with credentials
     const allowedOrigins = process.env.NODE_ENV === 'production'
       ? 'https://markaztikrar.id'
-      : 'http://localhost:3000';
+      : 'http://localhost:3006';
 
     return [
       {
@@ -212,7 +211,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
               "img-src 'self' data: https: https://*.supabase.co https://*.googleusercontent.com",
               "media-src 'self' blob: https://*.supabase.co",
-              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id https://*.sentry.io https://*.google-analytics.com https://api.aladhan.com https://api.bigdatacloud.net",
+              "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id https://*.sentry.io https://*.google-analytics.com https://api.aladhan.com https://api.bigdatacloud.net https://ipapi.co",
             ].join('; ')
           },
           // Permissions-Policy removed from wildcard - use specific routes instead
@@ -229,7 +228,9 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
+            value: process.env.NODE_ENV === 'production'
+              ? 'public, max-age=31536000, immutable'
+              : 'no-cache, no-store, must-revalidate'
           }
         ]
       },
@@ -239,7 +240,9 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
+            value: process.env.NODE_ENV === 'production'
+              ? 'public, max-age=31536000, immutable'
+              : 'no-cache, no-store, must-revalidate'
           }
         ]
       },

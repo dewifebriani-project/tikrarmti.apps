@@ -166,7 +166,7 @@ export async function GET(request: Request) {
     // First, get total count
     let countQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('*, users!inner(is_blacklisted)', { count: 'exact', head: true })
+      .select('*, users!daftar_ulang_submissions_user_id_fkey!inner(is_blacklisted)', { count: 'exact', head: true })
       .in('status', targetStatuses);
     
     if (isBlacklisted) {
@@ -183,7 +183,7 @@ export async function GET(request: Request) {
     // Then, get paginated submissions
     let submissionsQuery = supabase
       .from('daftar_ulang_submissions')
-      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!inner(full_name, nama_kunyah, avatar_url, whatsapp, is_blacklisted)')
+      .select('user_id, confirmed_full_name, confirmed_wa_phone, confirmed_chosen_juz, status, users!daftar_ulang_submissions_user_id_fkey!inner(full_name, nama_kunyah, avatar_url, whatsapp, email, is_blacklisted)')
       .in('status', targetStatuses)
       .order('confirmed_full_name', { ascending: true })
       .range(offset, offset + limit - 1);
@@ -213,7 +213,7 @@ export async function GET(request: Request) {
     // Fetch user data separately
     const { data: usersData } = await supabase
       .from('users')
-      .select('id, full_name, nama_kunyah, whatsapp, is_blacklisted')
+      .select('id, full_name, nama_kunyah, whatsapp, email, is_blacklisted')
       .in('id', userIds);
 
     const userMap = new Map();

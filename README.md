@@ -128,7 +128,7 @@ CREATE POLICY "Users can update own progress" ON progress_milestones FOR ALL USI
 npm run dev
 ```
 
-Aplikasi akan berjalan di [http://localhost:3003](http://localhost:3003)
+Aplikasi akan berjalan di [http://localhost:3006](http://localhost:3006)
 
 ## 📁 Struktur Proyek
 

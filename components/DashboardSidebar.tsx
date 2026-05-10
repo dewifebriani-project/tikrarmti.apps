@@ -115,7 +115,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           icon: <Shield className="h-5 w-5" />,
         });
         baseItems.push({
-          href: '/admin?tab=batches',
+          href: '/admin/batch-program',
           label: 'Batch & Program',
           icon: <Calendar className="h-5 w-5" />,
         });

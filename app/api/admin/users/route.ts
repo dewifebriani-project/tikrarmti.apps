@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const sortBy = searchParams.get('sortBy');
     const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const detectDuplicates = searchParams.get('detect_duplicates') === 'true';
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -63,6 +64,51 @@ export async function GET(request: Request) {
       }
     }
 
+    // Handle Duplicate Detection
+    if (detectDuplicates) {
+      // 1. Get WhatsApp numbers that appear more than once
+      const { data: duplicatePhones } = await supabase
+        .rpc('get_duplicate_whatsapp');
+
+      // Note: If the RPC doesn't exist yet, we'll need a fallback or create it.
+      // Fallback: Fetch all users and filter in-memory (only for small-medium datasets)
+      // For now, let's use a subquery-like approach with filter if we don't have RPC
+      if (duplicatePhones && duplicatePhones.length > 0) {
+        query = query.in('whatsapp', duplicatePhones);
+      } else {
+        // Alternative: Standard Supabase way using a raw filter if possible, 
+        // but Postgres subqueries are better. 
+        // Let's use a simpler approach: fetch IDs of users with duplicate phones.
+        const { data: dups } = await supabase
+          .from('users_duplicate_phones') // Assuming a view or we'll use a direct query
+          .select('whatsapp');
+        
+        if (dups && dups.length > 0) {
+          const phones = dups.map(d => d.whatsapp);
+          query = query.in('whatsapp', phones);
+        } else {
+          // If no view, we can rely on a manual query to the users table
+          const { data: allUsers } = await supabase
+            .from('users')
+            .select('whatsapp');
+          
+          const counts = (allUsers || []).reduce((acc: any, curr) => {
+            if (curr.whatsapp) acc[curr.whatsapp] = (acc[curr.whatsapp] || 0) + 1;
+            return acc;
+          }, {});
+
+          const duplicateList = Object.keys(counts).filter(phone => counts[phone] > 1);
+          
+          if (duplicateList.length > 0) {
+            query = query.in('whatsapp', duplicateList);
+          } else {
+            // No duplicates found, return empty
+            query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        }
+      }
+    }
+
     if (sortBy) {
       query = query.order(sortBy as any, { ascending: sortOrder === 'asc' });
     }
@@ -76,15 +122,46 @@ export async function GET(request: Request) {
       return ApiResponses.databaseError(error);
     }
 
-    const formattedUsers = users || [];
+    let formattedUsers = users || [];
     const totalCount = count || 0;
-    
-    console.log('[DEBUG Admin Users API] users data type:', Array.isArray(users) ? 'array' : typeof users);
-    console.log('[DEBUG Admin Users API] users length:', users?.length);
-    console.log('[DEBUG Admin Users API] count:', count);
-    console.log('[DEBUG Admin Users API] from / to:', from, '/', to);
 
-    // 4. Audit log
+    // 4. Enrich data if detectDuplicates is true
+    if (detectDuplicates && formattedUsers.length > 0) {
+      const userIds = formattedUsers.map(u => u.id);
+
+      // Fetch Journal Stats
+      const { data: jurnalStats } = await supabase
+        .from('jurnal_records')
+        .select('user_id, tanggal_jurnal')
+        .in('user_id', userIds)
+        .order('tanggal_jurnal', { ascending: false });
+
+      // Fetch Registration/Batch Stats
+      const { data: registrations } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('user_id, batch:batches(name), status')
+        .in('user_id', userIds);
+
+      // Map enrichment data to users
+      formattedUsers = formattedUsers.map(user => {
+        const userJurnals = (jurnalStats || []).filter(j => j.user_id === user.id);
+        const userRegs = (registrations || []).filter(r => r.user_id === user.id);
+        const registeredBatches = Array.from(new Set(userRegs.map(r => (r.batch as any)?.name).filter(Boolean)));
+
+        return {
+          ...user,
+          activity_meta: {
+            total_jurnal: userJurnals.length,
+            latest_jurnal_date: userJurnals.length > 0 ? userJurnals[0].tanggal_jurnal : null,
+            registered_batches: registeredBatches,
+            has_active_reg: userRegs.some(r => r.status === 'approved' || r.status === 'selected'),
+            is_unauthorized_activity: userJurnals.length > 0 && registeredBatches.length === 0
+          }
+        };
+      });
+    }
+
+    // 5. Audit log
     await logAudit({
       userId: context.userId,
       action: 'READ',
@@ -95,6 +172,7 @@ export async function GET(request: Request) {
         search: search || null,
         role: role || 'all',
         status: status || 'all',
+        detectDuplicates,
         resultCount: formattedUsers.length,
         totalCount
       },

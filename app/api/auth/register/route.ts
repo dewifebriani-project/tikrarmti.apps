@@ -98,7 +98,22 @@ export async function POST(request: NextRequest) {
       jenis_kelamin,
       pekerjaan,
       alasan_daftar,
+      honeypot, // Bot protection
     } = body;
+
+    // Honeypot check - if field is filled, it's likely a bot
+    if (honeypot) {
+      logger.warn('Honeypot filled - Bot detected', {
+        ip,
+        honeypotValue: honeypot,
+        email: body.email
+      });
+      // Return success to the bot to prevent it from trying other ways, 
+      // but don't actually create the user. Or return error.
+      // Usually, returning a generic error or "success" but doing nothing is best.
+      // Here we'll return a server error to be safe.
+      return ApiResponses.serverError('Pendaftaran gagal. Silakan coba lagi nanti.');
+    }
 
     // Role is always 'thalibah' for public registration — never trust client input
     const role = 'thalibah';
@@ -182,6 +197,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check if WhatsApp already exists in users table (1 Phone = 1 Account Security)
+    const { data: existingPhone, error: phoneError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name')
+      .eq('whatsapp', body.whatsapp)
+      .maybeSingle();
+
+    if (phoneError) {
+      return ApiResponses.serverError('Terjadi kesalahan saat memeriksa nomor WhatsApp');
+    }
+
+    if (existingPhone) {
+      return ApiResponses.conflict('Nomor WhatsApp ini sudah terdaftar. Silakan gunakan nomor lain atau hubungi admin.');
+    }
+
     // Check blacklist - prevent blacklisted phone or email from registering
     const { data: blacklistCheck, error: blacklistError } = await supabaseAdmin
       .from('users')
@@ -215,7 +245,7 @@ export async function POST(request: NextRequest) {
     const { data: signUpData, error: signUpError } = await (supabaseAdmin as any).auth.admin.createUser({
       email: body.email,
       password: body.password,
-      email_confirm: true, // Require email confirmation for security
+      email_confirm: true, // Auto-confirm email since user disabled manual confirmation
       user_metadata: {
         full_name: body.full_name,
         role: body.role
@@ -421,7 +451,7 @@ export async function POST(request: NextRequest) {
 
     const responseMessage = existingUser
       ? 'Profil berhasil diperbarui'
-      : `🎉 Pendaftaran berhasil! Silakan cek inbox email *Ukhti* untuk link konfirmasi sebelum login.`;
+      : `🎉 Pendaftaran berhasil! Silakan login dengan akun *Ukhti*.`;
 
     logger.auth('Registration completed', newUser.id, {
       email: body.email,
@@ -429,7 +459,7 @@ export async function POST(request: NextRequest) {
     });
 
     const responseData = {
-      requiresEmailVerification: true, // Email confirmation now required
+      requiresEmailVerification: false, // Email confirmation disabled
       user: {
         id: newUser.id,
         email: newUser.email,

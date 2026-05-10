@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" font-family="'Inter', 'Poppins', system-ui, sans-serif">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F4D26B"/>
+      <stop offset="50%" stop-color="#C28F2E"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E5238"/>
+      <stop offset="100%" stop-color="#022C20"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FCE7F3"/>
+      <stop offset="100%" stop-color="#FBCFE8"/>
+    </linearGradient>
+    <radialGradient id="warmGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#FEF3C7" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FEF3C7" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#064E3B" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- BG -->
+  <rect width="1080" height="1080" fill="#FFFBF5"/>
+
+  <!-- Floral corner motifs -->
+  <g opacity="0.18">
+    <!-- Top left -->
+    <g transform="translate(0,0)">
+      <circle cx="80" cy="80" r="40" fill="url(#gold)"/>
+      <path d="M40 80 Q60 40 80 80 Q100 120 80 80 M80 40 Q120 60 80 80 Q40 100 80 80" fill="none" stroke="url(#gold)" stroke-width="2"/>
+      <circle cx="40" cy="120" r="25" fill="none" stroke="url(#gold)" stroke-width="2"/>
+      <circle cx="120" cy="40" r="20" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+    <!-- Top right (mirror) -->
+    <g transform="translate(1080,0) scale(-1,1)">
+      <circle cx="80" cy="80" r="40" fill="url(#gold)"/>
+      <path d="M40 80 Q60 40 80 80 Q100 120 80 80 M80 40 Q120 60 80 80 Q40 100 80 80" fill="none" stroke="url(#gold)" stroke-width="2"/>
+      <circle cx="40" cy="120" r="25" fill="none" stroke="url(#gold)" stroke-width="2"/>
+      <circle cx="120" cy="40" r="20" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+    <!-- Bottom left flipped -->
+    <g transform="translate(0,1080) scale(1,-1)">
+      <circle cx="80" cy="80" r="40" fill="url(#gold)"/>
+      <path d="M40 80 Q60 40 80 80 Q100 120 80 80 M80 40 Q120 60 80 80 Q40 100 80 80" fill="none" stroke="url(#gold)" stroke-width="2"/>
+      <circle cx="40" cy="120" r="25" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+    <!-- Bottom right flipped -->
+    <g transform="translate(1080,1080) scale(-1,-1)">
+      <circle cx="80" cy="80" r="40" fill="url(#gold)"/>
+      <path d="M40 80 Q60 40 80 80 Q100 120 80 80 M80 40 Q120 60 80 80 Q40 100 80 80" fill="none" stroke="url(#gold)" stroke-width="2"/>
+      <circle cx="40" cy="120" r="25" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- Decorative arch -->
+  <path d="M540 110 Q230 110 230 420 L230 770 Q540 850 850 770 L850 420 Q850 110 540 110 Z" fill="none" stroke="url(#gold)" stroke-width="3" opacity="0.45"/>
+  <path d="M540 130 Q260 130 260 420 L260 740 Q540 814 820 740 L820 420 Q820 130 540 130 Z" fill="none" stroke="url(#emerald)" stroke-width="1.5" opacity="0.25"/>
+
+  <!-- Background warm glow -->
+  <ellipse cx="540" cy="500" rx="350" ry="280" fill="url(#warmGlow)"/>
+
+  <!-- Logo -->
+  <g transform="translate(540, 200)">
+    <g transform="translate(-65, -42)">
+      <path d="M65 0 L120 32 L120 80 L65 112 L10 80 L10 32 Z" fill="none" stroke="url(#gold)" stroke-width="3.5"/>
+    </g>
+    <text x="0" y="-12" text-anchor="middle" font-size="16" font-weight="900" fill="url(#gold)" letter-spacing="2">MARKAZ</text>
+    <text x="0" y="8" text-anchor="middle" font-size="16" font-weight="900" fill="url(#gold)" letter-spacing="2">TIKRAR</text>
+    <text x="0" y="28" text-anchor="middle" font-size="10" font-weight="700" fill="url(#gold)" letter-spacing="3">INDONESIA</text>
+  </g>
+
+  <!-- Eyebrow -->
+  <g transform="translate(540, 320)" text-anchor="middle">
+    <rect x="-130" y="-22" width="260" height="40" rx="20" fill="url(#emerald)"/>
+    <text y="6" font-size="16" font-weight="800" fill="#FCD34D" letter-spacing="6">PROGRAM MUSLIMAH</text>
+  </g>
+
+  <!-- HEADLINE -->
+  <g transform="translate(540, 440)" text-anchor="middle">
+    <text y="0" font-size="86" font-weight="900" fill="#064E3B" letter-spacing="-2">Ukhti Sholihah,</text>
+    <text y="92" font-size="86" font-weight="900" fill="url(#gold)" letter-spacing="-2">Hafidzhah Insya Allah</text>
+  </g>
+
+  <!-- Subtitle -->
+  <g transform="translate(540, 580)" text-anchor="middle">
+    <text y="0" font-size="22" fill="#374151">Bersama Halaqah Muallimah berpengalaman, dalam suasana yang</text>
+    <text y="32" font-size="22" font-weight="800" fill="#064E3B">khusyu', terjaga, dan penuh keberkahan.</text>
+  </g>
+
+  <!-- Quote box -->
+  <g transform="translate(540, 720)" filter="url(#shadow)">
+    <rect x="-360" y="-60" width="720" height="120" rx="24" fill="#FFFFFF" stroke="url(#gold)" stroke-width="2"/>
+    <text x="-340" y="-22" font-size="60" font-weight="900" fill="url(#gold)">"</text>
+    <text y="-10" text-anchor="middle" font-size="18" font-weight="700" fill="#064E3B">Sebaik-baik kalian adalah yang mempelajari</text>
+    <text y="20" text-anchor="middle" font-size="18" font-weight="700" fill="#064E3B">Al-Qur'an dan mengajarkannya.</text>
+    <text y="44" text-anchor="middle" font-size="13" font-style="italic" fill="#9CA3AF">— HR. Bukhari</text>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(540, 905)">
+    <rect x="-220" y="-32" width="440" height="64" rx="32" fill="url(#emerald)" filter="url(#shadow)"/>
+    <rect x="-215" y="-28" width="430" height="56" rx="28" fill="none" stroke="url(#gold)" stroke-width="2"/>
+    <text y="9" text-anchor="middle" font-size="26" font-weight="900" fill="#fff" letter-spacing="0.5">Daftar Halaqah Tikrar &#8594;</text>
+  </g>
+
+  <!-- FOOTER -->
+  <g transform="translate(540, 1015)" text-anchor="middle">
+    <text y="0" font-size="13" font-weight="700" fill="#9CA3AF" letter-spacing="3">INFORMASI &amp; PENDAFTARAN</text>
+    <text y="24" font-size="16" font-weight="800" fill="#064E3B">markaztikrar.id  &#8226;  WA 081330000784  &#8226;  lynk.id/markaztikrar.id</text>
+  </g>
+</svg>

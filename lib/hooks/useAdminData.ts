@@ -51,6 +51,7 @@ export function useAdminUsers(enabled: boolean = true, params: {
   status?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  detectDuplicates?: boolean;
 } = {}) {
   // Build query string
   const queryParams = new URLSearchParams();
@@ -61,6 +62,7 @@ export function useAdminUsers(enabled: boolean = true, params: {
   if (params.status) queryParams.set('status', params.status);
   if (params.sortBy) queryParams.set('sortBy', params.sortBy);
   if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
+  if (params.detectDuplicates) queryParams.set('detect_duplicates', 'true');
 
   const queryString = queryParams.toString();
   const url = enabled ? `/api/admin/users${queryString ? `?${queryString}` : ''}` : null;

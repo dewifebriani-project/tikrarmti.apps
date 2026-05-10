@@ -42,12 +42,23 @@ function RegisterPageContent() {
     jenisKelamin: '',
     pekerjaan: '',
     alasanDaftar: '',
-    setujuSyarat: false
+    setujuSyarat: false,
+    mathAnswer: '',
+    honeypot: '' // Field for bots
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [savedDataLoaded, setSavedDataLoaded] = useState(false);
+  const [mathChallenge, setMathChallenge] = useState({ num1: 0, num2: 0 });
+
+  // Initialize math challenge
+  React.useEffect(() => {
+    setMathChallenge({
+      num1: Math.floor(Math.random() * 10) + 1,
+      num2: Math.floor(Math.random() * 10) + 1
+    });
+  }, []);
 
   // Load saved form data from localStorage on mount
   React.useEffect(() => {
@@ -90,7 +101,9 @@ function RegisterPageContent() {
       jenisKelamin: '',
       pekerjaan: '',
       alasanDaftar: '',
-      setujuSyarat: false
+      setujuSyarat: false,
+      mathAnswer: '',
+      honeypot: ''
     });
     setSavedDataLoaded(false);
   };
@@ -185,6 +198,12 @@ function RegisterPageContent() {
       newErrors.setujuSyarat = 'Ukhti harus menyetujui syarat dan ketentuan';
     }
 
+    if (!formData.mathAnswer) {
+      newErrors.mathAnswer = 'Jawaban matematika harus diisi';
+    } else if (parseInt(formData.mathAnswer) !== mathChallenge.num1 + mathChallenge.num2) {
+      newErrors.mathAnswer = 'Jawaban salah. Silakan hitung kembali.';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -227,7 +246,8 @@ function RegisterPageContent() {
           jenis_kelamin: formData.jenisKelamin,
           pekerjaan: formData.pekerjaan,
           alasan_daftar: formData.alasanDaftar,
-          role: 'thalibah'
+          role: 'thalibah',
+          honeypot: formData.honeypot // Bot protection
         }),
       });
 
@@ -654,6 +674,37 @@ function RegisterPageContent() {
               </Label>
             </div>
             {errors.setujuSyarat && <p className="text-red-500 text-sm mt-1">{errors.setujuSyarat}</p>}
+
+            {/* Honeypot Field (Invisible to humans, bots will fill it) */}
+            <div className="hidden" aria-hidden="true">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={formData.honeypot}
+                onChange={(e) => handleInputChange('honeypot', e.target.value)}
+              />
+            </div>
+
+            {/* Math Challenge */}
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <Label htmlFor="mathAnswer" className="text-green-900 font-medium mb-2 block">
+                Keamanan: Berapakah {mathChallenge.num1} + {mathChallenge.num2}? *
+              </Label>
+              <Input
+                id="mathAnswer"
+                type="number"
+                value={formData.mathAnswer}
+                onChange={(e) => handleInputChange('mathAnswer', e.target.value)}
+                placeholder="Masukkan hasil penjumlahan"
+                className={errors.mathAnswer ? 'border-red-500' : 'bg-white'}
+                required
+              />
+              <p className="text-gray-500 text-xs mt-1 italic">Untuk memastikan Ukhti bukan robot</p>
+              {errors.mathAnswer && <p className="text-red-500 text-sm mt-1">{errors.mathAnswer}</p>}
+            </div>
 
             {/* Submit Button */}
             <Button

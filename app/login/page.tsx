@@ -50,10 +50,7 @@ function LoginPageContent() {
             Registrasi Berhasil!
           </p>
           <p className="text-base">
-            ✅ Akun <em>Ukhti</em> telah terdaftar. <strong>Silakan cek inbox email</strong> untuk link konfirmasi sebelum login.
-          </p>
-          <p className="text-sm text-gray-600">
-            Konfirmasi email diperlukan untuk keamanan akun.
+            ✅ Akun <em>Ukhti</em> telah aktif. <strong>Silakan login</strong> untuk masuk ke dashboard.
           </p>
         </div>
       );

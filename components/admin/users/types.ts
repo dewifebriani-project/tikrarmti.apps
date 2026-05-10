@@ -31,6 +31,13 @@ export interface AdminUser {
     name: string;
     status: string;
   } | null;
+  activity_meta?: {
+    total_jurnal: number;
+    latest_jurnal_date: string | null;
+    registered_batches: string[];
+    has_active_reg: boolean;
+    is_unauthorized_activity: boolean;
+  };
 }
 
 export interface MuallimahRegistration {

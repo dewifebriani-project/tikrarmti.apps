@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveBatch } from '@/hooks/useBatches';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,6 +121,7 @@ function MusyrifahRegistrationContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [batchId, setBatchId] = useState<string>('');
+  const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch();
   const [batchInfo, setBatchInfo] = useState<any>(null);
 
   const [formData, setFormData] = useState<MusyrifahFormData>({
@@ -166,12 +168,15 @@ function MusyrifahRegistrationContent() {
   }, [authLoading, isAuthenticated, router]);
 
   useEffect(() => {
-    const batch = searchParams.get('batch');
+    const batch = searchParams.get('batchId') || searchParams.get('batch');
     if (batch) {
       setBatchId(batch);
       fetchBatchInfo(batch);
+    } else if (activeBatch?.id && !batchId) {
+      setBatchId(activeBatch.id);
+      setBatchInfo(activeBatch);
     }
-  }, [searchParams]);
+  }, [searchParams, activeBatch]);
 
   const fetchBatchInfo = async (id: string) => {
     try {

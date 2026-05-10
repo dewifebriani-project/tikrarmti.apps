@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { UserStats } from '@/components/admin/users/UserStats';
 import { UserFilters } from '@/components/admin/users/UserFilters';
 import { UserTable } from '@/components/admin/users/UserTable';
-import { UserDetailModal, EditRoleModal, BlacklistModal } from '@/components/admin/users/UserModals';
+import { UserDetailModal, EditRoleModal, BlacklistModal, MergeUserModal } from '@/components/admin/users/UserModals';
 import { MuallimahRegistration, AdminUser } from '@/components/admin/users/types';
 import { MuallimahTable } from '@/components/admin/users/MuallimahTable';
 import { MuallimahDetailModal } from '@/components/admin/users/MuallimahDetailModal';
@@ -28,10 +28,11 @@ export default function AdminUsersPage() {
     search: '',
     role: 'all',
     status: 'all',
+    detectDuplicates: false,
   });
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [activeModal, setActiveModal] = useState<'detail' | 'role' | 'blacklist' | 'muallimahDetail' | null>(null);
+  const [activeModal, setActiveModal] = useState<'detail' | 'role' | 'blacklist' | 'muallimahDetail' | 'merge' | null>(null);
   const [selectedMuallimah, setSelectedMuallimah] = useState<MuallimahRegistration | null>(null);
   const [activeTab, setActiveTab] = useState<'users' | 'muallimah'>('users');
   const [muallimahPage, setMuallimahPage] = useState(1);
@@ -76,7 +77,11 @@ export default function AdminUsersPage() {
   // --- HANDLERS ---
   const handleFilterChange = (newFilters: Partial<typeof filterState>) => {
     startTransition(() => {
-      setFilterState(prev => ({ ...prev, ...newFilters, page: newFilters.page || 1 }));
+      setFilterState(prev => ({ 
+        ...prev, 
+        ...newFilters, 
+        page: newFilters.page || (newFilters.detectDuplicates !== undefined ? 1 : prev.page) 
+      }));
     });
   };
 
@@ -92,7 +97,7 @@ export default function AdminUsersPage() {
     });
   };
 
-  const handleAction = async (action: 'detail' | 'role' | 'blacklist' | 'resetPassword' | 'preview', user: AdminUser) => {
+  const handleAction = async (action: 'detail' | 'role' | 'blacklist' | 'resetPassword' | 'preview' | 'merge', user: AdminUser) => {
     if (action === 'preview') {
       router.push(`/dashboard?user_id=${user.id}`);
       return;
@@ -115,7 +120,7 @@ export default function AdminUsersPage() {
     }
     
     setSelectedUser(user);
-    setActiveModal(action as 'detail' | 'role' | 'blacklist');
+    setActiveModal(action as 'detail' | 'role' | 'blacklist' | 'merge');
   };
 
   const closeModal = () => {
@@ -230,6 +235,7 @@ export default function AdminUsersPage() {
               pagination={pagination}
               onPageChange={(p) => handleFilterChange({ page: p })}
               onAction={handleAction}
+              detectDuplicates={filterState.detectDuplicates}
             />
           </>
         ) : (
@@ -296,6 +302,15 @@ export default function AdminUsersPage() {
       {selectedUser && activeModal === 'blacklist' && (
         <BlacklistModal 
           user={selectedUser} 
+          isOpen={true} 
+          onClose={closeModal}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {selectedUser && activeModal === 'merge' && (
+        <MergeUserModal 
+          sourceUser={selectedUser} 
           isOpen={true} 
           onClose={closeModal}
           onSuccess={handleRefresh}

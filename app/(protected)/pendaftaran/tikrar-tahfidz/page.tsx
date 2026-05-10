@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { useActiveBatch } from '@/hooks/useBatches'
+import { useActiveBatch, useBatch } from '@/hooks/useBatches'
 import { useMyRegistrations } from '@/hooks/useRegistrations'
 import { useJuzOptions } from '@/hooks/useJuzOptions'
 import { Button } from '@/components/ui/button'
@@ -53,7 +53,17 @@ const STORAGE_KEY = 'tikrar_registration_draft'
 export default function ThalibahBatch2Page() {
   const router = useRouter()
   const { user, isLoading, isAuthenticated, isUnauthenticated } = useAuth()
-  const { activeBatch, isLoading: batchLoading } = useActiveBatch()
+  const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch()
+  const searchParams = useSearchParams()
+  const urlBatchId = searchParams.get('batchId')
+  const urlProgramId = searchParams.get('programId')
+
+  // Use specific batch from URL if provided, otherwise fallback to activeBatch
+  const { batch: urlBatch, isLoading: urlBatchLoading } = useBatch(urlBatchId || undefined)
+  
+  const activeBatchData = urlBatch || activeBatch
+  const batchLoading = activeBatchLoading || urlBatchLoading
+
   const { juzOptions, isLoading: juzLoading } = useJuzOptions()
   const { registrations, mutate: mutateRegistrations } = useMyRegistrations()
   const supabase = createClient()
@@ -68,10 +78,10 @@ export default function ThalibahBatch2Page() {
   // Check if user is already registered for Tikrah Tahfidz program
   const tikrarRegistration = useMemo(() => {
     return registrations.find(reg =>
-      reg.batch_id === activeBatch?.id &&
+      reg.batch_id === activeBatchData?.id &&
       (reg.status === 'approved' || reg.status === 'pending')
     )
-  }, [registrations, activeBatch])
+  }, [registrations, activeBatchData])
 
   // Check if user can register (not registered or in edit mode)
   const canRegister = useMemo(() => {
@@ -250,6 +260,25 @@ export default function ThalibahBatch2Page() {
     }
   }
 
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return dateString || '';
+    }
+  };
+
+  const formatDateRange = (start: string | null | undefined, end: string | null | undefined) => {
+    if (!start || !end) return '';
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  };
+
   const validateSection = (section: number): boolean => {
     const newErrors: Record<string, string> = {}
 
@@ -360,7 +389,7 @@ export default function ThalibahBatch2Page() {
 
   const handleSubmit = async () => {
     if (!validateSection(currentSection)) return
-    if (!user?.id || !activeBatch) {
+    if (!user?.id || !activeBatchData) {
       toast.error('User atau batch tidak ditemukan')
       return
     }
@@ -374,7 +403,7 @@ export default function ThalibahBatch2Page() {
         formData,
         userProfile,
         user,
-        activeBatch,
+        activeBatchData,
         isEditMode,
         existingRegistrationId || undefined
       )
@@ -511,7 +540,7 @@ export default function ThalibahBatch2Page() {
       <Alert className="bg-green-50 border-green-200">
         <Info className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
         <AlertDescription className="text-green-800 text-sm sm:text-base">
-          <strong>Section 2 of {totalSections}</strong> - FORMULIR PENDAFTARAN TIKRAR MTI BATCH 2 (JUZ 1, 28, 29, 30)
+          <strong>Section 2 of {totalSections}</strong> - FORMULIR PENDAFTARAN TIKRAR MTI {activeBatchData?.name || '...'}
         </AlertDescription>
       </Alert>
 
@@ -520,16 +549,15 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-3 sm:space-y-4 text-sm sm:text-base text-gray-700">
           <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
-          <p>📆 Durasi program: InsyaAllah selama 13 Pekan dimulai dari tanggal 5 Januari untuk target hafalan 1/2 juz.</p>
+          <p>📆 Durasi program: InsyaAllah selama {activeBatchData?.duration_weeks || 13} Pekan ({formatDateRange(activeBatchData?.start_date, activeBatchData?.end_date)}) untuk target hafalan 1/2 juz.</p>
 
           <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 rounded-lg">
             <p className="font-semibold text-green-800 mb-2 sm:mb-3 text-sm sm:text-base">Struktur Program:</p>
             <div className="text-xs sm:text-sm text-green-700 space-y-1.5 sm:space-y-2">
-              <p>📅 <strong>Pekan 1 (5-11 Januari):</strong> Tashih</p>
-              <p>📖 <strong>Pekan 2-11 (12 Januari - 5 April):</strong> Ziyadah</p>
-              <p>🕌 <strong>(Catatan: 15-29 Maret adalah Libur Lebaran)</strong></p>
-              <p>📚 <strong>Pekan 12 (6-12 April):</strong> Muroja'ah</p>
-              <p>✅ <strong>Pekan 13 (13-19 April):</strong> Ujian</p>
+              <p>📅 <strong>Pekan Pertama:</strong> Tashih</p>
+              <p>📖 <strong>Pekan Selanjutnya:</strong> Ziyadah</p>
+              <p>🕌 <strong>(Catatan: Hari libur akan disesuaikan dengan kalender nasional/MTI)</strong></p>
+              <p>📚 <strong>Pekan Terakhir:</strong> Muroja'ah dan Ujian</p>
             </div>
           </div>
 
@@ -1263,7 +1291,7 @@ export default function ThalibahBatch2Page() {
         <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6">
           <div className="text-center mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-900 mb-2 sm:mb-3">
-              Formulir Pendaftaran MTI Batch 2
+              Formulir Pendaftaran MTI {activeBatchData?.name || '...'}
             </h1>
             <p className="text-sm sm:text-base md:text-lg text-gray-600">
               Program Hafalan Al-Qur'an Gratis Khusus Akhawat<br/>

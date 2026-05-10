@@ -100,9 +100,10 @@ export default function PendaftaranPage() {
         // All programs are now FREE
         const programPrice = 'GRATIS';
 
-        // All programs are 13 weeks duration
-        const batchDuration = '13 pekan';
-
+        // Duration from program or batch
+        const durationWeeks = program.duration_weeks || program.batch?.duration_weeks || 13;
+        const batchDuration = `${durationWeeks} pekan`;
+        
         transformedData.push({
           id: `program-${program.id}`,
           title: program.name,
@@ -146,7 +147,6 @@ export default function PendaftaranPage() {
           'Networking dengan praktisi pendidikan'
         ],
         requirements: [
-          'Muslimah usia 20-40 tahun',
           'Minimal pendidikan SMA/Sederajat',
           'Pengalaman di bidang pendidikan minimal 1 tahun',
           'Memiliki leadership skill',
@@ -167,7 +167,6 @@ export default function PendaftaranPage() {
           'Beasiswa lanjutan S1/S2 untuk peserta terbaik'
         ],
         requirements: [
-          'Muslimah usia 18-35 tahun',
           'Minimal hafal 3 juz Al-Quran',
           'Minimal pendidikan SMA/Sederajat',
           'Passion mengajar dan mendidik',
@@ -189,7 +188,6 @@ export default function PendaftaranPage() {
           'Program pengabdian masyarakat terintegrasi'
         ],
         requirements: [
-          'Muslimah usia 16-28 tahun',
           'Minimal hafal 5 juz Al-Quran',
           'Nilai akademik minimal 80 (rata-rata)',
           'Surat rekomendasi dari ustadz/ah',
@@ -212,7 +210,6 @@ export default function PendaftaranPage() {
           'Program study tour ke lembaga tahfidz internasional'
         ],
         requirements: [
-          'Muslimah usia 22-45 tahun',
           'Minimal S1 atau sederajat (IPK minimal 3.00)',
           'Pengalaman organisasi minimal 2 tahun',
           'Kemampuan leadership dan problem solving',
@@ -235,7 +232,6 @@ export default function PendaftaranPage() {
           'Komunitas pengajian yang mendukung'
         ],
         requirements: [
-          'Minimal usia 12 tahun',
           'Bisa membaca Al-Quran',
           'Memiliki perangkat untuk online (jika kelas online)',
           'Komitmen mengikuti kelas'
@@ -325,15 +321,17 @@ export default function PendaftaranPage() {
   const handleRegistrationClick = (type: PendaftaranType) => {
     if (type.status === 'open' && !isRegisteredForRole(type)) {
       // Direct to registration page without showing terms modal
+      const queryParams = `?batchId=${type.batchId}&programId=${type.programId}`;
+      
       if (type.title.toLowerCase().includes('tikrar')) {
-        router.push('/pendaftaran/tikrar-tahfidz');
+        router.push(`/pendaftaran/tikrar-tahfidz${queryParams}`);
       } else if (type.title.toLowerCase().includes('muallimah')) {
-        router.push('/pendaftaran/muallimah');
+        router.push(`/pendaftaran/muallimah${queryParams}`);
       } else if (type.title.toLowerCase().includes('musyrifah')) {
-        router.push('/pendaftaran/musyrifah');
+        router.push(`/pendaftaran/musyrifah${queryParams}`);
       } else {
         // Default to tikrar if not specified
-        router.push('/pendaftaran/tikrar-tahfidz');
+        router.push(`/pendaftaran/tikrar-tahfidz${queryParams}`);
       }
     }
   };

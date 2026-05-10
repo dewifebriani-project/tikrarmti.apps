@@ -57,13 +57,13 @@ export function validateEnv(): void {
         missing.push(envVar.name)
       }
     } else {
-      present.push(`✓ ${envVar.name}`)
+      present.push(`[OK] ${envVar.name}`)
     }
   }
 
   // Log warnings for missing required variables
   if (missing.length > 0) {
-    console.error('\n❌ MISSING REQUIRED ENVIRONMENT VARIABLES:')
+    console.error('\n[ERROR] MISSING REQUIRED ENVIRONMENT VARIABLES:')
     missing.forEach(name => {
       const env = envVars.find(e => e.name === name)
       console.error(`   - ${name}: ${env?.description}`)
@@ -74,9 +74,9 @@ export function validateEnv(): void {
 
   // Log configuration in development
   if (process.env.NODE_ENV === 'development') {
-    console.log('\n🔧 Environment Configuration:')
+    console.log('\n[CONFIG] Environment Configuration:')
     present.forEach(log => console.log(`   ${log}`))
-    console.log(`\n   ✓ Node environment: ${process.env.NODE_ENV}`)
+    console.log(`\n   [OK] Node environment: ${process.env.NODE_ENV}`)
     console.log(`\n`)
   }
 }

@@ -18,7 +18,7 @@ export function createClient() {
   }
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    const errorMessage = '❌ Supabase credentials missing:\n' +
+    const errorMessage = '[ERROR] Supabase credentials missing:\n' +
       `NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? 'SET' : 'MISSING'}\n` +
       `NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET' : 'MISSING'}`;
     console.error(errorMessage);

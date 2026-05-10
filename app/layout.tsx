@@ -9,22 +9,12 @@ import { Toaster } from 'sonner'
 import { AutoReloadProvider } from '@/components/AutoReloadProvider'
 
 export const metadata: Metadata = {
-  title: 'Tikrar MTI Apps | Aplikasi Tahfidz dari Markaz Tikrar Indonesia',
-  description: 'Aplikasi Tikrar MTI - Program Tahfidz Al-Quran dengan Metode Tikrar Itqan Standar Profesional dari Markaz Tikrar Indonesia',
+  title: 'Tikrar MTI Apps',
+  description: 'Markaz Tikrar Indonesia - Aplikasi Tahfidz Quran Digital',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-  openGraph: {
-    title: 'Tikrar MTI Apps',
-    description: 'Aplikasi Tikrar MTI - Program Tahfidz Al-Quran dengan Metode Tikrar Itqan dari Markaz Tikrar Indonesia',
-    type: 'website',
-    locale: 'id_ID',
   },
 }
 

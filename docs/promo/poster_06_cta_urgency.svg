@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" font-family="'Inter', 'Poppins', system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E5238"/>
+      <stop offset="55%" stop-color="#064E3B"/>
+      <stop offset="100%" stop-color="#022C20"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFE9A8"/>
+      <stop offset="40%" stop-color="#E5B947"/>
+      <stop offset="70%" stop-color="#C28F2E"/>
+      <stop offset="100%" stop-color="#7A5418"/>
+    </linearGradient>
+    <linearGradient id="goldShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF7D0"/>
+      <stop offset="50%" stop-color="#E5B947"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+    <radialGradient id="redGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#EF4444" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#EF4444" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="islamic" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M60 10 L110 60 L60 110 L10 60 Z" fill="none" stroke="#FFD66B" stroke-opacity="0.07" stroke-width="1.5"/>
+      <circle cx="60" cy="60" r="22" fill="none" stroke="#FFD66B" stroke-opacity="0.06" stroke-width="1"/>
+    </pattern>
+    <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- BG -->
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+  <rect width="1080" height="1080" fill="url(#islamic)"/>
+
+  <!-- Red urgency glow -->
+  <ellipse cx="540" cy="200" rx="500" ry="180" fill="url(#redGlow)"/>
+
+  <!-- Logo -->
+  <g transform="translate(540, 130)">
+    <g transform="translate(-65, -42)">
+      <path d="M65 0 L120 32 L120 80 L65 112 L10 80 L10 32 Z" fill="none" stroke="url(#goldShine)" stroke-width="3.5"/>
+    </g>
+    <text x="0" y="-12" text-anchor="middle" font-size="16" font-weight="900" fill="url(#goldShine)" letter-spacing="2">MARKAZ</text>
+    <text x="0" y="8" text-anchor="middle" font-size="16" font-weight="900" fill="url(#goldShine)" letter-spacing="2">TIKRAR</text>
+    <text x="0" y="28" text-anchor="middle" font-size="10" font-weight="700" fill="url(#gold)" letter-spacing="3">INDONESIA</text>
+  </g>
+
+  <!-- Urgency badge -->
+  <g transform="translate(540, 280)">
+    <rect x="-220" y="-28" width="440" height="56" rx="28" fill="#DC2626" filter="url(#softGlow)"/>
+    <circle cx="-190" cy="0" r="10" fill="#FEF2F2">
+      <animate attributeName="opacity" values="1;0.2;1" dur="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="-190" cy="0" r="5" fill="#DC2626"/>
+    <text y="7" text-anchor="middle" font-size="20" font-weight="900" fill="#fff" letter-spacing="3">PENDAFTARAN HAMPIR DITUTUP</text>
+  </g>
+
+  <!-- HEADLINE -->
+  <g transform="translate(540, 410)" text-anchor="middle">
+    <text y="0" font-size="86" font-weight="900" fill="#FFFFFF" letter-spacing="-2">Jangan Sampai</text>
+    <text y="92" font-size="86" font-weight="900" fill="url(#goldShine)" letter-spacing="-2">Ketinggalan!</text>
+  </g>
+
+  <!-- Big circular countdown / progress -->
+  <g transform="translate(540, 690)">
+    <!-- Outer ring -->
+    <circle r="155" fill="none" stroke="#1f3a2c" stroke-width="22"/>
+    <circle r="155" fill="none" stroke="url(#goldShine)" stroke-width="22" stroke-linecap="round"
+            stroke-dasharray="730 240" transform="rotate(-90)" filter="url(#softGlow)"/>
+    <!-- Inner content -->
+    <text y="-30" text-anchor="middle" font-size="26" font-weight="700" fill="#FCD34D" letter-spacing="4">KUOTA TERSISA</text>
+    <text y="50" text-anchor="middle" font-size="120" font-weight="900" fill="#fff" filter="url(#softGlow)">25</text>
+    <text y="92" text-anchor="middle" font-size="22" font-weight="700" fill="#86efac" letter-spacing="4">DARI 100 SLOT</text>
+
+    <!-- Sparkles -->
+    <circle cx="-180" cy="-110" r="3" fill="#FCD34D" opacity="0.9"/>
+    <circle cx="180" cy="-130" r="2" fill="#FCD34D" opacity="0.7"/>
+    <circle cx="-160" cy="140" r="3" fill="#FCD34D" opacity="0.9"/>
+    <circle cx="170" cy="120" r="2.5" fill="#FCD34D" opacity="0.8"/>
+
+    <!-- Mini badges around -->
+    <g transform="translate(-200, 0)" filter="url(#softGlow)">
+      <circle r="34" fill="#0E5238" stroke="url(#goldShine)" stroke-width="2.5"/>
+      <text y="-2" text-anchor="middle" font-size="9" font-weight="900" fill="#FCD34D">14</text>
+      <text y="10" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">PEKAN</text>
+    </g>
+    <g transform="translate(200, 0)" filter="url(#softGlow)">
+      <circle r="34" fill="#0E5238" stroke="url(#goldShine)" stroke-width="2.5"/>
+      <text y="-2" text-anchor="middle" font-size="9" font-weight="900" fill="#FCD34D">5</text>
+      <text y="10" text-anchor="middle" font-size="8" font-weight="700" fill="#fff">JUZ</text>
+    </g>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(540, 920)" filter="url(#strongGlow)">
+    <rect x="-260" y="-36" width="520" height="72" rx="36" fill="url(#goldShine)"/>
+    <rect x="-255" y="-31" width="510" height="62" rx="31" fill="none" stroke="#7A5418" stroke-width="1.5"/>
+    <text y="11" text-anchor="middle" font-size="32" font-weight="900" fill="#0E5238" letter-spacing="0.5">Daftar Sekarang!</text>
+  </g>
+
+  <!-- FOOTER -->
+  <g transform="translate(540, 1020)" text-anchor="middle">
+    <text y="0" font-size="14" font-weight="800" fill="#FCD34D" letter-spacing="2">markaztikrar.id  &#8226;  WA 081330000784  &#8226;  lynk.id/markaztikrar.id</text>
+  </g>
+</svg>

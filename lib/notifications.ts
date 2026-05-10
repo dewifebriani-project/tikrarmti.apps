@@ -25,7 +25,7 @@ export class NotificationService {
   // Send notification (currently just logs to console, can be extended to send emails)
   public async sendNotification(notification: NotificationData): Promise<boolean> {
     try {
-      console.log('📧 Sending notification:', {
+      console.log('--- Sending notification:', {
         to: notification.to,
         subject: notification.subject,
         body: notification.body,
@@ -62,7 +62,7 @@ export class NotificationService {
     // Simulate email delivery delay
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log(`✅ Email delivered to ${notification.to}: ${notification.subject}`);
+        console.log(`[OK] Email delivered to ${notification.to}: ${notification.subject}`);
         resolve();
       }, 500);
     });

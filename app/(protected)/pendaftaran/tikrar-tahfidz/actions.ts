@@ -74,7 +74,7 @@ export async function submitTikrarRegistration(formData: any, userProfile: any, 
     user_id: authUser.id,
     batch_id: batch.id,
     program_id: program.id,
-    batch_name: batch.name || 'Batch 2',
+    batch_name: batch.name || '...',
     // User data from users table
     full_name: userProfile?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
     email: authUser.email || '',

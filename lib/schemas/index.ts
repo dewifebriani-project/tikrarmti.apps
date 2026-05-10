@@ -97,12 +97,6 @@ export const authSchemas = {
       .datetime({ offset: true })
       .refine(val => new Date(val) < new Date(), {
         message: 'Tanggal lahir harus di masa lalu'
-      })
-      .refine(val => {
-        const age = new Date().getFullYear() - new Date(val).getFullYear()
-        return age >= 15 && age <= 100
-      }, {
-        message: 'Usia harus antara 15 hingga 100 tahun'
       }),
     tempat_lahir: z.string().min(1, 'Tempat lahir harus diisi'),
     jenis_kelamin: z.enum(['Laki-laki', 'Perempuan']),
@@ -185,7 +179,7 @@ export const registrationSchemas = {
     telegram_phone: commonSchemas.phone.optional(),
     address: z.string().min(10, 'Alamat minimal 10 karakter'),
     birth_date: z.string().datetime({ offset: true }),
-    age: z.number().int().min(15, 'Usia minimal 15 tahun').max(100, 'Usia maksimal 100 tahun'),
+    age: z.number().int().optional(),
     domicile: z.string().min(3, 'Domisili minimal 3 karakter'),
     timezone: z.string().default('WIB'),
 
@@ -253,7 +247,7 @@ export const pendaftaranSchemas = {
     address: z.string().optional(),
     // REMOVED: birth_place - NOT in pendaftaran_tikrar_tahfidz table
     birth_date: z.string().datetime({ offset: true }).optional(),
-    age: z.number().int().min(15, 'Usia minimal 15 tahun').optional(),
+    age: z.number().int().optional(),
     domicile: z.string().optional(),
     timezone: z.string().default('WIB'),
 
@@ -301,7 +295,7 @@ export const pendaftaranSchemas = {
     telegram_phone: commonSchemas.phone.optional(),
     address: z.string().optional(),
     birth_date: z.string().datetime({ offset: true }).optional(),
-    age: z.number().int().min(15, 'Usia minimal 15 tahun').optional(),
+    age: z.number().int().optional(),
     domicile: z.string().optional(),
     timezone: z.string().default('WIB'),
 

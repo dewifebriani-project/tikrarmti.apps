@@ -1,4 +1,8 @@
 {
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "ANTHROPIC_AUTH_TOKEN": "81ae18573b224cb39aca5365363621be.zTlDaSgWOtFn9GW8"
+  },
   "permissions": {
     "allow": [
       "Bash(git fsck:*)",
@@ -211,9 +215,31 @@
       "Bash(where pg_dump)",
       "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" --host=db.nmbvklixthlqtkkgqnjl.supabase.co --port=5432 --username=postgres --dbname=postgres --no-owner --no-privileges --file=tikrar_backup.sql)",
       "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" \"postgresql://postgres:N379kjM491XzNcVQ@db.nmbvklixthlqtkkgqnjl.supabase.co:5432/postgres\" --no-owner --no-privileges --file=tikrar_backup.sql)",
-      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" \"postgresql://postgres.Nmbvklixthlqtkkgqnjl:N379kjM491XzNcVQ@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres\" --no-owner --no-privileges --file=tikrar_backup.sql)"
+      "Bash(\"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\pg_dump.exe\" \"postgresql://postgres.Nmbvklixthlqtkkgqnjl:N379kjM491XzNcVQ@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres\" --no-owner --no-privileges --file=tikrar_backup.sql)",
+      "Bash(kill 35335 35334)",
+      "Read(//tmp/**)",
+      "Bash(lsof -iTCP:3000 -sTCP:LISTEN)",
+      "Bash(lsof -iTCP:3001 -sTCP:LISTEN)",
+      "Bash(ps -p 4428 -o pid,command)",
+      "Bash(ps -p 35752 -o pid,command)",
+      "Bash(ps -p 4428 -o pid,ppid,etime,command)",
+      "Bash(md5 /tmp/layout-test.js)",
+      "Bash(kill 4428 94839)",
+      "Bash(kill 35752)",
+      "Bash(rm -rf .next)",
+      "Bash(lsof -iTCP:3003 -sTCP:LISTEN)",
+      "Bash(ps -p 45093 -o pid,ppid,etime,command)",
+      "Bash(ps -p 45092 -o pid,ppid,etime,command)",
+      "Bash(kill 45093 45092)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "model": "claude-opus-4-7",
+  "availableModels": [
+    "glm-4.7",
+    "claude-opus-4-7",
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5-20251001"
+  ]
 }
