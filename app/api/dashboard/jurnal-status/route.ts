@@ -92,6 +92,7 @@ async function processJurnalStatus(supabase: any, user: any, activeRegistration:
       end_page: endPage,
       is_completed: false,
       jurnal_count: 0,
+      target: item.target,
       label: `${item.day}: ${startBlok}-${endBlok} (${item.target})`
     } as any)
   }

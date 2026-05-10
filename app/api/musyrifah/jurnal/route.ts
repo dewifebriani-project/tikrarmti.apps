@@ -117,6 +117,7 @@ function generateAllBlocks(juzInfo: any) {
       end_page: endPage,
       is_completed: false,
       jurnal_count: 0,
+      target: item.target,
       label: `${item.day}: ${startBlok}-${endBlok} (${item.target})`
     });
   }

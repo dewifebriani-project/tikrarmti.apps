@@ -104,12 +104,11 @@ export function JurnalStatusGrid({ blocks, currentWeekNumber, onBlockClick, isAd
                         <h3 className={cn("text-xs font-bold leading-none", isFullyCompleted ? "text-white" : "text-gray-900")}>
                           {weekNum > 10 ? `Pekan Murajaah ${weekNum - 10}` : `Pekan ${weekNum}`}
                         </h3>
-                        {weekNum <= 10 && (
-                          <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full", 
-                            isFullyCompleted ? "bg-white/20 text-white" : "bg-green-100 text-green-700")}>
-                            Hal. {Math.min(...weekBlocks.map(b => b.start_page))}
-                          </span>
-                        )}
+                        <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full", 
+                          isFullyCompleted ? "bg-white/20 text-white" : weekNum > 10 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700")}>
+                          Hal. {Math.min(...weekBlocks.map(b => b.start_page))}
+                          {weekNum > 10 && ` - ${Math.max(...weekBlocks.map(b => b.end_page))}`}
+                        </span>
                       </div>
                       <p className={cn("text-[8px] font-black uppercase tracking-tighter mt-1", 
                         isFullyCompleted ? "text-green-100/60" : "text-gray-500")}>
@@ -148,8 +147,13 @@ export function JurnalStatusGrid({ blocks, currentWeekNumber, onBlockClick, isAd
                               : "bg-white border-green-100 text-gray-700 hover:border-green-500 hover:bg-green-50 shadow-sm"
                         )}
                       >
-                        <span className="text-[10px] font-black tracking-tight">{weekNum > 10 ? (block as any).part : block.block_code}</span>
-                        {weekNum <= 10 && <span className="text-[7px] font-medium opacity-60">Hal. {block.start_page}</span>}
+                        <span className="text-[10px] font-black tracking-tight leading-tight">{weekNum > 10 ? (block as any).part : block.block_code}</span>
+                        <span className="text-[7px] font-medium opacity-60">
+                          Hal. {block.start_page}{block.start_page !== block.end_page ? `-${block.end_page}` : ''}
+                        </span>
+                        {weekNum > 10 && (block as any).target && (
+                          <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-1 rounded mt-0.5">{(block as any).target}</span>
+                        )}
                         
                         {block.is_completed ? (
                           <CheckCircle className="w-3 h-3 mt-1 text-green-600" />
