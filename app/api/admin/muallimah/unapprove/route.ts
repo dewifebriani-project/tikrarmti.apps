@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the public.user record (which has the same id as auth.users.id)
     const { data: publicUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('id')
@@ -21,55 +20,42 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !publicUser) {
-      return NextResponse.json({ error: 'User not found in public.users table' }, { status: 400 });
+      return NextResponse.json({ error: 'User not found' }, { status: 400 });
     }
 
     const body = await request.json();
     const { id } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Registration ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Akad ID is required' }, { status: 400 });
     }
 
-    // Update status back to pending
-    console.log('[Muallimah Unapprove] Attempting to unapprove registration:', {
-      registrationId: id,
-      reviewedBy: publicUser.id,
-      reviewerEmail: user.email
-    });
-
+    // Update status back to pending in muallimah_akads
     const { error } = await supabaseAdmin
-      .from('muallimah_registrations')
+      .from('muallimah_akads')
       .update({
         status: 'pending',
         reviewed_by: publicUser.id,
-        review_notes: body.review_notes || null
+        reviewed_at: null, // Reset reviewed_at
+        review_notes: body.review_notes || 'Unapproved by admin'
       })
       .eq('id', id);
 
     if (error) {
-      console.error('[Muallimah Unapprove] Database error:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
+      console.error('[Muallimah Unapprove] Database error:', error);
       return NextResponse.json(
-        { error: 'Failed to unapprove registration', details: error.message, code: error.code },
+        { error: 'Failed to unapprove akad', details: error.message },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Muallimah registration unapproved successfully'
+      message: 'Muallimah akad unapproved successfully'
     });
 
   } catch (error) {
     console.error('Server error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

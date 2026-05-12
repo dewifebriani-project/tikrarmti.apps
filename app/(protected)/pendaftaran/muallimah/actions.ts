@@ -3,39 +3,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-// Zod schema untuk validasi
-const MuallimahRegistrationSchema = {
-  tajweed_institution: (val: string) => val?.trim() || null,
-  quran_institution: (val: string) => val?.trim() || null,
-  teaching_communities: (val: string) => val?.trim() || null,
-  memorized_tajweed_matan: (val: string) => val?.trim() || null,
-  studied_matan_exegesis: (val: string) => val?.trim() || null,
-  memorized_juz: (val: string[]) => Array.isArray(val) && val.length > 0 ? val.join(', ') : null,
-  examined_juz: (val: string[]) => Array.isArray(val) && val.length > 0 ? val.join(', ') : null,
-  certified_juz: (val: string[]) => Array.isArray(val) && val.length > 0 ? val.join(', ') : null,
-  preferred_juz: (val: string[]) => Array.isArray(val) && val.length > 0 ? val.join(', ') : null,
-  class_type: (val: string) => val || 'tashih_ujian',
-  preferred_max_thalibah: (val: number | undefined) => val || null,
-  understands_commitment: (val: boolean) => val === true,
-  age: (val: number | undefined) => val || null,
-}
-
 export async function submitMuallimahRegistration(formData: any, userData: any, user: any, batchId: string) {
   const supabase = createClient()
 
-  // 1. Validasi Auth (Server-side check)
+  // 1. Auth Check
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
   if (!authUser || authError) {
     return { success: false, error: 'Unauthorized. Silakan login kembali.' }
   }
 
-  // 2. Validasi batch
   if (!batchId) {
     return { success: false, error: 'Batch ID tidak ditemukan' }
   }
 
   try {
-    // 3. Format schedule data
+    // 2. Prepare Data
     const schedule1Formatted = {
       day: formData.schedule1_day,
       time_start: formData.schedule1_time_start,
@@ -48,136 +30,88 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
           time_start: formData.schedule2_time_start,
           time_end: formData.schedule2_time_end,
         }
-      : { day: '', time_start: '', time_end: '' }
+      : null
 
-    const paidClassInterest = formData.wants_paid_class ? {
-      name: formData.paid_class_name || null,
-      schedule1: formData.paid_class_schedule1_day ? {
-        day: formData.paid_class_schedule1_day,
-        time_start: formData.paid_class_schedule1_time_start || '',
-        time_end: formData.paid_class_schedule1_time_end || '',
-      } : null,
-      schedule2: formData.paid_class_schedule2_day ? {
-        day: formData.paid_class_schedule2_day,
-        time_start: formData.paid_class_schedule2_time_start || '',
-        time_end: formData.paid_class_schedule2_time_end || '',
-      } : null,
-      max_students: formData.paid_class_max_students || null,
-      spp_percentage: formData.paid_class_spp_percentage || null,
-      additional_info: formData.paid_class_interest || null,
-    } : null
-
-    // 4. Check for existing registration
-    const { data: existingRecord } = await supabase
-      .from('muallimah_registrations')
-      .select('id, status')
-      .eq('user_id', authUser.id)
-      .eq('batch_id', batchId)
-      .maybeSingle()
-
-    // 5. Submit data
-    const submitData = {
-      user_id: authUser.id, // From server-side auth, not from client!
-      batch_id: batchId,
-      // Data from users table
-      full_name: userData?.full_name || authUser.user_metadata?.full_name || authUser.email || '',
-      birth_date: userData?.tanggal_lahir || new Date().toISOString(),
-      birth_place: userData?.tempat_lahir || '-',
-      address: userData?.alamat || '-',
-      whatsapp: userData?.whatsapp || '-',
+    // 3. Step 1: Upsert Profile (muallimah_registrations)
+    // We treat this table as the permanent profile
+    const profileData = {
+      user_id: authUser.id,
+      full_name: userData?.full_name || authUser.user_metadata?.full_name || '',
       email: authUser.email || '',
-      education: '-',
-      occupation: userData?.pekerjaan || '-',
-      memorization_level: '-',
-      // Form data
-      tajweed_institution: MuallimahRegistrationSchema.tajweed_institution(formData.tajweed_institution),
-      quran_institution: MuallimahRegistrationSchema.quran_institution(formData.quran_institution),
-      teaching_communities: MuallimahRegistrationSchema.teaching_communities(formData.teaching_communities),
-      memorized_tajweed_matan: MuallimahRegistrationSchema.memorized_tajweed_matan(formData.memorized_tajweed_matan),
-      studied_matan_exegesis: MuallimahRegistrationSchema.studied_matan_exegesis(formData.studied_matan_exegesis),
-      memorized_juz: MuallimahRegistrationSchema.memorized_juz(formData.memorized_juz),
-      examined_juz: MuallimahRegistrationSchema.examined_juz(formData.examined_juz),
-      certified_juz: MuallimahRegistrationSchema.certified_juz(formData.certified_juz),
-      preferred_juz: MuallimahRegistrationSchema.preferred_juz(formData.preferred_juz),
-      class_type: MuallimahRegistrationSchema.class_type(formData.class_type),
-      preferred_max_thalibah: MuallimahRegistrationSchema.preferred_max_thalibah(formData.preferred_max_thalibah),
-      teaching_experience: '-',
-      teaching_years: null,
-      teaching_institutions: null,
+      whatsapp: userData?.whatsapp || '',
+      occupation: userData?.pekerjaan || '',
+      tajweed_institution: formData.tajweed_institution || null,
+      quran_institution: formData.quran_institution || null,
+      teaching_communities: formData.teaching_communities || null,
+      memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
+      studied_matan_exegesis: formData.studied_matan_exegesis || null,
+      memorized_juz: Array.isArray(formData.memorized_juz) ? formData.memorized_juz.join(', ') : null,
+      examined_juz: Array.isArray(formData.examined_juz) ? formData.examined_juz.join(', ') : null,
+      certified_juz: Array.isArray(formData.certified_juz) ? formData.certified_juz.join(', ') : null,
+      age: formData.age || null,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { error: profileError } = await supabase
+      .from('muallimah_registrations')
+      .upsert(profileData, { onConflict: 'user_id' })
+
+    if (profileError) {
+      console.error('Profile upsert error:', profileError)
+      return { success: false, error: `Gagal menyimpan profil: ${profileError.message}` }
+    }
+
+    // 4. Step 2: Upsert Akad (muallimah_akads)
+    const akadData = {
+      user_id: authUser.id,
+      batch_id: batchId,
+      preferred_juz: Array.isArray(formData.preferred_juz) ? formData.preferred_juz.join(', ') : null,
+      class_type: 'tashih_ujian',
+      preferred_max_thalibah: formData.preferred_max_thalibah || 10,
       preferred_schedule: JSON.stringify(schedule1Formatted),
-      backup_schedule: JSON.stringify(schedule2Formatted),
-      timezone: 'WIB',
-      paid_class_interest: paidClassInterest ? JSON.stringify(paidClassInterest) : null,
-      understands_commitment: MuallimahRegistrationSchema.understands_commitment(formData.understands_commitment),
-      age: MuallimahRegistrationSchema.age(formData.age),
-      motivation: null,
-      special_skills: null,
-      health_condition: null,
+      backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : null,
+      understands_commitment: formData.understands_commitment === true,
       status: 'pending',
-      submitted_at: new Date().toISOString(),
+      akad_signed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }
 
-    let result
+    const { error: akadError } = await supabase
+      .from('muallimah_akads')
+      .upsert(akadData, { onConflict: 'user_id,batch_id' })
 
-    if (existingRecord && existingRecord.status === 'draft') {
-      // Update existing draft
-      result = await supabase
-        .from('muallimah_registrations')
-        .update(submitData)
-        .eq('id', existingRecord.id)
-        .eq('user_id', authUser.id)
-    } else if (!existingRecord) {
-      // Create new registration
-      result = await supabase
-        .from('muallimah_registrations')
-        .insert(submitData)
-    } else {
-      return { success: false, error: 'Pendaftaran sudah terkirim dan tidak dapat diubah.' }
+    if (akadError) {
+      console.error('Akad upsert error:', akadError)
+      return { success: false, error: `Gagal menyimpan akad: ${akadError.message}` }
     }
 
-    if (result.error) {
-      console.error('Submit error:', result.error)
-      return {
-        success: false,
-        error: `Gagal ${existingRecord ? 'memperbarui' : 'mengirim'} pendaftaran: ${result.error.message}`
-      }
-    }
-
-    // Revalidate dashboard path
+    // 5. Cleanup & Revalidate
     revalidatePath('/dashboard')
     revalidatePath('/pendaftaran/muallimah')
+    revalidatePath('/admin')
 
     return {
       success: true,
-      message: existingRecord
-        ? 'Alhamdulillah! Data pendaftaran Muallimah berhasil diperbarui!'
-        : 'Alhamdulillah! Pendaftaran sebagai Muallimah berhasil dikirim!'
+      message: 'Alhamdulillah! Pendaftaran and Akad berhasil disimpan!'
     }
 
   } catch (error: any) {
-    console.error('Submit muallimah registration error:', error)
-    return {
-      success: false,
-      error: error?.message || 'Terjadi kesalahan tidak terduga'
-    }
+    console.error('Submit muallimah error:', error)
+    return { success: false, error: error?.message || 'Terjadi kesalahan tidak terduga' }
   }
 }
 
 export async function getMuallimahRegistration(userId: string, batchId: string) {
   const supabase = createClient()
 
+  // For backward compatibility, but we should use separate calls in the UI
   const { data, error } = await supabase
-    .from('muallimah_registrations')
-    .select('*')
+    .from('muallimah_akads')
+    .select('*, profile:muallimah_registrations(*)')
     .eq('user_id', userId)
     .eq('batch_id', batchId)
-    .order('submitted_at', { ascending: false })
-    .limit(1)
     .maybeSingle()
 
-  if (error) {
-    return { success: false, error: error.message, data: null }
-  }
-
+  if (error) return { success: false, error: error.message, data: null }
   return { success: true, data, error: null }
 }

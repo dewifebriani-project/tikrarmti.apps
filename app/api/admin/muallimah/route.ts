@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     const authError = await requireAdmin();
     if (authError) return authError;
 
-
     // Get pagination parameters from query string
     const { searchParams } = new URL(request.url);
     const skipCount = searchParams.get('skipCount') === 'true';
@@ -21,18 +20,17 @@ export async function GET(request: NextRequest) {
     const batchId = searchParams.get('batchId');
     const userIdArg = searchParams.get('userId');
 
-    // Fetch muallimah data with admin client (bypasses RLS)
-    console.log('Starting muallimah data fetch at', new Date().toISOString());
-
-    // Since user_id references auth.users, we need to fetch user data separately
-    // or use the full_name and email stored in muallimah_registrations
+    // Fetch from muallimah_akads (the batch contract)
+    // Joined with muallimah_registrations (the profile)
+    // We join on user_id
     let query = supabaseAdmin
-      .from('muallimah_registrations')
+      .from('muallimah_akads')
       .select(`
         *,
+        profile:muallimah_registrations!inner(*),
         batch:batches(name)
       `)
-      .order('submitted_at', { ascending: false });
+      .order('akad_signed_at', { ascending: false });
 
     // Filter by batch if specified
     if (batchId && batchId !== 'all') {
@@ -56,11 +54,21 @@ export async function GET(request: NextRequest) {
       return ApiResponses.databaseError(error);
     }
 
+    // Map data to maintain backward compatibility if needed, 
+    // or just pass it as is to the new MuallimahTab
+    const mappedData = data?.map(item => ({
+      ...item.profile,
+      ...item, // Akad data overrides profile data for fields like status, preferred_juz, etc.
+      id: item.id, // Use akad ID as primary
+      profile_id: item.profile?.id,
+      batch: item.batch,
+    })) || [];
+
     // Get total count for pagination
-    let totalCount = data?.length || 0;
+    let totalCount = mappedData.length;
     if (!skipCount) {
       let countQuery = supabaseAdmin
-        .from('muallimah_registrations')
+        .from('muallimah_akads')
         .select('*', { count: 'estimated', head: true });
 
       if (batchId && batchId !== 'all') {
@@ -73,11 +81,10 @@ export async function GET(request: NextRequest) {
 
       const { count } = await countQuery;
       totalCount = count || 0;
-      console.log('Total count:', totalCount);
     }
 
     return ApiResponses.success({
-      data: data || [],
+      data: mappedData,
       pagination: {
         page,
         limit,
