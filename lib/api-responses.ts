@@ -48,6 +48,14 @@ export const ApiResponses = {
   },
 
   /**
+   * Create bad request error
+   */
+  badRequest: (message: string = 'Bad request') => {
+    const response = ApiResponseBuilder.badRequest(message)
+    return NextResponse.json(response, { status: 400 })
+  },
+
+  /**
    * Create validation error
    */
   validationError: (details: z.ZodIssue[]) => {

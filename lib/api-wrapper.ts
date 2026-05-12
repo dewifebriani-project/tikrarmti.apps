@@ -103,6 +103,13 @@ export class ApiResponseBuilder {
   }
 
   /**
+   * Create bad request error
+   */
+  static badRequest(message: string = 'Bad request'): ApiError & { statusCode: number } {
+    return this.error('BAD_REQUEST', message, undefined, 400)
+  }
+
+  /**
    * Create validation error
    */
   static validationError(details: z.ZodIssue[]): ApiError & { statusCode: number } {

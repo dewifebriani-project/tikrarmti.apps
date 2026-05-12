@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useActiveBatch } from '@/hooks/useBatches';
+import { cn } from '@/lib/utils';
 
 interface Examiner {
   id: string;

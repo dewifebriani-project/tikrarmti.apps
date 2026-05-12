@@ -185,7 +185,7 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                         </div>
                         <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-indigo-100">
                           <span>Progress</span>
-                          <span>{reviewData.written_quiz_score >= 70 ? 'LULUS' : 'GAGAL'}</span>
+                          <span>{(reviewData.written_quiz_score ?? 0) >= 70 ? 'LULUS' : 'GAGAL'}</span>
                         </div>
                       </div>
                     </div>

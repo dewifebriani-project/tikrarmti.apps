@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       },
       ipAddress: getClientIp(request),
       userAgent: getUserAgent(request),
-      level: 'WARNING'
+      level: 'WARN'
     });
 
     return ApiResponses.success({ 

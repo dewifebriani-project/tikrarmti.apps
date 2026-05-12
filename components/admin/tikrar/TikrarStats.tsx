@@ -6,7 +6,7 @@ import { TikrarStatsData } from './types';
 export type TikrarStatFilterType = 'all' | 'pending' | 'approved' | 'rejected';
 
 interface TikrarStatsProps {
-  stats: TikrarStatsData;
+  stats: TikrarStatsData | null;
   isLoading: boolean;
   onCardClick?: (filter: TikrarStatFilterType) => void;
   activeFilter?: TikrarStatFilterType;

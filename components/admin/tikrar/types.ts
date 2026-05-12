@@ -70,12 +70,13 @@ export interface TikrarStatsData {
   pending: number;
   approved: number;
   rejected: number;
-  withdrawn: number;
-  completed: number;
-  selectionPending: number;
-  selectionApproved: number;
-  selectionRejected: number;
-  oralSubmitted: number;
-  writtenSubmitted: number;
-  bothTestsSubmitted: number;
+  withdrawn?: number;
+  completed?: number;
+  selected?: number;
+  selectionPending?: number;
+  selectionApproved?: number;
+  selectionRejected?: number;
+  oralSubmitted?: number;
+  writtenSubmitted?: number;
+  bothTestsSubmitted?: number;
 }

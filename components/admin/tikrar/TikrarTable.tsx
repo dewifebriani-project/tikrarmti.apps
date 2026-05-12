@@ -26,7 +26,7 @@ export function TikrarTable({
   const isAllSelected = tikrar.length > 0 && tikrar.every(t => t.status !== 'pending' || isSelected(t.id));
 
   const getWhatsAppUrl = (t: TikrarTahfidz) => {
-    const contactNumber = t.wa_phone || t.user?.whatsapp || t.user?.phone;
+    const contactNumber = t.wa_phone || t.user?.whatsapp;
     if (!contactNumber) return null;
 
     let phoneNumber = contactNumber.replace(/\D/g, '');

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { RefreshCw, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
-import { TikrarTahfidz, TikrarStats as TikrarStatsType } from './types';
+import { TikrarTahfidz, TikrarStatsData as TikrarStatsType } from './types';
 import { TikrarStats } from './TikrarStats';
 import { TikrarFilters } from './TikrarFilters';
 import { TikrarTable } from './TikrarTable';
@@ -219,7 +219,7 @@ export function TikrarTab({ user }: { user: any }) {
 
   return (
     <div className="space-y-6">
-      <TikrarStats stats={stats} />
+      <TikrarStats stats={stats} isLoading={isLoading} />
       
       <TikrarFilters 
         batches={batches}
@@ -311,8 +311,19 @@ export function TikrarTab({ user }: { user: any }) {
         title="Edit Pendaftaran Tikrar"
         fields={[
           { name: 'full_name', label: 'Full Name', type: 'text', required: true },
-          { name: 'status', label: 'Status', type: 'select', options: ['pending', 'approved', 'rejected', 'withdrawn', 'completed'] },
-          { name: 'selection_status', label: 'Selection Status', type: 'select', options: ['pending', 'selected', 'not_selected', 'waitlist'] },
+          { name: 'status', label: 'Status', type: 'select', options: [
+            { value: 'pending', label: 'Pending' },
+            { value: 'approved', label: 'Approved' },
+            { value: 'rejected', label: 'Rejected' },
+            { value: 'withdrawn', label: 'Withdrawn' },
+            { value: 'completed', label: 'Completed' }
+          ] },
+          { name: 'selection_status', label: 'Selection Status', type: 'select', options: [
+            { value: 'pending', label: 'Pending' },
+            { value: 'selected', label: 'Selected' },
+            { value: 'not_selected', label: 'Not Selected' },
+            { value: 'waitlist', label: 'Waitlist' }
+          ] },
           { name: 'chosen_juz', label: 'Juz', type: 'number' },
           { name: 'oral_total_score', label: 'Oral Score', type: 'number' },
           { name: 'written_quiz_score', label: 'Written Score', type: 'number' },
