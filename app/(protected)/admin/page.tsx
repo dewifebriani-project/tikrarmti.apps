@@ -57,7 +57,7 @@ import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
-import { MuallimahTab } from '@/components/admin/muallimah/MuallimahTab';
+import MuallimahTab from '@/components/admin/muallimah/MuallimahTab';
 import { cn } from '@/lib/utils';
 
 
