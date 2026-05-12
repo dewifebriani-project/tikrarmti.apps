@@ -93,6 +93,7 @@ export default function AdminUsersPage() {
         search: '',
         role: type === 'admin' ? 'admin' : type === 'thalibah' ? 'thalibah' : 'all',
         status: type === 'blacklisted' ? 'blacklisted' : type === 'thalibah' ? 'active' : 'all',
+        detectDuplicates: false,
       });
     });
   };
