@@ -58,7 +58,9 @@ import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
 import MuallimahTab from '@/components/admin/muallimah/MuallimahTab';
+import { TikrarTab as TikrarManagementTab } from '@/components/admin/tikrar/TikrarTab';
 import { cn } from '@/lib/utils';
+import { BatchStatus, ProgramStatus, HalaqahStatus } from '@/types/database';
 
 
 interface Batch {
@@ -70,8 +72,9 @@ interface Batch {
   registration_start_date?: string;
   registration_end_date?: string;
   duration_weeks?: number;
-  status: string;
+  status: BatchStatus;
   created_at: string;
+  updated_at: string;
 
   // Timeline phase dates for perjalanan-saya
   selection_start_date?: string;
@@ -1153,7 +1156,7 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
             <label className="block text-sm font-medium text-gray-700">Status</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
             >
               <option value="draft">Draft</option>
@@ -1797,7 +1800,7 @@ function ProgramForm({ program, onClose, onSuccess }: { program: Program | null,
             <label className="block text-sm font-medium text-gray-700">Status</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
             >
               <option value="draft">Draft</option>
@@ -2184,7 +2187,7 @@ function HalaqahForm({ halaqah, onClose, onSuccess }: { halaqah: Halaqah | null,
             <label className="block text-sm font-medium text-gray-700">Status</label>
             <select
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
             >
               <option value="active">Active</option>
@@ -2467,7 +2470,7 @@ function UsersTab({
 
         // Pesan islami untuk mengajak daftar Tikrar Tahfidz
         const userName = user.full_name || user.nama_kunyah || '';
-        const activeBatch = batches.find(b => b.status === 'open' || b.status === 'ongoing') || batches[0];
+        const activeBatch = batches.find(b => b.status === 'open') || batches[0];
         const batchName = activeBatch?.name || 'Tikrar Tahfidz MTI';
         
         const message = `Assalamu'alaikum warahmatullahi wabarakatuh, Ukhti ${userName}
