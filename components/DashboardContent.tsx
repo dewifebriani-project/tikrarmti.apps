@@ -28,7 +28,8 @@ import {
   Sparkles,
   MapPin,
   UserX,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from 'lucide-react'
 
 
@@ -42,6 +43,7 @@ import { usePrayerTimes } from '@/hooks/usePrayerTimes'
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 import { cn } from '@/lib/utils'
 import { isStaff } from '@/lib/roles'
+import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal'
 
 export default function DashboardContent() {
   // NOTE: Authentication is now handled by server-side layout
@@ -78,6 +80,7 @@ export default function DashboardContent() {
   }
   
   const [activitiesPage, setActivitiesPage] = useState(1)
+  const [examModalOpen, setExamModalOpen] = useState(false)
   const activitiesPerPage = 5
 
   // Combined loading state
@@ -632,23 +635,45 @@ export default function DashboardContent() {
             { label: 'Catatan Tashih', icon: ClipboardList, color: 'emerald', href: '/tashih' },
             { label: 'Jurnal Harian', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
             { label: 'Ujian Pekanan', icon: Calendar, color: 'amber', href: '/ujian' },
-            { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '/ujian' },
+            { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '/ujian-akhir' },
             { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
             { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
             { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
           ].map((item, i) => (
             <Link key={i} href={item.href} className="group min-w-0">
-              <div className="h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white hover:border-green-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col items-center text-center justify-start sm:justify-center min-h-[90px] sm:min-h-0">
+            <div 
+              onClick={(e) => {
+                if ((item as any).locked) {
+                  e.preventDefault();
+                  alert(`Maaf Ukhti, menu ini terkunci.`);
+                } else if (item.href === '/ujian-akhir') {
+                  e.preventDefault();
+                  setExamModalOpen(true);
+                }
+              }}
+              className={cn(
+                "h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white transition-all duration-300 flex flex-col items-center text-center justify-start sm:justify-center min-h-[90px] sm:min-h-0 relative overflow-hidden",
+                (item as any).locked 
+                  ? "opacity-50 grayscale cursor-not-allowed" 
+                  : "hover:border-green-100 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+              )}
+            >
                 <div className={cn(
-                  "w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1 sm:mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm flex-shrink-0",
+                  "w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1 sm:mb-3 transition-transform duration-300 shadow-sm flex-shrink-0 relative",
+                  !(item as any).locked && "group-hover:scale-110",
                   item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
                   item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
                   item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
                   item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
                   item.color === 'purple' ? "bg-purple-50 text-purple-600 border border-purple-100/50" :
-                  "bg-gray-50 text-gray-600 border border-gray-100/50"
+                  "bg-gray-50 text-gray-400 border border-gray-100/50"
                 )}>
                   <item.icon className="w-5 h-5 sm:w-7 sm:h-7" />
+                  {(item as any).locked && (
+                    <div className="absolute -top-1 -right-1 bg-gray-600 text-white p-1 rounded-full shadow-lg">
+                      <Lock className="w-2 h-2 sm:w-3 sm:h-3" />
+                    </div>
+                  )}
                 </div>
                 <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-[1.1] w-full px-0.5 break-words">
                   {item.label}
@@ -727,6 +752,12 @@ export default function DashboardContent() {
           </div>
         </CardContent>
       </Card>
+
+      <FinalExamPortalModal 
+        isOpen={examModalOpen} 
+        onClose={() => setExamModalOpen(false)} 
+        hariAktual={displayStats.hariAktual} 
+      />
     </div>
   )
 }
