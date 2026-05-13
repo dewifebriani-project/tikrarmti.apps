@@ -81,6 +81,14 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       
       if (isAdmin) {
         baseItems.push({
+          href: '/pendaftaran/muallimah',
+          label: 'Daftar Muallimah',
+          icon: <GraduationCap className="h-5 w-5 text-green-600" />,
+        });
+      }
+      
+      if (isAdmin) {
+        baseItems.push({
           href: '/admin?tab=exam-questions',
           label: 'Bank Soal Seleksi',
           icon: <FileText className="h-5 w-5" />,
@@ -138,6 +146,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         href: '/jurnal-harian',
         label: 'Jurnal Harian',
         icon: <BookOpen className="h-5 w-5" />,
+      });
+      baseItems.push({
+        href: '/pendaftaran/muallimah',
+        label: 'Daftar Muallimah',
+        icon: <GraduationCap className="h-5 w-5 text-green-600" />,
       });
       baseItems.push({
         href: '/tashih',

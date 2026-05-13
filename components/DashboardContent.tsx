@@ -622,6 +622,48 @@ export default function DashboardContent() {
           </div>
         )}
 
+        {/* Muallimah Registration CTA */}
+        {(() => {
+          const isAdmin = userRole === 'admin' || user?.roles?.includes('admin');
+          const showCard = isAdmin || !isStaff(user?.roles || userRole);
+          return showCard;
+        })() && (
+          <div className="mb-8">
+            <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-green-900/10 overflow-hidden bg-gradient-to-br from-white to-green-50 ring-1 ring-green-100/50">
+              <CardContent className="p-0">
+                <div className="flex flex-col md:flex-row items-stretch">
+                  <div className="w-full md:w-1/3 bg-gradient-to-br from-green-700 to-green-900 p-8 flex flex-col items-center justify-center text-white">
+                    <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 ring-1 ring-white/20 shadow-xl">
+                      <GraduationCap className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] uppercase font-black tracking-[0.3em] text-green-300 mb-1">Recruitment</p>
+                      <h3 className="text-xl font-black">Muallimah MTI</h3>
+                    </div>
+                  </div>
+                  <div className="flex-1 p-8 md:p-10 flex flex-col justify-center space-y-6">
+                    <div className="space-y-3">
+                      <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-tight">
+                        Siap Menjadi Bagian dari <span className="text-green-700">Pendidik Al-Qur'an?</span>
+                      </h2>
+                      <p className="text-sm font-medium text-gray-500 leading-relaxed">
+                        Bergabunglah menjadi Muallimah Markaz Tikrar Indonesia. Bagikan ilmu Ukhti dan raih pahala jariyah.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link href="/pendaftaran/muallimah" className="w-full sm:w-auto">
+                        <Button className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white font-black px-8 py-6 rounded-2xl shadow-lg border-b-4 border-green-900 active:border-b-0 active:translate-y-1 transition-all">
+                          Daftar Sekarang
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
             <LayoutGrid className="w-5 h-5 text-green-700" />

@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { 
-  Users, UserPlus, Info, Search, Filter, 
-  ChevronDown, ChevronUp, Download, RefreshCw,
+  Users, Search, Filter, 
+  ChevronDown, ChevronUp, RefreshCw,
   Mail, Phone, Calendar, Clock, BookOpen, Award,
   CheckCircle, XCircle, AlertCircle, ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Batch } from '@/types/database';
-import { MuallimahRegistration, MuallimahStats } from './types';
+import { MuallimahStats } from './types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface MuallimahTabProps {
   muallimah: any[];
@@ -19,7 +21,7 @@ interface MuallimahTabProps {
   onRefresh: () => void;
 }
 
-export default function MuallimahTab({ 
+export function MuallimahTab({ 
   muallimah, 
   batches, 
   selectedBatchFilter, 
@@ -30,8 +32,6 @@ export default function MuallimahTab({
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
-  const [showUnapproveModal, setShowUnapproveModal] = useState(false);
-  const [unapproveReason, setUnapproveReason] = useState('');
   
   // Sorting and filtering
   const [sortField, setSortField] = useState<string>('submitted_at');
@@ -49,8 +49,8 @@ export default function MuallimahTab({
     const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
     const matchesSearch = searchQuery === '' ||
       m.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.preferred_juz?.toLowerCase().includes(searchQuery.toLowerCase());
+      m.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    
     return matchesBatch && matchesStatus && matchesSearch;
   });
 
@@ -190,7 +190,7 @@ export default function MuallimahTab({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama, email, atau juz..."
+              placeholder="Cari nama atau email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
@@ -235,7 +235,7 @@ export default function MuallimahTab({
                     {sortField === 'full_name' && (sortOrder === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />)}
                   </button>
                 </th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Batch & Juz</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Batch & Kualifikasi</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Kontak</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
@@ -273,14 +273,14 @@ export default function MuallimahTab({
                         </div>
                         <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
                           <Award className="h-3 w-3 text-amber-500" />
-                          Juz: {m.preferred_juz || '-'}
+                          Hafalan: {m.memorized_juz?.length || 0} Juz
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {m.whatsapp && (
+                      {m.phone && (
                         <a 
-                          href={`https://wa.me/${m.whatsapp.replace(/\D/g, '').replace(/^0/, '62')}`}
+                          href={`https://wa.me/${m.phone.replace(/\D/g, '').replace(/^0/, '62')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors"
@@ -360,7 +360,7 @@ export default function MuallimahTab({
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-in zoom-in duration-200">
             <div className="flex items-center gap-3 text-rose-600 mb-4">
               <AlertCircle className="h-8 w-8" />
@@ -394,90 +394,100 @@ export default function MuallimahTab({
         </div>
       )}
 
-      {/* Detail Modal Placeholder */}
-      {showDetailModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-2xl my-8 p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center">
-                  <Users className="h-8 w-8 text-emerald-600" />
+      {/* Detail Modal */}
+      {showDetailModal && selectedRegistration && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+          <Card className="w-full max-w-2xl my-8 overflow-hidden rounded-[2.5rem] shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-600 rounded-xl">
+                  <ExternalLink className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-slate-900">{selectedRegistration?.full_name}</h3>
-                  <p className="text-slate-500 font-medium">Detail Pendaftaran Muallimah</p>
-                </div>
+                <h2 className="text-xl font-bold text-gray-900">Detail Pendaftar Muallimah</h2>
               </div>
-              <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
-                <XCircle className="h-8 w-8 text-slate-300 hover:text-slate-500" />
+              <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <XCircle className="w-6 h-6 text-gray-400" />
               </button>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div className="space-y-4">
-                <h4 className="text-sm font-bold text-emerald-700 uppercase tracking-wider px-1">Data Pribadi</h4>
-                <div className="bg-slate-50 rounded-2xl p-5 space-y-3">
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-xs font-bold text-slate-400">EMAIL</span>
-                    <span className="text-sm font-bold text-slate-700">{selectedRegistration?.email}</span>
+            
+            <div className="p-8 space-y-8">
+              {/* Profile Section */}
+              <div className="grid grid-cols-2 gap-6 bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nama Lengkap</p>
+                  <p className="font-bold text-slate-900">{selectedRegistration.full_name}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status</p>
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getStatusBadge(selectedRegistration.status)}`}>
+                    {selectedRegistration.status}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Email</p>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Mail className="w-4 h-4 text-slate-400" />
+                    {selectedRegistration.email}
                   </div>
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-xs font-bold text-slate-400">WHATSAPP</span>
-                    <span className="text-sm font-bold text-slate-700">{selectedRegistration?.whatsapp || '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-xs font-bold text-slate-400">PENDIDIKAN</span>
-                    <span className="text-sm font-bold text-slate-700">{selectedRegistration?.education || '-'}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-xs font-bold text-slate-400">PEKERJAAN</span>
-                    <span className="text-sm font-bold text-slate-700">{selectedRegistration?.occupation || '-'}</span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">WhatsApp</p>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Phone className="w-4 h-4 text-slate-400" />
+                    {selectedRegistration.phone || '-'}
                   </div>
                 </div>
               </div>
 
+              {/* Qualifications */}
               <div className="space-y-4">
-                <h4 className="text-sm font-bold text-amber-700 uppercase tracking-wider px-1">Akad & Pengajaran</h4>
-                <div className="bg-amber-50/50 rounded-2xl p-5 space-y-3">
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-xs font-bold text-amber-600">BATCH</span>
-                    <span className="text-sm font-bold text-slate-700">{selectedRegistration?.batch?.name || '-'}</span>
+                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-600 pl-3">Kualifikasi</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-1">
+                    <p className="text-[10px] font-bold text-blue-600 uppercase">Hafalan</p>
+                    <p className="text-sm font-medium">{selectedRegistration.memorized_juz?.length || 0} Juz ({selectedRegistration.memorized_juz?.join(', ') || '-'})</p>
                   </div>
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-xs font-bold text-amber-600">PILIHAN JUZ</span>
-                    <span className="text-sm font-bold text-slate-700">{selectedRegistration?.preferred_juz || '-'}</span>
-                  </div>
-                  <div className="flex flex-col py-1">
-                    <span className="text-xs font-bold text-amber-600 mb-1">JADWAL UTAMA</span>
-                    <span className="text-sm font-bold text-slate-700">{formatScheduleDisplay(selectedRegistration?.preferred_schedule)}</span>
-                  </div>
-                  <div className="flex flex-col py-1">
-                    <span className="text-xs font-bold text-amber-600 mb-1">JADWAL CADANGAN</span>
-                    <span className="text-sm font-bold text-slate-700">{formatScheduleDisplay(selectedRegistration?.backup_schedule)}</span>
+                  <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl space-y-1">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase">Tajwid</p>
+                    <p className="text-sm font-medium">{selectedRegistration.tajweed_institution || '-'}</p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex gap-4">
-              <button 
-                onClick={() => setShowDetailModal(false)}
-                className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all"
-              >
-                Tutup
-              </button>
-              {selectedRegistration?.status === 'pending' && (
-                <button 
-                  onClick={() => handleApprove(selectedRegistration)}
-                  className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200"
-                >
-                  Setujui Sekarang
-                </button>
+              {/* Akad if exists */}
+              {selectedRegistration.akads && selectedRegistration.akads.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-purple-600 pl-3">Akad Batch Ini</h3>
+                  <div className="p-5 bg-purple-50 rounded-3xl border border-purple-100 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-purple-600 uppercase">Jadwal 1</p>
+                      <p className="text-sm font-medium">{selectedRegistration.akads[0].schedule1_day}, {selectedRegistration.akads[0].schedule1_time_start} - {selectedRegistration.akads[0].schedule1_time_end}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-purple-600 uppercase">Tipe Kelas</p>
+                      <p className="text-sm font-medium uppercase">{selectedRegistration.akads[0].class_type?.replace('_', ' ')}</p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+              <Button variant="outline" className="rounded-xl" onClick={() => setShowDetailModal(false)}>Tutup</Button>
+              {selectedRegistration.status === 'pending' && (
+                <Button 
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => handleApprove(selectedRegistration)}
+                >
+                  Setujui Sekarang
+                </Button>
+              )}
+            </div>
+          </Card>
         </div>
       )}
     </div>
   );
 }
+
+export default MuallimahTab;

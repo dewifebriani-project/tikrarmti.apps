@@ -355,14 +355,18 @@ function MuallimahRegistrationContent() {
               />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <Label className="text-base font-semibold">Kompetensi Hafalan (Juz)</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sudah Dihafal</p>
-                  <div className="max-h-40 overflow-y-auto border rounded-md p-3 bg-white space-y-1">
+              
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    Sudah Dihafal
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
-                      <div key={juz.value} className="flex items-center space-x-2 py-1">
+                      <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
                           id={`mem-${juz.value}`} 
                           checked={formData.memorized_juz.includes(juz.value)}
@@ -374,16 +378,20 @@ function MuallimahRegistrationContent() {
                           }}
                           disabled={isFormSubmitted}
                         />
-                        <Label htmlFor={`mem-${juz.value}`} className="text-sm cursor-pointer">{juz.label}</Label>
+                        <Label htmlFor={`mem-${juz.value}`} className="text-xs font-medium cursor-pointer">{juz.label}</Label>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sudah Diuji</p>
-                  <div className="max-h-40 overflow-y-auto border rounded-md p-3 bg-white space-y-1">
+
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                    Sudah Diuji (Tashih/Imtihan)
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
-                      <div key={juz.value} className="flex items-center space-x-2 py-1">
+                      <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
                           id={`exm-${juz.value}`}
                           checked={formData.examined_juz.includes(juz.value)}
@@ -395,7 +403,7 @@ function MuallimahRegistrationContent() {
                           }}
                           disabled={isFormSubmitted}
                         />
-                        <Label htmlFor={`exm-${juz.value}`} className="text-sm cursor-pointer">{juz.label}</Label>
+                        <Label htmlFor={`exm-${juz.value}`} className="text-xs font-medium cursor-pointer">{juz.label}</Label>
                       </div>
                     ))}
                   </div>
@@ -406,7 +414,7 @@ function MuallimahRegistrationContent() {
         </Card>
 
         {/* Step 2: Akad */}
-        <Card border-amber-200 className="shadow-md">
+        <Card className="shadow-md border-amber-200">
           <CardHeader className="bg-amber-50/50">
             <CardTitle className="flex items-center gap-2 text-xl text-amber-900">
               <Calendar className="w-6 h-6 text-amber-600" />
@@ -419,9 +427,9 @@ function MuallimahRegistrationContent() {
           <CardContent className="space-y-8 pt-6">
             <div className="space-y-4">
               <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 p-4 border rounded-lg bg-white">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-white">
                 {allJuzOptions.map(juz => (
-                  <div key={juz.value} className="flex items-center space-x-2">
+                  <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-gray-50 rounded-lg transition-colors px-2">
                     <Checkbox 
                       id={`pref-${juz.value}`}
                       checked={formData.preferred_juz.includes(juz.value)}
@@ -433,56 +441,111 @@ function MuallimahRegistrationContent() {
                       }}
                       disabled={isFormSubmitted}
                     />
-                    <Label htmlFor={`pref-${juz.value}`} className="text-sm cursor-pointer">{juz.label}</Label>
+                    <Label htmlFor={`pref-${juz.value}`} className="text-xs font-medium cursor-pointer">{juz.label}</Label>
                   </div>
                 ))}
               </div>
               {errors.preferred_juz && <p className="text-xs text-red-500 font-medium">{errors.preferred_juz}</p>}
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Jadwal Mengajar (WIB)</Label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-xl bg-gray-50 border">
-                <div className="space-y-2">
-                  <Label>Hari</Label>
-                  <Select 
-                    value={formData.schedule1_day} 
-                    onValueChange={(v) => handleInputChange('schedule1_day', v)}
-                    disabled={isFormSubmitted}
-                  >
-                    <SelectTrigger className={errors.schedule1_day ? "border-red-500" : ""}>
-                      <SelectValue placeholder="Pilih hari" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dayOptions.map(d => (
-                        <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-amber-600" />
+                <Label className="text-base font-bold text-amber-900">Jadwal Mengajar (WIB)</Label>
+              </div>
+
+              <div className="space-y-6">
+                {/* Schedule 1 */}
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-amber-600/70 uppercase tracking-widest px-1">Pilihan Utama</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 rounded-2xl bg-amber-50/30 border border-amber-100/50">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-500">Hari</Label>
+                      <Select 
+                        value={formData.schedule1_day} 
+                        onValueChange={(v) => handleInputChange('schedule1_day', v)}
+                        disabled={isFormSubmitted}
+                      >
+                        <SelectTrigger className={`bg-white rounded-xl border-gray-200 ${errors.schedule1_day ? "border-red-500" : ""}`}>
+                          <SelectValue placeholder="Pilih hari" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dayOptions.map(d => (
+                            <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-500">Jam Mulai</Label>
+                      <Input 
+                        type="time" 
+                        value={formData.schedule1_time_start}
+                        onChange={(e) => handleInputChange('schedule1_time_start', e.target.value)}
+                        disabled={isFormSubmitted}
+                        className={`bg-white rounded-xl border-gray-200 ${errors.schedule1_time_start ? "border-red-500" : ""}`}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-500">Jam Selesai</Label>
+                      <Input 
+                        type="time" 
+                        value={formData.schedule1_time_end}
+                        onChange={(e) => handleInputChange('schedule1_time_end', e.target.value)}
+                        disabled={isFormSubmitted}
+                        className={`bg-white rounded-xl border-gray-200 ${errors.schedule1_time_end ? "border-red-500" : ""}`}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Jam Mulai</Label>
-                  <Input 
-                    type="time" 
-                    value={formData.schedule1_time_start}
-                    onChange={(e) => handleInputChange('schedule1_time_start', e.target.value)}
-                    disabled={isFormSubmitted}
-                    className={errors.schedule1_time_start ? "border-red-500" : ""}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Jam Selesai</Label>
-                  <Input 
-                    type="time" 
-                    value={formData.schedule1_time_end}
-                    onChange={(e) => handleInputChange('schedule1_time_end', e.target.value)}
-                    disabled={isFormSubmitted}
-                    className={errors.schedule1_time_end ? "border-red-500" : ""}
-                  />
+
+                {/* Schedule 2 (Optional) */}
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Pilihan Cadangan (Opsional)</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 rounded-2xl bg-gray-50/50 border border-gray-100">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-400">Hari</Label>
+                      <Select 
+                        value={formData.schedule2_day} 
+                        onValueChange={(v) => handleInputChange('schedule2_day', v)}
+                        disabled={isFormSubmitted}
+                      >
+                        <SelectTrigger className="bg-white rounded-xl border-gray-200">
+                          <SelectValue placeholder="Pilih hari" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dayOptions.map(d => (
+                            <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-400">Jam Mulai</Label>
+                      <Input 
+                        type="time" 
+                        value={formData.schedule2_time_start}
+                        onChange={(e) => handleInputChange('schedule2_time_start', e.target.value)}
+                        disabled={isFormSubmitted}
+                        className="bg-white rounded-xl border-gray-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-gray-400">Jam Selesai</Label>
+                      <Input 
+                        type="time" 
+                        value={formData.schedule2_time_end}
+                        onChange={(e) => handleInputChange('schedule2_time_end', e.target.value)}
+                        disabled={isFormSubmitted}
+                        className="bg-white rounded-xl border-gray-200"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
+
               {(errors.schedule1_day || errors.schedule1_time_start || errors.schedule1_time_end) && (
-                <p className="text-xs text-red-500 font-medium">Harap lengkapi semua field jadwal.</p>
+                <p className="text-xs text-red-500 font-medium">Harap lengkapi semua field jadwal pilihan utama.</p>
               )}
             </div>
 
