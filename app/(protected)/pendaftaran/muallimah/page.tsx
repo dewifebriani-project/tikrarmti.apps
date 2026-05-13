@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, BookOpen, GraduationCap, Loader2, Info } from 'lucide-react';
+import { Calendar, BookOpen, GraduationCap, Loader2, Info, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
