@@ -34,9 +34,9 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
 
     // 3. Step 1: Upsert Profile (muallimah_registrations)
     // We treat this table as the permanent profile
-    const profileData = {
+    const profileData: any = {
       user_id: authUser.id,
-      full_name: userData?.full_name || authUser.user_metadata?.full_name || '',
+      full_name: userData?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
       email: authUser.email || '',
       whatsapp: userData?.whatsapp || '',
       occupation: userData?.pekerjaan || '',
@@ -45,19 +45,22 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       teaching_communities: formData.teaching_communities || null,
       memorized_tajweed_matan: formData.memorized_tajweed_matan || null,
       studied_matan_exegesis: formData.studied_matan_exegesis || null,
+      memorization_level: formData.memorization_level || null,
       memorized_juz: Array.isArray(formData.memorized_juz) ? formData.memorized_juz.join(', ') : null,
       examined_juz: Array.isArray(formData.examined_juz) ? formData.examined_juz.join(', ') : null,
       certified_juz: Array.isArray(formData.certified_juz) ? formData.certified_juz.join(', ') : null,
       age: formData.age || null,
-      updated_at: new Date().toISOString(),
     }
+
+    // Note: Legacy columns like birth_date, birth_place, address are now nullable 
+    // to avoid issues if they are not provided in this specific form.
 
     const { error: profileError } = await supabase
       .from('muallimah_registrations')
       .upsert(profileData, { onConflict: 'user_id' })
 
     if (profileError) {
-      console.error('Profile upsert error:', profileError)
+      console.error('Profile upsert error detail:', profileError)
       return { success: false, error: `Gagal menyimpan profil: ${profileError.message}` }
     }
 
@@ -66,14 +69,13 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       user_id: authUser.id,
       batch_id: batchId,
       preferred_juz: Array.isArray(formData.preferred_juz) ? formData.preferred_juz.join(', ') : null,
-      class_type: 'tashih_ujian',
+      class_type: formData.class_type || 'tashih_ujian',
       preferred_max_thalibah: formData.preferred_max_thalibah || 10,
       preferred_schedule: JSON.stringify(schedule1Formatted),
       backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : null,
       understands_commitment: formData.understands_commitment === true,
       status: 'pending',
       akad_signed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
     const { error: akadError } = await supabase
@@ -81,7 +83,7 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       .upsert(akadData, { onConflict: 'user_id,batch_id' })
 
     if (akadError) {
-      console.error('Akad upsert error:', akadError)
+      console.error('Akad upsert error detail:', akadError)
       return { success: false, error: `Gagal menyimpan akad: ${akadError.message}` }
     }
 
@@ -92,11 +94,11 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
 
     return {
       success: true,
-      message: 'Alhamdulillah! Pendaftaran and Akad berhasil disimpan!'
+      message: 'Alhamdulillah! Pendaftaran dan Akad berhasil disimpan!'
     }
 
   } catch (error: any) {
-    console.error('Submit muallimah error:', error)
+    console.error('Submit muallimah unexpected error:', error)
     return { success: false, error: error?.message || 'Terjadi kesalahan tidak terduga' }
   }
 }

@@ -64,6 +64,18 @@ CREATE INDEX IF NOT EXISTS idx_muallimah_akads_status ON muallimah_akads(status)
 
 -- Make batch_id nullable in muallimah_registrations
 ALTER TABLE muallimah_registrations ALTER COLUMN batch_id DROP NOT NULL;
+
+-- Fix legacy NOT NULL columns in muallimah_registrations
+ALTER TABLE public.muallimah_registrations 
+  ALTER COLUMN birth_date DROP NOT NULL,
+  ALTER COLUMN birth_place DROP NOT NULL,
+  ALTER COLUMN address DROP NOT NULL,
+  ALTER COLUMN education DROP NOT NULL,
+  ALTER COLUMN memorization_level DROP NOT NULL,
+  ALTER COLUMN preferred_juz DROP NOT NULL,
+  ALTER COLUMN teaching_experience DROP NOT NULL,
+  ALTER COLUMN preferred_schedule DROP NOT NULL,
+  ALTER COLUMN backup_schedule DROP NOT NULL;
 `;
 
     // Try both parameter names

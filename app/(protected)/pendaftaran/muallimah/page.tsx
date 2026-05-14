@@ -26,6 +26,7 @@ type MuallimahFormData = {
   teaching_communities: string;
   memorized_tajweed_matan: string;
   studied_matan_exegesis: string;
+  memorization_level: string;
   memorized_juz: string[];
   examined_juz: string[];
   certified_juz: string[];
@@ -33,7 +34,7 @@ type MuallimahFormData = {
   
   // Akad Data (Batch-specific)
   preferred_juz: string[]; 
-  class_type: 'tashih_ujian'; 
+  class_type: string; 
   preferred_max_thalibah?: number;
   schedule1_day: string;
   schedule1_time_start: string;
@@ -84,13 +85,14 @@ function MuallimahRegistrationContent() {
     teaching_communities: '',
     memorized_tajweed_matan: '',
     studied_matan_exegesis: '',
+    memorization_level: '',
     memorized_juz: [],
     examined_juz: [],
     certified_juz: [],
     age: undefined,
     
     preferred_juz: [], 
-    class_type: 'tashih_ujian',
+    class_type: '',
     preferred_max_thalibah: 10,
     schedule1_day: '',
     schedule1_time_start: '',
@@ -153,6 +155,7 @@ function MuallimahRegistrationContent() {
           teaching_communities: profile.teaching_communities || '',
           memorized_tajweed_matan: profile.memorized_tajweed_matan || '',
           studied_matan_exegesis: profile.studied_matan_exegesis || '',
+          memorization_level: profile.memorization_level || '',
           memorized_juz: profile.memorized_juz ? (Array.isArray(profile.memorized_juz) ? profile.memorized_juz : profile.memorized_juz.split(', ')) : [],
           examined_juz: profile.examined_juz ? (Array.isArray(profile.examined_juz) ? profile.examined_juz : profile.examined_juz.split(', ')) : [],
           certified_juz: profile.certified_juz ? (Array.isArray(profile.certified_juz) ? profile.certified_juz : profile.certified_juz.split(', ')) : [],
@@ -186,6 +189,7 @@ function MuallimahRegistrationContent() {
           ...prev,
           preferred_juz: akad.preferred_juz ? (Array.isArray(akad.preferred_juz) ? akad.preferred_juz : akad.preferred_juz.split(', ')) : [],
           preferred_max_thalibah: akad.preferred_max_thalibah,
+          class_type: akad.class_type || '',
           schedule1_day: preferredSchedule?.day || '',
           schedule1_time_start: preferredSchedule?.time_start || '',
           schedule1_time_end: preferredSchedule?.time_end || '',
@@ -244,10 +248,13 @@ function MuallimahRegistrationContent() {
 
     if (!formData.tajweed_institution?.trim()) newErrors.tajweed_institution = 'Lembaga belajar tajwid harus diisi';
     if (!formData.quran_institution?.trim()) newErrors.quran_institution = 'Lembaga hafal Quran harus diisi';
-    if (!formData.preferred_juz || formData.preferred_juz.length === 0) newErrors.preferred_juz = 'Pilih minimal satu juz';
+    if (!formData.memorization_level) newErrors.memorization_level = 'Pilih jumlah hafalan';
+    if (!formData.memorized_juz || formData.memorized_juz.length === 0) newErrors.memorized_juz = 'Pilih minimal satu juz yang sudah dihafal';
+    if (!formData.preferred_juz || formData.preferred_juz.length === 0) newErrors.preferred_juz = 'Pilih minimal satu juz yang ingin diampu';
     if (!formData.schedule1_day) newErrors.schedule1_day = 'Pilih hari';
     if (!formData.schedule1_time_start) newErrors.schedule1_time_start = 'Pilih jam mulai';
     if (!formData.schedule1_time_end) newErrors.schedule1_time_end = 'Pilih jam selesai';
+    if (!formData.class_type) newErrors.class_type = 'Pilih tipe kelas / skema kerjasama';
     if (!formData.understands_commitment) newErrors.understands_commitment = 'Harap setujui akad komitmen';
 
     setErrors(newErrors);
@@ -256,7 +263,13 @@ function MuallimahRegistrationContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!batchId || isFormSubmitted) return;
+    if (!batchId) {
+      toast.error('Batch ID tidak ditemukan. Silakan kembali ke halaman pendaftaran.');
+      return;
+    }
+    
+    if (isFormSubmitted) return;
+    
     if (!validateForm()) {
       toast.error('Mohon lengkapi semua field yang wajib diisi');
       return;
@@ -319,7 +332,56 @@ function MuallimahRegistrationContent() {
               Informasi ini disimpan secara permanen untuk semua batch di masa mendatang.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-8">
+            {/* Read-only User Data from Profile */}
+            <div className="bg-green-50/50 p-4 rounded-xl border border-green-100 mb-2">
+              <h3 className="text-sm font-bold text-green-800 mb-3 uppercase tracking-wider flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                Data Profil Dasar
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Nama Lengkap</Label>
+                  <p className="text-sm font-medium">{userData?.full_name || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Nama Kunyah</Label>
+                  <p className="text-sm font-medium">{userData?.nama_kunyah || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Email</Label>
+                  <p className="text-sm font-medium">{user?.email || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">WhatsApp</Label>
+                  <p className="text-sm font-medium">{userData?.whatsapp || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Telegram</Label>
+                  <p className="text-sm font-medium">{userData?.telegram || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Pekerjaan</Label>
+                  <p className="text-sm font-medium">{userData?.pekerjaan || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Tempat Lahir</Label>
+                  <p className="text-sm font-medium">{userData?.tempat_lahir || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Zona Waktu</Label>
+                  <p className="text-sm font-medium">{userData?.zona_waktu || 'WIB'}</p>
+                </div>
+                <div className="col-span-full space-y-1">
+                  <Label className="text-xs text-gray-500 uppercase">Alamat Lengkap</Label>
+                  <p className="text-sm font-medium">{userData?.alamat || '-'}</p>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-green-100 flex items-center justify-between">
+                <p className="text-[10px] text-green-600 italic">* Data di atas diambil dari profil akun Ukhti. Jika ingin mengubahnya, silakan hubungi admin.</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Lembaga Belajar Tajwid</Label>
@@ -345,14 +407,44 @@ function MuallimahRegistrationContent() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Matan Tajwid yang Dihafal/Dipahami</Label>
-              <Input 
-                placeholder="e.g. Tuhfatul Athfal, Jazariyah"
-                value={formData.memorized_tajweed_matan}
-                onChange={(e) => handleInputChange('memorized_tajweed_matan', e.target.value)}
-                disabled={isFormSubmitted}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Matan Tajwid yang Dihafal</Label>
+                <Input 
+                  placeholder="e.g. Tuhfatul Athfal, Jazariyah"
+                  value={formData.memorized_tajweed_matan}
+                  onChange={(e) => handleInputChange('memorized_tajweed_matan', e.target.value)}
+                  disabled={isFormSubmitted}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Syarah Matan yang Dipelajari</Label>
+                <Input 
+                  placeholder="e.g. Aisar, dsb"
+                  value={formData.studied_matan_exegesis}
+                  onChange={(e) => handleInputChange('studied_matan_exegesis', e.target.value)}
+                  disabled={isFormSubmitted}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Jumlah Hafalan Al-Quran saat ini</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {[1, 5, 10, 15, 20, 30].map((num) => (
+                  <Button
+                    key={num}
+                    type="button"
+                    variant={formData.memorization_level === String(num) ? "default" : "outline"}
+                    className={`h-9 text-xs ${formData.memorization_level === String(num) ? "bg-green-600 hover:bg-green-700" : ""}`}
+                    onClick={() => handleInputChange('memorization_level', String(num))}
+                    disabled={isFormSubmitted}
+                  >
+                    {num === 30 ? "30 Juz (Kamil)" : `${num} Juz`}
+                  </Button>
+                ))}
+              </div>
+              {errors.memorization_level && <p className="text-xs text-red-500">{errors.memorization_level}</p>}
             </div>
 
             <div className="space-y-6">
@@ -364,7 +456,7 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     Sudah Dihafal
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-gray-50/30">
+                  <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
                       <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
@@ -378,7 +470,7 @@ function MuallimahRegistrationContent() {
                           }}
                           disabled={isFormSubmitted}
                         />
-                        <Label htmlFor={`mem-${juz.value}`} className="text-xs font-medium cursor-pointer">{juz.label}</Label>
+                        <Label htmlFor={`mem-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
                       </div>
                     ))}
                   </div>
@@ -389,9 +481,9 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
                     Sudah Diuji (Tashih/Imtihan)
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-gray-50/30">
+                  <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
-                      <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
+                      <div key={`exm-${juz.value}`} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
                           id={`exm-${juz.value}`}
                           checked={formData.examined_juz.includes(juz.value)}
@@ -403,7 +495,32 @@ function MuallimahRegistrationContent() {
                           }}
                           disabled={isFormSubmitted}
                         />
-                        <Label htmlFor={`exm-${juz.value}`} className="text-xs font-medium cursor-pointer">{juz.label}</Label>
+                        <Label htmlFor={`exm-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                    Sudah Mendapat Sertifikat
+                  </p>
+                  <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
+                    {allJuzOptions.map(juz => (
+                      <div key={`cert-${juz.value}`} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
+                        <Checkbox 
+                          id={`cert-${juz.value}`}
+                          checked={formData.certified_juz.includes(juz.value)}
+                          onCheckedChange={(checked) => {
+                            const newJuz = checked 
+                              ? [...formData.certified_juz, juz.value]
+                              : formData.certified_juz.filter(v => v !== juz.value);
+                            handleInputChange('certified_juz', newJuz);
+                          }}
+                          disabled={isFormSubmitted}
+                        />
+                        <Label htmlFor={`cert-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
                       </div>
                     ))}
                   </div>
@@ -425,9 +542,53 @@ function MuallimahRegistrationContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 pt-6">
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-4 border rounded-xl bg-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Tipe Kelas & Skema Kerjasama</Label>
+                  <Select 
+                    value={formData.class_type} 
+                    onValueChange={(v) => handleInputChange('class_type', v)}
+                    disabled={isFormSubmitted}
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                      <SelectValue placeholder="Pilih tipe kelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tashih_ujian">Standard (Tashih & Ujian)</SelectItem>
+                      <SelectItem value="berbayar_100">Berbayar (100% Muallimah)</SelectItem>
+                      <SelectItem value="berbayar_80_20">Berbayar (Skema 80:20)</SelectItem>
+                      <SelectItem value="berbayar_60_40">Berbayar (Skema 60:40)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.class_type && <p className="text-xs text-red-500 font-medium">{errors.class_type}</p>}
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Maksimal Tholibah per Kelas</Label>
+                  <Select 
+                    value={String(formData.preferred_max_thalibah || 10)} 
+                    onValueChange={(v) => handleInputChange('preferred_max_thalibah', parseInt(v))}
+                    disabled={isFormSubmitted}
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                      <SelectValue placeholder="Pilih maksimal tholibah" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <SelectItem key={num} value={String(num)}>{num} Orang</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-100 italic">
+                * Skema berbayar akan divalidasi lebih lanjut oleh tim manajemen berdasarkan kualifikasi dan ketersediaan program.
+              </p>
+
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
+              <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-white">
                 {allJuzOptions.map(juz => (
                   <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-gray-50 rounded-lg transition-colors px-2">
                     <Checkbox 
@@ -441,7 +602,7 @@ function MuallimahRegistrationContent() {
                       }}
                       disabled={isFormSubmitted}
                     />
-                    <Label htmlFor={`pref-${juz.value}`} className="text-xs font-medium cursor-pointer">{juz.label}</Label>
+                    <Label htmlFor={`pref-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
                   </div>
                 ))}
               </div>

@@ -96,8 +96,7 @@ export function FinalExamParticipants() {
   };
 
   const filtered = registrations.filter(r => 
-    r.user.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    r.schedule.examiner.full_name.toLowerCase().includes(search.toLowerCase())
+    r.user.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -108,7 +107,7 @@ export function FinalExamParticipants() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input 
-              placeholder="Cari thalibah atau penguji..." 
+              placeholder="Cari thalibah..." 
               className="pl-10 rounded-xl border-gray-200"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -246,10 +245,6 @@ export function FinalExamParticipants() {
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Waktu:</span>
                     <span className="font-bold text-gray-900">{selectedReg.schedule.start_time} WIB</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">Penguji:</span>
-                    <span className="font-bold text-gray-900">{selectedReg.schedule.examiner.full_name}</span>
                   </div>
                 </div>
               </div>

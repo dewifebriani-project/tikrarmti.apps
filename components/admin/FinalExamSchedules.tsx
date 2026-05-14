@@ -164,26 +164,6 @@ export function FinalExamSchedules() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Penguji (Muallimah)</Label>
-                <Select 
-                  value={formData.examiner_id} 
-                  onValueChange={(v) => setFormData({...formData, examiner_id: v})}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200">
-                    <SelectValue placeholder="Pilih Penguji" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[100]">
-                    {examiners.length > 0 ? (
-                      examiners.map(ex => (
-                        <SelectItem key={ex.id} value={ex.id}>{ex.full_name}</SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="none" disabled>Tidak ada penguji tersedia</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-2">
                 <Label>Tanggal Ujian</Label>
@@ -298,10 +278,6 @@ export function FinalExamSchedules() {
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 opacity-40" />
                     <span>Quota: <span className="text-gray-900 font-bold">{schedule.current_count} / {schedule.max_quota}</span></span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="w-4 h-4 opacity-40" />
-                    <span>Penguji: <span className="text-gray-900 font-bold">{schedule.examiner?.full_name || 'Belum Ditentukan'}</span></span>
                   </div>
                   {schedule.location_link && (
                     <div className="flex items-center gap-3 truncate">
