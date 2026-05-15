@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseAdmin } from '@/lib/supabase';
+import { createSupabaseAdmin } from '@/lib/supabase.ts';
 
 export async function POST() {
   try {
@@ -66,7 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_muallimah_akads_status ON muallimah_akads(status)
 ALTER TABLE muallimah_registrations ALTER COLUMN batch_id DROP NOT NULL;
 
 -- Fix legacy NOT NULL columns in muallimah_registrations
-ALTER TABLE public.muallimah_registrations 
+  ALTER TABLE public.muallimah_registrations 
   ALTER COLUMN birth_date DROP NOT NULL,
   ALTER COLUMN birth_place DROP NOT NULL,
   ALTER COLUMN address DROP NOT NULL,
@@ -76,6 +76,71 @@ ALTER TABLE public.muallimah_registrations
   ALTER COLUMN teaching_experience DROP NOT NULL,
   ALTER COLUMN preferred_schedule DROP NOT NULL,
   ALTER COLUMN backup_schedule DROP NOT NULL;
+
+-- Ensure user_id is unique in muallimah_registrations
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'muallimah_registrations_user_id_key') THEN
+        ALTER TABLE public.muallimah_registrations ADD CONSTRAINT muallimah_registrations_user_id_key UNIQUE (user_id);
+    END IF;
+END
+$$;
+
+-- Add muallimah_akad_text to batches
+ALTER TABLE public.batches ADD COLUMN IF NOT EXISTS muallimah_akad_text TEXT;
+
+-- Update existing Batch 2 with the current hardcoded text (if name matches)
+UPDATE public.batches 
+SET muallimah_akad_text = '📝 Formulir ini adalah formulir pendaftaran Mu''allimah MTI Batch 2
+
+📆 Durasi program: InsyaAllah selama 13 Pekan dimulai dari tanggal 5 Januari - 5 April 2026 untuk target hafalan 1/2 juz.
+
+Pekan 1 (5-11 Januari): Tashih
+Pekan 2-11 (12 Januari - 5 April): Ziyadah
+(Catatan: 15-29 Maret adalah Libur Lebaran)
+Pekan 12 (6-12 April): Muroja''ah
+Pekan 13 (13-19 April): Ujian
+
+🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)
+
+✅ Tashih wajib sekali sepekan untuk kurikulum ziyadah pekan depan, jadwal menyesuaikan
+✅ Ujian wajib sekali sepekan untuk kurikulum selesai ziyadah pekanan, jadwal menyesuaikan
+
+🤝 Komitmen & Etika
+Program ini adalah program gratis untuk ummat, MTI belum bisa menjanjikan ujrah apapun untuk partisipasi mu''allimaty dalam program ini.
+
+Apapun keluhan dan keberatan pribadi yang dirasakan selama program berlangsung, mohon langsung komunikasikan kepada kak Mara (081313650842) untuk mendapatkan solusi.
+
+Untuk masalah teknis link zoom silahkan langsung komunikasikan kepada kak Ucy (082229370282).
+
+Untuk masalah perizinan udzur silahkan ke musyrifah masing-masing. (diharapkan info udzur disampaikan minimal 1 jam sebelum kelas, untuk meminimalisir kekecewaan tholibah)
+
+Karena ini program gratis, apabila mu''allimaty ada udzur, MTI tidak menuntut untuk mengganti jadwal kelas, Tholibah akan kami arahkan untuk masuk kelas-kelas umum di MTI
+
+Untuk Mu''allimaty yang telah mempunyai 2 kelas gratis di MTI, boleh membuka kelas berbayar sesuai dengan keahlian masing-masing di MTI dengan SPP kelas 100 persen untuk mu''allimaty tanpa dipotong MTI.
+
+Program ini baru angkatan kedua dan gratis, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini, tapi kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan. MTI adalah rumah bagi kita, yang anggotanya adalah keluarga bagaikan ibu dengan anak, kakak dengan adik, yang saling menyayangi, mengingatkan, melengkapi kelemahan dan kekurangan masing-masing untuk kebaikan denqan target semoga Allah kumpulkan kita di Jannah Firdaus Al''Ala. 
+
+Formulir ini sebagai akad yang akan diperbaharui setiap batch atau angkatan sehingga mu''allimah hanya terikat dengan komitmen di MTI hanya dalam 11 pekan kurikulum per periode.
+
+Apabila kurikulum telah selesai, mu''allimah bebas untuk melanjutkan jika masih berkenan dan nyaman dengan MTI, cuti apabila ada udzur atau mundur apabila sudah tidak berkenan.
+
+Semoga Allah memudahkan langkah kita ikut andil dalam penjagaan A-Quran dan semoga Allah Ta''ala terima sebagai amal jariyah yang mengalir hingga hari kiamat, Aamiin. 🌿
+
+Rangkuman Akad:
+# Program ini gratis, MTI tidak bisa menjanjikan ujrah apapun
+# Formulir ini sebagai akad yang berlaku selama 11 pekan kurikulum
+# Komplain silakan ke Kak Mara (0813-1365-0842)
+# Masalah teknis zoom ke Kak Ucy (082229370282)
+# Izin udzur ke musyrifah minimal 1 jam sebelum kelas
+# Apabila ada udzur, MTI tidak menuntut mengganti jadwal
+# Muallimah dengan 2 kelas gratis boleh buka kelas berbayar
+Pembagian SPP untuk kelas berbayar:
+100% - Tanpa Musyrifah (muallimah mengelola kelas secara mandiri)
+80% - Didampingi Musyrifah (ada musyrifah yang membantu mengelola kelas)
+60% - Jika memiliki 1 kelas gratis di MTI (insentif khusus)
+# Setelah kurikulum selesai, muallimah bebas melanjutkan/cuti/mundur pada angkatan berikutnya'
+WHERE name ILIKE '%Batch 2%' AND muallimah_akad_text IS NULL;
 `;
 
     // Try both parameter names

@@ -120,6 +120,7 @@ const batchCreateSchema = z.object({
   is_free: z.boolean().default(true),
   price: z.number().min(0, 'Harga tidak boleh negatif').default(0),
   total_quota: z.number().int().min(1, 'Kuota minimal 1').default(100),
+  muallimah_akad_text: z.string().optional(),
 })
 
 export const batchSchemas = {

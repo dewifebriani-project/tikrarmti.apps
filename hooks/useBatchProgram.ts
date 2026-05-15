@@ -64,6 +64,7 @@ export function useBatchProgram() {
           total_quota: batch.total_quota,
           registered_count: batch.registered_count,
           duration_weeks: batch.duration_weeks,
+          muallimah_akad_text: batch.muallimah_akad_text,
         } : {
           id: '',
           name: 'Unknown Batch',

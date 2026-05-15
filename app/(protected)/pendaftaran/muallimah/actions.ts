@@ -33,7 +33,7 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       : null
 
     // 3. Step 1: Upsert Profile (muallimah_registrations)
-    // We treat this table as the permanent profile
+    // We treat this table as the permanent profile. 
     const profileData: any = {
       user_id: authUser.id,
       full_name: userData?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.name || '',
@@ -52,16 +52,33 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       age: formData.age || null,
     }
 
-    // Note: Legacy columns like birth_date, birth_place, address are now nullable 
-    // to avoid issues if they are not provided in this specific form.
-
-    const { error: profileError } = await supabase
+    // Using manual existence check to avoid "no unique constraint" error on user_id.
+    const { data: existingProfile, error: checkError } = await supabase
       .from('muallimah_registrations')
-      .upsert(profileData, { onConflict: 'user_id' })
+      .select('id')
+      .eq('user_id', authUser.id)
+      .maybeSingle()
 
-    if (profileError) {
-      console.error('Profile upsert error detail:', profileError)
-      return { success: false, error: `Gagal menyimpan profil: ${profileError.message}` }
+    if (checkError) {
+      console.error('Error checking existing profile:', checkError)
+      return { success: false, error: `Gagal memvalidasi profil: ${checkError.message}` }
+    }
+
+    let profileResult;
+    if (existingProfile) {
+      profileResult = await supabase
+        .from('muallimah_registrations')
+        .update(profileData)
+        .eq('id', existingProfile.id)
+    } else {
+      profileResult = await supabase
+        .from('muallimah_registrations')
+        .insert(profileData)
+    }
+
+    if (profileResult.error) {
+      console.error('Profile save error detail:', profileResult.error)
+      return { success: false, error: `Gagal menyimpan profil: ${profileResult.error.message}` }
     }
 
     // 4. Step 2: Upsert Akad (muallimah_akads)

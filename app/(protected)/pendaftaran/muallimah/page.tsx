@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, BookOpen, GraduationCap, Loader2, Info, Clock } from 'lucide-react';
+import { Calendar, BookOpen, GraduationCap, Loader2, Info, Clock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -45,6 +45,7 @@ type MuallimahFormData = {
   
   // Commitment
   understands_commitment: boolean;
+  agreed_items: string[];
 };
 
 const dayOptions = [
@@ -61,6 +62,20 @@ const allJuzOptions = Array.from({ length: 30 }, (_, i) => ({
   value: String(i + 1),
   label: `Juz ${i + 1}`
 }));
+
+const COMMITMENT_ITEMS = [
+  { id: 'free_program', label: "Program ini gratis, MTI belum bisa menjanjikan ujrah apapun untuk partisipasi Mu'allimah." },
+  { id: 'standard_package', label: "Memahami bahwa kelas Standard adalah satu paket lengkap yang mencakup Tashih dan Ujian sekaligus." },
+  { id: 'revenue_share', label: "Menyetujui skema kerjasama 80% (didampingi musyrifah) atau 60% (jika memiliki 1 kelas gratis) untuk kelas berbayar." },
+  { id: 'complaints_mara', label: "Keluhan dan keberatan pribadi dikomunikasikan langsung ke Kak Mara (081313650842)." },
+  { id: 'technical_ucy', label: "Masalah teknis link zoom dikomunikasikan langsung ke Kak Ucy (082229370282)." },
+  { id: 'permit_musyrifah', label: "Izin udzur disampaikan ke Musyrifah minimal 1 jam sebelum kelas dimulai." },
+  { id: 'no_makeup_class', label: "Jika Mu'allimah udzur, MTI tidak menuntut ganti jadwal (Tholibah diarahkan ke kelas umum)." },
+  { id: 'paid_class_incentive', label: "Mu'allimah dengan 2 kelas gratis boleh buka kelas berbayar (SPP 100% tanpa potongan MTI)." },
+  { id: 'family_spirit', label: "Menerima kekurangan program dengan semangat kekeluargaan dan saling melengkapi." },
+  { id: 'batch_period', label: "Akad berlaku selama satu periode (11 pekan kurikulum ziyadah + ujian)." },
+  { id: 'freedom_to_continue', label: "Setelah kurikulum selesai, bebas untuk melanjutkan, cuti, atau mundur pada batch berikutnya." },
+];
 
 function MuallimahRegistrationContent() {
   const router = useRouter();
@@ -101,6 +116,7 @@ function MuallimahRegistrationContent() {
     schedule2_time_start: '',
     schedule2_time_end: '',
     understands_commitment: false,
+    agreed_items: [],
   });
 
   // Redirect to login if not authenticated
@@ -109,6 +125,45 @@ function MuallimahRegistrationContent() {
       router.push('/login');
     }
   }, [authLoading, isAuthenticated, router]);
+
+  // AUTO-SAVE: Load draft from localStorage on mount
+  useEffect(() => {
+    if (user?.id && !isFormSubmitted) {
+      const savedDraft = localStorage.getItem(`muallimah_draft_${user.id}`);
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          // Only load if current formData is mostly empty to avoid overwriting DB data
+          setFormData(prev => {
+            // Check if we already have meaningful data (e.g. from DB)
+            const hasExistingData = prev.tajweed_institution || prev.preferred_juz.length > 0;
+            if (!hasExistingData) {
+              return { ...prev, ...parsed };
+            }
+            return prev;
+          });
+        } catch (e) {
+          console.error('Error loading draft:', e);
+        }
+      }
+    }
+  }, [user?.id, isFormSubmitted]);
+
+  // AUTO-SAVE: Save to localStorage whenever formData changes
+  useEffect(() => {
+    if (user?.id && !isFormSubmitted && formData) {
+      const timeoutId = setTimeout(() => {
+        // Don't save if it's just the initial empty state
+        const hasData = Object.values(formData).some(val => 
+          Array.isArray(val) ? val.length > 0 : !!val
+        );
+        if (hasData) {
+          localStorage.setItem(`muallimah_draft_${user.id}`, JSON.stringify(formData));
+        }
+      }, 1000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formData, user?.id, isFormSubmitted]);
 
   // Set batchId
   useEffect(() => {
@@ -237,10 +292,31 @@ function MuallimahRegistrationContent() {
     }
   };
 
-  const handleInputChange = (field: string, value: any) => {
-    if (isFormSubmitted) return;
+  const handleInputChange = (field: keyof MuallimahFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAgreedItemsToggle = (itemId: string) => {
+    setFormData(prev => {
+      const current = prev.agreed_items || [];
+      const updated = current.includes(itemId)
+        ? current.filter(id => id !== itemId)
+        : [...current, itemId];
+      
+      return { 
+        ...prev, 
+        agreed_items: updated,
+        understands_commitment: updated.length === COMMITMENT_ITEMS.length
+      };
+    });
   };
 
   const validateForm = () => {
@@ -255,7 +331,9 @@ function MuallimahRegistrationContent() {
     if (!formData.schedule1_time_start) newErrors.schedule1_time_start = 'Pilih jam mulai';
     if (!formData.schedule1_time_end) newErrors.schedule1_time_end = 'Pilih jam selesai';
     if (!formData.class_type) newErrors.class_type = 'Pilih tipe kelas / skema kerjasama';
-    if (!formData.understands_commitment) newErrors.understands_commitment = 'Harap setujui akad komitmen';
+    if (!formData.understands_commitment || formData.agreed_items.length < COMMITMENT_ITEMS.length) {
+      newErrors.understands_commitment = 'Harap setujui semua butir akad komitmen';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -279,7 +357,12 @@ function MuallimahRegistrationContent() {
     try {
       const result = await submitMuallimahRegistration(formData, userData, user, batchId);
       if (result.success) {
+        setIsFormSubmitted(true);
         toast.success(result.message);
+        // Clear auto-save draft on success
+        if (user?.id) {
+          localStorage.removeItem(`muallimah_draft_${user.id}`);
+        }
         router.push('/dashboard');
       } else {
         toast.error(result.error || 'Gagal mengirim pendaftaran');
@@ -710,23 +793,51 @@ function MuallimahRegistrationContent() {
               )}
             </div>
 
-            <div className="p-5 bg-green-50 rounded-xl border border-green-100 flex items-start gap-4">
-              <Checkbox 
-                id="commitment"
-                checked={formData.understands_commitment}
-                onCheckedChange={(checked) => handleInputChange('understands_commitment', checked === true)}
-                disabled={isFormSubmitted}
-                className="mt-1 h-5 w-5"
-              />
-              <div className="space-y-2">
-                <Label htmlFor="commitment" className="text-base font-bold text-green-900 cursor-pointer">
-                  Saya menyetujui Akad Komitmen Pengajaran
-                </Label>
-                <p className="text-sm text-green-800 leading-relaxed">
-                  Bismillah, saya bersedia mengabdi sebagai Mu'allimah MTI untuk Batch {batchInfo?.name || '...'} 
-                  sesuai kurikulum yang ditetapkan (Tashih + Ujian) dengan penuh amanah and mengharap ridho Allah Ta'ala.
-                </p>
-                {errors.understands_commitment && <p className="text-sm text-red-600 font-bold">{errors.understands_commitment}</p>}
+            <div className="space-y-6">
+              <div className="p-6 bg-green-50/50 rounded-2xl border border-green-100/50">
+                <h3 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-green-600" />
+                  Akad Komitmen & Etika Mu'allimah
+                </h3>
+                
+                <div className="space-y-4">
+                  <p className="text-sm text-green-800 font-medium italic mb-4 bg-green-100/30 p-3 rounded-xl border border-green-100/50">
+                    Silakan baca dan centang setiap poin di bawah ini sebagai bentuk pemahaman dan kesepakatan Ukhti terhadap akad MTI:
+                  </p>
+                  
+                  {COMMITMENT_ITEMS.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-4 p-3 rounded-xl hover:bg-white/50 transition-colors group border border-transparent hover:border-green-100">
+                      <Label 
+                        htmlFor={`akad-${item.id}`}
+                        className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer font-medium group-hover:text-green-900 flex-1"
+                      >
+                        {item.label}
+                      </Label>
+                      <Checkbox 
+                        id={`akad-${item.id}`}
+                        checked={formData.agreed_items?.includes(item.id)}
+                        onCheckedChange={() => handleAgreedItemsToggle(item.id)}
+                        disabled={isFormSubmitted}
+                        className="mt-1 h-5 w-5 border-green-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 shrink-0"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-green-100 flex items-center gap-3">
+                   <div className={`w-3 h-3 rounded-full ${formData.understands_commitment ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-300'}`}></div>
+                   <p className="text-sm font-bold text-green-900">
+                     {formData.understands_commitment 
+                       ? 'Bismillah, saya menyetujui seluruh akad di atas.' 
+                       : `Harap centang ${COMMITMENT_ITEMS.length - (formData.agreed_items?.length || 0)} butir akad lagi.`}
+                   </p>
+                </div>
+                
+                {errors.understands_commitment && (
+                  <p className="mt-4 text-sm text-red-600 font-bold bg-red-50 p-3 rounded-lg border border-red-100">
+                    {errors.understands_commitment}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

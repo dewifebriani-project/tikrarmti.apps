@@ -70,6 +70,7 @@ export interface Batch {
   total_quota?: number;
   registered_count?: number;
   duration_weeks?: number;
+  muallimah_akad_text?: string;
 
   // Timeline phase dates for perjalanan-saya
   selection_start_date?: string;
