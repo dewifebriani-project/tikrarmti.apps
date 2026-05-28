@@ -21,13 +21,18 @@ export async function GET(request: NextRequest) {
     const userIdArg = searchParams.get('userId');
 
     // Fetch from muallimah_akads (the batch contract)
-    // Joined with muallimah_registrations (the profile)
-    // We join on user_id
+    // Joined with users, and from users to muallimah_registrations (the profile)
     let query = supabaseAdmin
       .from('muallimah_akads')
       .select(`
         *,
-        profile:muallimah_registrations!inner(*),
+        user:users!inner(
+          id,
+          full_name,
+          email,
+          whatsapp,
+          muallimah_registrations(*)
+        ),
         batch:batches(name)
       `)
       .order('akad_signed_at', { ascending: false });
@@ -56,13 +61,18 @@ export async function GET(request: NextRequest) {
 
     // Map data to maintain backward compatibility if needed, 
     // or just pass it as is to the new MuallimahTab
-    const mappedData = data?.map(item => ({
-      ...item.profile,
-      ...item, // Akad data overrides profile data for fields like status, preferred_juz, etc.
-      id: item.id, // Use akad ID as primary
-      profile_id: item.profile?.id,
-      batch: item.batch,
-    })) || [];
+    const mappedData = data?.map(item => {
+      // Get the most recent registration profile for this user
+      const profile = item.user?.muallimah_registrations?.[0] || {};
+      return {
+        ...profile,
+        ...item, // Akad data overrides profile data for fields like status, preferred_juz, etc.
+        id: item.id, // Use akad ID as primary
+        profile_id: profile.id,
+        batch: item.batch,
+        user: item.user
+      };
+    }) || [];
 
     // Get total count for pagination
     let totalCount = mappedData.length;

@@ -35,6 +35,7 @@ type MuallimahFormData = {
   // Akad Data (Batch-specific)
   preferred_juz: string[]; 
   class_type: string; 
+  paid_class_scheme: string;
   preferred_max_thalibah?: number;
   schedule1_day: string;
   schedule1_time_start: string;
@@ -64,17 +65,17 @@ const allJuzOptions = Array.from({ length: 30 }, (_, i) => ({
 }));
 
 const COMMITMENT_ITEMS = [
-  { id: 'free_program', label: "Program ini gratis, MTI belum bisa menjanjikan ujrah apapun untuk partisipasi Mu'allimah." },
-  { id: 'standard_package', label: "Memahami bahwa kelas Standard adalah satu paket lengkap yang mencakup Tashih dan Ujian sekaligus." },
-  { id: 'revenue_share', label: "Menyetujui skema kerjasama 80% (didampingi musyrifah) atau 60% (jika memiliki 1 kelas gratis) untuk kelas berbayar." },
-  { id: 'complaints_mara', label: "Keluhan dan keberatan pribadi dikomunikasikan langsung ke Kak Mara (081313650842)." },
-  { id: 'technical_ucy', label: "Masalah teknis link zoom dikomunikasikan langsung ke Kak Ucy (082229370282)." },
-  { id: 'permit_musyrifah', label: "Izin udzur disampaikan ke Musyrifah minimal 1 jam sebelum kelas dimulai." },
-  { id: 'no_makeup_class', label: "Jika Mu'allimah udzur, MTI tidak menuntut ganti jadwal (Tholibah diarahkan ke kelas umum)." },
-  { id: 'paid_class_incentive', label: "Mu'allimah dengan 2 kelas gratis boleh buka kelas berbayar (SPP 100% tanpa potongan MTI)." },
-  { id: 'family_spirit', label: "Menerima kekurangan program dengan semangat kekeluargaan dan saling melengkapi." },
-  { id: 'batch_period', label: "Akad berlaku selama satu periode (11 pekan kurikulum ziyadah + ujian)." },
-  { id: 'freedom_to_continue', label: "Setelah kurikulum selesai, bebas untuk melanjutkan, cuti, atau mundur pada batch berikutnya." },
+  { id: 'free_program', label: <>Program ini <strong>gratis</strong>, MTI belum bisa menjanjikan <strong>ujrah apapun</strong> untuk partisipasi Mu'allimah.</>, icon: "🎁" },
+  { id: 'standard_package', label: <>Memahami bahwa <strong>kelas Standard</strong> adalah satu paket lengkap yang mencakup <strong>Tashih dan Ujian</strong> sekaligus.</>, icon: "📦" },
+  { id: 'revenue_share', label: <>Menyetujui <strong>skema kerjasama 80%</strong> (didampingi musyrifah) atau <strong>60%</strong> (jika memiliki 1 kelas gratis) untuk <strong>kelas berbayar</strong>.</>, icon: "🤝" },
+  { id: 'complaints_mara', label: <>Keluhan dan keberatan pribadi dikomunikasikan langsung ke <strong>Kak Mara (081313650842)</strong>.</>, icon: "📞" },
+  { id: 'technical_ucy', label: <>Masalah teknis link zoom dikomunikasikan langsung ke <strong>Kak Ucy (082229370282)</strong>.</>, icon: "💻" },
+  { id: 'permit_musyrifah', label: <>Izin udzur disampaikan ke Musyrifah <strong>minimal 1 jam</strong> sebelum kelas dimulai.</>, icon: "⏱️" },
+  { id: 'no_makeup_class', label: <>Jika Mu'allimah udzur, MTI <strong>tidak menuntut ganti jadwal</strong> (Tholibah diarahkan ke kelas umum).</>, icon: "📅" },
+  { id: 'paid_class_incentive', label: <>Mu'allimah dengan <strong>2 kelas gratis</strong> boleh buka kelas berbayar (<strong>SPP 100%</strong> tanpa potongan MTI).</>, icon: "🌟" },
+  { id: 'family_spirit', label: <>Menerima kekurangan program dengan <strong>semangat kekeluargaan</strong> dan saling melengkapi.</>, icon: "❤️" },
+  { id: 'batch_period', label: <>Akad berlaku selama <strong>satu periode</strong> (11 pekan kurikulum ziyadah + ujian).</>, icon: "⏳" },
+  { id: 'freedom_to_continue', label: <>Setelah kurikulum selesai, <strong>bebas untuk melanjutkan, cuti, atau mundur</strong> pada batch berikutnya.</>, icon: "🕊️" },
 ];
 
 function MuallimahRegistrationContent() {
@@ -108,6 +109,7 @@ function MuallimahRegistrationContent() {
     
     preferred_juz: [], 
     class_type: '',
+    paid_class_scheme: '',
     preferred_max_thalibah: 10,
     schedule1_day: '',
     schedule1_time_start: '',
@@ -245,6 +247,7 @@ function MuallimahRegistrationContent() {
           preferred_juz: akad.preferred_juz ? (Array.isArray(akad.preferred_juz) ? akad.preferred_juz : akad.preferred_juz.split(', ')) : [],
           preferred_max_thalibah: akad.preferred_max_thalibah,
           class_type: akad.class_type || '',
+          paid_class_scheme: akad.paid_class_scheme || '',
           schedule1_day: preferredSchedule?.day || '',
           schedule1_time_start: preferredSchedule?.time_start || '',
           schedule1_time_end: preferredSchedule?.time_end || '',
@@ -330,7 +333,8 @@ function MuallimahRegistrationContent() {
     if (!formData.schedule1_day) newErrors.schedule1_day = 'Pilih hari';
     if (!formData.schedule1_time_start) newErrors.schedule1_time_start = 'Pilih jam mulai';
     if (!formData.schedule1_time_end) newErrors.schedule1_time_end = 'Pilih jam selesai';
-    if (!formData.class_type) newErrors.class_type = 'Pilih tipe kelas / skema kerjasama';
+    if (!formData.class_type) newErrors.class_type = 'Pilih tipe kelas wajib';
+    if (!formData.paid_class_scheme) newErrors.paid_class_scheme = 'Pilih pengajuan kelas berbayar';
     if (!formData.understands_commitment || formData.agreed_items.length < COMMITMENT_ITEMS.length) {
       newErrors.understands_commitment = 'Harap setujui semua butir akad komitmen';
     }
@@ -627,7 +631,7 @@ function MuallimahRegistrationContent() {
           <CardContent className="space-y-8 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <Label className="text-base font-semibold">Tipe Kelas & Skema Kerjasama</Label>
+                  <Label className="text-base font-semibold">Tipe Kelas Wajib</Label>
                   <Select 
                     value={formData.class_type} 
                     onValueChange={(v) => handleInputChange('class_type', v)}
@@ -637,13 +641,31 @@ function MuallimahRegistrationContent() {
                       <SelectValue placeholder="Pilih tipe kelas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="tashih_ujian">Standard (Tashih & Ujian)</SelectItem>
+                      <SelectItem value="tikrar_tahfidz">Kelas Tikrar</SelectItem>
+                      <SelectItem value="pra_tahfidz">Kelas Pra-Tikrar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.class_type && <p className="text-xs text-red-500 font-medium">{errors.class_type}</p>}
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Pengajuan Kelas Berbayar (Opsional)</Label>
+                  <Select 
+                    value={formData.paid_class_scheme} 
+                    onValueChange={(v) => handleInputChange('paid_class_scheme', v)}
+                    disabled={isFormSubmitted}
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                      <SelectValue placeholder="Pilih pengajuan kelas berbayar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tidak Mengajukan</SelectItem>
                       <SelectItem value="berbayar_100">Berbayar (100% Muallimah)</SelectItem>
                       <SelectItem value="berbayar_80_20">Berbayar (Skema 80:20)</SelectItem>
                       <SelectItem value="berbayar_60_40">Berbayar (Skema 60:40)</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.class_type && <p className="text-xs text-red-500 font-medium">{errors.class_type}</p>}
+                  {errors.paid_class_scheme && <p className="text-xs text-red-500 font-medium">{errors.paid_class_scheme}</p>}
                 </div>
 
                 <div className="space-y-4">
@@ -805,20 +827,28 @@ function MuallimahRegistrationContent() {
                     Silakan baca dan centang setiap poin di bawah ini sebagai bentuk pemahaman dan kesepakatan Ukhti terhadap akad MTI:
                   </p>
                   
-                  {COMMITMENT_ITEMS.map((item) => (
-                    <div key={item.id} className="flex items-start justify-between gap-4 p-3 rounded-xl hover:bg-white/50 transition-colors group border border-transparent hover:border-green-100">
-                      <Label 
-                        htmlFor={`akad-${item.id}`}
-                        className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer font-medium group-hover:text-green-900 flex-1"
-                      >
-                        {item.label}
-                      </Label>
+                  {COMMITMENT_ITEMS.map((item, index) => (
+                    <div key={item.id} className="flex items-start justify-between gap-4 p-4 bg-white/40 rounded-xl hover:bg-white/80 transition-colors group border border-transparent hover:border-green-200 hover:shadow-sm">
+                      <div className="flex gap-4 items-start flex-1 cursor-pointer" onClick={() => !isFormSubmitted && handleAgreedItemsToggle(item.id)}>
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold shrink-0 shadow-sm border border-green-200">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <Label 
+                            htmlFor={`akad-${item.id}`}
+                            className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer group-hover:text-green-950 flex items-start gap-3"
+                          >
+                            <span className="text-lg shrink-0 mt-0.5" aria-hidden="true">{item.icon}</span>
+                            <span className="font-normal">{item.label}</span>
+                          </Label>
+                        </div>
+                      </div>
                       <Checkbox 
                         id={`akad-${item.id}`}
                         checked={formData.agreed_items?.includes(item.id)}
                         onCheckedChange={() => handleAgreedItemsToggle(item.id)}
                         disabled={isFormSubmitted}
-                        className="mt-1 h-5 w-5 border-green-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 shrink-0"
+                        className="mt-1 h-6 w-6 border-green-400 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 shrink-0 shadow-sm"
                       />
                     </div>
                   ))}

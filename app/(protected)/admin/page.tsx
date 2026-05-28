@@ -57,7 +57,7 @@ import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
-import { MuallimahTab } from '@/components/admin/muallimah/MuallimahTab';
+import { MuallimahV2Tab as MuallimahTab } from '@/components/admin/muallimah-v2/MuallimahV2Tab';
 import { TikrarTab as TikrarManagementTab } from '@/components/admin/tikrar/TikrarTab';
 import { cn } from '@/lib/utils';
 import { BatchStatus, ProgramStatus, HalaqahStatus } from '@/types/database';
@@ -691,6 +691,7 @@ function AdminContent() {
               onBatchFilterChange={setSelectedBatchFilter}
               onRefresh={loadData}
               onUsersRefresh={() => mutateUsers()}
+              currentUser={user}
             />
           )
         )}
@@ -706,13 +707,7 @@ function AdminContent() {
         )}
         { activeTab === 'presensi' && <PresensiTab presensi={presensi} onRefresh={loadData} /> }
         { activeTab === 'muallimah' && (
-          <MuallimahTab
-            muallimah={muallimah}
-            batches={batches}
-            selectedBatchFilter={selectedBatchFilter}
-            onBatchFilterChange={setSelectedBatchFilter}
-            onRefresh={loadData}
-          />
+          <MuallimahTab user={user} />
         )}
         { activeTab === 'tikrar' && (
           <TikrarManagementTab user={user} />
@@ -2237,6 +2232,7 @@ interface UsersTabProps {
   onBatchFilterChange: (filter: string) => void;
   onRefresh: () => void;
   onUsersRefresh: () => void;
+  currentUser?: any;
 }
 
 function UsersTab({
@@ -2246,7 +2242,8 @@ function UsersTab({
   selectedBatchFilter,
   onBatchFilterChange,
   onRefresh,
-  onUsersRefresh
+  onUsersRefresh,
+  currentUser
 }: UsersTabProps) {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -2912,13 +2909,7 @@ Tim Markaz Tikrar Indonesia`;
 
       {/* Muallimah Tab Content - Special handling for muallimah registrations */}
       {activeSubTab === 'muallimah' && (
-        <MuallimahTab
-          muallimah={muallimah}
-          batches={batches}
-          selectedBatchFilter={selectedBatchFilter}
-          onBatchFilterChange={onBatchFilterChange}
-          onRefresh={onRefresh}
-        />
+        <MuallimahTab user={currentUser} />
       )}
 
       {/* All Users Tab Content */}
