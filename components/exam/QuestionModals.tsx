@@ -118,21 +118,36 @@ export function QuestionModals({
               </button>
             </div>
             <form onSubmit={onAIGenerate} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Pilihan Juz *</label>
-                <select
-                  value={aiForm.juz_code}
-                  onChange={(e) => setAiForm({ ...aiForm, juz_code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                  required
-                >
-                  <option value="">Pilih juz</option>
-                  {juzOptions.map((option) => (
-                    <option key={option.code} value={option.code}>
-                      {option.name} (halaman {option.start_page} - {option.end_page})
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pilihan Juz *</label>
+                  <select
+                    value={aiForm.juz_code}
+                    onChange={(e) => setAiForm({ ...aiForm, juz_code: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    required
+                  >
+                    <option value="">Pilih juz</option>
+                    {juzOptions.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.name} (halaman {option.start_page} - {option.end_page})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Bagian Juz (Hizb) *</label>
+                  <select
+                    value={aiForm.hizb_part}
+                    onChange={(e) => setAiForm({ ...aiForm, hizb_part: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    required
+                  >
+                    <option value="full">Satu Juz Penuh</option>
+                    <option value="hizb1">Setengah Juz Pertama (Hizb 1)</option>
+                    <option value="hizb2">Setengah Juz Kedua (Hizb 2)</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Question Type / Section *</label>

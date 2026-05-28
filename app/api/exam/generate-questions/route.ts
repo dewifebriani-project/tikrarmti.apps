@@ -15,7 +15,7 @@ const QUESTION_TYPE_CONFIG: Record<number, { name: string; description: string }
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { juz_code, section_number, question_count } = body;
+    const { juz_code, section_number, question_count, hizb_part } = body;
 
     // Validate juz_code format (e.g., "30A", "28B")
     const juzCodePattern = /^[0-9]+[AB]$/;
@@ -66,9 +66,43 @@ export async function POST(request: NextRequest) {
 
     const nextQuestionNumber = (existingQuestions && existingQuestions[0]?.question_number || 0) + 1;
 
+    // Fetch verses from Quran.com API for accurate Arabic text context
+    let quranApiUrl = `https://api.quran.com/api/v4/verses/by_juz/${juzData.juz_number}?language=id&words=false&translations=33&fields=text_uthmani&per_page=50`;
+    let partContext = `Satu Juz Penuh (Juz ${juzData.juz_number})`;
+
+    if (hizb_part === 'hizb1') {
+      const hizbNumber = (juzData.juz_number * 2) - 1;
+      quranApiUrl = `https://api.quran.com/api/v4/verses/by_hizb/${hizbNumber}?language=id&words=false&translations=33&fields=text_uthmani&per_page=50`;
+      partContext = `Setengah Juz Pertama (Hizb ${hizbNumber})`;
+    } else if (hizb_part === 'hizb2') {
+      const hizbNumber = (juzData.juz_number * 2);
+      quranApiUrl = `https://api.quran.com/api/v4/verses/by_hizb/${hizbNumber}?language=id&words=false&translations=33&fields=text_uthmani&per_page=50`;
+      partContext = `Setengah Juz Kedua (Hizb ${hizbNumber})`;
+    }
+
+    let versesContextText = '';
+    try {
+      const quranRes = await fetch(quranApiUrl);
+      const quranData = await quranRes.json();
+      if (quranData && quranData.verses) {
+        versesContextText = quranData.verses.map((v: any) => 
+          `Ayat ${v.verse_key}: ${v.text_uthmani}\nArti: ${v.translations?.[0]?.text || ''}`
+        ).join('\n\n');
+      }
+    } catch (e) {
+      console.error('Error fetching from Quran.com API:', e);
+      // Fallback to empty context if API fails
+    }
+
     // Generate prompt for AI
     const questionTypeInfo = QUESTION_TYPE_CONFIG[section_number];
     const prompt = `Buat ${question_count} soal pilihan ganda tentang ${questionTypeInfo.name} (${questionTypeInfo.description}) untuk ${juzData.name} (${juzData.name}, halaman ${juzData.start_page}-${juzData.end_page}).
+Fokus pada bagian: ${partContext}.
+
+Berikut adalah teks ayat akurat dari Quran.com sebagai referensi untuk memastikan penulisan Arabnya benar (WAJIB gunakan referensi ini untuk teks Arab dan terjemahan pada soal/jawaban):
+"""
+${versesContextText || 'Gunakan pengetahuan internal jika teks referensi tidak tersedia.'}
+"""
 
 Format output HARUS JSON array dengan struktur:
 [
@@ -88,7 +122,7 @@ Format output HARUS JSON array dengan struktur:
 PENTING:
 - Jawaban yang benar harus ditandai dengan "is_correct": true
 - Hanya satu jawaban yang benar untuk setiap soal
-- Pastikan soal sesuai dengan konteks ${juzData.name}
+- Pastikan soal sesuai dengan konteks ${juzData.name} dan bagian ${partContext}
 - Berikan soal yang bervariasi dan tidak monoton
 - Bahasa: Indonesia
 

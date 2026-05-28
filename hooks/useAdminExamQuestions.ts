@@ -52,6 +52,7 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
     juz_code: '',
     section_number: 1,
     question_count: 5,
+    hizb_part: 'full', // 'full', 'hizb1', 'hizb2'
   });
 
   const loadJuzOptions = useCallback(async () => {
@@ -256,6 +257,7 @@ export function useAdminExamQuestions(onSuccess?: () => void) {
           juz_code: juzOptions.length > 0 ? juzOptions[0].code : '',
           section_number: 1,
           question_count: 5,
+          hizb_part: 'full',
         });
         if (onSuccess) onSuccess();
       } else {

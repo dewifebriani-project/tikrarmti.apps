@@ -302,7 +302,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'muallimah' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
 
 export default function AdminPage() {
   return (
@@ -535,6 +535,7 @@ function AdminContent() {
     { id: 'programs' as TabType, name: 'Programs', icon: BookOpen },
     { id: 'halaqah' as TabType, name: 'Halaqah', icon: Users },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
+    { id: 'muallimah' as TabType, name: 'Muallimah', icon: GraduationCap },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
     { id: 'daftar-ulang' as TabType, name: 'Daftar Ulang', icon: FileText },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
@@ -703,8 +704,17 @@ function AdminContent() {
             onRefresh={loadData}
           />
         )}
-        {activeTab === 'presensi' && <PresensiTab presensi={presensi} onRefresh={loadData} />}
-        {activeTab === 'tikrar' && (
+        { activeTab === 'presensi' && <PresensiTab presensi={presensi} onRefresh={loadData} /> }
+        { activeTab === 'muallimah' && (
+          <MuallimahTab
+            muallimah={muallimah}
+            batches={batches}
+            selectedBatchFilter={selectedBatchFilter}
+            onBatchFilterChange={setSelectedBatchFilter}
+            onRefresh={loadData}
+          />
+        )}
+        { activeTab === 'tikrar' && (
           <TikrarManagementTab user={user} />
         )}
         {activeTab === 'exam-questions' && (

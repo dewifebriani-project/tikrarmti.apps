@@ -27,15 +27,13 @@ const fetcher = async (url: string) => {
 
     const result = await response.json();
 
-    // Handle ApiResponseBuilder format: { success: true, data: {...} }
-    // Unwrap data if it's in the standard API response format
-    const data = result.success ? result.data : result;
+    // Handle ApiResponseBuilder format: { success: true, data: {...}, pagination: {...} }
+    // We return the whole result so hooks can access data and pagination
+    if (result.success) {
+      return result;
+    }
 
-    console.log('[SWR Fetcher] Success:', url, 'Full result:', result);
-    console.log('[SWR Fetcher] Unwrapped data:', data);
-    console.log('[SWR Fetcher] Users count:', data?.users?.length ?? 'N/A');
-
-    return data;
+    return result;
   } catch (err) {
     console.error('[SWR Fetcher] Exception:', err);
     throw err;
@@ -88,8 +86,8 @@ export function useAdminUsers(enabled: boolean = true, params: {
   );
 
   return {
-    users: data?.users || [],
-    pagination: data?.pagination,
+    users: data?.data?.users || [],
+    pagination: data?.data?.pagination || data?.pagination,
     isLoading,
     isError: error,
     mutate,
@@ -163,7 +161,7 @@ export function useAdminStats(enabled: boolean = true) {
   );
 
   return {
-    stats: data?.stats || {
+    stats: data?.data?.stats || data?.stats || {
       totalBatches: 0,
       totalPrograms: 0,
       totalHalaqah: 0,

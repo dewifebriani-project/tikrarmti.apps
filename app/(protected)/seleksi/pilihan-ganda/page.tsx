@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +39,9 @@ interface UserAnswer {
 
 export default function PilihanGandaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const examSource = searchParams.get('source') || 'selection';
+  const isFinalExam = examSource === 'final-exam';
   const { user, isLoading: authLoading } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
@@ -133,7 +136,7 @@ export default function PilihanGandaPage() {
     setQuestionsError(null);
 
     try {
-      const response = await fetch('/api/exam/questions/for-user');
+      const response = await fetch(`/api/exam/questions/for-user?source=${examSource}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -539,7 +542,7 @@ export default function PilihanGandaPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-center space-x-3">
                 <FileText className="w-6 h-6 text-blue-600" />
-                <span>Petunjuk Ujian</span>
+                <span>{isFinalExam ? 'Petunjuk Ujian Akhir' : 'Petunjuk Ujian'}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">

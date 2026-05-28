@@ -81,7 +81,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       
       if (isAdmin) {
         baseItems.push({
-          href: '/pendaftaran/muallimah',
+          href: '/admin?tab=muallimah',
           label: 'Daftar Muallimah',
           icon: <GraduationCap className="h-5 w-5 text-green-600" />,
         });

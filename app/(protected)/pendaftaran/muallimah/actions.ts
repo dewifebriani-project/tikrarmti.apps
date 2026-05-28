@@ -50,6 +50,7 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       examined_juz: Array.isArray(formData.examined_juz) ? formData.examined_juz.join(', ') : null,
       certified_juz: Array.isArray(formData.certified_juz) ? formData.certified_juz.join(', ') : null,
       age: formData.age || null,
+      batch_id: batchId,
     }
 
     // Using manual existence check to avoid "no unique constraint" error on user_id.

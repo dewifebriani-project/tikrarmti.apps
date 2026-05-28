@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { GraduationCap, FileText, Award, Lock, ChevronRight, CheckCircle2, Clock, MessageSquare, AlertCircle } from 'lucide-react';
+import { GraduationCap, FileText, Award, Lock, ChevronRight, CheckCircle2, Clock, MessageSquare, AlertCircle, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FinalExamSelectionModal } from './FinalExamSelectionModal';
 
@@ -15,6 +16,7 @@ interface FinalExamPortalModalProps {
 }
 
 export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamPortalModalProps) {
+  const router = useRouter();
   const [selectedType, setSelectedType] = useState<'oral' | 'written' | null>(null);
   const [selectionOpen, setSelectionOpen] = useState(false);
   const [registrations, setRegistrations] = useState<any[]>([]);
@@ -55,6 +57,13 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
     const status = getStatus(type);
     if (status === 'locked') return;
     
+    // If written exam and already registered, go directly to the exam page
+    if (type === 'written' && status === 'registered') {
+      onClose();
+      router.push('/seleksi/pilihan-ganda?source=final-exam');
+      return;
+    }
+
     setSelectedType(type);
     setSelectionOpen(true);
   };
@@ -174,8 +183,19 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
                           Sudah Selesai
                         </div>
                       ) : isRegistered ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black text-blue-700 uppercase tracking-widest bg-blue-100 px-3 py-2 rounded-full w-fit">
-                          Terdaftar
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-[10px] font-black text-blue-700 uppercase tracking-widest bg-blue-100 px-3 py-2 rounded-full w-fit">
+                            Terdaftar
+                          </div>
+                          {exam.type === 'written' && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onClose(); router.push('/seleksi/pilihan-ganda?source=final-exam'); }}
+                              className="flex items-center gap-2 text-xs font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all w-full justify-center"
+                            >
+                              <Play className="w-4 h-4" />
+                              Mulai Ujian Sekarang
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 text-[10px] font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 px-3 py-2 rounded-full w-fit transition-colors group-hover:bg-indigo-600 group-hover:text-white">

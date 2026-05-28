@@ -14,6 +14,50 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+// Helper: distribute N questions evenly across sections
+function distributeQuestionsBySection(allQuestions: any[], totalNeeded: number): any[] {
+  // Group by section_number
+  const bySection: Record<number, any[]> = {};
+  for (const q of allQuestions) {
+    const sec = q.section_number || 1;
+    if (!bySection[sec]) bySection[sec] = [];
+    bySection[sec].push(q);
+  }
+
+  const sectionKeys = Object.keys(bySection).map(Number).sort();
+  const numSections = sectionKeys.length;
+  if (numSections === 0) return [];
+
+  const basePerSection = Math.floor(totalNeeded / numSections);
+  let remainder = totalNeeded % numSections;
+
+  const selected: any[] = [];
+  const overflow: any[] = [];
+
+  for (const sec of sectionKeys) {
+    const pool = shuffleArray(bySection[sec]);
+    let needed = basePerSection + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder--;
+
+    if (pool.length >= needed) {
+      selected.push(...pool.slice(0, needed));
+      overflow.push(...pool.slice(needed));
+    } else {
+      selected.push(...pool);
+      // deficit will be filled from overflow later
+    }
+  }
+
+  // Fill any deficit from overflow
+  const deficit = totalNeeded - selected.length;
+  if (deficit > 0 && overflow.length > 0) {
+    const extra = shuffleArray(overflow).slice(0, deficit);
+    selected.push(...extra);
+  }
+
+  return shuffleArray(selected);
+}
+
 // GET: Fetch exam questions for user based on their chosen_juz
 // Logic:
 // - Juz 28A or 28B -> Exam Juz 29
@@ -21,6 +65,7 @@ function shuffleArray<T>(array: T[]): T[] {
 // - Juz 1A or 1B -> Exam Juz 30
 // - Juz 30A or 30B -> No exam (return empty)
 // - Only available during selection dates of active open batch
+// - source=final-exam: uses chosen_juz directly, 100 questions distributed per category
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient();
@@ -60,72 +105,99 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Check if batch is open
-    if (batch.status !== 'open') {
-      return NextResponse.json({
-        error: 'Exam not available',
-        details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
-      }, { status: 400 });
-    }
+    // Detect source mode
+    const source = request.nextUrl.searchParams.get('source') || 'selection';
+    const isFinalExam = source === 'final-exam';
 
-    // Check if today is within selection period
-    // Use date-only comparison to avoid timezone issues
-    const today = new Date();
-    const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-
-    if (batch.selection_start_date && batch.selection_end_date) {
-      // Parse dates as YYYY-MM-DD and convert to comparable numbers
-      const startDateStr = batch.selection_start_date.substring(0, 10);
-      const endDateStr = batch.selection_end_date.substring(0, 10);
-
-      const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
-      const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
-
-      if (todayDateOnly < startDateNum || todayDateOnly > endDateNum) {
-        const formatDate = (dateStr: string) => {
-          const date = new Date(dateStr);
-          return date.toLocaleDateString('id-ID', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
-        };
-
+    // For selection mode: check batch open + selection dates
+    if (!isFinalExam) {
+      // Check if batch is open
+      if (batch.status !== 'open') {
         return NextResponse.json({
-          error: 'Exam period closed',
-          details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDateStr)} sampai ${formatDate(endDateStr)}`
+          error: 'Exam not available',
+          details: `Batch "${batch.name}" belum dibuka. Status: ${batch.status}`
+        }, { status: 400 });
+      }
+
+      // Check if today is within selection period
+      const today = new Date();
+      const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+
+      if (batch.selection_start_date && batch.selection_end_date) {
+        const startDateStr = batch.selection_start_date.substring(0, 10);
+        const endDateStr = batch.selection_end_date.substring(0, 10);
+        const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
+        const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
+
+        if (todayDateOnly < startDateNum || todayDateOnly > endDateNum) {
+          const formatDate = (dateStr: string) => {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          };
+          return NextResponse.json({
+            error: 'Exam period closed',
+            details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDateStr)} sampai ${formatDate(endDateStr)}`
+          }, { status: 400 });
+        }
+      } else {
+        return NextResponse.json({
+          error: 'Selection dates not set',
+          details: 'Tanggal seleksi belum ditentukan untuk batch ini. Silakan hubungi admin.'
         }, { status: 400 });
       }
     } else {
-      return NextResponse.json({
-        error: 'Selection dates not set',
-        details: 'Tanggal seleksi belum ditentukan untuk batch ini. Silakan hubungi admin.'
-      }, { status: 400 });
+      // For final-exam mode: verify user has a registered final exam
+      const { data: finalExamReg } = await supabaseAdmin
+        .from('final_exam_registrations')
+        .select('id, status, schedule:final_exam_schedules(exam_type)')
+        .eq('user_id', user.id)
+        .limit(10);
+
+      const writtenReg = finalExamReg?.find((r: any) => r.schedule?.exam_type === 'written');
+      if (!writtenReg) {
+        return NextResponse.json({
+          error: 'Belum terdaftar ujian akhir tulisan',
+          details: 'Silakan daftar jadwal ujian akhir tulisan terlebih dahulu melalui menu Ujian Akhir.'
+        }, { status: 400 });
+      }
     }
 
     // Determine required exam juz based on chosen_juz
     const chosenJuz = registration.chosen_juz;
     let requiredJuzNumber: number | null = null;
 
-    if (chosenJuz?.startsWith('28')) {
-      requiredJuzNumber = 29;
-    } else if (chosenJuz?.startsWith('29')) {
-      requiredJuzNumber = 30;
-    } else if (chosenJuz?.startsWith('1')) {
-      requiredJuzNumber = 30;
-    } else if (chosenJuz?.startsWith('30')) {
-      // No exam required for Juz 30
-      return NextResponse.json({
-        data: [],
-        total: 0,
-        message: 'Tidak ada ujian untuk juz 30',
-        noExamRequired: true
-      });
+    if (isFinalExam) {
+      // Final exam: use the thalibah's own chosen juz directly
+      const juzNum = parseInt(chosenJuz?.replace(/[AB]/g, '') || '0');
+      if (juzNum >= 1 && juzNum <= 30) {
+        requiredJuzNumber = juzNum;
+      } else {
+        return NextResponse.json({
+          error: 'Invalid chosen_juz',
+          details: `chosen_juz "${chosenJuz}" tidak valid`
+        }, { status: 400 });
+      }
     } else {
-      return NextResponse.json({
-        error: 'Invalid chosen_juz',
-        details: `chosen_juz "${chosenJuz}" tidak valid`
-      }, { status: 400 });
+      // Selection exam: map to the next juz
+      if (chosenJuz?.startsWith('28')) {
+        requiredJuzNumber = 29;
+      } else if (chosenJuz?.startsWith('29')) {
+        requiredJuzNumber = 30;
+      } else if (chosenJuz?.startsWith('1')) {
+        requiredJuzNumber = 30;
+      } else if (chosenJuz?.startsWith('30')) {
+        return NextResponse.json({
+          data: [],
+          total: 0,
+          message: 'Tidak ada ujian untuk juz 30',
+          noExamRequired: true
+        });
+      } else {
+        return NextResponse.json({
+          error: 'Invalid chosen_juz',
+          details: `chosen_juz "${chosenJuz}" tidak valid`
+        }, { status: 400 });
+      }
     }
 
     // Get exam configuration
@@ -187,24 +259,40 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Shuffle questions if configured (BEFORE limiting)
-    let processedQuestions = questions;
-    if (config?.shuffle_questions) {
-      processedQuestions = shuffleArray(questions);
+    let processedQuestions: any[];
+
+    if (isFinalExam) {
+      // Final exam: distribute 100 questions evenly across sections/categories
+      const FINAL_EXAM_TOTAL = 100;
+      processedQuestions = distributeQuestionsBySection(questions, FINAL_EXAM_TOTAL);
+    } else {
+      // Selection exam: use existing logic
+      processedQuestions = questions;
+      if (config?.shuffle_questions) {
+        processedQuestions = shuffleArray(questions);
+      }
+      if (config?.questions_per_attempt && config.questions_per_attempt < processedQuestions.length) {
+        processedQuestions = processedQuestions.slice(0, config.questions_per_attempt);
+      }
     }
 
-    // Limit questions if specified in config (AFTER shuffle)
-    if (config?.questions_per_attempt && config.questions_per_attempt < processedQuestions.length) {
-      processedQuestions = processedQuestions.slice(0, config.questions_per_attempt);
-    }
-
-    // Shuffle options within each question if configured
-    if (config?.randomize_order) {
+    // Shuffle options within each question
+    if (isFinalExam || config?.randomize_order) {
       processedQuestions = processedQuestions.map(q => ({
         ...q,
         options: shuffleArray(q.options || [])
       }));
     }
+
+    // Final exam defaults: 120 min, passing 70, 1 attempt
+    const finalExamConfig = isFinalExam ? {
+      durationMinutes: 120,
+      maxAttempts: 1,
+      passingScore: 70,
+      autoSubmitOnTimeout: true,
+      allowReview: false,
+      showResults: true
+    } : null;
 
     return NextResponse.json({
       data: processedQuestions,
@@ -212,14 +300,15 @@ export async function GET(request: NextRequest) {
       examJuzNumber: requiredJuzNumber,
       registrationId: registration.id,
       existingAttemptId: registration.exam_attempt_id,
-      config: config ? {
+      source,
+      config: isFinalExam ? finalExamConfig : (config ? {
         durationMinutes: config.duration_minutes,
         maxAttempts: config.max_attempts,
         passingScore: config.passing_score,
         autoSubmitOnTimeout: config.auto_submit_on_timeout,
         allowReview: config.allow_review,
         showResults: config.show_results
-      } : null
+      } : null)
     });
 
   } catch (error) {
