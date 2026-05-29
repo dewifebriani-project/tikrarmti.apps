@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
       .from('muallimah_akads')
       .select(`
         *,
-        user:users!inner(
+        user:users!muallimah_akads_user_id_fkey(
           id,
           full_name,
           email,
           whatsapp,
-          muallimah_registrations(*)
+          muallimah_registrations!muallimah_registrations_user_id_fkey(*)
         ),
         batch:batches(name)
       `)

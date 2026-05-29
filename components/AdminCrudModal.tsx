@@ -135,7 +135,7 @@ export function AdminCrudModal({
         return (
           <textarea
             name={field.name}
-            value={value}
+            value={value ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
@@ -149,7 +149,7 @@ export function AdminCrudModal({
         return (
           <select
             name={field.name}
-            value={value}
+            value={value ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value)}
             required={field.required}
             disabled={field.disabled}
@@ -170,7 +170,7 @@ export function AdminCrudModal({
             <input
               type="checkbox"
               name={field.name}
-              checked={value}
+              checked={!!value}
               onChange={(e) => handleChange(field.name, e.target.checked)}
               disabled={field.disabled}
               className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
@@ -186,7 +186,7 @@ export function AdminCrudModal({
           <input
             type={field.type}
             name={field.name}
-            value={value}
+            value={value ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             required={field.required}

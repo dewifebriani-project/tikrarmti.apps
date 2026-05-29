@@ -57,7 +57,6 @@ import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
-import { MuallimahV2Tab as MuallimahTab } from '@/components/admin/muallimah-v2/MuallimahV2Tab';
 import { TikrarTab as TikrarManagementTab } from '@/components/admin/tikrar/TikrarTab';
 import { cn } from '@/lib/utils';
 import { BatchStatus, ProgramStatus, HalaqahStatus } from '@/types/database';
@@ -302,7 +301,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'muallimah' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
 
 export default function AdminPage() {
   return (
@@ -535,7 +534,6 @@ function AdminContent() {
     { id: 'programs' as TabType, name: 'Programs', icon: BookOpen },
     { id: 'halaqah' as TabType, name: 'Halaqah', icon: Users },
     { id: 'presensi' as TabType, name: 'Presensi', icon: Clock },
-    { id: 'muallimah' as TabType, name: 'Muallimah', icon: GraduationCap },
     { id: 'tikrar' as TabType, name: 'Tikrar Tahfidz', icon: Award },
     { id: 'daftar-ulang' as TabType, name: 'Daftar Ulang', icon: FileText },
     { id: 'exam-questions' as TabType, name: 'Exam Questions', icon: HelpCircle },
@@ -706,9 +704,6 @@ function AdminContent() {
           />
         )}
         { activeTab === 'presensi' && <PresensiTab presensi={presensi} onRefresh={loadData} /> }
-        { activeTab === 'muallimah' && (
-          <MuallimahTab user={user} />
-        )}
         { activeTab === 'tikrar' && (
           <TikrarManagementTab user={user} />
         )}
@@ -2875,16 +2870,6 @@ Tim Markaz Tikrar Indonesia`;
             Thalibah ({thalibahUsers.length})
           </button>
           <button
-            onClick={() => setActiveSubTab('muallimah')}
-            className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
-              activeSubTab === 'muallimah'
-                ? 'border-green-900 text-green-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Muallimah ({muallimah.length})
-          </button>
-          <button
             onClick={() => setActiveSubTab('musyrifah')}
             className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeSubTab === 'musyrifah'
@@ -2906,11 +2891,6 @@ Tim Markaz Tikrar Indonesia`;
           </button>
         </nav>
       </div>
-
-      {/* Muallimah Tab Content - Special handling for muallimah registrations */}
-      {activeSubTab === 'muallimah' && (
-        <MuallimahTab user={currentUser} />
-      )}
 
       {/* All Users Tab Content */}
       {(activeSubTab === 'all' || activeSubTab === 'admin' || activeSubTab === 'thalibah' || activeSubTab === 'musyrifah') && (

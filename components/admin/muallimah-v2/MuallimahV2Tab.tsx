@@ -57,7 +57,7 @@ export function MuallimahV2Tab({ user }: { user: any }) {
       
       if (!response.ok) throw new Error(result.error || 'Failed to fetch');
       
-      let filteredData = (result.data || []) as MuallimahV2Type[];
+      let filteredData = (result.data?.data || []) as MuallimahV2Type[];
 
       if (filters.status !== 'all') {
         filteredData = filteredData.filter(t => t.status === filters.status);

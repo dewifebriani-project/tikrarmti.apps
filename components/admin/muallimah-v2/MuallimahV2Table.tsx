@@ -111,6 +111,10 @@ export function MuallimahV2Table({
                   } catch (e) { }
                 }
                 
+                const classTypeStr = (t.class_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') || '-';
+                const dayStr = schedule.day !== '-' ? schedule.day.charAt(0).toUpperCase() + schedule.day.slice(1).toLowerCase() : '-';
+                const statusStr = (t.status || 'pending').toUpperCase();
+
                 return (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4">
@@ -160,24 +164,24 @@ export function MuallimahV2Table({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-bold text-gray-700 capitalize">{t.class_type?.replace('_', ' ') || '-'}</span>
+                        <span className="text-xs font-bold text-gray-700">{classTypeStr}</span>
                         <span className="text-[10px] text-gray-500 font-medium">Juz: {t.preferred_juz || '-'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-bold text-gray-700 capitalize">{schedule.day}</span>
+                        <span className="text-xs font-bold text-gray-700">{dayStr}</span>
                         <span className="text-[10px] text-gray-500 font-medium">{schedule.time_start} - {schedule.time_end}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider w-fit",
+                        "px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider w-fit",
                         t.status === 'approved' ? "bg-emerald-100 text-emerald-700" :
                         t.status === 'rejected' ? "bg-red-100 text-red-700" :
                         "bg-amber-100 text-amber-700"
                       )}>
-                        {t.status}
+                        {statusStr}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -187,41 +191,46 @@ export function MuallimahV2Table({
                             href={waUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors border border-emerald-100"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm border border-emerald-100"
                             title="Chat via WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <MessageSquare className="h-4 w-4 shrink-0" />
+                            <span className="hidden lg:inline">Chat</span>
                           </a>
                         )}
                         <button
                           onClick={() => onAction('review', t)}
-                          className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-100"
+                          className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm border border-blue-100"
                           title="Review Detail"
                         >
-                          <FileText className="h-4 w-4" />
+                          <FileText className="h-4 w-4 shrink-0" />
+                          <span className="hidden lg:inline">Review</span>
                         </button>
                         <button
                           onClick={() => onAction('edit', t)}
-                          className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors border border-gray-100"
+                          className="px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm border border-gray-200"
                           title="Edit"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 shrink-0" />
+                          <span className="hidden lg:inline">Edit</span>
                         </button>
                         {t.status === 'approved' && (
                           <button
                             onClick={() => onAction('unapprove', t)}
-                            className="p-2 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 transition-colors border border-orange-100"
+                            className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm border border-orange-100"
                             title="Batalkan Persetujuan"
                           >
-                            <Undo2 className="h-4 w-4" />
+                            <Undo2 className="h-4 w-4 shrink-0" />
+                            <span className="hidden lg:inline">Batal</span>
                           </button>
                         )}
                         <button
                           onClick={() => onAction('delete', t)}
-                          className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition-colors border border-red-100"
+                          className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm border border-red-100"
                           title="Hapus"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 shrink-0" />
+                          <span className="hidden lg:inline">Hapus</span>
                         </button>
                       </div>
                     </td>

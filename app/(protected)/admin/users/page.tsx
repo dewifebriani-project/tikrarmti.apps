@@ -12,9 +12,7 @@ import { UserStats } from '@/components/admin/users/UserStats';
 import { UserFilters } from '@/components/admin/users/UserFilters';
 import { UserTable } from '@/components/admin/users/UserTable';
 import { UserDetailModal, EditRoleModal, BlacklistModal, MergeUserModal } from '@/components/admin/users/UserModals';
-import { MuallimahRegistration, AdminUser } from '@/components/admin/users/types';
-import { MuallimahTable } from '@/components/admin/users/MuallimahTable';
-import { MuallimahDetailModal } from '@/components/admin/users/MuallimahDetailModal';
+import { AdminUser } from '@/components/admin/users/types';
 import { Toaster } from 'sonner';
 
 export default function AdminUsersPage() {
@@ -32,11 +30,7 @@ export default function AdminUsersPage() {
   });
 
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [activeModal, setActiveModal] = useState<'detail' | 'role' | 'blacklist' | 'muallimahDetail' | 'merge' | null>(null);
-  const [selectedMuallimah, setSelectedMuallimah] = useState<MuallimahRegistration | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'muallimah'>('users');
-  const [muallimahPage, setMuallimahPage] = useState(1);
-  const [muallimahBatchId, setMuallimahBatchId] = useState<string>('all');
+  const [activeModal, setActiveModal] = useState<'detail' | 'role' | 'blacklist' | 'merge' | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Handle Hydration - Delay rendering until client is ready
@@ -63,16 +57,7 @@ export default function AdminUsersPage() {
     isLoading: batchesLoading
   } = useAdminBatches(true);
 
-  // Hook for muallimah registrations
-  const {
-    registrations: muallimahData,
-    pagination: muallimahPagination,
-    isLoading: muallimahLoading,
-    mutate: mutateMuallimah
-  } = useMuallimahRegistrations(activeTab === 'muallimah', { 
-    page: muallimahPage,
-    batchId: muallimahBatchId === 'all' ? undefined : muallimahBatchId
-  });
+
 
   // --- HANDLERS ---
   const handleFilterChange = (newFilters: Partial<typeof filterState>) => {
@@ -130,7 +115,7 @@ export default function AdminUsersPage() {
   };
 
   const handleRefresh = async () => {
-    await Promise.all([mutateUsers(), mutateStats(), mutateMuallimah()]);
+    await Promise.all([mutateUsers(), mutateStats()]);
   };
 
   // Prepare stats for UserStats component
@@ -195,91 +180,22 @@ export default function AdminUsersPage() {
           onCardClick={handleStatClick}
         />
 
-        {/* Custom Tabs */}
-        <div className="flex items-center gap-6 border-b border-gray-100 mb-8 overflow-x-auto scrollbar-hide">
-           <button
-             onClick={() => setActiveTab('users')}
-             className={cn(
-                "pb-4 px-2 text-sm font-bold transition-all relative",
-                activeTab === 'users' ? "text-green-900" : "text-gray-400 hover:text-gray-600"
-             )}
-           >
-             Database Users
-             {activeTab === 'users' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-900 rounded-full" />}
-           </button>
-           <button
-             onClick={() => setActiveTab('muallimah')}
-             className={cn(
-                "pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2",
-                activeTab === 'muallimah' ? "text-green-900" : "text-gray-400 hover:text-gray-600"
-             )}
-           >
-             Pendaftaran Muallimah
-             <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">New</span>
-             {activeTab === 'muallimah' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-900 rounded-full" />}
-           </button>
-        </div>
+        {/* Filters & Search - only for users tab */}
+        <UserFilters 
+          onFilterChange={(f) => handleFilterChange(f)} 
+          onRefresh={handleRefresh}
+          isLoading={usersLoading || isPending}
+        />
 
-        {activeTab === 'users' ? (
-          <>
-            {/* Filters & Search - only for users tab */}
-            <UserFilters 
-              onFilterChange={(f) => handleFilterChange(f)} 
-              onRefresh={handleRefresh}
-              isLoading={usersLoading || isPending}
-            />
-
-            {/* User Table */}
-            <UserTable 
-              users={users} 
-              isLoading={usersLoading || isPending}
-              pagination={pagination}
-              onPageChange={(p) => handleFilterChange({ page: p })}
-              onAction={handleAction}
-              detectDuplicates={filterState.detectDuplicates}
-            />
-          </>
-        ) : (
-          <>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-               <div className="flex items-center gap-4">
-                  <div className="flex flex-col gap-1.5 min-w-[200px]">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Filter Batch</label>
-                    <select
-                      value={muallimahBatchId}
-                      onChange={(e) => setMuallimahBatchId(e.target.value)}
-                      className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-green-900/10 transition-all cursor-pointer outline-none"
-                    >
-                      <option value="all">Semua Batch</option>
-                      {batches?.map((b: any) => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
-               </div>
-               
-               <button 
-                 onClick={handleRefresh}
-                 disabled={muallimahLoading}
-                 className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:text-green-900 hover:bg-green-50 transition-all border border-gray-100"
-                 title="Refresh Data"
-               >
-                 <RefreshCw className={cn("w-5 h-5", muallimahLoading && "animate-spin")} />
-               </button>
-            </div>
-
-            <MuallimahTable 
-              registrations={muallimahData}
-              isLoading={muallimahLoading}
-              pagination={muallimahPagination}
-              onPageChange={(p) => setMuallimahPage(p)}
-              onViewDetail={(reg) => {
-                setSelectedMuallimah(reg);
-                setActiveModal('muallimahDetail');
-              }}
-            />
-          </>
-        )}
+        {/* User Table */}
+        <UserTable 
+          users={users} 
+          isLoading={usersLoading || isPending}
+          pagination={pagination}
+          onPageChange={(p) => handleFilterChange({ page: p })}
+          onAction={handleAction}
+          detectDuplicates={filterState.detectDuplicates}
+        />
       </div>
 
       {/* --- MODALS --- */}
@@ -318,16 +234,7 @@ export default function AdminUsersPage() {
         />
       )}
 
-      {selectedMuallimah && activeModal === 'muallimahDetail' && (
-        <MuallimahDetailModal 
-          registration={selectedMuallimah}
-          isOpen={true}
-          onClose={() => {
-            setSelectedMuallimah(null);
-            setActiveModal(null);
-          }}
-        />
-      )}
+
     </div>
   );
 }

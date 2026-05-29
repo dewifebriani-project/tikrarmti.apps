@@ -51,12 +51,26 @@ export function MuallimahReviewModal({
     }
   };
 
-  const scheduleStr = typeof reviewData.preferred_schedule === 'string' 
-    ? reviewData.preferred_schedule 
-    : JSON.stringify(reviewData.preferred_schedule || {});
+  const scheduleStr = (() => {
+    try {
+      const s = typeof reviewData.preferred_schedule === 'string' 
+        ? JSON.parse(reviewData.preferred_schedule) 
+        : reviewData.preferred_schedule;
+      if (s && s.day) {
+        const day = s.day.charAt(0).toUpperCase() + s.day.slice(1).toLowerCase();
+        return `${day}, ${s.time_start || ''} - ${s.time_end || ''}`;
+      }
+      return typeof reviewData.preferred_schedule === 'string' ? reviewData.preferred_schedule : JSON.stringify(reviewData.preferred_schedule || {});
+    } catch {
+      return typeof reviewData.preferred_schedule === 'string' ? reviewData.preferred_schedule : '-';
+    }
+  })();
+
+  const classTypeStr = (reviewData.class_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') || '-';
+  const paidSchemeStr = (!reviewData.paid_class_scheme || reviewData.paid_class_scheme === 'none') ? 'Tidak ada' : (reviewData.paid_class_scheme.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
           <div>
@@ -126,11 +140,11 @@ export function MuallimahReviewModal({
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Tipe Kelas</label>
-                    <p className="font-bold text-gray-900 capitalize">{reviewData.class_type?.replace('_', ' ') || '-'}</p>
+                    <p className="font-bold text-gray-900">{classTypeStr}</p>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Skema Kelas Berbayar</label>
-                    <p className="text-sm text-gray-700 capitalize">{reviewData.paid_class_scheme?.replace('_', ' ') || '-'}</p>
+                    <p className="text-sm text-gray-700">{paidSchemeStr}</p>
                   </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Juz yang dipilih</label>
@@ -207,7 +221,7 @@ export function MuallimahBulkConfirmModal({
 }) {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         <div className="p-6 text-center space-y-4">
           <div className={cn(
@@ -236,7 +250,7 @@ export function MuallimahUnapproveModal({ isOpen, onClose, onConfirm, data, isPr
   const [reason, setReason] = useState('');
   if (!isOpen || !data) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
         <div className="p-6 space-y-4">
           <h3 className="text-lg font-black text-gray-900">Batalkan Persetujuan</h3>
