@@ -128,6 +128,7 @@ export default function PerjalananSaya() {
   const [hasSessionError, setHasSessionError] = useState(false);
   const [pairingData, setPairingData] = useState<PairingData | null>(null);
   const [isLoadingPairing, setIsLoadingPairing] = useState(false);
+  const [finalExams, setFinalExams] = useState<any[]>([]);
   
   // Review Modal States
   const [reviewType, setReviewType] = useState<'written' | 'oral' | 'akad' | null>(null);
@@ -241,8 +242,11 @@ export default function PerjalananSaya() {
     const reviewWeekEnd = batch?.review_week_end_date ? new Date(batch.review_week_end_date) : null;
     const isLearningDone = isEnrollmentDone && reviewWeekEnd && today > reviewWeekEnd;
 
-    const graduationEnd = batch?.graduation_end_date ? new Date(batch.graduation_end_date) : null;
-    const isGraduationDone = isLearningDone && graduationEnd && today > graduationEnd;
+    const oralExam = finalExams.find(r => r.schedule?.exam_type === 'oral');
+    const writtenExam = finalExams.find(r => r.schedule?.exam_type === 'written');
+
+    // Graduation is done only when both oral and written exams have been graded
+    const isGraduationDone = !!(oralExam?.status === 'graded' && writtenExam?.status === 'graded');
 
     // Sub-phase detailed logic & data formatting
     const hasOral = !!(registrationStatus?.hasOralSubmission);
@@ -297,7 +301,8 @@ export default function PerjalananSaya() {
         desc: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : 'Wisuda & Sertifikat', 
         icon: <Award className="w-4 h-4" />,
         subPhases: [
-          { name: 'Ujian Akhir', done: isGraduationDone, data: isGraduationDone ? 'Selesai ✓' : '-' },
+          { name: 'Ujian Tulis', done: !!writtenExam, data: writtenExam ? (writtenExam.status === 'graded' ? `Nilai: ${writtenExam.score_tulisan}` : 'Sudah terdaftar') : 'Belum ujian' },
+          { name: 'Ujian Lisan', done: !!oralExam, data: oralExam ? (oralExam.status === 'graded' ? `Nilai: ${oralExam.score_lisan}` : `${formatDateIndo(oralExam.schedule?.exam_date || '')}`) : 'Belum memilih jadwal' },
           { name: 'Wisuda', done: isGraduationDone, data: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : '-' },
           { name: 'Sertifikat', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
         ]
@@ -477,8 +482,23 @@ export default function PerjalananSaya() {
     }
   };
 
+  const fetchFinalExams = async () => {
+    try {
+      const response = await fetch(`/api/exams/final-exams/registrations`, { cache: 'no-store' });
+      const result = await response.json();
+      if (result.success) {
+        setFinalExams(Array.isArray(result.data) ? result.data : result.data ? [result.data] : []);
+      }
+    } catch (error) {
+      console.error('Error fetching final exams:', error);
+    }
+  };
+
   useEffect(() => {
-    if (batchId && user) fetchPairingData(batchId);
+    if (batchId && user) {
+      fetchPairingData(batchId);
+      fetchFinalExams();
+    }
   }, [batchId, user]);
 
   const handleEditSuccess = () => window.location.reload();

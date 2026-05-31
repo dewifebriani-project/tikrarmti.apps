@@ -13,11 +13,12 @@ interface FinalExamPortalModalProps {
   isOpen: boolean;
   onClose: () => void;
   hariAktual: number;
+  percentage: number;
   isAdmin?: boolean;
   batchName?: string;
 }
 
-export function FinalExamPortalModal({ isOpen, onClose, hariAktual, isAdmin, batchName }: FinalExamPortalModalProps) {
+export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, isAdmin, batchName }: FinalExamPortalModalProps) {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<'oral' | 'written' | null>(null);
   const [selectionOpen, setSelectionOpen] = useState(false);
@@ -46,8 +47,15 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, isAdmin, bat
   };
 
   const getStatus = (type: 'oral' | 'written') => {
-    const minHari = type === 'written' ? 40 : 47;
-    const isLocked = !isAdmin && hariAktual < minHari;
+    let isLocked = false;
+    if (!isAdmin) {
+      if (type === 'oral') {
+        isLocked = percentage < 100;
+      } else {
+        isLocked = hariAktual < 40; // Ujian Tulisan requires min 40 days
+      }
+    }
+    
     const reg = registrations.find(r => r.schedule?.exam_type === type);
 
     if (isLocked) return 'locked';
@@ -59,10 +67,11 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, isAdmin, bat
     const status = getStatus(type);
     if (status === 'locked') return;
     
-    // If written exam and already registered, go directly to the exam page
-    if (type === 'written' && status === 'registered') {
-      onClose();
-      router.push('/seleksi/pilihan-ganda?source=final-exam');
+    // Written exam is done via G-Form, just show info
+    if (type === 'written') {
+      if (status !== 'graded') {
+        import('react-hot-toast').then(m => m.toast('Ujian Tulisan dilakukan via G-Form. Nilai akan diinput oleh Admin.', { icon: 'ℹ️' }));
+      }
       return;
     }
 
@@ -190,7 +199,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, isAdmin, bat
                       {isLocked ? (
                         <div className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-3 py-2 rounded-full w-fit">
                           <AlertCircle className="w-3 h-3" />
-                          Selesaikan Pekan {exam.minHari === 40 ? '10' : '11'}
+                          {exam.type === 'oral' ? 'Selesaikan Jurnal 100%' : 'Selesaikan Pekan 10'}
                         </div>
                       ) : isGraded ? (
                         <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-2 rounded-full w-fit">
@@ -201,15 +210,6 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, isAdmin, bat
                           <div className="flex items-center gap-2 text-[10px] font-black text-blue-700 uppercase tracking-widest bg-blue-100 px-3 py-2 rounded-full w-fit">
                             Terdaftar
                           </div>
-                          {exam.type === 'written' && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onClose(); router.push('/seleksi/pilihan-ganda?source=final-exam'); }}
-                              className="flex items-center gap-2 text-xs font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 rounded-xl shadow-lg shadow-blue-600/20 hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 transition-all w-full justify-center"
-                            >
-                              <Play className="w-4 h-4" />
-                              Mulai Ujian Sekarang
-                            </button>
-                          )}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 text-[10px] font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 px-3 py-2 rounded-full w-fit transition-colors group-hover:bg-indigo-600 group-hover:text-white">

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     const limit = Math.max(Math.min(parseInt(searchParams.get('limit') || '50'), 100), 1);
     const offset = (page - 1) * limit;
     const rawStatus = searchParams.get('status');
-    const VALID_BATCH_STATUSES = ['draft', 'open', 'closed', 'archived'] as const;
+    const VALID_BATCH_STATUSES = ['draft', 'open', 'ongoing', 'closed', 'archived'] as const;
     const status = rawStatus && VALID_BATCH_STATUSES.includes(rawStatus as any) ? rawStatus : null;
 
     // 4. Query
