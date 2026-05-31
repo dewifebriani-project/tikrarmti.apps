@@ -717,7 +717,7 @@ export function MuallimahEditModal({
               {/* Juz bersedia diampu */}
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Juz Yang Bersedia Diampu</Label>
-                <div className="grid grid-cols-5 gap-1 p-3 border rounded-2xl bg-gray-50/50 max-h-[180px] overflow-y-auto">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-3 border rounded-2xl bg-gray-50/50 max-h-[180px] overflow-y-auto">
                   {allJuzOptions.map(juz => (
                     <div key={juz.value} className="flex items-center space-x-1.5 py-1 hover:bg-white rounded-lg px-2 border border-transparent hover:border-gray-100 transition-all">
                       <Checkbox 

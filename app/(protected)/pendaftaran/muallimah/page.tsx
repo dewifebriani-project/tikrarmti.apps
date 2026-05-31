@@ -756,7 +756,7 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     Sudah Dihafal
                   </p>
-                  <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
                       <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
@@ -781,7 +781,7 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
                     Sudah Diuji (Tashih/Imtihan)
                   </p>
-                  <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
                       <div key={`exm-${juz.value}`} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
@@ -806,7 +806,7 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                     Sudah Mendapat Sertifikat
                   </p>
-                  <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
                     {allJuzOptions.map(juz => (
                       <div key={`cert-${juz.value}`} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
                         <Checkbox 
@@ -953,7 +953,7 @@ function MuallimahRegistrationContent() {
 
             <div className="space-y-4">
               <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
-              <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-white">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-white">
                 {allJuzOptions.map(juz => (
                   <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-gray-50 rounded-lg transition-colors px-2">
                     <Checkbox 
