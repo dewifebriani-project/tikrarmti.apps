@@ -105,14 +105,47 @@ export function MuallimahV2Table({
                 
                 // Parse jadwal
                 let schedule = { day: '-', time_start: '-', time_end: '-' };
+                let isNewFormat = false;
+                let scheduleObj: any = null;
+                
                 if (t.preferred_schedule) {
                   try {
-                    schedule = typeof t.preferred_schedule === 'string' ? JSON.parse(t.preferred_schedule) : t.preferred_schedule;
+                    const parsed = typeof t.preferred_schedule === 'string' 
+                      ? JSON.parse(t.preferred_schedule) 
+                      : t.preferred_schedule;
+                    
+                    if (parsed) {
+                      if (parsed.tikrar || parsed.pra_tahfidz || parsed.berbayar) {
+                        isNewFormat = true;
+                        scheduleObj = parsed;
+                      } else if (parsed.day) {
+                        schedule = parsed;
+                      }
+                    }
                   } catch (e) { }
                 }
+
+                // Ambil jadwal representatif untuk ditampilkan di kolom tabel
+                if (isNewFormat && scheduleObj) {
+                  const firstProgram = scheduleObj.tikrar || scheduleObj.pra_tahfidz || scheduleObj.berbayar;
+                  if (firstProgram && firstProgram.day) {
+                    schedule = {
+                      day: firstProgram.day || '-',
+                      time_start: firstProgram.time_start || '-',
+                      time_end: firstProgram.time_end || '-'
+                    };
+                  }
+                }
                 
-                const classTypeStr = (t.class_type || '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') || '-';
-                const dayStr = schedule.day !== '-' ? schedule.day.charAt(0).toUpperCase() + schedule.day.slice(1).toLowerCase() : '-';
+                const classTypeStr = (t.class_type || '')
+                  .split(', ')
+                  .map(type => type.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '))
+                  .join(', ') || '-';
+                  
+                const dayStr = (schedule && schedule.day && schedule.day !== '-') 
+                  ? String(schedule.day).charAt(0).toUpperCase() + String(schedule.day).slice(1).toLowerCase() 
+                  : '-';
+                  
                 const statusStr = (t.status || 'pending').toUpperCase();
 
                 return (
