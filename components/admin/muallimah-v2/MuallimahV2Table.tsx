@@ -137,10 +137,30 @@ export function MuallimahV2Table({
                   }
                 }
                 
-                const classTypeStr = (t.class_type || '')
-                  .split(', ')
-                  .map(type => type.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '))
-                  .join(', ') || '-';
+                const classTypesList: string[] = [];
+                const rawTypes = (t.class_type || '').split(', ').map(type => type.trim().toLowerCase());
+                
+                if (rawTypes.includes('tikrar_tahfidz')) {
+                  classTypesList.push('Tikrar');
+                }
+                if (rawTypes.includes('pra_tahfidz')) {
+                  classTypesList.push('Pra-Tikrar');
+                }
+                if (t.paid_class_scheme && t.paid_class_scheme !== 'none') {
+                  classTypesList.push('Berbayar');
+                }
+                
+                // Fallback untuk tipe kelas kustom legacy lainnya
+                rawTypes.forEach(rt => {
+                  if (rt !== 'tikrar_tahfidz' && rt !== 'pra_tahfidz' && rt) {
+                    const formatted = rt.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                    if (!classTypesList.includes(formatted)) {
+                      classTypesList.push(formatted);
+                    }
+                  }
+                });
+
+                const classTypeStr = classTypesList.join(', ') || '-';
                   
                 const dayStr = (schedule && schedule.day && schedule.day !== '-') 
                   ? String(schedule.day).charAt(0).toUpperCase() + String(schedule.day).slice(1).toLowerCase() 
