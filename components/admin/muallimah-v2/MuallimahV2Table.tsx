@@ -224,7 +224,11 @@ export function MuallimahV2Table({
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-xs font-bold text-gray-700">{dayStr}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">{schedule.time_start} - {schedule.time_end}</span>
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          {schedule.time_start && schedule.time_start !== '-' && schedule.time_end && schedule.time_end !== '-'
+                            ? `${schedule.time_start} - ${schedule.time_end}`
+                            : 'Jam belum diisi'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

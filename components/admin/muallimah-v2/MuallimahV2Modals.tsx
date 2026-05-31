@@ -78,10 +78,10 @@ export function MuallimahReviewModal({
       const dayStr = String(item.day).trim();
       if (!dayStr) return null;
       const dayFormatted = dayStr.charAt(0).toUpperCase() + dayStr.slice(1).toLowerCase();
-      if (item.time_start && item.time_end) {
+      if (item.time_start && item.time_end && item.time_start !== '-' && item.time_end !== '-') {
         return `${dayFormatted}, ${item.time_start} - ${item.time_end}`;
       }
-      return dayFormatted;
+      return `${dayFormatted} (Jam belum diisi)`;
     } catch {
       return null;
     }

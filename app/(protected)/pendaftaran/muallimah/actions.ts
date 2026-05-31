@@ -24,14 +24,14 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
     if (formData.class_tikrar) {
       preferredScheduleObj.tikrar = {
         day: formData.schedule_tikrar_day,
-        time_start: formData.schedule_tikrar_start,
-        time_end: formData.schedule_tikrar_end,
+        time_start: formData.schedule_tikrar_time_start,
+        time_end: formData.schedule_tikrar_time_end,
       }
-      if (formData.schedule_tikrar_day2 && formData.schedule_tikrar_start2 && formData.schedule_tikrar_end2) {
+      if (formData.schedule_tikrar_day2 && formData.schedule_tikrar_time_start2 && formData.schedule_tikrar_time_end2) {
         backupScheduleObj.tikrar = {
           day: formData.schedule_tikrar_day2,
-          time_start: formData.schedule_tikrar_start2,
-          time_end: formData.schedule_tikrar_end2,
+          time_start: formData.schedule_tikrar_time_start2,
+          time_end: formData.schedule_tikrar_time_end2,
         }
       }
     }
@@ -39,14 +39,14 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
     if (formData.class_pratikrar) {
       preferredScheduleObj.pra_tahfidz = {
         day: formData.schedule_pratikrar_day,
-        time_start: formData.schedule_pratikrar_start,
-        time_end: formData.schedule_pratikrar_end,
+        time_start: formData.schedule_pratikrar_time_start,
+        time_end: formData.schedule_pratikrar_time_end,
       }
-      if (formData.schedule_pratikrar_day2 && formData.schedule_pratikrar_start2 && formData.schedule_pratikrar_end2) {
+      if (formData.schedule_pratikrar_day2 && formData.schedule_pratikrar_time_start2 && formData.schedule_pratikrar_time_end2) {
         backupScheduleObj.pra_tahfidz = {
           day: formData.schedule_pratikrar_day2,
-          time_start: formData.schedule_pratikrar_start2,
-          time_end: formData.schedule_pratikrar_end2,
+          time_start: formData.schedule_pratikrar_time_start2,
+          time_end: formData.schedule_pratikrar_time_end2,
         }
       }
     }
@@ -54,14 +54,14 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
     if (formData.class_paid) {
       preferredScheduleObj.berbayar = {
         day: formData.schedule_paid_day,
-        time_start: formData.schedule_paid_start,
-        time_end: formData.schedule_paid_end,
+        time_start: formData.schedule_paid_time_start,
+        time_end: formData.schedule_paid_time_end,
       }
-      if (formData.schedule_paid_day2 && formData.schedule_paid_start2 && formData.schedule_paid_end2) {
+      if (formData.schedule_paid_day2 && formData.schedule_paid_time_start2 && formData.schedule_paid_time_end2) {
         backupScheduleObj.berbayar = {
           day: formData.schedule_paid_day2,
-          time_start: formData.schedule_paid_start2,
-          time_end: formData.schedule_paid_end2,
+          time_start: formData.schedule_paid_time_start2,
+          time_end: formData.schedule_paid_time_end2,
         }
       }
     }
