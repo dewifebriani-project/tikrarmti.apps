@@ -34,15 +34,33 @@ type MuallimahFormData = {
   
   // Akad Data (Batch-specific)
   preferred_juz: string[]; 
-  class_type: string; 
+  class_tikrar: boolean;
+  class_pratikrar: boolean;
+  class_paid: boolean;
   paid_class_scheme: string;
   preferred_max_thalibah?: number;
-  schedule1_day: string;
-  schedule1_time_start: string;
-  schedule1_time_end: string;
-  schedule2_day: string;
-  schedule2_time_start: string;
-  schedule2_time_end: string;
+  
+  // Jadwal Terpisah
+  schedule_tikrar_day: string;
+  schedule_tikrar_time_start: string;
+  schedule_tikrar_time_end: string;
+  schedule_tikrar_day2: string;
+  schedule_tikrar_time_start2: string;
+  schedule_tikrar_time_end2: string;
+
+  schedule_pratikrar_day: string;
+  schedule_pratikrar_time_start: string;
+  schedule_pratikrar_time_end: string;
+  schedule_pratikrar_day2: string;
+  schedule_pratikrar_time_start2: string;
+  schedule_pratikrar_time_end2: string;
+
+  schedule_paid_day: string;
+  schedule_paid_time_start: string;
+  schedule_paid_time_end: string;
+  schedule_paid_day2: string;
+  schedule_paid_time_start2: string;
+  schedule_paid_time_end2: string;
   
   // Commitment
   understands_commitment: boolean;
@@ -108,15 +126,33 @@ function MuallimahRegistrationContent() {
     age: undefined,
     
     preferred_juz: [], 
-    class_type: '',
-    paid_class_scheme: '',
+    class_tikrar: true,
+    class_pratikrar: false,
+    class_paid: false,
+    paid_class_scheme: 'none',
     preferred_max_thalibah: 10,
-    schedule1_day: '',
-    schedule1_time_start: '',
-    schedule1_time_end: '',
-    schedule2_day: '',
-    schedule2_time_start: '',
-    schedule2_time_end: '',
+    
+    schedule_tikrar_day: '',
+    schedule_tikrar_time_start: '',
+    schedule_tikrar_time_end: '',
+    schedule_tikrar_day2: '',
+    schedule_tikrar_time_start2: '',
+    schedule_tikrar_time_end2: '',
+
+    schedule_pratikrar_day: '',
+    schedule_pratikrar_time_start: '',
+    schedule_pratikrar_time_end: '',
+    schedule_pratikrar_day2: '',
+    schedule_pratikrar_time_start2: '',
+    schedule_pratikrar_time_end2: '',
+
+    schedule_paid_day: '',
+    schedule_paid_time_start: '',
+    schedule_paid_time_end: '',
+    schedule_paid_day2: '',
+    schedule_paid_time_start2: '',
+    schedule_paid_time_end2: '',
+
     understands_commitment: false,
     agreed_items: [],
   });
@@ -242,18 +278,116 @@ function MuallimahRegistrationContent() {
           ? JSON.parse(akad.backup_schedule)
           : akad.backup_schedule;
 
+        const isNewFormat = preferredSchedule && (preferredSchedule.tikrar || preferredSchedule.pra_tahfidz || preferredSchedule.berbayar);
+        
+        let class_tikrar = false;
+        let class_pratikrar = false;
+        let class_paid = akad.paid_class_scheme && akad.paid_class_scheme !== 'none';
+        
+        let schedule_tikrar_day = '';
+        let schedule_tikrar_time_start = '';
+        let schedule_tikrar_time_end = '';
+        let schedule_tikrar_day2 = '';
+        let schedule_tikrar_time_start2 = '';
+        let schedule_tikrar_time_end2 = '';
+
+        let schedule_pratikrar_day = '';
+        let schedule_pratikrar_time_start = '';
+        let schedule_pratikrar_time_end = '';
+        let schedule_pratikrar_day2 = '';
+        let schedule_pratikrar_time_start2 = '';
+        let schedule_pratikrar_time_end2 = '';
+
+        let schedule_paid_day = '';
+        let schedule_paid_time_start = '';
+        let schedule_paid_time_end = '';
+        let schedule_paid_day2 = '';
+        let schedule_paid_time_start2 = '';
+        let schedule_paid_time_end2 = '';
+
+        if (isNewFormat) {
+          class_tikrar = !!preferredSchedule.tikrar;
+          class_pratikrar = !!preferredSchedule.pra_tahfidz;
+          class_paid = !!preferredSchedule.berbayar;
+
+          if (class_tikrar) {
+            schedule_tikrar_day = preferredSchedule.tikrar.day || '';
+            schedule_tikrar_time_start = preferredSchedule.tikrar.time_start || '';
+            schedule_tikrar_time_end = preferredSchedule.tikrar.time_end || '';
+            if (backupSchedule?.tikrar) {
+              schedule_tikrar_day2 = backupSchedule.tikrar.day || '';
+              schedule_tikrar_time_start2 = backupSchedule.tikrar.time_start || '';
+              schedule_tikrar_time_end2 = backupSchedule.tikrar.time_end || '';
+            }
+          }
+          if (class_pratikrar) {
+            schedule_pratikrar_day = preferredSchedule.pra_tahfidz.day || '';
+            schedule_pratikrar_time_start = preferredSchedule.pra_tahfidz.time_start || '';
+            schedule_pratikrar_time_end = preferredSchedule.pra_tahfidz.time_end || '';
+            if (backupSchedule?.pra_tahfidz) {
+              schedule_pratikrar_day2 = backupSchedule.pra_tahfidz.day || '';
+              schedule_pratikrar_time_start2 = backupSchedule.pra_tahfidz.time_start || '';
+              schedule_pratikrar_time_end2 = backupSchedule.pra_tahfidz.time_end || '';
+            }
+          }
+          if (class_paid) {
+            schedule_paid_day = preferredSchedule.berbayar.day || '';
+            schedule_paid_time_start = preferredSchedule.berbayar.time_start || '';
+            schedule_paid_time_end = preferredSchedule.berbayar.time_end || '';
+            if (backupSchedule?.berbayar) {
+              schedule_paid_day2 = backupSchedule.berbayar.day || '';
+              schedule_paid_time_start2 = backupSchedule.berbayar.time_start || '';
+              schedule_paid_time_end2 = backupSchedule.berbayar.time_end || '';
+            }
+          }
+        } else {
+          // Legacy format mapping
+          const legacyClassType = akad.class_type || '';
+          if (legacyClassType.includes('tikrar_tahfidz')) {
+            class_tikrar = true;
+            schedule_tikrar_day = preferredSchedule?.day || '';
+            schedule_tikrar_time_start = preferredSchedule?.time_start || '';
+            schedule_tikrar_time_end = preferredSchedule?.time_end || '';
+            schedule_tikrar_day2 = backupSchedule?.day || '';
+            schedule_tikrar_time_start2 = backupSchedule?.time_start || '';
+            schedule_tikrar_time_end2 = backupSchedule?.time_end || '';
+          } else if (legacyClassType.includes('pra_tahfidz')) {
+            class_pratikrar = true;
+            schedule_pratikrar_day = preferredSchedule?.day || '';
+            schedule_pratikrar_time_start = preferredSchedule?.time_start || '';
+            schedule_pratikrar_time_end = preferredSchedule?.time_end || '';
+            schedule_pratikrar_day2 = backupSchedule?.day || '';
+            schedule_pratikrar_time_start2 = backupSchedule?.time_start || '';
+            schedule_pratikrar_time_end2 = backupSchedule?.time_end || '';
+          }
+        }
+
         setFormData(prev => ({
           ...prev,
           preferred_juz: akad.preferred_juz ? (Array.isArray(akad.preferred_juz) ? akad.preferred_juz : akad.preferred_juz.split(', ')) : [],
           preferred_max_thalibah: akad.preferred_max_thalibah,
-          class_type: akad.class_type || '',
-          paid_class_scheme: akad.paid_class_scheme || '',
-          schedule1_day: preferredSchedule?.day || '',
-          schedule1_time_start: preferredSchedule?.time_start || '',
-          schedule1_time_end: preferredSchedule?.time_end || '',
-          schedule2_day: backupSchedule?.day || '',
-          schedule2_time_start: backupSchedule?.time_start || '',
-          schedule2_time_end: backupSchedule?.time_end || '',
+          class_tikrar,
+          class_pratikrar,
+          class_paid,
+          paid_class_scheme: akad.paid_class_scheme || 'none',
+          schedule_tikrar_day,
+          schedule_tikrar_time_start,
+          schedule_tikrar_time_end,
+          schedule_tikrar_day2,
+          schedule_tikrar_time_start2,
+          schedule_tikrar_time_end2,
+          schedule_pratikrar_day,
+          schedule_pratikrar_time_start,
+          schedule_pratikrar_time_end,
+          schedule_pratikrar_day2,
+          schedule_pratikrar_time_start2,
+          schedule_pratikrar_time_end2,
+          schedule_paid_day,
+          schedule_paid_time_start,
+          schedule_paid_time_end,
+          schedule_paid_day2,
+          schedule_paid_time_start2,
+          schedule_paid_time_end2,
           understands_commitment: akad.understands_commitment || false,
         }));
       }
@@ -322,6 +456,28 @@ function MuallimahRegistrationContent() {
     });
   };
 
+  const timeToMinutes = (timeStr: string): number => {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const hasScheduleConflict = (
+    dayA: string, startA: string, endA: string,
+    dayB: string, startB: string, endB: string
+  ): boolean => {
+    if (!dayA || !startA || !endA || !dayB || !startB || !endB) return false;
+    if (dayA.toLowerCase() !== dayB.toLowerCase()) return false;
+
+    const startMinA = timeToMinutes(startA);
+    const endMinA = timeToMinutes(endA);
+    const startMinB = timeToMinutes(startB);
+    const endMinB = timeToMinutes(endB);
+
+    // Conflict if: startA < endB AND startB < endA
+    return startMinA < endMinB && startMinB < endMinA;
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -330,11 +486,68 @@ function MuallimahRegistrationContent() {
     if (!formData.memorization_level) newErrors.memorization_level = 'Pilih jumlah hafalan';
     if (!formData.memorized_juz || formData.memorized_juz.length === 0) newErrors.memorized_juz = 'Pilih minimal satu juz yang sudah dihafal';
     if (!formData.preferred_juz || formData.preferred_juz.length === 0) newErrors.preferred_juz = 'Pilih minimal satu juz yang ingin diampu';
-    if (!formData.schedule1_day) newErrors.schedule1_day = 'Pilih hari';
-    if (!formData.schedule1_time_start) newErrors.schedule1_time_start = 'Pilih jam mulai';
-    if (!formData.schedule1_time_end) newErrors.schedule1_time_end = 'Pilih jam selesai';
-    if (!formData.class_type) newErrors.class_type = 'Pilih tipe kelas wajib';
-    if (!formData.paid_class_scheme) newErrors.paid_class_scheme = 'Pilih pengajuan kelas berbayar';
+    
+    // Validasi Pilihan Kelas Wajib
+    if (!formData.class_tikrar && !formData.class_pratikrar) {
+      newErrors.class_selection = 'Pilih minimal salah satu kelas wajib (Tikrar atau Pra-Tikrar)';
+    }
+
+    // Validasi Detail Jadwal per Program
+    if (formData.class_tikrar) {
+      if (!formData.schedule_tikrar_day) newErrors.schedule_tikrar_day = 'Pilih hari kelas Tikrar';
+      if (!formData.schedule_tikrar_time_start) newErrors.schedule_tikrar_time_start = 'Pilih jam mulai kelas Tikrar';
+      if (!formData.schedule_tikrar_time_end) newErrors.schedule_tikrar_time_end = 'Pilih jam selesai kelas Tikrar';
+    }
+
+    if (formData.class_pratikrar) {
+      if (!formData.schedule_pratikrar_day) newErrors.schedule_pratikrar_day = 'Pilih hari kelas Pra-Tikrar';
+      if (!formData.schedule_pratikrar_time_start) newErrors.schedule_pratikrar_time_start = 'Pilih jam mulai kelas Pra-Tikrar';
+      if (!formData.schedule_pratikrar_time_end) newErrors.schedule_pratikrar_time_end = 'Pilih jam selesai kelas Pra-Tikrar';
+    }
+
+    if (formData.class_paid) {
+      if (!formData.schedule_paid_day) newErrors.schedule_paid_day = 'Pilih hari kelas Berbayar';
+      if (!formData.schedule_paid_time_start) newErrors.schedule_paid_time_start = 'Pilih jam mulai kelas Berbayar';
+      if (!formData.schedule_paid_time_end) newErrors.schedule_paid_time_end = 'Pilih jam selesai kelas Berbayar';
+      if (!formData.paid_class_scheme || formData.paid_class_scheme === 'none') {
+        newErrors.paid_class_scheme = 'Pilih skema kelas berbayar yang diajukan';
+      }
+    }
+
+    // Deteksi Tumpang Tindih Jadwal (Schedule Conflict Detection)
+    if (!newErrors.schedule_tikrar_day && !newErrors.schedule_pratikrar_day) {
+      if (formData.class_tikrar && formData.class_pratikrar) {
+        if (hasScheduleConflict(
+          formData.schedule_tikrar_day, formData.schedule_tikrar_time_start, formData.schedule_tikrar_time_end,
+          formData.schedule_pratikrar_day, formData.schedule_pratikrar_time_start, formData.schedule_pratikrar_time_end
+        )) {
+          newErrors.schedule_conflict = 'Jadwal Utama kelas Tikrar dan kelas Pra-Tikrar saling bertabrakan';
+        }
+      }
+    }
+
+    if (!newErrors.schedule_tikrar_day && !newErrors.schedule_paid_day) {
+      if (formData.class_tikrar && formData.class_paid) {
+        if (hasScheduleConflict(
+          formData.schedule_tikrar_day, formData.schedule_tikrar_time_start, formData.schedule_tikrar_time_end,
+          formData.schedule_paid_day, formData.schedule_paid_time_start, formData.schedule_paid_time_end
+        )) {
+          newErrors.schedule_conflict = 'Jadwal Utama kelas Tikrar dan kelas Berbayar saling bertabrakan';
+        }
+      }
+    }
+
+    if (!newErrors.schedule_pratikrar_day && !newErrors.schedule_paid_day) {
+      if (formData.class_pratikrar && formData.class_paid) {
+        if (hasScheduleConflict(
+          formData.schedule_pratikrar_day, formData.schedule_pratikrar_time_start, formData.schedule_pratikrar_time_end,
+          formData.schedule_paid_day, formData.schedule_paid_time_start, formData.schedule_paid_time_end
+        )) {
+          newErrors.schedule_conflict = 'Jadwal Utama kelas Pra-Tikrar dan kelas Berbayar saling bertabrakan';
+        }
+      }
+    }
+
     if (!formData.understands_commitment || formData.agreed_items.length < COMMITMENT_ITEMS.length) {
       newErrors.understands_commitment = 'Harap setujui semua butir akad komitmen';
     }
@@ -622,77 +835,124 @@ function MuallimahRegistrationContent() {
           <CardHeader className="bg-amber-50/50">
             <CardTitle className="flex items-center gap-2 text-xl text-amber-900">
               <Calendar className="w-6 h-6 text-amber-600" />
-              2. Akad Mengajar (Batch {batchInfo?.name || '...'})
+              2. Akad & Pilihan Program (Batch {batchInfo?.name || '...'})
             </CardTitle>
             <CardDescription className="text-amber-800/70">
-              Pilih jadwal and juz yang bersedia diampu untuk periode ini.
+              Pilih satu atau lebih program kelas yang bersedia Ukhti ampu serta tentukan jadwal masing-masing.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8 pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Tipe Kelas Wajib</Label>
-                  <Select 
-                    value={formData.class_type} 
-                    onValueChange={(v) => handleInputChange('class_type', v)}
+            
+            {/* Pemilihan Program Kelas (Checkbox Group) */}
+            <div className="space-y-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+              <Label className="text-base font-bold text-gray-900 block mb-2">Program Kelas yang Ingin Diampu</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Checkbox Kelas Tikrar */}
+                <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
+                  <Checkbox 
+                    id="class_tikrar"
+                    checked={formData.class_tikrar}
+                    onCheckedChange={(checked) => handleInputChange('class_tikrar', !!checked)}
                     disabled={isFormSubmitted}
-                  >
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
-                      <SelectValue placeholder="Pilih tipe kelas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tikrar_tahfidz">Kelas Tikrar</SelectItem>
-                      <SelectItem value="pra_tahfidz">Kelas Pra-Tikrar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.class_type && <p className="text-xs text-red-500 font-medium">{errors.class_type}</p>}
+                    className="mt-1 h-5 w-5"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="class_tikrar" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Tikrar</Label>
+                    <p className="text-xs text-gray-500">Kelas hafalan Al-Quran berulang (standard/ziyadah).</p>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Pengajuan Kelas Berbayar (Opsional)</Label>
+                {/* Checkbox Kelas Pra-Tikrar */}
+                <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
+                  <Checkbox 
+                    id="class_pratikrar"
+                    checked={formData.class_pratikrar}
+                    onCheckedChange={(checked) => handleInputChange('class_pratikrar', !!checked)}
+                    disabled={isFormSubmitted}
+                    className="mt-1 h-5 w-5"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="class_pratikrar" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Pra-Tikrar</Label>
+                    <p className="text-xs text-gray-500">Kelas persiapan dan pembekalan materi tajwid/tashih dasar.</p>
+                  </div>
+                </div>
+
+                {/* Checkbox Kelas Berbayar */}
+                <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
+                  <Checkbox 
+                    id="class_paid"
+                    checked={formData.class_paid}
+                    onCheckedChange={(checked) => {
+                      handleInputChange('class_paid', !!checked);
+                      if (!checked) {
+                        handleInputChange('paid_class_scheme', 'none');
+                      }
+                    }}
+                    disabled={isFormSubmitted}
+                    className="mt-1 h-5 w-5"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="class_paid" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Berbayar (Opsional)</Label>
+                    <p className="text-xs text-gray-500">Mengajar kelas berbayar komersial sesuai kebijakan MTI.</p>
+                  </div>
+                </div>
+
+              </div>
+              {errors.class_selection && <p className="text-sm text-red-500 font-bold mt-2">{errors.class_selection}</p>}
+            </div>
+
+            {/* Jika Kelas Berbayar Aktif, Tampilkan Skema */}
+            {formData.class_paid && (
+              <div className="space-y-3 bg-amber-50/40 p-5 rounded-2xl border border-amber-100 animate-in slide-in-from-top-4 duration-200">
+                <Label className="text-sm font-bold text-amber-900">Pengajuan Skema Kelas Berbayar</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select 
                     value={formData.paid_class_scheme} 
                     onValueChange={(v) => handleInputChange('paid_class_scheme', v)}
                     disabled={isFormSubmitted}
                   >
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
-                      <SelectValue placeholder="Pilih pengajuan kelas berbayar" />
+                    <SelectTrigger className="rounded-xl border-amber-200 bg-white">
+                      <SelectValue placeholder="Pilih skema pengajuan kelas berbayar" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Tidak Mengajukan</SelectItem>
-                      <SelectItem value="berbayar_100">Berbayar (100% Muallimah)</SelectItem>
-                      <SelectItem value="berbayar_80_20">Berbayar (Skema 80:20)</SelectItem>
-                      <SelectItem value="berbayar_60_40">Berbayar (Skema 60:40)</SelectItem>
+                      <SelectItem value="berbayar_100">Berbayar (100% Muallimah - Mengelola Mandiri)</SelectItem>
+                      <SelectItem value="berbayar_80_20">Berbayar (Skema 80:20 - Didampingi Musyrifah)</SelectItem>
+                      <SelectItem value="berbayar_60_40">Berbayar (Skema 60:40 - Insentif Khusus)</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.paid_class_scheme && <p className="text-xs text-red-500 font-medium">{errors.paid_class_scheme}</p>}
+                  <div className="flex items-center">
+                    <p className="text-xs text-amber-700 italic">
+                      * Skema akan divalidasi lebih lanjut oleh tim manajemen.
+                    </p>
+                  </div>
                 </div>
-
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Maksimal Tholibah per Kelas</Label>
-                  <Select 
-                    value={String(formData.preferred_max_thalibah || 10)} 
-                    onValueChange={(v) => handleInputChange('preferred_max_thalibah', parseInt(v))}
-                    disabled={isFormSubmitted}
-                  >
-                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
-                      <SelectValue placeholder="Pilih maksimal tholibah" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                        <SelectItem key={num} value={String(num)}>{num} Orang</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {errors.paid_class_scheme && <p className="text-xs text-red-500 font-medium">{errors.paid_class_scheme}</p>}
               </div>
-              
-              <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-100 italic">
-                * Skema berbayar akan divalidasi lebih lanjut oleh tim manajemen berdasarkan kualifikasi dan ketersediaan program.
-              </p>
+            )}
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
+                <Label className="text-base font-semibold">Maksimal Tholibah per Kelas</Label>
+                <Select 
+                  value={String(formData.preferred_max_thalibah || 10)} 
+                  onValueChange={(v) => handleInputChange('preferred_max_thalibah', parseInt(v))}
+                  disabled={isFormSubmitted}
+                >
+                  <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                    <SelectValue placeholder="Pilih maksimal tholibah" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map((num) => (
+                      <SelectItem key={num} value={String(num)}>{num} Orang</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
               <div className="grid grid-cols-5 gap-1 p-2 border rounded-xl bg-white">
                 {allJuzOptions.map(juz => (
                   <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-gray-50 rounded-lg transition-colors px-2">
@@ -714,105 +974,329 @@ function MuallimahRegistrationContent() {
               {errors.preferred_juz && <p className="text-xs text-red-500 font-medium">{errors.preferred_juz}</p>}
             </div>
 
+            {/* DYNAMIC JADWAL SECTION */}
             <div className="space-y-6">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 border-b pb-2">
                 <Clock className="w-5 h-5 text-amber-600" />
-                <Label className="text-base font-bold text-amber-900">Jadwal Mengajar (WIB)</Label>
+                <Label className="text-lg font-bold text-amber-900">Jadwal Mengajar per Program (WIB)</Label>
               </div>
 
-              <div className="space-y-6">
-                {/* Schedule 1 */}
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-amber-600/70 uppercase tracking-widest px-1">Pilihan Utama</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 rounded-2xl bg-amber-50/30 border border-amber-100/50">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-500">Hari</Label>
-                      <Select 
-                        value={formData.schedule1_day} 
-                        onValueChange={(v) => handleInputChange('schedule1_day', v)}
-                        disabled={isFormSubmitted}
-                      >
-                        <SelectTrigger className={`bg-white rounded-xl border-gray-200 ${errors.schedule1_day ? "border-red-500" : ""}`}>
-                          <SelectValue placeholder="Pilih hari" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dayOptions.map(d => (
-                            <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-500">Jam Mulai</Label>
-                      <Input 
-                        type="time" 
-                        value={formData.schedule1_time_start}
-                        onChange={(e) => handleInputChange('schedule1_time_start', e.target.value)}
-                        disabled={isFormSubmitted}
-                        className={`bg-white rounded-xl border-gray-200 ${errors.schedule1_time_start ? "border-red-500" : ""}`}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-500">Jam Selesai</Label>
-                      <Input 
-                        type="time" 
-                        value={formData.schedule1_time_end}
-                        onChange={(e) => handleInputChange('schedule1_time_end', e.target.value)}
-                        disabled={isFormSubmitted}
-                        className={`bg-white rounded-xl border-gray-200 ${errors.schedule1_time_end ? "border-red-500" : ""}`}
-                      />
-                    </div>
-                  </div>
+              {errors.schedule_conflict && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-bold flex items-center gap-2 animate-bounce">
+                  <Info className="h-4 w-4 shrink-0 text-red-600" />
+                  <span>{errors.schedule_conflict}</span>
                 </div>
-
-                {/* Schedule 2 (Optional) */}
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Pilihan Cadangan (Opsional)</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 rounded-2xl bg-gray-50/50 border border-gray-100">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-400">Hari</Label>
-                      <Select 
-                        value={formData.schedule2_day} 
-                        onValueChange={(v) => handleInputChange('schedule2_day', v)}
-                        disabled={isFormSubmitted}
-                      >
-                        <SelectTrigger className="bg-white rounded-xl border-gray-200">
-                          <SelectValue placeholder="Pilih hari" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dayOptions.map(d => (
-                            <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-400">Jam Mulai</Label>
-                      <Input 
-                        type="time" 
-                        value={formData.schedule2_time_start}
-                        onChange={(e) => handleInputChange('schedule2_time_start', e.target.value)}
-                        disabled={isFormSubmitted}
-                        className="bg-white rounded-xl border-gray-200"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-400">Jam Selesai</Label>
-                      <Input 
-                        type="time" 
-                        value={formData.schedule2_time_end}
-                        onChange={(e) => handleInputChange('schedule2_time_end', e.target.value)}
-                        disabled={isFormSubmitted}
-                        className="bg-white rounded-xl border-gray-200"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {(errors.schedule1_day || errors.schedule1_time_start || errors.schedule1_time_end) && (
-                <p className="text-xs text-red-500 font-medium">Harap lengkapi semua field jadwal pilihan utama.</p>
               )}
+
+              {/* JADWAL KELAS TIKRAR */}
+              {formData.class_tikrar && (
+                <div className="space-y-4 bg-emerald-50/20 p-6 rounded-2xl border border-emerald-100/50 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+                    <h3 className="text-base font-bold text-emerald-900">🗓️ Jadwal Kelas Tikrar</h3>
+                    <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Aktif</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Tikrar Utama */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-emerald-100/50">
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
+                          <Select 
+                            value={formData.schedule_tikrar_day} 
+                            onValueChange={(v) => handleInputChange('schedule_tikrar_day', v)}
+                            disabled={isFormSubmitted}
+                          >
+                            <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_day ? "border-red-500" : ""}`}>
+                              <SelectValue placeholder="Hari" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dayOptions.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_tikrar_time_start}
+                            onChange={(e) => handleInputChange('schedule_tikrar_time_start', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_time_start ? "border-red-500" : ""}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_tikrar_time_end}
+                            onChange={(e) => handleInputChange('schedule_tikrar_time_end', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_time_end ? "border-red-500" : ""}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tikrar Cadangan */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
+                          <Select 
+                            value={formData.schedule_tikrar_day2} 
+                            onValueChange={(v) => handleInputChange('schedule_tikrar_day2', v)}
+                            disabled={isFormSubmitted}
+                          >
+                            <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
+                              <SelectValue placeholder="Hari" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dayOptions.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_tikrar_time_start2}
+                            onChange={(e) => handleInputChange('schedule_tikrar_time_start2', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className="h-9 bg-white border-gray-200 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_tikrar_time_end2}
+                            onChange={(e) => handleInputChange('schedule_tikrar_time_end2', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className="h-9 bg-white border-gray-200 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {(errors.schedule_tikrar_day || errors.schedule_tikrar_time_start || errors.schedule_tikrar_time_end) && (
+                    <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Tikrar.</p>
+                  )}
+                </div>
+              )}
+
+              {/* JADWAL KELAS PRA-TIKRAR */}
+              {formData.class_pratikrar && (
+                <div className="space-y-4 bg-blue-50/20 p-6 rounded-2xl border border-blue-100/50 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                    <h3 className="text-base font-bold text-blue-900">🗓️ Jadwal Kelas Pra-Tikrar</h3>
+                    <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Aktif</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Pra-Tikrar Utama */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-blue-100/50">
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
+                          <Select 
+                            value={formData.schedule_pratikrar_day} 
+                            onValueChange={(v) => handleInputChange('schedule_pratikrar_day', v)}
+                            disabled={isFormSubmitted}
+                          >
+                            <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_day ? "border-red-500" : ""}`}>
+                              <SelectValue placeholder="Hari" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dayOptions.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_pratikrar_time_start}
+                            onChange={(e) => handleInputChange('schedule_pratikrar_time_start', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_time_start ? "border-red-500" : ""}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_pratikrar_time_end}
+                            onChange={(e) => handleInputChange('schedule_pratikrar_time_end', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_time_end ? "border-red-500" : ""}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pra-Tikrar Cadangan */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
+                          <Select 
+                            value={formData.schedule_pratikrar_day2} 
+                            onValueChange={(v) => handleInputChange('schedule_pratikrar_day2', v)}
+                            disabled={isFormSubmitted}
+                          >
+                            <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
+                              <SelectValue placeholder="Hari" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dayOptions.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_pratikrar_time_start2}
+                            onChange={(e) => handleInputChange('schedule_pratikrar_time_start2', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className="h-9 bg-white border-gray-200 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_pratikrar_time_end2}
+                            onChange={(e) => handleInputChange('schedule_pratikrar_time_end2', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className="h-9 bg-white border-gray-200 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {(errors.schedule_pratikrar_day || errors.schedule_pratikrar_time_start || errors.schedule_pratikrar_time_end) && (
+                    <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Pra-Tikrar.</p>
+                  )}
+                </div>
+              )}
+
+              {/* JADWAL KELAS BERBAYAR */}
+              {formData.class_paid && (
+                <div className="space-y-4 bg-amber-50/20 p-6 rounded-2xl border border-amber-100/50 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-amber-100 pb-2">
+                    <h3 className="text-base font-bold text-amber-900">🗓️ Jadwal Kelas Berbayar</h3>
+                    <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Aktif</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Berbayar Utama */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-amber-100/50">
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
+                          <Select 
+                            value={formData.schedule_paid_day} 
+                            onValueChange={(v) => handleInputChange('schedule_paid_day', v)}
+                            disabled={isFormSubmitted}
+                          >
+                            <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_day ? "border-red-500" : ""}`}>
+                              <SelectValue placeholder="Hari" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dayOptions.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_paid_time_start}
+                            onChange={(e) => handleInputChange('schedule_paid_time_start', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_time_start ? "border-red-500" : ""}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_paid_time_end}
+                            onChange={(e) => handleInputChange('schedule_paid_time_end', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_time_end ? "border-red-500" : ""}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Berbayar Cadangan */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
+                          <Select 
+                            value={formData.schedule_paid_day2} 
+                            onValueChange={(v) => handleInputChange('schedule_paid_day2', v)}
+                            disabled={isFormSubmitted}
+                          >
+                            <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
+                              <SelectValue placeholder="Hari" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {dayOptions.map(d => (
+                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_paid_time_start2}
+                            onChange={(e) => handleInputChange('schedule_paid_time_start2', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className="h-9 bg-white border-gray-200 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
+                          <Input 
+                            type="time" 
+                            value={formData.schedule_paid_time_end2}
+                            onChange={(e) => handleInputChange('schedule_paid_time_end2', e.target.value)}
+                            disabled={isFormSubmitted}
+                            className="h-9 bg-white border-gray-200 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {(errors.schedule_paid_day || errors.schedule_paid_time_start || errors.schedule_paid_time_end) && (
+                    <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Berbayar.</p>
+                  )}
+                </div>
+              )}
+
             </div>
 
             <div className="space-y-6">

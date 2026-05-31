@@ -18,20 +18,58 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
 
   try {
     // 2. Prepare Data
-    const schedule1Formatted = {
-      day: formData.schedule1_day,
-      time_start: formData.schedule1_time_start,
-      time_end: formData.schedule1_time_end,
+    const preferredScheduleObj: Record<string, any> = {}
+    const backupScheduleObj: Record<string, any> = {}
+
+    if (formData.class_tikrar) {
+      preferredScheduleObj.tikrar = {
+        day: formData.schedule_tikrar_day,
+        time_start: formData.schedule_tikrar_start,
+        time_end: formData.schedule_tikrar_end,
+      }
+      if (formData.schedule_tikrar_day2 && formData.schedule_tikrar_start2 && formData.schedule_tikrar_end2) {
+        backupScheduleObj.tikrar = {
+          day: formData.schedule_tikrar_day2,
+          time_start: formData.schedule_tikrar_start2,
+          time_end: formData.schedule_tikrar_end2,
+        }
+      }
     }
 
-    const schedule2Formatted = (formData.schedule2_day && formData.schedule2_time_start && formData.schedule2_time_end)
-      ? {
-          day: formData.schedule2_day,
-          time_start: formData.schedule2_time_start,
-          time_end: formData.schedule2_time_end,
+    if (formData.class_pratikrar) {
+      preferredScheduleObj.pra_tahfidz = {
+        day: formData.schedule_pratikrar_day,
+        time_start: formData.schedule_pratikrar_start,
+        time_end: formData.schedule_pratikrar_end,
+      }
+      if (formData.schedule_pratikrar_day2 && formData.schedule_pratikrar_start2 && formData.schedule_pratikrar_end2) {
+        backupScheduleObj.pra_tahfidz = {
+          day: formData.schedule_pratikrar_day2,
+          time_start: formData.schedule_pratikrar_start2,
+          time_end: formData.schedule_pratikrar_end2,
         }
-      : null
+      }
+    }
 
+    if (formData.class_paid) {
+      preferredScheduleObj.berbayar = {
+        day: formData.schedule_paid_day,
+        time_start: formData.schedule_paid_start,
+        time_end: formData.schedule_paid_end,
+      }
+      if (formData.schedule_paid_day2 && formData.schedule_paid_start2 && formData.schedule_paid_end2) {
+        backupScheduleObj.berbayar = {
+          day: formData.schedule_paid_day2,
+          time_start: formData.schedule_paid_start2,
+          time_end: formData.schedule_paid_end2,
+        }
+      }
+    }
+
+    const classTypesSelected = []
+    if (formData.class_tikrar) classTypesSelected.push('tikrar_tahfidz')
+    if (formData.class_pratikrar) classTypesSelected.push('pra_tahfidz')
+    
     // 3. Step 1: Upsert Profile (muallimah_registrations)
     // We treat this table as the permanent profile. 
     const profileData: any = {
@@ -87,11 +125,11 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       user_id: authUser.id,
       batch_id: batchId,
       preferred_juz: Array.isArray(formData.preferred_juz) ? formData.preferred_juz.join(', ') : null,
-      class_type: formData.class_type || 'tikrar_tahfidz',
-      paid_class_scheme: formData.paid_class_scheme || 'none',
+      class_type: classTypesSelected.join(', ') || 'tikrar_tahfidz',
+      paid_class_scheme: formData.class_paid ? (formData.paid_class_scheme || 'none') : 'none',
       preferred_max_thalibah: formData.preferred_max_thalibah || 10,
-      preferred_schedule: JSON.stringify(schedule1Formatted),
-      backup_schedule: schedule2Formatted ? JSON.stringify(schedule2Formatted) : null,
+      preferred_schedule: JSON.stringify(preferredScheduleObj),
+      backup_schedule: Object.keys(backupScheduleObj).length > 0 ? JSON.stringify(backupScheduleObj) : null,
       understands_commitment: formData.understands_commitment === true,
       status: 'pending',
       akad_signed_at: new Date().toISOString(),
