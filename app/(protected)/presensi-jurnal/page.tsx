@@ -339,6 +339,9 @@ function PresensiJurnalContent() {
     type: 'presensi' | 'jurnal';
   } | null>(null);
   const [muallimahList, setMuallimahList] = useState<any[]>([]);
+  const [batchList, setBatchList] = useState<{id: string; name: string; status: string}[]>([]);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
+
 
   const handleDropout = async (thalibahId: string, batchId: string, name: string) => {
     if (!batchId) {
@@ -396,14 +399,40 @@ function PresensiJurnalContent() {
     }
   }, [searchParams]);
 
+  // Load batch list on mount
   useEffect(() => {
     if (user && !authLoading) {
+      const loadBatches = async () => {
+        try {
+          const supabase = createClient();
+          const { data } = await supabase
+            .from('batches')
+            .select('id, name, status')
+            .order('created_at', { ascending: false });
+          if (data) {
+            setBatchList(data);
+            // Default ke batch open pertama jika belum dipilih
+            if (!selectedBatchId) {
+              const activeBatch = data.find((b: any) => b.status === 'ongoing') || data.find((b: any) => b.status === 'open') || data[0];
+              if (activeBatch) setSelectedBatchId(activeBatch.id);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading batches:', error);
+        }
+      };
+      loadBatches();
+    }
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (user && !authLoading && selectedBatchId) {
       loadData();
       if (activeTab === 'presensi') {
         loadMuallimah();
       }
     }
-  }, [user, authLoading, activeTab, selectedBlok, currentPage, rowsPerPage]);
+  }, [user, authLoading, activeTab, selectedBlok, currentPage, rowsPerPage, selectedBatchId]);
 
   // Debounced search
   useEffect(() => {
@@ -450,9 +479,11 @@ function PresensiJurnalContent() {
       const limitParam = `&limit=${rowsPerPage}`;
       const pageParam = `&page=${currentPage}`;
       
+      const batchParam = selectedBatchId ? `&batch_id=${selectedBatchId}` : '';
+      
       if (activeTab === 'jurnal' || activeTab === 'dropout') {
         const typeParam = activeTab === 'dropout' ? '&status=dropout&is_dropout=true' : '';
-        const response = await fetch(`/api/musyrifah/jurnal?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}`);
+        const response = await fetch(`/api/musyrifah/jurnal?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}${batchParam}`);
         if (response.ok) {
           const result = await response.json();
           const entries = result.data?.entries || [];
@@ -469,7 +500,7 @@ function PresensiJurnalContent() {
         }
       } else {
         const typeParam = activeTab === 'blacklist' ? '&is_blacklisted=true' : '';
-        const response = await fetch(`/api/musyrifah/tashih?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}`);
+        const response = await fetch(`/api/musyrifah/tashih?blok=${selectedBlok}${pageParam}${typeParam}${limitParam}${searchParam}${batchParam}`);
         if (response.ok) {
           const result = await response.json();
           const entries = result.data?.entries || [];
@@ -660,6 +691,24 @@ function PresensiJurnalContent() {
                   className="bg-white border-0 shadow-sm rounded-xl pl-10 pr-4 py-2.5 text-sm font-semibold text-gray-700 w-full focus:ring-2 focus:ring-green-900/20 transition-all outline-none"
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[180px]">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Batch</label>
+              <select
+                value={selectedBatchId}
+                onChange={(e) => {
+                  setSelectedBatchId(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="bg-green-50 border border-green-100 shadow-sm rounded-xl px-4 py-2.5 text-sm font-bold text-green-900 w-full focus:ring-2 focus:ring-green-900/20 transition-all cursor-pointer outline-none"
+              >
+                {batchList.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.status === 'open' ? '(Aktif)' : b.status === 'closed' ? '(Selesai)' : `(${b.status})`}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="flex flex-col gap-1.5 flex-1 lg:flex-initial lg:min-w-[120px]">

@@ -2,10 +2,32 @@ import { createClient } from '@/lib/supabase/server';
 import { ApiResponses } from '@/lib/api-responses';
 import { requireAdmin } from '@/lib/rbac';
 
+import { getAuthorizationContext } from '@/lib/rbac';
+
 export async function GET(request: Request) {
   const supabase = createClient();
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
+  let batchId = searchParams.get('batch_id');
+
+  // Jika tidak ada batch_id eksplisit, coba ambil dari konteks user (untuk Thalibah)
+  if (!batchId) {
+    const context = await getAuthorizationContext();
+    if (context && !context.roles.includes('admin') && !context.roles.includes('muallimah')) {
+      const { data: userReg } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('batch_id')
+        .eq('user_id', context.userId)
+        .eq('status', 'approved')
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (userReg?.batch_id) {
+        batchId = userReg.batch_id;
+      }
+    }
+  }
 
   let query = supabase
     .from('final_exam_schedules')
@@ -18,6 +40,10 @@ export async function GET(request: Request) {
 
   if (type) {
     query = query.eq('exam_type', type);
+  }
+  
+  if (batchId) {
+    query = query.eq('batch_id', batchId);
   }
 
   const { data, error } = await query;

@@ -79,7 +79,7 @@ export default function JurnalHarianPage() {
 
   // Get active registration
   const activeRegistration = registrations.find((reg: any) =>
-    reg.batch?.status === 'open' &&
+    ['open', 'closed', 'ongoing'].includes(reg.batch?.status) &&
     (reg.status === 'approved' || reg.selection_status === 'selected')
   )
 

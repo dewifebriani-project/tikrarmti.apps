@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2, GraduationCap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useActiveBatch } from '@/hooks/useBatches';
+import { useActiveBatch, useBatches } from '@/hooks/useBatches';
 import { cn } from '@/lib/utils';
 
 interface Examiner {
@@ -31,7 +31,9 @@ interface Schedule {
 }
 
 export function FinalExamSchedules() {
+  const { batches } = useBatches();
   const { activeBatch } = useActiveBatch();
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,17 +42,23 @@ export function FinalExamSchedules() {
 
   const [formData, setFormData] = useState({
     exam_type: 'oral',
-    exam_date: '',
-    start_time: '',
-    end_time: '',
     examiner_id: '',
     max_quota: 5,
-    location_link: ''
+    location_link: '',
+    sessions: [{ exam_date: '', start_time: '', end_time: '' }]
   });
 
   useEffect(() => {
-    fetchSchedules();
-  }, [activeBatch]);
+    if (activeBatch && !selectedBatchId) {
+      setSelectedBatchId(activeBatch.id);
+    }
+  }, [activeBatch, selectedBatchId]);
+
+  useEffect(() => {
+    if (selectedBatchId) {
+      fetchSchedules();
+    }
+  }, [selectedBatchId]);
 
   useEffect(() => {
     fetchExaminers();
@@ -58,7 +66,10 @@ export function FinalExamSchedules() {
 
   const fetchSchedules = async () => {
     try {
-      const response = await fetch('/api/exams/final-exams/schedules');
+      const url = selectedBatchId 
+        ? `/api/exams/final-exams/schedules?batch_id=${selectedBatchId}`
+        : '/api/exams/final-exams/schedules';
+      const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
         setSchedules(result.data);
@@ -72,46 +83,101 @@ export function FinalExamSchedules() {
 
   const fetchExaminers = async () => {
     try {
-      // Fetch both muallimah and musyrifah as they can both be examiners
-      const response = await fetch('/api/admin/users?pageSize=100');
+      // Mengambil daftar muallimah otomatis dari gabungan pendaftaran dan penugasan halaqah
+      const response = await fetch(`/api/admin/examiners`);
       const result = await response.json();
-      if (result.success && result.users) {
-        // Filter users who have muallimah or musyrifah role
-        const staff = (result.users || []).filter((u: any) => 
-          u.roles && (u.roles.includes('muallimah') || u.roles.includes('musyrifah') || u.roles.includes('admin'))
-        );
-        console.log('Fetched staff for examiners:', staff.length);
+      
+      if (result.success && result.data) {
+        const staff = result.data.map((m: any) => ({
+          id: m.id,
+          full_name: m.full_name
+        }));
+        console.log('Fetched muallimah for examiners:', staff.length);
         setExaminers(staff);
       } else {
         setExaminers([]);
       }
     } catch (error) {
       console.error('Fetch examiners error:', error);
+      setExaminers([]);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.examiner_id) {
+      toast.error('Harap pilih penguji (examiner)');
+      return;
+    }
+
+    const hasEmptySession = formData.sessions.some(s => !s.exam_date || !s.start_time || !s.end_time);
+    if (hasEmptySession) {
+      toast.error('Harap lengkapi tanggal dan jam pada semua sesi ujian');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/exams/final-exams/schedules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, batch_id: activeBatch?.id })
-      });
-      const result = await response.json();
-      if (result.success) {
-        toast.success('Jadwal berhasil ditambahkan');
+      const promises = formData.sessions.map(session => 
+        fetch('/api/exams/final-exams/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            batch_id: selectedBatchId,
+            exam_type: formData.exam_type,
+            examiner_id: formData.examiner_id,
+            max_quota: formData.max_quota,
+            location_link: formData.location_link,
+            exam_date: session.exam_date,
+            start_time: session.start_time,
+            end_time: session.end_time
+          })
+        })
+      );
+      
+      const results = await Promise.all(promises);
+      const allSuccess = results.every(r => r.ok);
+
+      if (allSuccess) {
+        toast.success(`${formData.sessions.length} Jadwal berhasil ditambahkan`);
         setShowAddForm(false);
+        setFormData({
+          exam_type: 'oral',
+          examiner_id: '',
+          max_quota: 5,
+          location_link: '',
+          sessions: [{ exam_date: '', start_time: '', end_time: '' }]
+        });
         fetchSchedules();
       } else {
-        toast.error(result.error || 'Gagal menambahkan jadwal');
+        toast.error('Beberapa jadwal mungkin gagal ditambahkan');
+        fetchSchedules();
       }
     } catch (error) {
       toast.error('Terjadi kesalahan server');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const addSession = () => {
+    setFormData({
+      ...formData,
+      sessions: [...formData.sessions, { exam_date: '', start_time: '', end_time: '' }]
+    });
+  };
+
+  const removeSession = (index: number) => {
+    if (formData.sessions.length <= 1) return;
+    const newSessions = [...formData.sessions];
+    newSessions.splice(index, 1);
+    setFormData({ ...formData, sessions: newSessions });
+  };
+
+  const updateSession = (index: number, field: string, value: string) => {
+    const newSessions = [...formData.sessions];
+    newSessions[index] = { ...newSessions[index], [field]: value };
+    setFormData({ ...formData, sessions: newSessions });
   };
 
   const handleDelete = async (id: string) => {
@@ -130,8 +196,23 @@ export function FinalExamSchedules() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-900">Daftar Jadwal Ujian</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-bold text-gray-900">Daftar Jadwal Ujian</h2>
+          <Select 
+            value={selectedBatchId || ""} 
+            onValueChange={(v) => setSelectedBatchId(v)}
+          >
+            <SelectTrigger className="w-[200px] rounded-xl border-gray-200 bg-white">
+              <SelectValue placeholder="Pilih Batch" />
+            </SelectTrigger>
+            <SelectContent>
+              {batches.map(batch => (
+                <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button 
           onClick={() => setShowAddForm(!showAddForm)}
           className="rounded-xl bg-green-600 hover:bg-green-700"
@@ -147,80 +228,128 @@ export function FinalExamSchedules() {
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-green-800">Input Jadwal Baru</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Jenis Ujian</Label>
-                <Select 
-                  value={formData.exam_type} 
-                  onValueChange={(v) => setFormData({...formData, exam_type: v})}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="oral">Ujian Lisan (Oral)</SelectItem>
-                    <SelectItem value="written">Ujian Tulisan (Written)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-
-              <div className="space-y-2">
-                <Label>Tanggal Ujian</Label>
-                <Input 
-                  type="date" 
-                  className="rounded-xl border-gray-200" 
-                  value={formData.exam_date}
-                  onChange={(e) => setFormData({...formData, exam_date: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label>Waktu Mulai</Label>
+                  <Label>Penguji (Examiner)</Label>
+                  <Select 
+                    value={formData.examiner_id} 
+                    onValueChange={(v) => setFormData({...formData, examiner_id: v})}
+                    required
+                  >
+                    <SelectTrigger className={`rounded-xl border-gray-200 ${!formData.examiner_id ? "text-gray-500" : ""}`}>
+                      <SelectValue placeholder="Pilih Penguji" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {examiners.map(examiner => (
+                        <SelectItem key={examiner.id} value={examiner.id}>{examiner.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Jenis Ujian</Label>
+                  <Select 
+                    value={formData.exam_type} 
+                    onValueChange={(v) => setFormData({...formData, exam_type: v})}
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="oral">Ujian Lisan (Oral)</SelectItem>
+                      <SelectItem value="written">Ujian Tulisan (Written)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Maksimal Quota per Sesi</Label>
                   <Input 
-                    type="time" 
+                    type="number" 
                     className="rounded-xl border-gray-200" 
-                    value={formData.start_time}
-                    onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                    value={formData.max_quota}
+                    onChange={(e) => setFormData({...formData, max_quota: parseInt(e.target.value)})}
                     required
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label>Waktu Selesai</Label>
+                  <Label>Link Zoom / Lokasi (Opsional)</Label>
                   <Input 
-                    type="time" 
+                    placeholder="https://zoom.us/j/..." 
                     className="rounded-xl border-gray-200" 
-                    value={formData.end_time}
-                    onChange={(e) => setFormData({...formData, end_time: e.target.value})}
-                    required
+                    value={formData.location_link}
+                    onChange={(e) => setFormData({...formData, location_link: e.target.value})}
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Maksimal Quota (Thalibah)</Label>
-                <Input 
-                  type="number" 
-                  className="rounded-xl border-gray-200" 
-                  value={formData.max_quota}
-                  onChange={(e) => setFormData({...formData, max_quota: parseInt(e.target.value)})}
-                  required
-                />
+              <div className="border-t border-gray-100 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <Label className="text-base font-bold">Sesi Ujian</Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={addSession}
+                    className="rounded-xl"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tambah Sesi
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.sessions.map((session, index) => (
+                    <div key={index} className="flex flex-col sm:flex-row items-end gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                      <div className="flex-1 space-y-2 w-full">
+                        <Label>Tanggal</Label>
+                        <Input 
+                          type="date" 
+                          className="rounded-xl bg-white" 
+                          value={session.exam_date}
+                          onChange={(e) => updateSession(index, 'exam_date', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2 w-full">
+                        <Label>Waktu Mulai</Label>
+                        <Input 
+                          type="time" 
+                          className="rounded-xl bg-white" 
+                          value={session.start_time}
+                          onChange={(e) => updateSession(index, 'start_time', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="flex-1 space-y-2 w-full">
+                        <Label>Waktu Selesai</Label>
+                        <Input 
+                          type="time" 
+                          className="rounded-xl bg-white" 
+                          value={session.end_time}
+                          onChange={(e) => updateSession(index, 'end_time', e.target.value)}
+                          required
+                        />
+                      </div>
+                      {formData.sessions.length > 1 && (
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          onClick={() => removeSession(index)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Link Zoom / Lokasi</Label>
-                <Input 
-                  placeholder="https://zoom.us/j/..." 
-                  className="rounded-xl border-gray-200" 
-                  value={formData.location_link}
-                  onChange={(e) => setFormData({...formData, location_link: e.target.value})}
-                />
-              </div>
-
-              <div className="md:col-span-2 flex justify-end pt-4">
+              <div className="flex justify-end pt-4">
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
@@ -278,6 +407,10 @@ export function FinalExamSchedules() {
                   <div className="flex items-center gap-3">
                     <Users className="w-4 h-4 opacity-40" />
                     <span>Quota: <span className="text-gray-900 font-bold">{schedule.current_count} / {schedule.max_quota}</span></span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <GraduationCap className="w-4 h-4 opacity-40" />
+                    <span>Penguji: <span className="text-gray-900 font-bold">{schedule.examiner?.full_name || '-'}</span></span>
                   </div>
                   {schedule.location_link && (
                     <div className="flex items-center gap-3 truncate">

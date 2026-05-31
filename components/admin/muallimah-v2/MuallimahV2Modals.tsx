@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -660,26 +659,32 @@ export function MuallimahEditModal({
                 <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">Program Kelas yang Diampu</Label>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="flex items-center space-x-2 p-2 border rounded-xl hover:bg-emerald-50/10 cursor-pointer">
-                    <Checkbox 
+                    <input 
+                      type="checkbox"
                       id="edit-class-tikrar"
                       checked={classTikrar}
-                      onCheckedChange={(checked) => setClassTikrar(!!checked)}
+                      onChange={(e) => setClassTikrar(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                     />
                     <Label htmlFor="edit-class-tikrar" className="text-xs font-bold text-gray-700 cursor-pointer">Tikrar</Label>
                   </div>
                   <div className="flex items-center space-x-2 p-2 border rounded-xl hover:bg-blue-50/10 cursor-pointer">
-                    <Checkbox 
+                    <input 
+                      type="checkbox"
                       id="edit-class-pratikrar"
                       checked={classPratikrar}
-                      onCheckedChange={(checked) => setClassPratikrar(!!checked)}
+                      onChange={(e) => setClassPratikrar(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                     />
                     <Label htmlFor="edit-class-pratikrar" className="text-xs font-bold text-gray-700 cursor-pointer">Pra-Tikrar</Label>
                   </div>
                   <div className="flex items-center space-x-2 p-2 border rounded-xl hover:bg-amber-50/10 cursor-pointer">
-                    <Checkbox 
+                    <input 
+                      type="checkbox"
                       id="edit-class-paid"
                       checked={classPaid}
-                      onCheckedChange={(checked) => setClassPaid(!!checked)}
+                      onChange={(e) => setClassPaid(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                     />
                     <Label htmlFor="edit-class-paid" className="text-xs font-bold text-gray-700 cursor-pointer">Berbayar</Label>
                   </div>
@@ -720,15 +725,18 @@ export function MuallimahEditModal({
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-3 border rounded-2xl bg-gray-50/50 max-h-[180px] overflow-y-auto">
                   {allJuzOptions.map(juz => (
                     <div key={juz.value} className="flex items-center space-x-1.5 py-1 hover:bg-white rounded-lg px-2 border border-transparent hover:border-gray-100 transition-all">
-                      <Checkbox 
+                      <input 
+                        type="checkbox"
                         id={`edit-pref-juz-${juz.value}`}
                         checked={preferredJuz.includes(juz.value)}
-                        onCheckedChange={(checked) => {
+                        onChange={(e) => {
+                          const checked = e.target.checked;
                           const newJuz = checked 
                             ? [...preferredJuz, juz.value]
                             : preferredJuz.filter(v => v !== juz.value);
                           setPreferredJuz(newJuz);
                         }}
+                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                       />
                       <Label htmlFor={`edit-pref-juz-${juz.value}`} className="text-[10px] font-bold text-gray-700 cursor-pointer whitespace-nowrap">{juz.label}</Label>
                     </div>

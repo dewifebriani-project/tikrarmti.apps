@@ -597,6 +597,14 @@ function AdminContent() {
               <p className="text-green-50/80 text-sm max-w-xl">
                 Kelola data master, pendaftaran, dan pantau kesehatan sistem Markaz Tikrar Indonesia secara real-time.
               </p>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 text-sm font-medium text-white transition-all duration-200 hover:scale-[1.02] active:scale-95"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Dashboard Thalibah</span>
+                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+              </button>
             </div>
             <div className="hidden lg:block">
               <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 flex flex-col items-center justify-center">

@@ -13,9 +13,11 @@ interface FinalExamPortalModalProps {
   isOpen: boolean;
   onClose: () => void;
   hariAktual: number;
+  isAdmin?: boolean;
+  batchName?: string;
 }
 
-export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamPortalModalProps) {
+export function FinalExamPortalModal({ isOpen, onClose, hariAktual, isAdmin, batchName }: FinalExamPortalModalProps) {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<'oral' | 'written' | null>(null);
   const [selectionOpen, setSelectionOpen] = useState(false);
@@ -45,7 +47,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
 
   const getStatus = (type: 'oral' | 'written') => {
     const minHari = type === 'written' ? 40 : 47;
-    const isLocked = hariAktual < minHari;
+    const isLocked = !isAdmin && hariAktual < minHari;
     const reg = registrations.find(r => r.schedule?.exam_type === type);
 
     if (isLocked) return 'locked';
@@ -70,16 +72,6 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
 
   const exams = [
     {
-      id: 'written',
-      type: 'written' as const,
-      label: 'Ujian Tulisan',
-      subtitle: 'Pilihan Ganda',
-      description: 'Tes pemahaman materi melalui 100 soal pilihan ganda.',
-      icon: FileText,
-      minHari: 40,
-      color: 'blue'
-    },
-    {
       id: 'oral',
       type: 'oral' as const,
       label: 'Ujian Lisan',
@@ -88,14 +80,24 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
       icon: Award,
       minHari: 47,
       color: 'emerald'
+    },
+    {
+      id: 'written',
+      type: 'written' as const,
+      label: 'Ujian Tulisan',
+      subtitle: 'Pilihan Ganda',
+      description: 'Tes pemahaman materi melalui 100 soal pilihan ganda.',
+      icon: FileText,
+      minHari: 40,
+      color: 'blue'
     }
   ];
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-3xl rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
-          <DialogHeader className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-8 sm:p-12 relative overflow-hidden">
+        <DialogContent className="max-w-3xl rounded-[2.5rem] border-none shadow-2xl p-0 overflow-hidden bg-white max-h-[90vh] flex flex-col">
+          <DialogHeader className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-8 sm:p-12 relative overflow-hidden shrink-0">
             <div className="relative z-10">
               <DialogTitle className="text-3xl sm:text-4xl font-black tracking-tight flex items-center gap-4 mb-2">
                 <GraduationCap className="w-10 h-10 sm:w-12 sm:h-12" />
@@ -103,6 +105,18 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
               </DialogTitle>
               <DialogDescription className="text-blue-100 text-base sm:text-lg font-medium max-w-md leading-relaxed">
                 Tahap akhir perjalanan Ukhti untuk mendapatkan sertifikat kelulusan Tikrar MTI.
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {batchName && (
+                    <span className="inline-block px-4 py-1.5 bg-white/20 text-white font-bold rounded-full text-sm backdrop-blur-sm border border-white/30">
+                      {batchName}
+                    </span>
+                  )}
+                  {isAdmin && (
+                    <span className="inline-block px-4 py-1.5 bg-purple-500/50 text-white font-bold rounded-full text-sm backdrop-blur-sm border border-purple-300/50 flex items-center gap-1.5">
+                      <Lock className="w-3 h-3" /> Mode Admin (Bypass Gembok)
+                    </span>
+                  )}
+                </div>
               </DialogDescription>
             </div>
             
@@ -111,7 +125,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual }: FinalExamP
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-black/10 rounded-full blur-3xl" />
           </DialogHeader>
 
-          <div className="p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50">
+          <div className="flex-1 min-h-0 p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 overflow-y-auto">
             {exams.map((exam) => {
               const status = getStatus(exam.type);
               const isLocked = status === 'locked';

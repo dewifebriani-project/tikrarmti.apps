@@ -66,6 +66,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       // SECTION: MONITORING
       baseItems.push({ type: 'header', label: 'Monitoring' });
       baseItems.push({
+        href: '/dashboard',
+        label: 'Dashboard Personal',
+        icon: <LayoutGrid className="h-5 w-5 text-emerald-600" />,
+      });
+      baseItems.push({
         href: isAdmin ? '/admin?tab=overview' : '/dashboard',
         label: 'Ringkasan Statistik',
         icon: <BarChart3 className="h-5 w-5" />,
@@ -84,14 +89,6 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           href: '/admin/muallimah',
           label: 'Daftar Muallimah',
           icon: <GraduationCap className="h-5 w-5 text-green-600" />,
-        });
-      }
-      
-      if (isAdmin) {
-        baseItems.push({
-          href: '/admin?tab=exam-questions',
-          label: 'Bank Soal Seleksi',
-          icon: <FileText className="h-5 w-5" />,
         });
       }
 
@@ -113,6 +110,13 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         label: 'Manajemen Ujian',
         icon: <GraduationCap className="h-5 w-5" />,
       });
+      if (isAdmin) {
+        baseItems.push({
+          href: '/admin?tab=exam-questions',
+          label: 'Bank Soal Seleksi',
+          icon: <FileText className="h-5 w-5" />,
+        });
+      }
       baseItems.push({
         href: '/presensi-jurnal',
         label: 'Presensi & Jurnal',

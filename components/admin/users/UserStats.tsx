@@ -56,30 +56,30 @@ export type StatFilterType = 'all' | 'admin' | 'thalibah' | 'blacklisted';
    ];
  
    return (
-     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
        {cards.map((card, idx) => (
          <div
            key={card.id}
            onClick={() => onCardClick?.(card.id)}
-           className={`p-6 rounded-2xl border ${card.border} ${card.bg} ${card.hoverBg} transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer group active:scale-95`}
+           className={`p-4 sm:p-6 rounded-2xl border ${card.border} ${card.bg} ${card.hoverBg} transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer group active:scale-95`}
          >
-           <div className="flex items-center justify-between mb-4">
-             <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100/50 group-hover:scale-110 transition-transform duration-300">
+           <div className="flex items-center justify-between mb-3 sm:mb-4">
+             <div className="p-2 sm:p-3 bg-white rounded-xl shadow-sm border border-gray-100/50 group-hover:scale-110 transition-transform duration-300">
                {card.icon}
              </div>
              {isLoading ? (
-               <div className="h-4 w-12 bg-gray-200 animate-pulse rounded"></div>
+               <div className="h-4 w-10 sm:w-12 bg-gray-200 animate-pulse rounded"></div>
              ) : (
-               <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] group-hover:text-gray-600 transition-colors">Overview</span>
+               <span className="text-[8px] sm:text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] sm:tracking-[0.2em] group-hover:text-gray-600 transition-colors">Overview</span>
              )}
            </div>
-           <div className="space-y-1">
+           <div className="space-y-0.5 sm:space-y-1">
              {isLoading ? (
-               <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
+               <div className="h-7 sm:h-8 w-16 sm:w-24 bg-gray-200 animate-pulse rounded"></div>
              ) : (
-               <h3 className="text-3xl font-black text-gray-900 tracking-tight">{card.value.toLocaleString()}</h3>
+               <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{card.value.toLocaleString()}</h3>
              )}
-             <p className="text-sm font-bold text-gray-600 tracking-tight group-hover:text-gray-900 transition-colors">{card.label}</p>
+             <p className="text-xs sm:text-sm font-bold text-gray-600 tracking-tight group-hover:text-gray-900 transition-colors">{card.label}</p>
            </div>
          </div>
        ))}

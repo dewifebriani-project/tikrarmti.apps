@@ -798,7 +798,9 @@ export default function DashboardContent() {
       <FinalExamPortalModal 
         isOpen={examModalOpen} 
         onClose={() => setExamModalOpen(false)} 
-        hariAktual={displayStats.hariAktual} 
+        hariAktual={displayStats.hariAktual}
+        isAdmin={userRole === 'admin'}
+        batchName={registrations[0]?.batch?.name || registrations[0]?.batch_name}
       />
     </div>
   )

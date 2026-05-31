@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, BookOpen, GraduationCap, Loader2, Info, Clock, ShieldCheck } from 'lucide-react';
@@ -799,23 +798,31 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     Sudah Dihafal
                   </p>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
-                    {allJuzOptions.map(juz => (
-                      <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
-                        <Checkbox 
-                          id={`mem-${juz.value}`} 
-                          checked={formData.memorized_juz.includes(juz.value)}
-                          onCheckedChange={(checked) => {
-                            const newJuz = checked 
-                              ? [...formData.memorized_juz, juz.value]
-                              : formData.memorized_juz.filter(v => v !== juz.value);
-                            handleInputChange('memorized_juz', newJuz);
-                          }}
-                          disabled={isFormSubmitted}
-                        />
-                        <Label htmlFor={`mem-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
+                    {allJuzOptions.map(juz => {
+                      const isChecked = formData.memorized_juz.includes(juz.value);
+                      return (
+                        <label 
+                          key={juz.value} 
+                          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const newJuz = checked 
+                                ? [...formData.memorized_juz, juz.value]
+                                : formData.memorized_juz.filter(v => v !== juz.value);
+                              handleInputChange('memorized_juz', newJuz);
+                            }}
+                            disabled={isFormSubmitted}
+                            className="hidden"
+                          />
+                          {juz.value}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -824,23 +831,31 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
                     Sudah Diuji (Tashih/Imtihan)
                   </p>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
-                    {allJuzOptions.map(juz => (
-                      <div key={`exm-${juz.value}`} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
-                        <Checkbox 
-                          id={`exm-${juz.value}`}
-                          checked={formData.examined_juz.includes(juz.value)}
-                          onCheckedChange={(checked) => {
-                            const newJuz = checked 
-                              ? [...formData.examined_juz, juz.value]
-                              : formData.examined_juz.filter(v => v !== juz.value);
-                            handleInputChange('examined_juz', newJuz);
-                          }}
-                          disabled={isFormSubmitted}
-                        />
-                        <Label htmlFor={`exm-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
+                    {allJuzOptions.map(juz => {
+                      const isChecked = formData.examined_juz.includes(juz.value);
+                      return (
+                        <label 
+                          key={`exm-${juz.value}`} 
+                          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600'}`}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const newJuz = checked 
+                                ? [...formData.examined_juz, juz.value]
+                                : formData.examined_juz.filter(v => v !== juz.value);
+                              handleInputChange('examined_juz', newJuz);
+                            }}
+                            disabled={isFormSubmitted}
+                            className="hidden"
+                          />
+                          {juz.value}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -849,23 +864,31 @@ function MuallimahRegistrationContent() {
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                     Sudah Mendapat Sertifikat
                   </p>
-                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-gray-50/30">
-                    {allJuzOptions.map(juz => (
-                      <div key={`cert-${juz.value}`} className="flex items-center space-x-2 py-1 hover:bg-white/50 rounded-lg transition-colors px-2">
-                        <Checkbox 
-                          id={`cert-${juz.value}`}
-                          checked={formData.certified_juz.includes(juz.value)}
-                          onCheckedChange={(checked) => {
-                            const newJuz = checked 
-                              ? [...formData.certified_juz, juz.value]
-                              : formData.certified_juz.filter(v => v !== juz.value);
-                            handleInputChange('certified_juz', newJuz);
-                          }}
-                          disabled={isFormSubmitted}
-                        />
-                        <Label htmlFor={`cert-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
-                      </div>
-                    ))}
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
+                    {allJuzOptions.map(juz => {
+                      const isChecked = formData.certified_juz.includes(juz.value);
+                      return (
+                        <label 
+                          key={`cert-${juz.value}`} 
+                          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-500 border-green-500 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-400 hover:text-green-500'}`}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              const newJuz = checked 
+                                ? [...formData.certified_juz, juz.value]
+                                : formData.certified_juz.filter(v => v !== juz.value);
+                              handleInputChange('certified_juz', newJuz);
+                            }}
+                            disabled={isFormSubmitted}
+                            className="hidden"
+                          />
+                          {juz.value}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -893,12 +916,13 @@ function MuallimahRegistrationContent() {
                 
                 {/* Checkbox Kelas Tikrar */}
                 <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
-                  <Checkbox 
+                  <input 
+                    type="checkbox"
                     id="class_tikrar"
                     checked={formData.class_tikrar}
-                    onCheckedChange={(checked) => handleInputChange('class_tikrar', !!checked)}
+                    onChange={(e) => handleInputChange('class_tikrar', e.target.checked)}
                     disabled={isFormSubmitted}
-                    className="mt-1 h-5 w-5"
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                   />
                   <div className="space-y-1">
                     <Label htmlFor="class_tikrar" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Tikrar</Label>
@@ -908,12 +932,13 @@ function MuallimahRegistrationContent() {
 
                 {/* Checkbox Kelas Pra-Tikrar */}
                 <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
-                  <Checkbox 
+                  <input 
+                    type="checkbox"
                     id="class_pratikrar"
                     checked={formData.class_pratikrar}
-                    onCheckedChange={(checked) => handleInputChange('class_pratikrar', !!checked)}
+                    onChange={(e) => handleInputChange('class_pratikrar', e.target.checked)}
                     disabled={isFormSubmitted}
-                    className="mt-1 h-5 w-5"
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                   />
                   <div className="space-y-1">
                     <Label htmlFor="class_pratikrar" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Pra-Tikrar</Label>
@@ -923,17 +948,19 @@ function MuallimahRegistrationContent() {
 
                 {/* Checkbox Kelas Berbayar */}
                 <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
-                  <Checkbox 
+                  <input 
+                    type="checkbox"
                     id="class_paid"
                     checked={formData.class_paid}
-                    onCheckedChange={(checked) => {
-                      handleInputChange('class_paid', !!checked);
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      handleInputChange('class_paid', checked);
                       if (!checked) {
                         handleInputChange('paid_class_scheme', 'none');
                       }
                     }}
                     disabled={isFormSubmitted}
-                    className="mt-1 h-5 w-5"
+                    className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
                   />
                   <div className="space-y-1">
                     <Label htmlFor="class_paid" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Berbayar (Opsional)</Label>
@@ -996,23 +1023,31 @@ function MuallimahRegistrationContent() {
 
             <div className="space-y-4">
               <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1 p-2 border rounded-xl bg-white">
-                {allJuzOptions.map(juz => (
-                  <div key={juz.value} className="flex items-center space-x-2 py-1 hover:bg-gray-50 rounded-lg transition-colors px-2">
-                    <Checkbox 
-                      id={`pref-${juz.value}`}
-                      checked={formData.preferred_juz.includes(juz.value)}
-                      onCheckedChange={(checked) => {
-                        const newJuz = checked 
-                          ? [...formData.preferred_juz, juz.value]
-                          : formData.preferred_juz.filter(v => v !== juz.value);
-                        handleInputChange('preferred_juz', newJuz);
-                      }}
-                      disabled={isFormSubmitted}
-                    />
-                    <Label htmlFor={`pref-${juz.value}`} className="text-[10px] font-medium cursor-pointer whitespace-nowrap">{juz.label}</Label>
-                  </div>
-                ))}
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-white">
+                {allJuzOptions.map(juz => {
+                  const isChecked = formData.preferred_juz.includes(juz.value);
+                  return (
+                    <label 
+                      key={`pref-${juz.value}`} 
+                      className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
+                    >
+                      <input 
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          const newJuz = checked 
+                            ? [...formData.preferred_juz, juz.value]
+                            : formData.preferred_juz.filter(v => v !== juz.value);
+                          handleInputChange('preferred_juz', newJuz);
+                        }}
+                        disabled={isFormSubmitted}
+                        className="hidden"
+                      />
+                      {juz.value}
+                    </label>
+                  );
+                })}
               </div>
               {errors.preferred_juz && <p className="text-xs text-red-500 font-medium">{errors.preferred_juz}</p>}
             </div>
@@ -1043,7 +1078,7 @@ function MuallimahRegistrationContent() {
                     {/* Tikrar Utama */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
-                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-emerald-100/50">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-emerald-100/50">
                         <div>
                           <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
                           <Select 
@@ -1087,7 +1122,7 @@ function MuallimahRegistrationContent() {
                     {/* Tikrar Cadangan */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
-                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
                         <div>
                           <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
                           <Select 
@@ -1146,7 +1181,7 @@ function MuallimahRegistrationContent() {
                     {/* Pra-Tikrar Utama */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
-                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-blue-100/50">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-blue-100/50">
                         <div>
                           <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
                           <Select 
@@ -1190,7 +1225,7 @@ function MuallimahRegistrationContent() {
                     {/* Pra-Tikrar Cadangan */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
-                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
                         <div>
                           <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
                           <Select 
@@ -1249,7 +1284,7 @@ function MuallimahRegistrationContent() {
                     {/* Berbayar Utama */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
-                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-amber-100/50">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-amber-100/50">
                         <div>
                           <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
                           <Select 
@@ -1293,7 +1328,7 @@ function MuallimahRegistrationContent() {
                     {/* Berbayar Cadangan */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
-                      <div className="grid grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
                         <div>
                           <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
                           <Select 
@@ -1355,28 +1390,33 @@ function MuallimahRegistrationContent() {
                   </p>
                   
                   {COMMITMENT_ITEMS.map((item, index) => (
-                    <div key={item.id} className="flex items-start justify-between gap-4 p-4 bg-white/40 rounded-xl hover:bg-white/80 transition-colors group border border-transparent hover:border-green-200 hover:shadow-sm">
-                      <div className="flex gap-4 items-start flex-1 cursor-pointer" onClick={() => !isFormSubmitted && handleAgreedItemsToggle(item.id)}>
-                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold shrink-0 shadow-sm border border-green-200">
-                          {index + 1}
+                    <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white/40 rounded-xl hover:bg-white/80 transition-colors group border border-transparent hover:border-green-200 hover:shadow-sm">
+                      <div className="flex gap-4 items-start flex-1 cursor-pointer w-full" onClick={() => !isFormSubmitted && handleAgreedItemsToggle(item.id)}>
+                        <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold shadow-sm border border-green-200">
+                            {index + 1}
+                          </div>
+                          <span className="text-2xl" aria-hidden="true">{item.icon}</span>
                         </div>
-                        <div className="flex-1 pt-1">
+                        <div className="flex-1 pt-2 min-w-0">
                           <Label 
                             htmlFor={`akad-${item.id}`}
-                            className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer group-hover:text-green-950 flex items-start gap-3"
+                            className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer group-hover:text-green-950 block"
                           >
-                            <span className="text-lg shrink-0 mt-0.5" aria-hidden="true">{item.icon}</span>
-                            <span className="font-normal">{item.label}</span>
+                            <span className="font-normal block break-words">{item.label}</span>
                           </Label>
                         </div>
                       </div>
-                      <Checkbox 
-                        id={`akad-${item.id}`}
-                        checked={formData.agreed_items?.includes(item.id)}
-                        onCheckedChange={() => handleAgreedItemsToggle(item.id)}
-                        disabled={isFormSubmitted}
-                        className="mt-1 h-6 w-6 border-green-400 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 shrink-0 shadow-sm"
-                      />
+                      <div className="w-full sm:w-auto flex justify-end">
+                        <input 
+                          type="checkbox"
+                          id={`akad-${item.id}`}
+                          checked={formData.agreed_items?.includes(item.id)}
+                          onChange={() => handleAgreedItemsToggle(item.id)}
+                          disabled={isFormSubmitted}
+                          className="h-6 w-6 rounded border-green-400 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600 shadow-sm"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
