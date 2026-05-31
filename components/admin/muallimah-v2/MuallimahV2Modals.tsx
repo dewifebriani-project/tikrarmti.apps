@@ -644,16 +644,15 @@ export function MuallimahEditModal({
               {/* Status */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status Akad</Label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="h-10 bg-white border-gray-200 text-sm">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select 
+                  value={status} 
+                  onChange={e => setStatus(e.target.value)}
+                  className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-medium text-gray-800"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
               </div>
 
               {/* Tipe Program Checkbox */}
@@ -691,17 +690,17 @@ export function MuallimahEditModal({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Skema Kelas Berbayar</Label>
-                  <Select value={paidClassScheme} onValueChange={setPaidClassScheme} disabled={!classPaid}>
-                    <SelectTrigger className="h-10 bg-white border-gray-200 text-sm">
-                      <SelectValue placeholder="Pilih Skema" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Tidak Ikut</SelectItem>
-                      <SelectItem value="berbayar_80_20">Berbayar 80-20</SelectItem>
-                      <SelectItem value="berbayar_60_40">Berbayar 60-40</SelectItem>
-                      <SelectItem value="berbayar_100">Berbayar 100</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    value={paidClassScheme} 
+                    onChange={e => setPaidClassScheme(e.target.value)} 
+                    disabled={!classPaid}
+                    className="w-full h-10 px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-medium text-gray-800 disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option value="none">Tidak Ikut</option>
+                    <option value="berbayar_80_20">Berbayar 80-20</option>
+                    <option value="berbayar_60_40">Berbayar 60-40</option>
+                    <option value="berbayar_100">Berbayar 100</option>
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Maksimal Thalibah</Label>
