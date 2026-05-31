@@ -83,7 +83,7 @@ export default function AdminBatchProgramPage() {
     const programList = programs as Program[];
     return {
       totalBatches: batchList.length,
-      activeBatches: batchList.filter(b => b.status === 'open' || b.status === 'ongoing').length,
+      activeBatches: batchList.filter(b => b.status === 'open').length,
       totalPrograms: programList.length,
       openPrograms: programList.filter(p => p.status === 'open' || p.status === 'ongoing').length,
     };

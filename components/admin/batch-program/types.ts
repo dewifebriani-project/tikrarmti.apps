@@ -61,7 +61,7 @@ export interface PaginationMeta {
   hasPrev: boolean;
 }
 
-export const BATCH_STATUSES = ['draft', 'open', 'ongoing', 'closed', 'archived'] as const;
+export const BATCH_STATUSES = ['draft', 'open', 'closed', 'archived'] as const;
 export const PROGRAM_STATUSES = ['draft', 'open', 'ongoing', 'completed', 'cancelled'] as const;
 
 export type BatchStatus = typeof BATCH_STATUSES[number];
