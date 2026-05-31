@@ -9,8 +9,7 @@ import { MuallimahV2Type, MuallimahV2StatsData } from './types';
 import { MuallimahV2Stats } from './MuallimahV2Stats';
 import { MuallimahV2Filters } from './MuallimahV2Filters';
 import { MuallimahV2Table } from './MuallimahV2Table';
-import { MuallimahReviewModal, MuallimahBulkConfirmModal, MuallimahUnapproveModal } from './MuallimahV2Modals';
-import { AdminCrudModal } from '@/components/AdminCrudModal';
+import { MuallimahReviewModal, MuallimahBulkConfirmModal, MuallimahUnapproveModal, MuallimahEditModal } from './MuallimahV2Modals';
 import { AdminDeleteModal } from '@/components/AdminDeleteModal';
 
 export function MuallimahV2Tab({ user }: { user: any }) {
@@ -277,46 +276,11 @@ export function MuallimahV2Tab({ user }: { user: any }) {
         message={`Apakah Anda yakin ingin menghapus pendaftaran/akad "${selectedRegistration?.full_name}"? Tindakan ini tidak dapat dibatalkan.`}
       />
 
-      <AdminCrudModal 
+      <MuallimahEditModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title="Edit Akad Mu'allimah"
-        fields={[
-          { name: 'status', label: 'Status', type: 'select', options: [
-            { value: 'pending', label: 'Pending' },
-            { value: 'approved', label: 'Approved' },
-            { value: 'rejected', label: 'Rejected' }
-          ] },
-          { name: 'class_type', label: 'Class Type', type: 'select', options: [
-            { value: 'tikrar_tahfidz', label: 'Tikrar Tahfidz' },
-            { value: 'pra_tikrar', label: 'Pra Tikrar' }
-          ]},
-          { name: 'paid_class_scheme', label: 'Skema Berbayar', type: 'select', options: [
-            { value: 'none', label: 'Tidak' },
-            { value: 'scheme_80_20', label: 'Skema 80-20' },
-            { value: 'scheme_60_40', label: 'Skema 60-40' },
-            { value: 'scheme_100', label: 'Skema 100' },
-          ]},
-          { name: 'preferred_juz', label: 'Juz', type: 'text' },
-          { name: 'preferred_max_thalibah', label: 'Max Thalibah', type: 'number' },
-        ]}
-        initialData={selectedRegistration || {}}
-        onSubmit={async (formData) => {
-          if (!selectedRegistration) return;
-          try {
-            const { error } = await supabase
-              .from('muallimah_akads')
-              .update(formData)
-              .eq('id', selectedRegistration.id);
-            
-            if (error) throw error;
-            toast.success('Pendaftaran berhasil diupdate');
-            fetchMuallimahData();
-            setShowEditModal(false);
-          } catch (error: any) {
-            toast.error('Gagal mengupdate: ' + error.message);
-          }
-        }}
+        editData={selectedRegistration}
+        onRefresh={fetchMuallimahData}
       />
     </div>
   );
