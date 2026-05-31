@@ -729,22 +729,65 @@ function MuallimahRegistrationContent() {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Jumlah Hafalan Al-Quran saat ini</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {[1, 5, 10, 15, 20, 30].map((num) => (
-                  <Button
-                    key={num}
-                    type="button"
-                    variant={formData.memorization_level === String(num) ? "default" : "outline"}
-                    className={`h-9 text-xs ${formData.memorization_level === String(num) ? "bg-green-600 hover:bg-green-700" : ""}`}
-                    onClick={() => handleInputChange('memorization_level', String(num))}
+              <Label className="text-base font-semibold">Jumlah Hafalan Al-Quran saat ini (Juz)</Label>
+              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100 w-fit">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const current = parseInt(formData.memorization_level) || 0;
+                    if (current > 1) {
+                      handleInputChange('memorization_level', String(current - 1));
+                    } else if (current === 1) {
+                      handleInputChange('memorization_level', '');
+                    }
+                  }}
+                  disabled={isFormSubmitted || !formData.memorization_level}
+                  className="h-10 w-10 rounded-full bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 flex items-center justify-center font-bold text-xl transition-all active:scale-95 shadow-sm shrink-0"
+                >
+                  -
+                </Button>
+                
+                <div className="flex flex-col items-center justify-center min-w-[120px]">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={30}
+                    placeholder="Pilih Juz"
+                    value={formData.memorization_level || ''}
+                    onChange={(e) => {
+                      const valStr = e.target.value;
+                      if (valStr === '') {
+                        handleInputChange('memorization_level', '');
+                        return;
+                      }
+                      let val = parseInt(valStr) || 1;
+                      if (val < 1) val = 1;
+                      if (val > 30) val = 30;
+                      handleInputChange('memorization_level', String(val));
+                    }}
                     disabled={isFormSubmitted}
-                  >
-                    {num === 30 ? "30 Juz (Kamil)" : `${num} Juz`}
-                  </Button>
-                ))}
+                    className="h-10 w-20 text-center font-black text-lg border-gray-200 rounded-xl focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white"
+                  />
+                  <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
+                    {!formData.memorization_level ? 'Belum dipilih' : (parseInt(formData.memorization_level) === 30 ? '30 Juz (Kamil)' : `${formData.memorization_level} Juz`)}
+                  </span>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const current = parseInt(formData.memorization_level) || 0;
+                    if (current < 30) {
+                      handleInputChange('memorization_level', String(current + 1));
+                    }
+                  }}
+                  disabled={isFormSubmitted || (parseInt(formData.memorization_level) || 0) >= 30}
+                  className="h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center font-bold text-xl transition-all active:scale-95 shadow-md shrink-0 border-0"
+                >
+                  +
+                </Button>
               </div>
-              {errors.memorization_level && <p className="text-xs text-red-500">{errors.memorization_level}</p>}
+              {errors.memorization_level && <p className="text-xs text-red-500 font-bold">{errors.memorization_level}</p>}
             </div>
 
             <div className="space-y-6">
