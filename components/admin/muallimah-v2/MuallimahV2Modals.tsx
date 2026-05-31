@@ -72,6 +72,21 @@ export function MuallimahReviewModal({
   const parsedPreferred = parseSchedule(reviewData.preferred_schedule);
   const parsedBackup = parseSchedule(reviewData.backup_schedule);
 
+  const formatScheduleItem = (item: any) => {
+    if (!item || !item.day) return null;
+    try {
+      const dayStr = String(item.day).trim();
+      if (!dayStr) return null;
+      const dayFormatted = dayStr.charAt(0).toUpperCase() + dayStr.slice(1).toLowerCase();
+      if (item.time_start && item.time_end) {
+        return `${dayFormatted}, ${item.time_start} - ${item.time_end}`;
+      }
+      return dayFormatted;
+    } catch {
+      return null;
+    }
+  };
+
   const classTypeStr = (reviewData.class_type || '')
     .split(', ')
     .map(type => type.replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '))
@@ -167,63 +182,73 @@ export function MuallimahReviewModal({
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Jadwal Mengajar</label>
                     <div className="space-y-2 mt-1.5">
+                      {/* Tampilkan jika tidak ada parsedPreferred yang valid */}
                       {!parsedPreferred && <p className="text-sm text-gray-500 font-medium">-</p>}
                       
-                      {parsedPreferred && parsedPreferred.legacy && (
+                      {parsedPreferred && parsedPreferred.legacy && formatScheduleItem(parsedPreferred.legacy) && (
                         <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                           <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Jadwal Utama (Legacy)</p>
                           <p className="text-xs font-semibold text-gray-800 mt-0.5">
-                            {parsedPreferred.legacy.day.charAt(0).toUpperCase() + parsedPreferred.legacy.day.slice(1)}: {parsedPreferred.legacy.time_start} - {parsedPreferred.legacy.time_end}
+                            {formatScheduleItem(parsedPreferred.legacy)}
                           </p>
-                          {parsedBackup?.legacy && (
+                          {parsedBackup?.legacy && formatScheduleItem(parsedBackup.legacy) && (
                             <p className="text-[10px] text-gray-500 mt-1 italic">
-                              Cadangan: {parsedBackup.legacy.day.charAt(0).toUpperCase() + parsedBackup.legacy.day.slice(1)} ({parsedBackup.legacy.time_start} - {parsedBackup.legacy.time_end})
+                              Cadangan: {formatScheduleItem(parsedBackup.legacy)}
                             </p>
                           )}
                         </div>
                       )}
 
-                      {parsedPreferred && parsedPreferred.tikrar && (
+                      {parsedPreferred && parsedPreferred.tikrar && formatScheduleItem(parsedPreferred.tikrar) && (
                         <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/50">
                           <p className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider">🗓️ Kelas Tikrar</p>
                           <p className="text-xs font-semibold text-emerald-950 mt-0.5">
-                            {parsedPreferred.tikrar.day.charAt(0).toUpperCase() + parsedPreferred.tikrar.day.slice(1)}: {parsedPreferred.tikrar.time_start} - {parsedPreferred.tikrar.time_end}
+                            {formatScheduleItem(parsedPreferred.tikrar)}
                           </p>
-                          {parsedBackup?.tikrar && (
+                          {parsedBackup?.tikrar && formatScheduleItem(parsedBackup.tikrar) && (
                             <p className="text-[10px] text-emerald-700/80 mt-1 italic">
-                              Cadangan: {parsedBackup.tikrar.day.charAt(0).toUpperCase() + parsedBackup.tikrar.day.slice(1)} ({parsedBackup.tikrar.time_start} - {parsedBackup.tikrar.time_end})
+                              Cadangan: {formatScheduleItem(parsedBackup.tikrar)}
                             </p>
                           )}
                         </div>
                       )}
 
-                      {parsedPreferred && parsedPreferred.pra_tahfidz && (
+                      {parsedPreferred && parsedPreferred.pra_tahfidz && formatScheduleItem(parsedPreferred.pra_tahfidz) && (
                         <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
                           <p className="text-[9px] font-bold text-blue-800 uppercase tracking-wider">🗓️ Kelas Pra-Tikrar</p>
                           <p className="text-xs font-semibold text-blue-950 mt-0.5">
-                            {parsedPreferred.pra_tahfidz.day.charAt(0).toUpperCase() + parsedPreferred.pra_tahfidz.day.slice(1)}: {parsedPreferred.pra_tahfidz.time_start} - {parsedPreferred.pra_tahfidz.time_end}
+                            {formatScheduleItem(parsedPreferred.pra_tahfidz)}
                           </p>
-                          {parsedBackup?.pra_tahfidz && (
+                          {parsedBackup?.pra_tahfidz && formatScheduleItem(parsedBackup.pra_tahfidz) && (
                             <p className="text-[10px] text-blue-700/80 mt-1 italic">
-                              Cadangan: {parsedBackup.pra_tahfidz.day.charAt(0).toUpperCase() + parsedBackup.pra_tahfidz.day.slice(1)} ({parsedBackup.pra_tahfidz.time_start} - {parsedBackup.pra_tahfidz.time_end})
+                              Cadangan: {formatScheduleItem(parsedBackup.pra_tahfidz)}
                             </p>
                           )}
                         </div>
                       )}
 
-                      {parsedPreferred && parsedPreferred.berbayar && (
+                      {parsedPreferred && parsedPreferred.berbayar && formatScheduleItem(parsedPreferred.berbayar) && (
                         <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-100/50">
                           <p className="text-[9px] font-bold text-amber-800 uppercase tracking-wider">🗓️ Kelas Berbayar</p>
                           <p className="text-xs font-semibold text-amber-950 mt-0.5">
-                            {parsedPreferred.berbayar.day.charAt(0).toUpperCase() + parsedPreferred.berbayar.day.slice(1)}: {parsedPreferred.berbayar.time_start} - {parsedPreferred.berbayar.time_end}
+                            {formatScheduleItem(parsedPreferred.berbayar)}
                           </p>
-                          {parsedBackup?.berbayar && (
+                          {parsedBackup?.berbayar && formatScheduleItem(parsedBackup.berbayar) && (
                             <p className="text-[10px] text-amber-700/80 mt-1 italic">
-                              Cadangan: {parsedBackup.berbayar.day.charAt(0).toUpperCase() + parsedBackup.berbayar.day.slice(1)} ({parsedBackup.berbayar.time_start} - {parsedBackup.berbayar.time_end})
+                              Cadangan: {formatScheduleItem(parsedBackup.berbayar)}
                             </p>
                           )}
                         </div>
                       )}
+
+                      {/* Jika tidak ada satupun jadwal yang ter-render valid */}
+                      {parsedPreferred && 
+                       !(parsedPreferred.legacy && formatScheduleItem(parsedPreferred.legacy)) &&
+                       !(parsedPreferred.tikrar && formatScheduleItem(parsedPreferred.tikrar)) &&
+                       !(parsedPreferred.pra_tahfidz && formatScheduleItem(parsedPreferred.pra_tahfidz)) &&
+                       !(parsedPreferred.berbayar && formatScheduleItem(parsedPreferred.berbayar)) && (
+                         <p className="text-sm text-gray-500 font-medium">-</p>
+                       )}
                     </div>
                   </div>
                   <div>
