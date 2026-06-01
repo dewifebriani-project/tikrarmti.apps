@@ -1,10 +1,12 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 
 export async function submitMuallimahRegistration(formData: any, userData: any, user: any, batchId: string) {
   const supabase = createClient()
+  const supabaseAdmin = createSupabaseAdmin()
 
   // 1. Auth Check
   const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
@@ -91,8 +93,7 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       batch_id: batchId,
     }
 
-    // Using manual existence check to avoid "no unique constraint" error on user_id.
-    const { data: existingProfile, error: checkError } = await supabase
+    const { data: existingProfile, error: checkError } = await supabaseAdmin
       .from('muallimah_registrations')
       .select('id')
       .eq('user_id', authUser.id)
@@ -105,12 +106,12 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
 
     let profileResult;
     if (existingProfile) {
-      profileResult = await supabase
+      profileResult = await supabaseAdmin
         .from('muallimah_registrations')
         .update(profileData)
         .eq('id', existingProfile.id)
     } else {
-      profileResult = await supabase
+      profileResult = await supabaseAdmin
         .from('muallimah_registrations')
         .insert(profileData)
     }
@@ -135,7 +136,7 @@ export async function submitMuallimahRegistration(formData: any, userData: any, 
       akad_signed_at: new Date().toISOString(),
     }
 
-    const { error: akadError } = await supabase
+    const { error: akadError } = await supabaseAdmin
       .from('muallimah_akads')
       .upsert(akadData, { onConflict: 'user_id,batch_id' })
 

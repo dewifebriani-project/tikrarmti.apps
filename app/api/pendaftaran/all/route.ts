@@ -66,7 +66,6 @@ export async function GET(request: Request) {
 
     // Process registrations and embed daftar ulang data
     const allRegistrations = (tikrarRegistrations || [])
-      .filter((reg: any) => reg.batch?.status === 'open') // Only from OPEN batches
       .map((reg: any) => {
         // Get daftar ulang submission for this batch
         const daftarUlang = reg.daftar_ulang && Array.isArray(reg.daftar_ulang)
