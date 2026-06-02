@@ -146,14 +146,14 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
                   key={exam.id}
                   onClick={() => handleAction(exam.type)}
                   className={cn(
-                    "group relative rounded-[2rem] border-2 transition-all duration-500 overflow-hidden cursor-pointer h-full",
+                    "group relative rounded-[2rem] border-2 transition-all duration-500 overflow-hidden cursor-pointer flex flex-col",
                     isLocked ? "bg-white border-gray-100 opacity-60 grayscale" : 
                     isGraded ? "bg-emerald-50 border-emerald-200 shadow-emerald-900/5" :
                     isRegistered ? "bg-blue-50 border-blue-200 shadow-blue-900/5" :
                     "bg-white border-white hover:border-indigo-100 shadow-xl hover:shadow-indigo-900/10 hover:-translate-y-2"
                   )}
                 >
-                  <CardContent className="p-8 space-y-6">
+                  <CardContent className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col">
                     <div className="flex justify-between items-start">
                       <div className={cn(
                         "w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-110",
@@ -195,7 +195,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
                       </p>
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-2 mt-auto">
                       {isLocked ? (
                         <div className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-3 py-2 rounded-full w-fit">
                           <AlertCircle className="w-3 h-3" />

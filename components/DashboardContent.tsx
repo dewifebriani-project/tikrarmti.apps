@@ -677,7 +677,7 @@ export default function DashboardContent() {
             { label: 'Catatan Tashih', icon: ClipboardList, color: 'emerald', href: '/tashih' },
             { label: 'Jurnal Harian', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
             { label: 'Ujian Pekanan', icon: Calendar, color: 'amber', href: '/ujian' },
-            { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '/ujian-akhir' },
+            { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '#' },
             { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
             { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
             { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
@@ -688,7 +688,7 @@ export default function DashboardContent() {
                 if ((item as any).locked) {
                   e.preventDefault();
                   alert(`Maaf Ukhti, menu ini terkunci.`);
-                } else if (item.href === '/ujian-akhir') {
+                } else if (item.label === 'Ujian Akhir') {
                   e.preventDefault();
                   setExamModalOpen(true);
                 }

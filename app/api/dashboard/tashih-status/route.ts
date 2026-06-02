@@ -18,26 +18,26 @@ async function processJuzStatus(supabase: any, user: any, activeRegistration: an
   const juzCode = activeRegistration.daftar_ulang?.confirmed_chosen_juz ||
                   activeRegistration.chosen_juz
 
-  if (!juzCode) {
-    return NextResponse.json(
-      { success: false, error: 'No juz assigned' },
-      { status: 404 }
-    )
-  }
+    if (!juzCode) {
+      return NextResponse.json(
+        { success: false, error: 'No juz assigned' },
+        { status: 200 }
+      )
+    }
 
-  // Get juz info
-  const { data: juzInfo, error: juzError } = await supabase
-    .from('juz_options')
-    .select('*')
-    .eq('code', juzCode)
-    .single()
+    // Get juz info
+    const { data: juzInfo, error: juzError } = await supabase
+      .from('juz_options')
+      .select('*')
+      .eq('code', juzCode)
+      .single()
 
-  if (juzError || !juzInfo) {
-    return NextResponse.json(
-      { success: false, error: 'Juz not found' },
-      { status: 404 }
-    )
-  }
+    if (juzError || !juzInfo) {
+      return NextResponse.json(
+        { success: false, error: 'Juz not found' },
+        { status: 200 }
+      )
+    }
 
   // Generate all blocks for this juz dynamically
   const allBlocks: TashihBlockStatus[] = []
@@ -181,7 +181,7 @@ export async function GET(request: Request) {
       }
 
       console.log(`[Tashih Status] No admin access and no registrations for ${user.email}`)
-      return NextResponse.json({ success: false, error: 'No active registration found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'No active registration found' }, { status: 200 })
     }
 
     // Process first registration
