@@ -26,9 +26,10 @@ interface FinalExamSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   examType: 'oral' | 'written';
+  batchId?: string;
 }
 
-export function FinalExamSelectionModal({ isOpen, onClose, examType }: FinalExamSelectionModalProps) {
+export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: FinalExamSelectionModalProps) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +45,8 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType }: FinalExam
   const fetchSchedules = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/exams/final-exams/schedules?type=${examType}`);
+      const url = `/api/exams/final-exams/schedules?type=${examType}${batchId ? `&batch_id=${batchId}` : ''}`;
+      const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
         setSchedules(result.data);

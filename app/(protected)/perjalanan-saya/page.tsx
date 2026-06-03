@@ -12,6 +12,7 @@ import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
+import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
 import { TimelineMilestone, TimelineItem, TimelineItemWithStatus } from '@/components/TimelineMilestone';
@@ -133,6 +134,7 @@ export default function PerjalananSaya() {
   // Review Modal States
   const [reviewType, setReviewType] = useState<'written' | 'oral' | 'akad' | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isExamPortalOpen, setIsExamPortalOpen] = useState(false);
 
   // Identify if user is Admin/Staff for preview mode
   const isAdmin = useMemo(() => {
@@ -303,6 +305,7 @@ export default function PerjalananSaya() {
         subPhases: [
           { name: 'Ujian Tulis', done: !!writtenExam, data: writtenExam ? (writtenExam.status === 'graded' ? `Nilai: ${writtenExam.score_tulisan}` : 'Sudah terdaftar') : 'Belum ujian' },
           { name: 'Ujian Lisan', done: !!oralExam, data: oralExam ? (oralExam.status === 'graded' ? `Nilai: ${oralExam.score_lisan}` : `${formatDateIndo(oralExam.schedule?.exam_date || '')}`) : 'Belum memilih jadwal' },
+          { name: 'Portal Ujian', done: !!oralExam && !!writtenExam, data: 'Buka Portal Ujian', isPortalAction: true },
           { name: 'Wisuda', done: isGraduationDone, data: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : '-' },
           { name: 'Sertifikat', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
         ]
@@ -540,6 +543,11 @@ export default function PerjalananSaya() {
         <div className="relative z-10 space-y-6">
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span></h1>
           <p className="text-green-100/70 text-lg max-w-xl font-medium">"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya."</p>
+          {batch && (
+            <div className="inline-block bg-emerald-800/80 px-4 py-2 rounded-full text-emerald-100 font-bold border border-emerald-700">
+              {batch.name || `Batch ${(batch as any).batch_number}`}
+            </div>
+          )}
         </div>
       </div>
 
@@ -574,6 +582,14 @@ export default function PerjalananSaya() {
                               title={`Review ${sub.name}`}
                             >
                               <Eye className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                          {(sub as any).isPortalAction && (
+                            <button 
+                              onClick={() => setIsExamPortalOpen(true)} 
+                              className="ml-1 px-2 py-0.5 bg-emerald-600 text-white rounded-full text-[9px] font-bold hover:bg-emerald-700 transition-colors"
+                            >
+                              BUKA
                             </button>
                           )}
                         </div>
@@ -614,6 +630,16 @@ export default function PerjalananSaya() {
         registrationStatus={registrationStatus}
         pairingData={pairingData}
         user={user}
+      />
+
+      <FinalExamPortalModal 
+        isOpen={isExamPortalOpen}
+        onClose={() => setIsExamPortalOpen(false)}
+        hariAktual={completedCount || 0}
+        percentage={percentage}
+        isAdmin={isAdmin}
+        batchName={batch?.name || ((batch as any)?.batch_number ? `Batch ${(batch as any).batch_number}` : undefined)}
+        batchId={batchId || undefined}
       />
     </div>
   );

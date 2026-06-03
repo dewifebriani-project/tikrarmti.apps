@@ -802,6 +802,7 @@ export default function DashboardContent() {
         percentage={displayStats.persentaseProgress}
         isAdmin={userRole === 'admin'}
         batchName={registrations[0]?.batch?.name || registrations[0]?.batch_name}
+        batchId={registrations[0]?.batch_id}
       />
     </div>
   )

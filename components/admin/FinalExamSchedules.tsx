@@ -18,6 +18,7 @@ interface Examiner {
 
 interface Schedule {
   id: string;
+  batch_id?: string;
   exam_type: string;
   exam_date: string;
   start_time: string;
@@ -42,6 +43,7 @@ export function FinalExamSchedules() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    batch_id: '',
     exam_type: 'oral',
     examiner_id: '',
     max_quota: 5,
@@ -91,7 +93,7 @@ export function FinalExamSchedules() {
       if (result.success && result.data) {
         const staff = result.data.map((m: any) => ({
           id: m.id,
-          full_name: m.full_name
+          full_name: m.full_name.toLowerCase().includes('ustadzah') ? m.full_name : `Ustadzah ${m.full_name}`
         }));
         console.log('Fetched muallimah for examiners:', staff.length);
         setExaminers(staff);
@@ -126,6 +128,7 @@ export function FinalExamSchedules() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             id: editingId,
+            batch_id: formData.batch_id || selectedBatchId,
             exam_type: formData.exam_type,
             examiner_id: formData.examiner_id,
             max_quota: formData.max_quota,
@@ -150,7 +153,7 @@ export function FinalExamSchedules() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              batch_id: selectedBatchId,
+              batch_id: formData.batch_id || selectedBatchId,
               exam_type: formData.exam_type,
               examiner_id: formData.examiner_id,
               max_quota: formData.max_quota,
@@ -184,6 +187,7 @@ export function FinalExamSchedules() {
 
   const resetForm = () => {
     setFormData({
+      batch_id: selectedBatchId || '',
       exam_type: 'oral',
       examiner_id: '',
       max_quota: 5,
@@ -196,6 +200,7 @@ export function FinalExamSchedules() {
   const handleEdit = (schedule: Schedule) => {
     setEditingId(schedule.id);
     setFormData({
+      batch_id: schedule.batch_id || selectedBatchId || '',
       exam_type: schedule.exam_type,
       examiner_id: schedule.examiner_id || '',
       max_quota: schedule.max_quota,
@@ -266,6 +271,7 @@ export function FinalExamSchedules() {
           <Button 
             onClick={() => {
               if (showAddForm) resetForm();
+              else setFormData(prev => ({ ...prev, batch_id: selectedBatchId || '' }));
               setShowAddForm(!showAddForm);
             }}
             className="rounded-xl bg-green-600 hover:bg-green-700"
@@ -285,6 +291,24 @@ export function FinalExamSchedules() {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label>Batch Ujian</Label>
+                  <Select 
+                    value={formData.batch_id} 
+                    onValueChange={(v) => setFormData({...formData, batch_id: v})}
+                    required
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200">
+                      <SelectValue placeholder="Pilih Batch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {batches.map(batch => (
+                        <SelectItem key={batch.id} value={batch.id}>{batch.name.replace(/Tikrar Tahfidz MTI /gi, '')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Penguji (Examiner)</Label>
                   <Select 

@@ -16,9 +16,10 @@ interface FinalExamPortalModalProps {
   percentage: number;
   isAdmin?: boolean;
   batchName?: string;
+  batchId?: string;
 }
 
-export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, isAdmin, batchName }: FinalExamPortalModalProps) {
+export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, isAdmin, batchName, batchId }: FinalExamPortalModalProps) {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<'oral' | 'written' | null>(null);
   const [selectionOpen, setSelectionOpen] = useState(false);
@@ -232,9 +233,13 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
       </Dialog>
 
       <FinalExamSelectionModal 
-        isOpen={selectionOpen} 
-        onClose={() => setSelectionOpen(false)} 
-        examType={selectedType || 'oral'} 
+        isOpen={selectionOpen}
+        onClose={() => {
+          setSelectionOpen(false);
+          fetchRegistrations();
+        }}
+        examType={selectedType!}
+        batchId={batchId}
       />
     </>
   );
