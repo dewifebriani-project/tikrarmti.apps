@@ -84,7 +84,7 @@ export function FinalExamSchedules() {
   const fetchExaminers = async () => {
     try {
       // Mengambil daftar muallimah otomatis dari gabungan pendaftaran dan penugasan halaqah
-      const response = await fetch(`/api/admin/examiners`);
+      const response = await fetch(`/api/admin/examiners`, { cache: 'no-store' });
       const result = await response.json();
       
       if (result.success && result.data) {
