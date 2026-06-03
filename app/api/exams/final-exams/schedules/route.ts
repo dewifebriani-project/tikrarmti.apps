@@ -96,3 +96,24 @@ export async function DELETE(request: Request) {
   if (error) return ApiResponses.databaseError(error);
   return ApiResponses.success({ message: 'Schedule deleted' });
 }
+
+export async function PUT(request: Request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
+
+  const supabase = createClient();
+  const body = await request.json();
+  const { id, ...updateData } = body;
+
+  if (!id) return ApiResponses.badRequest('Missing schedule ID');
+
+  const { data, error } = await supabase
+    .from('final_exam_schedules')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return ApiResponses.databaseError(error);
+  return ApiResponses.success(data);
+}

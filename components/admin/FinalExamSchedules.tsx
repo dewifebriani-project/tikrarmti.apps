@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2, GraduationCap, Edit } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useActiveBatch, useBatches } from '@/hooks/useBatches';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,7 @@ export function FinalExamSchedules() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     exam_type: 'oral',
@@ -118,12 +119,13 @@ export function FinalExamSchedules() {
 
     setIsSubmitting(true);
     try {
-      const promises = formData.sessions.map(session => 
-        fetch('/api/exams/final-exams/schedules', {
-          method: 'POST',
+      if (editingId) {
+        const session = formData.sessions[0];
+        const response = await fetch('/api/exams/final-exams/schedules', {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            batch_id: selectedBatchId,
+            id: editingId,
             exam_type: formData.exam_type,
             examiner_id: formData.examiner_id,
             max_quota: formData.max_quota,
@@ -132,32 +134,80 @@ export function FinalExamSchedules() {
             start_time: session.start_time,
             end_time: session.end_time
           })
-        })
-      );
-      
-      const results = await Promise.all(promises);
-      const allSuccess = results.every(r => r.ok);
-
-      if (allSuccess) {
-        toast.success(`${formData.sessions.length} Jadwal berhasil ditambahkan`);
-        setShowAddForm(false);
-        setFormData({
-          exam_type: 'oral',
-          examiner_id: '',
-          max_quota: 5,
-          location_link: '',
-          sessions: [{ exam_date: '', start_time: '', end_time: '' }]
         });
-        fetchSchedules();
+
+        if (response.ok) {
+          toast.success('Jadwal berhasil diperbarui');
+          setShowAddForm(false);
+          resetForm();
+          fetchSchedules();
+        } else {
+          toast.error('Gagal memperbarui jadwal');
+        }
       } else {
-        toast.error('Beberapa jadwal mungkin gagal ditambahkan');
-        fetchSchedules();
+        const promises = formData.sessions.map(session => 
+          fetch('/api/exams/final-exams/schedules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              batch_id: selectedBatchId,
+              exam_type: formData.exam_type,
+              examiner_id: formData.examiner_id,
+              max_quota: formData.max_quota,
+              location_link: formData.location_link,
+              exam_date: session.exam_date,
+              start_time: session.start_time,
+              end_time: session.end_time
+            })
+          })
+        );
+        
+        const results = await Promise.all(promises);
+        const allSuccess = results.every(r => r.ok);
+
+        if (allSuccess) {
+          toast.success(`${formData.sessions.length} Jadwal berhasil ditambahkan`);
+          setShowAddForm(false);
+          resetForm();
+          fetchSchedules();
+        } else {
+          toast.error('Beberapa jadwal mungkin gagal ditambahkan');
+          fetchSchedules();
+        }
       }
     } catch (error) {
       toast.error('Terjadi kesalahan server');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      exam_type: 'oral',
+      examiner_id: '',
+      max_quota: 5,
+      location_link: '',
+      sessions: [{ exam_date: '', start_time: '', end_time: '' }]
+    });
+    setEditingId(null);
+  };
+
+  const handleEdit = (schedule: Schedule) => {
+    setEditingId(schedule.id);
+    setFormData({
+      exam_type: schedule.exam_type,
+      examiner_id: schedule.examiner_id || '',
+      max_quota: schedule.max_quota,
+      location_link: schedule.location_link || '',
+      sessions: [{ 
+        exam_date: schedule.exam_date, 
+        start_time: schedule.start_time, 
+        end_time: schedule.end_time 
+      }]
+    });
+    setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const addSession = () => {
@@ -208,24 +258,29 @@ export function FinalExamSchedules() {
             </SelectTrigger>
             <SelectContent>
               {batches.map(batch => (
-                <SelectItem key={batch.id} value={batch.id}>{batch.name}</SelectItem>
+                <SelectItem key={batch.id} value={batch.id}>{batch.name.replace(/Tikrar Tahfidz MTI /gi, '')}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="rounded-xl bg-green-600 hover:bg-green-700"
-        >
-          {showAddForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-          {showAddForm ? 'Batal' : 'Tambah Jadwal'}
-        </Button>
+          <Button 
+            onClick={() => {
+              if (showAddForm) resetForm();
+              setShowAddForm(!showAddForm);
+            }}
+            className="rounded-xl bg-green-600 hover:bg-green-700"
+          >
+            {showAddForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+            {showAddForm ? 'Batal' : 'Tambah Jadwal'}
+          </Button>
       </div>
 
       {showAddForm && (
         <Card className="rounded-3xl border-2 border-green-100 shadow-xl animate-fadeInDown overflow-hidden">
           <CardHeader className="bg-green-50/50 border-b border-green-100">
-            <CardTitle className="text-sm font-bold uppercase tracking-widest text-green-800">Input Jadwal Baru</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase tracking-widest text-green-800">
+              {editingId ? 'Edit Jadwal Ujian' : 'Input Jadwal Baru'}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -289,16 +344,18 @@ export function FinalExamSchedules() {
               <div className="border-t border-gray-100 pt-6">
                 <div className="flex justify-between items-center mb-4">
                   <Label className="text-base font-bold">Sesi Ujian</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={addSession}
-                    className="rounded-xl"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Sesi
-                  </Button>
+                  {!editingId && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={addSession}
+                      className="rounded-xl"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Sesi
+                    </Button>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -356,7 +413,7 @@ export function FinalExamSchedules() {
                   className="rounded-xl bg-green-600 hover:bg-green-700 px-8"
                 >
                   {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                  Simpan Jadwal
+                  {editingId ? 'Update Jadwal' : 'Simpan Jadwal'}
                 </Button>
               </div>
             </form>
@@ -384,14 +441,24 @@ export function FinalExamSchedules() {
                   )}>
                     {schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'}
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleDelete(schedule.id)}
-                    className="text-gray-300 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleEdit(schedule)}
+                      className="text-gray-300 hover:text-blue-500 transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDelete(schedule.id)}
+                      className="text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
