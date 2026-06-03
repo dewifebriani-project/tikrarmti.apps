@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { GraduationCap, FileText, Award, Lock, ChevronRight, CheckCircle2, Clock, MessageSquare, AlertCircle, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FinalExamSelectionModal } from './FinalExamSelectionModal';
@@ -143,83 +141,81 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
               const isRegistered = status === 'registered';
 
               return (
-                <Card 
+                <div 
                   key={exam.id}
                   onClick={() => handleAction(exam.type)}
                   className={cn(
-                    "group relative rounded-[2rem] border-2 transition-all duration-500 overflow-hidden cursor-pointer flex flex-col",
+                    "group relative rounded-[2rem] border-2 p-6 sm:p-8 space-y-6 transition-all duration-500 overflow-hidden cursor-pointer flex flex-col",
                     isLocked ? "bg-white border-gray-100 opacity-60 grayscale" : 
                     isGraded ? "bg-emerald-50 border-emerald-200 shadow-emerald-900/5" :
                     isRegistered ? "bg-blue-50 border-blue-200 shadow-blue-900/5" :
                     "bg-white border-white hover:border-indigo-100 shadow-xl hover:shadow-indigo-900/10 hover:-translate-y-2"
                   )}
                 >
-                  <CardContent className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start">
-                      <div className={cn(
-                        "w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-110",
-                        exam.color === 'blue' ? "bg-blue-600 text-white shadow-blue-600/20" : "bg-emerald-600 text-white shadow-emerald-600/20"
-                      )}>
-                        <exam.icon className="w-8 h-8" />
+                  <div className="flex justify-between items-start">
+                    <div className={cn(
+                      "w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-110",
+                      exam.color === 'blue' ? "bg-blue-600 text-white shadow-blue-600/20" : "bg-emerald-600 text-white shadow-emerald-600/20"
+                    )}>
+                      <exam.icon className="w-8 h-8" />
+                    </div>
+                    
+                    {isLocked ? (
+                      <div className="bg-gray-100 p-2 rounded-xl text-gray-400">
+                        <Lock className="w-5 h-5" />
                       </div>
-                      
-                      {isLocked ? (
-                        <div className="bg-gray-100 p-2 rounded-xl text-gray-400">
-                          <Lock className="w-5 h-5" />
-                        </div>
-                      ) : isGraded ? (
-                        <div className="bg-emerald-600 text-white p-2 rounded-xl">
-                          <CheckCircle2 className="w-5 h-5" />
-                        </div>
-                      ) : isRegistered ? (
-                        <div className="bg-blue-600 text-white p-2 rounded-xl">
-                          <Clock className="w-5 h-5" />
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 p-2 rounded-xl text-gray-300 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
-                          <ChevronRight className="w-5 h-5" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">
-                          {exam.subtitle}
-                        </span>
-                        <h4 className="text-2xl font-black text-gray-900 tracking-tight">
-                          {exam.label}
-                        </h4>
+                    ) : isGraded ? (
+                      <div className="bg-emerald-600 text-white p-2 rounded-xl">
+                        <CheckCircle2 className="w-5 h-5" />
                       </div>
-                      <p className="text-sm text-gray-500 font-medium leading-relaxed">
-                        {exam.description}
-                      </p>
-                    </div>
+                    ) : isRegistered ? (
+                      <div className="bg-blue-600 text-white p-2 rounded-xl">
+                        <Clock className="w-5 h-5" />
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 p-2 rounded-xl text-gray-300 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
+                        <ChevronRight className="w-5 h-5" />
+                      </div>
+                    )}
+                  </div>
 
-                    <div className="pt-2 mt-auto">
-                      {isLocked ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-3 py-2 rounded-full w-fit">
-                          <AlertCircle className="w-3 h-3" />
-                          {exam.type === 'oral' ? 'Selesaikan Jurnal 100%' : 'Selesaikan Pekan 10'}
-                        </div>
-                      ) : isGraded ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-2 rounded-full w-fit">
-                          Sudah Selesai
-                        </div>
-                      ) : isRegistered ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-[10px] font-black text-blue-700 uppercase tracking-widest bg-blue-100 px-3 py-2 rounded-full w-fit">
-                            Terdaftar
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-[10px] font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 px-3 py-2 rounded-full w-fit transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-                          Pilih Jadwal
-                        </div>
-                      )}
+                  <div className="space-y-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">
+                        {exam.subtitle}
+                      </span>
+                      <h4 className="text-2xl font-black text-gray-900 tracking-tight">
+                        {exam.label}
+                      </h4>
                     </div>
-                  </CardContent>
-                </Card>
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                      {exam.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 mt-auto">
+                    {isLocked ? (
+                      <div className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-3 py-2 rounded-full w-fit">
+                        <AlertCircle className="w-3 h-3" />
+                        {exam.type === 'oral' ? 'Selesaikan Jurnal 100%' : 'Selesaikan Pekan 10'}
+                      </div>
+                    ) : isGraded ? (
+                      <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-2 rounded-full w-fit">
+                        Sudah Selesai
+                      </div>
+                    ) : isRegistered ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-blue-700 uppercase tracking-widest bg-blue-100 px-3 py-2 rounded-full w-fit">
+                          Terdaftar
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-[10px] font-black text-indigo-700 uppercase tracking-widest bg-indigo-50 px-3 py-2 rounded-full w-fit transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                        Pilih Jadwal
+                      </div>
+                    )}
+                  </div>
+                </div>
               )
             })}
           </div>
