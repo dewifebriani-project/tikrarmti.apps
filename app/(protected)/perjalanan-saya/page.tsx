@@ -170,6 +170,13 @@ export default function PerjalananSaya() {
   const completedCount = statsOverview.hariAktual;
   const totalCount = statsOverview.totalHariTarget;
 
+  const isMurajaahCompleted = useMemo(() => {
+    if (!jurnalStatus || !jurnalStatus.blocks) return false;
+    const murajaahBlocks = jurnalStatus.blocks.filter((b: any) => b.week_number === 11 || b.block_code?.startsWith('M'));
+    if (murajaahBlocks.length === 0) return false;
+    return murajaahBlocks.every((b: any) => b.is_completed);
+  }, [jurnalStatus]);
+
   // Get batch_id from registration - fallback to active batch for Admins
   const batchId = useMemo(() => {
     // Priority 1: Registration from DB
@@ -644,6 +651,7 @@ export default function PerjalananSaya() {
         isAdmin={isAdmin}
         batchName={batch?.name || ((batch as any)?.batch_number ? `Batch ${(batch as any).batch_number}` : undefined)}
         batchId={batchId || undefined}
+        isMurajaahCompleted={isMurajaahCompleted}
       />
     </div>
   );

@@ -15,9 +15,10 @@ interface FinalExamPortalModalProps {
   isAdmin?: boolean;
   batchName?: string;
   batchId?: string;
+  isMurajaahCompleted?: boolean;
 }
 
-export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, isAdmin, batchName, batchId }: FinalExamPortalModalProps) {
+export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, isAdmin, batchName, batchId, isMurajaahCompleted = false }: FinalExamPortalModalProps) {
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<'oral' | 'written' | null>(null);
   const [selectionOpen, setSelectionOpen] = useState(false);
@@ -55,7 +56,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
 
     let isLocked = false;
     if (!isAdmin) {
-      isLocked = percentage < 100;
+      isLocked = !isMurajaahCompleted;
     }
     
     if (isLocked) return 'locked';
@@ -201,7 +202,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
                         exam.type === 'written' ? "text-gray-500 bg-gray-100" : "text-rose-500 bg-rose-50"
                       )}>
                         <AlertCircle className="w-3 h-3" />
-                        {exam.type === 'oral' ? 'Selesaikan Jurnal 100%' : 'Via Google Form'}
+                        {exam.type === 'oral' ? 'Selesaikan Pekan Muraja’ah' : 'Via Google Form'}
                       </div>
                     ) : isGraded ? (
                       <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-2 rounded-full w-fit">

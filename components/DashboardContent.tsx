@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -63,6 +63,13 @@ export default function DashboardContent() {
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations(targetUserId || undefined)
   const { tashihStatus, isLoading: tashihLoading, error: tashihError, mutate: tashihMutate } = useTashihStatus(targetUserId || undefined)
   const { jurnalStatus, isLoading: jurnalLoading, error: jurnalError, mutate: jurnalMutate } = useJurnalStatus(targetUserId || undefined)
+  
+  const isMurajaahCompleted = useMemo(() => {
+    if (!jurnalStatus || !jurnalStatus.blocks) return false;
+    const murajaahBlocks = jurnalStatus.blocks.filter((b: any) => b.week_number === 11 || b.block_code?.startsWith('M'));
+    if (murajaahBlocks.length === 0) return false;
+    return murajaahBlocks.every((b: any) => b.is_completed);
+  }, [jurnalStatus]);
   const { 
     prayerTimes, 
     hijriDate, 
@@ -803,6 +810,7 @@ export default function DashboardContent() {
         isAdmin={userRole === 'admin'}
         batchName={registrations[0]?.batch?.name || registrations[0]?.batch_name}
         batchId={registrations[0]?.batch_id}
+        isMurajaahCompleted={isMurajaahCompleted}
       />
     </div>
   )
