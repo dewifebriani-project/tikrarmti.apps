@@ -42,35 +42,29 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { schedule_id } = body;
 
-  // 1. Validate schedule existence and quota
-  const { data: schedule, error: scheduleError } = await supabase
-    .from('final_exam_schedules')
-    .select('*')
-    .eq('id', schedule_id)
-    .single();
+  if (!schedule_id) return ApiResponses.badRequest('schedule_id wajib diisi');
 
-  if (scheduleError || !schedule) return ApiResponses.notFound('Jadwal tidak ditemukan');
-  if (schedule.current_count >= schedule.max_quota) return ApiResponses.badRequest('Kuota sudah penuh');
+  // Call the transactional register_final_exam RPC function
+  const { data, error } = await supabase.rpc('register_final_exam', {
+    p_user_id: authUser.id,
+    p_schedule_id: schedule_id
+  });
 
-  // 2. Check if user already registered for this exam type
-  const { data: existingReg } = await supabase
-    .from('final_exam_registrations')
-    .select('*, schedule:final_exam_schedules(exam_type)')
-    .eq('user_id', authUser.id);
+  if (error) {
+    if (error.code === '23514' || error.message?.includes('check_quota_not_exceeded')) {
+      return ApiResponses.badRequest('Maaf Ukhti, kuota jadwal ini baru saja penuh. Silakan pilih jadwal lain.');
+    }
+    return ApiResponses.databaseError(error);
+  }
 
-  const alreadyRegistered = existingReg?.some(r => (r.schedule as any)?.exam_type === schedule.exam_type);
-  if (alreadyRegistered) return ApiResponses.badRequest(`Ukhti sudah terdaftar untuk ${schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'}`);
+  // RPC returns JSON with { success: boolean, error?: string, message?: string }
+  const result = data as any;
+  if (!result.success) {
+    if (result.error?.includes('check_quota_not_exceeded') || result.error === 'Kuota sudah penuh') {
+      return ApiResponses.badRequest('Maaf Ukhti, kuota jadwal ini baru saja penuh. Silakan pilih jadwal lain.');
+    }
+    return ApiResponses.badRequest(result.error || 'Gagal mendaftar');
+  }
 
-  // 3. Register
-  const { data, error } = await supabase
-    .from('final_exam_registrations')
-    .insert({
-      user_id: authUser.id,
-      schedule_id: schedule_id
-    })
-    .select()
-    .single();
-
-  if (error) return ApiResponses.databaseError(error);
-  return ApiResponses.success(data);
+  return ApiResponses.success({ success: true, message: result.message });
 }

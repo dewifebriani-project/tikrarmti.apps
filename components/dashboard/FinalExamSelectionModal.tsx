@@ -35,8 +35,11 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingRegistration, setExistingRegistration] = useState<any>(null);
 
+  const [isEditing, setIsEditing] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
+      setIsEditing(false);
       fetchSchedules();
       fetchExistingRegistration();
     }
@@ -107,7 +110,7 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
         </DialogHeader>
 
         <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/50">
-          {existingRegistration ? (
+          {existingRegistration && !isEditing ? (
             <div className="text-center space-y-4 py-6">
               <div className={cn(
                 "w-20 h-20 rounded-3xl flex items-center justify-center mx-auto shadow-inner border animate-bounce-slow",
@@ -149,7 +152,17 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
                   </div>
                 )}
               </div>
-              <Button onClick={onClose} variant="outline" className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50">Tutup</Button>
+              <div className="flex justify-center gap-3">
+                {existingRegistration.status === 'registered' && (
+                  <Button 
+                    onClick={() => setIsEditing(true)} 
+                    className="rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-5 shadow-lg shadow-green-600/20 active:translate-y-1"
+                  >
+                    Ubah Jadwal
+                  </Button>
+                )}
+                <Button onClick={onClose} variant="outline" className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50">Tutup</Button>
+              </div>
             </div>
           ) : isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -158,6 +171,15 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
             </div>
           ) : schedules.length > 0 ? (
             <div className="space-y-4">
+              {isEditing && (
+                <Button 
+                  onClick={() => setIsEditing(false)} 
+                  variant="ghost" 
+                  className="text-gray-500 font-bold flex items-center gap-2 hover:bg-gray-100 mb-2"
+                >
+                  &larr; Kembali ke Jadwal Terdaftar
+                </Button>
+              )}
               {schedules.map((schedule) => {
                 const isFull = schedule.current_count >= schedule.max_quota;
                 return (

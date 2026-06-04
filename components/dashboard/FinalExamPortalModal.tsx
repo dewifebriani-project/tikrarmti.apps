@@ -146,7 +146,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
                   key={exam.id}
                   onClick={() => handleAction(exam.type)}
                   className={cn(
-                    "group relative rounded-[2rem] border-2 p-6 sm:p-8 space-y-6 transition-all duration-500 overflow-hidden cursor-pointer flex flex-col min-h-[260px] sm:min-h-[280px]",
+                    "group relative rounded-[2rem] border-2 p-6 sm:p-8 space-y-6 transition-all duration-500 overflow-hidden cursor-pointer flex flex-col",
                     isLocked ? "bg-white border-gray-100 opacity-60 grayscale" : 
                     isGraded ? "bg-emerald-50 border-emerald-200 shadow-emerald-900/5" :
                     isRegistered ? "bg-blue-50 border-blue-200 shadow-blue-900/5" :
@@ -194,7 +194,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
                     </p>
                   </div>
 
-                  <div className="pt-2 mt-auto">
+                  <div className="pt-2">
                     {isLocked ? (
                       <div className={cn(
                         "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-full w-fit",
