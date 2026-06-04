@@ -46,17 +46,18 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
   };
 
   const getStatus = (type: 'oral' | 'written') => {
-    let isLocked = false;
-    if (!isAdmin) {
-      if (type === 'oral') {
-        isLocked = percentage < 100;
-      } else {
-        isLocked = hariAktual < 40; // Ujian Tulisan requires min 40 days
-      }
-    }
-    
     const reg = registrations.find(r => r.schedule?.exam_type === type);
 
+    if (type === 'written') {
+      if (reg?.status === 'graded') return 'graded';
+      return 'locked';
+    }
+
+    let isLocked = false;
+    if (!isAdmin) {
+      isLocked = percentage < 100;
+    }
+    
     if (isLocked) return 'locked';
     if (reg) return reg.status; // 'registered', 'graded', etc.
     return 'available';
@@ -195,9 +196,12 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
 
                   <div className="pt-2 mt-auto">
                     {isLocked ? (
-                      <div className="flex items-center gap-2 text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-3 py-2 rounded-full w-fit">
+                      <div className={cn(
+                        "flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-full w-fit",
+                        exam.type === 'written' ? "text-gray-500 bg-gray-100" : "text-rose-500 bg-rose-50"
+                      )}>
                         <AlertCircle className="w-3 h-3" />
-                        {exam.type === 'oral' ? 'Selesaikan Jurnal 100%' : 'Selesaikan Pekan 10'}
+                        {exam.type === 'oral' ? 'Selesaikan Jurnal 100%' : 'Via Google Form'}
                       </div>
                     ) : isGraded ? (
                       <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 uppercase tracking-widest bg-emerald-100 px-3 py-2 rounded-full w-fit">
