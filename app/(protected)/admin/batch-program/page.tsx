@@ -147,33 +147,29 @@ export default function AdminBatchProgramPage() {
           <StatCard
             label="Total Batch"
             value={stats.totalBatches}
-            icon={<Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />}
-            bg="bg-green-50"
-            border="border-green-100"
+            icon={<Calendar className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-green-600 shadow-green-200"
             isLoading={batchesLoading}
           />
           <StatCard
             label="Batch Aktif"
             value={stats.activeBatches}
-            icon={<Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />}
-            bg="bg-emerald-50"
-            border="border-emerald-100"
+            icon={<Calendar className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-emerald-600 shadow-emerald-200"
             isLoading={batchesLoading}
           />
           <StatCard
             label="Total Program"
             value={stats.totalPrograms}
-            icon={<BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />}
-            bg="bg-purple-50"
-            border="border-purple-100"
+            icon={<BookOpen className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-purple-600 shadow-purple-200"
             isLoading={programsLoading}
           />
           <StatCard
             label="Program Berjalan"
             value={stats.openPrograms}
-            icon={<BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />}
-            bg="bg-blue-50"
-            border="border-blue-100"
+            icon={<BookOpen className="h-5 w-5 sm:h-6 sm:w-6" />}
+            color="bg-blue-600 shadow-blue-200"
             isLoading={programsLoading}
           />
         </div>
@@ -399,31 +395,28 @@ interface StatCardProps {
   label: string;
   value: number;
   icon: React.ReactNode;
-  bg: string;
-  border: string;
+  color: string;
   isLoading?: boolean;
 }
 
-function StatCard({ label, value, icon, bg, border, isLoading }: StatCardProps) {
+function StatCard({ label, value, icon, color, isLoading }: StatCardProps) {
   return (
-    <div className={cn('p-4 sm:p-6 rounded-2xl border transition-all duration-300 hover:shadow-md hover:-translate-y-1 group', bg, border)}>
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <div className="p-2 sm:p-3 bg-white rounded-xl shadow-sm border border-gray-100/50 group-hover:scale-110 transition-transform duration-300">
-          {icon}
-        </div>
-        <span className="text-[8px] sm:text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] sm:tracking-[0.2em] group-hover:text-gray-600 transition-colors">
-          Overview
-        </span>
-      </div>
-      <div className="space-y-0.5 sm:space-y-1">
+    <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+      <div className="space-y-1">
+        <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+          {label}
+        </p>
         {isLoading ? (
           <div className="h-7 sm:h-8 w-16 sm:w-24 bg-gray-200 animate-pulse rounded" />
         ) : (
           <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{value.toLocaleString()}</h3>
         )}
-        <p className="text-xs sm:text-sm font-bold text-gray-600 tracking-tight group-hover:text-gray-900 transition-colors">
-          {label}
-        </p>
+      </div>
+      <div className={cn(
+        "p-3 sm:p-4 rounded-xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110",
+        color
+      )}>
+        {icon}
       </div>
     </div>
   );

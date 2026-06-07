@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import {
   FileText,
   Download,
@@ -1165,8 +1166,8 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       {/* Header & Sub-tabs */}
       <div className="space-y-4">
         {/* Batch Filter & Search */}
-        <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow">
-          <label className="text-sm font-medium text-gray-700">Filter by Batch:</label>
+        <div className="flex flex-wrap items-center gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <label className="text-sm font-bold text-gray-700">Filter by Batch:</label>
           <select
             value={localBatchId}
             onChange={(e) => {
@@ -1174,7 +1175,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
               setCurrentPage(1); // Reset to page 1 when batch changes
               setSearchQuery(''); // Clear search when batch changes
             }}
-            className="border border-gray-300 rounded-md px-4 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-green-950 focus:border-green-950 font-semibold text-gray-700 bg-white"
           >
             <option value="all">All Batches</option>
             {batches.map((batch) => (
@@ -1184,15 +1185,15 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
             ))}
           </select>
           {localBatchId !== 'all' && (
-            <span className="text-sm text-gray-500">
-              Showing data for: {batches.find(b => b.id === localBatchId)?.name}
+            <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+              Showing: {batches.find(b => b.id === localBatchId)?.name}
             </span>
           )}
 
           {/* Search Input - Only show on submissions tab */}
           {activeSubTab === 'submissions' && (
             <div className="ml-auto relative w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
@@ -1201,7 +1202,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                   setCurrentPage(1); // Reset to page 1 when search changes
                 }}
                 placeholder="Cari nama, email, atau WhatsApp..."
-                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:ring-green-500 focus:border-green-500"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 transition-all shadow-sm"
               />
               {searchQuery && (
                 <button
@@ -1209,7 +1210,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                     setSearchQuery('');
                     setCurrentPage(1);
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1219,24 +1220,24 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
         </div>
 
         {/* Export Contacts Section */}
-        <div className="flex flex-wrap items-end gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="flex flex-wrap items-end gap-4 bg-blue-50/50 p-5 rounded-2xl border border-blue-100/60 shadow-sm">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-blue-800 mb-1.5">Kategori</label>
             <select
               value={exportCategory}
               onChange={(e) => setExportCategory(e.target.value as 'tikrar' | 'pra_tikrar')}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-blue-950 focus:border-blue-950 font-semibold text-gray-700 bg-white"
             >
               <option value="tikrar">Tikrar (MTIA)</option>
               <option value="pra_tikrar">Pra Tikrar (MTIPRA)</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Export Batch</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-blue-800 mb-1.5">Export Batch</label>
             <select
               value={exportBatchId}
               onChange={(e) => setExportBatchId(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-blue-950 focus:border-blue-950 font-semibold text-gray-700 bg-white"
             >
               <option value="all">All Batches</option>
               {batches.map((batch) => (
@@ -1247,11 +1248,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Export Format</label>
+            <label className="block text-xs font-black uppercase tracking-widest text-blue-800 mb-1.5">Export Format</label>
             <select
               value={exportFormat}
               onChange={(e) => setExportFormat(e.target.value as 'csv' | 'vcf')}
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-blue-950 focus:border-blue-950 font-semibold text-gray-700 bg-white"
             >
               <option value="csv">CSV (Gmail Import)</option>
               <option value="vcf">VCF (Google Contacts)</option>
@@ -1260,7 +1261,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           <button
             onClick={handleExportContacts}
             disabled={exportingContacts}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all active:scale-95 duration-200 shadow-blue-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exportingContacts ? (
               <>
@@ -1270,85 +1271,88 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
             ) : (
               <>
                 <Download className="w-5 h-5 mr-2" />
-                Export Thalibah Contacts
+                Export Contacts
               </>
             )}
           </button>
         </div>
 
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Daftar Ulang</h2>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Daftar Ulang</h2>
           <div className="flex gap-2">
             {activeSubTab === 'submissions' && (
               <>
                 <button
                   onClick={downloadExcel}
                   disabled={downloadingExcel}
-                  className="px-3 py-2 border border-green-600 text-green-600 rounded-md text-sm hover:bg-green-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-emerald-600 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-50 transition-all active:scale-95 duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Download Excel"
                 >
-                  <FileSpreadsheet className="w-3 h-3" />
+                  <FileSpreadsheet className="w-4 h-4" />
                   {downloadingExcel ? 'Downloading...' : 'Excel'}
                 </button>
                 <button
                   onClick={downloadPDF}
                   disabled={downloadingPDF}
-                  className="px-3 py-2 border border-red-600 text-red-600 rounded-md text-sm hover:bg-red-50 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-rose-600 text-rose-600 rounded-xl text-sm font-bold hover:bg-rose-50 transition-all active:scale-95 duration-200 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Download PDF"
                 >
-                  <Download className="w-3 h-3" />
+                  <Download className="w-4 h-4" />
                   {downloadingPDF ? 'Downloading...' : 'PDF'}
                 </button>
               </>
             )}
             <button
               onClick={() => setRefreshTrigger(prev => prev + 1)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+              className="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all active:scale-95 duration-200 flex items-center gap-1.5"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="w-3.5 h-3.5" />
               Refresh
             </button>
           </div>
         </div>
 
         {/* Sub-tab Navigation */}
-        <nav className="border-b border-gray-200">
-          <div className="flex gap-4">
+        <div className="mb-4 overflow-x-auto pb-1.5 scrollbar-hide">
+          <nav className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-max" aria-label="Sub-tabs">
             <button
               onClick={() => setActiveSubTab('submissions')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              className={cn(
+                "flex items-center gap-2 py-2.5 px-5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300",
                 activeSubTab === 'submissions'
-                  ? 'border-green-600 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                  ? "bg-white text-green-900 shadow-sm border border-green-900/10"
+                  : "text-gray-500 hover:text-green-800 hover:bg-white/50"
+              )}
             >
               <List className="w-4 h-4" />
               Submissions
             </button>
             <button
               onClick={() => setActiveSubTab('halaqah')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              className={cn(
+                "flex items-center gap-2 py-2.5 px-5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300",
                 activeSubTab === 'halaqah'
-                  ? 'border-green-600 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                  ? "bg-white text-green-900 shadow-sm border border-green-900/10"
+                  : "text-gray-500 hover:text-green-800 hover:bg-white/50"
+              )}
             >
               <FolderTree className="w-4 h-4" />
               Per Halaqah
             </button>
             <button
               onClick={() => setActiveSubTab('per_juz')}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+              className={cn(
+                "flex items-center gap-2 py-2.5 px-5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300",
                 activeSubTab === 'per_juz'
-                  ? 'border-green-600 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                  ? "bg-white text-green-900 shadow-sm border border-green-900/10"
+                  : "text-gray-500 hover:text-green-800 hover:bg-white/50"
+              )}
             >
               <BookOpen className="w-4 h-4" />
               Per Juz
             </button>
-          </div>
-        </nav>
+          </nav>
+        </div>
       </div>
 
       {/* Sub-tab Content */}
@@ -1526,45 +1530,109 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
       ) : (
         <>
           {/* Statistics Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-4">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{statsLoading ? '-' : submissionStats.total}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4 mb-6">
+            {/* Total */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Total</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.total}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-blue-500 shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Draft</p>
-              <p className="text-2xl font-bold text-gray-600">{statsLoading ? '-' : submissionStats.draft}</p>
+
+            {/* Draft */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Draft</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.draft}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-gray-500 shadow-lg shadow-gray-200 transition-transform duration-300 group-hover:scale-110">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Submitted</p>
-              <p className="text-2xl font-bold text-blue-600">{statsLoading ? '-' : submissionStats.submitted}</p>
+
+            {/* Submitted */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Submit</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.submitted}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-indigo-500 shadow-lg shadow-indigo-200 transition-transform duration-300 group-hover:scale-110">
+                <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Approved</p>
-              <p className="text-2xl font-bold text-green-600">{statsLoading ? '-' : submissionStats.approved}</p>
+
+            {/* Approved */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Approve</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.approved}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-emerald-500 shadow-lg shadow-emerald-200 transition-transform duration-300 group-hover:scale-110">
+                <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Rejected</p>
-              <p className="text-2xl font-bold text-red-600">{statsLoading ? '-' : submissionStats.rejected}</p>
+
+            {/* Rejected */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Reject</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.rejected}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-red-500 shadow-lg shadow-red-200 transition-transform duration-300 group-hover:scale-110">
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Dengan Halaqah</p>
-              <p className="text-2xl font-bold text-purple-600">{statsLoading ? '-' : submissionStats.withHalaqah}</p>
+
+            {/* Dengan Halaqah */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Halaqah</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.withHalaqah}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-purple-500 shadow-lg shadow-purple-200 transition-transform duration-300 group-hover:scale-110">
+                <FolderTree className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-xs text-gray-500 uppercase">Dengan Akad</p>
-              <p className="text-2xl font-bold text-orange-600">{statsLoading ? '-' : submissionStats.withAkad}</p>
+
+            {/* Dengan Akad */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+              <div className="space-y-1">
+                <p className="text-xs font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">Akad</p>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                  {statsLoading ? '-' : submissionStats.withAkad}
+                </h3>
+              </div>
+              <div className="p-2.5 rounded-xl text-white bg-amber-500 shadow-lg shadow-amber-200 transition-transform duration-300 group-hover:scale-110">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4 col-span-2 md:col-span-1">
-              <p className="text-xs text-gray-500 uppercase mb-1">Per Juz</p>
-              <div className="text-xs space-y-1">
+
+            {/* Per Juz */}
+            <div className="p-4 rounded-2xl border border-gray-100 bg-white shadow-sm col-span-2 md:col-span-1">
+              <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-1.5">Per Juz</p>
+              <div className="text-[10px] font-bold space-y-0.5 max-h-[48px] overflow-y-auto scrollbar-thin">
                 {statsLoading ? (
                   <p className="text-gray-400">Loading...</p>
                 ) : Object.keys(submissionStats.juzCount).length > 0 ? (
                   Object.entries(submissionStats.juzCount).sort(([a], [b]) => a.localeCompare(b)).map(([juz, count]) => (
-                    <div key={juz} className="flex justify-between">
-                      <span className="text-gray-600">{juz}:</span>
-                      <span className="font-medium">{count}</span>
+                    <div key={juz} className="flex justify-between border-b border-gray-50 pb-0.5 last:border-0 text-gray-600">
+                      <span>Juz {juz}:</span>
+                      <span className="font-extrabold text-gray-900">{count}</span>
                     </div>
                   ))
                 ) : (
@@ -1575,7 +1643,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
           </div>
 
           {/* Submissions List View */}
-          <div className="bg-white border border-gray-200 rounded-lg">
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
@@ -1591,10 +1659,10 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead>
                 <tr>
                   <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center gap-1">
@@ -1602,11 +1670,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                       {getSortIcon('name')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
                     Partner
                   </th>
                   <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                     onClick={() => handleSort('halaqah')}
                   >
                     <div className="flex items-center gap-1">
@@ -1614,11 +1682,11 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                       {getSortIcon('halaqah')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
                     Akad Files
                   </th>
                   <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                     onClick={() => handleSort('status')}
                   >
                     <div className="flex items-center gap-1">
@@ -1627,7 +1695,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                     </div>
                   </th>
                   <th
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                     onClick={() => handleSort('submitted_at')}
                   >
                     <div className="flex items-center gap-1">
@@ -1635,20 +1703,20 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                       {getSortIcon('submitted_at')}
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
                     WhatsApp
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none text-right">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredSubmissions.map((submission) => (
-                  <tr key={submission.id} className="hover:bg-gray-50">
+                  <tr key={submission.id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-bold text-gray-900">
                           {submission.confirmed_full_name || submission.user?.full_name || '-'}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -1657,7 +1725,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm font-medium text-gray-900">
                         {getPartnerLabel(submission)}
                       </div>
                       <div className="text-xs text-gray-500">
@@ -1665,7 +1733,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-xs text-gray-900">
+                      <div className="text-xs text-gray-900 space-y-0.5">
                         <div>Ujian: {submission.ujian_halaqah?.name || (submission.is_tashih_umum ? '-' : 'Not selected')}</div>
                         <div>Tashih: {submission.is_tashih_umum ? 'Umum' : (submission.tashih_halaqah?.name || 'Not selected')}</div>
                       </div>
@@ -1704,20 +1772,21 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                         submission.confirmed_full_name || submission.user?.full_name
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setSelectedSubmission(submission)}
-                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-blue-100"
                           title="View details"
                         >
                           <Eye className="w-4 h-4" />
+                          Detail
                         </button>
                         {submission.status === 'draft' && (submission.ujian_halaqah_id || submission.tashih_halaqah_id) && (
                           <button
                             onClick={() => handleResetHalaqah(submission.id)}
                             disabled={resettingId === submission.id}
-                            className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50"
+                            className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-orange-100"
                             title="Reset halaqah selection"
                           >
                             {resettingId === submission.id ? (
@@ -1725,6 +1794,7 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                             ) : (
                               <RotateCcw className="w-4 h-4" />
                             )}
+                            Reset
                           </button>
                         )}
                       </div>
@@ -1737,8 +1807,8 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
 
               {/* Pagination */}
               {!searchQuery && pagination && pagination.totalPages > 1 ? (
-                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-                  <div className="text-sm text-gray-500">
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+                  <div className="text-xs font-semibold text-gray-500">
                     Menampilkan {submissionStats.showing} dari {pagination.total} submissions
                     (Halaman {currentPage} dari {pagination.totalPages})
                   </div>
@@ -1746,39 +1816,39 @@ export function DaftarUlangTab({ batchId: initialBatchId }: DaftarUlangTabProps)
                     <button
                       onClick={() => setCurrentPage(1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3.5 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Pertama
                     </button>
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3.5 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Prev
                     </button>
-                    <span className="px-3 py-1 text-sm">
-                      Halaman {currentPage} / {pagination.totalPages}
+                    <span className="px-3 py-1.5 text-xs font-extrabold text-gray-700 bg-gray-50 border border-gray-100 rounded-lg">
+                      {currentPage} / {pagination.totalPages}
                     </span>
                     <button
                       onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
                       disabled={currentPage === pagination.totalPages}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3.5 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Next
                     </button>
                     <button
                       onClick={() => setCurrentPage(pagination.totalPages)}
                       disabled={currentPage === pagination.totalPages}
-                      className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      className="px-3.5 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       Terakhir
                     </button>
                   </div>
                 </div>
               ) : searchQuery && (
-                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-                  <div className="text-sm text-gray-500">
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+                  <div className="text-xs font-semibold text-gray-500">
                     Menampilkan {filteredSubmissions.length} hasil pencarian dari seluruh data
                   </div>
                 </div>

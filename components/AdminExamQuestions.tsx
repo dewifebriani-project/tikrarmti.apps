@@ -48,36 +48,36 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Exam Questions</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Exam Questions</h2>
+          <p className="text-sm text-gray-500 font-medium mt-1">
             Manage multiple-choice exam questions for Juz 28, 29, and 30
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={loadAnalytics}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-md shadow-indigo-600/10 active:scale-95 duration-200"
           >
             <BarChart3 className="w-4 h-4" />
             Analytics
           </button>
           <button
             onClick={() => setShowAIModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all font-bold text-sm shadow-md shadow-purple-600/10 active:scale-95 duration-200"
           >
             <Sparkles className="w-4 h-4" />
             AI Generate
           </button>
           <button
             onClick={onAddManualClick}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold text-sm shadow-md shadow-green-600/10 active:scale-95 duration-200"
           >
             <Plus className="w-4 h-4" />
             Add Manual
           </button>
           <button
             onClick={onImportClick}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold text-sm shadow-md shadow-blue-600/10 active:scale-95 duration-200"
           >
             <FileUp className="w-4 h-4" />
             Bulk Import

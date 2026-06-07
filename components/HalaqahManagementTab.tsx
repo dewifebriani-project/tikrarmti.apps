@@ -638,18 +638,18 @@ export function HalaqahManagementTab() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Halaqah Management</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Halaqah Management</h2>
+          <p className="text-sm text-gray-500 font-medium mt-1">
             Manage halaqah (study groups) for muallimah and thalibah
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowAssignThalibahModal(true)}
             disabled={!selectedBatch}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold text-sm shadow-sm shadow-blue-600/10 active:scale-95 duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UserPlus className="w-4 h-4" />
             Assign Thalibah
@@ -657,27 +657,27 @@ export function HalaqahManagementTab() {
           <button
             onClick={() => setShowManualCreateModal(true)}
             disabled={!selectedBatch}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm shadow-indigo-600/10 active:scale-95 duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UserPlus className="w-4 h-4" />
             Add Halaqah
           </button>
           <button
             onClick={() => setShowAutoCreateModal(true)}
-            className="px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition-colors flex items-center gap-2"
+            className="px-4 py-2.5 bg-green-900 text-white rounded-xl hover:bg-green-800 transition-all font-bold text-sm shadow-sm shadow-green-900/10 active:scale-95 duration-200 flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            Auto Create Halaqah
+            Auto Create
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">Filters:</span>
+            <span className="text-xs font-black uppercase tracking-widest text-gray-400">Filters:</span>
           </div>
 
           <div className="relative flex-1 min-w-[250px]">
@@ -687,14 +687,14 @@ export function HalaqahManagementTab() {
               placeholder="Search by name, muallimah, program, location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 transition-all shadow-sm"
             />
           </div>
 
           <select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900 min-w-[200px]"
+            className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 min-w-[200px] transition-all bg-white shadow-sm font-semibold text-gray-700"
           >
             <option value="">All Batches {batches.length > 0 && `(${batches.length})`}</option>
             {batches.map((batch) => (
@@ -707,7 +707,7 @@ export function HalaqahManagementTab() {
           <select
             value={selectedProgram}
             onChange={(e) => setSelectedProgram(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 transition-all bg-white shadow-sm font-semibold text-gray-700"
             disabled={!selectedBatch}
           >
             <option value="">All Programs</option>
@@ -721,7 +721,7 @@ export function HalaqahManagementTab() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 transition-all bg-white shadow-sm font-semibold text-gray-700"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -732,7 +732,7 @@ export function HalaqahManagementTab() {
           <select
             value={selectedDay}
             onChange={(e) => setSelectedDay(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-900"
+            className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-950 focus:border-green-950 transition-all bg-white shadow-sm font-semibold text-gray-700"
           >
             <option value="">All Days</option>
             <option value="1">Senin</option>
@@ -746,50 +746,50 @@ export function HalaqahManagementTab() {
 
           <button
             onClick={() => setRefreshTrigger(prev => prev + 1)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors flex items-center gap-1"
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm active:scale-95 duration-200 flex items-center gap-1.5"
           >
-            <RefreshCw className="w-3 h-3" />
+            <RefreshCw className="w-3.5 h-3.5" />
             Refresh
           </button>
 
           <button
             onClick={handleRecalculateQuota}
             disabled={recalculating}
-            className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-sm active:scale-95 duration-200 shadow-blue-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {recalculating ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Calculator className="w-3 h-3" />
+              <Calculator className="w-3.5 h-3.5" />
             )}
             {recalculating ? 'Calculating...' : 'Recalculate Quota'}
           </button>
 
-          <div className="h-6 w-px bg-gray-300" />
+          <div className="h-6 w-px bg-gray-200" />
 
           <button
             onClick={downloadExcel}
             disabled={filteredAndSortedHalaqahs.length === 0}
-            className="px-3 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-all shadow-sm active:scale-95 duration-200 shadow-emerald-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Download as Excel (CSV)"
           >
-            <FileSpreadsheet className="w-3 h-3" />
+            <FileSpreadsheet className="w-3.5 h-3.5" />
             Excel
           </button>
 
           <button
             onClick={downloadPDF}
             disabled={filteredAndSortedHalaqahs.length === 0}
-            className="px-3 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-bold hover:bg-rose-700 transition-all shadow-sm active:scale-95 duration-200 shadow-rose-600/10 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Download as PDF"
           >
-            <FileText className="w-3 h-3" />
+            <FileText className="w-3.5 h-3.5" />
             PDF
           </button>
         </div>
 
         {/* Results count */}
-        <div className="mt-3 text-sm text-gray-600">
+        <div className="mt-3 text-xs font-semibold text-gray-500">
           Showing {paginatedHalaqahs.length} of {filteredAndSortedHalaqahs.length} halaqahs
           {filteredAndSortedHalaqahs.length !== halaqahs.length && ` (filtered from ${halaqahs.length} total)`}
         </div>
@@ -856,10 +856,10 @@ export function HalaqahManagementTab() {
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-green-900" />
             </div>
           ) : filteredAndSortedHalaqahs.length === 0 ? (
             <div className="text-center py-12">
@@ -874,11 +874,11 @@ export function HalaqahManagementTab() {
               {/* Table with horizontal scroll */}
               <div className="overflow-x-auto overflow-y-visible scroll-smooth">
                 <table className="w-full border-collapse min-w-[1200px]">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
+                  <thead className="sticky top-0 z-10">
                     <tr>
                       <th
                         onClick={() => handleSort('name')}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                       >
                         <div className="flex items-center gap-1">
                           Name
@@ -887,12 +887,12 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
                         Class Type
                       </th>
                       <th
                         onClick={() => handleSort('preferred_juz')}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                       >
                         <div className="flex items-center gap-1">
                           Juz
@@ -903,7 +903,7 @@ export function HalaqahManagementTab() {
                       </th>
                       <th
                         onClick={() => handleSort('day_of_week')}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                       >
                         <div className="flex items-center gap-1">
                           Schedule
@@ -914,7 +914,7 @@ export function HalaqahManagementTab() {
                       </th>
                       <th
                         onClick={() => handleSort('muallimah_id')}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                       >
                         <div className="flex items-center gap-1">
                           Muallimah
@@ -925,7 +925,7 @@ export function HalaqahManagementTab() {
                       </th>
                       <th
                         onClick={() => handleSort('_count')}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                       >
                         <div className="flex items-center gap-1">
                           Thalibah
@@ -936,7 +936,7 @@ export function HalaqahManagementTab() {
                       </th>
                       <th
                         onClick={() => handleSort('status')}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+                        className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none cursor-pointer hover:bg-gray-100/80 transition-colors"
                       >
                         <div className="flex items-center gap-1">
                           Status
@@ -945,7 +945,7 @@ export function HalaqahManagementTab() {
                           )}
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">
                         Actions
                       </th>
                     </tr>
@@ -1055,7 +1055,7 @@ export function HalaqahManagementTab() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => setSelectedHalaqah(halaqah)}
-                              className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-all border border-indigo-200 hover:border-indigo-300"
+                              className="p-2 text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 active:scale-90"
                               title="View details"
                             >
                               <Eye className="w-4 h-4" />
@@ -1063,7 +1063,7 @@ export function HalaqahManagementTab() {
 
                             <button
                               onClick={() => setEditingHalaqah(halaqah)}
-                              className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-all border border-blue-200 hover:border-blue-300"
+                              className="p-2 text-blue-600 bg-blue-50/50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 active:scale-90"
                               title="Edit halaqah"
                             >
                               <Edit className="w-4 h-4" />
@@ -1072,7 +1072,7 @@ export function HalaqahManagementTab() {
                             {halaqah.status === 'inactive' && (
                               <button
                                 onClick={() => handleStatusChange(halaqah.id, 'active')}
-                                className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-md transition-all border border-green-200 hover:border-green-300"
+                                className="p-2 text-emerald-600 bg-emerald-50/50 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-100 active:scale-90"
                                 title="Activate halaqah"
                               >
                                 <CheckCircle2 className="w-4 h-4" />
@@ -1082,7 +1082,7 @@ export function HalaqahManagementTab() {
                             {halaqah.status === 'active' && (
                               <button
                                 onClick={() => handleStatusChange(halaqah.id, 'inactive')}
-                                className="p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-md transition-all border border-orange-200 hover:border-orange-300"
+                                className="p-2 text-amber-600 bg-amber-50/50 hover:bg-amber-100 rounded-lg transition-all border border-amber-100 active:scale-90"
                                 title="Deactivate halaqah"
                               >
                                 <XCircle className="w-4 h-4" />
@@ -1091,7 +1091,7 @@ export function HalaqahManagementTab() {
 
                             <button
                               onClick={() => handleDeleteHalaqah(halaqah.id)}
-                              className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-all border border-red-200 hover:border-red-300"
+                              className="p-2 text-red-600 bg-red-50/50 hover:bg-red-100 rounded-lg transition-all border border-red-100 active:scale-90"
                               title="Delete halaqah"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1106,21 +1106,21 @@ export function HalaqahManagementTab() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="border-t border-gray-200 px-6 py-4 flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
+                <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between bg-white">
+                  <div className="text-xs font-semibold text-gray-500">
                     Page {currentPage} of {totalPages}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 font-bold text-xs transition-all duration-200"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       Previous
                     </button>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                         let pageNum;
                         if (totalPages <= 5) {
@@ -1137,10 +1137,10 @@ export function HalaqahManagementTab() {
                           <button
                             key={pageNum}
                             onClick={() => setCurrentPage(pageNum)}
-                            className={`w-10 h-10 rounded-md border ${
+                            className={`w-9 h-9 rounded-xl border text-xs font-bold transition-all duration-300 ${
                               currentPage === pageNum
-                                ? 'bg-green-900 text-white border-green-900'
-                                : 'border-gray-300 hover:bg-gray-50'
+                                ? 'bg-green-900 text-white border-green-900 shadow-sm'
+                                : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                             }`}
                           >
                             {pageNum}
@@ -1152,7 +1152,7 @@ export function HalaqahManagementTab() {
                     <button
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
-                      className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                      className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 font-bold text-xs transition-all duration-200"
                     >
                       Next
                       <ChevronRight className="w-4 h-4" />

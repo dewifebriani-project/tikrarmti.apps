@@ -40,7 +40,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Check,
-  CheckCheck
+  CheckCheck,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -554,56 +555,88 @@ function PresensiJurnalContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20">
+    <div className="min-h-screen bg-gray-50/50 pb-20">
       <Toaster position="top-right" />
       
-      <div className="bg-white border-b border-gray-100 mb-8 pt-6 pb-6 shadow-sm">
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-100 mb-8 sticky top-0 z-20 shadow-sm py-6">
         <div className="container mx-auto px-6">
-           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all border border-transparent hover:border-gray-200"
+                title="Kembali ke Dashboard"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Monitoring Presensi & Jurnal</h1>
-                <p className="text-gray-500 text-sm mt-1 font-medium">Tinjau kehadiran dan jurnal harian thalibah secara terpusat.</p>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-green-600 uppercase tracking-[0.2em] mb-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  <span>Musyrifah Console</span>
+                </div>
+                <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                  Monitoring Presensi & Jurnal
+                  <span className="px-2 py-0.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-100">
+                    Console v2.0
+                  </span>
+                </h1>
               </div>
-              <div className="flex gap-3">
-                 <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Total Thalibah</div>
-                    <div className="flex items-baseline gap-1">
-                      <div className="text-2xl font-bold text-green-900">
-                        {pagination?.totalCount || 0}
-                      </div>
-                      <div className="text-xs text-gray-400 font-medium lowercase italic">jiwa</div>
-                    </div>
-                 </div>
-                 <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[140px]">
-                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Avg Progress</div>
-                      <div className="text-2xl font-bold text-emerald-600">
-                        {!isMounted ? '0' : (() => {
-                          // Try to use the overall stat from API first
-                          if (pagination?.stats?.overall_avg_progress !== undefined) {
-                            return pagination.stats.overall_avg_progress;
-                          }
+            </div>
 
-                          if (activeTab === 'blacklist') {
-                            const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
-                            return blacklisted.length > 0 
-                              ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
-                              : 0;
-                          }
-                          if (activeTab === 'presensi') {
-                            const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
-                            return active.length > 0
-                              ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                              : 0;
-                          }
-                          const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
-                          return active.length > 0
-                            ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
-                            : 0;
-                        })()}%
-                      </div>
-                 </div>
+            <div className="flex gap-4">
+              {/* Total Thalibah Card */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[180px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                    Total Thalibah
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                    {pagination?.totalCount || 0}
+                  </h3>
+                </div>
+                <div className="p-3 sm:p-4 rounded-xl text-white bg-blue-500 shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110">
+                  <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
               </div>
-           </div>
+
+              {/* Avg Progress Card */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between min-w-[160px] sm:min-w-[180px] transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                    Avg Progress
+                  </p>
+                  <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                    {!isMounted ? '0' : (() => {
+                      if (pagination?.stats?.overall_avg_progress !== undefined) {
+                        return pagination.stats.overall_avg_progress;
+                      }
+
+                      if (activeTab === 'blacklist') {
+                        const blacklisted = tashihEntries.filter(e => e.user?.is_blacklisted);
+                        return blacklisted.length > 0 
+                          ? Math.round(blacklisted.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / blacklisted.length)
+                          : 0;
+                      }
+                      if (activeTab === 'presensi') {
+                        const active = tashihEntries.filter(e => !e.user?.is_blacklisted);
+                        return active.length > 0
+                          ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
+                          : 0;
+                      }
+                      const active = jurnalEntries.filter(e => !e.user?.is_blacklisted);
+                      return active.length > 0
+                        ? Math.round(active.reduce((acc, curr) => acc + (curr.summary?.completed_blocks || 0) / (curr.summary?.total_blocks || 1) * 100, 0) / active.length)
+                        : 0;
+                    })()}%
+                  </h3>
+                </div>
+                <div className="p-3 sm:p-4 rounded-xl text-white bg-emerald-500 shadow-lg shadow-emerald-200 transition-transform duration-300 group-hover:scale-110">
+                  <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -24,9 +24,18 @@ interface Registration {
     exam_type: string;
     exam_date: string;
     start_time: string;
+    end_time?: string;
     examiner: { full_name: string };
   };
 }
+
+const formatExaminerName = (name: string) => {
+  if (!name) return '-';
+  if (name.toLowerCase().startsWith('ustadzah') || name.toLowerCase().startsWith('ustadz')) {
+    return name;
+  }
+  return `Ustadzah ${name}`;
+};
 
 export function FinalExamParticipants() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -99,6 +108,17 @@ export function FinalExamParticipants() {
     r.user.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const sorted = [...filtered].sort((a, b) => {
+    const dateA = a.schedule?.exam_date || '';
+    const dateB = b.schedule?.exam_date || '';
+    if (dateA !== dateB) {
+      return dateA.localeCompare(dateB);
+    }
+    const timeA = a.schedule?.start_time || '';
+    const timeB = b.schedule?.start_time || '';
+    return timeA.localeCompare(timeB);
+  });
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* List Column */}
@@ -121,54 +141,60 @@ export function FinalExamParticipants() {
 
         {isLoading ? (
           <div className="flex justify-center p-20">
-            <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
+            <Loader2 className="w-10 h-10 text-green-900 animate-spin" />
           </div>
-        ) : filtered.length > 0 ? (
+        ) : sorted.length > 0 ? (
           <div className="space-y-3">
-            {filtered.map((reg) => (
-              <Card 
+            {sorted.map((reg) => (
+              <div 
                 key={reg.id} 
                 onClick={() => handleOpenGrading(reg)}
                 className={cn(
-                  "rounded-2xl border-none shadow-md hover:shadow-lg transition-all cursor-pointer overflow-hidden group",
-                  selectedReg?.id === reg.id ? "ring-2 ring-green-500" : ""
+                  "p-4 sm:p-5 rounded-2xl border bg-white flex items-center justify-between cursor-pointer transition-all duration-300 active:scale-[0.99] group",
+                  selectedReg?.id === reg.id 
+                    ? "border-green-800 bg-green-50/15 shadow-sm" 
+                    : "border-gray-100 shadow-sm hover:shadow-md"
                 )}
               >
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
-                      <User className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-gray-900 leading-tight">{reg.user.full_name}</h4>
-                      <p className="text-xs text-gray-500 font-medium">
-                        {reg.schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(reg.schedule.exam_date))}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
-                          reg.status === 'completed' || reg.status === 'graded' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                        )}>
-                          {reg.status === 'graded' ? 'Sudah Dinilai' : reg.status}
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-green-50 group-hover:text-green-900 group-hover:border-green-100 transition-colors">
+                    <User className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-gray-900 leading-tight">{reg.user.full_name}</h4>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      {reg.schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(reg.schedule.exam_date))}
+                      {reg.schedule.start_time && ` • ${reg.schedule.start_time} - ${reg.schedule.end_time || ''} WIB`}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
+                        reg.status === 'completed' || reg.status === 'graded' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      )}>
+                        {reg.status === 'graded' ? 'Sudah Dinilai' : reg.status}
+                      </span>
+                      {reg.score_lisan !== null && (
+                        <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                          Nilai: {reg.score_lisan}
                         </span>
-                        {reg.score_lisan !== null && (
-                          <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                            Nilai: {reg.score_lisan}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {reg.schedule.examiner?.full_name && (
+                        <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                          Penguji: {formatExaminerName(reg.schedule.examiner.full_name)}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <ChevronRight className={cn(
-                    "w-5 h-5 transition-transform",
-                    selectedReg?.id === reg.id ? "translate-x-1 text-green-600" : "text-gray-300"
-                  )} />
-                </CardContent>
-              </Card>
+                </div>
+                <ChevronRight className={cn(
+                  "w-5 h-5 transition-transform",
+                  selectedReg?.id === reg.id ? "translate-x-1 text-green-900" : "text-gray-300"
+                )} />
+              </div>
             ))}
           </div>
         ) : (
-          <div className="text-center p-20 glass-premium rounded-3xl">
+          <div className="text-center p-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <User className="w-16 h-16 mx-auto mb-4 opacity-10" />
             <p className="text-gray-400 font-bold">Tidak ada pendaftar ditemukan.</p>
           </div>
@@ -178,8 +204,8 @@ export function FinalExamParticipants() {
       {/* Grading Column */}
       <div className="lg:col-span-1">
         {selectedReg ? (
-          <Card className="rounded-3xl border-none shadow-2xl glass-premium sticky top-24 overflow-hidden animate-fadeInRight">
-            <div className="bg-gradient-to-br from-green-600 to-emerald-700 p-6 text-white">
+          <Card className="rounded-3xl border border-gray-100 bg-white shadow-xl sticky top-24 overflow-hidden animate-fadeInRight">
+            <div className="bg-gradient-to-br from-green-900 to-emerald-800 p-6 text-white">
               <h3 className="text-lg font-black tracking-tight">Form Penilaian</h3>
               <p className="text-xs text-green-100 opacity-80 mt-1">Berikan penilaian untuk {selectedReg.user.full_name}</p>
             </div>
@@ -218,7 +244,7 @@ export function FinalExamParticipants() {
                 <Button 
                   onClick={handleSaveGrade}
                   disabled={isSubmitting}
-                  className="w-full rounded-xl bg-green-600 hover:bg-green-700 h-12 shadow-lg shadow-green-600/20 font-bold"
+                  className="w-full rounded-xl bg-green-900 hover:bg-green-800 text-white font-bold h-12 shadow-md shadow-green-900/10 active:scale-95 duration-200 transition-all"
                 >
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                   Simpan Penilaian
@@ -240,19 +266,31 @@ export function FinalExamParticipants() {
                 <div className="bg-gray-50 rounded-2xl p-4 space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Tanggal:</span>
-                    <span className="font-bold text-gray-900">{selectedReg.schedule.exam_date}</span>
+                    <span className="font-bold text-gray-900">
+                      {new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date(selectedReg.schedule.exam_date))}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500">Waktu:</span>
-                    <span className="font-bold text-gray-900">{selectedReg.schedule.start_time} WIB</span>
+                    <span className="font-bold text-gray-900">
+                      {selectedReg.schedule.start_time} - {selectedReg.schedule.end_time || ''} WIB
+                    </span>
                   </div>
+                  {selectedReg.schedule.examiner?.full_name && (
+                    <div className="flex justify-between text-xs border-t border-gray-200/50 pt-2 mt-2">
+                      <span className="text-gray-500">Penguji:</span>
+                      <span className="font-bold text-indigo-700">
+                        {formatExaminerName(selectedReg.schedule.examiner.full_name)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="hidden lg:flex flex-col items-center justify-center h-full border-2 border-dashed border-gray-100 rounded-[3rem] p-10 text-center space-y-4">
-             <div className="w-16 h-16 rounded-3xl bg-gray-50 flex items-center justify-center text-gray-200">
+          <div className="hidden lg:flex flex-col items-center justify-center h-full border border-dashed border-gray-200 bg-white rounded-[2rem] p-10 text-center space-y-4 shadow-sm">
+             <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100/50 flex items-center justify-center text-gray-300">
                 <Award className="w-8 h-8" />
              </div>
              <div>

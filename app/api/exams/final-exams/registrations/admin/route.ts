@@ -6,9 +6,12 @@ export async function GET(request: Request) {
   const authError = await requireAdmin();
   if (authError) return authError;
 
+  const { searchParams } = new URL(request.url);
+  const scheduleId = searchParams.get('schedule_id');
+
   const supabase = createClient();
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('final_exam_registrations')
     .select(`
       *,
@@ -17,8 +20,13 @@ export async function GET(request: Request) {
         *,
         examiner:users!final_exam_schedules_examiner_id_fkey (full_name)
       )
-    `)
-    .order('created_at', { ascending: false });
+    `);
+
+  if (scheduleId) {
+    query = query.eq('schedule_id', scheduleId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) return ApiResponses.databaseError(error);
   return ApiResponses.success(data);

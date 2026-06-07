@@ -718,25 +718,27 @@ function AdminContent() {
         {activeTab === 'exam-questions' && (
           <div className="space-y-6">
             {/* Exam Sub-tabs */}
-            <div className="border-b border-gray-200">
-              <nav className="flex gap-6">
+            <div className="mb-6 overflow-x-auto pb-1.5 scrollbar-hide">
+              <nav className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-max" aria-label="Sub-tabs">
                 <button
                   onClick={() => setActiveExamSubTab('questions')}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={cn(
+                    "flex items-center gap-2 py-2 px-4 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300",
                     activeExamSubTab === 'questions'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                      ? "bg-white text-green-900 shadow-sm border border-green-900/10"
+                      : "text-gray-500 hover:text-green-800 hover:bg-white/50"
+                  )}
                 >
                   Questions
                 </button>
                 <button
                   onClick={() => setActiveExamSubTab('settings')}
-                  className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={cn(
+                    "flex items-center gap-2 py-2 px-4 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300",
                     activeExamSubTab === 'settings'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                      ? "bg-white text-green-900 shadow-sm border border-green-900/10"
+                      : "text-gray-500 hover:text-green-800 hover:bg-white/50"
+                  )}
                 >
                   Settings
                 </button>
@@ -851,48 +853,84 @@ Time: ${new Date().toLocaleString('id-ID')}`}
 // Overview Tab Component
 function OverviewTab({ stats }: { stats: any }) {
   const statCards = [
-    { name: 'Total Users', value: stats.totalUsers, icon: Users, color: 'bg-blue-500' },
-    { name: 'Total Batches', value: stats.totalBatches, icon: Calendar, color: 'bg-indigo-500' },
-    { name: 'Total Programs', value: stats.totalPrograms, icon: BookOpen, color: 'bg-green-500' },
-    { name: 'Total Halaqah', value: stats.totalHalaqah, icon: GraduationCap, color: 'bg-purple-500' },
-    { name: 'Total Thalibah', value: stats.totalThalibah, icon: UserPlus, color: 'bg-yellow-500' },
-    { name: 'Total Mentors', value: stats.totalMentors, icon: UserCheck, color: 'bg-pink-500' },
-    { name: 'Pending Registrations', value: stats.pendingRegistrations, icon: ClipboardList, color: 'bg-red-500' },
-    { name: 'Pending Tikrar', value: stats.pendingTikrar, icon: Award, color: 'bg-orange-500' }
+    { 
+      name: 'Total Users', 
+      value: stats.totalUsers, 
+      icon: Users, 
+      color: 'bg-blue-500 shadow-blue-200' 
+    },
+    { 
+      name: 'Total Batches', 
+      value: stats.totalBatches, 
+      icon: Calendar, 
+      color: 'bg-indigo-500 shadow-indigo-200' 
+    },
+    { 
+      name: 'Total Programs', 
+      value: stats.totalPrograms, 
+      icon: BookOpen, 
+      color: 'bg-emerald-500 shadow-emerald-200' 
+    },
+    { 
+      name: 'Total Halaqah', 
+      value: stats.totalHalaqah, 
+      icon: GraduationCap, 
+      color: 'bg-purple-500 shadow-purple-200' 
+    },
+    { 
+      name: 'Total Thalibah', 
+      value: stats.totalThalibah, 
+      icon: UserPlus, 
+      color: 'bg-amber-500 shadow-amber-200' 
+    },
+    { 
+      name: 'Total Mentors', 
+      value: stats.totalMentors, 
+      icon: UserCheck, 
+      color: 'bg-pink-500 shadow-pink-200' 
+    },
+    { 
+      name: 'Pending Registrations', 
+      value: stats.pendingRegistrations, 
+      icon: ClipboardList, 
+      color: 'bg-red-500 shadow-red-200' 
+    },
+    { 
+      name: 'Pending Tikrar', 
+      value: stats.pendingTikrar, 
+      icon: Award, 
+      color: 'bg-orange-500 shadow-orange-200' 
+    }
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
       {statCards.map((stat, i) => {
         const Icon = stat.icon;
         return (
           <div
             key={stat.name}
-            className="group glass-premium rounded-3xl p-6 border border-white hover:border-green-100 transition-all duration-500 hover:shadow-2xl hover:-translate-y-1 animate-fadeInUp"
+            className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between transition-all duration-300 hover:shadow-md hover:-translate-y-1 active:scale-95 group animate-fadeInUp"
             style={{ animationDelay: `${i * 50}ms` }}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={cn(
-                "w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:rotate-12",
-                stat.color === 'bg-blue-500' ? "bg-blue-50 text-blue-600" :
-                stat.color === 'bg-indigo-500' ? "bg-indigo-50 text-indigo-600" :
-                stat.color === 'bg-green-500' ? "bg-green-50 text-green-600" :
-                stat.color === 'bg-purple-500' ? "bg-purple-50 text-purple-600" :
-                stat.color === 'bg-yellow-500' ? "bg-yellow-50 text-yellow-600" :
-                stat.color === 'bg-pink-500' ? "bg-pink-50 text-pink-600" :
-                stat.color === 'bg-red-500' ? "bg-red-50 text-red-600" :
-                "bg-orange-50 text-orange-600"
-              )}>
-                <Icon className="h-6 w-6" />
-              </div>
+            <div className="space-y-1">
+              <p className="text-xs sm:text-sm font-bold text-gray-500 tracking-tight group-hover:text-gray-900 transition-colors">
+                {stat.name}
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                {stat.value?.toLocaleString() ?? 0}
+              </h3>
             </div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{stat.name}</p>
-            <h4 className="text-3xl font-black text-gray-900">{stat.value}</h4>
+            <div className={cn(
+              "p-3 sm:p-4 rounded-xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110",
+              stat.color
+            )}>
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
           </div>
         );
       })}
     </div>
-
   );
 }
 

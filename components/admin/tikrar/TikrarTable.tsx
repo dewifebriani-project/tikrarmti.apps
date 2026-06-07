@@ -87,12 +87,12 @@ export function TikrarTable({
                   className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
                 />
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Thalibah</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Readiness</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Juz & Slot</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Scores</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Thalibah</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Readiness</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Juz & Slot</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Scores</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Status</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -219,41 +219,46 @@ export function TikrarTable({
                             href={waUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors border border-emerald-100"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-emerald-100"
                             title="Chat via WhatsApp"
                           >
                             <MessageSquare className="h-4 w-4" />
+                            Chat
                           </a>
                         )}
                         <button
                           onClick={() => onAction('review', t)}
-                          className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors border border-blue-100"
+                          className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-blue-100"
                           title="Review Detail"
                         >
                           <FileText className="h-4 w-4" />
+                          Detail
                         </button>
                         <button
                           onClick={() => onAction('edit', t)}
-                          className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 transition-colors border border-gray-100"
+                          className="px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-gray-100"
                           title="Edit"
                         >
                           <Edit className="h-4 w-4" />
+                          Edit
                         </button>
                         {t.status === 'approved' && (
                           <button
                             onClick={() => onAction('unapprove', t)}
-                            className="p-2 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 transition-colors border border-orange-100"
+                            className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-orange-100"
                             title="Batalkan Persetujuan"
                           >
                             <Undo2 className="h-4 w-4" />
+                            Batal
                           </button>
                         )}
                         <button
                           onClick={() => onAction('delete', t)}
-                          className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition-colors border border-red-100"
+                          className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-red-100"
                           title="Hapus"
                         >
                           <Trash2 className="h-4 w-4" />
+                          Hapus
                         </button>
                       </div>
                     </td>

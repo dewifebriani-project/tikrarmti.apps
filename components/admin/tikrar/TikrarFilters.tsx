@@ -67,7 +67,7 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches }:
             <select
               value={batchId}
               onChange={(e) => setBatchId(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
+              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
             >
               <option value="all">Semua Batch</option>
               {batches.map((b) => (
@@ -81,7 +81,7 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches }:
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
+              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
             >
               <option value="all">Semua Status</option>
               <option value="pending">Pending</option>
@@ -95,7 +95,7 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches }:
           <select
             value={selectionStatus}
             onChange={(e) => setSelectionStatus(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
+            className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
           >
             <option value="all">Semua Seleksi</option>
             <option value="pending">Pending Seleksi</option>
@@ -117,7 +117,7 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches }:
           {(search || batchId !== 'all' || status !== 'all' || selectionStatus !== 'all') && (
             <button
               onClick={handleClear}
-              className="text-sm font-bold text-red-600 hover:text-red-700 px-2"
+              className="text-sm font-medium text-red-600 hover:text-red-700 px-2"
             >
               Reset
             </button>

@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2, GraduationCap, Edit } from 'lucide-react';
+import { Plus, Trash2, Calendar as CalendarIcon, Clock, Users, Link as LinkIcon, Save, X, Loader2, GraduationCap, Edit, MessageSquare, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useActiveBatch, useBatches } from '@/hooks/useBatches';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface Examiner {
   id: string;
@@ -41,6 +42,41 @@ export function FinalExamSchedules() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [viewingParticipantsSchedule, setViewingParticipantsSchedule] = useState<Schedule | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [isFetchingParticipants, setIsFetchingParticipants] = useState(false);
+
+  useEffect(() => {
+    if (viewingParticipantsSchedule) {
+      fetchParticipants(viewingParticipantsSchedule.id);
+    }
+  }, [viewingParticipantsSchedule]);
+
+  const fetchParticipants = async (scheduleId: string) => {
+    setIsFetchingParticipants(true);
+    try {
+      const response = await fetch(`/api/exams/final-exams/registrations/admin?schedule_id=${scheduleId}`);
+      const result = await response.json();
+      if (result.success) {
+        setParticipants(result.data || []);
+      }
+    } catch (error) {
+      console.error('Fetch participants error:', error);
+      toast.error('Gagal mengambil data pendaftar');
+    } finally {
+      setIsFetchingParticipants(false);
+    }
+  };
+
+  const getWhatsAppLink = (phone?: string) => {
+    if (!phone) return '#';
+    let clean = phone.replace(/[^0-9]/g, '');
+    if (clean.startsWith('0')) {
+      clean = '62' + clean.slice(1);
+    }
+    return `https://wa.me/${clean}`;
+  };
 
   const [formData, setFormData] = useState({
     batch_id: '',
@@ -274,7 +310,7 @@ export function FinalExamSchedules() {
               else setFormData(prev => ({ ...prev, batch_id: selectedBatchId || '' }));
               setShowAddForm(!showAddForm);
             }}
-            className="rounded-xl bg-green-600 hover:bg-green-700"
+            className="rounded-xl bg-green-900 hover:bg-green-800 text-white font-bold transition-all shadow-sm active:scale-95 duration-200"
           >
             {showAddForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
             {showAddForm ? 'Batal' : 'Tambah Jadwal'}
@@ -282,9 +318,9 @@ export function FinalExamSchedules() {
       </div>
 
       {showAddForm && (
-        <Card className="rounded-3xl border-2 border-green-100 shadow-xl animate-fadeInDown overflow-hidden">
-          <CardHeader className="bg-green-50/50 border-b border-green-100">
-            <CardTitle className="text-sm font-bold uppercase tracking-widest text-green-800">
+        <Card className="rounded-3xl border border-gray-100 bg-white shadow-xl animate-fadeInDown overflow-hidden">
+          <CardHeader className="bg-gray-50/50 border-b border-gray-100 py-5">
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
               {editingId ? 'Edit Jadwal Ujian' : 'Input Jadwal Baru'}
             </CardTitle>
           </CardHeader>
@@ -434,7 +470,7 @@ export function FinalExamSchedules() {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="rounded-xl bg-green-600 hover:bg-green-700 px-8"
+                  className="rounded-xl bg-green-900 hover:bg-green-800 text-white font-bold transition-all shadow-sm active:scale-95 duration-200 px-8"
                 >
                   {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                   {editingId ? 'Update Jadwal' : 'Simpan Jadwal'}
@@ -452,74 +488,215 @@ export function FinalExamSchedules() {
       ) : schedules.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {schedules.map(schedule => (
-            <Card key={schedule.id} className="rounded-3xl border-none shadow-xl hover:shadow-2xl transition-all overflow-hidden group">
-              <div className={cn(
-                "h-2 w-full",
-                schedule.exam_type === 'oral' ? "bg-amber-500" : "bg-blue-500"
-              )} />
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
+            <div 
+              key={schedule.id} 
+              onClick={() => setViewingParticipantsSchedule(schedule)}
+              className={cn(
+                "p-5 rounded-2xl border transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer group active:scale-[0.98]",
+                schedule.exam_type === 'oral' 
+                  ? "bg-amber-50/60 border-amber-100 hover:bg-amber-50" 
+                  : "bg-blue-50/60 border-blue-100 hover:bg-blue-50"
+              )}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100/50 group-hover:scale-110 transition-transform duration-300">
+                  {schedule.exam_type === 'oral' ? (
+                    <Clock className="h-5 w-5 text-amber-600" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-blue-600" />
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-1">
                   <div className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                    schedule.exam_type === 'oral' ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                    "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border",
+                    schedule.exam_type === 'oral' 
+                      ? "bg-amber-100/60 text-amber-800 border-amber-200/50" 
+                      : "bg-blue-100/60 text-blue-800 border-blue-200/50"
                   )}>
-                    {schedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'}
+                    {schedule.exam_type === 'oral' ? 'Lisan' : 'Tulis'}
                   </div>
-                  <div className="flex gap-1">
+                  
+                  <div className="flex gap-0.5">
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => handleEdit(schedule)}
-                      className="text-gray-300 hover:text-blue-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(schedule);
+                      }}
+                      className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-gray-100 shadow-none"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" />
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => handleDelete(schedule.id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(schedule.id);
+                      }}
+                      className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-gray-100 shadow-none"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
+              </div>
 
-                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5 text-green-600" />
+              <div className="space-y-3">
+                <h3 className="text-base font-black text-gray-900 tracking-tight leading-snug">
                   {new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(schedule.exam_date))}
                 </h3>
-
-                <div className="space-y-3 text-sm font-medium text-gray-600">
-                  <div className="flex items-center gap-3">
-                    <Clock className="w-4 h-4 opacity-40" />
+                
+                <div className="space-y-2 text-xs font-semibold text-gray-600">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-400">
+                      <Clock className="w-3.5 h-3.5" />
+                    </div>
                     <span>{schedule.start_time} - {schedule.end_time} WIB</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Users className="w-4 h-4 opacity-40" />
-                    <span>Quota: <span className="text-gray-900 font-bold">{schedule.current_count} / {schedule.max_quota}</span></span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-400">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Kuota: <span className="text-gray-950 font-bold">{schedule.current_count} / {schedule.max_quota}</span></span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="w-4 h-4 opacity-40" />
-                    <span>Penguji: <span className="text-gray-900 font-bold">{schedule.examiner?.full_name || '-'}</span></span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-400">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                    </div>
+                    <span>Penguji: <span className="text-gray-950 font-bold">{schedule.examiner?.full_name || '-'}</span></span>
                   </div>
                   {schedule.location_link && (
-                    <div className="flex items-center gap-3 truncate">
-                      <LinkIcon className="w-4 h-4 opacity-40" />
-                      <a href={schedule.location_link} target="_blank" className="text-blue-600 hover:underline truncate">{schedule.location_link}</a>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                        <LinkIcon className="w-3.5 h-3.5" />
+                      </div>
+                      <a 
+                        href={schedule.location_link} 
+                        target="_blank" 
+                        onClick={(e) => e.stopPropagation()} 
+                        className="text-blue-600 hover:underline truncate"
+                      >
+                        {schedule.location_link}
+                      </a>
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       ) : (
-        <div className="text-center p-20 glass-premium rounded-3xl border border-gray-100">
+        <div className="text-center p-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
           <CalendarIcon className="w-16 h-16 mx-auto mb-4 opacity-10" />
           <p className="text-gray-400 font-bold">Belum ada jadwal ujian yang dibuat.</p>
         </div>
       )}
+
+      <Dialog 
+        open={!!viewingParticipantsSchedule} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setViewingParticipantsSchedule(null);
+            setParticipants([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-xl rounded-[2rem] border-none shadow-2xl p-0 overflow-hidden bg-white">
+          {viewingParticipantsSchedule && (
+            <>
+              <DialogHeader className={cn(
+                "p-6 text-white bg-gradient-to-br relative overflow-hidden",
+                viewingParticipantsSchedule.exam_type === 'oral' ? "from-amber-500 to-orange-600" : "from-blue-500 to-indigo-600"
+              )}>
+                <div className="relative z-10">
+                  <DialogTitle className="text-xl font-black flex items-center gap-2 mb-1 text-white">
+                    <Users className="w-6 h-6" />
+                    Daftar Pendaftar Ujian
+                  </DialogTitle>
+                  <DialogDescription className="text-white/95 font-medium leading-relaxed">
+                    {viewingParticipantsSchedule.exam_type === 'oral' ? 'Ujian Lisan' : 'Ujian Tulisan'} • {new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(viewingParticipantsSchedule.exam_date))}
+                    <div className="text-xs text-white/80 mt-1 font-bold">
+                      Waktu: {viewingParticipantsSchedule.start_time} - {viewingParticipantsSchedule.end_time} WIB | Penguji: {viewingParticipantsSchedule.examiner?.full_name || '-'}
+                    </div>
+                  </DialogDescription>
+                </div>
+                {/* Background decorative details */}
+                <div className="absolute top-0 right-0 -mr-12 -mt-12 w-36 h-36 bg-white/10 rounded-full blur-2xl" />
+                <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-36 h-36 bg-black/10 rounded-full blur-2xl" />
+              </DialogHeader>
+              
+              <div className="p-6 max-h-[50vh] overflow-y-auto bg-gray-50/50 space-y-4">
+                <div className="flex justify-between items-center bg-white border border-gray-100 p-4 rounded-2xl shadow-sm">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sisa Kuota Sesi</span>
+                  <span className="text-sm font-black text-gray-950">
+                    {viewingParticipantsSchedule.max_quota - viewingParticipantsSchedule.current_count} / {viewingParticipantsSchedule.max_quota} Kursi
+                  </span>
+                </div>
+
+                {isFetchingParticipants ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-2">
+                    <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Memuat Peserta...</p>
+                  </div>
+                ) : participants.length > 0 ? (
+                  <div className="space-y-3">
+                    {participants.map((p) => (
+                      <div 
+                        key={p.id} 
+                        className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm hover:shadow transition-shadow"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
+                            <Users className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-900 leading-tight">{p.user?.full_name || 'Tanpa Nama'}</h4>
+                            <p className="text-xs text-gray-500 font-semibold">{p.user?.whatsapp || '-'}</p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
+                                p.status === 'completed' || p.status === 'graded' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                              )}>
+                                {p.status === 'graded' ? 'Sudah Dinilai' : p.status}
+                              </span>
+                              {p.score_lisan !== null && (
+                                <span className="text-[9px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
+                                  Nilai: {p.score_lisan}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {p.user?.whatsapp && (
+                          <a 
+                            href={getWhatsAppLink(p.user.whatsapp)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-green-600 hover:text-green-700 font-bold text-xs bg-green-50 hover:bg-green-100 px-3 py-2 rounded-xl border border-green-100 transition-colors"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            Hubungi
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400 bg-white border border-gray-100 rounded-2xl p-6">
+                    <Users className="w-12 h-12 mx-auto mb-2 opacity-10" />
+                    <p className="text-sm font-bold">Belum ada peserta terdaftar.</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
