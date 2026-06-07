@@ -22,6 +22,25 @@ interface Schedule {
   examiner?: { full_name: string };
 }
 
+const formatExaminerName = (name?: string) => {
+  if (!name) return 'TBA';
+  const cleanName = name.trim();
+  const lower = cleanName.toLowerCase();
+  if (
+    lower.startsWith('ustadzah') || 
+    lower.startsWith('ustd') || 
+    lower.startsWith('ustz') || 
+    lower.startsWith('ust.') ||
+    lower.startsWith('ustz.') ||
+    lower.startsWith('ustd.') ||
+    lower.startsWith('ustad ') ||
+    lower.startsWith('ustadz ')
+  ) {
+    return cleanName;
+  }
+  return `Ustadzah ${cleanName}`;
+};
+
 interface FinalExamSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -148,7 +167,7 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
                   <div className="text-sm text-gray-600 font-medium bg-white rounded-2xl p-4 border border-gray-100">
                     <p>Jadwal: <span className="text-gray-900 font-bold">{new Intl.DateTimeFormat('id-ID', { dateStyle: 'full' }).format(new Date(existingRegistration.schedule.exam_date))}</span></p>
                     <p>Waktu: <span className="text-gray-900 font-bold">{existingRegistration.schedule.start_time} - {existingRegistration.schedule.end_time} WIB</span></p>
-                    <p>Penguji: <span className="text-gray-900 font-bold">{existingRegistration.schedule.examiner?.full_name}</span></p>
+                    <p>Penguji: <span className="text-gray-900 font-bold">{formatExaminerName(existingRegistration.schedule.examiner?.full_name)}</span></p>
                   </div>
                 )}
               </div>
@@ -206,7 +225,7 @@ export function FinalExamSelectionModal({ isOpen, onClose, examType, batchId }: 
                           </div>
                           <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-700">
                              <GraduationCap className="w-3.5 h-3.5" />
-                             Penguji: {schedule.examiner?.full_name || 'TBA'}
+                             Penguji: {formatExaminerName(schedule.examiner?.full_name)}
                           </div>
                         </div>
                         

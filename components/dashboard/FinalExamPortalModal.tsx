@@ -135,7 +135,7 @@ export function FinalExamPortalModal({ isOpen, onClose, hariAktual, percentage, 
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-black/10 rounded-full blur-3xl" />
           </DialogHeader>
 
-          <div className="flex-1 min-h-0 p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50/50 overflow-y-auto">
+          <div className="flex-1 min-h-0 p-6 sm:p-10 flex flex-col md:grid md:grid-cols-2 gap-6 bg-gray-50/50 overflow-y-auto">
             {exams.map((exam) => {
               const status = getStatus(exam.type);
               const isLocked = status === 'locked';
