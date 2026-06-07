@@ -487,37 +487,69 @@ export function FinalExamSchedules() {
         </div>
       ) : schedules.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {schedules.map(schedule => (
-            <div 
-              key={schedule.id} 
-              onClick={() => setViewingParticipantsSchedule(schedule)}
-              className={cn(
-                "p-5 rounded-2xl border transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer group active:scale-[0.98]",
-                schedule.exam_type === 'oral' 
-                  ? "bg-amber-50/60 border-amber-100 hover:bg-amber-50" 
-                  : "bg-blue-50/60 border-blue-100 hover:bg-blue-50"
-              )}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100/50 group-hover:scale-110 transition-transform duration-300">
-                  {schedule.exam_type === 'oral' ? (
-                    <Clock className="h-5 w-5 text-amber-600" />
-                  ) : (
-                    <FileText className="h-5 w-5 text-blue-600" />
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <div className={cn(
-                    "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border",
-                    schedule.exam_type === 'oral' 
-                      ? "bg-amber-100/60 text-amber-800 border-amber-200/50" 
-                      : "bg-blue-100/60 text-blue-800 border-blue-200/50"
-                  )}>
-                    {schedule.exam_type === 'oral' ? 'Lisan' : 'Tulis'}
+          {schedules.map(schedule => {
+            const current = schedule.current_count;
+            const max = schedule.max_quota;
+            const isFull = current >= max;
+            const isAlmostFull = !isFull && (current >= max * 0.7 || max - current <= 2);
+
+            let cardBgBorderClass = "";
+            let quotaTextClass = "";
+
+            if (isFull) {
+              cardBgBorderClass = "bg-rose-50/40 border-rose-100 hover:bg-rose-50/60 hover:border-rose-200";
+              quotaTextClass = "text-rose-600 font-extrabold";
+            } else if (isAlmostFull) {
+              cardBgBorderClass = "bg-amber-50/40 border-amber-100 hover:bg-amber-50/60 hover:border-amber-200";
+              quotaTextClass = "text-amber-600 font-extrabold";
+            } else {
+              cardBgBorderClass = "bg-emerald-50/30 border-emerald-100 hover:bg-emerald-50/50 hover:border-emerald-200";
+              quotaTextClass = "text-emerald-600 font-extrabold";
+            }
+
+            return (
+              <div 
+                key={schedule.id} 
+                onClick={() => setViewingParticipantsSchedule(schedule)}
+                className={cn(
+                  "p-5 rounded-2xl border transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer group active:scale-[0.98]",
+                  cardBgBorderClass
+                )}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100/50 group-hover:scale-110 transition-transform duration-300">
+                    {schedule.exam_type === 'oral' ? (
+                      <Clock className="h-5 w-5 text-amber-600" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-blue-600" />
+                    )}
                   </div>
                   
-                  <div className="flex gap-0.5">
+                  <div className="flex items-center gap-1">
+                    <div className={cn(
+                      "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border",
+                      schedule.exam_type === 'oral' 
+                        ? "bg-amber-100/60 text-amber-800 border-amber-200/50" 
+                        : "bg-blue-100/60 text-blue-800 border-blue-200/50"
+                    )}>
+                      {schedule.exam_type === 'oral' ? 'Lisan' : 'Tulis'}
+                    </div>
+
+                    {isFull ? (
+                      <div className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-rose-100/60 text-rose-800 border-rose-200/50">
+                        Penuh
+                      </div>
+                    ) : isAlmostFull ? (
+                      <div className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-amber-100/60 text-amber-800 border-amber-200/50">
+                        Hampir Penuh
+                      </div>
+                    ) : (
+                      <div className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-emerald-100/60 text-emerald-800 border-emerald-200/50">
+                        Tersedia
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-0.5">
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -560,7 +592,7 @@ export function FinalExamSchedules() {
                     <div className="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-400">
                       <Users className="w-3.5 h-3.5" />
                     </div>
-                    <span>Kuota: <span className="text-gray-950 font-bold">{schedule.current_count} / {schedule.max_quota}</span></span>
+                    <span>Kuota: <span className={cn(quotaTextClass)}>{schedule.current_count} / {schedule.max_quota}</span></span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <div className="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-gray-400">
@@ -586,7 +618,8 @@ export function FinalExamSchedules() {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       ) : (
         <div className="text-center p-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
