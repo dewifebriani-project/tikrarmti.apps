@@ -342,27 +342,27 @@ function AdminContent() {
   // Even if client-side check is bypassed, RLS will block unauthorized access.
   const isAdmin: boolean = !authLoading && user?.roles?.includes('admin') === true;
 
-  // SWR hooks for data fetching - only enabled when admin is authenticated
+  // SWR hooks for data fetching - only enabled when admin is authenticated and specific tab is active
   const {
     users: swrUsers,
     isLoading: usersLoading,
     isError: usersError,
     mutate: mutateUsers
-  } = useAdminUsers(isAdmin);
+  } = useAdminUsers(isAdmin && activeTab === 'users');
 
   const {
     tikrar: swrTikrar,
     isLoading: tikrarLoading,
     isError: tikrarError,
     mutate: mutateTikrar
-  } = useAdminTikrar(isAdmin);
+  } = useAdminTikrar(isAdmin && activeTab === 'tikrar');
 
   const {
     stats: swrStats,
     isLoading: statsLoading,
     isError: statsError,
     mutate: mutateStats
-  } = useAdminStats(isAdmin);
+  } = useAdminStats(isAdmin && activeTab === 'overview');
 
   // Data states (kept for compatibility with other tabs)
   const [batches, setBatches] = useState<Batch[]>([]);

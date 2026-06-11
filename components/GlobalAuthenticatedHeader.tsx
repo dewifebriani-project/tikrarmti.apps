@@ -101,8 +101,12 @@ export default function GlobalAuthenticatedHeader({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  
   const getPageTitle = () => {
+    // Read search param for tabs on /admin
+    const tab = isMounted && typeof window !== 'undefined' 
+      ? new URLSearchParams(window.location.search).get('tab') 
+      : null;
+
     const routeTitles: { [key: string]: string } = {
       '/dashboard': 'Dasbor',
       '/pendaftaran': 'Pendaftaran Program',
@@ -116,14 +120,35 @@ export default function GlobalAuthenticatedHeader({
       '/donasi-dashboard': 'Donasi',
       '/lengkapi-profile': 'Edit Profil',
       '/pengaturan': 'Pengaturan',
+      '/admin/muallimah': 'Daftar Muallimah',
+      '/admin/tikrar': 'Pendaftaran & Seleksi',
+      '/admin/users': 'Manajemen Users',
+      '/admin/exams': 'Manajemen Ujian Akhir',
+      '/admin/batch-program': 'Manajemen Batch & Program',
+      '/admin/otp-viewer': 'OTP Viewer',
       '/admin': 'Admin Dashboard',
       '/panel-musyrifah': 'Panel Musyrifah',
       '/panel-muallimah': 'Panel Muallimah',
       '/presensi-jurnal': 'Presensi & Jurnal',
     };
 
-    // Handle nested routes
-    for (const route in routeTitles) {
+    // If it's the admin page and has a tab parameter
+    if (pathname === '/admin' && tab) {
+      const tabTitles: { [key: string]: string } = {
+        'overview': 'Ringkasan Statistik',
+        'tikrar': 'Pendaftaran & Seleksi',
+        'daftar-ulang': 'Daftar Ulang',
+        'halaqah': 'Manajemen Halaqah',
+        'exam-questions': 'Bank Soal Seleksi',
+      };
+      if (tabTitles[tab]) {
+        return tabTitles[tab];
+      }
+    }
+
+    // Handle nested routes, checking longer (more specific) paths first
+    const sortedRoutes = Object.keys(routeTitles).sort((a, b) => b.length - a.length);
+    for (const route of sortedRoutes) {
       if (pathname.startsWith(route)) {
         return routeTitles[route];
       }
@@ -136,6 +161,10 @@ export default function GlobalAuthenticatedHeader({
     const breadcrumbs = [
       { label: 'Beranda', href: '/dashboard' }
     ];
+
+    const tab = isMounted && typeof window !== 'undefined' 
+      ? new URLSearchParams(window.location.search).get('tab') 
+      : null;
 
     if (pathname.startsWith('/pendaftaran')) {
       breadcrumbs.push({ label: 'Pendaftaran', href: '/pendaftaran' });
@@ -169,10 +198,40 @@ export default function GlobalAuthenticatedHeader({
       breadcrumbs.push({ label: 'Pengaturan', href: '/pengaturan' });
     } else if (pathname.startsWith('/admin')) {
       breadcrumbs.push({ label: 'Admin', href: '/admin' });
+      
+      // Check sub-routes of /admin
+      if (pathname.includes('/muallimah')) {
+        breadcrumbs.push({ label: 'Daftar Muallimah', href: '/admin/muallimah' });
+      } else if (pathname.includes('/tikrar')) {
+        breadcrumbs.push({ label: 'Pendaftaran & Seleksi', href: '/admin/tikrar' });
+      } else if (pathname.includes('/users')) {
+        breadcrumbs.push({ label: 'Manajemen Users', href: '/admin/users' });
+      } else if (pathname.includes('/exams')) {
+        breadcrumbs.push({ label: 'Manajemen Ujian Akhir', href: '/admin/exams' });
+      } else if (pathname.includes('/batch-program')) {
+        breadcrumbs.push({ label: 'Manajemen Batch & Program', href: '/admin/batch-program' });
+      } else if (pathname.includes('/otp-viewer')) {
+        breadcrumbs.push({ label: 'OTP Viewer', href: '/admin/otp-viewer' });
+      } 
+      // If it's the main admin route but has a tab
+      else if (pathname === '/admin' && tab) {
+        const tabLabels: { [key: string]: string } = {
+          'overview': 'Ringkasan Statistik',
+          'tikrar': 'Pendaftaran & Seleksi',
+          'daftar-ulang': 'Daftar Ulang',
+          'halaqah': 'Manajemen Halaqah',
+          'exam-questions': 'Bank Soal Seleksi',
+        };
+        if (tabLabels[tab]) {
+          breadcrumbs.push({ label: tabLabels[tab], href: `/admin?tab=${tab}` });
+        }
+      }
     } else if (pathname.startsWith('/panel-musyrifah')) {
       breadcrumbs.push({ label: 'Panel Musyrifah', href: '/panel-musyrifah' });
     } else if (pathname.startsWith('/panel-muallimah')) {
       breadcrumbs.push({ label: 'Panel Muallimah', href: '/panel-muallimah' });
+    } else if (pathname.startsWith('/presensi-jurnal')) {
+      breadcrumbs.push({ label: 'Presensi & Jurnal', href: '/presensi-jurnal' });
     }
 
     return breadcrumbs;

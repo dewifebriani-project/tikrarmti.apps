@@ -91,3 +91,7 @@ build/
 
 .vercel
 .env*.local
+
+# Local tool configs
+.codex/
+

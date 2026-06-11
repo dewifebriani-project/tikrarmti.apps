@@ -79,7 +79,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       // SECTION: ALUR PENDAFTARAN
       baseItems.push({ type: 'header', label: 'Alur Pendaftaran' });
       baseItems.push({
-        href: '/admin?tab=tikrar',
+        href: '/admin/tikrar',
         label: 'Pendaftaran & Seleksi',
         icon: <ClipboardList className="h-5 w-5" />,
       });
