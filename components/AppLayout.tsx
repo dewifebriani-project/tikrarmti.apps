@@ -43,7 +43,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     '/ujian',
     '/alumni',
     '/statistik',
-    '/tagihan-pembayaran',
+    '/infaq-donasi',
     '/donasi-dashboard',
     '/pengaturan',
     '/profile',

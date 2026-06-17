@@ -70,7 +70,7 @@ export function AdminTestimonialsTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Apakah antum yakin ingin menghapus testimoni ini? Tindakan ini tidak bisa dibatalkan.')) return;
+    if (!window.confirm('Apakah Ukhti yakin ingin menghapus testimoni ini? Tindakan ini tidak bisa dibatalkan.')) return;
 
     try {
       const res = await fetch(`/api/admin/testimonials?id=${id}`, {

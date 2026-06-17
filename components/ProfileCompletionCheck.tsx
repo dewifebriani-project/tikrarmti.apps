@@ -17,7 +17,7 @@ export default function ProfileCompletionCheck({ children, fallback }: ProfileCo
   const excludedRoutes = [
     '/dashboard',
     '/pengaturan',
-    '/tagihan-pembayaran',
+    '/infaq-donasi',
     '/admin'
   ];
 

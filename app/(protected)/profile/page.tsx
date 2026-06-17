@@ -1330,7 +1330,7 @@ function AccountSecurity() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-gray-900">Kata Sandi</p>
-            <p className="text-sm text-gray-500">Ubah kata sandi Antum secara berkala untuk keamanan.</p>
+            <p className="text-sm text-gray-500">Ubah kata sandi Ukhti secara berkala untuk keamanan.</p>
           </div>
           <Button
             variant="outline"

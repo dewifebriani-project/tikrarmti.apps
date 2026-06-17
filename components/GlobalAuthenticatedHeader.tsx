@@ -116,7 +116,7 @@ export default function GlobalAuthenticatedHeader({
       '/ujian': 'Ujian',
       '/alumni': 'Ruang Alumni',
       '/statistik': 'Statistik',
-      '/tagihan-pembayaran': 'Infaq & Donasi',
+      '/infaq-donasi': 'Infaq & Donasi',
       '/donasi-dashboard': 'Donasi',
       '/lengkapi-profile': 'Edit Profil',
       '/pengaturan': 'Pengaturan',
@@ -188,8 +188,8 @@ export default function GlobalAuthenticatedHeader({
       breadcrumbs.push({ label: 'Ruang Alumni', href: '/alumni' });
     } else if (pathname.startsWith('/statistik')) {
       breadcrumbs.push({ label: 'Statistik', href: '/statistik' });
-    } else if (pathname.startsWith('/tagihan-pembayaran')) {
-      breadcrumbs.push({ label: 'Tagihan & Pembayaran', href: '/tagihan-pembayaran' });
+    } else if (pathname.startsWith('/infaq-donasi')) {
+      breadcrumbs.push({ label: 'Infaq & Donasi', href: '/infaq-donasi' });
     } else if (pathname.startsWith('/donasi-dashboard')) {
       breadcrumbs.push({ label: 'Donasi', href: '/donasi-dashboard' });
     } else if (pathname.startsWith('/lengkapi-profile')) {

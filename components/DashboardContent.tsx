@@ -326,7 +326,7 @@ export default function DashboardContent() {
             <div className="space-y-2">
               <h2 className="text-2xl font-black text-gray-900 tracking-tight">Afwan Ukhti,</h2>
               <p className="text-gray-500 font-medium leading-relaxed">
-                Status antum saat ini adalah <span className="text-rose-600 font-black">Dropout (DO)</span> sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.
+                Status Ukhti saat ini adalah <span className="text-rose-600 font-black">Dropout (DO)</span> sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.
               </p>
             </div>
             <div className="pt-4">
@@ -775,7 +775,7 @@ export default function DashboardContent() {
             { label: 'Ujian Pekanan', icon: Calendar, color: 'amber', href: '/ujian' },
             { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '#' },
             { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
-            { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/tagihan-pembayaran' },
+            { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/infaq-donasi' },
             { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
           ].map((item, i) => (
             <Link key={i} href={item.href} className="group min-w-0">
@@ -793,12 +793,14 @@ export default function DashboardContent() {
                 "h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white transition-all duration-300 flex flex-col items-center text-center justify-start sm:justify-center min-h-[90px] sm:min-h-0 relative overflow-hidden",
                 (item as any).locked 
                   ? "opacity-50 grayscale cursor-not-allowed" 
-                  : "hover:border-green-100 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                  : "hover:border-green-100 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
+                item.label === 'Infaq & Donasi' && "bg-amber-50/90 border-amber-300/80 shadow-md shadow-amber-100/50 hover:border-amber-400"
               )}
             >
                 <div className={cn(
                   "w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1 sm:mb-3 transition-transform duration-300 shadow-sm flex-shrink-0 relative",
                   !(item as any).locked && "group-hover:scale-110",
+                  item.label === 'Infaq & Donasi' ? "bg-amber-500 text-white shadow-md shadow-amber-350/50 border border-amber-400/30" :
                   item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
                   item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
                   item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
@@ -813,7 +815,10 @@ export default function DashboardContent() {
                     </div>
                   )}
                 </div>
-                <h3 className="text-[8px] sm:text-xs lg:text-sm font-bold text-gray-900 leading-[1.1] w-full px-0.5 break-words">
+                <h3 className={cn(
+                  "text-[8px] sm:text-xs lg:text-sm font-bold leading-[1.1] w-full px-0.5 break-words",
+                  item.label === 'Infaq & Donasi' ? "text-amber-950" : "text-gray-900"
+                )}>
                   {item.label}
                 </h3>
               </div>

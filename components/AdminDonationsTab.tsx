@@ -102,7 +102,7 @@ export function AdminDonationsTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Apakah antum yakin ingin menghapus catatan donasi ini?')) return;
+    if (!window.confirm('Apakah Ukhti yakin ingin menghapus catatan donasi ini?')) return;
 
     try {
       const res = await fetch(`/api/admin/donations?id=${id}`, {
@@ -344,7 +344,7 @@ export function AdminDonationsTab() {
                 {actionType === 'approved' ? 'Setujui Penerimaan Donasi' : 'Tolak Bukti Donasi'}
               </h3>
               <p className="text-xs text-gray-550 leading-relaxed">
-                Antum akan {actionType === 'approved' ? 'menyetujui' : 'menolak'} donasi sebesar <strong>{formatIDR(currentDonation.amount)}</strong> dari <strong>{currentDonation.donor_name}</strong>. Silakan masukkan catatan admin tambahan jika diperlukan (misal: alasan penolakan).
+                Ukhti akan {actionType === 'approved' ? 'menyetujui' : 'menolak'} donasi sebesar <strong>{formatIDR(currentDonation.amount)}</strong> dari <strong>{currentDonation.donor_name}</strong>. Silakan masukkan catatan admin tambahan jika diperlukan (misal: alasan penolakan).
               </p>
               
               <div className="space-y-2">

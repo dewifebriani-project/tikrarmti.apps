@@ -1264,7 +1264,7 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                               toast.error('Nomor WhatsApp tidak tersedia');
                               return;
                             }
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status antum saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
+                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status Ukhti saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
                             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-950 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
@@ -1280,7 +1280,7 @@ function TashihTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                               toast.error('Nomor WhatsApp tidak tersedia');
                               return;
                             }
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status antum saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
+                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status Ukhti saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
                             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-950 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"
@@ -1552,7 +1552,7 @@ function JurnalTabSimple({ entries, currentWeek, onRefresh, onShowRecords, onIss
                               toast.error('Nomor WhatsApp tidak tersedia');
                               return;
                             }
-                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status antum saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
+                            const message = `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ukhti *${entry.user.full_name}*.\n\nAfwan Ukhti, status Ukhti saat ini adalah *Dropout (DO)* sehingga tidak dapat mengikuti kegiatan Tikrar MTI Batch ini.\n\nJazaakumullah khayran.\nBarakallahu fiikum.`;
                             window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`, '_blank');
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 text-orange-950 border border-orange-200 hover:bg-orange-700 hover:text-white transition-all shadow-sm font-bold text-[10px] uppercase tracking-wider"

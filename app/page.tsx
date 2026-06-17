@@ -17,6 +17,10 @@ import {
 
 import { createSupabaseAdmin } from '@/lib/supabase';
 
+// Force dynamic rendering so testimonials are always fresh
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function Home() {
   const supabase = createSupabaseAdmin();
   const { data: testimonials } = await supabase

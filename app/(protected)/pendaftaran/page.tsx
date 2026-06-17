@@ -354,7 +354,7 @@ export default function PendaftaranPage() {
 
   const handleRegistrationClick = (type: PendaftaranType) => {
     if (isAlumniBlocked) {
-      toast.error('Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu.');
+      toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.');
       router.push('/alumni');
       return;
     }
@@ -419,7 +419,7 @@ export default function PendaftaranPage() {
               <div className="flex-1 space-y-2">
                 <h3 className="font-bold text-red-950 text-base">Umpan Balik Alumni Diperlukan</h3>
                 <p className="text-red-900 text-sm leading-relaxed">
-                  Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu sebelum mendaftar program di batch berikutnya. Ini adalah prasyarat wajib kelulusan dan pendaftaran program baru.
+                  Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu sebelum mendaftar program di batch berikutnya. Ini adalah prasyarat wajib kelulusan dan pendaftaran program baru.
                 </p>
                 <div className="pt-2">
                   <Button asChild className="bg-red-800 hover:bg-red-700 text-white rounded-xl px-4 py-2 text-xs font-semibold shadow-md">

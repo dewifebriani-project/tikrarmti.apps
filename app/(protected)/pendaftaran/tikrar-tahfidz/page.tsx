@@ -77,7 +77,7 @@ export default function ThalibahBatch2Page() {
         if (res.ok) {
           const data = await res.json();
           if (data.isAlumni && !data.testimonial) {
-            toast.error('Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu.');
+            toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.');
             router.push('/alumni');
           }
         }
