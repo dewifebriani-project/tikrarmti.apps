@@ -56,6 +56,7 @@ export default function AlumniPage() {
   const [activeTab, setActiveTab] = useState<'testimonial' | 'donation'>('testimonial');
   const [loading, setLoading] = useState(true);
   const [isAlumni, setIsAlumni] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Testimonial States
   const [testimonial, setTestimonial] = useState<Testimonial | null>(null);
@@ -93,6 +94,7 @@ export default function AlumniPage() {
       if (tRes.ok) {
         const tData = await tRes.json();
         setIsAlumni(tData.isAlumni);
+        setIsAdmin(tData.isAdmin || false);
         if (tData.testimonial) {
           setTestimonial(tData.testimonial);
           setTestimonialContent(tData.testimonial.content);
@@ -278,8 +280,8 @@ export default function AlumniPage() {
     );
   }
 
-  // Not an alumni UI
-  if (!isAlumni) {
+  // Not an alumni UI (unless admin)
+  if (!isAlumni && !isAdmin) {
     return (
       <div className="min-h-screen bg-[#F4F7F5] py-16 px-4">
         <div className="max-w-2xl mx-auto">

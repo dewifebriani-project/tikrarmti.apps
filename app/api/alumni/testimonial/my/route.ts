@@ -42,6 +42,14 @@ export async function GET(request: NextRequest) {
 
     const isAlumnus = await checkIsAlumnus(supabase, user.id);
 
+    // Check if user is admin
+    const { data: userData } = await supabase
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+    const isAdmin = userData?.roles?.includes('admin') || false;
+
     // Fetch the testimonial if it exists
     const { data: testimonial, error: testimonialError } = await supabase
       .from('testimonials')
@@ -55,6 +63,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       isAlumni: isAlumnus,
+      isAdmin,
       testimonial: testimonial || null
     });
   } catch (error: any) {
@@ -76,10 +85,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is an alumnus
+    // Check if user is an alumnus or admin
     const isAlumnus = await checkIsAlumnus(supabase, user.id);
-    if (!isAlumnus) {
-      return NextResponse.json({ error: 'Forbidden - Only alumni can submit testimonials' }, { status: 403 });
+    const { data: userData } = await supabase
+      .from('users')
+      .select('roles')
+      .eq('id', user.id)
+      .single();
+    const isAdmin = userData?.roles?.includes('admin') || false;
+
+    if (!isAlumnus && !isAdmin) {
+      return NextResponse.json({ error: 'Forbidden - Only alumni or admins can submit testimonials' }, { status: 403 });
     }
 
     const body = await request.json();
