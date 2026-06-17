@@ -22,6 +22,8 @@ import { useMyRegistrations } from '@/hooks/useRegistrations';
 import { BatchStatus, ProgramStatus } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface PendaftaranType {
   id: string;
@@ -54,6 +56,32 @@ export default function PendaftaranPage() {
   // SWR hooks for data fetching
   const { batches, programs, loading, error, hasPrograms } = useBatchProgram();
   const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
+
+  const [isAlumniBlocked, setIsAlumniBlocked] = useState(false);
+  const [checkingAlumni, setCheckingAlumni] = useState(true);
+
+  useEffect(() => {
+    async function checkAlumniStatus() {
+      try {
+        const res = await fetch('/api/alumni/testimonial/my');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isAlumni && !data.testimonial) {
+            setIsAlumniBlocked(true);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking alumni status:', err);
+      } finally {
+        setCheckingAlumni(false);
+      }
+    }
+    if (user) {
+      checkAlumniStatus();
+    } else {
+      setCheckingAlumni(false);
+    }
+  }, [user]);
 
   // Calculate registration status from SWR data - per role
   const registrationStatus = useMemo(() => {
@@ -325,6 +353,11 @@ export default function PendaftaranPage() {
   };
 
   const handleRegistrationClick = (type: PendaftaranType) => {
+    if (isAlumniBlocked) {
+      toast.error('Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu.');
+      router.push('/alumni');
+      return;
+    }
     if (type.status === 'open' && !isRegisteredForRole(type)) {
       // Direct to registration page without showing terms modal
       const queryParams = `?batchId=${type.batchId}&programId=${type.programId}`;
@@ -376,6 +409,27 @@ export default function PendaftaranPage() {
             Pilih program yang sesuai dengan kebutuhan dan minat Ukhti
           </p>
         </div>
+
+        {isAlumniBlocked && (
+          <Card className="border-red-200 bg-red-50/50 shadow-md">
+            <CardContent className="p-6 flex items-start gap-4">
+              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-750 flex-shrink-0">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <h3 className="font-bold text-red-950 text-base">Umpan Balik Alumni Diperlukan</h3>
+                <p className="text-red-900 text-sm leading-relaxed">
+                  Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu sebelum mendaftar program di batch berikutnya. Ini adalah prasyarat wajib kelulusan dan pendaftaran program baru.
+                </p>
+                <div className="pt-2">
+                  <Button asChild className="bg-red-800 hover:bg-red-700 text-white rounded-xl px-4 py-2 text-xs font-semibold shadow-md">
+                    <Link href="/alumni">Isi Testimoni Sekarang</Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Registration Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
@@ -463,7 +517,7 @@ export default function PendaftaranPage() {
                     {/* Action Button */}
                     <Button
                       onClick={() => handleRegistrationClick(type)}
-                      disabled={type.status !== 'open' || isRegisteredForRole(type)}
+                      disabled={type.status !== 'open' || isRegisteredForRole(type) || isAlumniBlocked}
                       className={`w-full flex items-center justify-center px-4 sm:px-6 py-3 sm:py-4 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 shadow-md hover:shadow-lg ${
                         type.status === 'open' && !isRegisteredForRole(type)
                           ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'

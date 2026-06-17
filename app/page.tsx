@@ -15,7 +15,17 @@ import {
   Sparkles
 } from "lucide-react";
 
-export default function Home() {
+import { createSupabaseAdmin } from '@/lib/supabase';
+
+export default async function Home() {
+  const supabase = createSupabaseAdmin();
+  const { data: testimonials } = await supabase
+    .from('testimonials')
+    .select('*, user:users(full_name)')
+    .eq('is_approved', true)
+    .order('created_at', { ascending: false })
+    .limit(6);
+
   return (
     <>
       {/* Minimal Background Elements */}
@@ -225,6 +235,62 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      {testimonials && testimonials.length > 0 && (
+        <section className="py-24 bg-gradient-to-b from-white to-[#F4F7F5]">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <span className="bg-emerald-100 text-emerald-850 border border-emerald-250 text-xs font-semibold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                Kisah Inspiratif Alumni MTI
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-green-900 mt-4 tracking-tight">
+                Apa Kata Alumni Markaz Tikrar?
+              </h2>
+              <p className="text-gray-650 mt-2.5 leading-relaxed text-sm sm:text-base">
+                Simak pengalaman luar biasa dari para ukhti yang telah menyelesaikan program hafalan di MTI menggunakan Metode Tikrar 40x.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {testimonials.map((t: any) => (
+                <div 
+                  key={t.id} 
+                  className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-500/5 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group flex flex-col justify-between"
+                >
+                  <div className="absolute right-6 top-6 text-emerald-850/5 text-7xl font-serif select-none pointer-events-none group-hover:scale-110 transition-transform">
+                    ”
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1 mb-4">
+                      {Array.from({ length: 5 }).map((_, starIdx) => (
+                        <Star
+                          key={starIdx}
+                          className={`w-4 h-4 ${
+                            starIdx < t.rating ? 'text-amber-450 fill-amber-400 text-amber-400' : 'text-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-gray-750 text-sm italic leading-relaxed mb-6 relative z-10">
+                      "{t.content}"
+                    </p>
+                  </div>
+                  <div className="pt-4 border-t border-gray-100 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-900/10 text-emerald-855 flex items-center justify-center font-bold text-sm">
+                      {t.user?.full_name ? t.user.full_name.substring(0, 2).toUpperCase() : 'HA'}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 text-sm">{t.user?.full_name || 'Hamba Allah'}</h4>
+                      <p className="text-xs text-emerald-750 font-medium">Alumni Program MTI</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* FAQ Section */}
       <FAQComponent />

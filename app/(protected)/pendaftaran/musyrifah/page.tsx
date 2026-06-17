@@ -124,6 +124,27 @@ function MusyrifahRegistrationContent() {
   const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch();
   const [batchInfo, setBatchInfo] = useState<any>(null);
 
+  // Check if user is an alumnus and has not filled in their testimonial
+  useEffect(() => {
+    async function checkAlumniStatus() {
+      try {
+        const res = await fetch('/api/alumni/testimonial/my');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isAlumni && !data.testimonial) {
+            toast.error('Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu.');
+            router.push('/alumni');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking alumni status:', err);
+      }
+    }
+    if (user) {
+      checkAlumniStatus();
+    }
+  }, [user, router]);
+
   const [formData, setFormData] = useState<MusyrifahFormData>({
     // Personal Information
     full_name: '',

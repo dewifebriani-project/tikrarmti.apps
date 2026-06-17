@@ -35,7 +35,8 @@ import {
   RefreshCw,
   HeartHandshake,
   Info,
-  Shield
+  Shield,
+  MessageSquare
 } from 'lucide-react';
 import { AdminDataTable, Column } from '@/components/AdminDataTable';
 import { AdminCrudModal, FormField } from '@/components/AdminCrudModal';
@@ -58,6 +59,8 @@ import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
 import { AdminBlacklistTab } from '@/components/AdminBlacklistTab';
 import { TikrarTab as TikrarManagementTab } from '@/components/admin/tikrar/TikrarTab';
+import { AdminTestimonialsTab } from '@/components/AdminTestimonialsTab';
+import { AdminDonationsTab } from '@/components/AdminDonationsTab';
 import { cn } from '@/lib/utils';
 import { BatchStatus, ProgramStatus, HalaqahStatus } from '@/types/database';
 
@@ -301,7 +304,7 @@ interface TikrarTahfidz {
   program?: { name: string };
 }
 
-type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist';
+type TabType = 'overview' | 'users' | 'batches' | 'programs' | 'halaqah' | 'presensi' | 'tikrar' | 'daftar-ulang' | 'exam-questions' | 'analysis' | 'pairing' | 'system-logs' | 'reports' | 'rls-policies' | 'blacklist' | 'testimonials' | 'donations';
 
 export default function AdminPage() {
   return (
@@ -542,7 +545,9 @@ function AdminContent() {
     { id: 'system-logs' as TabType, name: 'System Logs', icon: AlertCircle },
     { id: 'reports' as TabType, name: 'Reports', icon: FileText },
     { id: 'rls-policies' as TabType, name: 'RLS Policies', icon: Shield },
-    { id: 'blacklist' as TabType, name: 'Blacklist', icon: XCircle }
+    { id: 'blacklist' as TabType, name: 'Blacklist', icon: XCircle },
+    { id: 'testimonials' as TabType, name: 'Testimonials', icon: MessageSquare },
+    { id: 'donations' as TabType, name: 'Donations', icon: HeartHandshake }
   ];
 
   if (loading) {
@@ -765,6 +770,8 @@ function AdminContent() {
         {activeTab === 'reports' && <ReportsTab />}
         {activeTab === 'rls-policies' && <AdminRlsPoliciesTab />}
         {activeTab === 'blacklist' && <AdminBlacklistTab />}
+        {activeTab === 'testimonials' && <AdminTestimonialsTab />}
+        {activeTab === 'donations' && <AdminDonationsTab />}
       </div>
 
       {/* Exam Import Modal */}

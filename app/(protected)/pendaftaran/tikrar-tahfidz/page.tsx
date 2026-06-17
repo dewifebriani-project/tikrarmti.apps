@@ -69,6 +69,27 @@ export default function ThalibahBatch2Page() {
   const supabase = createClient()
   const [isCreating, setIsCreating] = useState(false)
 
+  // Check if user is an alumnus and has not filled in their testimonial
+  useEffect(() => {
+    async function checkAlumniStatus() {
+      try {
+        const res = await fetch('/api/alumni/testimonial/my');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isAlumni && !data.testimonial) {
+            toast.error('Afwan Ukhti, antum harus mengisi testimoni alumni terlebih dahulu.');
+            router.push('/alumni');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking alumni status:', err);
+      }
+    }
+    if (user) {
+      checkAlumniStatus();
+    }
+  }, [user, router]);
+
   const [isMounted, setIsMounted] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [currentSection, setCurrentSection] = useState(0) // Start at section 0 for data diri confirmation
