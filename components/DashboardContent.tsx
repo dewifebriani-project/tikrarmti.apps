@@ -703,7 +703,7 @@ export default function DashboardContent() {
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <Link href="/pendaftaran" className="w-full sm:w-auto">
+                      <Link href={`/pendaftaran/tikrar-tahfidz?batchId=${activeBatch?.id}`} className="w-full sm:w-auto">
                         <Button className="w-full sm:w-auto bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 hover:from-amber-700 hover:via-yellow-700 hover:to-amber-800 text-white font-black px-8 py-6 rounded-2xl shadow-xl shadow-amber-900/30 border-b-4 border-amber-900 active:border-b-0 active:translate-y-1 transition-all">
                           Daftar Sekarang
                         </Button>
@@ -747,7 +747,7 @@ export default function DashboardContent() {
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <Link href="/pendaftaran/muallimah" className="w-full sm:w-auto">
+                      <Link href={activeBatch ? `/pendaftaran/muallimah?batchId=${activeBatch.id}` : "/pendaftaran/muallimah"} className="w-full sm:w-auto">
                         <Button className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white font-black px-8 py-6 rounded-2xl shadow-lg border-b-4 border-green-900 active:border-b-0 active:translate-y-1 transition-all">
                           Daftar Sekarang
                         </Button>
