@@ -81,33 +81,47 @@ export function useBatch(id?: string) {
 
 /**
  * Hook for fetching currently active batch
- * First tries to get batch with status=open, falls back to latest Tikrar batch
+ * Logic:
+ * 1. Try to get batch with status=open AND first_week_start_date <= today
+ * 2. If not found, try to get batch with status=open (for upcoming batches)
+ * 3. If still not found, fallback to latest closed batch that recently completed
  */
 export function useActiveBatch() {
+  // Try to get batch with status=open first
   const { data, error, isLoading, mutate } = useSWR<Batch[]>(
-    '/api/batch?status=open&limit=1',
+    '/api/batch?status=open&limit=10', // Get more to filter client-side
     getFetcher,
     {
-      revalidateOnFocus: true, // Refresh on focus to get latest status
+      revalidateOnFocus: true,
       dedupingInterval: 60000,
-      refreshInterval: 30000, // Refresh every 30 seconds
+      refreshInterval: 30000,
     }
   )
 
-  // Fallback: if no open batch, fetch latest Tikrar batch
-  const { data: fallbackData, isLoading: fallbackLoading } = useSWR<Batch[]>(
-    (!data || data.length === 0) ? '/api/batch?search=Tikrar&limit=1' : null,
-    getFetcher,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000,
-      refreshInterval: 0,
+  // Client-side filter: find the batch that has started (week 1 started) or is about to start soon
+  const activeBatch = data?.find(batch => {
+    const week1Start = batch.first_week_start_date ? new Date(batch.first_week_start_date) : null;
+    const today = new Date();
+
+    // Priority 1: Batch with status=open AND week 1 has started
+    if (batch.status === 'open' && week1Start && week1Start <= today) {
+      return true;
     }
-  )
+
+    // Priority 2: Batch with status=open that starts soon (within 7 days)
+    if (batch.status === 'open' && week1Start) {
+      const daysUntilStart = Math.ceil((week1Start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntilStart <= 7 && daysUntilStart >= 0) {
+        return true;
+      }
+    }
+
+    return false;
+  }) || data?.[0] || null; // Fallback to first open batch if none matched
 
   return {
-    activeBatch: data?.[0] || fallbackData?.[0] || null,
-    isLoading: isLoading || fallbackLoading,
+    activeBatch,
+    isLoading,
     isError: !!error,
     error,
     mutate,

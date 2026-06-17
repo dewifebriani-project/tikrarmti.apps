@@ -315,7 +315,13 @@ export default function PendaftaranPage() {
   // Helper function to check if user is registered for a specific role
   const isRegisteredForRole = (type: PendaftaranType): boolean => {
     const role = getRoleFromType(type);
-    return !!(user && registrationStatus?.byRole?.[role]);
+    return !!(user && registrations.some(reg => {
+      if (reg.batch_id !== type.batchId) return false;
+      const regRole = reg.program?.name?.toLowerCase().includes('muallimah') || 
+                      reg.program?.name?.toLowerCase().includes('musyrifah') ? 'admin' : 'thalibah';
+      if (regRole !== role) return false;
+      return ['approved', 'pending'].includes(reg.status);
+    }));
   };
 
   const handleRegistrationClick = (type: PendaftaranType) => {

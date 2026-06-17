@@ -230,7 +230,8 @@
       "Bash(lsof -iTCP:3003 -sTCP:LISTEN)",
       "Bash(ps -p 45093 -o pid,ppid,etime,command)",
       "Bash(ps -p 45092 -o pid,ppid,etime,command)",
-      "Bash(kill 45093 45092)"
+      "Bash(kill 45093 45092)",
+      "Bash(pkill -f \"next dev\")"
     ],
     "deny": [],
     "ask": []

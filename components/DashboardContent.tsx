@@ -125,6 +125,15 @@ export default function DashboardContent() {
   const totalHariTarget = (jurnalStatus?.summary.total_blocks || (canSeeAdminStats ? stats?.totalHariTarget : 0) || 0)
 
   // If thalibah info exists, we prioritize it for the main stats display
+  // Calculate current week based on batch timeline
+  const currentWeek = activeBatch?.first_week_start_date ? (() => {
+    const today = new Date();
+    const week1Start = new Date(activeBatch.first_week_start_date);
+    if (today < week1Start) return 0; // Before batch starts
+    const daysDiff = Math.floor((today.getTime() - week1Start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.floor(daysDiff / 7) + 1;
+  })() : 0;
+
   const displayStats = {
     totalHariTarget: totalHariTarget,
     hariAktual: (jurnalStatus?.summary.completed_blocks || (canSeeAdminStats ? stats?.hariAktual : 0) || 0),
@@ -409,7 +418,7 @@ export default function DashboardContent() {
             <div className="hidden lg:block">
               <div className="w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 flex flex-col items-center justify-center shadow-xl">
                 <p className="text-[10px] uppercase font-black text-white/60 tracking-widest">Pekan</p>
-                <p className="text-4xl font-black">{Math.floor(displayStats.hariAktual / 4) + 1}</p>
+                <p className="text-4xl font-black">{currentWeek}</p>
               </div>
             </div>
           </div>
@@ -473,9 +482,18 @@ export default function DashboardContent() {
         </div>
       )}
 
-      {/* 2. Progress Jurnal & Tashih */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {hasRegistered && tashihStatus && (
+      {/* 2. Progress Jurnal & Tashih - Hanya muncul ketika user terdaftar di batch aktif */}
+      {(() => {
+        const hasWeek1Started = activeBatch?.first_week_start_date &&
+          new Date(activeBatch.first_week_start_date) <= new Date();
+        const userRegisteredInActiveBatch = activeBatch && registrations.some(reg =>
+          reg.batch_id === activeBatch.id &&
+          (reg.status === 'approved' || reg.status === 'pending')
+        );
+        return hasWeek1Started && userRegisteredInActiveBatch;
+      })() && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {tashihStatus && (
           <Card className="overflow-hidden border-none shadow-xl glass-premium">
             <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
@@ -549,66 +567,61 @@ export default function DashboardContent() {
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {/* 3. Statistik Hafalan */}
-      <div className="grid grid-cols-1 gap-6">
-        <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium">
-          <CardHeader className="bg-gradient-to-br from-green-50 to-white/50 border-b border-green-50 px-6 py-5">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-              Statistik Hafalan
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="flex items-end justify-between mb-4">
-              <div>
-                <p className="text-3xl font-black text-green-900">{displayStats.hariAktual}</p>
-                <p className="text-xs text-gray-500 font-medium">Hari Tikrar Selesai</p>
+      {/* 3. Statistik Hafalan - Hanya muncul ketika: */}
+      {/* 1) Batch sudah mulai pekan 1, DAN */}
+      {/* 2) User terdaftar di batch aktif tersebut */}
+      {(() => {
+        const hasWeek1Started = activeBatch?.first_week_start_date &&
+          new Date(activeBatch.first_week_start_date) <= new Date();
+
+        // Cek apakah user terdaftar di active batch
+        const userRegisteredInActiveBatch = activeBatch && registrations.some(reg =>
+          reg.batch_id === activeBatch.id &&
+          (reg.status === 'approved' || reg.status === 'pending')
+        );
+
+        return hasWeek1Started && userRegisteredInActiveBatch;
+      })() && (
+        <div className="grid grid-cols-1 gap-6">
+          <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium">
+            <CardHeader className="bg-gradient-to-br from-green-50 to-white/50 border-b border-green-50 px-6 py-5">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                Statistik Hafalan
+                {activeBatch && (
+                  <span className="text-xs font-normal text-gray-500 ml-2">
+                    ({activeBatch.name})
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <p className="text-3xl font-black text-green-900">{displayStats.hariAktual}</p>
+                  <p className="text-xs text-gray-500 font-medium">Hari Tikrar Selesai</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-gray-400">{displayStats.totalHariTarget}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Target Total</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-400">{displayStats.totalHariTarget}</p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Target Total</p>
+              <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                 <div
+                  className="bg-gradient-to-r from-green-600 to-green-400 h-full transition-all duration-1000 ease-out"
+                  style={{ width: `${displayStats.persentaseProgress}%` }}
+                 />
               </div>
-            </div>
-            <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-               <div
-                className="bg-gradient-to-r from-green-600 to-green-400 h-full transition-all duration-1000 ease-out"
-                style={{ width: `${displayStats.persentaseProgress}%` }}
-               />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* 4. Ayat & Hadits Motivasi */}
-      <Card className="rounded-3xl border-none shadow-xl overflow-hidden bg-gradient-to-br from-green-900 to-green-800 text-white">
-        <CardContent className="p-8 text-center space-y-6 relative">
-          <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
-             <BookOpen className="w-64 h-64 -ml-20 -mt-20 rotate-12" />
-             <Sparkles className="w-32 h-32 absolute top-10 right-10" />
-          </div>
-          
-          <div className="space-y-2">
-            <p className="text-xl sm:text-2xl font-serif italic leading-relaxed">
-              "Dan sesungguhnya telah Kami mudahkan Al-Quran untuk pelajaran, maka adakah orang yang mengambil pelajaran?"
-            </p>
-            <p className="text-xs uppercase tracking-widest font-bold text-green-300">QS. Al-Qamar: 17</p>
-          </div>
-
-          <div className="w-12 h-px bg-white/20 mx-auto" />
-
-          <div className="space-y-2">
-            <p className="text-sm sm:text-base font-medium text-green-100">
-              "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya."
-            </p>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-yellow-400">HR. Bukhari</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 5. Menu Layanan */}
+      {/* 4. Menu Layanan */}
       <div className="space-y-4">
         {isImpersonating && (
           <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4 flex items-center justify-between">
@@ -629,11 +642,87 @@ export default function DashboardContent() {
           </div>
         )}
 
-        {/* Muallimah Registration CTA */}
+        {/* Tikrar Tahfidz Registration CTA - Muncul di masa pendaftaran/seleksi */}
         {(() => {
-          const isAdmin = userRole === 'admin' || user?.roles?.includes('admin');
-          const showCard = isAdmin || !isStaff(user?.roles || userRole);
-          return showCard;
+          // Cek apakah user sudah mendaftar di BATCH YANG SEDANG AKTIF (bukan batch lain)
+          const hasRegisteredInActiveBatch = activeBatch && registrations.some(reg =>
+            reg.batch_id === activeBatch.id &&
+            reg.program?.name?.toLowerCase().includes('tikrar') &&
+            reg.program?.name?.toLowerCase().includes('tahfidz')
+          );
+
+          // Cek apakah masa pendaftaran masih terbuka
+          // Masa pendaftaran: dari registration_start_date sampai registration_end_date
+          const isRegistrationPeriod = activeBatch &&
+            activeBatch.registration_start_date &&
+            activeBatch.registration_end_date &&
+            new Date(activeBatch.registration_start_date) <= new Date() &&
+            new Date(activeBatch.registration_end_date) >= new Date();
+
+          // Card muncul kalau:
+          // 1) Ada active batch, DAN
+          // 2) Masa pendaftaran masih terbuka, DAN
+          // 3) User BELUM mendaftar di batch aktif ini (boleh sudah daftar di batch lain)
+          const shouldShowCard = activeBatch &&
+            isRegistrationPeriod &&
+            !hasRegisteredInActiveBatch;
+
+          return shouldShowCard;
+        })() && (
+          <div className="mb-8">
+            <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-amber-900/20 overflow-hidden bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 ring-2 ring-amber-300/50 relative">
+              {/* Gold sparkle effects */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-yellow-400/20 to-amber-500/10 rounded-full blur-3xl -z-10"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-amber-400/15 to-yellow-500/10 rounded-full blur-2xl -z-10"></div>
+
+              <CardContent className="p-0 relative">
+                <div className="flex flex-col md:flex-row items-stretch">
+                  <div className="w-full md:w-1/3 bg-gradient-to-br from-amber-500 via-yellow-500 to-amber-600 p-8 flex flex-col items-center justify-center text-white relative overflow-hidden">
+                    {/* Gold shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent"></div>
+
+                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 ring-2 ring-yellow-300/50 shadow-xl relative z-10">
+                      <BookOpen className="w-8 h-8 text-yellow-900" />
+                    </div>
+                    <div className="text-center relative z-10">
+                      <p className="text-[10px] uppercase font-black tracking-[0.3em] text-yellow-100 mb-1 flex items-center justify-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Program Utama
+                        <Sparkles className="w-3 h-3" />
+                      </p>
+                      <h3 className="text-xl font-black text-white drop-shadow-lg">Tikrar Tahfidz</h3>
+                    </div>
+                  </div>
+                  <div className="flex-1 p-8 md:p-10 flex flex-col justify-center space-y-6 relative">
+                    <div className="space-y-3">
+                      <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                        Siap Menjadi <span className="bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">Hafidzah</span> Al-Qur'an?
+                      </h2>
+                      <p className="text-sm font-medium text-gray-600 leading-relaxed">
+                        Program Tahfidz Tikrar MTI dengan metode pengulangan 40X. Daftar sekarang dan raih keberkahan menghafal Al-Qur'an.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link href="/pendaftaran" className="w-full sm:w-auto">
+                        <Button className="w-full sm:w-auto bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 hover:from-amber-700 hover:via-yellow-700 hover:to-amber-800 text-white font-black px-8 py-6 rounded-2xl shadow-xl shadow-amber-900/30 border-b-4 border-amber-900 active:border-b-0 active:translate-y-1 transition-all">
+                          Daftar Sekarang
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Muallimah Registration CTA - Muncul jika user belum mendaftar Muallimah di batch aktif */}
+        {(() => {
+          const hasRegisteredMuallimahInActiveBatch = activeBatch && registrations.some(reg =>
+            reg.batch_id === activeBatch.id &&
+            reg.program?.name?.toLowerCase().includes('muallimah')
+          );
+          return !hasRegisteredMuallimahInActiveBatch;
         })() && (
           <div className="mb-8">
             <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-green-900/10 overflow-hidden bg-gradient-to-br from-white to-green-50 ring-1 ring-green-100/50">
@@ -732,6 +821,32 @@ export default function DashboardContent() {
           ))}
         </div>
       </div>
+
+      {/* 5. Ayat & Hadits Motivasi */}
+      <Card className="rounded-3xl border-none shadow-xl overflow-hidden bg-gradient-to-br from-green-900 to-green-800 text-white">
+        <CardContent className="p-8 text-center space-y-6 relative">
+          <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
+             <BookOpen className="w-64 h-64 -ml-20 -mt-20 rotate-12" />
+             <Sparkles className="w-32 h-32 absolute top-10 right-10" />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xl sm:text-2xl font-serif italic leading-relaxed">
+              "Dan sesungguhnya telah Kami mudahkan Al-Quran untuk pelajaran, maka adakah orang yang mengambil pelajaran?"
+            </p>
+            <p className="text-xs uppercase tracking-widest font-bold text-green-300">QS. Al-Qamar: 17</p>
+          </div>
+
+          <div className="w-12 h-px bg-white/20 mx-auto" />
+
+          <div className="space-y-2">
+            <p className="text-sm sm:text-base font-medium text-green-100">
+              "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya."
+            </p>
+            <p className="text-[10px] uppercase tracking-widest font-bold text-yellow-400">HR. Bukhari</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 6. Aktivitas Terkini */}
       <Card className="rounded-3xl border-none shadow-xl overflow-hidden glass-premium">

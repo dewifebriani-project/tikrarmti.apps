@@ -132,6 +132,8 @@ function RegisterPageContent() {
       newErrors.password = 'Password harus diisi';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password minimal 8 karakter';
+    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password harus mengandung huruf besar, kecil, dan angka';
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -218,9 +220,10 @@ function RegisterPageContent() {
     setIsLoading(true);
 
     try {
-      // Convert date to ISO datetime format for tanggal_lahir
+      // Convert date to ISO datetime format with timezone offset for tanggal_lahir
+      // Use local timezone offset (WIB is +07:00)
       const tanggalLahirISO = formData.tanggalLahir
-        ? new Date(formData.tanggalLahir + 'T00:00:00.000Z').toISOString()
+        ? formData.tanggalLahir + 'T00:00:00+07:00'
         : null;
 
       const response = await fetch('/api/auth/register', {
