@@ -73,22 +73,22 @@ export default function ThalibahBatch2Page() {
   useEffect(() => {
     async function checkAlumniStatus() {
       try {
-        const res = await fetch('/api/alumni/testimonial/my');
+        const res = await fetch('/api/alumni/testimonial/my')
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json()
           if (data.isAlumni && !data.testimonial) {
-            toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.');
-            router.push('/alumni');
+            toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.')
+            router.push('/alumni')
           }
         }
       } catch (err) {
-        console.error('Error checking alumni status:', err);
+        console.error('Error checking alumni status:', err)
       }
     }
     if (user) {
-      checkAlumniStatus();
+      checkAlumniStatus()
     }
-  }, [user, router]);
+  }, [user, router])
 
   const [isMounted, setIsMounted] = useState(false)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -569,7 +569,7 @@ export default function ThalibahBatch2Page() {
         <h3 className="font-bold text-base sm:text-lg md:text-xl mb-4 sm:mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
 
         <div className="space-y-3 sm:space-y-4 text-sm sm:text-base text-gray-700">
-          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
+          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis (syarat dan ketentuan berlaku) khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
           <p>📆 Durasi program: InsyaAllah selama {activeBatchData?.duration_weeks || 13} Pekan ({formatDateRange(activeBatchData?.start_date, activeBatchData?.end_date)}) untuk target hafalan 1/2 juz.</p>
 
           <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 rounded-lg">
@@ -645,7 +645,7 @@ export default function ThalibahBatch2Page() {
             <p className="font-semibold text-red-800 mb-3 text-base">🚫 Tidak cocok untuk:</p>
             <div className="text-sm text-red-700 space-y-2">
               <p>• Tholibah yang bekerja full-time dan hanya memiliki waktu malam untuk keluarga</p>
-              <p>• Mu\'allimah yang sudah mutqin tapi tidak bisa menyelesaikan program karena kesibukan mengajar, belajar atau kesibukan pribadi</p>
+              <p>• Mu'allimah yang sudah mutqin tapi tidak bisa menyelesaikan program karena kesibukan mengajar, belajar atau kesibukan pribadi</p>
             </div>
             <p className="text-sm text-red-600 mt-3">
               Namun, jika ingin mengadopsi metode ini untuk diterapkan di halaqah masing-masing, silakan. Metode ini bebas dipakai, dimodifikasi, dan disebarluaskan.
@@ -664,7 +664,7 @@ export default function ThalibahBatch2Page() {
           <div className="mt-4 p-4 bg-rose-50 rounded-lg border border-rose-200">
             <p className="font-semibold text-rose-800 mb-3 text-base">🚩 Peringatan Serius</p>
             <div className="text-sm text-rose-700 space-y-3">
-              <p>Kami tidak ridho jika Ukhti submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan langsung japri, kami dengan senang hati share metode Tikrar kepada Ukhti.</p>
+              <p>Kami tidak ridho jika Ukhti submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan baca di Web markaztikrar.id. Di web sudah kami markaztikrar</p>
             </div>
           </div>
 
@@ -690,11 +690,11 @@ export default function ThalibahBatch2Page() {
         </p>
         <div className="text-sm text-gray-700 space-y-2">
           <p>• Program ini melibatkan banyak pihak dan pasangan setoran. Kami berusaha menyesuaikan jadwal dengan pilihan Ukhti sendiri.</p>
-          <p>• Harap menjaga komitmen, tidak banyak mengeluh, dan tidak mementingkan diri sendiri</p>
+          <p>• Harap meluruskan niat, menjaga komitmen, tidak banyak mengeluh, dan tidak mementingkan diri sendiri</p>
           <p>• Jaga adab kepada seluruh tim Tikrar MTI dan pasangan setoran masing-masing</p>
           <p>• Keputusan kelulusan tes administrasi dan bacaan bersifat final dan tidak dapat diganggu gugat</p>
-          <p>• Program ini baru dimulai dan gratis, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini.</p>
-          <p>• kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tinggi.</p>
+          <p>• Program ini baru 3 angkatan, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini.</p>
+          <p>• Kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tarif professional, kami hanya kumpulan emak-emak yang berkomitmen ingin emak-emak se-bumi Allah merasakan nikmatnya berproses menghafal Al Quran dengan metode tikrar, merasakan nikmatnya berkomunitas dengan sahabat-sahabat Al Quran. Sebagaimana yang telah kami rasakan dari guru-guru kami.</p>
           <p>• MTI adalah rumah bagi kita, yang anggotanya adalah keluarga bagaikan ibu dengan anak, kakak dengan adik, yang saling melengkapi kelemahan dan kekurangan masing-masing untuk kebaikan denqan target berkumpul di Jannah Firdaus Al-'Ala. (No Baper, No Drama).</p>
         </div>
       </div>
@@ -735,7 +735,7 @@ export default function ThalibahBatch2Page() {
           <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
             <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
             <p className="text-xs sm:text-sm text-yellow-700">
-              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin murojaah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
+              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin murojaah/sudah pernah hafal.
             </p>
           </div>
           <div className="space-y-2 sm:space-y-3">
@@ -763,7 +763,7 @@ export default function ThalibahBatch2Page() {
           <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
             <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
             <p className="text-xs sm:text-sm text-yellow-700">
-              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin muroja'ah/sudah pernah hafal. Jika tetap ingin menjadi keluarga MTI silahkan japri kak Mara untuk mendaftar jadi mu'allimah, akan ada kelas Tikrar mu'allimah yang bebas tanpa akad.
+              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin muroja'ah/sudah pernah hafal. 
             </p>
           </div>
           <div className="space-y-2 sm:space-y-3">
@@ -792,7 +792,7 @@ export default function ThalibahBatch2Page() {
             Apakah Ukhti sudah faham jika program ini juga mewajibkan tholibah untuk mempunyai aplikasi telegram untuk proses seleksi?
           </Label>
           <p className="text-xs sm:text-sm text-gray-500 italic">
-            Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp karena keterbatasan memori hp admin.
+            Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp jika ada kendala pada aplikasi, karena keterbatasan memori hp admin.
           </p>
           <div className="space-y-2 sm:space-y-3">
             <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
@@ -817,7 +817,7 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-2 sm:space-y-3">
           <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah simpan nomor Whatsapp Kak Mara 0813-1365-0842? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
+            Apakah Ukhti sudah simpan nomor Whatsapp Admin Kak Mara 0813-1365-0842, Uni Dewi 0856-771-2914, Kak Dewi Nurhayati 0895-1898-4279, Kak Donna 0812-1224-0079, Kak Ucy 0822-2937-0282, Kak Lina 0853-4011-4111, Kak Vivi 0857-0623-2865, Kak Wara 0822-2010-0262? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
             <span className="text-red-500">*</span>
           </Label>
           <div className="space-y-2 sm:space-y-3">
@@ -832,13 +832,14 @@ export default function ThalibahBatch2Page() {
                 className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
               />
               <Label htmlFor="saved_contact_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara
+                Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara, Uni Dewi, dan admin lainnya.
               </Label>
             </div>
           </div>
           {errors.saved_contact && (
             <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.saved_contact}</p>
           )}
+
         </div>
       </div>
     </div>
@@ -986,7 +987,7 @@ export default function ThalibahBatch2Page() {
         <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
           <p className="text-sm text-blue-800 font-semibold mb-2">Informasi Program:</p>
           <p className="text-sm text-blue-700">
-            Program ini akan insyaAllah biidznillah akan dilaksanakan selama 13 pekan dimulai dari tanggal 5 Januari - 18 April 2025. Libur lebaran 2 pekan 16-28 Februari. Apabila Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan mudik/safar yang mendzholimi jadwal pasangan setoran Ukhti.
+            Program ini akan insyaAllah biidznillah akan dilaksanakan selama 13 pekan. Apabila Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI yang menyesuaikan dengan liburan anak-anak sekolah, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan mudik/safar yang mendzholimi jadwal pasangan setoran Ukhti.
           </p>
         </div>
 
@@ -1064,7 +1065,7 @@ export default function ThalibahBatch2Page() {
                 className="mt-1 text-green-600 focus:ring-green-500"
               />
               <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan infaq sesuai dengan kemampuan saya (bersedia masuk group Donatur MTI)
+                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan akad infaq wajib perbulan dengan pilihan 25, 50,100 atau lebih dari 100 ribu rupiah perbulan sesuai dengan kemampuan saya, selama saya masih aktif pada Batch 3 MTI
               </Label>
             </div>
           </div>
@@ -1171,7 +1172,7 @@ export default function ThalibahBatch2Page() {
 
         <div className="space-y-4 text-sm text-gray-700">
           <div>
-            <p><strong>🗓 Durasi Program:</strong> Program ini insyaAllah biidznillah akan berlangsung selama 13 pekan, dimulai dari 5 Januari hingga 18 April.</p>
+            <p><strong>🗓 Durasi Program:</strong> Program ini insyaAllah biidznillah akan berlangsung selama 13 pekan.</p>
           </div>
 
           <div>
@@ -1246,7 +1247,6 @@ export default function ThalibahBatch2Page() {
             <ul className="text-sm text-blue-700 space-y-1">
               <li>• <strong>Al-Qur'an Tikrar</strong> ➤ Jika belum memiliki, bisa dibeli di toko buku atau toko online (tautan tersedia di deskripsi grup pendaftaran)</li>
               <li>• <strong>Counter Manual (alat penghitung)</strong> ➤ Bisa dibeli di toko alat tulis atau toko online (tautan juga tersedia di deskripsi grup)</li>
-              <li>• Bagi yang mengalami kendala finansial, silakan hubungi Kak Mara di WA: 0813-1365-0842</li>
             </ul>
           </div>
 
@@ -1316,7 +1316,7 @@ export default function ThalibahBatch2Page() {
             </h1>
             <p className="text-sm sm:text-base md:text-lg text-gray-600">
               Program Hafalan Al-Qur'an Gratis Khusus Akhawat<br/>
-              <span className="text-xs sm:text-sm md:text-base text-green-700 font-medium">Metode Tikrar 40 Kali - Juz 1, 28, 29, 30</span>
+              <span className="text-xs sm:text-sm md:text-base text-green-700 font-medium">Metode Tikrar 40 Kali - Juz 1, 2, 27, 28, 29, 30</span>
             </p>
           </div>
 
@@ -1354,8 +1354,7 @@ export default function ThalibahBatch2Page() {
                   <Alert className="bg-green-50 border-green-200">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <AlertDescription className="text-green-800">
-                      <strong>Alhamdulillah!</strong> Formulir pendaftaran Ukhti telah berhasil dikirim. Tim kami akan menghubungi Ukhti melalui Telegram untuk proses seleksi selanjutnya.
-                      <br /><br />
+                      <strong>Alhamdulillah!</strong> Formulir pendaftaran Ukhti telah berhasil dikirim.                       <br /><br />
                       <strong>Jangan lupa:</strong> Persiapkan diri untuk tes bacaan Al-Qur'an dan simak informasi selanjutnya di Telegram.
                       <br /><br />
                       <div className="flex items-center space-x-2 mb-3">
@@ -1402,7 +1401,7 @@ export default function ThalibahBatch2Page() {
                     <AlertDescription className="text-red-800">
                       <div className="space-y-2">
                         <p className="font-semibold">Terjadi kesalahan saat mengirim formulir</p>
-                        <p>Silakan coba lagi atau hubungi admin melalui WhatsApp 0856-771-2914.</p>
+                        <p>Silakan coba lagi atau hubungi admin Kak Dewi Nurhayati.</p>
                         {submitError && (
                           <details className="mt-2">
                             <summary className="cursor-pointer text-sm underline">Lihat Detail Error</summary>
@@ -1473,7 +1472,7 @@ export default function ThalibahBatch2Page() {
             </h3>
             <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-yellow-800">
               <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
-              <p>• Simpan nomor WhatsApp Kak Mara (0813-1365-0842) agar dapat di-add ke grup setelah lolos seleksi.</p>
+              <p>• Simpan nomor WhatsApp semua admin agar dapat di-add ke grup setelah lolos seleksi.</p>
               <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
               <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
               <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
