@@ -88,6 +88,7 @@ export function TikrarTable({
                 />
               </th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Thalibah</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Tgl Daftar</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Readiness</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Juz & Slot</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Scores</th>
@@ -98,7 +99,7 @@ export function TikrarTable({
           <tbody className="divide-y divide-gray-100">
             {tikrar.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-medium">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-500 font-medium">
                   Tidak ada pendaftaran Tikrar ditemukan.
                 </td>
               </tr>
@@ -127,8 +128,14 @@ export function TikrarTable({
                         >
                           {t.full_name || t.user?.full_name || 'Hamba Allah'}
                         </button>
-                        <span className="text-xs text-gray-500 truncate">{t.user?.email || '-'}</span>
+                        <span className="text-xs text-gray-550 truncate">{t.user?.email || '-'}</span>
                         <span className="text-[10px] text-gray-400 mt-0.5">{t.batch_name || t.batch?.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col text-xs text-gray-600 font-medium">
+                        <span className="font-bold text-gray-700">{t.submission_date ? new Date(t.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
+                        <span className="text-[10px] text-gray-400 mt-0.5">{t.submission_date ? new Date(t.submission_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
