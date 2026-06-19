@@ -99,6 +99,7 @@ export async function submitTikrarRegistration(formData: any, userProfile: any, 
     no_travel_plans: formData.no_travel_plans,
     motivation: formData.motivation,
     ready_for_team: formData.ready_for_team,
+    infaq_amount: formData.ready_for_team === 'infaq' ? formData.infaq_amount : null,
     // Section 3
     main_time_slot: formData.main_time_slot,
     backup_time_slot: formData.backup_time_slot,

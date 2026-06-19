@@ -17,6 +17,7 @@ export interface TikrarTahfidz {
   no_travel_plans: boolean;
   motivation?: string;
   ready_for_team?: string;
+  infaq_amount?: string;
   full_name?: string;
   address?: string;
   wa_phone?: string;

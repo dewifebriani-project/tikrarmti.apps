@@ -520,7 +520,15 @@ export default function AdminApprovalModalFixed({ isOpen, onClose, application, 
                     {application.ready_for_team && (
                       <div>
                         <div className="text-gray-600">Kesiapan Tim:</div>
-                        <div className="font-medium capitalize">{application.ready_for_team.replace('_', ' ')}</div>
+                        <div className="font-medium capitalize">
+                          {application.ready_for_team === 'infaq' ? 'Infaq Wajib' : application.ready_for_team.replace('_', ' ')}
+                        </div>
+                      </div>
+                    )}
+                    {application.ready_for_team === 'infaq' && application.infaq_amount && (
+                      <div>
+                        <div className="text-gray-600">Nominal Infaq Bulanan:</div>
+                        <div className="font-bold text-emerald-600">Rp {application.infaq_amount} / bulan</div>
                       </div>
                     )}
                     {application.questions && (

@@ -19,6 +19,7 @@ import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, Extern
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { submitTikrarRegistration } from './actions'
+import { cn } from '@/lib/utils'
 
 interface FormData {
   // Section 1 - Komitmen & Pemahaman
@@ -37,6 +38,7 @@ interface FormData {
   no_travel_plans: boolean
   motivation: string
   ready_for_team: string
+  infaq_amount: string
 
   // Section 3 - Waktu Setoran
   main_time_slot: string
@@ -137,6 +139,7 @@ export default function ThalibahBatch2Page() {
         no_travel_plans: registrationData.no_travel_plans || false,
         motivation: registrationData.motivation || '',
         ready_for_team: registrationData.ready_for_team || '',
+        infaq_amount: registrationData.infaq_amount || '',
         main_time_slot: registrationData.main_time_slot || '',
         backup_time_slot: registrationData.backup_time_slot || '',
         time_commitment: registrationData.time_commitment || false,
@@ -202,6 +205,7 @@ export default function ThalibahBatch2Page() {
     no_travel_plans: false,
     motivation: '',
     ready_for_team: '',
+    infaq_amount: '',
     main_time_slot: '',
     backup_time_slot: '',
     time_commitment: false,
@@ -356,6 +360,8 @@ export default function ThalibahBatch2Page() {
       }
       if (!formData.ready_for_team) {
         newErrors.ready_for_team = 'Pilih salah satu opsi'
+      } else if (formData.ready_for_team === 'infaq' && !formData.infaq_amount) {
+        newErrors.infaq_amount = 'Pilih nominal infaq bulanan'
       }
     }
 
@@ -1061,13 +1067,77 @@ export default function ThalibahBatch2Page() {
                 id="infaq"
                 value="infaq"
                 checked={formData.ready_for_team === 'infaq'}
-                onChange={() => handleInputChange('ready_for_team', 'infaq')}
+                onChange={() => {
+                  handleInputChange('ready_for_team', 'infaq');
+                  if (!formData.infaq_amount) {
+                    handleInputChange('infaq_amount', '25.000');
+                  }
+                }}
                 className="mt-1 text-green-600 focus:ring-green-500"
               />
               <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan akad infaq wajib perbulan dengan pilihan 25, 50,100 atau lebih dari 100 ribu rupiah perbulan sesuai dengan kemampuan saya, selama saya masih aktif pada Batch 3 MTI
+                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan akad infaq wajib perbulan dengan pilihan 25, 50, 100 atau lebih dari 100 ribu rupiah perbulan sesuai dengan kemampuan saya, selama saya masih aktif pada Batch 3 MTI
               </Label>
             </div>
+
+            {formData.ready_for_team === 'infaq' && (
+              <div className="mt-3 ml-8 p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Label className="text-sm font-bold text-emerald-950 block mb-1">
+                  Nominal Infaq Wajib Per Bulan<span className="text-red-500">*</span>
+                </Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {['25.000', '50.000', '100.000', 'Lainnya'].map((val) => {
+                    const isSelected = val === 'Lainnya' 
+                      ? !['25.000', '50.000', '100.000'].includes(formData.infaq_amount)
+                      : formData.infaq_amount === val;
+                    
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() => {
+                          if (val === 'Lainnya') {
+                            handleInputChange('infaq_amount', '');
+                          } else {
+                            handleInputChange('infaq_amount', val);
+                          }
+                        }}
+                        className={cn(
+                          "py-2.5 px-3 text-xs sm:text-sm font-bold rounded-lg border transition-all duration-200 text-center",
+                          isSelected 
+                            ? "bg-green-600 text-white border-green-600 shadow-sm"
+                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                        )}
+                      >
+                        {val === 'Lainnya' ? 'Lainnya' : `Rp ${val}`}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {(!['25.000', '50.000', '100.000'].includes(formData.infaq_amount)) && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-250">
+                    <Label htmlFor="custom_infaq" className="text-xs font-semibold text-emerald-800">Masukkan Nominal Infaq Lainnya (Rp)</Label>
+                    <Input
+                      id="custom_infaq"
+                      type="text"
+                      value={formData.infaq_amount.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                      onChange={(e) => {
+                        const rawVal = e.target.value.replace(/\D/g, '');
+                        const formatted = rawVal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                        handleInputChange('infaq_amount', formatted);
+                      }}
+                      placeholder="Contoh: 150.000"
+                      className="text-base py-3"
+                    />
+                  </div>
+                )}
+                
+                {errors.infaq_amount && (
+                  <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.infaq_amount}</p>
+                )}
+              </div>
+            )}
           </div>
           {errors.ready_for_team && (
             <p className="text-red-500 text-xs">{errors.ready_for_team}</p>

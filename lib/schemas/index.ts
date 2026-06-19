@@ -201,6 +201,7 @@ export const registrationSchemas = {
     no_travel_plans: z.boolean(),
     motivation: z.string().min(10, 'Motivasi minimal 10 karakter'),
     ready_for_team: z.enum(['ready', 'not_ready', 'considering', 'infaq']),
+    infaq_amount: z.string().optional(),
 
     // Schedule
     main_time_slot: z.string().min(1, 'Slot waktu utama harus dipilih'),
@@ -267,6 +268,7 @@ export const pendaftaranSchemas = {
     no_travel_plans: z.boolean().optional(),
     motivation: z.string().min(10, 'Motivasi minimal 10 karakter').optional(),
     ready_for_team: z.enum(['ready', 'not_ready', 'considering', 'infaq']).optional(),
+    infaq_amount: z.string().optional(),
 
     // Section 3 fields
     main_time_slot: z.string().optional(),
@@ -321,6 +323,7 @@ export const pendaftaranSchemas = {
     no_travel_plans: z.boolean().optional(),
     motivation: z.string().min(10, 'Motivasi minimal 10 karakter').optional(),
     ready_for_team: z.string().optional(),
+    infaq_amount: z.string().optional(),
 
     // Section 3 fields
     main_time_slot: z.string().optional(),
