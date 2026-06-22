@@ -3,7 +3,7 @@
 import { X, CheckCircle, XCircle, Clock, Undo2, AlertCircle, FileText } from 'lucide-react';
 import { TikrarTahfidz } from './types';
 import { OralAssessment } from '@/components/OralAssessment';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +16,45 @@ interface TikrarReviewModalProps {
 }
 
 export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user }: TikrarReviewModalProps) {
+  const [selectedJuz, setSelectedJuz] = useState('');
+  const [isSavingJuz, setIsSavingJuz] = useState(false);
+
+  useEffect(() => {
+    if (reviewData) {
+      setSelectedJuz(reviewData.chosen_juz || '');
+    }
+  }, [reviewData]);
+
+  const handleJuzChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (!reviewData) return;
+    const newJuz = e.target.value;
+    setSelectedJuz(newJuz);
+    setIsSavingJuz(true);
+    try {
+      const response = await fetch(`/api/pendaftaran/tikrar/${reviewData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          chosen_juz: newJuz
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update Juz');
+      }
+
+      toast.success(`Juz penempatan berhasil disesuaikan ke Juz ${newJuz}!`);
+      onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal mengubah Juz');
+      setSelectedJuz(reviewData.chosen_juz || '');
+    } finally {
+      setIsSavingJuz(false);
+    }
+  };
+
   if (!isOpen || !reviewData) return null;
 
   return (
@@ -80,8 +119,22 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                       <p className="text-sm font-bold text-gray-900">{reviewData.batch?.name || reviewData.batch_name || '-'}</p>
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Chosen Juz</label>
-                      <p className="text-sm font-bold text-gray-900">Juz {reviewData.chosen_juz || '-'}</p>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Chosen Juz (Penempatan)</label>
+                      <select
+                        value={selectedJuz}
+                        onChange={handleJuzChange}
+                        disabled={isSavingJuz}
+                        className="text-sm font-bold text-gray-900 bg-white border border-gray-200 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      >
+                        <option value="1A">Juz 1A (Halaman 1-11)</option>
+                        <option value="1B">Juz 1B (Halaman 12-21)</option>
+                        <option value="28A">Juz 28A (Halaman 542-551)</option>
+                        <option value="28B">Juz 28B (Halaman 552-561)</option>
+                        <option value="29A">Juz 29A (Halaman 562-571)</option>
+                        <option value="29B">Juz 29B (Halaman 572-581)</option>
+                        <option value="30A">Juz 30A (Halaman 582-591)</option>
+                        <option value="30B">Juz 30B (Halaman 592-604)</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Waktu Setoran</label>

@@ -17,6 +17,7 @@ interface Testimonial {
     id: string;
     full_name: string;
     email: string;
+    kota?: string | null;
   };
 }
 
@@ -24,6 +25,7 @@ export function AdminTestimonialsTab() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all');
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchTestimonials();
@@ -155,7 +157,10 @@ export function AdminTestimonialsTab() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-bold text-gray-950 text-base">{t.user?.full_name || 'Hamba Allah'}</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">{t.user?.email || '-'}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {t.user?.email || '-'}
+                      {t.user?.kota && ` • Domisili: ${t.user.kota.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`}
+                    </p>
                   </div>
                   <div className="flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -170,9 +175,31 @@ export function AdminTestimonialsTab() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-gray-750 text-sm italic leading-relaxed bg-gray-50/50 p-4 rounded-xl border border-gray-100/55">
-                  "{t.content}"
-                </p>
+                <div className="text-gray-750 text-sm italic leading-relaxed bg-gray-50/50 p-4 rounded-xl border border-gray-100/55">
+                  {t.content.length > 180 && !expandedIds[t.id] ? (
+                    <>
+                      "{t.content.substring(0, 180)}..."
+                      <button
+                        onClick={() => setExpandedIds(prev => ({ ...prev, [t.id]: true }))}
+                        className="text-xs text-emerald-700 hover:text-emerald-800 font-bold ml-1.5 hover:underline block mt-1"
+                      >
+                        Selengkapnya
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      "{t.content}"
+                      {t.content.length > 180 && (
+                        <button
+                          onClick={() => setExpandedIds(prev => ({ ...prev, [t.id]: false }))}
+                          className="text-xs text-emerald-700 hover:text-emerald-800 font-bold ml-1.5 hover:underline block mt-1"
+                        >
+                          Sembunyikan
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
                 <div className="text-xs text-gray-400">
                   Dikirim pada: {new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>

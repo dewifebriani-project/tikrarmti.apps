@@ -121,6 +121,8 @@ export interface Database {
           status: string
           start_date: string | null
           end_date: string | null
+          min_exam_score: number | null
+          min_final_exam_score: number | null
           created_at: string
           updated_at: string
         }

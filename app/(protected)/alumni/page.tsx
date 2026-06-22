@@ -26,6 +26,10 @@ interface Testimonial {
   rating: number;
   is_approved: boolean;
   created_at: string;
+  user?: {
+    full_name: string;
+    kota: string | null;
+  };
 }
 
 export default function AlumniPage() {
@@ -43,11 +47,33 @@ export default function AlumniPage() {
   const [savingTestimonial, setSavingTestimonial] = useState(false);
   const [isEditingTestimonial, setIsEditingTestimonial] = useState(false);
 
+  // List of all testimonials states
+  const [allTestimonials, setAllTestimonials] = useState<Testimonial[]>([]);
+  const [loadingAll, setLoadingAll] = useState(true);
+
   useEffect(() => {
     if (user) {
       fetchAlumniData();
+      fetchAllTestimonials();
     }
   }, [user]);
+
+  const fetchAllTestimonials = async () => {
+    try {
+      setLoadingAll(true);
+      const res = await fetch('/api/alumni/testimonials');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setAllTestimonials(data.data || []);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching all testimonials:', err);
+    } finally {
+      setLoadingAll(false);
+    }
+  };
 
   const fetchAlumniData = async () => {
     try {
@@ -96,6 +122,7 @@ export default function AlumniPage() {
         setTestimonial(data.data);
         setIsEditingTestimonial(false);
         fetchAlumniData();
+        fetchAllTestimonials();
       } else {
         toast.error(data.error || 'Gagal menyimpan testimoni');
       }
@@ -350,6 +377,88 @@ export default function AlumniPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* List of all testimonials */}
+            <div className="mt-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-emerald-800" />
+                  Daftar Testimoni Alumni MTI
+                </h2>
+                <span className="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">
+                  {allTestimonials.length} Testimoni
+                </span>
+              </div>
+
+              {loadingAll ? (
+                <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-md">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-800 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-550 font-medium">Memuat daftar testimoni...</p>
+                </div>
+              ) : allTestimonials.length === 0 ? (
+                <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-md text-gray-550 text-sm">
+                  Belum ada testimoni alumni yang disetujui.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {allTestimonials.map((t) => {
+                    const initials = t.user?.full_name
+                      ? t.user.full_name.substring(0, 2).toUpperCase()
+                      : 'HA';
+                    const locationName = t.user?.kota
+                      ? t.user.kota
+                          .toLowerCase()
+                          .split(' ')
+                          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                          .join(' ')
+                      : null;
+
+                    return (
+                      <Card key={t.id} className="border-0 shadow-md rounded-2xl overflow-hidden bg-white hover:shadow-lg transition-all duration-300">
+                        <CardContent className="p-6 space-y-4">
+                          {/* Header: User & Rating */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-emerald-50 border border-emerald-100/50 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                                {initials}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-gray-900 text-sm">{t.user?.full_name || 'Hamba Allah'}</h4>
+                                <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-0.5">
+                                  <span>{new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                  {locationName && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-emerald-700 font-medium">{locationName}</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-3.5 h-3.5 ${
+                                    star <= t.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Content */}
+                          <p className="text-gray-750 text-sm italic leading-relaxed">
+                            "{t.content}"
+                          </p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Benefit/FAQ Column */}

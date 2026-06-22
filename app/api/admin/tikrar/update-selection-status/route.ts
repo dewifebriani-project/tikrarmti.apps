@@ -5,6 +5,19 @@ import { getClientIp, getUserAgent, logAudit } from '@/lib/audit-log';
 
 const supabaseAdmin = createSupabaseAdmin();
 
+const getPassingScore = (batch?: { name?: string; min_exam_score?: number | null } | null): number => {
+  if (!batch) return 70;
+  if (batch.min_exam_score !== undefined && batch.min_exam_score !== null) return batch.min_exam_score;
+  if (batch.name) {
+    const match = batch.name.match(/Batch\s*(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= 3) return 80;
+    }
+  }
+  return 70;
+};
+
 export async function POST(request: NextRequest) {
   try {
     // Auth check
@@ -42,9 +55,9 @@ export async function POST(request: NextRequest) {
     // FIXED: Fetch oral_assessment_status and exam_score
     let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('id, chosen_juz, oral_assessment_status, exam_score, selection_status, exam_juz_number')
+      .select('id, chosen_juz, oral_assessment_status, exam_score, selection_status, exam_juz_number, batch:batches(name, min_exam_score)')
       .eq('selection_status', 'pending')
-      .eq('status', 'approved'); // Only update approved registrations
+      .eq('status', 'pending'); // Evaluate pending registrations
 
     if (batch_id) {
       query = query.eq('batch_id', batch_id);
@@ -75,7 +88,7 @@ export async function POST(request: NextRequest) {
     // 1. All who pass oral test are automatically selected (regardless of written test score)
     // 2. Oral test failers go to Pra-Tikrar (not_selected status)
     // 3. Written test is only for halaqah placement (juz adjustment)
-    // 4. Juz adjustment rules (if written test score < 70):
+    // 4. Juz adjustment rules (if written test score < threshold):
     //    - Juz 28A/28B → Juz 29A
     //    - Juz 1A/1B or Juz 29A/29B → Juz 30A
     const idsToSelect: string[] = [];
@@ -88,6 +101,7 @@ export async function POST(request: NextRequest) {
       const examScore = reg.exam_score;
       const chosenJuz = reg.chosen_juz?.toUpperCase() || '';
       const examJuzNumber = reg.exam_juz_number;
+      const threshold = getPassingScore((reg as any).batch);
 
       // RULE 1: All who pass oral test are automatically SELECTED
       // (regardless of written quiz score)
@@ -95,17 +109,17 @@ export async function POST(request: NextRequest) {
         let finalJuz = chosenJuz;
         let adjustmentReason = null;
 
-        // Check if juz adjustment is needed (written quiz score < 70)
-        if (examScore !== null && examScore !== undefined && examScore < 70) {
+        // Check if juz adjustment is needed (written quiz score < threshold)
+        if (examScore !== null && examScore !== undefined && examScore < threshold) {
           // Juz 28A/28B → Juz 29A
           if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
             finalJuz = '29A';
-            adjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+            adjustmentReason = `Nilai pilihan ganda ${examScore} < ${threshold}, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
           }
           // Juz 1A/1B or Juz 29A/29B → Juz 30A
           else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
             finalJuz = '30A';
-            adjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
+            adjustmentReason = `Nilai pilihan ganda ${examScore} < ${threshold}, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`;
           }
 
           // Track adjustment
@@ -159,7 +173,10 @@ export async function POST(request: NextRequest) {
       console.log('[UpdateSelectionStatus] Updating', idsToSelect.length, 'registrations to "selected" (Tikrar Tahfidz MTI)');
       const result = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .update({ selection_status: 'selected' })
+        .update({ 
+          status: 'approved',
+          selection_status: 'selected'
+        })
         .in('id', idsToSelect);
       updateError = result.error;
       updatedSelectedCount = idsToSelect.length;
@@ -185,7 +202,10 @@ export async function POST(request: NextRequest) {
       console.log('[UpdateSelectionStatus] Updating', idsToPraTikrar.length, 'registrations to "waitlist" (Pra-Tikrar class)');
       const result = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
-        .update({ selection_status: 'waitlist' })
+        .update({ 
+          status: 'approved',
+          selection_status: 'waitlist'
+        })
         .in('id', idsToPraTikrar);
       updateError = result.error;
       updatedPraTikrarCount = idsToPraTikrar.length;

@@ -320,7 +320,7 @@ export async function GET(request: NextRequest) {
     // Get user's registration
     const { data: registration, error: registrationError } = await supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('exam_attempt_id, exam_status')
+      .select('exam_attempt_id, exam_status, batch:batches(name, min_exam_score)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -352,9 +352,25 @@ export async function GET(request: NextRequest) {
       }, { status: 500 });
     }
 
+    const getPassingScore = (b?: { name?: string; min_exam_score?: number | null } | null): number => {
+      if (!b) return 70;
+      if (b.min_exam_score !== undefined && b.min_exam_score !== null) return b.min_exam_score;
+      if (b.name) {
+        const match = b.name.match(/Batch\s*(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num >= 3) return 80;
+        }
+      }
+      return 70;
+    };
+
+    const minExamScore = getPassingScore((registration as any).batch);
+
     return NextResponse.json({
       attempt,
-      examStatus: registration.exam_status
+      examStatus: registration.exam_status,
+      minExamScore
     });
 
   } catch (error) {

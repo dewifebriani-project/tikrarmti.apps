@@ -18,7 +18,7 @@ import { Progress } from '@/components/ui/progress'
 import { ChevronLeft, ChevronRight, Send, Info, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { submitTikrarRegistration } from './actions'
+import { submitTikrarRegistration, getRegistrationQuestions } from './actions'
 import { cn } from '@/lib/utils'
 
 interface FormData {
@@ -50,10 +50,169 @@ interface FormData {
   questions: string
 }
 
+interface Question {
+  id: string
+  field_key: string
+  section: number
+  label: string
+  description: string | null
+  warning_text: string | null
+  is_active: boolean
+  is_required: boolean
+  sort_order: number
+}
+
+const FALLBACK_QUESTIONS: Record<string, { label: string; description: string | null; warning_text: string | null; is_required: boolean }> = {
+  commitment_info: {
+    label: "🤝 Komitmen & Etika",
+    description: "• Program ini melibatkan banyak pihak dan pasangan setoran. Kami berusaha menyesuaikan jadwal dengan pilihan Ukhti sendiri.\n• Harap meluruskan niat, menjaga komitmen, tidak banyak mengeluh, dan tidak mementingkan diri sendiri\n• Jaga adab kepada seluruh tim Tikrar MTI dan pasangan setoran masing-masing\n• Keputusan kelulusan tes administrasi dan bacaan bersifat final dan tidak dapat diganggu gugat\n• Program ini baru 3 angkatan, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini.\n• Kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tarif professional, kami hanya kumpulan emak-emak yang berkomitmen ingin emak-emak se-bumi Allah merasakan nikmatnya berproses menghafal Al Quran dengan metode tikrar, merasakan nikmatnya berkomunitas dengan sahabat-sahabat Al Quran. Sebagaimana yang telah kami rasakan dari guru-guru kami.\n• MTI adalah rumah bagi kita, yang anggotanya adalah keluarga bagaikan ibu dengan anak, kakak dengan adik, yang saling melengkapi kelemahan dan kekurangan masing-masing untuk kebaikan denqan target berkumpul di Jannah Firdaus Al-'Ala. (No Baper, No Drama).",
+    warning_text: null,
+    is_required: false
+  },
+  understands_commitment: {
+    label: "Apakah Ukhti sudah faham dengan semua poin di atas dan bersedia menerima segala komitmen?",
+    description: "Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.",
+    warning_text: null,
+    is_required: true
+  },
+  tried_simulation: {
+    label: "Apakah Ukhti sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X (Jika belum silahkan coba dulu, sebelum melanjutkan)",
+    description: "Alhamdulillah saya sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X",
+    warning_text: "Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin murojaah/sudah pernah hafal.",
+    is_required: true
+  },
+  no_negotiation: {
+    label: "Saya berjanji ga akan nego-nego jumlah tikrar",
+    description: "Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar",
+    warning_text: "Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin muroja'ah/sudah pernah hafal.",
+    is_required: true
+  },
+  has_telegram: {
+    label: "Apakah Ukhti sudah faham jika program ini juga mewajibkan tholibah untuk mempunyai aplikasi telegram untuk proses seleksi?",
+    description: "Bismillah.. Alhamdulillah saya sudah download telegram di hp saya",
+    warning_text: "Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp jika ada kendala pada aplikasi, karena keterbatasan memori hp admin.",
+    is_required: true
+  },
+  saved_contact: {
+    label: "Apakah Ukhti sudah simpan nomor Whatsapp Admin Kak Mara 0813-1365-0842, Uni Dewi 0856-771-2914, Kak Dewi Nurhayati 0895-1898-4279, Kak Donna 0812-1224-0079, Kak Ucy 0822-2937-0282, Kak Lina 0853-4011-4111, Kak Vivi 0857-0623-2865, Kak Wara 0822-2010-0262?",
+    description: "Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara, Uni Dewi, dan admin lainnya.",
+    warning_text: "Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.",
+    is_required: true
+  },
+  has_permission: {
+    label: "Apakah Ukhti sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti?",
+    description: "(Jika belum silahkan minta izin, jika tidak diizinkan mohon bersabar, berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)",
+    warning_text: null,
+    is_required: true
+  },
+  permission_name: {
+    label: "Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini",
+    description: "Ketik nama sesuai KTP",
+    warning_text: null,
+    is_required: true
+  },
+  permission_phone: {
+    label: "No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini",
+    description: "08xx-xxxx-xxxx",
+    warning_text: null,
+    is_required: true
+  },
+  chosen_juz: {
+    label: "Pilihan juz yang akan dihafalkan",
+    description: "Pilih salah satu pilihan juz",
+    warning_text: null,
+    is_required: true
+  },
+  no_travel_plans: {
+    label: "Apakah Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI?",
+    description: "InsyaAllah saya tidak ada rencana safar, kalaupun tiba-tiba safar saya akan bertanggungjawab memprioritaskan waktu untuk memenuhi kewajiban setoran kepada pasangan",
+    warning_text: "Program ini akan insyaAllah biidznillah akan dilaksanakan selama 13 pekan. Apabila Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI yang menyesuaikan dengan liburan anak-anak sekolah, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan mudik/safar yang mendzholimi jadwal pasangan setoran Ukhti.",
+    is_required: true
+  },
+  motivation: {
+    label: "Ketikkan secara singkat apa motivasi terbesar Ukhti untuk menghafal Al-Quran sehingga Ukhti rela mengikuti program ini dan ikhlas menjalankan semua aturan-peraturan dari MTI?",
+    description: "Jelaskan motivasi Ukhti...",
+    warning_text: null,
+    is_required: true
+  },
+  ready_for_team: {
+    label: "Apakah Ukhti siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?",
+    description: "Opsi komitmen khidmat / infaq bulanan thalibah.",
+    warning_text: null,
+    is_required: true
+  },
+  main_time_slot: {
+    label: "Pilih waktu utama untuk jadwal setoran dengan pasangan",
+    description: "Pilih waktu utama",
+    warning_text: null,
+    is_required: true
+  },
+  backup_time_slot: {
+    label: "Pilih waktu cadangan untuk jadwal setoran dengan pasangan",
+    description: "Pilih waktu cadangan",
+    warning_text: null,
+    is_required: true
+  },
+  time_commitment: {
+    label: "Akad waktu",
+    description: "Saya sudah memilih jadwal waktu utama dan cadangan dengan mempertimbangkan jadwal harian dan kegiatan saya. Saya terima ini sebagai akad yang akan saya pertanggungjawabkan di hadapan Allah apabila saya mendzolimi waktu pasangan setoran saya dengan alasan-alasan yang tidak urgen.",
+    warning_text: null,
+    is_required: true
+  },
+  understands_program: {
+    label: "Apakah Ukhti faham dengan poin-poin di atas?",
+    description: "Memahami kewajiban tashih, ujian, ziyadah, murojaah, dan ketentuan Counter Manual / Al-Qur'an Tikrar.",
+    warning_text: null,
+    is_required: true
+  },
+  questions: {
+    label: "Silahkan ketik pertanyaan Ukhti apabila ada yang masih kurang faham",
+    description: "Ketik pertanyaan Ukhti di sini (kosongkan jika tidak ada)",
+    warning_text: null,
+    is_required: false
+  }
+}
+
 const STORAGE_KEY = 'tikrar_registration_draft'
 
 export default function ThalibahBatch2Page() {
   const router = useRouter()
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [questionsLoading, setQuestionsLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const result = await getRegistrationQuestions()
+        if (result.success && result.data) {
+          setQuestions(result.data as Question[])
+        }
+      } catch (error) {
+        console.error('Error fetching questions:', error)
+      } finally {
+        setQuestionsLoading(false)
+      }
+    }
+    loadQuestions()
+  }, [])
+
+  const getQuestionMeta = (key: string) => {
+    const dbQ = questions.find(q => q.field_key === key)
+    if (dbQ) {
+      return {
+        label: dbQ.label,
+        description: dbQ.description,
+        warning_text: dbQ.warning_text,
+        is_required: dbQ.is_required,
+        is_active: dbQ.is_active
+      }
+    }
+    const fallback = FALLBACK_QUESTIONS[key]
+    return {
+      ...fallback,
+      is_active: true
+    }
+  }
   const { user, isLoading, isAuthenticated, isUnauthenticated } = useAuth()
   const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch()
   const searchParams = useSearchParams()
@@ -315,71 +474,106 @@ export default function ThalibahBatch2Page() {
     }
 
     if (section === 1) {
-      if (!formData.understands_commitment) {
+      const qCommitment = getQuestionMeta('understands_commitment')
+      if (qCommitment.is_active && qCommitment.is_required && !formData.understands_commitment) {
         newErrors.understands_commitment = 'Wajib menyetujui komitmen program'
       }
-      if (!formData.tried_simulation) {
+      
+      const qSimulation = getQuestionMeta('tried_simulation')
+      if (qSimulation.is_active && qSimulation.is_required && !formData.tried_simulation) {
         newErrors.tried_simulation = 'Wajib mencoba simulasi terlebih dahulu'
       }
-      if (!formData.no_negotiation) {
+      
+      const qNoNeg = getQuestionMeta('no_negotiation')
+      if (qNoNeg.is_active && qNoNeg.is_required && !formData.no_negotiation) {
         newErrors.no_negotiation = 'Wajib menyetujui tidak menego jumlah tikrar'
       }
-      if (!formData.has_telegram) {
+      
+      const qTelegram = getQuestionMeta('has_telegram')
+      if (qTelegram.is_active && qTelegram.is_required && !formData.has_telegram) {
         newErrors.has_telegram = 'Wajib memiliki aplikasi Telegram'
       }
-      if (!formData.saved_contact) {
+      
+      const qContact = getQuestionMeta('saved_contact')
+      if (qContact.is_active && qContact.is_required && !formData.saved_contact) {
         newErrors.saved_contact = 'Wajib menyimpan nomor kontak admin'
       }
     }
 
     if (section === 2) {
-      if (!formData.has_permission) {
-        newErrors.has_permission = 'Wajib memiliki izin dari yang bertanggung jawab'
+      const qPermission = getQuestionMeta('has_permission')
+      if (qPermission.is_active) {
+        if (qPermission.is_required && !formData.has_permission) {
+          newErrors.has_permission = 'Wajib memiliki izin dari yang bertanggung jawab'
+        }
+        
+        // For janda, permission fields are optional
+        const isJanda = formData.has_permission === 'janda'
+        if (!isJanda) {
+          const qPermName = getQuestionMeta('permission_name')
+          if (qPermName.is_active && qPermName.is_required && !formData.permission_name.trim()) {
+            newErrors.permission_name = 'Nama pemberi izin harus diisi'
+          }
+          const qPermPhone = getQuestionMeta('permission_phone')
+          if (qPermPhone.is_active) {
+            if (qPermPhone.is_required && !formData.permission_phone.trim()) {
+              newErrors.permission_phone = 'Nomor HP pemberi izin harus diisi'
+            }
+            if (formData.permission_phone !== formData.permission_phone_validation) {
+              newErrors.permission_phone_validation = 'Validasi nomor HP tidak cocok'
+            }
+          }
+        }
       }
-      // For janda, permission fields are optional
-      const isJanda = formData.has_permission === 'janda'
-      if (!isJanda) {
-        if (!formData.permission_name.trim()) {
-          newErrors.permission_name = 'Nama pemberi izin harus diisi'
-        }
-        if (!formData.permission_phone.trim()) {
-          newErrors.permission_phone = 'Nomor HP pemberi izin harus diisi'
-        }
-        if (formData.permission_phone !== formData.permission_phone_validation) {
-          newErrors.permission_phone_validation = 'Validasi nomor HP tidak cocok'
-        }
-      }
-      if (!formData.chosen_juz) {
+      
+      const qChosenJuz = getQuestionMeta('chosen_juz')
+      if (qChosenJuz.is_active && qChosenJuz.is_required && !formData.chosen_juz) {
         newErrors.chosen_juz = 'Pilih salah satu pilihan juz'
       }
-      if (!formData.no_travel_plans) {
+      
+      const qTravel = getQuestionMeta('no_travel_plans')
+      if (qTravel.is_active && qTravel.is_required && !formData.no_travel_plans) {
         newErrors.no_travel_plans = 'Wajib menyetujui tidak ada rencana safar'
       }
-      if (!formData.motivation.trim()) {
+      
+      const qMotivation = getQuestionMeta('motivation')
+      if (qMotivation.is_active && qMotivation.is_required && !formData.motivation.trim()) {
         newErrors.motivation = 'Motivasi harus diisi'
       }
-      if (!formData.ready_for_team) {
-        newErrors.ready_for_team = 'Pilih salah satu opsi'
-      } else if (formData.ready_for_team === 'infaq' && !formData.infaq_amount) {
-        newErrors.infaq_amount = 'Pilih nominal infaq bulanan'
+      
+      const qReady = getQuestionMeta('ready_for_team')
+      if (qReady.is_active) {
+        if (qReady.is_required && !formData.ready_for_team) {
+          newErrors.ready_for_team = 'Pilih salah satu opsi'
+        } else if (formData.ready_for_team === 'infaq' && !formData.infaq_amount) {
+          newErrors.infaq_amount = 'Pilih nominal infaq bulanan'
+        }
       }
     }
 
     if (section === 3) {
-      if (!formData.main_time_slot) {
+      const qMainSlot = getQuestionMeta('main_time_slot')
+      if (qMainSlot.is_active && qMainSlot.is_required && !formData.main_time_slot) {
         newErrors.main_time_slot = 'Pilih waktu utama'
       }
-      if (!formData.backup_time_slot) {
+      const qBackupSlot = getQuestionMeta('backup_time_slot')
+      if (qBackupSlot.is_active && qBackupSlot.is_required && !formData.backup_time_slot) {
         newErrors.backup_time_slot = 'Pilih waktu cadangan'
       }
-      if (!formData.time_commitment) {
+      const qTimeCommit = getQuestionMeta('time_commitment')
+      if (qTimeCommit.is_active && qTimeCommit.is_required && !formData.time_commitment) {
         newErrors.time_commitment = 'Wajib menyetujui komitmen waktu'
       }
     }
 
     if (section === 4) {
-      if (!formData.understands_program) {
+      const qUnderstandsProg = getQuestionMeta('understands_program')
+      if (qUnderstandsProg.is_active && qUnderstandsProg.is_required && !formData.understands_program) {
         newErrors.understands_program = 'Wajib memahami program'
+      }
+      const qQuestions = getQuestionMeta('questions')
+      if (qQuestions.is_active && qQuestions.is_required && !formData.questions.trim()) {
+        newErrors.questions = 'Pertanyaan wajib diisi'
       }
     }
 
@@ -570,14 +764,14 @@ export default function ThalibahBatch2Page() {
           <strong>Section 2 of {totalSections}</strong> - FORMULIR PENDAFTARAN TIKRAR MTI {activeBatchData?.name || '...'}
         </AlertDescription>
       </Alert>
-
+ 
       <div className="bg-blue-50 p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg">
         <h3 className="font-bold text-base sm:text-lg md:text-xl mb-4 sm:mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
-
+ 
         <div className="space-y-3 sm:space-y-4 text-sm sm:text-base text-gray-700">
           <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis (syarat dan ketentuan berlaku) khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
           <p>📆 Durasi program: InsyaAllah selama {activeBatchData?.duration_weeks || 13} Pekan ({formatDateRange(activeBatchData?.start_date, activeBatchData?.end_date)}) untuk target hafalan 1/2 juz.</p>
-
+ 
           <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 rounded-lg">
             <p className="font-semibold text-green-800 mb-2 sm:mb-3 text-sm sm:text-base">Struktur Program:</p>
             <div className="text-xs sm:text-sm text-green-700 space-y-1.5 sm:space-y-2">
@@ -587,9 +781,9 @@ export default function ThalibahBatch2Page() {
               <p>📚 <strong>Pekan Terakhir:</strong> Muroja'ah dan Ujian</p>
             </div>
           </div>
-
+ 
           <p>🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)</p>
-
+ 
           <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
             <p className="font-semibold text-blue-800 mb-2 sm:mb-3 text-sm sm:text-base">Kewajiban Program:</p>
             <div className="text-xs sm:text-sm text-blue-700 space-y-1.5 sm:space-y-2">
@@ -599,7 +793,7 @@ export default function ThalibahBatch2Page() {
               <p>✅ Jadwal setoran pasangan boleh pilih opsi yang sudah ditentukan, akan kami carikan pasangan setoran semaksimal mungkin yang sama waktu dan zona waktu</p>
             </div>
           </div>
-
+ 
           <div className="mt-4 p-5 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="font-semibold text-yellow-800 mb-3 flex items-center text-base">
               <AlertCircle className="w-5 h-5 mr-2" />
@@ -608,7 +802,7 @@ export default function ThalibahBatch2Page() {
             <div className="text-yellow-700 text-sm space-y-3">
               <p>Bagi kakak-kakak yang sibuk, banyak kelas, ga bisa atur waktu dengan pasangan silahkan pilih program tanpa pasangan.</p>
               <p><strong>Jika Ukhti dinyatakan lolos seleksi administrasi dan tes bacaan, dan sudah daftar ulang, kami tidak meridhoi Ukhti keluar dari program tanpa udzur syar'i.</strong> Alasan seperti "sibuk", "ada kerjaan", atau "ikut kelas lain" tidak kami terima.</p>
-
+ 
               <p className="mt-2 font-semibold">✅ Alasan yang DITERIMA untuk mundur dari program:</p>
               <ul className="ml-4 space-y-1">
                 <li>• Qadarullah, diri sendiri/orang tua/mertua/suami/anak sakit dan butuh perawatan intensif</li>
@@ -618,35 +812,35 @@ export default function ThalibahBatch2Page() {
               </ul>
             </div>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-purple-50 rounded-lg">
             <p className="font-semibold text-purple-800 mb-3 text-base">👨‍👩‍👧 Izin Keluarga/Wali</p>
             <p className="text-sm text-purple-700">
               Untuk mengikuti program ini, wajib mendapatkan izin dari suami, orang tua, majikan, atau wali, karena waktu Ukhti akan lebih banyak digunakan untuk menghafal. Jika sewaktu-waktu mereka mencabut izinnya, merekalah yang harus menghubungi pihak MTI untuk menyampaikan permohonan pengunduran diri.
             </p>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <p className="font-semibold text-gray-800 mb-3 text-base">⚙️ Tentang Program</p>
             <p className="text-sm text-gray-700">
               Seluruh aturan kami susun demi kebaikan dan kelancaran program ini, bukan untuk mempersulit siapapun. Kami ingin menciptakan lingkungan yang serius dan kondusif bagi para penghafal Qur'an.
             </p>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
             <p className="font-semibold text-indigo-800 mb-3 text-base">⏳ Komitmen Waktu</p>
             <p className="text-sm text-indigo-700">
               Program ini membutuhkan komitmen waktu minimal 2 jam per hari membersamai Al Quran. Jika Ukhti memiliki jadwal yang padat, banyak tanggungan, atau merasa tidak bisa konsisten, kami sarankan untuk tidak mendaftar dulu. Tujuan kami adalah agar program ini berjalan dengan zero dropout dan zero blacklist.
             </p>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-teal-50 rounded-lg">
             <p className="font-semibold text-teal-800 mb-3 text-base">💡 Tentang Metode</p>
             <p className="text-sm text-teal-700">
               Metode Tikrar MTI kami rancang berdasarkan pengalaman para ibu yang mengajar dan belajar Al-Qur'an di tengah rutinitas rumah tangga. Metode ini cocok untuk emak-emak yang menghafal di rumah sambil mencuci, masak, mengurus anak dan suami.
             </p>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
             <p className="font-semibold text-red-800 mb-3 text-base">🚫 Tidak cocok untuk:</p>
             <div className="text-sm text-red-700 space-y-2">
@@ -657,7 +851,7 @@ export default function ThalibahBatch2Page() {
               Namun, jika ingin mengadopsi metode ini untuk diterapkan di halaqah masing-masing, silakan. Metode ini bebas dipakai, dimodifikasi, dan disebarluaskan.
             </p>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-orange-50 rounded-lg">
             <p className="font-semibold text-orange-800 mb-3 text-base">🧪 Simulasi Sebelum Daftar</p>
             <div className="text-sm text-orange-700 space-y-3">
@@ -666,21 +860,21 @@ export default function ThalibahBatch2Page() {
               <p><strong>Jika merasa sanggup, silakan lanjut mengisi formulir. Jika tidak, sebaiknya undur diri dari sekarang.</strong></p>
             </div>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-rose-50 rounded-lg border border-rose-200">
             <p className="font-semibold text-rose-800 mb-3 text-base">🚩 Peringatan Serius</p>
             <div className="text-sm text-rose-700 space-y-3">
               <p>Kami tidak ridho jika Ukhti submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan baca di Web markaztikrar.id. Di web sudah kami markaztikrar</p>
             </div>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-emerald-50 rounded-lg">
             <p className="font-semibold text-emerald-800 mb-3 text-base">🎯 Tujuan Program</p>
             <div className="text-sm text-emerald-700 space-y-3">
               <p>Kami tidak mengejar kuantitas peserta, tetapi lebih fokus pada tholibah yang ikhlas, istiqamah, dan bersungguh-sungguh untuk menghafal dan menebar manfaat. Bagi yang masih banyak agenda dan belum bisa konsisten, lebih baik menunggu angkatan berikutnya.</p>
             </div>
           </div>
-
+ 
           <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
             <p className="font-semibold text-slate-800 mb-3 text-base">⚠️ Program Blacklist</p>
             <div className="text-sm text-slate-700 space-y-3">
@@ -689,164 +883,186 @@ export default function ThalibahBatch2Page() {
           </div>
         </div>
       </div>
-
-      <div className="mt-4 p-5 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
-        <p className="text-center text-base text-green-800 font-medium mb-3">
-          🤝 Komitmen & Etika
-        </p>
-        <div className="text-sm text-gray-700 space-y-2">
-          <p>• Program ini melibatkan banyak pihak dan pasangan setoran. Kami berusaha menyesuaikan jadwal dengan pilihan Ukhti sendiri.</p>
-          <p>• Harap meluruskan niat, menjaga komitmen, tidak banyak mengeluh, dan tidak mementingkan diri sendiri</p>
-          <p>• Jaga adab kepada seluruh tim Tikrar MTI dan pasangan setoran masing-masing</p>
-          <p>• Keputusan kelulusan tes administrasi dan bacaan bersifat final dan tidak dapat diganggu gugat</p>
-          <p>• Program ini baru 3 angkatan, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini.</p>
-          <p>• Kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tarif professional, kami hanya kumpulan emak-emak yang berkomitmen ingin emak-emak se-bumi Allah merasakan nikmatnya berproses menghafal Al Quran dengan metode tikrar, merasakan nikmatnya berkomunitas dengan sahabat-sahabat Al Quran. Sebagaimana yang telah kami rasakan dari guru-guru kami.</p>
-          <p>• MTI adalah rumah bagi kita, yang anggotanya adalah keluarga bagaikan ibu dengan anak, kakak dengan adik, yang saling melengkapi kelemahan dan kekurangan masing-masing untuk kebaikan denqan target berkumpul di Jannah Firdaus Al-'Ala. (No Baper, No Drama).</p>
-        </div>
-      </div>
-
-      <div className="space-y-6 sm:space-y-8">
-        <div className="space-y-2 sm:space-y-3">
-          <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti  sudah faham dengan semua poin di atas dan bersedia menerima segala komitmen?
-            <span className="text-red-500">*</span>
-          </Label>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="understands_commitment"
-                id="understands_commitment_yes"
-                value="yes"
-                checked={formData.understands_commitment}
-                onChange={() => handleInputChange('understands_commitment', true)}
-                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="understands_commitment_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah ana sudah dengar dan sudah paham dan insyaAllah ikhlas menerima segala komitmen dan berusaha menjalankannya semaksimal mungkin.
-              </Label>
-            </div>
-          </div>
-          {errors.understands_commitment && (
-            <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.understands_commitment}</p>
-          )}
-        </div>
-
-        <div className="space-y-2 sm:space-y-3">
-          <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X
-            (Jika belum silahkan coba dulu, sebelum melanjutkan)
-            <span className="text-red-500">*</span>
-          </Label>
-          <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
-            <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
-            <p className="text-xs sm:text-sm text-yellow-700">
-              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin murojaah/sudah pernah hafal.
-            </p>
-          </div>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="tried_simulation"
-                id="tried_simulation_yes"
-                value="yes"
-                checked={formData.tried_simulation}
-                onChange={() => handleInputChange('tried_simulation', true)}
-                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="tried_simulation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Alhamdulillah saya sudah mencoba simulasi mengulang membaca Surat An-Naba' ayat 1-11 sebanyak 40X
-              </Label>
-            </div>
-          </div>
-          {errors.tried_simulation && (
-            <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.tried_simulation}</p>
-          )}
-        </div>
-
-        <div className="space-y-2 sm:space-y-3">
-          <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
-            <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
-            <p className="text-xs sm:text-sm text-yellow-700">
-              Kami tidak melayani calon tolibah yang nego-nego jumlah tikrar, walaupun Ukhti hanya ingin muroja'ah/sudah pernah hafal. 
-            </p>
-          </div>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="no_negotiation"
-                id="no_negotiation_yes"
-                value="yes"
-                checked={formData.no_negotiation}
-                onChange={() => handleInputChange('no_negotiation', true)}
-                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="no_negotiation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah sudah dan saya berjanji ga akan nego-nego jumlah tikrar
-              </Label>
-            </div>
-          </div>
-          {errors.no_negotiation && (
-            <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.no_negotiation}</p>
-          )}
-        </div>
-
-        <div className="space-y-2 sm:space-y-3">
-          <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah faham jika program ini juga mewajibkan tholibah untuk mempunyai aplikasi telegram untuk proses seleksi?
-          </Label>
-          <p className="text-xs sm:text-sm text-gray-500 italic">
-            Mohon maaf kami tidak akan mengecek VN seleksi yang dikirim lewat whatsapp jika ada kendala pada aplikasi, karena keterbatasan memori hp admin.
+ 
+      {getQuestionMeta('commitment_info').is_active && (
+        <div className="mt-4 p-5 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
+          <p className="text-center text-base text-green-800 font-medium mb-3">
+            {getQuestionMeta('commitment_info').label}
           </p>
-          <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="has_telegram"
-                id="has_telegram_yes"
-                value="yes"
-                checked={formData.has_telegram}
-                onChange={() => handleInputChange('has_telegram', true)}
-                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="has_telegram_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah saya sudah download telegram di hp saya
-              </Label>
-            </div>
+          <div className="text-sm text-gray-700 space-y-2 whitespace-pre-line">
+            {getQuestionMeta('commitment_info').description}
           </div>
-          {errors.has_telegram && (
-            <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.has_telegram}</p>
-          )}
         </div>
-
-        <div className="space-y-2 sm:space-y-3">
-          <Label className="text-sm sm:text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah simpan nomor Whatsapp Admin Kak Mara 0813-1365-0842, Uni Dewi 0856-771-2914, Kak Dewi Nurhayati 0895-1898-4279, Kak Donna 0812-1224-0079, Kak Ucy 0822-2937-0282, Kak Lina 0853-4011-4111, Kak Vivi 0857-0623-2865, Kak Wara 0822-2010-0262? Yang akan di-add ke grup hanya yang bisa langsung kak Mara add saja.. kami tidak akan mengirimkan invitation link bagi yang tidak bisa di-add karena tidak mau save nomor admin.
-            <span className="text-red-500">*</span>
-          </Label>
+      )}
+ 
+      <div className="space-y-6 sm:space-y-8">
+        {getQuestionMeta('understands_commitment').is_active && (
           <div className="space-y-2 sm:space-y-3">
-            <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="saved_contact"
-                id="saved_contact_yes"
-                value="yes"
-                checked={formData.saved_contact}
-                onChange={() => handleInputChange('saved_contact', true)}
-                className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="saved_contact_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah saya sudah simpan nomor hp Kak Mara, Uni Dewi, dan admin lainnya.
-              </Label>
+            <Label className="text-sm sm:text-base font-semibold text-gray-800">
+              {getQuestionMeta('understands_commitment').label}
+              {getQuestionMeta('understands_commitment').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            {getQuestionMeta('understands_commitment').warning_text && (
+              <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
+                <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
+                <p className="text-xs sm:text-sm text-yellow-700">{getQuestionMeta('understands_commitment').warning_text}</p>
+              </div>
+            )}
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="understands_commitment"
+                  id="understands_commitment_yes"
+                  value="yes"
+                  checked={formData.understands_commitment}
+                  onChange={() => handleInputChange('understands_commitment', true)}
+                  className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="understands_commitment_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  {getQuestionMeta('understands_commitment').description}
+                </Label>
+              </div>
             </div>
+            {errors.understands_commitment && (
+              <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.understands_commitment}</p>
+            )}
           </div>
-          {errors.saved_contact && (
-            <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.saved_contact}</p>
-          )}
-
-        </div>
+        )}
+ 
+        {getQuestionMeta('tried_simulation').is_active && (
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-sm sm:text-base font-semibold text-gray-800">
+              {getQuestionMeta('tried_simulation').label}
+              {getQuestionMeta('tried_simulation').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            {getQuestionMeta('tried_simulation').warning_text && (
+              <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
+                <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
+                <p className="text-xs sm:text-sm text-yellow-700">{getQuestionMeta('tried_simulation').warning_text}</p>
+              </div>
+            )}
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="tried_simulation"
+                  id="tried_simulation_yes"
+                  value="yes"
+                  checked={formData.tried_simulation}
+                  onChange={() => handleInputChange('tried_simulation', true)}
+                  className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="tried_simulation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  {getQuestionMeta('tried_simulation').description}
+                </Label>
+              </div>
+            </div>
+            {errors.tried_simulation && (
+              <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.tried_simulation}</p>
+            )}
+          </div>
+        )}
+ 
+        {getQuestionMeta('no_negotiation').is_active && (
+          <div className="space-y-2 sm:space-y-3">
+            {getQuestionMeta('no_negotiation').warning_text && (
+              <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300 mb-2">
+                <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
+                <p className="text-xs sm:text-sm text-yellow-700">{getQuestionMeta('no_negotiation').warning_text}</p>
+              </div>
+            )}
+            <Label className="text-sm sm:text-base font-semibold text-gray-800">
+              {getQuestionMeta('no_negotiation').label}
+              {getQuestionMeta('no_negotiation').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="no_negotiation"
+                  id="no_negotiation_yes"
+                  value="yes"
+                  checked={formData.no_negotiation}
+                  onChange={() => handleInputChange('no_negotiation', true)}
+                  className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="no_negotiation_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  {getQuestionMeta('no_negotiation').description}
+                </Label>
+              </div>
+            </div>
+            {errors.no_negotiation && (
+              <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.no_negotiation}</p>
+            )}
+          </div>
+        )}
+ 
+        {getQuestionMeta('has_telegram').is_active && (
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-sm sm:text-base font-semibold text-gray-800">
+              {getQuestionMeta('has_telegram').label}
+              {getQuestionMeta('has_telegram').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            {getQuestionMeta('has_telegram').warning_text && (
+              <p className="text-xs sm:text-sm text-gray-500 italic mb-2">
+                {getQuestionMeta('has_telegram').warning_text}
+              </p>
+            )}
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="has_telegram"
+                  id="has_telegram_yes"
+                  value="yes"
+                  checked={formData.has_telegram}
+                  onChange={() => handleInputChange('has_telegram', true)}
+                  className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="has_telegram_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  {getQuestionMeta('has_telegram').description}
+                </Label>
+              </div>
+            </div>
+            {errors.has_telegram && (
+              <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.has_telegram}</p>
+            )}
+          </div>
+        )}
+ 
+        {getQuestionMeta('saved_contact').is_active && (
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-sm sm:text-base font-semibold text-gray-800">
+              {getQuestionMeta('saved_contact').label}
+              {getQuestionMeta('saved_contact').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start space-x-2 sm:space-x-4 p-3 sm:p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="saved_contact"
+                  id="saved_contact_yes"
+                  value="yes"
+                  checked={formData.saved_contact}
+                  onChange={() => handleInputChange('saved_contact', true)}
+                  className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="saved_contact_yes" className="text-sm sm:text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  {getQuestionMeta('saved_contact').description}
+                </Label>
+              </div>
+            </div>
+            {getQuestionMeta('saved_contact').warning_text && (
+              <p className="text-xs text-amber-600 mt-2 font-medium">
+                ⚠️ {getQuestionMeta('saved_contact').warning_text}
+              </p>
+            )}
+            {errors.saved_contact && (
+              <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.saved_contact}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -859,290 +1075,324 @@ export default function ThalibahBatch2Page() {
           <strong>Section 3 of {totalSections}</strong> - Izin & Pilihan Program
         </AlertDescription>
       </Alert>
-
+ 
       <div className="space-y-6 sm:space-y-8">
-        <div className="space-y-3">
-          <Label className="text-base font-semibold text-gray-800">
-            Apakah Ukhti sudah meminta izin kepada suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti?
-            <span className="text-red-500">*</span>
-          </Label>
-          <p className="text-sm text-gray-500 italic">
-            (Jika belum silahkan minta izin, jika tidak diizinkan mohon bersabar, berdoa kepada Allah semoga Allah mudahkan pada angkatan selanjutnya)
-          </p>
+        {getQuestionMeta('has_permission').is_active && (
           <div className="space-y-3">
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="has_permission"
-                id="has_permission_yes"
-                value="yes"
-                checked={formData.has_permission === 'yes'}
-                onChange={() => handleInputChange('has_permission', 'yes' as const)}
-                className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="has_permission_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Alhamdulillah sudah (ini jawaban saya sejujur-jujurnya yang akan saya pertanggungjawabkan di akhirat nanti)
-              </Label>
+            <Label className="text-base font-semibold text-gray-800">
+              {getQuestionMeta('has_permission').label}
+              {getQuestionMeta('has_permission').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            {getQuestionMeta('has_permission').description && (
+              <p className="text-sm text-gray-500 italic">
+                {getQuestionMeta('has_permission').description}
+              </p>
+            )}
+            {getQuestionMeta('has_permission').warning_text && (
+              <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-yellow-300">
+                <p className="text-xs sm:text-sm text-yellow-800 font-semibold mb-1.5 sm:mb-2">⚠️ Peringatan Penting:</p>
+                <p className="text-xs sm:text-sm text-yellow-700">{getQuestionMeta('has_permission').warning_text}</p>
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="has_permission"
+                  id="has_permission_yes"
+                  value="yes"
+                  checked={formData.has_permission === 'yes'}
+                  onChange={() => handleInputChange('has_permission', 'yes' as const)}
+                  className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="has_permission_yes" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  Bismillah.. Alhamdulillah sudah (ini jawaban saya sejujur-jujurnya yang akan saya pertanggungjawabkan di akhirat nanti)
+                </Label>
+              </div>
+              <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
+                <input
+                  type="radio"
+                  name="has_permission"
+                  id="has_permission_janda"
+                  value="janda"
+                  checked={formData.has_permission === 'janda'}
+                  onChange={() => handleInputChange('has_permission', 'janda' as const)}
+                  className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="has_permission_janda" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
+                  Bismillah.. Saya seorang janda yang mandiri, tidak terikat, tidak perlu persetujuan siapapun dan mengikuti program ini tidak akan mempengaruhi siapapun
+                </Label>
+              </div>
             </div>
-            <div className="flex items-start space-x-4 p-4 border-2 rounded-lg hover:bg-green-50 transition-all duration-200 cursor-pointer hover:border-green-300">
-              <input
-                type="radio"
-                name="has_permission"
-                id="has_permission_janda"
-                value="janda"
-                checked={formData.has_permission === 'janda'}
-                onChange={() => handleInputChange('has_permission', 'janda' as const)}
-                className="mt-1 w-5 h-5 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="has_permission_janda" className="text-base font-medium text-gray-700 cursor-pointer flex-1">
-                Bismillah.. Saya seorang janda yang mandiri, tidak terikat, tidak perlu persetujuan siapapun dan mengikuti program ini tidak akan mempengaruhi siapapun
-              </Label>
-            </div>
+            {errors.has_permission && (
+              <p className="text-red-500 text-sm font-medium">{errors.has_permission}</p>
+            )}
           </div>
-          {errors.has_permission && (
-            <p className="text-red-500 text-sm font-medium">{errors.has_permission}</p>
-          )}
-        </div>
-
-        {/* Permission fields - only show if not janda */}
-        {formData.has_permission !== 'janda' && (
+        )}
+ 
+        {/* Permission fields - only show if not janda and has_permission is active */}
+        {formData.has_permission !== 'janda' && getQuestionMeta('has_permission').is_active && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="permission_name" className="text-base font-semibold text-gray-800">
-                  Nama suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="permission_name"
-                  value={formData.permission_name}
-                  onChange={(e) => handleInputChange('permission_name', e.target.value)}
-                  placeholder="Ketik nama sesuai KTP"
-                  className="text-base py-3"
-                />
-                {errors.permission_name && (
-                  <p className="text-red-500 text-sm font-medium">{errors.permission_name}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="permission_phone" className="text-base font-semibold text-gray-800">
-                  No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="permission_phone"
-                  value={formData.permission_phone}
-                  onChange={(e) => handleInputChange('permission_phone', e.target.value)}
-                  placeholder="08xx-xxxx-xxxx"
-                  className="text-base py-3"
-                />
-                {errors.permission_phone && (
-                  <p className="text-red-500 text-sm font-medium">{errors.permission_phone}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label htmlFor="permission_phone_validation" className="text-base font-semibold text-gray-800">
-                Validasi isi sekali lagi No HP suami/ orang tua/majikan/wali yang bertanggung jawab atas diri Ukhti dan yang sudah memberikan izin Ukhti untuk ikut program ini
-                <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="permission_phone_validation"
-                value={formData.permission_phone_validation}
-                onChange={(e) => handleInputChange('permission_phone_validation', e.target.value)}
-                placeholder="Ketik ulang nomor HP"
-                className="text-base py-3"
-              />
-              {errors.permission_phone_validation && (
-                <p className="text-red-500 text-sm font-medium">{errors.permission_phone_validation}</p>
+              {getQuestionMeta('permission_name').is_active && (
+                <div className="space-y-2">
+                  <Label htmlFor="permission_name" className="text-base font-semibold text-gray-800">
+                    {getQuestionMeta('permission_name').label}
+                    {getQuestionMeta('permission_name').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input
+                    id="permission_name"
+                    value={formData.permission_name}
+                    onChange={(e) => handleInputChange('permission_name', e.target.value)}
+                    placeholder={getQuestionMeta('permission_name').description || "Ketik nama sesuai KTP"}
+                    className="text-base py-3"
+                  />
+                  {errors.permission_name && (
+                    <p className="text-red-500 text-sm font-medium">{errors.permission_name}</p>
+                  )}
+                </div>
+              )}
+ 
+              {getQuestionMeta('permission_phone').is_active && (
+                <div className="space-y-2">
+                  <Label htmlFor="permission_phone" className="text-base font-semibold text-gray-800">
+                    {getQuestionMeta('permission_phone').label}
+                    {getQuestionMeta('permission_phone').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input
+                    id="permission_phone"
+                    value={formData.permission_phone}
+                    onChange={(e) => handleInputChange('permission_phone', e.target.value)}
+                    placeholder={getQuestionMeta('permission_phone').description || "08xx-xxxx-xxxx"}
+                    className="text-base py-3"
+                  />
+                  {errors.permission_phone && (
+                    <p className="text-red-500 text-sm font-medium">{errors.permission_phone}</p>
+                  )}
+                </div>
               )}
             </div>
+ 
+            {getQuestionMeta('permission_phone').is_active && (
+              <div className="space-y-3">
+                <Label htmlFor="permission_phone_validation" className="text-base font-semibold text-gray-800">
+                  Validasi isi sekali lagi {getQuestionMeta('permission_phone').label}
+                  {getQuestionMeta('permission_phone').is_required && <span className="text-red-500">*</span>}
+                </Label>
+                <Input
+                  id="permission_phone_validation"
+                  value={formData.permission_phone_validation}
+                  onChange={(e) => handleInputChange('permission_phone_validation', e.target.value)}
+                  placeholder="Ketik ulang nomor HP"
+                  className="text-base py-3"
+                />
+                {errors.permission_phone_validation && (
+                  <p className="text-red-500 text-sm font-medium">{errors.permission_phone_validation}</p>
+                )}
+              </div>
+            )}
           </>
         )}
-
+ 
         {/* Info message for janda */}
-        {formData.has_permission === 'janda' && (
+        {formData.has_permission === 'janda' && getQuestionMeta('has_permission').is_active && (
           <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
             <p className="text-sm text-green-800">
               ✓ Sebagai janda yang mandiri, Ukhti tidak perlu mengisi data suami/wali. Data diri Ukhti akan digunakan sebagai kontak penanggung jawab.
             </p>
           </div>
         )}
-
-        <div className="space-y-3">
-          <Label className="text-base font-semibold text-gray-800">Pilihan juz yang akan dihafalkan<span className="text-red-500">*</span></Label>
-          <Select value={formData.chosen_juz} onValueChange={(value) => handleInputChange('chosen_juz', value)} disabled={juzLoading}>
-            <SelectTrigger className="text-base py-3">
-              <SelectValue placeholder={juzLoading ? "Memuat pilihan juz..." : "Pilih juz"} />
-            </SelectTrigger>
-            <SelectContent>
-              {juzOptions.map((juz) => (
-                <SelectItem key={juz.id} value={juz.code}>
-                  {juz.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.chosen_juz && (
-            <p className="text-red-500 text-sm font-medium">{errors.chosen_juz}</p>
-          )}
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
-          <p className="text-sm text-blue-800 font-semibold mb-2">Informasi Program:</p>
-          <p className="text-sm text-blue-700">
-            Program ini akan insyaAllah biidznillah akan dilaksanakan selama 13 pekan. Apabila Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI yang menyesuaikan dengan liburan anak-anak sekolah, kami sarankan menunda pendaftaran pada angkatan berikutnya. Kami tidak menerima alasan mudik/safar yang mendzholimi jadwal pasangan setoran Ukhti.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">
-            Apakah Ukhti sudah merencanakan atau safar, mudik, umrah atau liburan di luar jadwal liburan MTI?
-            <span className="text-red-500">*</span>
-          </Label>
+ 
+        {getQuestionMeta('chosen_juz').is_active && (
           <div className="space-y-3">
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <input
-                type="radio"
-                name="no_travel_plans"
-                id="no_travel_plans_yes"
-                value="yes"
-                checked={formData.no_travel_plans}
-                onChange={() => handleInputChange('no_travel_plans', true)}
-                className="mt-1 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="no_travel_plans_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                InsyaAllah saya tidak ada rencana safar, kalaupun tiba-tiba safar saya akan bertanggungjawab memprioritaskan waktu untuk memenuhi kewajiban setoran kepada pasangan
-              </Label>
-            </div>
-          </div>
-          {errors.no_travel_plans && (
-            <p className="text-red-500 text-xs">{errors.no_travel_plans}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="motivation" className="text-sm font-medium text-gray-700">
-            Ketikkan secara singkat apa motivasi terbesar Ukhti untuk menghafal Al-Quran sehingga Ukhti rela mengikuti program ini dan ikhlas menjalankan semua aturan-peraturan dari MTI?
-          </Label>
-          <Textarea
-            id="motivation"
-            value={formData.motivation}
-            onChange={(e) => handleInputChange('motivation', e.target.value)}
-            rows={3}
-            placeholder="Jelaskan motivasi Ukhti..."
-            className="text-sm"
-          />
-          {errors.motivation && (
-            <p className="text-red-500 text-xs">{errors.motivation}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">
-            Apakah Ukhti siap dan bersedia menjadi bagian tim MTI apabila kami anggap sudah layak menjadi khadimat Al-Quran sebagai mu'allimah atau musyrifah untuk turut membantu MTI dalam misi memberantas buta huruf Al-Quran di Indonesia?
-            <span className="text-red-500">*</span>
-          </Label>
-          <div className="space-y-3">
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <input
-                type="radio"
-                name="ready_for_team"
-                id="ready"
-                value="ready"
-                checked={formData.ready_for_team === 'ready'}
-                onChange={() => handleInputChange('ready_for_team', 'ready')}
-                className="mt-1 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                InsyaAllah siapppp (jawaban ini kami catat sebagai akad)
-              </Label>
-            </div>
-            <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-              <input
-                type="radio"
-                name="ready_for_team"
-                id="infaq"
-                value="infaq"
-                checked={formData.ready_for_team === 'infaq'}
-                onChange={() => {
-                  handleInputChange('ready_for_team', 'infaq');
-                  if (!formData.infaq_amount) {
-                    handleInputChange('infaq_amount', '25.000');
-                  }
-                }}
-                className="mt-1 text-green-600 focus:ring-green-500"
-              />
-              <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan akad infaq wajib perbulan dengan pilihan 25, 50, 100 atau lebih dari 100 ribu rupiah perbulan sesuai dengan kemampuan saya, selama saya masih aktif pada Batch 3 MTI
-              </Label>
-            </div>
-
-            {formData.ready_for_team === 'infaq' && (
-              <div className="mt-3 ml-8 p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                <Label className="text-sm font-bold text-emerald-950 block mb-1">
-                  Nominal Infaq Wajib Per Bulan<span className="text-red-500">*</span>
-                </Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {['25.000', '50.000', '100.000', 'Lainnya'].map((val) => {
-                    const isSelected = val === 'Lainnya' 
-                      ? !['25.000', '50.000', '100.000'].includes(formData.infaq_amount)
-                      : formData.infaq_amount === val;
-                    
-                    return (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => {
-                          if (val === 'Lainnya') {
-                            handleInputChange('infaq_amount', '');
-                          } else {
-                            handleInputChange('infaq_amount', val);
-                          }
-                        }}
-                        className={cn(
-                          "py-2.5 px-3 text-xs sm:text-sm font-bold rounded-lg border transition-all duration-200 text-center",
-                          isSelected 
-                            ? "bg-green-600 text-white border-green-600 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                        )}
-                      >
-                        {val === 'Lainnya' ? 'Lainnya' : `Rp ${val}`}
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                {(!['25.000', '50.000', '100.000'].includes(formData.infaq_amount)) && (
-                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-250">
-                    <Label htmlFor="custom_infaq" className="text-xs font-semibold text-emerald-800">Masukkan Nominal Infaq Lainnya (Rp)</Label>
-                    <Input
-                      id="custom_infaq"
-                      type="text"
-                      value={formData.infaq_amount.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-                      onChange={(e) => {
-                        const rawVal = e.target.value.replace(/\D/g, '');
-                        const formatted = rawVal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-                        handleInputChange('infaq_amount', formatted);
-                      }}
-                      placeholder="Contoh: 150.000"
-                      className="text-base py-3"
-                    />
-                  </div>
-                )}
-                
-                {errors.infaq_amount && (
-                  <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.infaq_amount}</p>
-                )}
-              </div>
+            <Label className="text-base font-semibold text-gray-800">
+              {getQuestionMeta('chosen_juz').label}
+              {getQuestionMeta('chosen_juz').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            {getQuestionMeta('chosen_juz').description && (
+              <p className="text-sm text-gray-400">
+                {getQuestionMeta('chosen_juz').description}
+              </p>
+            )}
+            <Select value={formData.chosen_juz} onValueChange={(value) => handleInputChange('chosen_juz', value)} disabled={juzLoading}>
+              <SelectTrigger className="text-base py-3">
+                <SelectValue placeholder={juzLoading ? "Memuat pilihan juz..." : "Pilih juz"} />
+              </SelectTrigger>
+              <SelectContent>
+                {juzOptions.map((juz) => (
+                  <SelectItem key={juz.id} value={juz.code}>
+                    {juz.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.chosen_juz && (
+              <p className="text-red-500 text-sm font-medium">{errors.chosen_juz}</p>
             )}
           </div>
-          {errors.ready_for_team && (
-            <p className="text-red-500 text-xs">{errors.ready_for_team}</p>
-          )}
-        </div>
+        )}
+ 
+        {getQuestionMeta('no_travel_plans').is_active && (
+          <div className="space-y-2">
+            {getQuestionMeta('no_travel_plans').warning_text && (
+              <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300 mb-2">
+                <p className="text-sm text-blue-800 font-semibold mb-2">Informasi Program:</p>
+                <p className="text-sm text-blue-700">
+                  {getQuestionMeta('no_travel_plans').warning_text}
+                </p>
+              </div>
+            )}
+            <Label className="text-sm font-medium text-gray-700">
+              {getQuestionMeta('no_travel_plans').label}
+              {getQuestionMeta('no_travel_plans').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  name="no_travel_plans"
+                  id="no_travel_plans_yes"
+                  value="yes"
+                  checked={formData.no_travel_plans}
+                  onChange={() => handleInputChange('no_travel_plans', true)}
+                  className="mt-1 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="no_travel_plans_yes" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                  {getQuestionMeta('no_travel_plans').description}
+                </Label>
+              </div>
+            </div>
+            {errors.no_travel_plans && (
+              <p className="text-red-500 text-xs">{errors.no_travel_plans}</p>
+            )}
+          </div>
+        )}
+ 
+        {getQuestionMeta('motivation').is_active && (
+          <div className="space-y-2">
+            <Label htmlFor="motivation" className="text-sm font-medium text-gray-700">
+              {getQuestionMeta('motivation').label}
+              {getQuestionMeta('motivation').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            <Textarea
+              id="motivation"
+              value={formData.motivation}
+              onChange={(e) => handleInputChange('motivation', e.target.value)}
+              rows={3}
+              placeholder={getQuestionMeta('motivation').description || "Jelaskan motivasi Ukhti..."}
+              className="text-sm"
+            />
+            {errors.motivation && (
+              <p className="text-red-500 text-xs">{errors.motivation}</p>
+            )}
+          </div>
+        )}
+ 
+        {getQuestionMeta('ready_for_team').is_active && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {getQuestionMeta('ready_for_team').label}
+              {getQuestionMeta('ready_for_team').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            <div className="space-y-3">
+              <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  name="ready_for_team"
+                  id="ready"
+                  value="ready"
+                  checked={formData.ready_for_team === 'ready'}
+                  onChange={() => handleInputChange('ready_for_team', 'ready')}
+                  className="mt-1 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="ready" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                  InsyaAllah siapppp (jawaban ini kami catat sebagai akad)
+                </Label>
+              </div>
+              <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+                <input
+                  type="radio"
+                  name="ready_for_team"
+                  id="infaq"
+                  value="infaq"
+                  checked={formData.ready_for_team === 'infaq'}
+                  onChange={() => {
+                    handleInputChange('ready_for_team', 'infaq');
+                    if (!formData.infaq_amount) {
+                      handleInputChange('infaq_amount', '25.000');
+                    }
+                  }}
+                  className="mt-1 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="infaq" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
+                  Afwan saya tidak bisa menjadi tim MTI dikarenakan kesibukan dan komitmen di lembaga lain, sebagai gantinya saya akan akad infaq wajib perbulan dengan pilihan 25, 50, 100 atau lebih dari 100 ribu rupiah perbulan sesuai dengan kemampuan saya, selama saya masih aktif pada {activeBatchData?.name || 'Batch Aktif'} MTI
+                </Label>
+              </div>
+ 
+              {formData.ready_for_team === 'infaq' && (
+                <div className="mt-3 ml-8 p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Label className="text-sm font-bold text-emerald-950 block mb-1">
+                    Nominal Infaq Wajib Per Bulan<span className="text-red-500">*</span>
+                  </Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {['25.000', '50.000', '100.000', 'Lainnya'].map((val) => {
+                      const isSelected = val === 'Lainnya' 
+                        ? !['25.000', '50.000', '100.000'].includes(formData.infaq_amount)
+                        : formData.infaq_amount === val;
+                      
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => {
+                            if (val === 'Lainnya') {
+                              handleInputChange('infaq_amount', '');
+                            } else {
+                              handleInputChange('infaq_amount', val);
+                            }
+                          }}
+                          className={cn(
+                            "py-2.5 px-3 text-xs sm:text-sm font-bold rounded-lg border transition-all duration-200 text-center",
+                            isSelected 
+                              ? "bg-green-600 text-white border-green-600 shadow-sm"
+                              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                          )}
+                        >
+                          {val === 'Lainnya' ? 'Lainnya' : `Rp ${val}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {(!['25.000', '50.000', '100.000'].includes(formData.infaq_amount)) && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-250">
+                      <Label htmlFor="custom_infaq" className="text-xs font-semibold text-emerald-800">Masukkan Nominal Infaq Lainnya (Rp)</Label>
+                      <Input
+                        id="custom_infaq"
+                        type="text"
+                        value={formData.infaq_amount.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                        onChange={(e) => {
+                          const rawVal = e.target.value.replace(/\D/g, '');
+                          const formatted = rawVal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                          handleInputChange('infaq_amount', formatted);
+                        }}
+                        placeholder="Contoh: 150.000"
+                        className="text-base py-3"
+                      />
+                    </div>
+                  )}
+                  
+                  {errors.infaq_amount && (
+                    <p className="text-red-500 text-xs sm:text-sm font-medium">{errors.infaq_amount}</p>
+                  )}
+                </div>
+              )}
+            </div>
+            {errors.ready_for_team && (
+              <p className="text-red-500 text-xs">{errors.ready_for_team}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1155,75 +1405,89 @@ export default function ThalibahBatch2Page() {
           <strong>Section 4 of {totalSections}</strong> - Waktu Setoran
         </AlertDescription>
       </Alert>
-
+ 
       <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-800 mb-4">
           <strong>Informasi Penting:</strong> Data diri Ukhti (nama, email, alamat, dll) sudah diambil dari data registrasi. Silakan lengkapi jadwal setoran di bawah ini.
         </p>
       </div>
-
+ 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">Pilih waktu utama untuk jadwal setoran dengan pasangan</Label>
-          <Select value={formData.main_time_slot} onValueChange={(value) => handleInputChange('main_time_slot', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih waktu utama" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="04-06">04.00 - 06.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="06-09">06.00 - 09.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="09-12">09.00 - 12.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="12-15">12.00 - 15.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="15-18">15.00 - 18.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="18-21">18.00 - 21.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="21-24">21.00 - 24.00 WIB/WITA/WIT</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.main_time_slot && (
-            <p className="text-red-500 text-xs">{errors.main_time_slot}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sm font-medium text-gray-700">Pilih waktu cadangan untuk jadwal setoran dengan pasangan</Label>
-          <Select value={formData.backup_time_slot} onValueChange={(value) => handleInputChange('backup_time_slot', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pilih waktu cadangan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="04-06">04.00 - 06.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="06-09">06.00 - 09.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="09-12">09.00 - 12.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="12-15">12.00 - 15.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="15-18">15.00 - 18.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="18-21">18.00 - 21.00 WIB/WITA/WIT</SelectItem>
-              <SelectItem value="21-24">21.00 - 24.00 WIB/WITA/WIT</SelectItem>
-            </SelectContent>
-          </Select>
-          {errors.backup_time_slot && (
-            <p className="text-red-500 text-xs">{errors.backup_time_slot}</p>
-          )}
-        </div>
-
-        <div className="flex items-start space-x-3">
-          <Checkbox
-            id="time_commitment"
-            checked={formData.time_commitment}
-            onCheckedChange={(checked) => handleInputChange('time_commitment', checked as boolean)}
-          />
-          <div className="space-y-1">
-            <Label htmlFor="time_commitment" className="text-sm font-medium text-gray-700">
-              Akad waktu
+        {getQuestionMeta('main_time_slot').is_active && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {getQuestionMeta('main_time_slot').label}
+              {getQuestionMeta('main_time_slot').is_required && <span className="text-red-500">*</span>}
             </Label>
-            <p className="text-xs text-gray-500 italic">
-              Saya sudah memilih jadwal waktu utama dan cadangan dengan mempertimbangkan jadwal harian dan kegiatan saya.
-              Saya terima ini sebagai akad yang akan saya pertanggungjawabkan di hadapan Allah apabila saya mendzolimi waktu pasangan setoran saya dengan alasan-alasan yang tidak urgen.
-            </p>
-            {errors.time_commitment && (
-              <p className="text-red-500 text-xs">{errors.time_commitment}</p>
+            <Select value={formData.main_time_slot} onValueChange={(value) => handleInputChange('main_time_slot', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder={getQuestionMeta('main_time_slot').description || "Pilih waktu utama"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="04-06">04.00 - 06.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="06-09">06.00 - 09.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="09-12">09.00 - 12.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="12-15">12.00 - 15.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="15-18">15.00 - 18.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="18-21">18.00 - 21.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="21-24">21.00 - 24.00 WIB/WITA/WIT</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.main_time_slot && (
+              <p className="text-red-500 text-xs">{errors.main_time_slot}</p>
             )}
           </div>
-        </div>
+        )}
+ 
+        {getQuestionMeta('backup_time_slot').is_active && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-gray-700">
+              {getQuestionMeta('backup_time_slot').label}
+              {getQuestionMeta('backup_time_slot').is_required && <span className="text-red-500">*</span>}
+            </Label>
+            <Select value={formData.backup_time_slot} onValueChange={(value) => handleInputChange('backup_time_slot', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder={getQuestionMeta('backup_time_slot').description || "Pilih waktu cadangan"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="04-06">04.00 - 06.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="06-09">06.00 - 09.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="09-12">09.00 - 12.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="12-15">12.00 - 15.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="15-18">15.00 - 18.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="18-21">18.00 - 21.00 WIB/WITA/WIT</SelectItem>
+                <SelectItem value="21-24">21.00 - 24.00 WIB/WITA/WIT</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.backup_time_slot && (
+              <p className="text-red-500 text-xs">{errors.backup_time_slot}</p>
+            )}
+          </div>
+        )}
+ 
+        {getQuestionMeta('time_commitment').is_active && (
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="time_commitment"
+              checked={formData.time_commitment}
+              onCheckedChange={(checked) => handleInputChange('time_commitment', checked as boolean)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="time_commitment" className="text-sm font-medium text-gray-700">
+                {getQuestionMeta('time_commitment').label}
+                {getQuestionMeta('time_commitment').is_required && <span className="text-red-500">*</span>}
+              </Label>
+              {getQuestionMeta('time_commitment').description && (
+                <p className="text-xs text-gray-500 italic">
+                  {getQuestionMeta('time_commitment').description}
+                </p>
+              )}
+              {errors.time_commitment && (
+                <p className="text-red-500 text-xs">{errors.time_commitment}</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1236,15 +1500,15 @@ export default function ThalibahBatch2Page() {
           <strong>Section 5 of {totalSections}</strong> - Program Tikrar MTI
         </AlertDescription>
       </Alert>
-
+ 
       <div className="bg-amber-50 p-6 rounded-lg border border-amber-200">
         <h3 className="font-bold text-lg mb-4 text-green-900">📚 Program Hafalan Al-Qur'an MTI (Metode Tikrar 40 Kali)</h3>
-
+ 
         <div className="space-y-4 text-sm text-gray-700">
           <div>
             <p><strong>🗓 Durasi Program:</strong> Program ini insyaAllah biidznillah akan berlangsung selama 13 pekan.</p>
           </div>
-
+ 
           <div>
             <p><strong>🎯 Target dan Struktur Program:</strong></p>
             <ul className="ml-4 mt-2 space-y-1">
@@ -1252,7 +1516,7 @@ export default function ThalibahBatch2Page() {
               <li>• Setoran ziyadah (penambahan hafalan): hanya dilakukan 4 hari per pekan</li>
             </ul>
           </div>
-
+ 
           <div>
             <p><strong>📌 Kewajiban Mingguan:</strong></p>
             <ul className="ml-4 mt-2 space-y-1">
@@ -1263,7 +1527,7 @@ export default function ThalibahBatch2Page() {
               <li>  - Kelas Ujian (Jadwal menyusul)</li>
             </ul>
           </div>
-
+ 
           <div className="p-4 bg-yellow-100 rounded-lg">
             <p className="font-semibold text-yellow-800 mb-2">📌 Kewajiban Harian Saat Ziyadah (Penambahan Hafalan)</p>
             <ul className="text-sm text-yellow-700 space-y-1">
@@ -1273,7 +1537,7 @@ export default function ThalibahBatch2Page() {
               <li>➤ Jika masih ada kesalahan, ulangi proses ini sampai bacaan benar-benar sempurna</li>
             </ul>
           </div>
-
+ 
           <div>
             <p><strong>👥 Setoran kepada Pasangan:</strong></p>
             <ul className="ml-4 mt-2 space-y-1">
@@ -1281,17 +1545,17 @@ export default function ThalibahBatch2Page() {
               <li>• Menyimak hafalan pasangan sebanyak 40 kali</li>
             </ul>
           </div>
-
+ 
           <div>
             <p><strong>🔄 Rabth (Penguatan Hafalan):</strong></p>
             <p className="ml-4">Jika sudah menambah hafalan, wajib menyetorkan 10 blok hafalan sebelumnya (10 hari terakhir) sebelum memulai setoran 40 kali untuk hafalan baru (ziyadah).</p>
           </div>
-
+ 
           <div>
             <p><strong>🔁 Ulangan Ziyadah Sebelumnya:</strong></p>
             <p className="ml-4">Menyetorkan hafalan ziyadah dari hari sebelumnya sebanyak 5 kali.</p>
           </div>
-
+ 
           <div>
             <p><strong>☎️ Ketentuan Teknis Setoran:</strong></p>
             <p className="ml-4">Jika tidak memungkinkan menyetor secara langsung (misalnya via telepon karena waktu terbatas), maka diperbolehkan dengan format:</p>
@@ -1301,7 +1565,7 @@ export default function ThalibahBatch2Page() {
               <li>➤ Total: 40 kali</li>
             </ul>
           </div>
-
+ 
           <div className="p-4 bg-green-100 rounded-lg">
             <p className="font-semibold text-green-800 mb-2">📖 Tentang Metode MTI (Tikrar 40 Kali)</p>
             <p className="text-sm text-green-700">
@@ -1311,7 +1575,7 @@ export default function ThalibahBatch2Page() {
               <li>• Tidak diperbolehkan dikurangi atau ditawar-tawar</li>
             </ul>
           </div>
-
+ 
           <div className="p-4 bg-blue-100 rounded-lg">
             <p className="font-semibold text-blue-800 mb-2">🧰 Perlengkapan Wajib:</p>
             <ul className="text-sm text-blue-700 space-y-1">
@@ -1319,7 +1583,7 @@ export default function ThalibahBatch2Page() {
               <li>• <strong>Counter Manual (alat penghitung)</strong> ➤ Bisa dibeli di toko alat tulis atau toko online (tautan juga tersedia di deskripsi grup)</li>
             </ul>
           </div>
-
+ 
           <div className="p-4 bg-purple-100 rounded-lg">
             <p className="font-semibold text-purple-800 mb-2">📝 Laporan:</p>
             <p className="text-sm text-purple-700">
@@ -1328,44 +1592,58 @@ export default function ThalibahBatch2Page() {
           </div>
         </div>
       </div>
-
+ 
       <div className="space-y-4">
-        <div className="flex items-start space-x-3">
-          <Checkbox
-            id="understands_program"
-            checked={formData.understands_program}
-            onCheckedChange={(checked) => handleInputChange('understands_program', checked as boolean)}
-          />
-          <div className="space-y-1">
-            <Label htmlFor="understands_program" className="text-sm font-medium text-gray-700">
-              Apakah Ukhti faham dengan poin-poin di atas?
+        {getQuestionMeta('understands_program').is_active && (
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="understands_program"
+              checked={formData.understands_program}
+              onCheckedChange={(checked) => handleInputChange('understands_program', checked as boolean)}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="understands_program" className="text-sm font-medium text-gray-700">
+                {getQuestionMeta('understands_program').label}
+                {getQuestionMeta('understands_program').is_required && <span className="text-red-500">*</span>}
+              </Label>
+              {getQuestionMeta('understands_program').description && (
+                <p className="text-xs text-gray-500 italic">
+                  {getQuestionMeta('understands_program').description}
+                </p>
+              )}
+              {errors.understands_program && (
+                <p className="text-red-500 text-xs">{errors.understands_program}</p>
+              )}
+            </div>
+          </div>
+        )}
+ 
+        {getQuestionMeta('questions').is_active && (
+          <div className="space-y-2">
+            <Label htmlFor="questions" className="text-sm font-medium text-gray-700">
+              {getQuestionMeta('questions').label}
+              {getQuestionMeta('questions').is_required && <span className="text-red-500">*</span>}
             </Label>
-            {errors.understands_program && (
-              <p className="text-red-500 text-xs">{errors.understands_program}</p>
+            <Textarea
+              id="questions"
+              value={formData.questions}
+              onChange={(e) => handleInputChange('questions', e.target.value)}
+              rows={4}
+              placeholder={getQuestionMeta('questions').description || "Ketik pertanyaan Ukhti di sini (kosongkan jika tidak ada)"}
+              className="text-sm"
+            />
+            {errors.questions && (
+              <p className="text-red-500 text-xs">{errors.questions}</p>
             )}
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="questions" className="text-sm font-medium text-gray-700">
-            Silahkan ketik pertanyaan Ukhti apabila ada yang masih kurang faham
-          </Label>
-          <Textarea
-            id="questions"
-            value={formData.questions}
-            onChange={(e) => handleInputChange('questions', e.target.value)}
-            rows={4}
-            placeholder="Ketik pertanyaan Ukhti di sini (kosongkan jika tidak ada)"
-            className="text-sm"
-          />
-        </div>
+        )}
       </div>
     </div>
   )
 
 
   // Don't render until component is mounted to prevent hydration issues
-  if (!isMounted) {
+  if (!isMounted || questionsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-8">
         <div className="max-w-4xl mx-auto px-4">

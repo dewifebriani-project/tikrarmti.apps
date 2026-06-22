@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, BookOpen, Plus, RefreshCw, Search, Filter, X, Layers } from 'lucide-react';
+import { ArrowLeft, Calendar, BookOpen, Plus, RefreshCw, Search, Filter, X, Layers, BookMarked, ClipboardList } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAdminBatches, useAdminPrograms } from '@/lib/hooks/useAdminData';
@@ -11,8 +11,12 @@ import { BatchTable } from '@/components/admin/batch-program/BatchTable';
 import { BatchFormModal } from '@/components/admin/batch-program/BatchFormModal';
 import { ProgramTable } from '@/components/admin/batch-program/ProgramTable';
 import { ProgramFormModal } from '@/components/admin/batch-program/ProgramFormModal';
+import { AdminJuzTab } from '@/components/admin/batch-program/AdminJuzTab';
+import { AdminFormBuilderTab } from '@/components/admin/batch-program/AdminFormBuilderTab';
+import { AdminReregFormBuilderTab } from '@/components/admin/batch-program/AdminReregFormBuilderTab';
+import { AdminMuallimahFormBuilderTab } from '@/components/admin/batch-program/AdminMuallimahFormBuilderTab';
 
-type TabType = 'batches' | 'programs';
+type TabType = 'batches' | 'programs' | 'juz' | 'form-builder' | 'rereg-form-builder' | 'muallimah-form-builder';
 
 export default function AdminBatchProgramPage() {
   const [mounted, setMounted] = useState(false);
@@ -198,6 +202,50 @@ export default function AdminBatchProgramPage() {
             Manajemen Program
             {activeTab === 'programs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-900 rounded-full" />}
           </button>
+          <button
+            onClick={() => setActiveTab('juz')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'juz' ? 'text-amber-900' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <BookMarked className="h-4 w-4" />
+            Pengaturan Pilihan Juz
+            {activeTab === 'juz' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-900 rounded-full" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('form-builder')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'form-builder' ? 'text-purple-900' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Pengaturan Formulir
+            {activeTab === 'form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-900 rounded-full" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('rereg-form-builder')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'rereg-form-builder' ? 'text-emerald-950' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Formulir Daftar Ulang
+            {activeTab === 'rereg-form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-950 rounded-full" />}
+          </button>
+          <button
+            onClick={() => setActiveTab('muallimah-form-builder')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'muallimah-form-builder' ? 'text-emerald-700' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Formulir Mu'allimah
+            {activeTab === 'muallimah-form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />}
+          </button>
         </div>
 
         {activeTab === 'batches' && (
@@ -357,6 +405,22 @@ export default function AdminBatchProgramPage() {
               }}
             />
           </>
+        )}
+
+        {activeTab === 'juz' && (
+          <AdminJuzTab />
+        )}
+
+        {activeTab === 'form-builder' && (
+          <AdminFormBuilderTab />
+        )}
+
+        {activeTab === 'rereg-form-builder' && (
+          <AdminReregFormBuilderTab />
+        )}
+
+        {activeTab === 'muallimah-form-builder' && (
+          <AdminMuallimahFormBuilderTab />
         )}
       </div>
 

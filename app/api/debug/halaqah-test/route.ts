@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Get user's registration
     const { data: registration, error: regError } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot, selection_status, status, full_name')
+      .select('batch_id, chosen_juz, exam_score, main_time_slot, backup_time_slot, selection_status, status, full_name, batch:batches(name, min_exam_score)')
       .eq('user_id', user.id)
       .eq('selection_status', 'selected')
       .order('created_at', { ascending: false })
@@ -41,11 +41,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate final juz
+    const getPassingScore = (b?: { name?: string; min_exam_score?: number | null } | null): number => {
+      if (!b) return 70;
+      if (b.min_exam_score !== undefined && b.min_exam_score !== null) return b.min_exam_score;
+      if (b.name) {
+        const match = b.name.match(/Batch\s*(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num >= 3) return 80;
+        }
+      }
+      return 70;
+    };
+
+    const threshold = getPassingScore((registration as any).batch)
     const examScore = registration.exam_score || null
     const chosenJuz = (registration.chosen_juz || '').toUpperCase()
     let finalJuz = chosenJuz
 
-    if (examScore !== null && examScore < 70) {
+    if (examScore !== null && examScore < threshold) {
       if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
         finalJuz = '29A'
       } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {

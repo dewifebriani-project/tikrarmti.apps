@@ -180,7 +180,8 @@ export async function submitDaftarUlang(
       main_time_slot,
       backup_time_slot,
       wa_phone,
-      address
+      address,
+      batch:batches(name, min_exam_score)
     `)
     .eq('id', registrationId)
     .single()
@@ -222,18 +223,8 @@ export async function submitDaftarUlang(
     return { success: false, error: 'Upload akad daftar ulang terlebih dahulu.' }
   }
 
-  // 5. Calculate final juz placement based on exam score
-  const examScore = registration.exam_score || null
-  const chosenJuz = (registration.chosen_juz || '').toUpperCase()
-  let finalJuz = chosenJuz
-
-  if (examScore !== null && examScore < 70) {
-    if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
-      finalJuz = '29A'
-    } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
-      finalJuz = '30A'
-    }
-  }
+  // 5. Use final juz placement directly from registration (without recalculation)
+  const finalJuz = (registration.chosen_juz || '').toUpperCase()
 
   try {
     // Debug log to see what data is being received
@@ -726,5 +717,30 @@ export async function approveDaftarUlangSubmission(submissionId: string) {
       success: false,
       error: error?.message || 'Terjadi kesalahan saat menyetujui pendaftaran'
     }
+  }
+}
+
+/**
+ * Get active reregistration questions (Public/Thalibah)
+ */
+export async function getReregistrationQuestions() {
+  const supabase = createClient()
+  try {
+    const { data, error } = await supabase
+      .from('reregistration_questions')
+      .select('*')
+      .eq('is_active', true)
+      .order('section', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching active reregistration questions:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error: any) {
+    console.error('Error in getReregistrationQuestions:', error)
+    return { success: false, error: error?.message || 'Failed to fetch reregistration questions' }
   }
 }

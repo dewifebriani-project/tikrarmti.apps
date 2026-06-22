@@ -62,7 +62,7 @@ export interface TikrarTahfidz {
   exam_status?: string;
   exam_juz_number?: number;
   user?: User;
-  batch?: { name: string };
+  batch?: { name: string; min_exam_score?: number | null };
   program?: { name: string };
 }
 

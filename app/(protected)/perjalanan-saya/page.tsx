@@ -130,6 +130,18 @@ export default function PerjalananSaya() {
   const [pairingData, setPairingData] = useState<PairingData | null>(null);
   const [isLoadingPairing, setIsLoadingPairing] = useState(false);
   const [finalExams, setFinalExams] = useState<any[]>([]);
+  const [isAlumnus, setIsAlumnus] = useState(false);
+  
+  useEffect(() => {
+    fetch('/api/alumni/testimonial/my')
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data.isAlumni === 'boolean') {
+          setIsAlumnus(data.isAlumni);
+        }
+      })
+      .catch(err => console.error('Error fetching alumni status:', err));
+  }, []);
   
   // Review Modal States
   const [reviewType, setReviewType] = useState<'written' | 'oral' | 'akad' | null>(null);
@@ -209,13 +221,26 @@ export default function PerjalananSaya() {
     const approvedRegistration = registrations.find(reg => reg.status === 'approved');
     const registration = (approvedRegistration || registrations[0]) as TikrarRegistration;
 
+    const showSelectionResult = (() => {
+      if (!batch?.selection_result_date) return false;
+      const today = new Date();
+      const announcementDate = new Date(batch.selection_result_date);
+      today.setHours(0, 0, 0, 0);
+      announcementDate.setHours(0, 0, 0, 0);
+      return today >= announcementDate;
+    })();
+
+    const displaySelectionStatus = showSelectionResult ? (registration?.selection_status || 'pending') : 'pending';
+    const displayStatus = showSelectionResult ? (registration?.status || 'pending') : 'pending';
+
     return {
       hasRegistered: hasAnyRegistration, // Show timeline for all registered users (including rejected)
-      registration,
+      registration: registration ? { ...registration, status: displayStatus, selection_status: displaySelectionStatus } : undefined,
       hasActiveRegistration,
-      pendingApproval: registrations.some(reg => reg.status === 'pending'),
-      approved: !!approvedRegistration,
-      rejected: registrations.some(reg => reg.status === 'rejected'),
+      pendingApproval: registrations.some(reg => reg.status === 'pending') || !showSelectionResult,
+      approved: showSelectionResult && !!approvedRegistration,
+      rejected: showSelectionResult && registrations.some(reg => reg.status === 'rejected'),
+      isAlumnus,
       // Consider having oral assessment as having submitted (even without url if admin input score manually)
       hasOralSubmission: !!(
         registration?.oral_submission_url ||
@@ -231,9 +256,9 @@ export default function PerjalananSaya() {
       chosenJuz: registration?.chosen_juz,
       examScore: registration?.exam_score || (registration as any)?.written_quiz_score,
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
-      selectionStatus: registration?.selection_status || 'pending',
+      selectionStatus: displaySelectionStatus,
     };
-  }, [user, registrations]);
+  }, [user, registrations, batch, isAlumnus]);
 
   const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
 
@@ -267,21 +292,21 @@ export default function PerjalananSaya() {
 
     return [
       { 
-        id: 1, name: 'Persiapan', status: isProfileComplete ? 'completed' : 'current', 
+        id: 1, name: 'Pendaftaran', status: (isProfileComplete && hasWritten && hasOral) ? 'completed' : 'current', 
         desc: batch?.registration_start_date ? `${formatDateIndo(batch.registration_start_date)} - ${formatDateIndo(batch.registration_end_date || '')}` : 'Lengkapi Profil', 
         icon: <User className="w-4 h-4" />,
         subPhases: [
-          { name: 'Buat Akun', done: true, data: user?.email },
-          { name: 'Lengkapi Profil', done: isProfileComplete, data: isProfileComplete ? `${user.full_name} (${user.whatsapp})` : 'Belum lengkap', reviewType: isProfileComplete ? 'profile' : null }
+          { name: 'Lengkapi Profil', done: isProfileComplete, data: isProfileComplete ? `${user.full_name} (${user.whatsapp})` : 'Belum lengkap', reviewType: isProfileComplete ? 'profile' : null },
+          { name: 'Ujian Tertulis', done: isAlumnus || hasWritten, data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasWritten ? 'Selesai ✓' : 'Belum dikerjakan'), reviewType: hasWritten ? 'written' : null },
+          { name: 'Ujian Lisan', done: hasOral, data: hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : 'Belum rekaman', reviewType: hasOral ? 'oral' : null },
         ]
       },
       { 
         id: 2, name: 'Seleksi', status: isSelectionDone ? 'completed' : (isProfileComplete ? 'current' : 'future'), 
-        desc: batch?.selection_start_date ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date || '')}` : 'Ujian & Hasil', 
+        desc: batch?.selection_start_date ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date || '')}` : 'Penilaian & Hasil', 
         icon: <FileText className="w-4 h-4" />,
         subPhases: [
-          { name: 'Ujian Tertulis', done: hasWritten, data: hasWritten ? `Nilai: ${registrationStatus.examScore ?? '-'}` : 'Belum dikerjakan', reviewType: hasWritten ? 'written' : null },
-          { name: 'Ujian Lisan', done: hasOral, data: hasOral ? (registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai') : 'Belum rekaman', reviewType: hasOral ? 'oral' : null },
+          { name: 'Penilaian Seleksi', done: isSelectionDone, data: isSelectionDone ? 'Selesai ✓' : 'Proses Penilaian oleh Admin' },
           { name: 'Pengumuman', done: isSelectionDone, data: isSelectionDone ? `Placement: Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}` : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') }
         ]
       },
@@ -369,7 +394,8 @@ export default function PerjalananSaya() {
           hijriDate: batch.registration_start_date ? toHijri(batch.registration_start_date) : '6 - 19 Jumadil Akhir 1446',
           title: 'Mendaftar Program',
           description: 'Pendaftaran awal program tahfidz',
-          icon: getIconForType('registration')
+          icon: getIconForType('registration'),
+          hasSelectionTasks: true
         });
       }
 
@@ -380,9 +406,9 @@ export default function PerjalananSaya() {
           day: 'Senin - Ahad',
           hijriDate: batch.selection_start_date ? toHijri(batch.selection_start_date) : '20 Jumadil Akhir - 3 Rajab 1446',
           title: 'Seleksi',
-          description: 'Pengumpulan persyaratan berupa ujian seleksi lisan dan tulisan.',
+          description: 'Proses penilaian dan peninjauan hasil ujian seleksi oleh admin.',
           icon: getIconForType('selection'),
-          hasSelectionTasks: true
+          hasSelectionTasks: false
         });
       }
 

@@ -31,6 +31,8 @@ export interface Batch {
   graduation_start_date?: string | null;
   graduation_end_date?: string | null;
   holiday_dates?: string[] | null;
+  min_exam_score?: number | null;
+  min_final_exam_score?: number | null;
 }
 
 export interface Program {

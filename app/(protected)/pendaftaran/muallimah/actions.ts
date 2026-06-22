@@ -175,3 +175,22 @@ export async function getMuallimahRegistration(userId: string, batchId: string) 
   if (error) return { success: false, error: error.message, data: null }
   return { success: true, data, error: null }
 }
+
+export async function getMuallimahRegistrationQuestions() {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from('muallimah_registration_questions')
+    .select('*')
+    .eq('is_active', true)
+    .order('section', { ascending: true })
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching muallimah registration questions:', error)
+    return { success: false, error: error.message, data: null }
+  }
+
+  return { success: true, data, error: null }
+}
+

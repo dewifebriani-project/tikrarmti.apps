@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
         user:users (
           id,
           full_name,
-          email
+          email,
+          kota
         )
       `)
       .order('created_at', { ascending: false });

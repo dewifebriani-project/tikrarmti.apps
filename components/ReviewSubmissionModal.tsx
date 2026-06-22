@@ -105,12 +105,12 @@ export function ReviewSubmissionModal({
       <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-100">
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between mb-6">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Skor Ujian</p>
-            <p className="text-2xl font-black text-emerald-900">{registrationStatus.examScore ?? data.score ?? '-'}/100</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Ujian Seleksi</p>
+            <p className="text-2xl font-black text-emerald-900">Selesai ✓</p>
           </div>
           <div className="text-right">
             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Status</p>
-            <p className="text-sm font-bold text-emerald-700">Selesai ✓</p>
+            <p className="text-sm font-bold text-emerald-700">Telah Dinilai</p>
           </div>
         </div>
 
@@ -138,13 +138,13 @@ export function ReviewSubmissionModal({
                           className={cn(
                             "p-3 rounded-xl text-xs flex items-center justify-between border transition-all",
                             isSelected 
-                              ? (opt.isCorrect ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-bold" : "bg-red-50 border-red-200 text-red-900 font-bold")
-                              : (opt.isCorrect ? "bg-emerald-50/50 border-emerald-100 text-emerald-800/60" : "bg-gray-50 border-gray-100 text-gray-400 font-medium")
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-900 font-bold"
+                              : "bg-gray-50 border-gray-100 text-gray-500 font-medium"
                           )}
                         >
                           <span>{opt.text}</span>
                           {isSelected && (
-                            opt.isCorrect ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <XCircle className="w-4 h-4 text-red-600" />
+                            <CheckCircle className="w-4 h-4 text-emerald-600" />
                           )}
                         </div>
                       );
@@ -188,9 +188,9 @@ export function ReviewSubmissionModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Skor Lisan</p>
-            <p className="text-lg font-black text-gray-900">
-              {registrationStatus.oralScore ?? registrationStatus.registration?.oral_total_score ?? '-'}
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Status Penilaian</p>
+            <p className="text-sm font-black text-emerald-600">
+              Selesai ✓
             </p>
           </div>
           <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">

@@ -126,6 +126,14 @@ export async function POST(request: Request) {
       total_quota: body.total_quota || 100,
       is_free: body.is_free ?? true,
       price: body.price || 0,
+      min_exam_score: body.min_exam_score ?? (() => {
+        const match = body.name?.match(/Batch\s*(\d+)/i);
+        return match && parseInt(match[1], 10) >= 3 ? 80 : 70;
+      })(),
+      min_final_exam_score: body.min_final_exam_score ?? (() => {
+        const match = body.name?.match(/Batch\s*(\d+)/i);
+        return match && parseInt(match[1], 10) >= 3 ? 80 : 70;
+      })(),
       selection_start_date: toDateOrNull(body.selection_start_date),
       selection_end_date: toDateOrNull(body.selection_end_date),
       selection_result_date: toDateOrNull(body.selection_result_date),

@@ -186,12 +186,29 @@ export function TikrarTable({
                         <div className="flex flex-col">
                           <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Written</span>
                           {t.written_quiz_score !== null && t.written_quiz_score !== undefined ? (
-                            <span className={cn(
-                              "text-sm font-black",
-                              t.written_quiz_score >= 70 ? "text-emerald-600" : "text-red-600"
-                            )}>
-                              {t.written_quiz_score}
-                            </span>
+                            (() => {
+                              const getPassingScore = (b?: { name?: string; min_exam_score?: number | null } | null): number => {
+                                if (!b) return 70;
+                                if (b.min_exam_score !== undefined && b.min_exam_score !== null) return b.min_exam_score;
+                                if (b.name) {
+                                  const match = b.name.match(/Batch\s*(\d+)/i);
+                                  if (match) {
+                                    const num = parseInt(match[1], 10);
+                                    if (num >= 3) return 80;
+                                  }
+                                }
+                                return 70;
+                              };
+                              const threshold = getPassingScore(t.batch);
+                              return (
+                                <span className={cn(
+                                  "text-sm font-black",
+                                  t.written_quiz_score >= threshold ? "text-emerald-600" : "text-red-600"
+                                )}>
+                                  {t.written_quiz_score}
+                                </span>
+                              );
+                            })()
                           ) : (
                             <span className="text-xs text-gray-300 font-bold italic">N/A</span>
                           )}

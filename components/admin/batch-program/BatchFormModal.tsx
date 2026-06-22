@@ -45,6 +45,8 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
     total_quota: batch?.total_quota || 0,
     is_free: batch?.is_free ?? true,
     price: batch?.price || 0,
+    min_exam_score: batch?.min_exam_score ?? (batch?.name ? (batch.name.match(/Batch\s*(\d+)/i) && parseInt(batch.name.match(/Batch\s*(\d+)/i)![1], 10) >= 3 ? 80 : 70) : 70),
+    min_final_exam_score: batch?.min_final_exam_score ?? (batch?.name ? (batch.name.match(/Batch\s*(\d+)/i) && parseInt(batch.name.match(/Batch\s*(\d+)/i)![1], 10) >= 3 ? 80 : 70) : 70),
 
     selection_start_date: extractDate(batch?.selection_start_date),
     selection_end_date: extractDate(batch?.selection_end_date),
@@ -67,6 +69,24 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
   const [holidayInput, setHolidayInput] = useState('');
 
   if (!isOpen) return null;
+
+  // Handle name change to automatically suggest defaults for batch 3+
+  const handleNameChange = (name: string) => {
+    const match = name.match(/Batch\s*(\d+)/i);
+    let score = 70;
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= 3) {
+        score = 80;
+      }
+    }
+    setFormData(prev => ({
+      ...prev,
+      name,
+      min_exam_score: prev.min_exam_score === 70 || prev.min_exam_score === 80 ? score : prev.min_exam_score,
+      min_final_exam_score: prev.min_final_exam_score === 70 || prev.min_final_exam_score === 80 ? score : prev.min_final_exam_score,
+    }));
+  };
 
   const handleStartDateChange = (value: string) => {
     const newData = { ...formData, start_date: value };
@@ -155,7 +175,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     type="text"
                     required
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => handleNameChange(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 transition-all"
                   />
                 </div>
@@ -241,6 +261,35 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     onChange={(e) => setFormData({ ...formData, registration_end_date: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nilai Minimum Ujian Seleksi</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    required
+                    value={formData.min_exam_score}
+                    onChange={(e) => setFormData({ ...formData, min_exam_score: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Nilai minimum kelulusan ujian seleksi masuk (tulis)</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nilai Minimum Ujian Akhir (Kelulusan)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    required
+                    value={formData.min_final_exam_score}
+                    onChange={(e) => setFormData({ ...formData, min_final_exam_score: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Nilai minimum kelulusan program (final exam)</p>
                 </div>
               </div>
 

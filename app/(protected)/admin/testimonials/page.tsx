@@ -18,6 +18,7 @@ interface Testimonial {
     id: string;
     full_name: string;
     email: string;
+    kota?: string | null;
   };
 }
 
@@ -28,6 +29,7 @@ export default function AdminTestimonialsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all');
   const [search, setSearch] = useState('');
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -341,7 +343,10 @@ export default function AdminTestimonialsPage() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-bold text-gray-900 text-sm truncate">{t.user?.full_name || 'Hamba Allah'}</h3>
-                        <p className="text-xs text-gray-400 truncate">{t.user?.email || '-'}</p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {t.user?.email || '-'}
+                          {t.user?.kota && ` • Domisili: ${t.user.kota.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}`}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -359,9 +364,31 @@ export default function AdminTestimonialsPage() {
 
                   {/* Content */}
                   <div className="bg-gray-50/80 rounded-xl p-4 mb-4 flex-1 border border-gray-100/60">
-                    <p className="text-gray-700 text-sm italic leading-relaxed line-clamp-4">
-                      "{t.content}"
-                    </p>
+                    <div className="text-gray-700 text-sm italic leading-relaxed">
+                      {t.content.length > 180 && !expandedIds[t.id] ? (
+                        <>
+                          "{t.content.substring(0, 180)}..."
+                          <button
+                            onClick={() => setExpandedIds(prev => ({ ...prev, [t.id]: true }))}
+                            className="text-xs text-emerald-700 hover:text-emerald-800 font-bold ml-1.5 hover:underline block mt-1"
+                          >
+                            Selengkapnya
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          "{t.content}"
+                          {t.content.length > 180 && (
+                            <button
+                              onClick={() => setExpandedIds(prev => ({ ...prev, [t.id]: false }))}
+                              className="text-xs text-emerald-700 hover:text-emerald-800 font-bold ml-1.5 hover:underline block mt-1"
+                            >
+                              Sembunyikan
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Date */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useCallback } from 'react';
+import { useState, useEffect, Suspense, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useActiveBatch } from '@/hooks/useBatches';
@@ -16,7 +16,20 @@ import { Calendar, BookOpen, GraduationCap, Loader2, Info, Clock, ShieldCheck } 
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { submitMuallimahRegistration } from './actions';
+import { submitMuallimahRegistration, getMuallimahRegistrationQuestions } from './actions';
+
+interface Question {
+  id?: string;
+  field_key: string;
+  section: number;
+  label: string;
+  description: string | null;
+  warning_text: string | null;
+  is_active: boolean;
+  is_required: boolean;
+  sort_order: number;
+  options?: any;
+}
 
 type MuallimahFormData = {
   // Profile Data (Batch-independent)
@@ -81,19 +94,144 @@ const allJuzOptions = Array.from({ length: 30 }, (_, i) => ({
   label: `Juz ${i + 1}`
 }));
 
-const COMMITMENT_ITEMS = [
-  { id: 'free_program', label: <>Program ini <strong>gratis</strong>, MTI belum bisa menjanjikan <strong>ujrah apapun</strong> untuk partisipasi Mu'allimah.</>, icon: "🎁" },
-  { id: 'standard_package', label: <>Memahami bahwa <strong>kelas Standard</strong> adalah satu paket lengkap yang mencakup <strong>Tashih dan Ujian</strong> sekaligus.</>, icon: "📦" },
-  { id: 'revenue_share', label: <>Menyetujui <strong>skema kerjasama 80%</strong> (didampingi musyrifah) atau <strong>60%</strong> (jika memiliki 1 kelas gratis) untuk <strong>kelas berbayar</strong>.</>, icon: "🤝" },
-  { id: 'complaints_mara', label: <>Keluhan dan keberatan pribadi dikomunikasikan langsung ke <strong>Kak Mara (081313650842)</strong>.</>, icon: "📞" },
-  { id: 'technical_ucy', label: <>Masalah teknis link zoom dikomunikasikan langsung ke <strong>Kak Ucy (082229370282)</strong>.</>, icon: "💻" },
-  { id: 'permit_musyrifah', label: <>Izin udzur disampaikan ke Musyrifah <strong>minimal 1 jam</strong> sebelum kelas dimulai.</>, icon: "⏱️" },
-  { id: 'no_makeup_class', label: <>Jika Mu'allimah udzur, MTI <strong>tidak menuntut ganti jadwal</strong> (Tholibah diarahkan ke kelas umum).</>, icon: "📅" },
-  { id: 'paid_class_incentive', label: <>Mu'allimah dengan <strong>2 kelas gratis</strong> boleh buka kelas berbayar (<strong>SPP 100%</strong> tanpa potongan MTI).</>, icon: "🌟" },
-  { id: 'family_spirit', label: <>Menerima kekurangan program dengan <strong>semangat kekeluargaan</strong> dan saling melengkapi.</>, icon: "❤️" },
-  { id: 'batch_period', label: <>Akad berlaku selama <strong>satu periode</strong> (11 pekan kurikulum ziyadah + ujian).</>, icon: "⏳" },
-  { id: 'freedom_to_continue', label: <>Setelah kurikulum selesai, <strong>bebas untuk melanjutkan, cuti, atau mundur</strong> pada batch berikutnya.</>, icon: "🕊️" },
-];
+const FALLBACK_QUESTIONS: Record<string, Omit<Question, 'field_key' | 'section' | 'sort_order'>> = {
+  commitment_info: {
+    label: "🤝 Akad Komitmen & Etika Mu'allimah",
+    description: "Silakan baca dan centang setiap poin di bawah ini sebagai bentuk pemahaman dan kesepakatan Ukhti terhadap akad MTI:",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  tajweed_institution: {
+    label: "Lembaga Belajar Tajwid",
+    description: "e.g. MTI, LTQ, dsb",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  quran_institution: {
+    label: "Lembaga Tahfidz",
+    description: "e.g. Markaz Tikrar, dsb",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  teaching_communities: {
+    label: "Komunitas / Tempat Mengajar Saat Ini",
+    description: "e.g. LTQ A, Majelis Taklim B, dsb (kosongkan jika tidak ada)",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  memorized_tajweed_matan: {
+    label: "Matan Tajwid yang Dihafal",
+    description: "e.g. Tuhfatul Athfal, Jazariyah",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  studied_matan_exegesis: {
+    label: "Syarah Matan yang Dipelajari",
+    description: "e.g. Aisar, dsb",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  memorization_level: {
+    label: "Jumlah Hafalan Al-Quran saat ini (Juz)",
+    description: "Pilih jumlah hafalan antara 1 sampai 30 juz",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  memorized_juz: {
+    label: "Juz yang Sudah Dihafal",
+    description: "Centang juz yang sudah dihafal",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  examined_juz: {
+    label: "Juz yang Sudah Diuji (Tashih/Imtihan)",
+    description: "Centang juz yang sudah diuji",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  certified_juz: {
+    label: "Juz yang Sudah Mendapat Sertifikat",
+    description: "Centang juz yang sudah mendapat sertifikat",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  class_tikrar: {
+    label: "Kelas Tikrar",
+    description: "Kelas hafalan Al-Quran berulang (standard/ziyadah).",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  class_pratikrar: {
+    label: "Kelas Pra-Tikrar",
+    description: "Kelas persiapan dan pembekalan materi tajwid/tashih dasar.",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  class_paid: {
+    label: "Kelas Berbayar (Opsional)",
+    description: "Mengajar kelas berbayar komersial sesuai kebijakan MTI.",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  paid_class_scheme: {
+    label: "Pengajuan Skema Kelas Berbayar",
+    description: "Pilih skema pengajuan kelas berbayar yang diajukan",
+    warning_text: null,
+    is_required: false,
+    is_active: true,
+  },
+  preferred_max_thalibah: {
+    label: "Maksimal Tholibah per Kelas",
+    description: "Pilih kapasitas maksimal tholibah per kelas",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  preferred_juz: {
+    label: "Juz yang Bersedia Diampu",
+    description: "Pilih minimal satu juz yang ingin diampu",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+  teaching_schedule: {
+    label: "Jadwal Mengajar per Program (WIB)",
+    description: "Tentukan jadwal mengajar utama dan cadangan untuk masing-masing kelas yang diampu.",
+    warning_text: null,
+    is_required: true,
+    is_active: true,
+  },
+};
+
+const getFallbackIcon = (key: string): string => {
+  switch (key) {
+    case 'free_program': return '🎁';
+    case 'standard_package': return '📦';
+    case 'revenue_share': return '🤝';
+    case 'complaints_mara': return '📞';
+    case 'technical_ucy': return '💻';
+    case 'permit_musyrifah': return '⏱️';
+    case 'no_makeup_class': return '📅';
+    case 'paid_class_incentive': return '🌟';
+    case 'family_spirit': return '❤️';
+    case 'batch_period': return '⏳';
+    case 'freedom_to_continue': return '🕊️';
+    default: return '📝';
+  }
+};
 
 function MuallimahRegistrationContent() {
   const router = useRouter();
@@ -108,27 +246,8 @@ function MuallimahRegistrationContent() {
   const [userData, setUserData] = useState<any>(null);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [profileExists, setProfileExists] = useState(false);
-
-  // Check if user is an alumnus and has not filled in their testimonial
-  useEffect(() => {
-    async function checkAlumniStatus() {
-      try {
-        const res = await fetch('/api/alumni/testimonial/my');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.isAlumni && !data.testimonial) {
-            toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.');
-            router.push('/alumni');
-          }
-        }
-      } catch (err) {
-        console.error('Error checking alumni status:', err);
-      }
-    }
-    if (user) {
-      checkAlumniStatus();
-    }
-  }, [user, router]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
 
   // Edit mode states
   const [isEditMode, setIsEditMode] = useState(false);
@@ -176,6 +295,96 @@ function MuallimahRegistrationContent() {
     understands_commitment: false,
     agreed_items: [],
   });
+
+  // Fetch Questions
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const result = await getMuallimahRegistrationQuestions();
+        if (result.success && result.data) {
+          setQuestions(result.data as Question[]);
+        }
+      } catch (error) {
+        console.error('Error fetching muallimah questions:', error);
+      } finally {
+        setQuestionsLoading(false);
+      }
+    }
+    loadQuestions();
+  }, []);
+
+  const getQuestionMeta = (key: string) => {
+    const dbQ = questions.find(q => q.field_key === key);
+    if (dbQ) {
+      return {
+        label: dbQ.label,
+        description: dbQ.description,
+        warning_text: dbQ.warning_text,
+        is_required: dbQ.is_required,
+        is_active: dbQ.is_active
+      };
+    }
+    const fallback = FALLBACK_QUESTIONS[key];
+    return {
+      ...fallback,
+      is_active: true
+    };
+  };
+
+  const commitmentQuestions = useMemo(() => {
+    const activeCommitments = questions.filter(q => q.section === 3 && q.is_active && q.field_key !== 'commitment_info');
+    if (activeCommitments.length > 0) return activeCommitments;
+    // Fallback if DB questions are empty/not yet loaded
+    return Object.entries(FALLBACK_QUESTIONS)
+      .filter(([key]) => [
+        'free_program', 'standard_package', 'revenue_share', 
+        'complaints_mara', 'technical_ucy', 'permit_musyrifah', 
+        'no_makeup_class', 'paid_class_incentive', 'family_spirit', 
+        'batch_period', 'freedom_to_continue'
+      ].includes(key))
+      .map(([key, value]) => ({
+        field_key: key,
+        section: 3,
+        label: value.label,
+        description: value.description,
+        warning_text: value.warning_text,
+        is_active: value.is_active,
+        is_required: value.is_required,
+        sort_order: 0,
+        options: { icon: getFallbackIcon(key) }
+      }));
+  }, [questions]);
+
+  // Load agreed items if already submitted/signed
+  useEffect(() => {
+    if (formData.understands_commitment && formData.agreed_items.length === 0 && commitmentQuestions.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        agreed_items: commitmentQuestions.map(q => q.field_key)
+      }));
+    }
+  }, [formData.understands_commitment, commitmentQuestions]);
+
+  // Check if user is an alumnus and has not filled in their testimonial
+  useEffect(() => {
+    async function checkAlumniStatus() {
+      try {
+        const res = await fetch('/api/alumni/testimonial/my');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isAlumni && !data.testimonial) {
+            toast.error('Afwan Ukhti, Ukhti harus mengisi testimoni alumni terlebih dahulu.');
+            router.push('/alumni');
+          }
+        }
+      } catch (err) {
+        console.error('Error checking alumni status:', err);
+      }
+    }
+    if (user) {
+      checkAlumniStatus();
+    }
+  }, [user, router]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -336,8 +545,8 @@ function MuallimahRegistrationContent() {
             schedule_tikrar_time_end = preferredSchedule.tikrar.time_end || '';
             if (backupSchedule?.tikrar) {
               schedule_tikrar_day2 = backupSchedule.tikrar.day || '';
-              schedule_tikrar_time_start2 = backupSchedule.tikrar.time_start || '';
-              schedule_tikrar_time_end2 = backupSchedule.tikrar.time_end || '';
+              schedule_tikrar_time_start2 = backupSchedule.tikrar.time_start2 || backupSchedule.tikrar.time_start || '';
+              schedule_tikrar_time_end2 = backupSchedule.tikrar.time_end2 || backupSchedule.tikrar.time_end || '';
             }
           }
           if (class_pratikrar) {
@@ -346,8 +555,8 @@ function MuallimahRegistrationContent() {
             schedule_pratikrar_time_end = preferredSchedule.pra_tahfidz.time_end || '';
             if (backupSchedule?.pra_tahfidz) {
               schedule_pratikrar_day2 = backupSchedule.pra_tahfidz.day || '';
-              schedule_pratikrar_time_start2 = backupSchedule.pra_tahfidz.time_start || '';
-              schedule_pratikrar_time_end2 = backupSchedule.pra_tahfidz.time_end || '';
+              schedule_pratikrar_time_start2 = backupSchedule.pra_tahfidz.time_start2 || backupSchedule.pra_tahfidz.time_start || '';
+              schedule_pratikrar_time_end2 = backupSchedule.pra_tahfidz.time_end2 || backupSchedule.pra_tahfidz.time_end || '';
             }
           }
           if (class_paid) {
@@ -356,8 +565,8 @@ function MuallimahRegistrationContent() {
             schedule_paid_time_end = preferredSchedule.berbayar.time_end || '';
             if (backupSchedule?.berbayar) {
               schedule_paid_day2 = backupSchedule.berbayar.day || '';
-              schedule_paid_time_start2 = backupSchedule.berbayar.time_start || '';
-              schedule_paid_time_end2 = backupSchedule.berbayar.time_end || '';
+              schedule_paid_time_start2 = backupSchedule.berbayar.time_start2 || backupSchedule.berbayar.time_start || '';
+              schedule_paid_time_end2 = backupSchedule.berbayar.time_end2 || backupSchedule.berbayar.time_end || '';
             }
           }
         } else {
@@ -471,7 +680,7 @@ function MuallimahRegistrationContent() {
       return { 
         ...prev, 
         agreed_items: updated,
-        understands_commitment: updated.length === COMMITMENT_ITEMS.length
+        understands_commitment: updated.length === commitmentQuestions.length
       };
     });
   };
@@ -501,74 +710,121 @@ function MuallimahRegistrationContent() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.tajweed_institution?.trim()) newErrors.tajweed_institution = 'Lembaga belajar tajwid harus diisi';
-    if (!formData.quran_institution?.trim()) newErrors.quran_institution = 'Lembaga hafal Quran harus diisi';
-    if (!formData.memorization_level) newErrors.memorization_level = 'Pilih jumlah hafalan';
-    if (!formData.memorized_juz || formData.memorized_juz.length === 0) newErrors.memorized_juz = 'Pilih minimal satu juz yang sudah dihafal';
-    if (!formData.preferred_juz || formData.preferred_juz.length === 0) newErrors.preferred_juz = 'Pilih minimal satu juz yang ingin diampu';
+    const metaTajweed = getQuestionMeta('tajweed_institution');
+    if (metaTajweed.is_active && metaTajweed.is_required && !formData.tajweed_institution?.trim()) {
+      newErrors.tajweed_institution = `${metaTajweed.label} harus diisi`;
+    }
+
+    const metaQuran = getQuestionMeta('quran_institution');
+    if (metaQuran.is_active && metaQuran.is_required && !formData.quran_institution?.trim()) {
+      newErrors.quran_institution = `${metaQuran.label} harus diisi`;
+    }
+
+    const metaCommunities = getQuestionMeta('teaching_communities');
+    if (metaCommunities.is_active && metaCommunities.is_required && !formData.teaching_communities?.trim()) {
+      newErrors.teaching_communities = `${metaCommunities.label} harus diisi`;
+    }
+
+    const metaTajweedMatan = getQuestionMeta('memorized_tajweed_matan');
+    if (metaTajweedMatan.is_active && metaTajweedMatan.is_required && !formData.memorized_tajweed_matan?.trim()) {
+      newErrors.memorized_tajweed_matan = `${metaTajweedMatan.label} harus diisi`;
+    }
+
+    const metaMatanExegesis = getQuestionMeta('studied_matan_exegesis');
+    if (metaMatanExegesis.is_active && metaMatanExegesis.is_required && !formData.studied_matan_exegesis?.trim()) {
+      newErrors.studied_matan_exegesis = `${metaMatanExegesis.label} harus diisi`;
+    }
+
+    const metaLevel = getQuestionMeta('memorization_level');
+    if (metaLevel.is_active && metaLevel.is_required && !formData.memorization_level) {
+      newErrors.memorization_level = 'Pilih jumlah hafalan';
+    }
+
+    const metaMemorized = getQuestionMeta('memorized_juz');
+    if (metaMemorized.is_active && metaMemorized.is_required && (!formData.memorized_juz || formData.memorized_juz.length === 0)) {
+      newErrors.memorized_juz = 'Pilih minimal satu juz yang sudah dihafal';
+    }
+
+    const metaPreferred = getQuestionMeta('preferred_juz');
+    if (metaPreferred.is_active && metaPreferred.is_required && (!formData.preferred_juz || formData.preferred_juz.length === 0)) {
+      newErrors.preferred_juz = 'Pilih minimal satu juz yang ingin diampu';
+    }
     
     // Validasi Pilihan Kelas Wajib
-    if (!formData.class_tikrar && !formData.class_pratikrar) {
-      newErrors.class_selection = 'Pilih minimal salah satu kelas wajib (Tikrar atau Pra-Tikrar)';
+    const metaTikrar = getQuestionMeta('class_tikrar');
+    const metaPratikrar = getQuestionMeta('class_pratikrar');
+    const metaPaid = getQuestionMeta('class_paid');
+    const metaPaidScheme = getQuestionMeta('paid_class_scheme');
+
+    const activeRequiredClasses = [];
+    if (metaTikrar.is_active) activeRequiredClasses.push('tikrar');
+    if (metaPratikrar.is_active) activeRequiredClasses.push('pratikrar');
+
+    if (activeRequiredClasses.length > 0) {
+      const selectedTikrar = metaTikrar.is_active && formData.class_tikrar;
+      const selectedPratikrar = metaPratikrar.is_active && formData.class_pratikrar;
+      if (!selectedTikrar && !selectedPratikrar) {
+        newErrors.class_selection = 'Pilih minimal salah satu kelas wajib yang aktif (Tikrar atau Pra-Tikrar)';
+      }
     }
 
     // Validasi Detail Jadwal per Program
-    if (formData.class_tikrar) {
+    if (metaTikrar.is_active && formData.class_tikrar) {
       if (!formData.schedule_tikrar_day) newErrors.schedule_tikrar_day = 'Pilih hari kelas Tikrar';
       if (!formData.schedule_tikrar_time_start) newErrors.schedule_tikrar_time_start = 'Pilih jam mulai kelas Tikrar';
       if (!formData.schedule_tikrar_time_end) newErrors.schedule_tikrar_time_end = 'Pilih jam selesai kelas Tikrar';
     }
 
-    if (formData.class_pratikrar) {
+    if (metaPratikrar.is_active && formData.class_pratikrar) {
       if (!formData.schedule_pratikrar_day) newErrors.schedule_pratikrar_day = 'Pilih hari kelas Pra-Tikrar';
       if (!formData.schedule_pratikrar_time_start) newErrors.schedule_pratikrar_time_start = 'Pilih jam mulai kelas Pra-Tikrar';
       if (!formData.schedule_pratikrar_time_end) newErrors.schedule_pratikrar_time_end = 'Pilih jam selesai kelas Pra-Tikrar';
     }
 
-    if (formData.class_paid) {
+    if (metaPaid.is_active && formData.class_paid) {
       if (!formData.schedule_paid_day) newErrors.schedule_paid_day = 'Pilih hari kelas Berbayar';
       if (!formData.schedule_paid_time_start) newErrors.schedule_paid_time_start = 'Pilih jam mulai kelas Berbayar';
       if (!formData.schedule_paid_time_end) newErrors.schedule_paid_time_end = 'Pilih jam selesai kelas Berbayar';
-      if (!formData.paid_class_scheme || formData.paid_class_scheme === 'none') {
+      if (metaPaidScheme.is_active && (!formData.paid_class_scheme || formData.paid_class_scheme === 'none')) {
         newErrors.paid_class_scheme = 'Pilih skema kelas berbayar yang diajukan';
       }
     }
 
     // Deteksi Tumpang Tindih Jadwal (Schedule Conflict Detection)
     if (!newErrors.schedule_tikrar_day && !newErrors.schedule_pratikrar_day) {
-      if (formData.class_tikrar && formData.class_pratikrar) {
+      if (metaTikrar.is_active && formData.class_tikrar && metaPratikrar.is_active && formData.class_pratikrar) {
         if (hasScheduleConflict(
           formData.schedule_tikrar_day, formData.schedule_tikrar_time_start, formData.schedule_tikrar_time_end,
           formData.schedule_pratikrar_day, formData.schedule_pratikrar_time_start, formData.schedule_pratikrar_time_end
         )) {
-          newErrors.schedule_conflict = 'Jadwal Utama kelas Tikrar dan kelas Pra-Tikrar saling bertabrakan';
+          newErrors.schedule_conflict = 'Jadwal Utama kelas Tikrar and kelas Pra-Tikrar saling bertabrakan';
         }
       }
     }
 
     if (!newErrors.schedule_tikrar_day && !newErrors.schedule_paid_day) {
-      if (formData.class_tikrar && formData.class_paid) {
+      if (metaTikrar.is_active && formData.class_tikrar && metaPaid.is_active && formData.class_paid) {
         if (hasScheduleConflict(
           formData.schedule_tikrar_day, formData.schedule_tikrar_time_start, formData.schedule_tikrar_time_end,
           formData.schedule_paid_day, formData.schedule_paid_time_start, formData.schedule_paid_time_end
         )) {
-          newErrors.schedule_conflict = 'Jadwal Utama kelas Tikrar dan kelas Berbayar saling bertabrakan';
+          newErrors.schedule_conflict = 'Jadwal Utama kelas Tikrar and kelas Berbayar saling bertabrakan';
         }
       }
     }
 
     if (!newErrors.schedule_pratikrar_day && !newErrors.schedule_paid_day) {
-      if (formData.class_pratikrar && formData.class_paid) {
+      if (metaPratikrar.is_active && formData.class_pratikrar && metaPaid.is_active && formData.class_paid) {
         if (hasScheduleConflict(
           formData.schedule_pratikrar_day, formData.schedule_pratikrar_time_start, formData.schedule_pratikrar_time_end,
           formData.schedule_paid_day, formData.schedule_paid_time_start, formData.schedule_paid_time_end
         )) {
-          newErrors.schedule_conflict = 'Jadwal Utama kelas Pra-Tikrar dan kelas Berbayar saling bertabrakan';
+          newErrors.schedule_conflict = 'Jadwal Utama kelas Pra-Tikrar and kelas Berbayar saling bertabrakan';
         }
       }
     }
 
-    if (!formData.understands_commitment || formData.agreed_items.length < COMMITMENT_ITEMS.length) {
+    if (!formData.understands_commitment || formData.agreed_items.length < commitmentQuestions.length) {
       newErrors.understands_commitment = 'Harap setujui semua butir akad komitmen';
     }
 
@@ -611,7 +867,7 @@ function MuallimahRegistrationContent() {
     }
   };
 
-  if (authLoading || batchLoading) {
+  if (authLoading || batchLoading || questionsLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-green-600" />
@@ -703,215 +959,299 @@ function MuallimahRegistrationContent() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Lembaga Belajar Tajwid</Label>
-                <Input 
-                  placeholder="e.g. MTI, LTQ, dsb" 
-                  value={formData.tajweed_institution}
-                  onChange={(e) => handleInputChange('tajweed_institution', e.target.value)}
-                  disabled={isFormSubmitted}
-                  className={errors.tajweed_institution ? "border-red-500" : ""}
-                />
-                {errors.tajweed_institution && <p className="text-xs text-red-500">{errors.tajweed_institution}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Lembaga Tahfidz</Label>
-                <Input 
-                  placeholder="e.g. Markaz Tikrar, dsb"
-                  value={formData.quran_institution}
-                  onChange={(e) => handleInputChange('quran_institution', e.target.value)}
-                  disabled={isFormSubmitted}
-                  className={errors.quran_institution ? "border-red-500" : ""}
-                />
-                {errors.quran_institution && <p className="text-xs text-red-500">{errors.quran_institution}</p>}
-              </div>
+              {getQuestionMeta('tajweed_institution').is_active && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    {getQuestionMeta('tajweed_institution').label}
+                    {getQuestionMeta('tajweed_institution').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input 
+                    placeholder={getQuestionMeta('tajweed_institution').description || "e.g. MTI, LTQ, dsb"} 
+                    value={formData.tajweed_institution}
+                    onChange={(e) => handleInputChange('tajweed_institution', e.target.value)}
+                    disabled={isFormSubmitted}
+                    className={errors.tajweed_institution ? "border-red-500" : ""}
+                  />
+                  {errors.tajweed_institution && <p className="text-xs text-red-500">{errors.tajweed_institution}</p>}
+                  {getQuestionMeta('tajweed_institution').warning_text && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('tajweed_institution').warning_text}</p>
+                  )}
+                </div>
+              )}
+              {getQuestionMeta('quran_institution').is_active && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    {getQuestionMeta('quran_institution').label}
+                    {getQuestionMeta('quran_institution').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input 
+                    placeholder={getQuestionMeta('quran_institution').description || "e.g. Markaz Tikrar, dsb"}
+                    value={formData.quran_institution}
+                    onChange={(e) => handleInputChange('quran_institution', e.target.value)}
+                    disabled={isFormSubmitted}
+                    className={errors.quran_institution ? "border-red-500" : ""}
+                  />
+                  {errors.quran_institution && <p className="text-xs text-red-500">{errors.quran_institution}</p>}
+                  {getQuestionMeta('quran_institution').warning_text && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('quran_institution').warning_text}</p>
+                  )}
+                </div>
+              )}
+              {getQuestionMeta('teaching_communities').is_active && (
+                <div className="space-y-2 col-span-full">
+                  <Label className="flex items-center gap-1">
+                    {getQuestionMeta('teaching_communities').label}
+                    {getQuestionMeta('teaching_communities').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input 
+                    placeholder={getQuestionMeta('teaching_communities').description || "e.g. LTQ A, Majelis Taklim B, dsb (kosongkan jika tidak ada)"}
+                    value={formData.teaching_communities || ''}
+                    onChange={(e) => handleInputChange('teaching_communities', e.target.value)}
+                    disabled={isFormSubmitted}
+                    className={errors.teaching_communities ? "border-red-500" : ""}
+                  />
+                  {errors.teaching_communities && <p className="text-xs text-red-500">{errors.teaching_communities}</p>}
+                  {getQuestionMeta('teaching_communities').warning_text && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('teaching_communities').warning_text}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Matan Tajwid yang Dihafal</Label>
-                <Input 
-                  placeholder="e.g. Tuhfatul Athfal, Jazariyah"
-                  value={formData.memorized_tajweed_matan}
-                  onChange={(e) => handleInputChange('memorized_tajweed_matan', e.target.value)}
-                  disabled={isFormSubmitted}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Syarah Matan yang Dipelajari</Label>
-                <Input 
-                  placeholder="e.g. Aisar, dsb"
-                  value={formData.studied_matan_exegesis}
-                  onChange={(e) => handleInputChange('studied_matan_exegesis', e.target.value)}
-                  disabled={isFormSubmitted}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-base font-semibold">Jumlah Hafalan Al-Quran saat ini (Juz)</Label>
-              <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100 w-fit">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const current = parseInt(formData.memorization_level) || 0;
-                    if (current > 1) {
-                      handleInputChange('memorization_level', String(current - 1));
-                    } else if (current === 1) {
-                      handleInputChange('memorization_level', '');
-                    }
-                  }}
-                  disabled={isFormSubmitted || !formData.memorization_level}
-                  className="h-10 w-10 rounded-full bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 flex items-center justify-center font-bold text-xl transition-all active:scale-95 shadow-sm shrink-0"
-                >
-                  -
-                </Button>
-                
-                <div className="flex flex-col items-center justify-center min-w-[120px]">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={30}
-                    placeholder="Pilih Juz"
-                    value={formData.memorization_level || ''}
-                    onChange={(e) => {
-                      const valStr = e.target.value;
-                      if (valStr === '') {
-                        handleInputChange('memorization_level', '');
-                        return;
-                      }
-                      let val = parseInt(valStr) || 1;
-                      if (val < 1) val = 1;
-                      if (val > 30) val = 30;
-                      handleInputChange('memorization_level', String(val));
-                    }}
+              {getQuestionMeta('memorized_tajweed_matan').is_active && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    {getQuestionMeta('memorized_tajweed_matan').label}
+                    {getQuestionMeta('memorized_tajweed_matan').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input 
+                    placeholder={getQuestionMeta('memorized_tajweed_matan').description || "e.g. Tuhfatul Athfal, Jazariyah"}
+                    value={formData.memorized_tajweed_matan}
+                    onChange={(e) => handleInputChange('memorized_tajweed_matan', e.target.value)}
                     disabled={isFormSubmitted}
-                    className="h-10 w-20 text-center font-black text-lg border-gray-200 rounded-xl focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white"
+                    className={errors.memorized_tajweed_matan ? "border-red-500" : ""}
                   />
-                  <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
-                    {!formData.memorization_level ? 'Belum dipilih' : (parseInt(formData.memorization_level) === 30 ? '30 Juz (Kamil)' : `${formData.memorization_level} Juz`)}
-                  </span>
+                  {errors.memorized_tajweed_matan && <p className="text-xs text-red-500">{errors.memorized_tajweed_matan}</p>}
+                  {getQuestionMeta('memorized_tajweed_matan').warning_text && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('memorized_tajweed_matan').warning_text}</p>
+                  )}
                 </div>
-
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const current = parseInt(formData.memorization_level) || 0;
-                    if (current < 30) {
-                      handleInputChange('memorization_level', String(current + 1));
-                    }
-                  }}
-                  disabled={isFormSubmitted || (parseInt(formData.memorization_level) || 0) >= 30}
-                  className="h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center font-bold text-xl transition-all active:scale-95 shadow-md shrink-0 border-0"
-                >
-                  +
-                </Button>
-              </div>
-              {errors.memorization_level && <p className="text-xs text-red-500 font-bold">{errors.memorization_level}</p>}
+              )}
+              {getQuestionMeta('studied_matan_exegesis').is_active && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    {getQuestionMeta('studied_matan_exegesis').label}
+                    {getQuestionMeta('studied_matan_exegesis').is_required && <span className="text-red-500">*</span>}
+                  </Label>
+                  <Input 
+                    placeholder={getQuestionMeta('studied_matan_exegesis').description || "e.g. Aisar, dsb"}
+                    value={formData.studied_matan_exegesis}
+                    onChange={(e) => handleInputChange('studied_matan_exegesis', e.target.value)}
+                    disabled={isFormSubmitted}
+                    className={errors.studied_matan_exegesis ? "border-red-500" : ""}
+                  />
+                  {errors.studied_matan_exegesis && <p className="text-xs text-red-500">{errors.studied_matan_exegesis}</p>}
+                  {getQuestionMeta('studied_matan_exegesis').warning_text && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('studied_matan_exegesis').warning_text}</p>
+                  )}
+                </div>
+              )}
             </div>
+
+            {getQuestionMeta('memorization_level').is_active && (
+              <div className="space-y-3">
+                <Label className="text-base font-semibold flex items-center gap-1">
+                  {getQuestionMeta('memorization_level').label}
+                  {getQuestionMeta('memorization_level').is_required && <span className="text-red-500">*</span>}
+                </Label>
+                <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-2xl border border-gray-100 w-fit">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const current = parseInt(formData.memorization_level) || 0;
+                      if (current > 1) {
+                        handleInputChange('memorization_level', String(current - 1));
+                      } else if (current === 1) {
+                        handleInputChange('memorization_level', '');
+                      }
+                    }}
+                    disabled={isFormSubmitted || !formData.memorization_level}
+                    className="h-10 w-10 rounded-full bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 flex items-center justify-center font-bold text-xl transition-all active:scale-95 shadow-sm shrink-0"
+                  >
+                    -
+                  </Button>
+                  
+                  <div className="flex flex-col items-center justify-center min-w-[120px]">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={30}
+                      placeholder="Pilih Juz"
+                      value={formData.memorization_level || ''}
+                      onChange={(e) => {
+                        const valStr = e.target.value;
+                        if (valStr === '') {
+                          handleInputChange('memorization_level', '');
+                          return;
+                        }
+                        let val = parseInt(valStr) || 1;
+                        if (val < 1) val = 1;
+                        if (val > 30) val = 30;
+                        handleInputChange('memorization_level', String(val));
+                      }}
+                      disabled={isFormSubmitted}
+                      className="h-10 w-20 text-center font-black text-lg border-gray-200 rounded-xl focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white"
+                    />
+                    <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
+                      {!formData.memorization_level ? 'Belum dipilih' : (parseInt(formData.memorization_level) === 30 ? '30 Juz (Kamil)' : `${formData.memorization_level} Juz`)}
+                    </span>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const current = parseInt(formData.memorization_level) || 0;
+                      if (current < 30) {
+                        handleInputChange('memorization_level', String(current + 1));
+                      }
+                    }}
+                    disabled={isFormSubmitted || (parseInt(formData.memorization_level) || 0) >= 30}
+                    className="h-10 w-10 rounded-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center font-bold text-xl transition-all active:scale-95 shadow-md shrink-0"
+                  >
+                    +
+                  </Button>
+                </div>
+                {errors.memorization_level && <p className="text-xs text-red-500 font-bold">{errors.memorization_level}</p>}
+                {getQuestionMeta('memorization_level').warning_text && (
+                  <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('memorization_level').warning_text}</p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-6">
-              <Label className="text-base font-semibold">Kompetensi Hafalan (Juz)</Label>
+              {(getQuestionMeta('memorized_juz').is_active || getQuestionMeta('examined_juz').is_active || getQuestionMeta('certified_juz').is_active) && (
+                <Label className="text-base font-semibold">Kompetensi Hafalan (Juz)</Label>
+              )}
               
               <div className="space-y-4">
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    Sudah Dihafal
-                  </p>
-                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
-                    {allJuzOptions.map(juz => {
-                      const isChecked = formData.memorized_juz.includes(juz.value);
-                      return (
-                        <label 
-                          key={juz.value} 
-                          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
-                        >
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              const newJuz = checked 
-                                ? [...formData.memorized_juz, juz.value]
-                                : formData.memorized_juz.filter(v => v !== juz.value);
-                              handleInputChange('memorized_juz', newJuz);
-                            }}
-                            disabled={isFormSubmitted}
-                            className="hidden"
-                          />
-                          {juz.value}
-                        </label>
-                      );
-                    })}
+                {getQuestionMeta('memorized_juz').is_active && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      {getQuestionMeta('memorized_juz').label}
+                      {getQuestionMeta('memorized_juz').is_required && <span className="text-red-500">*</span>}
+                    </p>
+                    <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
+                      {allJuzOptions.map(juz => {
+                        const isChecked = formData.memorized_juz.includes(juz.value);
+                        return (
+                          <label 
+                            key={juz.value} 
+                            className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const newJuz = checked 
+                                  ? [...formData.memorized_juz, juz.value]
+                                  : formData.memorized_juz.filter(v => v !== juz.value);
+                                handleInputChange('memorized_juz', newJuz);
+                              }}
+                              disabled={isFormSubmitted}
+                              className="hidden"
+                            />
+                            {juz.value}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {errors.memorized_juz && <p className="text-xs text-red-500 font-bold">{errors.memorized_juz}</p>}
+                    {getQuestionMeta('memorized_juz').warning_text && (
+                      <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('memorized_juz').warning_text}</p>
+                    )}
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                    Sudah Diuji (Tashih/Imtihan)
-                  </p>
-                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
-                    {allJuzOptions.map(juz => {
-                      const isChecked = formData.examined_juz.includes(juz.value);
-                      return (
-                        <label 
-                          key={`exm-${juz.value}`} 
-                          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600'}`}
-                        >
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              const newJuz = checked 
-                                ? [...formData.examined_juz, juz.value]
-                                : formData.examined_juz.filter(v => v !== juz.value);
-                              handleInputChange('examined_juz', newJuz);
-                            }}
-                            disabled={isFormSubmitted}
-                            className="hidden"
-                          />
-                          {juz.value}
-                        </label>
-                      );
-                    })}
+                {getQuestionMeta('examined_juz').is_active && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                      {getQuestionMeta('examined_juz').label}
+                      {getQuestionMeta('examined_juz').is_required && <span className="text-red-500">*</span>}
+                    </p>
+                    <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
+                      {allJuzOptions.map(juz => {
+                        const isChecked = formData.examined_juz.includes(juz.value);
+                        return (
+                          <label 
+                            key={`exm-${juz.value}`} 
+                            className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-amber-600 border-amber-600 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-amber-500 hover:text-amber-600'}`}
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const newJuz = checked 
+                                  ? [...formData.examined_juz, juz.value]
+                                  : formData.examined_juz.filter(v => v !== juz.value);
+                                handleInputChange('examined_juz', newJuz);
+                              }}
+                              disabled={isFormSubmitted}
+                              className="hidden"
+                            />
+                            {juz.value}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {getQuestionMeta('examined_juz').warning_text && (
+                      <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('examined_juz').warning_text}</p>
+                    )}
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    Sudah Mendapat Sertifikat
-                  </p>
-                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
-                    {allJuzOptions.map(juz => {
-                      const isChecked = formData.certified_juz.includes(juz.value);
-                      return (
-                        <label 
-                          key={`cert-${juz.value}`} 
-                          className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-500 border-green-500 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-400 hover:text-green-500'}`}
-                        >
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              const newJuz = checked 
-                                ? [...formData.certified_juz, juz.value]
-                                : formData.certified_juz.filter(v => v !== juz.value);
-                              handleInputChange('certified_juz', newJuz);
-                            }}
-                            disabled={isFormSubmitted}
-                            className="hidden"
-                          />
-                          {juz.value}
-                        </label>
-                      );
-                    })}
+                {getQuestionMeta('certified_juz').is_active && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      {getQuestionMeta('certified_juz').label}
+                      {getQuestionMeta('certified_juz').is_required && <span className="text-red-500">*</span>}
+                    </p>
+                    <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-gray-50/30">
+                      {allJuzOptions.map(juz => {
+                        const isChecked = formData.certified_juz.includes(juz.value);
+                        return (
+                          <label 
+                            key={`cert-${juz.value}`} 
+                            className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-500 border-green-500 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-400 hover:text-green-500'}`}
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const newJuz = checked 
+                                  ? [...formData.certified_juz, juz.value]
+                                  : formData.certified_juz.filter(v => v !== juz.value);
+                                handleInputChange('certified_juz', newJuz);
+                              }}
+                              disabled={isFormSubmitted}
+                              className="hidden"
+                            />
+                            {juz.value}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {getQuestionMeta('certified_juz').warning_text && (
+                      <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('certified_juz').warning_text}</p>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -936,67 +1276,79 @@ function MuallimahRegistrationContent() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 {/* Checkbox Kelas Tikrar */}
-                <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
-                  <input 
-                    type="checkbox"
-                    id="class_tikrar"
-                    checked={formData.class_tikrar}
-                    onChange={(e) => handleInputChange('class_tikrar', e.target.checked)}
-                    disabled={isFormSubmitted}
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="class_tikrar" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Tikrar</Label>
-                    <p className="text-xs text-gray-500">Kelas hafalan Al-Quran berulang (standard/ziyadah).</p>
+                {getQuestionMeta('class_tikrar').is_active && (
+                  <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
+                    <input 
+                      type="checkbox"
+                      id="class_tikrar"
+                      checked={formData.class_tikrar}
+                      onChange={(e) => handleInputChange('class_tikrar', e.target.checked)}
+                      disabled={isFormSubmitted}
+                      className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="class_tikrar" className="text-sm font-bold text-gray-800 cursor-pointer">
+                        {getQuestionMeta('class_tikrar').label}
+                      </Label>
+                      <p className="text-xs text-gray-500">{getQuestionMeta('class_tikrar').description || "Kelas hafalan Al-Quran berulang (standard/ziyadah)."}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Checkbox Kelas Pra-Tikrar */}
-                <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
-                  <input 
-                    type="checkbox"
-                    id="class_pratikrar"
-                    checked={formData.class_pratikrar}
-                    onChange={(e) => handleInputChange('class_pratikrar', e.target.checked)}
-                    disabled={isFormSubmitted}
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="class_pratikrar" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Pra-Tikrar</Label>
-                    <p className="text-xs text-gray-500">Kelas persiapan dan pembekalan materi tajwid/tashih dasar.</p>
+                {getQuestionMeta('class_pratikrar').is_active && (
+                  <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
+                    <input 
+                      type="checkbox"
+                      id="class_pratikrar"
+                      checked={formData.class_pratikrar}
+                      onChange={(e) => handleInputChange('class_pratikrar', e.target.checked)}
+                      disabled={isFormSubmitted}
+                      className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="class_pratikrar" className="text-sm font-bold text-gray-800 cursor-pointer">
+                        {getQuestionMeta('class_pratikrar').label}
+                      </Label>
+                      <p className="text-xs text-gray-500">{getQuestionMeta('class_pratikrar').description || "Kelas persiapan dan pembekalan materi tajwid/tashih dasar."}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Checkbox Kelas Berbayar */}
-                <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
-                  <input 
-                    type="checkbox"
-                    id="class_paid"
-                    checked={formData.class_paid}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
-                      handleInputChange('class_paid', checked);
-                      if (!checked) {
-                        handleInputChange('paid_class_scheme', 'none');
-                      }
-                    }}
-                    disabled={isFormSubmitted}
-                    className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="class_paid" className="text-sm font-bold text-gray-800 cursor-pointer">Kelas Berbayar (Opsional)</Label>
-                    <p className="text-xs text-gray-500">Mengajar kelas berbayar komersial sesuai kebijakan MTI.</p>
+                {getQuestionMeta('class_paid').is_active && (
+                  <div className="flex items-start space-x-3 p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors">
+                    <input 
+                      type="checkbox"
+                      id="class_paid"
+                      checked={formData.class_paid}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        handleInputChange('class_paid', checked);
+                        if (!checked) {
+                          handleInputChange('paid_class_scheme', 'none');
+                        }
+                      }}
+                      disabled={isFormSubmitted}
+                      className="mt-1 h-5 w-5 rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600"
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="class_paid" className="text-sm font-bold text-gray-800 cursor-pointer">
+                        {getQuestionMeta('class_paid').label}
+                      </Label>
+                      <p className="text-xs text-gray-500">{getQuestionMeta('class_paid').description || "Mengajar kelas berbayar komersial sesuai kebijakan MTI."}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
               </div>
               {errors.class_selection && <p className="text-sm text-red-500 font-bold mt-2">{errors.class_selection}</p>}
             </div>
 
             {/* Jika Kelas Berbayar Aktif, Tampilkan Skema */}
-            {formData.class_paid && (
+            {getQuestionMeta('class_paid').is_active && formData.class_paid && getQuestionMeta('paid_class_scheme').is_active && (
               <div className="space-y-3 bg-amber-50/40 p-5 rounded-2xl border border-amber-100 animate-in slide-in-from-top-4 duration-200">
-                <Label className="text-sm font-bold text-amber-900">Pengajuan Skema Kelas Berbayar</Label>
+                <Label className="text-sm font-bold text-amber-900">{getQuestionMeta('paid_class_scheme').label}</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select 
                     value={formData.paid_class_scheme} 
@@ -1014,389 +1366,406 @@ function MuallimahRegistrationContent() {
                   </Select>
                   <div className="flex items-center">
                     <p className="text-xs text-amber-700 italic">
-                      * Skema akan divalidasi lebih lanjut oleh tim manajemen.
+                      {getQuestionMeta('paid_class_scheme').description || "* Skema akan divalidasi lebih lanjut oleh tim manajemen."}
                     </p>
                   </div>
                 </div>
                 {errors.paid_class_scheme && <p className="text-xs text-red-500 font-medium">{errors.paid_class_scheme}</p>}
+                {getQuestionMeta('paid_class_scheme').warning_text && (
+                  <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('paid_class_scheme').warning_text}</p>
+                )}
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Maksimal Tholibah per Kelas</Label>
-                <Select 
-                  value={String(formData.preferred_max_thalibah || 10)} 
-                  onValueChange={(v) => handleInputChange('preferred_max_thalibah', parseInt(v))}
-                  disabled={isFormSubmitted}
-                >
-                  <SelectTrigger className="rounded-xl border-gray-200 bg-white">
-                    <SelectValue placeholder="Pilih maksimal tholibah" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map((num) => (
-                      <SelectItem key={num} value={String(num)}>{num} Orang</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {getQuestionMeta('preferred_max_thalibah').is_active && (
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">{getQuestionMeta('preferred_max_thalibah').label}</Label>
+                  <Select 
+                    value={String(formData.preferred_max_thalibah || 10)} 
+                    onValueChange={(v) => handleInputChange('preferred_max_thalibah', parseInt(v))}
+                    disabled={isFormSubmitted}
+                  >
+                    <SelectTrigger className="rounded-xl border-gray-200 bg-white">
+                      <SelectValue placeholder="Pilih maksimal tholibah" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map((num) => (
+                        <SelectItem key={num} value={String(num)}>{num} Orang</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {getQuestionMeta('preferred_max_thalibah').warning_text && (
+                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('preferred_max_thalibah').warning_text}</p>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Juz yang Bersedia Diampu (Pilih minimal satu)</Label>
-              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-white">
-                {allJuzOptions.map(juz => {
-                  const isChecked = formData.preferred_juz.includes(juz.value);
-                  return (
-                    <label 
-                      key={`pref-${juz.value}`} 
-                      className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
-                    >
-                      <input 
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          const newJuz = checked 
-                            ? [...formData.preferred_juz, juz.value]
-                            : formData.preferred_juz.filter(v => v !== juz.value);
-                          handleInputChange('preferred_juz', newJuz);
-                        }}
-                        disabled={isFormSubmitted}
-                        className="hidden"
-                      />
-                      {juz.value}
-                    </label>
-                  );
-                })}
+            {getQuestionMeta('preferred_juz').is_active && (
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">
+                  {getQuestionMeta('preferred_juz').label}
+                  {getQuestionMeta('preferred_juz').is_required && <span className="text-red-500">*</span>}
+                </Label>
+                <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-white">
+                  {allJuzOptions.map(juz => {
+                    const isChecked = formData.preferred_juz.includes(juz.value);
+                    return (
+                      <label 
+                        key={`pref-${juz.value}`} 
+                        className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
+                      >
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            const newJuz = checked 
+                              ? [...formData.preferred_juz, juz.value]
+                              : formData.preferred_juz.filter(v => v !== juz.value);
+                            handleInputChange('preferred_juz', newJuz);
+                          }}
+                          disabled={isFormSubmitted}
+                          className="hidden"
+                        />
+                        {juz.value}
+                      </label>
+                    );
+                  })}
+                </div>
+                {errors.preferred_juz && <p className="text-xs text-red-500 font-medium">{errors.preferred_juz}</p>}
+                {getQuestionMeta('preferred_juz').warning_text && (
+                  <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('preferred_juz').warning_text}</p>
+                )}
               </div>
-              {errors.preferred_juz && <p className="text-xs text-red-500 font-medium">{errors.preferred_juz}</p>}
-            </div>
+            )}
 
             {/* DYNAMIC JADWAL SECTION */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 border-b pb-2">
-                <Clock className="w-5 h-5 text-amber-600" />
-                <Label className="text-lg font-bold text-amber-900">Jadwal Mengajar per Program (WIB)</Label>
+            {getQuestionMeta('teaching_schedule').is_active && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                  <Label className="text-lg font-bold text-amber-900">{getQuestionMeta('teaching_schedule').label}</Label>
+                </div>
+
+                {errors.schedule_conflict && (
+                  <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-bold flex items-center gap-2 animate-bounce">
+                    <Info className="h-4 w-4 shrink-0 text-red-600" />
+                    <span>{errors.schedule_conflict}</span>
+                  </div>
+                )}
+
+                {/* JADWAL KELAS TIKRAR */}
+                {getQuestionMeta('class_tikrar').is_active && formData.class_tikrar && (
+                  <div className="space-y-4 bg-emerald-50/20 p-6 rounded-2xl border border-emerald-100/50 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+                      <h3 className="text-base font-bold text-emerald-900">🗓️ Jadwal Kelas Tikrar</h3>
+                      <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Aktif</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Tikrar Utama */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-emerald-100/50">
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
+                            <Select 
+                              value={formData.schedule_tikrar_day} 
+                              onValueChange={(v) => handleInputChange('schedule_tikrar_day', v)}
+                              disabled={isFormSubmitted}
+                            >
+                              <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_day ? "border-red-500" : ""}`}>
+                                <SelectValue placeholder="Hari" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayOptions.map(d => (
+                                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_tikrar_time_start}
+                              onChange={(e) => handleInputChange('schedule_tikrar_time_start', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_time_start ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_tikrar_time_end}
+                              onChange={(e) => handleInputChange('schedule_tikrar_time_end', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_time_end ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tikrar Cadangan */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
+                            <Select 
+                              value={formData.schedule_tikrar_day2} 
+                              onValueChange={(v) => handleInputChange('schedule_tikrar_day2', v)}
+                              disabled={isFormSubmitted}
+                            >
+                              <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
+                                <SelectValue placeholder="Hari" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayOptions.map(d => (
+                                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_tikrar_time_start2}
+                              onChange={(e) => handleInputChange('schedule_tikrar_time_start2', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className="h-9 bg-white border-gray-200 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_tikrar_time_end2}
+                              onChange={(e) => handleInputChange('schedule_tikrar_time_end2', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className="h-9 bg-white border-gray-200 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {(errors.schedule_tikrar_day || errors.schedule_tikrar_time_start || errors.schedule_tikrar_time_end) && (
+                      <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Tikrar.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* JADWAL KELAS PRA-TIKRAR */}
+                {getQuestionMeta('class_pratikrar').is_active && formData.class_pratikrar && (
+                  <div className="space-y-4 bg-blue-50/20 p-6 rounded-2xl border border-blue-100/50 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                      <h3 className="text-base font-bold text-blue-900">🗓️ Jadwal Kelas Pra-Tikrar</h3>
+                      <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Aktif</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Pra-Tikrar Utama */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-blue-100/50">
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
+                            <Select 
+                              value={formData.schedule_pratikrar_day} 
+                              onValueChange={(v) => handleInputChange('schedule_pratikrar_day', v)}
+                              disabled={isFormSubmitted}
+                            >
+                              <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_day ? "border-red-500" : ""}`}>
+                                <SelectValue placeholder="Hari" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayOptions.map(d => (
+                                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_pratikrar_time_start}
+                              onChange={(e) => handleInputChange('schedule_pratikrar_time_start', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_time_start ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_pratikrar_time_end}
+                              onChange={(e) => handleInputChange('schedule_pratikrar_time_end', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_time_end ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pra-Tikrar Cadangan */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
+                            <Select 
+                              value={formData.schedule_pratikrar_day2} 
+                              onValueChange={(v) => handleInputChange('schedule_pratikrar_day2', v)}
+                              disabled={isFormSubmitted}
+                            >
+                              <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
+                                <SelectValue placeholder="Hari" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayOptions.map(d => (
+                                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_pratikrar_time_start2}
+                              onChange={(e) => handleInputChange('schedule_pratikrar_time_start2', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className="h-9 bg-white border-gray-200 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_pratikrar_time_end2}
+                              onChange={(e) => handleInputChange('schedule_pratikrar_time_end2', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className="h-9 bg-white border-gray-200 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {(errors.schedule_pratikrar_day || errors.schedule_pratikrar_time_start || errors.schedule_pratikrar_time_end) && (
+                      <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Pra-Tikrar.</p>
+                    )}
+                  </div>
+                )}
+
+                {/* JADWAL KELAS BERBAYAR */}
+                {getQuestionMeta('class_paid').is_active && formData.class_paid && (
+                  <div className="space-y-4 bg-amber-50/20 p-6 rounded-2xl border border-amber-100/50 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between border-b border-amber-100 pb-2">
+                      <h3 className="text-base font-bold text-amber-900">🗓️ Jadwal Kelas Berbayar</h3>
+                      <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Aktif</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Berbayar Utama */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-amber-100/50">
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
+                            <Select 
+                              value={formData.schedule_paid_day} 
+                              onValueChange={(v) => handleInputChange('schedule_paid_day', v)}
+                              disabled={isFormSubmitted}
+                            >
+                              <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_day ? "border-red-500" : ""}`}>
+                                <SelectValue placeholder="Hari" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayOptions.map(d => (
+                                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_paid_time_start}
+                              onChange={(e) => handleInputChange('schedule_paid_time_start', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_time_start ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_paid_time_end}
+                              onChange={(e) => handleInputChange('schedule_paid_time_end', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_time_end ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Berbayar Cadangan */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
+                            <Select 
+                              value={formData.schedule_paid_day2} 
+                              onValueChange={(v) => handleInputChange('schedule_paid_day2', v)}
+                              disabled={isFormSubmitted}
+                            >
+                              <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
+                                <SelectValue placeholder="Hari" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {dayOptions.map(d => (
+                                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_paid_time_start2}
+                              onChange={(e) => handleInputChange('schedule_paid_time_start2', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className="h-9 bg-white border-gray-200 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
+                            <Input 
+                              type="time" 
+                              value={formData.schedule_paid_time_end2}
+                              onChange={(e) => handleInputChange('schedule_paid_time_end2', e.target.value)}
+                              disabled={isFormSubmitted}
+                              className="h-9 bg-white border-gray-200 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {(errors.schedule_paid_day || errors.schedule_paid_time_start || errors.schedule_paid_time_end) && (
+                      <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Berbayar.</p>
+                    )}
+                  </div>
+                )}
               </div>
-
-              {errors.schedule_conflict && (
-                <div className="p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-sm font-bold flex items-center gap-2 animate-bounce">
-                  <Info className="h-4 w-4 shrink-0 text-red-600" />
-                  <span>{errors.schedule_conflict}</span>
-                </div>
-              )}
-
-              {/* JADWAL KELAS TIKRAR */}
-              {formData.class_tikrar && (
-                <div className="space-y-4 bg-emerald-50/20 p-6 rounded-2xl border border-emerald-100/50 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
-                    <h3 className="text-base font-bold text-emerald-900">🗓️ Jadwal Kelas Tikrar</h3>
-                    <span className="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Aktif</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Tikrar Utama */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-emerald-100/50">
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
-                          <Select 
-                            value={formData.schedule_tikrar_day} 
-                            onValueChange={(v) => handleInputChange('schedule_tikrar_day', v)}
-                            disabled={isFormSubmitted}
-                          >
-                            <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_day ? "border-red-500" : ""}`}>
-                              <SelectValue placeholder="Hari" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dayOptions.map(d => (
-                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_tikrar_time_start}
-                            onChange={(e) => handleInputChange('schedule_tikrar_time_start', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_time_start ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_tikrar_time_end}
-                            onChange={(e) => handleInputChange('schedule_tikrar_time_end', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_tikrar_time_end ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Tikrar Cadangan */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
-                          <Select 
-                            value={formData.schedule_tikrar_day2} 
-                            onValueChange={(v) => handleInputChange('schedule_tikrar_day2', v)}
-                            disabled={isFormSubmitted}
-                          >
-                            <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
-                              <SelectValue placeholder="Hari" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dayOptions.map(d => (
-                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_tikrar_time_start2}
-                            onChange={(e) => handleInputChange('schedule_tikrar_time_start2', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className="h-9 bg-white border-gray-200 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_tikrar_time_end2}
-                            onChange={(e) => handleInputChange('schedule_tikrar_time_end2', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className="h-9 bg-white border-gray-200 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {(errors.schedule_tikrar_day || errors.schedule_tikrar_time_start || errors.schedule_tikrar_time_end) && (
-                    <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Tikrar.</p>
-                  )}
-                </div>
-              )}
-
-              {/* JADWAL KELAS PRA-TIKRAR */}
-              {formData.class_pratikrar && (
-                <div className="space-y-4 bg-blue-50/20 p-6 rounded-2xl border border-blue-100/50 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-blue-100 pb-2">
-                    <h3 className="text-base font-bold text-blue-900">🗓️ Jadwal Kelas Pra-Tikrar</h3>
-                    <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Aktif</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Pra-Tikrar Utama */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-blue-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-blue-100/50">
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
-                          <Select 
-                            value={formData.schedule_pratikrar_day} 
-                            onValueChange={(v) => handleInputChange('schedule_pratikrar_day', v)}
-                            disabled={isFormSubmitted}
-                          >
-                            <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_day ? "border-red-500" : ""}`}>
-                              <SelectValue placeholder="Hari" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dayOptions.map(d => (
-                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_pratikrar_time_start}
-                            onChange={(e) => handleInputChange('schedule_pratikrar_time_start', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_time_start ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_pratikrar_time_end}
-                            onChange={(e) => handleInputChange('schedule_pratikrar_time_end', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_pratikrar_time_end ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Pra-Tikrar Cadangan */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
-                          <Select 
-                            value={formData.schedule_pratikrar_day2} 
-                            onValueChange={(v) => handleInputChange('schedule_pratikrar_day2', v)}
-                            disabled={isFormSubmitted}
-                          >
-                            <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
-                              <SelectValue placeholder="Hari" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dayOptions.map(d => (
-                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_pratikrar_time_start2}
-                            onChange={(e) => handleInputChange('schedule_pratikrar_time_start2', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className="h-9 bg-white border-gray-200 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_pratikrar_time_end2}
-                            onChange={(e) => handleInputChange('schedule_pratikrar_time_end2', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className="h-9 bg-white border-gray-200 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {(errors.schedule_pratikrar_day || errors.schedule_pratikrar_time_start || errors.schedule_pratikrar_time_end) && (
-                    <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Pra-Tikrar.</p>
-                  )}
-                </div>
-              )}
-
-              {/* JADWAL KELAS BERBAYAR */}
-              {formData.class_paid && (
-                <div className="space-y-4 bg-amber-50/20 p-6 rounded-2xl border border-amber-100/50 animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-amber-100 pb-2">
-                    <h3 className="text-base font-bold text-amber-900">🗓️ Jadwal Kelas Berbayar</h3>
-                    <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Aktif</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Berbayar Utama */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Jadwal Pilihan Utama</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-amber-100/50">
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Hari</Label>
-                          <Select 
-                            value={formData.schedule_paid_day} 
-                            onValueChange={(v) => handleInputChange('schedule_paid_day', v)}
-                            disabled={isFormSubmitted}
-                          >
-                            <SelectTrigger className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_day ? "border-red-500" : ""}`}>
-                              <SelectValue placeholder="Hari" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dayOptions.map(d => (
-                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Jam Mulai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_paid_time_start}
-                            onChange={(e) => handleInputChange('schedule_paid_time_start', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_time_start ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-500">Jam Selesai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_paid_time_end}
-                            onChange={(e) => handleInputChange('schedule_paid_time_end', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className={`h-9 bg-white border-gray-200 text-xs ${errors.schedule_paid_time_end ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Berbayar Cadangan */}
-                    <div className="space-y-2">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Jadwal Cadangan (Opsional)</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-3 bg-white rounded-xl border border-gray-100">
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Hari</Label>
-                          <Select 
-                            value={formData.schedule_paid_day2} 
-                            onValueChange={(v) => handleInputChange('schedule_paid_day2', v)}
-                            disabled={isFormSubmitted}
-                          >
-                            <SelectTrigger className="h-9 bg-white border-gray-200 text-xs">
-                              <SelectValue placeholder="Hari" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {dayOptions.map(d => (
-                                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Jam Mulai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_paid_time_start2}
-                            onChange={(e) => handleInputChange('schedule_paid_time_start2', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className="h-9 bg-white border-gray-200 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-[10px] font-bold text-gray-400">Jam Selesai</Label>
-                          <Input 
-                            type="time" 
-                            value={formData.schedule_paid_time_end2}
-                            onChange={(e) => handleInputChange('schedule_paid_time_end2', e.target.value)}
-                            disabled={isFormSubmitted}
-                            className="h-9 bg-white border-gray-200 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {(errors.schedule_paid_day || errors.schedule_paid_time_start || errors.schedule_paid_time_end) && (
-                    <p className="text-xs text-red-500 font-bold mt-1">Harap lengkapi semua field Jadwal Utama kelas Berbayar.</p>
-                  )}
-                </div>
-              )}
-
-            </div>
+            )}
 
             <div className="space-y-6">
               <div className="p-6 bg-green-50/50 rounded-2xl border border-green-100/50">
@@ -1406,40 +1775,46 @@ function MuallimahRegistrationContent() {
                 </h3>
                 
                 <div className="space-y-4">
-                  <p className="text-sm text-green-800 font-medium italic mb-4 bg-green-100/30 p-3 rounded-xl border border-green-100/50">
-                    Silakan baca dan centang setiap poin di bawah ini sebagai bentuk pemahaman dan kesepakatan Ukhti terhadap akad MTI:
-                  </p>
-                  
-                  {COMMITMENT_ITEMS.map((item, index) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white/40 rounded-xl hover:bg-white/80 transition-colors group border border-transparent hover:border-green-200 hover:shadow-sm">
-                      <div className="flex gap-4 items-start flex-1 cursor-pointer w-full" onClick={() => !isFormSubmitted && handleAgreedItemsToggle(item.id)}>
-                        <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold shadow-sm border border-green-200">
-                            {index + 1}
-                          </div>
-                          <span className="text-2xl" aria-hidden="true">{item.icon}</span>
-                        </div>
-                        <div className="flex-1 pt-2 min-w-0">
-                          <Label 
-                            htmlFor={`akad-${item.id}`}
-                            className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer group-hover:text-green-950 block"
-                          >
-                            <span className="font-normal block break-words">{item.label}</span>
-                          </Label>
-                        </div>
-                      </div>
-                      <div className="w-full sm:w-auto flex justify-end">
-                        <input 
-                          type="checkbox"
-                          id={`akad-${item.id}`}
-                          checked={formData.agreed_items?.includes(item.id)}
-                          onChange={() => handleAgreedItemsToggle(item.id)}
-                          disabled={isFormSubmitted}
-                          className="h-6 w-6 rounded border-green-400 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600 shadow-sm"
-                        />
-                      </div>
+                  {getQuestionMeta('commitment_info').is_active && (
+                    <div className="text-sm text-green-800 font-medium mb-4 bg-green-100/30 p-4 rounded-xl border border-green-100/50 whitespace-pre-line">
+                      <p className="font-bold mb-2 flex items-center gap-1.5">{getQuestionMeta('commitment_info').label}</p>
+                      <p className="italic">{getQuestionMeta('commitment_info').description}</p>
                     </div>
-                  ))}
+                  )}
+                  
+                  {commitmentQuestions.map((item, index) => {
+                    const icon = item.options && typeof item.options === 'object' && !Array.isArray(item.options) ? item.options.icon : '📝';
+                    return (
+                      <div key={item.field_key} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white/40 rounded-xl hover:bg-white/80 transition-colors group border border-transparent hover:border-green-200 hover:shadow-sm">
+                        <div className="flex gap-4 items-start flex-1 cursor-pointer w-full" onClick={() => !isFormSubmitted && handleAgreedItemsToggle(item.field_key)}>
+                          <div className="flex flex-col items-center gap-2 shrink-0 pt-1">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold shadow-sm border border-green-200">
+                              {index + 1}
+                            </div>
+                            <span className="text-2xl" aria-hidden="true">{icon}</span>
+                          </div>
+                          <div className="flex-1 pt-2 min-w-0">
+                            <Label 
+                              htmlFor={`akad-${item.field_key}`}
+                              className="text-sm sm:text-base text-green-800 leading-relaxed cursor-pointer group-hover:text-green-950 block"
+                            >
+                              <span className="font-normal block break-words">{item.label}</span>
+                            </Label>
+                          </div>
+                        </div>
+                        <div className="w-full sm:w-auto flex justify-end">
+                          <input 
+                            type="checkbox"
+                            id={`akad-${item.field_key}`}
+                            checked={formData.agreed_items?.includes(item.field_key)}
+                            onChange={() => handleAgreedItemsToggle(item.field_key)}
+                            disabled={isFormSubmitted}
+                            className="h-6 w-6 rounded border-green-400 text-green-600 focus:ring-green-500 cursor-pointer shrink-0 accent-green-600 shadow-sm"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-green-100 flex items-center gap-3">
@@ -1447,7 +1822,7 @@ function MuallimahRegistrationContent() {
                    <p className="text-sm font-bold text-green-900">
                      {formData.understands_commitment 
                        ? 'Bismillah, saya menyetujui seluruh akad di atas.' 
-                       : `Harap centang ${COMMITMENT_ITEMS.length - (formData.agreed_items?.length || 0)} butir akad lagi.`}
+                       : `Harap centang ${commitmentQuestions.length - (formData.agreed_items?.length || 0)} butir akad lagi.`}
                    </p>
                 </div>
                 

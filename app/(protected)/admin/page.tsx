@@ -93,6 +93,8 @@ interface Batch {
   graduation_start_date?: string;
   graduation_end_date?: string;
   holiday_dates?: string[];
+  min_exam_score?: number;
+  min_final_exam_score?: number;
 }
 
 interface Program {
@@ -1100,6 +1102,8 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
     registration_end_date: extractDate(batch?.registration_end_date),
     duration_weeks: batch?.duration_weeks || 0,
     status: batch?.status || 'draft',
+    min_exam_score: batch?.min_exam_score ?? (batch?.name ? (batch.name.match(/Batch\s*(\d+)/i) && parseInt(batch.name.match(/Batch\s*(\d+)/i)![1], 10) >= 3 ? 80 : 70) : 70),
+    min_final_exam_score: batch?.min_final_exam_score ?? (batch?.name ? (batch.name.match(/Batch\s*(\d+)/i) && parseInt(batch.name.match(/Batch\s*(\d+)/i)![1], 10) >= 3 ? 80 : 70) : 70),
 
     // Timeline phase dates
     selection_start_date: extractDate(batch?.selection_start_date),
@@ -1119,6 +1123,24 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
   });
   const [saving, setSaving] = useState(false);
   const [showTimelineConfig, setShowTimelineConfig] = useState(false);
+
+  // Handle name change to automatically suggest defaults for batch 3+
+  const handleNameChange = (name: string) => {
+    const match = name.match(/Batch\s*(\d+)/i);
+    let score = 70;
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= 3) {
+        score = 80;
+      }
+    }
+    setFormData(prev => ({
+      ...prev,
+      name,
+      min_exam_score: prev.min_exam_score === 70 || prev.min_exam_score === 80 ? score : prev.min_exam_score,
+      min_final_exam_score: prev.min_final_exam_score === 70 || prev.min_final_exam_score === 80 ? score : prev.min_final_exam_score,
+    }));
+  };
 
   // Function to calculate end date based on start date and duration
   const calculateEndDate = (startDate: string, weeks: number) => {
@@ -1201,7 +1223,7 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
               type="text"
               required
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => handleNameChange(e.target.value)}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
             />
           </div>
@@ -1285,6 +1307,35 @@ function BatchForm({ batch, onClose, onSuccess }: { batch: Batch | null, onClose
               onChange={(e) => setFormData({ ...formData, registration_end_date: e.target.value })}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Nilai Minimum Ujian Seleksi</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              required
+              value={formData.min_exam_score}
+              onChange={(e) => setFormData({ ...formData, min_exam_score: parseInt(e.target.value) || 0 })}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
+            />
+            <p className="text-xs text-gray-500 mt-1">Nilai minimum untuk kelulusan ujian seleksi masuk (tulis)</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Nilai Minimum Ujian Akhir (Kelulusan)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              required
+              value={formData.min_final_exam_score}
+              onChange={(e) => setFormData({ ...formData, min_final_exam_score: parseInt(e.target.value) || 0 })}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-900 focus:border-green-900"
+            />
+            <p className="text-xs text-gray-500 mt-1">Nilai minimum untuk kelulusan program (final exam)</p>
           </div>
         </div>
 

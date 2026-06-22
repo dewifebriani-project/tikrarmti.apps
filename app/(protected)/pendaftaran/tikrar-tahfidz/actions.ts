@@ -167,3 +167,29 @@ export async function submitTikrarRegistration(formData: any, userProfile: any, 
     }
   }
 }
+
+/**
+ * Get active registration questions (Public/Thalibah)
+ */
+export async function getRegistrationQuestions() {
+  const supabase = createClient()
+  try {
+    const { data, error } = await supabase
+      .from('registration_questions')
+      .select('*')
+      .eq('is_active', true)
+      .order('section', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching active registration questions:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data }
+  } catch (error: any) {
+    console.error('Error in getRegistrationQuestions:', error)
+    return { success: false, error: error?.message || 'Failed to fetch registration questions' }
+  }
+}
+

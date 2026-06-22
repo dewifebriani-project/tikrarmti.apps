@@ -708,3 +708,544 @@ export async function resetUserPassword(userId: string) {
     }
   }
 }
+
+/**
+ * Toggle the active status of a Juz option (Admin only)
+ */
+export async function toggleJuzOptionActive(code: string, isActive: boolean) {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data, error } = await supabaseAdmin
+      .from('juz_options')
+      .update({
+        is_active: isActive,
+        updated_at: new Date().toISOString()
+      })
+      .eq('code', code)
+      .select()
+      .single()
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'toggleJuzOptionActive',
+        errorType: 'database',
+        context: { code, isActive },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    revalidatePath('/admin/batch-program')
+    return {
+      success: true,
+      data
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'toggleJuzOptionActive',
+      errorType: 'runtime',
+      context: { code, isActive },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to toggle juz active status'
+    }
+  }
+}
+
+/**
+ * Create a new Juz option (Admin only)
+ */
+export async function createJuzOption(data: {
+  code: string
+  name: string
+  juz_number: number
+  part: 'A' | 'B'
+  start_page: number
+  end_page: number
+  is_active: boolean
+  sort_order: number
+}) {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    // Validate code pattern format
+    if (!/^[0-9]+[AB]$/.test(data.code)) {
+      return {
+        success: false,
+        error: 'Format kode salah. Harus berupa angka diikuti A atau B (contoh: 27A atau 27B)'
+      }
+    }
+
+    const { data: newJuz, error } = await supabaseAdmin
+      .from('juz_options')
+      .insert([{
+        ...data,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single()
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'createJuzOption',
+        errorType: 'database',
+        context: { data },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    revalidatePath('/admin/batch-program')
+    return {
+      success: true,
+      data: newJuz
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'createJuzOption',
+      errorType: 'runtime',
+      context: { data },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create juz option'
+    }
+  }
+}
+
+/**
+ * Update an existing Juz option (Admin only)
+ */
+export async function updateJuzOption(id: string, data: {
+  code: string
+  name: string
+  juz_number: number
+  part: 'A' | 'B'
+  start_page: number
+  end_page: number
+  is_active: boolean
+  sort_order: number
+}) {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    // Validate code pattern format
+    if (!/^[0-9]+[AB]$/.test(data.code)) {
+      return {
+        success: false,
+        error: 'Format kode salah. Harus berupa angka diikuti A atau B (contoh: 27A atau 27B)'
+      }
+    }
+
+    const { data: updatedJuz, error } = await supabaseAdmin
+      .from('juz_options')
+      .update({
+        ...data,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'updateJuzOption',
+        errorType: 'database',
+        context: { id, data },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    revalidatePath('/admin/batch-program')
+    return {
+      success: true,
+      data: updatedJuz
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'updateJuzOption',
+      errorType: 'runtime',
+      context: { id, data },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update juz option'
+    }
+  }
+}
+
+/**
+ * Get all Juz options including inactive ones (Admin only)
+ */
+export async function getJuzOptionsAdmin() {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data, error } = await supabaseAdmin
+      .from('juz_options')
+      .select('*')
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'getJuzOptionsAdmin',
+        errorType: 'database',
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      data
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'getJuzOptionsAdmin',
+      errorType: 'runtime',
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch juz options for admin'
+    }
+  }
+}
+
+/**
+ * Get all registration questions (Admin only)
+ */
+export async function getRegistrationQuestionsAdmin() {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data, error } = await supabaseAdmin
+      .from('registration_questions')
+      .select('*')
+      .order('section', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'getRegistrationQuestionsAdmin',
+        errorType: 'database',
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      data
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'getRegistrationQuestionsAdmin',
+      errorType: 'runtime',
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch registration questions'
+    }
+  }
+}
+
+/**
+ * Update a registration question (Admin only)
+ */
+export async function updateRegistrationQuestion(
+  id: string,
+  data: {
+    label: string
+    description?: string | null
+    warning_text?: string | null
+    is_active: boolean
+    is_required: boolean
+    sort_order: number
+    options?: any
+    input_type?: string
+  }
+) {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data: updatedQuestion, error } = await supabaseAdmin
+      .from('registration_questions')
+      .update({
+        ...data,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'updateRegistrationQuestion',
+        errorType: 'database',
+        context: { id, data },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    revalidatePath('/admin/batch-program')
+    revalidatePath('/pendaftaran/tikrar-tahfidz')
+    
+    return {
+      success: true,
+      data: updatedQuestion
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'updateRegistrationQuestion',
+      errorType: 'runtime',
+      context: { id, data },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update registration question'
+    }
+  }
+}
+
+/**
+ * Get all reregistration questions (Admin only)
+ */
+export async function getReregistrationQuestionsAdmin() {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data, error } = await supabaseAdmin
+      .from('reregistration_questions')
+      .select('*')
+      .order('section', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'getReregistrationQuestionsAdmin',
+        errorType: 'database',
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      data
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'getReregistrationQuestionsAdmin',
+      errorType: 'runtime',
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch reregistration questions'
+    }
+  }
+}
+
+/**
+ * Update a reregistration question (Admin only)
+ */
+export async function updateReregistrationQuestion(
+  id: string,
+  data: {
+    label: string
+    description?: string | null
+    warning_text?: string | null
+    is_active: boolean
+    is_required: boolean
+    sort_order: number
+    options?: any
+    input_type?: string
+  }
+) {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data: updatedQuestion, error } = await supabaseAdmin
+      .from('reregistration_questions')
+      .update({
+        ...data,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'updateReregistrationQuestion',
+        errorType: 'database',
+        context: { id, data },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    revalidatePath('/admin/batch-program')
+    revalidatePath('/daftar-ulang')
+    
+    return {
+      success: true,
+      data: updatedQuestion
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'updateReregistrationQuestion',
+      errorType: 'runtime',
+      context: { id, data },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update reregistration question'
+    }
+  }
+}
+
+/**
+ * Get all Muallimah registration questions (Admin only)
+ */
+export async function getMuallimahRegistrationQuestionsAdmin() {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data, error } = await supabaseAdmin
+      .from('muallimah_registration_questions')
+      .select('*')
+      .order('section', { ascending: true })
+      .order('sort_order', { ascending: true })
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'getMuallimahRegistrationQuestionsAdmin',
+        errorType: 'database',
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      data
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'getMuallimahRegistrationQuestionsAdmin',
+      errorType: 'runtime',
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch Muallimah registration questions'
+    }
+  }
+}
+
+/**
+ * Update a Muallimah registration question (Admin only)
+ */
+export async function updateMuallimahRegistrationQuestion(
+  id: string,
+  data: {
+    label: string
+    description?: string | null
+    warning_text?: string | null
+    is_active: boolean
+    is_required: boolean
+    sort_order: number
+    options?: any
+    input_type?: string
+  }
+) {
+  try {
+    const { user, supabaseAdmin } = await verifyAdmin()
+
+    const { data: updatedQuestion, error } = await supabaseAdmin
+      .from('muallimah_registration_questions')
+      .update({
+        ...data,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      await logError(error, {
+        userId: user.id,
+        userEmail: user.email,
+        function: 'updateMuallimahRegistrationQuestion',
+        errorType: 'database',
+        context: { id, data },
+      } as LogErrorContext)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    revalidatePath('/admin/batch-program')
+    revalidatePath('/pendaftaran/muallimah')
+    
+    return {
+      success: true,
+      data: updatedQuestion
+    }
+  } catch (error: any) {
+    await logError(error, {
+      function: 'updateMuallimahRegistrationQuestion',
+      errorType: 'runtime',
+      context: { id, data },
+    } as LogErrorContext)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update Muallimah registration question'
+    }
+  }
+}
+
+
+
+

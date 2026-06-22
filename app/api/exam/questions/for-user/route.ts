@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Get batch to check selection dates and status
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('batches')
-      .select('id, name, status, selection_start_date, selection_end_date')
+      .select('id, name, status, selection_start_date, selection_end_date, min_final_exam_score')
       .eq('id', registration.batch_id)
       .single();
 
@@ -284,11 +284,26 @@ export async function GET(request: NextRequest) {
       }));
     }
 
-    // Final exam defaults: 120 min, passing 70, 1 attempt
+    // Final exam defaults: 120 min, passing threshold, 1 attempt
+    const getFinalPassingScore = (b?: { name?: string; min_final_exam_score?: number | null } | null): number => {
+      if (!b) return 70;
+      if (b.min_final_exam_score !== undefined && b.min_final_exam_score !== null) return b.min_final_exam_score;
+      if (b.name) {
+        const match = b.name.match(/Batch\s*(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num >= 3) return 80;
+        }
+      }
+      return 70;
+    };
+
+    const finalPassingScore = getFinalPassingScore(batch);
+
     const finalExamConfig = isFinalExam ? {
       durationMinutes: 120,
       maxAttempts: 1,
-      passingScore: 70,
+      passingScore: finalPassingScore,
       autoSubmitOnTimeout: true,
       allowReview: false,
       showResults: true

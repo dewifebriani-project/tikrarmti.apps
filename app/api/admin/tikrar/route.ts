@@ -4,6 +4,19 @@ import { ApiResponses } from '@/lib/api-responses';
 
 const supabaseAdmin = createSupabaseAdmin();
 
+const getPassingScore = (batch?: { name?: string; min_exam_score?: number | null } | null): number => {
+  if (!batch) return 70;
+  if (batch.min_exam_score !== undefined && batch.min_exam_score !== null) return batch.min_exam_score;
+  if (batch.name) {
+    const match = batch.name.match(/Batch\s*(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num >= 3) return 80;
+    }
+  }
+  return 70;
+};
+
 /**
  * GET /api/admin/tikrar
  * 
@@ -28,7 +41,7 @@ export async function GET(request: Request) {
     // 3. Fetch base registrations
     let query = supabaseAdmin
       .from('pendaftaran_tikrar_tahfidz')
-      .select('*', { count: skipCount ? undefined : 'exact' })
+      .select('*, batch:batches(name, min_exam_score)', { count: skipCount ? undefined : 'exact' })
       .order('submission_date', { ascending: false });
 
     if (!skipCount) {
@@ -78,13 +91,14 @@ export async function GET(request: Request) {
     for (const tikrar of enrichedData) {
       const oralScore = tikrar.oral_total_score;
       const writtenScore = tikrar.written_quiz_score;
+      const threshold = getPassingScore((tikrar as any).batch);
 
       const isJuz30 = tikrar.chosen_juz?.toLowerCase().includes('30');
 
       const hasPassingScore = isJuz30
         ? (oralScore !== null && oralScore !== undefined && oralScore >= 70)
         : (oralScore !== null && oralScore !== undefined && oralScore >= 70 &&
-           writtenScore !== null && writtenScore !== undefined && writtenScore >= 70);
+           writtenScore !== null && writtenScore !== undefined && writtenScore >= threshold);
 
       if (hasPassingScore && tikrar.selection_status === 'pending') {
         updates.push(tikrar.id);

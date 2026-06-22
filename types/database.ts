@@ -71,6 +71,8 @@ export interface Batch {
   registered_count?: number;
   duration_weeks?: number;
   muallimah_akad_text?: string;
+  min_exam_score?: number;
+  min_final_exam_score?: number;
 
   // Timeline phase dates for perjalanan-saya
   selection_start_date?: string;
@@ -296,6 +298,8 @@ export interface BatchForm {
   end_date: string;
   registration_start_date?: string;
   registration_end_date?: string;
+  min_exam_score?: number;
+  min_final_exam_score?: number;
 }
 
 export interface ProgramForm {

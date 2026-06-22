@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText, X } from 'lucide-react'
-import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission } from './actions'
+import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
 type Step = 'confirm' | 'halaqah' | 'partner' | 'review' | 'akad' | 'success'
@@ -67,6 +67,7 @@ export default function DaftarUlangPage() {
   const [halaqahData, setHalaqahData] = useState<HalaqahData[]>([])
   const [existingSubmission, setExistingSubmission] = useState<any>(null)
   const [draftSaved, setDraftSaved] = useState(false)
+  const [reregQuestions, setReregQuestions] = useState<any[]>([])
 
   // Form data
   const [formData, setFormData] = useState<{
@@ -125,6 +126,12 @@ export default function DaftarUlangPage() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
+        // Fetch questions
+        const questionsResult = await getReregistrationQuestions()
+        if (questionsResult.success && questionsResult.data) {
+          setReregQuestions(questionsResult.data)
+        }
+
         // Fetch registration data
         const regResponse = await fetch('/api/pendaftaran/my')
         if (!regResponse.ok) throw new Error('Failed to fetch registration')
@@ -143,26 +150,25 @@ export default function DaftarUlangPage() {
           return
         }
 
-        setRegistrationData(selectedRegistration)
-
-        // Calculate final juz based on exam score
-        const examScore = selectedRegistration.exam_score || null
-        const chosenJuz = (selectedRegistration.chosen_juz || '').toUpperCase()
-        let finalJuz = chosenJuz
-        let juzAdjusted = false
-        let juzAdjustmentReason = ''
-
-        if (examScore !== null && examScore < 70) {
-          if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
-            finalJuz = '29A'
-            juzAdjusted = true
-            juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
-          } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
-            finalJuz = '30A'
-            juzAdjusted = true
-            juzAdjustmentReason = `Nilai pilihan ganda ${examScore} < 70, juz disesuaikan dari ${chosenJuz} ke ${finalJuz}`
+        // Verify if selection result date has been reached
+        if (selectedRegistration.batch?.selection_result_date) {
+          const now = new Date()
+          const announcementDate = new Date(selectedRegistration.batch.selection_result_date)
+          
+          // Set to start of day for comparison
+          announcementDate.setHours(0, 0, 0, 0)
+          now.setHours(0, 0, 0, 0)
+          
+          if (now < announcementDate) {
+            toast.error('Pengumuman seleksi belum dibuka. Daftar ulang akan tersedia setelah hasil seleksi diumumkan.')
+            router.push('/perjalanan-saya')
+            return
           }
         }
+
+        setRegistrationData(selectedRegistration)
+
+        const chosenJuz = (selectedRegistration.chosen_juz || '').toUpperCase()
 
         setFormData(prev => ({
           ...prev,
@@ -172,10 +178,10 @@ export default function DaftarUlangPage() {
           confirmed_backup_time_slot: selectedRegistration.backup_time_slot || prev.confirmed_backup_time_slot,
           confirmed_wa_phone: selectedRegistration.wa_phone || prev.confirmed_wa_phone,
           confirmed_address: selectedRegistration.address || prev.confirmed_address,
-          exam_score: examScore,
-          final_juz: finalJuz,
-          juz_adjusted: juzAdjusted,
-          juz_adjustment_reason: juzAdjustmentReason,
+          exam_score: selectedRegistration.exam_score || null,
+          final_juz: chosenJuz,
+          juz_adjusted: false,
+          juz_adjustment_reason: '',
         }))
 
         // Fetch halaqah data
@@ -640,6 +646,7 @@ export default function DaftarUlangPage() {
               <ConfirmDataStep
                 formData={formData}
                 onChange={setFormData}
+                reregQuestions={reregQuestions}
               />
             )}
 
@@ -648,6 +655,7 @@ export default function DaftarUlangPage() {
                 halaqahData={halaqahData}
                 formData={formData}
                 onChange={setFormData}
+                reregQuestions={reregQuestions}
               />
             )}
 
@@ -656,6 +664,7 @@ export default function DaftarUlangPage() {
                 formData={formData}
                 onChange={setFormData}
                 registrationId={registrationData?.id}
+                reregQuestions={reregQuestions}
               />
             )}
 
@@ -674,6 +683,7 @@ export default function DaftarUlangPage() {
                 onRemove={handleRemoveAkadFile}
                 isLoading={isLoading}
                 existingSubmission={existingSubmission}
+                reregQuestions={reregQuestions}
               />
             )}
 
@@ -740,11 +750,20 @@ const getJuzLabel = (juzValue: string) => {
 
 function ConfirmDataStep({
   formData,
-  onChange
+  onChange,
+  reregQuestions
 }: {
   formData: any
   onChange: (data: any) => void
+  reregQuestions: any[]
 }) {
+  const nameQuestion = reregQuestions.find(q => q.field_key === 'confirmed_full_name')
+  const waQuestion = reregQuestions.find(q => q.field_key === 'confirmed_wa_phone')
+  const addressQuestion = reregQuestions.find(q => q.field_key === 'confirmed_address')
+
+  const isWaActive = waQuestion ? waQuestion.is_active : true
+  const isAddressActive = addressQuestion ? addressQuestion.is_active : true
+
   return (
     <div className="space-y-6">
       <div>
@@ -754,13 +773,18 @@ function ConfirmDataStep({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {nameQuestion?.label || 'Nama Lengkap'}
+          </label>
           <input
             type="text"
             value={formData.confirmed_full_name}
             onChange={e => onChange({ ...formData, confirmed_full_name: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
           />
+          {nameQuestion?.description && (
+            <p className="text-xs text-gray-500 mt-1">{nameQuestion.description}</p>
+          )}
         </div>
 
         <div>
@@ -820,25 +844,39 @@ function ConfirmDataStep({
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
-          <input
-            type="text"
-            value={formData.confirmed_wa_phone}
-            onChange={e => onChange({ ...formData, confirmed_wa_phone: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-          />
-        </div>
+        {isWaActive && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {waQuestion?.label || 'WhatsApp'}
+            </label>
+            <input
+              type="text"
+              value={formData.confirmed_wa_phone}
+              onChange={e => onChange({ ...formData, confirmed_wa_phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+            {waQuestion?.description && (
+              <p className="text-xs text-gray-500 mt-1">{waQuestion.description}</p>
+            )}
+          </div>
+        )}
 
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
-          <textarea
-            value={formData.confirmed_address}
-            onChange={e => onChange({ ...formData, confirmed_address: e.target.value })}
-            rows={2}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-          />
-        </div>
+        {isAddressActive && (
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {addressQuestion?.label || 'Alamat'}
+            </label>
+            <textarea
+              value={formData.confirmed_address}
+              onChange={e => onChange({ ...formData, confirmed_address: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+            {addressQuestion?.description && (
+              <p className="text-xs text-gray-500 mt-1">{addressQuestion.description}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -847,11 +885,13 @@ function ConfirmDataStep({
 function HalaqahSelectionStep({
   halaqahData,
   formData,
-  onChange
+  onChange,
+  reregQuestions
 }: {
   halaqahData: HalaqahData[]
   formData: any
   onChange: (data: any) => void
+  reregQuestions: any[]
 }) {
   const DAY_NAMES = ['', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
 
@@ -973,12 +1013,16 @@ function HalaqahSelectionStep({
     return priorityA - priorityB
   })
 
+  const scheduleQuestion = reregQuestions.find(q => q.field_key === 'schedule_instructions')
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">Pilih Jadwal Halaqah</h2>
+        <h2 className="text-2xl font-bold mb-2">
+          {scheduleQuestion?.label || "Pilih Jadwal Halaqah"}
+        </h2>
         <p className="text-emerald-50">
-          Pilih jadwal untuk kelas ujian dan/atau kelas tashih. Waktu yang ditampilkan dalam WIB.
+          {scheduleQuestion?.description || "Pilih jadwal untuk kelas ujian dan/atau kelas tashih. Waktu yang ditampilkan dalam WIB."}
         </p>
       </div>
 
@@ -1308,11 +1352,13 @@ function HalaqahSelectionStep({
 function PartnerSelectionStep({
   formData,
   onChange,
-  registrationId
+  registrationId,
+  reregQuestions
 }: {
   formData: any
   onChange: (data: any) => void
   registrationId?: string
+  reregQuestions: any[]
 }) {
   const [partners, setPartners] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -1362,255 +1408,284 @@ function PartnerSelectionStep({
     onChange(updatedData)
   }
 
+  const partnerTypeQuestion = reregQuestions.find(q => q.field_key === 'partner_type')
+  const selfMatchQuestion = reregQuestions.find(q => q.field_key === 'partner_self_match')
+  const systemMatchQuestion = reregQuestions.find(q => q.field_key === 'partner_system_match')
+  const familyQuestion = reregQuestions.find(q => q.field_key === 'partner_family')
+  const tarteelQuestion = reregQuestions.find(q => q.field_key === 'partner_tarteel')
+
+  const isSelfActive = selfMatchQuestion ? selfMatchQuestion.is_active : true
+  const isSystemActive = systemMatchQuestion ? systemMatchQuestion.is_active : true
+  const isFamilyActive = familyQuestion ? familyQuestion.is_active : true
+  const isTarteelActive = tarteelQuestion ? tarteelQuestion.is_active : true
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Pilih Pasangan Belajar</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          {partnerTypeQuestion?.label || "Pilih Pasangan Belajar"}
+        </h2>
         <p className="text-gray-600 mb-6">
-          Pilih pasangan belajar untuk program Tikrar Tahfidz
+          {partnerTypeQuestion?.description || "Pilih pasangan belajar untuk program Tikrar Tahfidz"}
         </p>
       </div>
 
       <div className="space-y-4">
         {/* Self Match */}
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all ${
-            formData.partner_type === 'self_match'
-              ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-          onClick={() => onChange({ ...formData, partner_type: 'self_match' })}
-        >
-          <div className="flex items-start space-x-3">
-            <Users className="w-6 h-6 text-green-600 mt-1" />
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">Pilih Sendiri</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Pilih pasangan belajar sendiri. Pasangan harus saling memilih untuk membentuk kelompok. Bisa lintas juz.
-              </p>
-            </div>
-            <input
-              type="radio"
-              checked={formData.partner_type === 'self_match'}
-              readOnly
-              className="w-5 h-5 text-green-600"
-            />
-          </div>
-
-          {formData.partner_type === 'self_match' && (
-            <div className="mt-4" onClick={(e) => e.stopPropagation()}>
-              <p className="text-sm text-gray-600 mb-3">Cari nama pasangan belajar:</p>
-
-              {/* Search Input */}
-              <div className="mb-3">
-                <input
-                  type="text"
-                  placeholder="Ketik nama thalibah..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  onClick={(e) => e.stopPropagation()}
-                />
+        {isSelfActive && (
+          <div
+            className={`border rounded-lg p-4 cursor-pointer transition-all ${
+              formData.partner_type === 'self_match'
+                ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => onChange({ ...formData, partner_type: 'self_match' })}
+          >
+            <div className="flex items-start space-x-3">
+              <Users className="w-6 h-6 text-green-600 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900">
+                  {selfMatchQuestion?.label || 'Pilih Sendiri'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selfMatchQuestion?.description || 'Pilih pasangan belajar sendiri. Pasangan harus saling memilih untuk membentuk kelompok. Bisa lintas juz.'}
+                </p>
               </div>
-
-              {isLoading ? (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                  <p className="mt-2 text-sm text-gray-600">Memuat daftar thalibah...</p>
-                </div>
-              ) : filteredPartners.length === 0 ? (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    {searchQuery ? 'Tidak ada thalibah dengan nama tersebut' : 'Tidak ada thalibah lain yang tersedia'}
-                  </p>
-                </div>
-              ) : (
-                <div className="border border-gray-200 rounded-lg max-h-80 overflow-y-auto">
-                  {filteredPartners.map((partner) => (
-                    <div
-                      key={partner.user_id}
-                      onClick={(e) => handlePartnerSelect(partner, e)}
-                      className={`
-                        p-3 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors
-                        ${formData.partner_user_id === partner.user_id
-                          ? 'bg-green-50 hover:bg-green-100'
-                          : 'bg-white hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Juz: {partner.registrations?.[0]?.chosen_juz || '-'} • {partner.users?.zona_waktu || '-'}
-                          </p>
-                        </div>
-                        {formData.partner_user_id === partner.user_id && (
-                          <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {formData.partner_user_id && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onChange({
-                      ...formDataRef.current,
-                      partner_user_id: ''
-                    })
-                    setSearchQuery('')
-                  }}
-                  className="mt-3 text-sm text-red-600 hover:text-red-700 underline"
-                >
-                  Ganti pilihan
-                </button>
-              )}
+              <input
+                type="radio"
+                checked={formData.partner_type === 'self_match'}
+                readOnly
+                className="w-5 h-5 text-green-600"
+              />
             </div>
-          )}
-        </div>
+
+            {formData.partner_type === 'self_match' && (
+              <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+                <p className="text-sm text-gray-600 mb-3">Cari nama pasangan belajar:</p>
+
+                {/* Search Input */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    placeholder="Ketik nama thalibah..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    <p className="mt-2 text-sm text-gray-600">Memuat daftar thalibah...</p>
+                  </div>
+                ) : filteredPartners.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      {searchQuery ? 'Tidak ada thalibah dengan nama tersebut' : 'Tidak ada thalibah lain yang tersedia'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg max-h-80 overflow-y-auto">
+                    {filteredPartners.map((partner) => (
+                      <div
+                        key={partner.user_id}
+                        onClick={(e) => handlePartnerSelect(partner, e)}
+                        className={`
+                          p-3 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors
+                          ${formData.partner_user_id === partner.user_id
+                            ? 'bg-green-50 hover:bg-green-100'
+                            : 'bg-white hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Juz: {partner.registrations?.[0]?.chosen_juz || '-'} • {partner.users?.zona_waktu || '-'}
+                            </p>
+                          </div>
+                          {formData.partner_user_id === partner.user_id && (
+                            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {formData.partner_user_id && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onChange({
+                        ...formDataRef.current,
+                        partner_user_id: ''
+                      })
+                      setSearchQuery('')
+                    }}
+                    className="mt-3 text-sm text-red-600 hover:text-red-700 underline"
+                  >
+                    Ganti pilihan
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* System Match */}
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all ${
-            formData.partner_type === 'system_match'
-              ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-          onClick={() => onChange({ ...formData, partner_type: 'system_match' })}
-        >
-          <div className="flex items-start space-x-3">
-            <Clock className="w-6 h-6 text-blue-600 mt-1" />
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">Dipasangkan oleh Sistem</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Sistem akan memasangkan Anda berdasarkan jadwal utama, zona waktu, dan juz.
-              </p>
+        {isSystemActive && (
+          <div
+            className={`border rounded-lg p-4 cursor-pointer transition-all ${
+              formData.partner_type === 'system_match'
+                ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => onChange({ ...formData, partner_type: 'system_match' })}
+          >
+            <div className="flex items-start space-x-3">
+              <Clock className="w-6 h-6 text-blue-600 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900">
+                  {systemMatchQuestion?.label || 'Dipasangkan oleh Sistem'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {systemMatchQuestion?.description || 'Sistem akan memasangkan Anda berdasarkan jadwal utama, zona waktu, dan juz.'}
+                </p>
+              </div>
+              <input
+                type="radio"
+                checked={formData.partner_type === 'system_match'}
+                readOnly
+                className="w-5 h-5 text-green-600"
+              />
             </div>
-            <input
-              type="radio"
-              checked={formData.partner_type === 'system_match'}
-              readOnly
-              className="w-5 h-5 text-green-600"
-            />
           </div>
-        </div>
+        )}
 
         {/* Family */}
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all ${
-            formData.partner_type === 'family'
-              ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-          onClick={() => onChange({ ...formData, partner_type: 'family' })}
-        >
-          <div className="flex items-start space-x-3">
-            <Users className="w-6 h-6 text-purple-600 mt-1" />
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">Keluarga (Mahram)</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Setoran kepada keluarga (Ayah, Ibu, anak, atau saudara mahram).
-              </p>
+        {isFamilyActive && (
+          <div
+            className={`border rounded-lg p-4 cursor-pointer transition-all ${
+              formData.partner_type === 'family'
+                ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => onChange({ ...formData, partner_type: 'family' })}
+          >
+            <div className="flex items-start space-x-3">
+              <Users className="w-6 h-6 text-purple-600 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900">
+                  {familyQuestion?.label || 'Keluarga (Mahram)'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {familyQuestion?.description || 'Setoran kepada keluarga (Ayah, Ibu, anak, atau saudara mahram).'}
+                </p>
+              </div>
+              <input
+                type="radio"
+                checked={formData.partner_type === 'family'}
+                readOnly
+                className="w-5 h-5 text-green-600"
+              />
             </div>
-            <input
-              type="radio"
-              checked={formData.partner_type === 'family'}
-              readOnly
-              className="w-5 h-5 text-green-600"
-            />
-          </div>
 
-          {formData.partner_type === 'family' && (
-            <div className="mt-4 space-y-3">
-              <input
-                type="text"
-                placeholder="Nama lengkap"
-                value={formData.partner_name}
-                onChange={e => onChange({ ...formData, partner_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-              <select
-                value={formData.partner_relationship}
-                onChange={e => onChange({ ...formData, partner_relationship: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">Pilih hubungan</option>
-                <option value="ayah">Ayah</option>
-                <option value="ibu">Ibu</option>
-                <option value="suami">Suami</option>
-                <option value="anak">Anak</option>
-                <option value="saudara">Saudara (Mahram)</option>
-                <option value="lainnya">Lainnya</option>
-              </select>
-              <input
-                type="text"
-                placeholder="Nomor WhatsApp keluarga"
-                value={formData.partner_wa_phone}
-                onChange={e => onChange({ ...formData, partner_wa_phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-              <textarea
-                placeholder="Catatan tambahan (opsional)"
-                value={formData.partner_notes}
-                onChange={e => onChange({ ...formData, partner_notes: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-          )}
-        </div>
+            {formData.partner_type === 'family' && (
+              <div className="mt-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Nama lengkap"
+                  value={formData.partner_name}
+                  onChange={e => onChange({ ...formData, partner_name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+                <select
+                  value={formData.partner_relationship}
+                  onChange={e => onChange({ ...formData, partner_relationship: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Pilih hubungan</option>
+                  <option value="ayah">Ayah</option>
+                  <option value="ibu">Ibu</option>
+                  <option value="suami">Suami</option>
+                  <option value="anak">Anak</option>
+                  <option value="saudara">Saudara (Mahram)</option>
+                  <option value="lainnya">Lainnya</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Nomor WhatsApp keluarga"
+                  value={formData.partner_wa_phone}
+                  onChange={e => onChange({ ...formData, partner_wa_phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+                <textarea
+                  placeholder="Catatan tambahan (opsional)"
+                  value={formData.partner_notes}
+                  onChange={e => onChange({ ...formData, partner_notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tarteel */}
-        <div
-          className={`border rounded-lg p-4 cursor-pointer transition-all ${
-            formData.partner_type === 'tarteel'
-              ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-          onClick={() => onChange({ ...formData, partner_type: 'tarteel' })}
-        >
-          <div className="flex items-start space-x-3">
-            <Upload className="w-6 h-6 text-orange-600 mt-1" />
-            <div className="flex-1">
-              <h3 className="font-medium text-gray-900">Aplikasi Tarteel</h3>
-              <p className="text-sm text-gray-600 mt-1">
-                Setoran mandiri menggunakan aplikasi Tarteel dengan lampiran screenshot penggunaan.
-              </p>
-            </div>
-            <input
-              type="radio"
-              checked={formData.partner_type === 'tarteel'}
-              readOnly
-              className="w-5 h-5 text-green-600"
-            />
-          </div>
-
-          {formData.partner_type === 'tarteel' && (
-            <div className="mt-4 space-y-3">
+        {isTarteelActive && (
+          <div
+            className={`border rounded-lg p-4 cursor-pointer transition-all ${
+              formData.partner_type === 'tarteel'
+                ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={() => onChange({ ...formData, partner_type: 'tarteel' })}
+          >
+            <div className="flex items-start space-x-3">
+              <Upload className="w-6 h-6 text-orange-600 mt-1" />
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-900">
+                  {tarteelQuestion?.label || 'Aplikasi Tarteel'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {tarteelQuestion?.description || 'Setoran mandiri menggunakan aplikasi Tarteel dengan lampiran screenshot penggunaan.'}
+                </p>
+              </div>
               <input
-                type="text"
-                placeholder="Username atau nama di aplikasi Tarteel"
-                value={formData.partner_name}
-                onChange={e => onChange({ ...formData, partner_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-              <textarea
-                placeholder="Catatan tambahan (opsional)"
-                value={formData.partner_notes}
-                onChange={e => onChange({ ...formData, partner_notes: e.target.value })}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                type="radio"
+                checked={formData.partner_type === 'tarteel'}
+                readOnly
+                className="w-5 h-5 text-green-600"
               />
             </div>
-          )}
-        </div>
+
+            {formData.partner_type === 'tarteel' && (
+              <div className="mt-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Username atau nama di aplikasi Tarteel"
+                  value={formData.partner_name}
+                  onChange={e => onChange({ ...formData, partner_name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+                <textarea
+                  placeholder="Catatan tambahan (opsional)"
+                  value={formData.partner_notes}
+                  onChange={e => onChange({ ...formData, partner_notes: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1799,13 +1874,15 @@ function AkadUploadStep({
   onUpload,
   onRemove,
   isLoading,
-  existingSubmission
+  existingSubmission,
+  reregQuestions
 }: {
   formData: any
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemove: (index: number) => void
   isLoading: boolean
   existingSubmission?: any
+  reregQuestions: any[]
 }) {
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
   const [isLoadingAkad, setIsLoadingAkad] = useState(true)
@@ -1836,12 +1913,28 @@ function AkadUploadStep({
     fetchAkadIntisari()
   }, [])
 
+  const akadQuestion = reregQuestions.find(q => q.field_key === 'akad_upload')
+  const commitmentInfo = reregQuestions.find(q => q.field_key === 'commitment_info')
+
   return (
     <div className="space-y-6">
+      {commitmentInfo?.is_active && (
+        <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-6 whitespace-pre-line">
+          <h3 className="text-base font-bold text-emerald-900 mb-2 flex items-center gap-2">
+            {commitmentInfo.label}
+          </h3>
+          <p className="text-sm text-emerald-800 leading-relaxed font-medium">
+            {commitmentInfo.description}
+          </p>
+        </div>
+      )}
+
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Akad</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          {akadQuestion?.label || "Upload Akad"}
+        </h2>
         <p className="text-gray-600 mb-6">
-          Silakan tulis tangan intisari akad di bawah ini, tandatangani, lalu upload hasil scan/fotonya.
+          {akadQuestion?.description || "Silakan tulis tangan intisari akad di bawah ini, tandatangani, lalu upload hasil scan/fotonya."}
         </p>
       </div>
 
@@ -1871,12 +1964,16 @@ function AkadUploadStep({
               <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800">
                 <p className="font-semibold mb-2">Instruksi:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Tulis seluruh teks akad di atas dengan tangan pada kertas</li>
-                  <li>Tandatangani di bagian bawah (tulis nama lengkap dan tanggal)</li>
-                  <li>Scan atau foto hasil tulisan tangan Anda</li>
-                  <li>Upload file hasil scan/foto di bawah ini</li>
-                </ol>
+                {akadQuestion?.warning_text ? (
+                  <p className="whitespace-pre-wrap leading-relaxed">{akadQuestion.warning_text}</p>
+                ) : (
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Tulis seluruh teks akad di atas dengan tangan pada kertas</li>
+                    <li>Tandatangani di bagian bawah (tulis nama lengkap dan tanggal)</li>
+                    <li>Scan atau foto hasil tulisan tangan Anda</li>
+                    <li>Upload file hasil scan/foto di bawah ini</li>
+                  </ol>
+                )}
               </div>
             </div>
           </div>

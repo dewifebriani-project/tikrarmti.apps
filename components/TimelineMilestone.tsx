@@ -307,7 +307,7 @@ function renderItemDescription(
             </Card>
           </Link>
 
-          {!isJuz30 && (
+          {!isJuz30 && !registrationStatus?.isAlumnus && (
             <Link href="/seleksi/pilihan-ganda">
               <Card className={cn(
                 "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
@@ -318,7 +318,7 @@ function renderItemDescription(
                     <CheckCircle className={cn("w-5 h-5", registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
                     <div>
                       <h4 className="text-sm font-bold">Ujian Tertulis</h4>
-                      <p className="text-xs text-gray-500">{registrationStatus?.writtenQuizSubmittedAt ? "Nilai: " + (registrationStatus.examScore ?? '-') : "Belum Kerjakan"}</p>
+                      <p className="text-xs text-gray-500">{registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum Kerjakan"}</p>
                     </div>
                   </div>
                 </CardContent>

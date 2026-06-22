@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Fetch batch data to check if re-enrollment is open
     const { data: batch } = await supabase
       .from('batches')
-      .select('id, re_enrollment_date, status')
+      .select('id, name, re_enrollment_date, selection_result_date, status, min_exam_score')
       .eq('id', registration.batch_id)
       .single()
 
@@ -49,6 +49,25 @@ export async function GET(request: NextRequest) {
         { error: 'Batch not found' },
         { status: 404 }
       )
+    }
+
+    // Check if selection results have been announced
+    if (batch.selection_result_date) {
+      const now = new Date()
+      const announcementDate = new Date(batch.selection_result_date)
+
+      announcementDate.setHours(0, 0, 0, 0)
+      now.setHours(0, 0, 0, 0)
+
+      if (now < announcementDate) {
+        return NextResponse.json(
+          {
+            error: 'Pengumuman seleksi belum dibuka',
+            message: 'Hasil seleksi belum diumumkan'
+          },
+          { status: 403 }
+        )
+      }
     }
 
     // Check if re-enrollment has started
@@ -77,18 +96,8 @@ export async function GET(request: NextRequest) {
     }
     // ===== END CHECK RE-ENROLLMENT DATE =====
 
-    // Calculate final juz placement based on exam score
-    const examScore = registration.exam_score || null
-    const chosenJuz = (registration.chosen_juz || '').toUpperCase()
-    let finalJuz = chosenJuz
-
-    if (examScore !== null && examScore < 70) {
-      if (chosenJuz === '28A' || chosenJuz === '28B' || chosenJuz === '28') {
-        finalJuz = '29A'
-      } else if (chosenJuz === '1A' || chosenJuz === '1B' || chosenJuz === '29A' || chosenJuz === '29B' || chosenJuz === '29' || chosenJuz === '1') {
-        finalJuz = '30A'
-      }
-    }
+    // Use final juz placement directly from registration (without recalculation)
+    const finalJuz = (registration.chosen_juz || '').toUpperCase()
 
     // Fetch user's existing daftar ulang submission if any
     // For submitted or approved status, include related halaqah and partner data
