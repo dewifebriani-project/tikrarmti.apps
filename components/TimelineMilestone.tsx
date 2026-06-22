@@ -265,70 +265,65 @@ function renderItemDescription(
                     registrationStatus.registration?.status === 'approved' ? 'Disetujui ✓' : 'Ditarik/Ditolak'}
           </p>
         </div>
-      </div>
-    );
-  }
 
-  // Description for Selection Phase
-  if (item.hasSelectionTasks && registrationStatus?.registration?.status === 'approved') {
-    return (
-      <div className="space-y-3">
-        <p className={cn("text-sm leading-relaxed", styles.textColor)}>
-          {item.description}
-        </p>
+        {item.hasSelectionTasks && registrationStatus?.hasActiveRegistration && (
+          <div className="space-y-3 mt-4 pt-4 border-t border-gray-100">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-start space-x-3">
+                <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-semibold text-green-800 mb-1">Tahap Seleksi</h4>
+                  <p className="text-xs text-green-700">
+                    Silakan kerjakan ujian lisan dan tertulis tepat waktu.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <div className="flex items-start space-x-3">
-            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="text-sm font-semibold text-green-800 mb-1">Tahap Seleksi</h4>
-              <p className="text-xs text-green-700">
-                Silakan kerjakan ujian lisan dan tertulis tepat waktu.
-              </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Link href={`/seleksi/rekam-suara?batch_id=${batchId}`}>
+                <Card className={cn(
+                  "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
+                  registrationStatus?.hasOralSubmission ? "border-green-300 bg-green-50" : "border-red-300 bg-white"
+                )}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <CheckCircle className={cn("w-5 h-5", registrationStatus?.hasOralSubmission ? "text-green-600" : "text-gray-400")} />
+                      <div>
+                        <h4 className="text-sm font-bold">Ujian Lisan</h4>
+                        <p className="text-xs text-gray-500">{registrationStatus?.hasOralSubmission ? "Selesai ✓" : "Belum Rekam"}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              {!isJuz30 && !registrationStatus?.isAlumnus && (
+                <Link href={`/seleksi/pilihan-ganda?batch_id=${batchId}`}>
+                  <Card className={cn(
+                    "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
+                    registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50" : "border-purple-300 bg-white"
+                  )}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <CheckCircle className={cn("w-5 h-5", registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
+                        <div>
+                          <h4 className="text-sm font-bold">Ujian Tertulis</h4>
+                          <p className="text-xs text-gray-500">{registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum Kerjakan"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              )}
             </div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Link href="/seleksi/rekam-suara">
-            <Card className={cn(
-              "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
-              registrationStatus?.hasOralSubmission ? "border-green-300 bg-green-50" : "border-red-300 bg-white"
-            )}>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className={cn("w-5 h-5", registrationStatus?.hasOralSubmission ? "text-green-600" : "text-gray-400")} />
-                  <div>
-                    <h4 className="text-sm font-bold">Ujian Lisan</h4>
-                    <p className="text-xs text-gray-500">{registrationStatus?.hasOralSubmission ? "Selesai ✓" : "Belum Rekam"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {!isJuz30 && !registrationStatus?.isAlumnus && (
-            <Link href="/seleksi/pilihan-ganda">
-              <Card className={cn(
-                "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
-                registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50" : "border-purple-300 bg-white"
-              )}>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className={cn("w-5 h-5", registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
-                    <div>
-                      <h4 className="text-sm font-bold">Ujian Tertulis</h4>
-                      <p className="text-xs text-gray-500">{registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum Kerjakan"}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )}
-        </div>
+        )}
       </div>
     );
   }
+
+
 
   // Description for Selection Results
   if (item.id === 3) {

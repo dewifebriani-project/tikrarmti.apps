@@ -23,12 +23,12 @@ interface OralAssessmentProps {
 }
 
 interface ErrorCounts {
-  makhraj: number;
-  sifat: number;
-  mad: number;
-  ghunnah: number;
-  harakat: number;
-  itmamul_harakat: number;
+  makhraj: number | null;
+  sifat: number | null;
+  mad: number | null;
+  ghunnah: number | null;
+  harakat: number | null;
+  itmamul_harakat: number | null;
 }
 
 const PASSING_SCORE = 70;
@@ -43,12 +43,12 @@ export function OralAssessment({
   allowNoSubmission = false
 }: OralAssessmentProps) {
   const [errors, setErrors] = useState<ErrorCounts>({
-    makhraj: currentAssessment?.oral_makhraj_errors || 0,
-    sifat: currentAssessment?.oral_sifat_errors || 0,
-    mad: currentAssessment?.oral_mad_errors || 0,
-    ghunnah: currentAssessment?.oral_ghunnah_errors || 0,
-    harakat: currentAssessment?.oral_harakat_errors || 0,
-    itmamul_harakat: currentAssessment?.oral_itmamul_harakat_errors || 0,
+    makhraj: currentAssessment?.oral_makhraj_errors ?? null,
+    sifat: currentAssessment?.oral_sifat_errors ?? null,
+    mad: currentAssessment?.oral_mad_errors ?? null,
+    ghunnah: currentAssessment?.oral_ghunnah_errors ?? null,
+    harakat: currentAssessment?.oral_harakat_errors ?? null,
+    itmamul_harakat: currentAssessment?.oral_itmamul_harakat_errors ?? null,
   });
 
   const [notes, setNotes] = useState(currentAssessment?.oral_assessment_notes || '');
@@ -56,13 +56,18 @@ export function OralAssessment({
   const [manualScore, setManualScore] = useState<number | null>(currentAssessment?.oral_total_score || null);
   const [useManualScore, setUseManualScore] = useState<boolean>(false);
 
-  const calculateScore = (): number => {
+  const calculateScore = (): number | null => {
     const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat', 'itmamul_harakat'] as const;
     const pointsPerCategory = 100 / 6; // ~16.67 per category
     const penaltyPerError = pointsPerCategory / 5; // Max 5 errors = 0 points
 
+    // If any category is not yet graded, we don't calculate the score
+    if (categories.some(cat => errors[cat] === null)) {
+      return null;
+    }
+
     const totalScore = categories.reduce((total, category) => {
-      const categoryErrors = errors[category];
+      const categoryErrors = errors[category] as number;
       if (categoryErrors >= 5) {
         return total + 0;
       }
@@ -84,8 +89,9 @@ export function OralAssessment({
 
   const calculatedScore = calculateScore();
   const finalScore = useManualScore ? (manualScore || 0) : calculatedScore;
-  const isPassing = finalScore >= PASSING_SCORE;
-  const assessmentStatus = finalScore >= PASSING_SCORE ? 'pass' : 'fail';
+  const isPassing = finalScore !== null && finalScore >= PASSING_SCORE;
+  const assessmentStatus = finalScore !== null ? (finalScore >= PASSING_SCORE ? 'pass' : 'fail') : null;
+  const isComplete = useManualScore || calculatedScore !== null;
 
   const handleErrorChange = (category: keyof ErrorCounts, value: number) => {
     setErrors(prev => ({
@@ -184,7 +190,7 @@ export function OralAssessment({
                       {errorCount}
                     </button>
                   ))}
-                  {errors[category.key] >= 5 && (
+                  {errors[category.key] !== null && (errors[category.key] as number) >= 5 && (
                     <span className="ml-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded font-medium">
                       0 poin
                     </span>
@@ -202,9 +208,11 @@ export function OralAssessment({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-600 font-medium">Nilai Otomatis (dari hitungan kesalahan)</p>
-                <p className="text-2xl font-bold text-blue-900">{calculatedScore.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  {calculatedScore !== null ? calculatedScore.toFixed(2) : '-'}
+                </p>
               </div>
-              {!useManualScore && (
+              {!useManualScore && calculatedScore !== null && (
                 <div className="flex items-center gap-2">
                   {calculatedScore >= PASSING_SCORE ? (
                     <CheckCircle className="w-6 h-6 text-green-600" />
@@ -258,19 +266,27 @@ export function OralAssessment({
           )}
 
           {/* Final Score Display */}
-          <div className={`p-4 rounded-lg ${isPassing ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+          <div className={`p-4 rounded-lg ${
+            finalScore === null ? 'bg-gray-50 border border-gray-200' : 
+            isPassing ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+          }`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: isPassing ? '#065f46' : '#991b1b' }}>
+                <p className="text-sm font-medium" style={{ color: finalScore === null ? '#6b7280' : isPassing ? '#065f46' : '#991b1b' }}>
                   Nilai Final {useManualScore && '(Manual Override)'}
                 </p>
-                <p className="text-3xl font-bold" style={{ color: isPassing ? '#047857' : '#dc2626' }}>
-                  {finalScore.toFixed(2)}
+                <p className="text-3xl font-bold" style={{ color: finalScore === null ? '#9ca3af' : isPassing ? '#047857' : '#dc2626' }}>
+                  {finalScore !== null ? finalScore.toFixed(2) : '-'}
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                {isPassing ? (
+                {finalScore === null ? (
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gray-400">Belum Dinilai</p>
+                    <p className="text-xs text-gray-500">Pilih kesalahan di atas</p>
+                  </div>
+                ) : isPassing ? (
                   <>
                     <CheckCircle className="w-8 h-8 text-green-600" />
                     <div>
@@ -319,8 +335,8 @@ export function OralAssessment({
           <div className="mt-4">
             <button
               onClick={handleSave}
-              disabled={saving}
-              className="w-full px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={saving || !isComplete}
+              className="w-full px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             >
               {saving ? 'Menyimpan...' : 'Simpan Penilaian'}
             </button>
