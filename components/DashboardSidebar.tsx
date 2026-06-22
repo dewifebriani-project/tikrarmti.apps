@@ -166,6 +166,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         href: '/pendaftaran/muallimah',
         label: 'Daftar Muallimah',
         icon: <GraduationCap className="h-5 w-5 text-green-600" />,
+        onClick: (e: any) => {
+          if (!window.confirm("PERHATIAN!\n\nPendaftaran ini khusus untuk calon PENGAJAR (Mu'allimah), BUKAN untuk calon SANTRI (Thalibah).\n\nJika Ukhti ingin mendaftar sebagai santri, silakan pilih menu 'Pendaftaran' atau 'Tikrar Tahfidz'.\n\nApakah Ukhti yakin ingin melanjutkan mendaftar sebagai Mu'allimah?")) {
+            e.preventDefault();
+          }
+        }
       });
       baseItems.push({
         href: '/tashih',
@@ -316,6 +321,14 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
                     }
                   `}
 
+                  onClick={(e) => {
+                    if (item.onClick) {
+                      item.onClick(e);
+                    }
+                    if (isMobile) {
+                      onClose?.();
+                    }
+                  }}
                   title={isCollapsed ? item.label : ''}
                 >
                   {/* Active Indicator Accent */}

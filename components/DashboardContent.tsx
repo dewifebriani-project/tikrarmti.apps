@@ -747,7 +747,11 @@ export default function DashboardContent() {
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <Link href={activeBatch ? `/pendaftaran/muallimah?batchId=${activeBatch.id}` : "/pendaftaran/muallimah"} className="w-full sm:w-auto">
+                      <Link href={activeBatch ? `/pendaftaran/muallimah?batchId=${activeBatch.id}` : "/pendaftaran/muallimah"} className="w-full sm:w-auto" onClick={(e) => {
+                        if (!window.confirm("PERHATIAN!\n\nPendaftaran ini khusus untuk calon PENGAJAR (Mu'allimah), BUKAN untuk calon SANTRI (Thalibah).\n\nJika Ukhti ingin mendaftar sebagai santri, silakan pilih Pendaftaran Tikrar Tahfidz.\n\nApakah Ukhti yakin ingin melanjutkan mendaftar sebagai Mu'allimah?")) {
+                          e.preventDefault();
+                        }
+                      }}>
                         <Button className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white font-black px-8 py-6 rounded-2xl shadow-lg border-b-4 border-green-900 active:border-b-0 active:translate-y-1 transition-all">
                           Daftar Sekarang
                         </Button>
