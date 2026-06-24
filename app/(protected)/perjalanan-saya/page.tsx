@@ -131,6 +131,7 @@ export default function PerjalananSaya() {
   const [isLoadingPairing, setIsLoadingPairing] = useState(false);
   const [finalExams, setFinalExams] = useState<any[]>([]);
   const [isAlumnus, setIsAlumnus] = useState(false);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   
   useEffect(() => {
     fetch('/api/alumni/testimonial/my')
@@ -189,8 +190,38 @@ export default function PerjalananSaya() {
     return murajaahBlocks.every((b: any) => b.is_completed);
   }, [jurnalStatus]);
 
-  // Get batch_id: Priority is Active Batch, fallback to latest registration
+  // Compute list of all available batches for this user (Active + any registered)
+  const availableBatches = useMemo(() => {
+    const batchesMap = new Map<string, { id: string, name: string }>();
+    
+    // Add active batch if it exists
+    if (activeBatch) {
+      batchesMap.set(activeBatch.id, { 
+        id: activeBatch.id, 
+        name: activeBatch.name || `Batch ${(activeBatch as any).batch_number}`
+      });
+    }
+    
+    // Add all batches from user's registrations
+    if (registrations && registrations.length > 0) {
+      registrations.forEach(reg => {
+        if (reg.batch_id && !batchesMap.has(reg.batch_id)) {
+          batchesMap.set(reg.batch_id, {
+            id: reg.batch_id,
+            name: (reg as any).batch_name || `Batch (Dari Pendaftaran)`
+          });
+        }
+      });
+    }
+    
+    return Array.from(batchesMap.values());
+  }, [activeBatch, registrations]);
+
+  // Get batch_id: Priority is User Selected -> Active Batch -> Latest Registration
   const batchId = useMemo(() => {
+    if (selectedBatchId) {
+      return selectedBatchId;
+    }
     // Priority 1: Active Batch (Always show the currently running/open batch)
     if (activeBatch) {
       return activeBatch.id;
@@ -200,7 +231,7 @@ export default function PerjalananSaya() {
       return registrations[0].batch_id;
     }
     return null;
-  }, [registrations, activeBatch]);
+  }, [selectedBatchId, registrations, activeBatch]);
 
   // Fetch batch timeline data - safely handle undefined registrations
   const { batch, timeline: batchTimeline, isLoading: batchLoading } = useBatchTimeline(batchId, {
@@ -581,12 +612,33 @@ export default function PerjalananSaya() {
     <div className="space-y-10 sm:space-y-16 animate-fadeIn pb-20">
       {/* Premium Header */}
       <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-green-900 via-green-800 to-emerald-900 p-8 sm:p-12 text-white shadow-2xl">
-        <div className="relative z-10 space-y-6">
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span></h1>
-          <p className="text-green-100/70 text-lg max-w-xl font-medium">"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya."</p>
-          {batch && (
-            <div className="inline-block bg-emerald-800/80 px-4 py-2 rounded-full text-emerald-100 font-bold border border-emerald-700">
-              {batch.name || `Batch ${(batch as any).batch_number}`}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="space-y-6">
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span></h1>
+            <p className="text-green-100/70 text-lg max-w-xl font-medium">"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya."</p>
+            {batch && (
+              <div className="inline-flex items-center bg-emerald-800/80 px-4 py-2 rounded-full text-emerald-100 font-bold border border-emerald-700">
+                {batch.name || `Batch ${(batch as any).batch_number}`}
+                {batch.id === activeBatch?.id && <span className="ml-2 bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Active</span>}
+              </div>
+            )}
+          </div>
+
+          {availableBatches.length > 1 && (
+            <div className="bg-emerald-800/40 backdrop-blur border border-emerald-700/50 rounded-xl p-3 w-full md:max-w-xs shrink-0 self-start">
+              <label htmlFor="batch-selector" className="block text-emerald-200 text-xs font-semibold mb-2 ml-1">Pilih Angkatan/Batch:</label>
+              <select 
+                id="batch-selector"
+                className="w-full bg-emerald-950/60 border border-emerald-600/50 text-emerald-100 text-sm rounded-lg px-3 py-2.5 focus:ring-emerald-500 focus:border-emerald-500 outline-none appearance-none"
+                value={batchId || ''}
+                onChange={(e) => setSelectedBatchId(e.target.value)}
+              >
+                {availableBatches.map(b => (
+                  <option key={b.id} value={b.id} className="bg-emerald-900 text-white">
+                    {b.name} {b.id === activeBatch?.id ? '(Batch Saat Ini)' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>
