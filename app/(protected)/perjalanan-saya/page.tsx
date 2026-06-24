@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyRegistrations, useAllRegistrations } from '@/hooks/useRegistrations';
 import { useActiveBatch } from '@/hooks/useBatches';
@@ -10,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
-import { EditTikrarRegistrationModal } from '@/components/EditTikrarRegistrationModal';
 import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal';
 import { Pendaftaran } from '@/types/database';
@@ -123,8 +123,8 @@ const getDayNameFromNumber = (dayNum: number | string | undefined | null) => {
 
 export default function PerjalananSaya() {
   const { user, isLoading: authLoading, isAuthenticated, isUnauthenticated } = useAuth();
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [examEligibility, setExamEligibility] = useState<ExamEligibility | null>(null);
   const [hasSessionError, setHasSessionError] = useState(false);
   const [pairingData, setPairingData] = useState<PairingData | null>(null);
@@ -313,8 +313,27 @@ export default function PerjalananSaya() {
     const isEnrollmentDone = registrationStatus?.registration?.re_enrollment_completed === true;
     
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const getIsDatePassed = (dateStr: string | null | undefined) => {
+      if (!dateStr) return false;
+      const dateMatch = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) return false;
+      
+      const yyyymmdd = dateMatch[1];
+      const deadlineWIB = new Date(`${yyyymmdd}T23:59:59+07:00`);
+      const now = new Date();
+      return now > deadlineWIB;
+    };
+
     const reviewWeekEnd = batch?.review_week_end_date ? new Date(batch.review_week_end_date) : null;
-    const isLearningDone = isEnrollmentDone && reviewWeekEnd && today > reviewWeekEnd;
+    const isLearningDone = isEnrollmentDone && getIsDatePassed(batch?.review_week_end_date);
+
+    const isRegistrationDone = getIsDatePassed(batch?.registration_end_date);
+    const isSelectionDoneByDate = getIsDatePassed(batch?.selection_end_date);
+    const isReEnrollmentDoneByDate = getIsDatePassed(batch?.re_enrollment_date);
+    const isLearningDoneByDate = getIsDatePassed(batch?.review_week_end_date);
+    const isGraduationDoneByDate = getIsDatePassed(batch?.graduation_end_date);
 
     const oralExam = finalExams.find(r => r.schedule?.exam_type === 'oral');
     const writtenExam = finalExams.find(r => r.schedule?.exam_type === 'written');
@@ -332,17 +351,18 @@ export default function PerjalananSaya() {
 
     return [
       { 
-        id: 1, name: 'Pendaftaran', status: (isProfileComplete && hasWritten && hasOral) ? 'completed' : 'current', 
+        id: 1, name: 'Pendaftaran', status: isRegistrationDone ? 'completed' : 'current', 
         desc: batch?.registration_start_date ? `${formatDateIndo(batch.registration_start_date)} - ${formatDateIndo(batch.registration_end_date || '')}` : 'Lengkapi Profil', 
         icon: <User className="w-4 h-4" />,
         subPhases: [
           { name: 'Lengkapi Profil', done: isProfileComplete, data: isProfileComplete ? `${user.full_name} (${user.whatsapp})` : 'Belum lengkap', reviewType: isProfileComplete ? 'profile' : null },
+          { name: 'Form Pendaftaran', done: true, data: isRegistrationDone ? 'Selesai' : 'Bisa Edit', reviewType: null, isEditAction: !isRegistrationDone },
           { name: 'Ujian Tertulis', done: isAlumnus || hasWritten, data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasWritten ? 'Selesai ✓' : 'Belum dikerjakan'), reviewType: hasWritten ? 'written' : null },
           { name: 'Ujian Lisan', done: hasOral, data: hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : 'Belum rekaman', reviewType: hasOral ? 'oral' : null },
         ]
       },
       { 
-        id: 2, name: 'Seleksi', status: isSelectionDone ? 'completed' : (isProfileComplete ? 'current' : 'future'), 
+        id: 2, name: 'Seleksi', status: isSelectionDoneByDate ? 'completed' : (isRegistrationDone ? 'current' : 'future'), 
         desc: batch?.selection_start_date ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date || '')}` : 'Penilaian & Hasil', 
         icon: <FileText className="w-4 h-4" />,
         subPhases: [
@@ -351,7 +371,7 @@ export default function PerjalananSaya() {
         ]
       },
       { 
-        id: 3, name: 'Daftar Ulang', status: isEnrollmentDone ? 'completed' : (isSelectionDone ? 'current' : 'future'), 
+        id: 3, name: 'Daftar Ulang', status: isReEnrollmentDoneByDate ? 'completed' : (isSelectionDoneByDate ? 'current' : 'future'), 
         desc: batch?.re_enrollment_date ? `Mulai ${formatDateIndo(batch.re_enrollment_date)}` : 'Akad & Pasangan', 
         icon: <CheckCircle className="w-4 h-4" />,
         subPhases: [
@@ -361,7 +381,7 @@ export default function PerjalananSaya() {
         ]
       },
       { 
-        id: 4, name: 'Masa Belajar', status: isLearningDone ? 'completed' : (isEnrollmentDone ? 'current' : 'future'), 
+        id: 4, name: 'Masa Belajar', status: isLearningDoneByDate ? 'completed' : (isReEnrollmentDoneByDate ? 'current' : 'future'), 
         desc: batch?.opening_class_date ? `Aktif s/d ${formatDateIndo(batch.review_week_end_date || '')}` : 'Pekan 1 - 12', 
         icon: <BookOpen className="w-4 h-4" />,
         subPhases: [
@@ -371,7 +391,7 @@ export default function PerjalananSaya() {
         ]
       },
       { 
-        id: 5, name: 'Kelulusan', status: isGraduationDone ? 'completed' : (isLearningDone ? 'current' : 'future'), 
+        id: 5, name: 'Kelulusan', status: isGraduationDoneByDate ? 'completed' : (isLearningDoneByDate ? 'current' : 'future'), 
         desc: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : 'Wisuda & Sertifikat', 
         icon: <Award className="w-4 h-4" />,
         subPhases: [
@@ -678,6 +698,15 @@ export default function PerjalananSaya() {
                               <Eye className="w-2.5 h-2.5" />
                             </button>
                           )}
+                          {(sub as any).isEditAction && (
+                            <button 
+                              onClick={() => router.push(`/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
+                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors"
+                              title={`Edit Pendaftaran`}
+                            >
+                              <Edit className="w-2.5 h-2.5" />
+                            </button>
+                          )}
                           {(sub as any).isPortalAction && (
                             <button 
                               onClick={() => setIsExamPortalOpen(true)} 
@@ -703,23 +732,7 @@ export default function PerjalananSaya() {
       </div>
 
       {/* Action Modals */}
-      {registrationStatus?.registration && (
-        <EditTikrarRegistrationModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          onSuccess={handleEditSuccess}
-          registration={{
-            id: registrationStatus.registration?.id || '',
-            chosen_juz: registrationStatus.registration?.chosen_juz || '',
-            main_time_slot: registrationStatus.registration?.main_time_slot || '',
-            backup_time_slot: registrationStatus.registration?.backup_time_slot || '',
-            full_name: registrationStatus.registration?.full_name || user?.full_name || '',
-            wa_phone: registrationStatus.registration?.wa_phone || '',
-            address: registrationStatus.registration?.address,
-            motivation: registrationStatus.registration?.motivation,
-          }}
-        />
-      )}
+
 
       {/* Global Review Modal */}
       <ReviewSubmissionModal

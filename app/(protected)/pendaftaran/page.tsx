@@ -140,7 +140,7 @@ export default function PendaftaranPage() {
           color: programType.color,
           benefits: programType.benefits,
           requirements: programType.requirements,
-          status: mapProgramStatus(program.status),
+          status: mapProgramStatus(program.status, program.batch?.registration_end_date),
           batchInfo: program.batch ? {
             batch: program.batch.name,
             period: `${formatDate(program.batch.start_date)} - ${formatDate(program.batch.end_date)}`,
@@ -270,10 +270,23 @@ export default function PendaftaranPage() {
     }
   };
 
-  const mapProgramStatus = (status: ProgramStatus): 'open' | 'closed' | 'upcoming' => {
+  const mapProgramStatus = (status: ProgramStatus, deadline?: string | null): 'open' | 'closed' | 'upcoming' => {
+    if (deadline) {
+      const dateMatch = deadline.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) {
+        const yyyymmdd = dateMatch[1];
+        // Deadline is 23:59:59 WIB (UTC+7) on that date
+        const deadlineWIB = new Date(`${yyyymmdd}T23:59:59+07:00`);
+        const now = new Date();
+        
+        if (now > deadlineWIB) {
+          return 'closed';
+        }
+      }
+    }
+
     switch (status) {
       case 'open':
-        return 'open';
       case 'ongoing':
         return 'open';
       case 'completed':

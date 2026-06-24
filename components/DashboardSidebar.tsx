@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { 
   X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight, Eye,
   LayoutGrid, ClipboardList, FileText, UserCheck, BarChart3, Calendar, Shield, Settings,
-  MessageSquare, HeartHandshake
+  MessageSquare, HeartHandshake, HelpCircle
 } from 'lucide-react';
 import { ROLE_RANKS, hasRequiredRank, isStaff } from '@/lib/roles';
 import { useAuth } from '@/hooks/useAuth';
@@ -141,6 +141,11 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           href: '/admin/testimonials',
           label: 'Testimoni Alumni',
           icon: <MessageSquare className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin/pengaturan/faq',
+          label: 'Pengaturan FAQ',
+          icon: <HelpCircle className="h-5 w-5" />,
         });
         baseItems.push({
           href: '/admin?tab=donations',

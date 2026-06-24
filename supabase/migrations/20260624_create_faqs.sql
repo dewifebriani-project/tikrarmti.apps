@@ -1,10 +1,3 @@
-import { NextResponse } from 'next/server';
-import { createSupabaseAdmin } from '@/lib/supabase';
-
-export async function POST() {
-  try {
-    const supabase = createSupabaseAdmin();
-    const sql = `
 CREATE TABLE IF NOT EXISTS public.faqs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     category TEXT NOT NULL,
@@ -34,27 +27,8 @@ BEGIN
     END IF;
 END
 $$;
-    `;
 
-    // Try both parameter names
-    let result = await supabase.rpc('exec_sql', { sql_query: sql });
-    if (result.error) {
-      console.log('Retrying with "sql" parameter...');
-      result = await supabase.rpc('exec_sql', { sql: sql });
-    }
-    
-    if (result.error) {
-       // Try admin_exec_sql
-       console.log('Retrying with admin_exec_sql...');
-       result = await supabase.rpc('admin_exec_sql', { sql_query: sql });
-    }
-
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, data: result.data });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+-- Insert default data
+INSERT INTO public.faqs (category, icon, color, questions, sort_order) VALUES
+('Program Umum', 'BookOpen', 'green', '[{"q": "Apa itu Program Tahfidz Tikrar MTI?", "a": "Program Tahfidz Tikrar MTI adalah program hafalan Al-Qur''an gratis yang menggunakan metode Tikrar 40x. Program ini khusus untuk Ibu rumah tangga dan remaja putri yang serius ingin menghafal Al-Qur''an dengan komitmen waktu minimal 2 jam per hari."}]'::jsonb, 1),
+('Metode Belajar', 'Shield', 'blue', '[{"q": "Apa itu Metode Tikrar 40x?", "a": "Metode Tikrar 40x adalah metode hafalan dengan mengulang bacaan ayat sebanyak 40 kali. Metode ini terdiri dari 7 tahapan: Rabth (menyambung hafalan), Muraja''ah blok terakhir, Simak murattal, Tikrar dengan melihat mushaf (40x), Tasmi'' via rekaman, Simak rekaman pribadi, dan Tikrar tanpa mushaf (40x)."}]'::jsonb, 2);

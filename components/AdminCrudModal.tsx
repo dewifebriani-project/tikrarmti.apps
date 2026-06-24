@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, ChevronLeft, User, CircleDot } from 'lucide-react';
 
 export interface FormField {
   name: string;
@@ -126,13 +126,28 @@ export function AdminCrudModal({
     const value = formData[field.name];
     const error = errors[field.name];
 
-    const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:ring-green-500 focus:border-green-500 ${
-      error ? 'border-red-500' : 'border-gray-300'
-    } ${field.disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`;
+    const baseInputClasses = `w-full px-0 py-0 border-none bg-transparent focus:ring-0 text-sm font-bold text-gray-900 placeholder:text-gray-300 mt-0.5 ${
+      field.disabled ? 'cursor-not-allowed opacity-70' : ''
+    }`;
+
+    const renderInputWrapper = (children: React.ReactNode) => (
+      <div className={`flex items-center gap-4 p-4 rounded-3xl border transition-colors ${error ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-white focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500'}`}>
+        <div className="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-blue-50/50 text-blue-500">
+          <CircleDot className="w-5 h-5 opacity-70" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          {children}
+        </div>
+      </div>
+    );
 
     switch (field.type) {
       case 'textarea':
-        return (
+        return renderInputWrapper(
           <textarea
             name={field.name}
             value={value ?? ''}
@@ -140,22 +155,22 @@ export function AdminCrudModal({
             placeholder={field.placeholder}
             required={field.required}
             disabled={field.disabled}
-            rows={field.rows || 3}
-            className={baseInputClasses}
+            rows={field.rows || 2}
+            className={`${baseInputClasses} resize-none`}
           />
         );
 
       case 'select':
-        return (
+        return renderInputWrapper(
           <select
             name={field.name}
             value={value ?? ''}
             onChange={(e) => handleChange(field.name, e.target.value)}
             required={field.required}
             disabled={field.disabled}
-            className={baseInputClasses}
+            className={`${baseInputClasses} cursor-pointer appearance-none`}
           >
-            <option value="">Select {field.label}</option>
+            <option value="">Pilih {field.label}</option>
             {field.options?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -166,23 +181,32 @@ export function AdminCrudModal({
 
       case 'checkbox':
         return (
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              name={field.name}
-              checked={!!value}
-              onChange={(e) => handleChange(field.name, e.target.checked)}
-              disabled={field.disabled}
-              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-            />
-            <label htmlFor={field.name} className="ml-2 block text-sm text-gray-900">
-              {field.helperText || field.label}
-            </label>
-          </div>
+          <label className="flex items-start gap-4 p-4 rounded-3xl border border-gray-100 bg-white hover:bg-gray-50 cursor-pointer transition-colors group">
+            <div className="flex items-center justify-center h-10 w-10 rounded-full bg-blue-50/50 text-blue-500">
+              <input
+                type="checkbox"
+                name={field.name}
+                checked={!!value}
+                onChange={(e) => handleChange(field.name, e.target.checked)}
+                disabled={field.disabled}
+                className="h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors"
+              />
+            </div>
+            <div className="flex flex-col justify-center">
+              <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-700 transition-colors mt-2">
+                {field.label}
+              </span>
+              {field.helperText && (
+                <span className="text-xs font-medium text-gray-500 mt-0.5">
+                  {field.helperText}
+                </span>
+              )}
+            </div>
+          </label>
         );
 
       default:
-        return (
+        return renderInputWrapper(
           <input
             type={field.type}
             name={field.name}
@@ -200,26 +224,51 @@ export function AdminCrudModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-500 disabled:cursor-not-allowed"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+        <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+        <div className="inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl border border-gray-100 transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+          {/* Header */}
+          <div className="px-8 pt-8 pb-4 bg-white flex justify-between items-start">
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0 flex items-center justify-center h-14 w-14 rounded-full bg-blue-50 text-blue-500">
+                <User className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-gray-900 tracking-tight">{title}</h3>
+                <p className="text-sm font-medium text-gray-500 mt-0.5">Update data profil / pendaftaran</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="p-3 rounded-full border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Profile Card */}
+          <div className="mx-8 mt-2 mb-6 bg-[#f4f7fa] rounded-[32px] p-6 flex items-center gap-6">
+            <div className="flex-shrink-0 flex items-center justify-center h-20 w-20 rounded-full bg-white text-blue-500 shadow-sm">
+              <User className="h-8 w-8" />
+            </div>
+            <div>
+              <h4 className="text-xl font-black text-gray-900">{initialData?.full_name || initialData?.name || 'Profil Edit'}</h4>
+              <p className="text-[11px] font-black tracking-widest uppercase text-blue-600 mt-1">
+                STATUS: {initialData?.status || initialData?.selection_status || 'AKTIF'}
+              </p>
+            </div>
+          </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="px-8 pb-8 overflow-y-auto max-h-[calc(85vh-160px)]">
             {errors._general && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-sm text-red-600">{errors._general}</p>
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm font-medium text-red-600">{errors._general}</p>
               </div>
             )}
 
@@ -227,20 +276,14 @@ export function AdminCrudModal({
               {fields.map((field) => (
                 <div
                   key={field.name}
-                  className={field.type === 'textarea' ? 'md:col-span-2' : ''}
+                  className={field.type === 'textarea' || field.type === 'checkbox' ? 'md:col-span-2' : ''}
                 >
-                  {field.type !== 'checkbox' && (
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {field.label}
-                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                    </label>
-                  )}
                   {renderField(field)}
                   {errors[field.name] && (
-                    <p className="mt-1 text-sm text-red-600">{errors[field.name]}</p>
+                    <p className="mt-1 ml-4 text-xs font-bold text-red-500">{errors[field.name]}</p>
                   )}
                   {field.helperText && field.type !== 'checkbox' && (
-                    <p className="mt-1 text-sm text-gray-500">{field.helperText}</p>
+                    <p className="mt-1 ml-4 text-xs font-medium text-gray-500">{field.helperText}</p>
                   )}
                 </div>
               ))}
@@ -248,26 +291,31 @@ export function AdminCrudModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between px-8 py-6 bg-white border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 font-bold text-sm text-gray-500 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              <ChevronLeft className="w-4 h-4" />
+              Kembali
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-900 hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full font-black text-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {submitButtonText}
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                submitButtonText || 'Simpan, Tutup'
+              )}
             </button>
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 }

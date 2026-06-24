@@ -26,10 +26,9 @@ export default async function Home() {
   const supabase = createSupabaseAdmin();
   const { data: testimonials } = await supabase
     .from('testimonials')
-    .select('*, user:users(full_name, kota)')
+    .select('*, user:users(full_name, kota, tanggal_lahir)')
     .eq('is_approved', true)
-    .order('created_at', { ascending: false })
-    .limit(8);
+    .order('created_at', { ascending: false });
 
   return (
     <>
@@ -243,7 +242,7 @@ export default async function Home() {
 
       {/* Testimonials Section */}
       {testimonials && testimonials.length > 0 && (
-        <section className="py-24 bg-gradient-to-b from-white to-[#F4F7F5]">
+        <section id="testimoni" className="py-24 bg-gradient-to-b from-white to-[#F4F7F5]">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <span className="bg-emerald-100 text-emerald-850 border border-emerald-250 text-xs font-semibold px-3.5 py-1.5 rounded-full uppercase tracking-wider">

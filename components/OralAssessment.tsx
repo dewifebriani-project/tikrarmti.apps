@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Volume2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { AdminVoiceRecorder } from '@/components/AdminVoiceRecorder';
 
 interface OralAssessmentProps {
   registrationId: string;
@@ -16,6 +18,7 @@ interface OralAssessmentProps {
     oral_total_score?: number;
     oral_assessment_status?: string;
     oral_assessment_notes?: string;
+    oral_assessment_audio_url?: string;
   };
   onSave?: (data: any) => void;
   readOnly?: boolean;
@@ -52,6 +55,8 @@ export function OralAssessment({
   });
 
   const [notes, setNotes] = useState(currentAssessment?.oral_assessment_notes || '');
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(currentAssessment?.oral_assessment_audio_url || null);
   const [saving, setSaving] = useState(false);
   const [manualScore, setManualScore] = useState<number | null>(currentAssessment?.oral_total_score || null);
   const [useManualScore, setUseManualScore] = useState<boolean>(false);
@@ -105,6 +110,28 @@ export function OralAssessment({
 
     setSaving(true);
     try {
+      let finalAudioUrl = existingAudioUrl;
+
+      if (audioBlob) {
+        const supabase = createClient();
+        const fileName = `${registrationId}-${Date.now()}.webm`;
+        const { data, error } = await supabase.storage
+          .from('selection-audios')
+          .upload(`feedback/${fileName}`, audioBlob);
+          
+        if (error) {
+          console.error("Error uploading audio:", error);
+          alert('Gagal mengupload audio feedback');
+          throw new Error('Gagal mengupload audio feedback');
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('selection-audios')
+          .getPublicUrl(`feedback/${fileName}`);
+          
+        finalAudioUrl = publicUrl;
+      }
+
       await onSave({
         oral_makhraj_errors: errors.makhraj,
         oral_sifat_errors: errors.sifat,
@@ -115,6 +142,7 @@ export function OralAssessment({
         oral_total_score: finalScore,
         oral_assessment_status: assessmentStatus,
         oral_assessment_notes: notes,
+        oral_assessment_audio_url: finalAudioUrl,
       });
     } finally {
       setSaving(false);
@@ -327,8 +355,17 @@ export function OralAssessment({
             disabled={readOnly}
             rows={3}
             placeholder="Tambahkan catatan untuk peserta..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100 mb-4"
           />
+          {!readOnly && (
+            <AdminVoiceRecorder 
+              existingAudioUrl={existingAudioUrl}
+              onAudioReady={(blob) => {
+                setAudioBlob(blob);
+                if (!blob) setExistingAudioUrl(null); // Deleted
+              }} 
+            />
+          )}
         </div>
 
         {!readOnly && onSave && (

@@ -324,11 +324,43 @@ export function TikrarTab({ user }: { user: any }) {
             { value: 'not_selected', label: 'Not Selected' },
             { value: 'waitlist', label: 'Waitlist' }
           ] },
-          { name: 'chosen_juz', label: 'Juz', type: 'number' },
+          { name: 'chosen_juz', label: 'Juz Penempatan', type: 'select', options: [
+            { value: '1A', label: 'Juz 1A' }, { value: '1B', label: 'Juz 1B' },
+            { value: '28A', label: 'Juz 28A' }, { value: '28B', label: 'Juz 28B' },
+            { value: '29A', label: 'Juz 29A' }, { value: '29B', label: 'Juz 29B' },
+            { value: '30A', label: 'Juz 30A' }, { value: '30B', label: 'Juz 30B' }
+          ] },
+          { name: 'wa_phone', label: 'WhatsApp', type: 'text' },
+          { name: 'telegram_phone', label: 'Telegram Phone', type: 'text' },
+          { name: 'domicile', label: 'Domisili', type: 'text' },
+          { name: 'address', label: 'Alamat Lengkap', type: 'textarea' },
+          { name: 'birth_date', label: 'Tanggal Lahir', type: 'date' },
+          { name: 'age', label: 'Usia', type: 'number' },
+          { name: 'activity_type', label: 'Aktivitas Saat Ini', type: 'text' },
+          { name: 'activity_description', label: 'Deskripsi Aktivitas', type: 'text' },
+          { name: 'infaq_amount', label: 'Komitmen Infaq', type: 'text' },
+          { name: 'timezone', label: 'Zona Waktu', type: 'text' },
+          { name: 'main_time_slot', label: 'Waktu Setoran Utama', type: 'text' },
+          { name: 'backup_time_slot', label: 'Waktu Setoran Cadangan', type: 'text' },
+          { name: 'permission_name', label: 'Nama Pemberi Izin', type: 'text' },
+          { name: 'permission_phone', label: 'No. HP Pemberi Izin', type: 'text' },
+          { name: 'ready_for_team', label: 'Bersedia Masuk Tim', type: 'select', options: [
+            { value: 'yes', label: 'Ya' },
+            { value: 'no', label: 'Tidak' }
+          ] },
+          { name: 'motivation', label: 'Motivasi', type: 'textarea' },
+          { name: 'questions', label: 'Pertanyaan / Harapan', type: 'textarea' },
+          { name: 'understands_program', label: 'Memahami Program', type: 'checkbox' },
+          { name: 'understands_commitment', label: 'Memahami Komitmen', type: 'checkbox' },
+          { name: 'time_commitment', label: 'Komitmen Waktu', type: 'checkbox' },
+          { name: 'tried_simulation', label: 'Mencoba Simulasi', type: 'checkbox' },
+          { name: 'no_negotiation', label: 'Tidak Negosiasi', type: 'checkbox' },
+          { name: 'no_travel_plans', label: 'Tidak Ada Rencana Safar', type: 'checkbox' },
+          { name: 'saved_contact', label: 'Simpan Kontak', type: 'checkbox' },
+          { name: 'has_permission', label: 'Punya Izin', type: 'checkbox' },
+          { name: 'has_telegram', label: 'Punya Telegram', type: 'checkbox' },
           { name: 'oral_total_score', label: 'Oral Score', type: 'number' },
           { name: 'written_quiz_score', label: 'Written Score', type: 'number' },
-          { name: 'wa_phone', label: 'WhatsApp', type: 'text' },
-          { name: 'domicile', label: 'Domisili', type: 'text' },
         ]}
         initialData={selectedRegistration || {}}
         onSubmit={async (formData) => {

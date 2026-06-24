@@ -159,6 +159,12 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                       <p className="text-sm font-medium text-gray-700 leading-relaxed italic">"{reviewData.motivation}"</p>
                     </div>
                   )}
+                  {reviewData.questions && (
+                    <div className="mt-4 pt-4 border-t border-gray-200/50">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Pertanyaan / Harapan</label>
+                      <p className="text-sm font-medium text-gray-700 leading-relaxed italic">"{reviewData.questions}"</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Oral Assessment Component */}
@@ -255,9 +261,12 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                   <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Readiness Check</h4>
                   <div className="space-y-3">
                     {[
+                      { label: 'Memahami Program', value: reviewData.understands_program },
                       { label: 'Memahami Komitmen', value: reviewData.understands_commitment },
+                      { label: 'Komitmen Waktu', value: reviewData.time_commitment },
                       { label: 'Mencoba Simulasi', value: reviewData.tried_simulation },
                       { label: 'Tidak Negosiasi', value: reviewData.no_negotiation },
+                      { label: 'Tidak Ada Rencana Safar', value: reviewData.no_travel_plans },
                       { label: 'Simpan Kontak', value: reviewData.saved_contact },
                       { label: 'Punya Izin', value: reviewData.has_permission },
                       { label: 'Punya Telegram', value: reviewData.has_telegram },
@@ -271,6 +280,35 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                  <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Informasi Tambahan</h4>
+                  <div className="space-y-4">
+                    {reviewData.has_permission && reviewData.permission_name && (
+                      <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Pemberi Izin</label>
+                        <p className="text-xs font-bold text-gray-900">{reviewData.permission_name} ({reviewData.permission_phone})</p>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Zona Waktu</label>
+                      <p className="text-xs font-bold text-gray-900">{reviewData.timezone || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Waktu Setoran Cadangan</label>
+                      <p className="text-xs font-bold text-gray-900">{reviewData.backup_time_slot || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Bersedia Masuk Tim</label>
+                      <p className="text-xs font-bold text-gray-900 capitalize">{reviewData.ready_for_team === 'yes' ? 'Ya' : reviewData.ready_for_team === 'no' ? 'Tidak' : reviewData.ready_for_team || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Komitmen Infaq</label>
+                      <p className="text-xs font-bold text-gray-900">{reviewData.infaq_amount || '-'}</p>
+                    </div>
                   </div>
                 </div>
               </div>

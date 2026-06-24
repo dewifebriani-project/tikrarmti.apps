@@ -67,7 +67,7 @@ export async function PUT(
                                     body.oral_mad_errors !== undefined || body.oral_ghunnah_errors !== undefined ||
                                     body.oral_harakat_errors !== undefined || body.oral_itmamul_harakat_errors !== undefined ||
                                     body.oral_total_score !== undefined || body.oral_assessment_status !== undefined ||
-                                    body.oral_assessment_notes !== undefined;
+                                    body.oral_assessment_notes !== undefined || body.oral_assessment_audio_url !== undefined;
 
     // For non-admin users doing regular updates (not oral submission), verify they own the registration
     // Note: user_id in body is optional, so we only check if it's provided
@@ -179,6 +179,7 @@ export async function PUT(
       if (body.oral_assessed_by !== undefined) updateData.oral_assessed_by = body.oral_assessed_by;
       if (body.oral_assessed_at !== undefined) updateData.oral_assessed_at = body.oral_assessed_at;
       if (body.oral_assessment_notes !== undefined) updateData.oral_assessment_notes = body.oral_assessment_notes;
+      if (body.oral_assessment_audio_url !== undefined) updateData.oral_assessment_audio_url = body.oral_assessment_audio_url;
       if (body.selection_status !== undefined) updateData.selection_status = body.selection_status;
       updateData.updated_at = new Date().toISOString();
     } else if (isScheduleUpdate) {
@@ -194,18 +195,32 @@ export async function PUT(
       updateData.no_negotiation = body.no_negotiation ?? false;
       updateData.has_telegram = body.has_telegram ?? false;
       updateData.saved_contact = body.saved_contact ?? false;
-      updateData.has_permission = body.has_permission || '';
-      updateData.permission_name = body.permission_name || '';
-      updateData.permission_phone = body.permission_phone || '';
-      updateData.chosen_juz = body.chosen_juz || '';
-      updateData.no_travel_plans = body.no_travel_plans ?? false;
-      updateData.motivation = body.motivation || '';
-      updateData.ready_for_team = body.ready_for_team || '';
-      updateData.main_time_slot = body.main_time_slot || '';
-      updateData.backup_time_slot = body.backup_time_slot || '';
-      updateData.time_commitment = body.time_commitment ?? false;
-      updateData.understands_program = body.understands_program ?? false;
-      updateData.questions = body.questions || '';
+      updateData.has_permission = body.has_permission ?? false;
+      
+      // Additional fields from the registration form
+      if (body.full_name !== undefined) updateData.full_name = body.full_name;
+      if (body.wa_phone !== undefined) updateData.wa_phone = body.wa_phone;
+      if (body.telegram_phone !== undefined) updateData.telegram_phone = body.telegram_phone;
+      if (body.domicile !== undefined) updateData.domicile = body.domicile;
+      if (body.address !== undefined) updateData.address = body.address;
+      if (body.birth_date !== undefined) updateData.birth_date = body.birth_date;
+      if (body.age !== undefined) updateData.age = body.age;
+      if (body.activity_type !== undefined) updateData.activity_type = body.activity_type;
+      if (body.activity_description !== undefined) updateData.activity_description = body.activity_description;
+      if (body.infaq_amount !== undefined) updateData.infaq_amount = body.infaq_amount;
+      if (body.timezone !== undefined) updateData.timezone = body.timezone;
+      
+      if (body.permission_name !== undefined) updateData.permission_name = body.permission_name;
+      if (body.permission_phone !== undefined) updateData.permission_phone = body.permission_phone;
+      if (body.chosen_juz !== undefined) updateData.chosen_juz = body.chosen_juz;
+      if (body.no_travel_plans !== undefined) updateData.no_travel_plans = body.no_travel_plans;
+      if (body.motivation !== undefined) updateData.motivation = body.motivation;
+      if (body.ready_for_team !== undefined) updateData.ready_for_team = body.ready_for_team;
+      if (body.main_time_slot !== undefined) updateData.main_time_slot = body.main_time_slot;
+      if (body.backup_time_slot !== undefined) updateData.backup_time_slot = body.backup_time_slot;
+      if (body.time_commitment !== undefined) updateData.time_commitment = body.time_commitment;
+      if (body.understands_program !== undefined) updateData.understands_program = body.understands_program;
+      if (body.questions !== undefined) updateData.questions = body.questions;
       updateData.updated_at = new Date().toISOString();
     }
 

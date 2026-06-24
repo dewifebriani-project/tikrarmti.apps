@@ -673,8 +673,8 @@ export default function ThalibahBatch2Page() {
     <div className="space-y-4 sm:space-y-6">
       <Alert className="bg-green-50 border-green-200">
         <Info className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-        <AlertDescription className="text-green-800 text-sm sm:text-base">
-          <strong>Section 1 of {totalSections}</strong> - Konfirmasi Data Diri
+        <AlertDescription className="text-green-800 text-sm sm:text-base font-medium">
+          Konfirmasi Data Diri
         </AlertDescription>
       </Alert>
 
@@ -766,8 +766,8 @@ export default function ThalibahBatch2Page() {
     <div className="space-y-4 sm:space-y-6">
       <Alert className="bg-green-50 border-green-200">
         <Info className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-        <AlertDescription className="text-green-800 text-sm sm:text-base">
-          <strong>Section 2 of {totalSections}</strong> - FORMULIR PENDAFTARAN TIKRAR MTI {activeBatchData?.name || '...'}
+        <AlertDescription className="text-green-800 text-sm sm:text-base font-medium uppercase">
+          FORMULIR PENDAFTARAN TIKRAR MTI {activeBatchData?.name || '...'}
         </AlertDescription>
       </Alert>
  
@@ -985,8 +985,8 @@ export default function ThalibahBatch2Page() {
     <div className="space-y-4 sm:space-y-6">
       <Alert className="bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-        <AlertDescription className="text-blue-800 text-sm sm:text-base">
-          <strong>Section 3 of {totalSections}</strong> - Izin & Pilihan Program
+        <AlertDescription className="text-blue-800 text-sm sm:text-base font-medium">
+          Izin & Pilihan Program
         </AlertDescription>
       </Alert>
  
@@ -1315,8 +1315,8 @@ export default function ThalibahBatch2Page() {
     <div className="space-y-6">
       <Alert className="bg-purple-50 border-purple-200">
         <Info className="h-4 w-4 text-purple-600" />
-        <AlertDescription className="text-purple-800">
-          <strong>Section 4 of {totalSections}</strong> - Waktu Setoran
+        <AlertDescription className="text-purple-800 font-medium">
+          Waktu Setoran
         </AlertDescription>
       </Alert>
  
@@ -1410,8 +1410,8 @@ export default function ThalibahBatch2Page() {
     <div className="space-y-6">
       <Alert className="bg-orange-50 border-orange-200">
         <Info className="h-4 w-4 text-orange-600" />
-        <AlertDescription className="text-orange-800">
-          <strong>Section 5 of {totalSections}</strong> - Program Tikrar MTI
+        <AlertDescription className="text-orange-800 font-medium">
+          Program Tikrar MTI
         </AlertDescription>
       </Alert>
  
@@ -1594,7 +1594,7 @@ export default function ThalibahBatch2Page() {
               )}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
                 <CardTitle className="text-base sm:text-lg md:text-xl text-green-900">
-                  Section {currentSection} of {totalSections}
+                  Section {currentSection + 1} of {totalSections}
                 </CardTitle>
                 <span className="text-sm sm:text-base text-gray-600">
                   {Math.round(progressPercentage)}% Complete
@@ -1726,20 +1726,7 @@ export default function ThalibahBatch2Page() {
             </CardContent>
           </Card>
 
-        {/* Important Notes */}
-          <div className="mt-6 sm:mt-8 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 sm:p-6 md:p-8">
-            <h3 className="font-bold text-base sm:text-lg md:text-xl mb-3 sm:mb-4 text-yellow-900 flex items-center">
-              <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-              Catatan Penting
-            </h3>
-            <div className="space-y-2 sm:space-y-3 text-sm sm:text-base text-yellow-800">
-              <p>• Pastikan Ukhti sudah mencoba simulasi membaca Surat An-Naba' ayat 1-11 sebanyak 40 kali sebelum melanjutkan pendaftaran.</p>
-              <p>• Simpan nomor WhatsApp semua admin agar dapat di-add ke grup setelah lolos seleksi.</p>
-              <p>• Siapkan aplikasi Telegram untuk proses seleksi dan komunikasi selanjutnya.</p>
-              <p>• Program ini membutuhkan komitmen waktu minimal 2 jam per hari.</p>
-              <p>• Pastikan Ukhti memiliki izin dari suami/orang tua/wali yang bertanggung jawab atas diri Ukhti.</p>
-            </div>
-          </div>
+
         </div>
       </div>
   )

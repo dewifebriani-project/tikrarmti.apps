@@ -513,3 +513,18 @@ export interface SPFilter {
   sp_level?: SPLevel;
   status?: SPStatus[];
 }
+export interface FAQQuestion {
+  q: string;
+  a: string;
+}
+
+export interface FAQCategory {
+  id: string;
+  category: string;
+  icon: string;
+  color: string;
+  questions: FAQQuestion[];
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}

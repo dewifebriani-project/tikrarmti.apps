@@ -12,6 +12,7 @@ interface Testimonial {
   user?: {
     full_name: string;
     kota: string | null;
+    tanggal_lahir?: string | null;
   };
 }
 
@@ -41,6 +42,19 @@ export function LandingTestimonialsCarousel({ testimonials }: { testimonials: Te
       .join(' ');
   };
 
+  // Helper to calculate age
+  const calculateAge = (birthDate: string | null | undefined) => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   // Helper to truncate text
   const truncateText = (text: string, limit: number = 160) => {
     if (text.length <= limit) return text;
@@ -62,6 +76,8 @@ export function LandingTestimonialsCarousel({ testimonials }: { testimonials: Te
               ? t.user.full_name.substring(0, 2).toUpperCase()
               : 'HA';
             const locationName = toProperCase(t.user?.kota || null);
+            const age = calculateAge(t.user?.tanggal_lahir);
+            const locationAndAge = locationName ? `${locationName}${age ? `, ${age} thn` : ''}` : (age ? `${age} thn` : null);
 
             return (
               <div
@@ -113,10 +129,10 @@ export function LandingTestimonialsCarousel({ testimonials }: { testimonials: Te
                         {t.user?.full_name || 'Hamba Allah'}
                       </h4>
                       <div className="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-700/80 font-semibold mt-0.5">
-                        {locationName ? (
+                        {locationAndAge ? (
                           <>
                             <MapPin className="w-3 h-3 text-amber-500 flex-shrink-0" />
-                            <span className="truncate">{locationName}</span>
+                            <span className="truncate">{locationAndAge}</span>
                           </>
                         ) : (
                           <span>Alumni Program MTI</span>
@@ -185,21 +201,25 @@ export function LandingTestimonialsCarousel({ testimonials }: { testimonials: Te
                     ? selectedTestimonial.user.full_name.substring(0, 2).toUpperCase()
                     : 'HA'}
                 </div>
-                <div>
-                  <h4 className="font-extrabold text-gray-900 text-sm sm:text-base">
-                    {selectedTestimonial.user?.full_name || 'Hamba Allah'}
-                  </h4>
-                  <div className="flex items-center gap-1 text-xs text-emerald-750 font-bold mt-0.5">
-                    {selectedTestimonial.user?.kota ? (
-                      <>
-                        <MapPin className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{toProperCase(selectedTestimonial.user?.kota || null)}</span>
-                      </>
-                    ) : (
-                      <span>Alumni Program MTI</span>
-                    )}
+                  <div className="flex flex-col">
+                    <h4 className="font-bold text-gray-900 text-lg">
+                      {selectedTestimonial.user?.full_name || 'Hamba Allah'}
+                    </h4>
+                    <div className="flex items-center gap-1.5 text-sm text-emerald-700 font-medium">
+                      {(selectedTestimonial.user?.kota || selectedTestimonial.user?.tanggal_lahir) ? (
+                        <>
+                          <MapPin className="w-4 h-4 text-amber-500" />
+                          <span>
+                            {toProperCase(selectedTestimonial.user?.kota || null)}
+                            {selectedTestimonial.user?.kota && selectedTestimonial.user?.tanggal_lahir ? ', ' : ''}
+                            {calculateAge(selectedTestimonial.user?.tanggal_lahir) ? `${calculateAge(selectedTestimonial.user?.tanggal_lahir)} thn` : ''}
+                          </span>
+                        </>
+                      ) : (
+                        <span>Alumni Program MTI</span>
+                      )}
+                    </div>
                   </div>
-                </div>
               </div>
 
               {/* Rating stars inside modal */}
