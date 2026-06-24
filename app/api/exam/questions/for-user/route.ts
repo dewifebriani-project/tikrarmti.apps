@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Get batch to check selection dates and status
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('batches')
-      .select('id, name, status, selection_start_date, selection_end_date, min_final_exam_score')
+      .select('id, name, status, registration_start_date, registration_end_date, min_final_exam_score')
       .eq('id', registration.batch_id)
       .single();
 
@@ -123,9 +123,9 @@ export async function GET(request: NextRequest) {
       const today = new Date();
       const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
-      if (batch.selection_start_date && batch.selection_end_date) {
-        const startDateStr = batch.selection_start_date.substring(0, 10);
-        const endDateStr = batch.selection_end_date.substring(0, 10);
+      if (batch.registration_start_date && batch.registration_end_date) {
+        const startDateStr = batch.registration_start_date.substring(0, 10);
+        const endDateStr = batch.registration_end_date.substring(0, 10);
         const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
         const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
 

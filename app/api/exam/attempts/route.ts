@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Get batch to check selection dates and status
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('batches')
-      .select('id, name, status, selection_start_date, selection_end_date')
+      .select('id, name, status, registration_start_date, registration_end_date')
       .eq('id', registration.batch_id)
       .single();
 
@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       batchId: batch.id,
       batchName: batch.name,
       batchStatus: batch.status,
-      selectionStart: batch.selection_start_date,
-      selectionEnd: batch.selection_end_date
+      registrationStart: batch.registration_start_date,
+      registrationEnd: batch.registration_end_date
     });
 
     // Check if batch is open
@@ -78,15 +78,15 @@ export async function POST(request: NextRequest) {
 
     logger.info('Date check', {
       todayDateOnly,
-      selectionStart: batch.selection_start_date,
-      selectionEnd: batch.selection_end_date,
+      registrationStart: batch.registration_start_date,
+      registrationEnd: batch.registration_end_date,
       todayISO: today.toISOString()
     });
 
-    if (batch.selection_start_date && batch.selection_end_date) {
+    if (batch.registration_start_date && batch.registration_end_date) {
       // Parse dates as YYYY-MM-DD and convert to comparable numbers
-      const startDateStr = batch.selection_start_date.substring(0, 10);
-      const endDateStr = batch.selection_end_date.substring(0, 10);
+      const startDateStr = batch.registration_start_date.substring(0, 10);
+      const endDateStr = batch.registration_end_date.substring(0, 10);
 
       const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
       const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);

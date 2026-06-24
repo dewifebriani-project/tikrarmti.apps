@@ -62,7 +62,12 @@ interface Question {
   sort_order: number
 }
 
-const FALLBACK_QUESTIONS: Record<string, { label: string; description: string | null; warning_text: string | null; is_required: boolean }> = {
+  intro_text: {
+    label: "Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..",
+    description: "📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis (syarat dan ketentuan berlaku) khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.\n\n📆 Durasi program: InsyaAllah selama 13 Pekan untuk target hafalan 1/2 juz.\n\nStruktur Program:\n📅 Pekan Pertama: Tashih\n📖 Pekan Selanjutnya: Ziyadah\n🕌 (Catatan: Hari libur akan disesuaikan dengan kalender nasional/MTI)\n📚 Pekan Terakhir: Muroja'ah dan Ujian\n\n🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)\n\nKewajiban Program:\n✅ Tashih wajib sekali sepekan untuk kurikulum ziyadah pekan depan, jadwal menyesuaikan\n✅ Ujian wajib sekali sepekan untuk kurikulum selesai ziyadah pekanan, jadwal menyesuaikan\n✅ Setoran 40X boleh memilih mau bersama pasangan atau tidak (yang memilih tidak berpasangan hanya untuk yang bacaan sudah benar-benar mutqin)\n✅ Jadwal setoran pasangan boleh pilih opsi yang sudah ditentukan, akan kami carikan pasangan setoran semaksimal mungkin yang sama waktu dan zona waktu\n\n👨‍👩‍👧 Izin Keluarga/Wali\nUntuk mengikuti program ini, wajib mendapatkan izin dari suami, orang tua, majikan, atau wali, karena waktu Ukhti akan lebih banyak digunakan untuk menghafal. Jika sewaktu-waktu mereka mencabut izinnya, merekalah yang harus menghubungi pihak MTI untuk menyampaikan permohonan pengunduran diri.\n\n⚙️ Tentang Program\nSeluruh aturan kami susun demi kebaikan dan kelancaran program ini, bukan untuk mempersulit siapapun. Kami ingin menciptakan lingkungan yang serius dan kondusif bagi para penghafal Qur'an.\n\n⏳ Komitmen Waktu\nProgram ini membutuhkan komitmen waktu minimal 2 jam per hari membersamai Al Quran. Jika Ukhti memiliki jadwal yang padat, banyak tanggungan, atau merasa tidak bisa konsisten, kami sarankan untuk tidak mendaftar dulu. Tujuan kami adalah agar program ini berjalan dengan zero dropout dan zero blacklist.\n\n💡 Tentang Metode\nMetode Tikrar MTI kami rancang berdasarkan pengalaman para ibu yang mengajar dan belajar Al-Qur'an di tengah rutinitas rumah tangga. Metode ini cocok untuk emak-emak yang menghafal di rumah sambil mencuci, masak, mengurus anak dan suami.\n\n🚫 Tidak cocok untuk:\n• Tholibah yang bekerja full-time dan hanya memiliki waktu malam untuk keluarga\n• Mu'allimah yang sudah mutqin tapi tidak bisa menyelesaikan program karena kesibukan mengajar, belajar atau kesibukan pribadi\nNamun, jika ingin mengadopsi metode ini untuk diterapkan di halaqah masing-masing, silakan. Metode ini bebas dipakai, dimodifikasi, dan disebarluaskan.\n\n🧪 Simulasi Sebelum Daftar\nKarena metode pengulangan 40 kali bisa terasa berat, lama, dan membosankan, kami mensyaratkan calon peserta untuk mencoba simulasi:\n📖 Bacalah Surah An-Naba' ayat 1–11 sebanyak 40 kali.\nJika merasa sanggup, silakan lanjut mengisi formulir. Jika tidak, sebaiknya undur diri dari sekarang.\n\n🎯 Tujuan Program\nKami tidak mengejar kuantitas peserta, tetapi lebih fokus pada tholibah yang ikhlas, istiqamah, dan bersungguh-sungguh untuk menghafal dan menebar manfaat. Bagi yang masih banyak agenda dan belum bisa konsisten, lebih baik menunggu angkatan berikutnya.\n\n⚠️ Program Blacklist\nProgram ini menerapkan sistem Blacklist permanen bagi peserta yang mundur di tengah jalan tanpa alasan yang dapat kami terima, demi menjaga hak pasangan setoran dan stabilitas Nasional Markaz Tikrar Indonesia.",
+    warning_text: "Bagi kakak-kakak yang sibuk, banyak kelas, ga bisa atur waktu dengan pasangan silahkan pilih program tanpa pasangan.\n\nJika Ukhti dinyatakan lolos seleksi administrasi dan tes bacaan, dan sudah daftar ulang, kami tidak meridhoi Ukhti keluar dari program tanpa udzur syar'i. Alasan seperti \"sibuk\", \"ada kerjaan\", atau \"ikut kelas lain\" tidak kami terima.\n\n✅ Alasan yang DITERIMA untuk mundur dari program:\n• Qadarullah, diri sendiri/orang tua/mertua/suami/anak sakit dan butuh perawatan intensif\n• Qadarullah, hamil muda dan mengalami ngidam atau mual berat yang menyulitkan untuk mengikuti program\n• Qadarullah, terjadi bencana alam yang menghambat kelanjutan program\n• Udzur lain yang darurat, mendesak, dan tidak terduga, yang dapat kami maklumi\n\n🚩 Peringatan Serius: Kami tidak ridho jika Ukhti submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan baca di Web markaztikrar.id.",
+    is_required: false
+  },
   commitment_info: {
     label: "🤝 Komitmen & Etika",
     description: "• Program ini melibatkan banyak pihak dan pasangan setoran. Kami berusaha menyesuaikan jadwal dengan pilihan Ukhti sendiri.\n• Harap meluruskan niat, menjaga komitmen, tidak banyak mengeluh, dan tidak mementingkan diri sendiri\n• Jaga adab kepada seluruh tim Tikrar MTI dan pasangan setoran masing-masing\n• Keputusan kelulusan tes administrasi dan bacaan bersifat final dan tidak dapat diganggu gugat\n• Program ini baru 3 angkatan, kami akui masih banyak kekurangan/ketidaksempurnaan di sana-sini, kami berusaha melakukan semaksimal mungkin energi kami untuk program ini.\n• Kami tidak melayani tuntutan professionalisme berlebih atau kesempurnaan seakan kami menjual jasa dengan harga tarif professional, kami hanya kumpulan emak-emak yang berkomitmen ingin emak-emak se-bumi Allah merasakan nikmatnya berproses menghafal Al Quran dengan metode tikrar, merasakan nikmatnya berkomunitas dengan sahabat-sahabat Al Quran. Sebagaimana yang telah kami rasakan dari guru-guru kami.\n• MTI adalah rumah bagi kita, yang anggotanya adalah keluarga bagaikan ibu dengan anak, kakak dengan adik, yang saling melengkapi kelemahan dan kekurangan masing-masing untuk kebaikan denqan target berkumpul di Jannah Firdaus Al-'Ala. (No Baper, No Drama).",
@@ -765,124 +770,32 @@ export default function ThalibahBatch2Page() {
         </AlertDescription>
       </Alert>
  
-      <div className="bg-blue-50 p-3 sm:p-4 md:p-6 lg:p-8 rounded-lg">
-        <h3 className="font-bold text-base sm:text-lg md:text-xl mb-4 sm:mb-6 text-green-900">Bismillah.. Hayyakillah Ahlan wasahlan kakak-kakak calon hafidzah..</h3>
- 
-        <div className="space-y-3 sm:space-y-4 text-sm sm:text-base text-gray-700">
-          <p>📝 Formulir ini adalah formulir pendaftaran untuk kelas hafalan Al-Qur'an gratis (syarat dan ketentuan berlaku) khusus akhawat, menggunakan metode pengulangan (tikrar) sebanyak 40 kali.</p>
-          <p>📆 Durasi program: InsyaAllah selama {activeBatchData?.duration_weeks || 13} Pekan ({formatDateRange(activeBatchData?.start_date, activeBatchData?.end_date)}) untuk target hafalan 1/2 juz.</p>
- 
-          <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-green-50 rounded-lg">
-            <p className="font-semibold text-green-800 mb-2 sm:mb-3 text-sm sm:text-base">Struktur Program:</p>
-            <div className="text-xs sm:text-sm text-green-700 space-y-1.5 sm:space-y-2">
-              <p>📅 <strong>Pekan Pertama:</strong> Tashih</p>
-              <p>📖 <strong>Pekan Selanjutnya:</strong> Ziyadah</p>
-              <p>🕌 <strong>(Catatan: Hari libur akan disesuaikan dengan kalender nasional/MTI)</strong></p>
-              <p>📚 <strong>Pekan Terakhir:</strong> Muroja'ah dan Ujian</p>
+      {getQuestionMeta('intro_text').is_active && (
+        <div className="bg-blue-50 p-4 sm:p-6 md:p-8 rounded-2xl border border-blue-100 shadow-sm space-y-5 animate-in fade-in duration-300">
+          <h3 className="font-bold text-lg sm:text-xl text-green-900 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-green-600" />
+            {getQuestionMeta('intro_text').label}
+          </h3>
+          
+          {getQuestionMeta('intro_text').description && (
+            <div className="text-sm sm:text-base text-gray-700 leading-relaxed space-y-4 whitespace-pre-wrap">
+              {getQuestionMeta('intro_text').description}
             </div>
-          </div>
- 
-          <p>🎯 Target hafalan harian: 1 halaman perpekan (1/4 halaman per hari, 4 hari dalam sepekan)</p>
- 
-          <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 rounded-lg">
-            <p className="font-semibold text-blue-800 mb-2 sm:mb-3 text-sm sm:text-base">Kewajiban Program:</p>
-            <div className="text-xs sm:text-sm text-blue-700 space-y-1.5 sm:space-y-2">
-              <p>✅ Tashih wajib sekali sepekan untuk kurikulum ziyadah pekan depan, jadwal menyesuaikan</p>
-              <p>✅ Ujian wajib sekali sepekan untuk kurikulum selesai ziyadah pekanan, jadwal menyesuaikan</p>
-              <p>✅ Setoran 40X boleh memilih mau bersama pasangan atau tidak (yang memilih tidak berpasangan hanya untuk yang bacaan sudah benar-benar mutqin)</p>
-              <p>✅ Jadwal setoran pasangan boleh pilih opsi yang sudah ditentukan, akan kami carikan pasangan setoran semaksimal mungkin yang sama waktu dan zona waktu</p>
+          )}
+
+          {getQuestionMeta('intro_text').warning_text && (
+            <div className="mt-6 p-5 bg-amber-50 rounded-xl border border-amber-200 shadow-inner">
+              <p className="font-bold text-amber-900 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                Peringatan Penting
+              </p>
+              <div className="text-sm text-amber-800 leading-relaxed whitespace-pre-wrap">
+                {getQuestionMeta('intro_text').warning_text}
+              </div>
             </div>
-          </div>
- 
-          <div className="mt-4 p-5 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="font-semibold text-yellow-800 mb-3 flex items-center text-base">
-              <AlertCircle className="w-5 h-5 mr-2" />
-              ⚠️ Peringatan Penting
-            </p>
-            <div className="text-yellow-700 text-sm space-y-3">
-              <p>Bagi kakak-kakak yang sibuk, banyak kelas, ga bisa atur waktu dengan pasangan silahkan pilih program tanpa pasangan.</p>
-              <p><strong>Jika Ukhti dinyatakan lolos seleksi administrasi dan tes bacaan, dan sudah daftar ulang, kami tidak meridhoi Ukhti keluar dari program tanpa udzur syar'i.</strong> Alasan seperti "sibuk", "ada kerjaan", atau "ikut kelas lain" tidak kami terima.</p>
- 
-              <p className="mt-2 font-semibold">✅ Alasan yang DITERIMA untuk mundur dari program:</p>
-              <ul className="ml-4 space-y-1">
-                <li>• Qadarullah, diri sendiri/orang tua/mertua/suami/anak sakit dan butuh perawatan intensif</li>
-                <li>• Qadarullah, hamil muda dan mengalami ngidam atau mual berat yang menyulitkan untuk mengikuti program</li>
-                <li>• Qadarullah, terjadi bencana alam yang menghambat kelanjutan program</li>
-                <li>• Udzur lain yang darurat, mendesak, dan tidak terduga, yang dapat kami maklumi</li>
-              </ul>
-            </div>
-          </div>
- 
-          <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-            <p className="font-semibold text-purple-800 mb-3 text-base">👨‍👩‍👧 Izin Keluarga/Wali</p>
-            <p className="text-sm text-purple-700">
-              Untuk mengikuti program ini, wajib mendapatkan izin dari suami, orang tua, majikan, atau wali, karena waktu Ukhti akan lebih banyak digunakan untuk menghafal. Jika sewaktu-waktu mereka mencabut izinnya, merekalah yang harus menghubungi pihak MTI untuk menyampaikan permohonan pengunduran diri.
-            </p>
-          </div>
- 
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <p className="font-semibold text-gray-800 mb-3 text-base">⚙️ Tentang Program</p>
-            <p className="text-sm text-gray-700">
-              Seluruh aturan kami susun demi kebaikan dan kelancaran program ini, bukan untuk mempersulit siapapun. Kami ingin menciptakan lingkungan yang serius dan kondusif bagi para penghafal Qur'an.
-            </p>
-          </div>
- 
-          <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
-            <p className="font-semibold text-indigo-800 mb-3 text-base">⏳ Komitmen Waktu</p>
-            <p className="text-sm text-indigo-700">
-              Program ini membutuhkan komitmen waktu minimal 2 jam per hari membersamai Al Quran. Jika Ukhti memiliki jadwal yang padat, banyak tanggungan, atau merasa tidak bisa konsisten, kami sarankan untuk tidak mendaftar dulu. Tujuan kami adalah agar program ini berjalan dengan zero dropout dan zero blacklist.
-            </p>
-          </div>
- 
-          <div className="mt-4 p-4 bg-teal-50 rounded-lg">
-            <p className="font-semibold text-teal-800 mb-3 text-base">💡 Tentang Metode</p>
-            <p className="text-sm text-teal-700">
-              Metode Tikrar MTI kami rancang berdasarkan pengalaman para ibu yang mengajar dan belajar Al-Qur'an di tengah rutinitas rumah tangga. Metode ini cocok untuk emak-emak yang menghafal di rumah sambil mencuci, masak, mengurus anak dan suami.
-            </p>
-          </div>
- 
-          <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="font-semibold text-red-800 mb-3 text-base">🚫 Tidak cocok untuk:</p>
-            <div className="text-sm text-red-700 space-y-2">
-              <p>• Tholibah yang bekerja full-time dan hanya memiliki waktu malam untuk keluarga</p>
-              <p>• Mu'allimah yang sudah mutqin tapi tidak bisa menyelesaikan program karena kesibukan mengajar, belajar atau kesibukan pribadi</p>
-            </div>
-            <p className="text-sm text-red-600 mt-3">
-              Namun, jika ingin mengadopsi metode ini untuk diterapkan di halaqah masing-masing, silakan. Metode ini bebas dipakai, dimodifikasi, dan disebarluaskan.
-            </p>
-          </div>
- 
-          <div className="mt-4 p-4 bg-orange-50 rounded-lg">
-            <p className="font-semibold text-orange-800 mb-3 text-base">🧪 Simulasi Sebelum Daftar</p>
-            <div className="text-sm text-orange-700 space-y-3">
-              <p>Karena metode pengulangan 40 kali bisa terasa berat, lama, dan membosankan, kami mensyaratkan calon peserta untuk mencoba simulasi:</p>
-              <p>📖 Bacalah Surah An-Naba' ayat 1–11 sebanyak 40 kali.</p>
-              <p><strong>Jika merasa sanggup, silakan lanjut mengisi formulir. Jika tidak, sebaiknya undur diri dari sekarang.</strong></p>
-            </div>
-          </div>
- 
-          <div className="mt-4 p-4 bg-rose-50 rounded-lg border border-rose-200">
-            <p className="font-semibold text-rose-800 mb-3 text-base">🚩 Peringatan Serius</p>
-            <div className="text-sm text-rose-700 space-y-3">
-              <p>Kami tidak ridho jika Ukhti submit formulir pendaftaran ini hanya untuk iseng atau kepo saja, karena hanya merepotkan proses seleksi. Jika hanya ingin kepo saja silahkan baca di Web markaztikrar.id. Di web sudah kami markaztikrar</p>
-            </div>
-          </div>
- 
-          <div className="mt-4 p-4 bg-emerald-50 rounded-lg">
-            <p className="font-semibold text-emerald-800 mb-3 text-base">🎯 Tujuan Program</p>
-            <div className="text-sm text-emerald-700 space-y-3">
-              <p>Kami tidak mengejar kuantitas peserta, tetapi lebih fokus pada tholibah yang ikhlas, istiqamah, dan bersungguh-sungguh untuk menghafal dan menebar manfaat. Bagi yang masih banyak agenda dan belum bisa konsisten, lebih baik menunggu angkatan berikutnya.</p>
-            </div>
-          </div>
- 
-          <div className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="font-semibold text-slate-800 mb-3 text-base">⚠️ Program Blacklist</p>
-            <div className="text-sm text-slate-700 space-y-3">
-              <p>Program ini menerapkan sistem Blacklist permanen bagi peserta yang mundur di tengah jalan tanpa alasan yang dapat kami terima, demi menjaga hak pasangan setoran dan stabilitas Nasional Markaz Tikrar Indonesia.</p>
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+      )}
  
       {getQuestionMeta('commitment_info').is_active && (
         <div className="mt-4 p-5 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg">
