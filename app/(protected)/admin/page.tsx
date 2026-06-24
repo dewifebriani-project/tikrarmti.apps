@@ -53,7 +53,7 @@ import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 import { AnalysisTab } from '@/components/AnalysisTab';
 import { SystemLogsTab } from '@/components/SystemLogsTab';
 import AdminPairingTab from '@/components/AdminPairingTab';
-import { DaftarUlangTab } from '@/components/DaftarUlangTab';
+import { DaftarUlangV2Tab } from '@/components/admin/daftar-ulang-v2/DaftarUlangV2Tab';
 import { EditRoleModal } from '@/components/EditRoleModal';
 import { EditUserModal } from '@/components/EditUserModal';
 import { AdminRlsPoliciesTab } from '@/components/AdminRlsPoliciesTab';
@@ -765,7 +765,7 @@ function AdminContent() {
           </div>
         )}
         {activeTab === 'halaqah' && <HalaqahManagementTab />}
-        {activeTab === 'daftar-ulang' && <DaftarUlangTab batchId={selectedBatchFilter} />}
+        {activeTab === 'daftar-ulang' && <DaftarUlangV2Tab batchId={selectedBatchFilter} />}
         {activeTab === 'analysis' && <AnalysisTab />}
         {activeTab === 'pairing' && <AdminPairingTab />}
         {activeTab === 'system-logs' && <SystemLogsTab isActive={activeTab === 'system-logs'} />}
