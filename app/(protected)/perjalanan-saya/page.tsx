@@ -189,15 +189,15 @@ export default function PerjalananSaya() {
     return murajaahBlocks.every((b: any) => b.is_completed);
   }, [jurnalStatus]);
 
-  // Get batch_id from registration - fallback to active batch for Admins
+  // Get batch_id: Priority is Active Batch, fallback to latest registration
   const batchId = useMemo(() => {
-    // Priority 1: Registration from DB
-    if (registrations && registrations.length > 0 && registrations[0].batch_id) {
-      return registrations[0].batch_id;
-    }
-    // Priority 2: Fallback to Active Batch (for both students and admins)
+    // Priority 1: Active Batch (Always show the currently running/open batch)
     if (activeBatch) {
       return activeBatch.id;
+    }
+    // Priority 2: Registration from DB
+    if (registrations && registrations.length > 0 && registrations[0].batch_id) {
+      return registrations[0].batch_id;
     }
     return null;
   }, [registrations, activeBatch]);
@@ -214,12 +214,21 @@ export default function PerjalananSaya() {
       return { hasRegistered: false };
     }
 
+    // Filter registrations to only those matching the current batchId
+    const batchRegistrations = batchId 
+      ? registrations.filter(reg => reg.batch_id === batchId)
+      : registrations;
+
+    if (batchRegistrations.length === 0) {
+      return { hasRegistered: false };
+    }
+
     // hasRegistered = true for anyone with registration (except withdrawn)
     // This allows rejected users to still see their journey timeline
-    const hasAnyRegistration = registrations.some(reg => reg.status !== 'withdrawn');
-    const hasActiveRegistration = registrations.some(reg => ['approved', 'pending'].includes(reg.status));
-    const approvedRegistration = registrations.find(reg => reg.status === 'approved');
-    const registration = (approvedRegistration || registrations[0]) as TikrarRegistration;
+    const hasAnyRegistration = batchRegistrations.some(reg => reg.status !== 'withdrawn');
+    const hasActiveRegistration = batchRegistrations.some(reg => ['approved', 'pending'].includes(reg.status));
+    const approvedRegistration = batchRegistrations.find(reg => reg.status === 'approved');
+    const registration = (approvedRegistration || batchRegistrations[0]) as TikrarRegistration;
 
     const showSelectionResult = (() => {
       if (!batch?.selection_result_date) return false;
@@ -258,7 +267,7 @@ export default function PerjalananSaya() {
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
       selectionStatus: displaySelectionStatus,
     };
-  }, [user, registrations, batch, isAlumnus]);
+  }, [user, registrations, batch, isAlumnus, batchId]);
 
   const isJuz30 = registrationStatus?.chosenJuz?.startsWith('30') || false;
 
