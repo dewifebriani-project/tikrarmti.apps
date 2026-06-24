@@ -204,20 +204,29 @@ export default function ThalibahBatch2Page() {
 
   const getQuestionMeta = (key: string) => {
     const dbQ = questions.find(q => q.field_key === key)
+    let meta;
     if (dbQ) {
-      return {
+      meta = {
         label: dbQ.label,
         description: dbQ.description,
         warning_text: dbQ.warning_text,
         is_required: dbQ.is_required,
         is_active: dbQ.is_active
       }
+    } else {
+      const fallback = FALLBACK_QUESTIONS[key]
+      meta = {
+        ...fallback,
+        is_active: true
+      }
     }
-    const fallback = FALLBACK_QUESTIONS[key]
-    return {
-      ...fallback,
-      is_active: true
+    
+    // Force permission name and phone to be optional
+    if (key === 'permission_name' || key === 'permission_phone') {
+      meta.is_required = false;
     }
+    
+    return meta;
   }
   const { user, isLoading, isAuthenticated, isUnauthenticated } = useAuth()
   const { activeBatch, isLoading: activeBatchLoading } = useActiveBatch()
@@ -525,8 +534,11 @@ export default function ThalibahBatch2Page() {
             if (qPermPhone.is_required && !formData.permission_phone.trim()) {
               newErrors.permission_phone = 'Nomor HP pemberi izin harus diisi'
             }
-            if (formData.permission_phone !== formData.permission_phone_validation) {
-              newErrors.permission_phone_validation = 'Validasi nomor HP tidak cocok'
+            // Only validate match if a phone number was entered
+            if (formData.permission_phone || formData.permission_phone_validation) {
+              if (formData.permission_phone !== formData.permission_phone_validation) {
+                newErrors.permission_phone_validation = 'Validasi nomor HP tidak cocok'
+              }
             }
           }
         }
