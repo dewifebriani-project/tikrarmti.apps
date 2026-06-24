@@ -22,20 +22,23 @@ export async function GET(request: Request) {
     .eq('user_id', authUser.id);
 
   if (type) {
-    query = query.eq('schedule.exam_type', type);
+    query = query.eq('final_exam_schedules.exam_type', type);
   }
   if (batchId) {
-    query = query.eq('schedule.batch_id', batchId);
+    query = query.eq('final_exam_schedules.batch_id', batchId);
   }
 
   const { data, error } = await query;
 
   if (error) return ApiResponses.databaseError(error);
   
-  // Filter manually because the RLS/Join might return null for schedule if type mismatch
-  const registration = type ? data?.find(r => (r.schedule as any)?.exam_type === type) : data?.[0];
+  // If type is provided, return a single matching registration. Otherwise, return the array of registrations.
+  if (type) {
+    const registration = data?.find(r => (r.schedule as any)?.exam_type === type);
+    return ApiResponses.success(registration || null);
+  }
 
-  return ApiResponses.success(registration || null);
+  return ApiResponses.success(data || []);
 }
 
 export async function POST(request: Request) {
