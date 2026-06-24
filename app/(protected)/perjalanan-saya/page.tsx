@@ -557,9 +557,10 @@ export default function PerjalananSaya() {
     }
   };
 
-  const fetchFinalExams = async () => {
+  const fetchFinalExams = async (currentBatchId: string | null) => {
+    if (!currentBatchId) return;
     try {
-      const response = await fetch(`/api/exams/final-exams/registrations`, { cache: 'no-store' });
+      const response = await fetch(`/api/exams/final-exams/registrations?batch_id=${currentBatchId}`, { cache: 'no-store' });
       const result = await response.json();
       if (result.success) {
         setFinalExams(Array.isArray(result.data) ? result.data : result.data ? [result.data] : []);
@@ -572,7 +573,7 @@ export default function PerjalananSaya() {
   useEffect(() => {
     if (batchId && user) {
       fetchPairingData(batchId);
-      fetchFinalExams();
+      fetchFinalExams(batchId);
     }
   }, [batchId, user]);
 

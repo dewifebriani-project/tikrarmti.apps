@@ -8,12 +8,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type');
+  const batchId = searchParams.get('batch_id');
 
   let query = supabase
     .from('final_exam_registrations')
     .select(`
       *,
-      schedule:final_exam_schedules (
+      schedule:final_exam_schedules!inner (
         *,
         examiner:users!final_exam_schedules_examiner_id_fkey (full_name)
       )
@@ -22,6 +23,9 @@ export async function GET(request: Request) {
 
   if (type) {
     query = query.eq('schedule.exam_type', type);
+  }
+  if (batchId) {
+    query = query.eq('schedule.batch_id', batchId);
   }
 
   const { data, error } = await query;
