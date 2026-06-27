@@ -205,6 +205,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (phoneError) {
+      console.error('[Register API] Database check for WhatsApp failed:', phoneError);
       return ApiResponses.serverError('Terjadi kesalahan saat memeriksa nomor WhatsApp');
     }
 
