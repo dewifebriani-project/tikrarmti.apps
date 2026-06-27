@@ -73,7 +73,7 @@ export default async function Home() {
             >
               <Link href="/register" className="flex items-center gap-3">
                 <Crown className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-                Daftar Sekarang
+                Buat Akun
               </Link>
             </Button>
             <Button
@@ -107,7 +107,7 @@ export default async function Home() {
 
           {/* Quick Login */}
           <div className="text-center">
-            <p className="text-gray-600 mb-2 sm:mb-3 text-base sm:text-lg">Sudah bergabung?</p>
+            <p className="text-gray-600 mb-2 sm:mb-3 text-base sm:text-lg">Sudah Punya Akun?</p>
             <Button
               asChild
               size="lg"
@@ -286,7 +286,7 @@ export default async function Home() {
               >
                 <Link href="/register" className="flex items-center gap-2 sm:gap-3">
                   <Crown className="w-6 h-6 sm:w-7 sm:h-7 group-hover:rotate-12 transition-transform duration-300" />
-                  <span>Daftar Sekarang</span>
+                  <span>Buat Akun</span>
                 </Link>
               </Button>
               <Button

@@ -23,7 +23,10 @@ import {
   BookOpen,
   Search,
   X,
-  MessageSquare
+  MessageSquare,
+  Shield,
+  Database,
+  ArrowLeft
 } from 'lucide-react';
 import { DaftarUlangHalaqahTab } from '@/components/DaftarUlangHalaqahTab';
 import { getWhatsAppUrl } from '@/lib/utils/whatsapp';
@@ -35,7 +38,7 @@ import { DaftarUlangV2Stats } from './DaftarUlangV2Stats';
 import { DaftarUlangV2Filters } from './DaftarUlangV2Filters';
 import { DaftarUlangV2Table } from './DaftarUlangV2Table';
 import { DetailModal, BulkConfirmModal } from './DaftarUlangV2Modals';
-import { DaftarUlangSubmission, DaftarUlangStatsData, DaftarUlangSubTab, SortField, SortOrder } from './types';
+import { DaftarUlangSubmission, DaftarUlangStatsData, SortField, SortOrder } from './types';
 
 // Types are now imported from './types'
 
@@ -49,7 +52,6 @@ interface DaftarUlangTabProps {
 }
 
 export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProps) {
-  const [activeSubTab, setActiveSubTab] = useState<DaftarUlangSubTab>('submissions');
   const [submissions, setSubmissions] = useState<DaftarUlangSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<DaftarUlangSubmission | null>(null);
@@ -91,18 +93,6 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Per Juz state
-  const [juzGroups, setJuzGroups] = useState<Record<string, any[]>>({});
-  const [juzGroupsLoading, setJuzGroupsLoading] = useState(true);
-  const [juzSortField, setJuzSortField] = useState<'name' | 'status' | 'halaqah' | 'partner' | 'submitted_at'>('name');
-  const [juzSortOrder, setJuzSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  // Export contacts state
-  const [exportingContacts, setExportingContacts] = useState(false);
-  const [exportCategory, setExportCategory] = useState<'tikrar' | 'pra_tikrar'>('tikrar');
-  const [exportFormat, setExportFormat] = useState<'csv' | 'vcf'>('csv');
-  const [exportBatchId, setExportBatchId] = useState<string>('all');
 
   const loadBatches = async () => {
     try {
@@ -195,44 +185,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-  const loadJuzGroups = async () => {
-    console.log('[DaftarUlangTab] Loading juz groups...');
-    setJuzGroupsLoading(true);
 
-    try {
-      const params = new URLSearchParams();
-      if (localBatchId && localBatchId !== 'all') params.append('batch_id', localBatchId);
-      params.append('limit', '10000'); // Get all data for grouping
-
-      const response = await fetch(`/api/admin/daftar-ulang?${params.toString()}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('[DaftarUlangTab] Failed to load submissions for juz grouping:', result);
-        return;
-      }
-
-      const allSubmissions = result.data || [];
-
-      // Group by juz
-      const groups: Record<string, any[]> = {};
-      allSubmissions.forEach((sub: any) => {
-        const juz = sub.confirmed_chosen_juz || sub.registration?.chosen_juz || 'Unknown';
-        if (!groups[juz]) {
-          groups[juz] = [];
-        }
-        groups[juz].push(sub);
-      });
-
-      console.log('[DaftarUlangTab] Loaded juz groups:', Object.keys(groups).length, 'juz');
-      setJuzGroups(groups);
-    } catch (error: any) {
-      console.error('[DaftarUlangTab] Error loading juz groups:', error);
-      toast.error('Failed to load juz groups: ' + error.message);
-    } finally {
-      setJuzGroupsLoading(false);
-    }
-  };
 
   // Load all submissions for download (with complete data from pendaftaran_tikrar_tahfidz)
   const loadAllSubmissionsForDownload = async () => {
@@ -779,56 +732,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     }
   };
 
-  // Export contacts handler
-  const handleExportContacts = async () => {
-    setExportingContacts(true);
-    try {
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (exportBatchId && exportBatchId !== 'all') {
-        params.append('batch_id', exportBatchId);
-      }
-      params.append('format', exportFormat);
-      params.append('category', exportCategory);
 
-      const response = await fetch(`/api/admin/export-contacts?${params.toString()}`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to export contacts');
-        return;
-      }
-
-      // Get the content (CSV or VCF)
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const extension = exportFormat === 'vcf' ? 'vcf' : 'csv';
-      const categorySuffix = exportCategory === 'tikrar' ? '-tikrar' : '-pra-tikrar';
-      const batchName = exportBatchId && exportBatchId !== 'all' ? `-${exportBatchId}` : '';
-      a.download = `mti-contacts${categorySuffix}${batchName}-${new Date().toISOString().split('T')[0]}.${extension}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      const formatName = exportFormat === 'vcf' ? 'VCF' : 'CSV';
-      const categoryName = exportCategory === 'tikrar' ? 'Tikrar (MTIA)' : 'Pra Tikrar (MTIPRA)';
-      const importMessage = exportFormat === 'vcf'
-        ? `${categoryName} VCF downloaded! You can import this file directly to Google Contacts.`
-        : `${categoryName} CSV downloaded! Open Gmail Contacts to import.`;
-      toast.success(importMessage);
-    } catch (error) {
-      console.error('[DaftarUlangTab] Export error:', error);
-      toast.error('Failed to export contacts');
-    } finally {
-      setExportingContacts(false);
-    }
-  };
 
   // Load batches on mount
   useEffect(() => {
@@ -842,28 +746,17 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   // Load submissions when batch changes, page changes, or refresh triggers
   useEffect(() => {
-    if (activeSubTab === 'submissions') {
-      loadSubmissions();
-    }
-  }, [localBatchId, refreshTrigger, currentPage, activeSubTab]);
+    loadSubmissions();
+  }, [localBatchId, refreshTrigger, currentPage]);
 
   // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (activeSubTab === 'submissions') {
-        loadSubmissions();
-      }
+      loadSubmissions();
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // Load juz groups when batch changes or refresh triggers
-  useEffect(() => {
-    if (activeSubTab === 'per_juz') {
-      loadJuzGroups();
-    }
-  }, [localBatchId, refreshTrigger, activeSubTab]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -898,60 +791,7 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
     );
   };
 
-  // Sort juz submissions
-  const sortJuzSubmissions = (submissions: any[], field: typeof juzSortField, order: typeof juzSortOrder) => {
-    return [...submissions].sort((a, b) => {
-      let compareValue = 0;
 
-      switch (field) {
-        case 'name':
-          const aName = a.confirmed_full_name || a.user?.full_name || '';
-          const bName = b.confirmed_full_name || b.user?.full_name || '';
-          compareValue = aName.localeCompare(bName, 'id-ID');
-          break;
-        case 'status':
-          compareValue = a.status.localeCompare(b.status);
-          break;
-        case 'halaqah':
-          const aHalaqah = a.ujian_halaqah?.name || a.tashih_halaqah?.name || (a.is_tashih_umum ? 'Umum' : '') || 'zzz';
-          const bHalaqah = b.ujian_halaqah?.name || b.tashih_halaqah?.name || (b.is_tashih_umum ? 'Umum' : '') || 'zzz';
-          compareValue = aHalaqah.localeCompare(bHalaqah);
-          break;
-        case 'partner':
-          const aPartner = a.partner_name || a.partner_user?.full_name || 'zzz';
-          const bPartner = b.partner_name || b.partner_user?.full_name || 'zzz';
-          compareValue = aPartner.localeCompare(bPartner);
-          break;
-        case 'submitted_at':
-          const aDate = a.submitted_at ? new Date(a.submitted_at).getTime() : 0;
-          const bDate = b.submitted_at ? new Date(b.submitted_at).getTime() : 0;
-          compareValue = aDate - bDate;
-          break;
-        default:
-          compareValue = 0;
-      }
-
-      return order === 'asc' ? compareValue : -compareValue;
-    });
-  };
-
-  const handleJuzSort = (field: typeof juzSortField) => {
-    if (juzSortField === field) {
-      setJuzSortOrder(juzSortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setJuzSortField(field);
-      setJuzSortOrder('asc');
-    }
-  };
-
-  const getJuzSortIcon = (field: typeof juzSortField) => {
-    if (juzSortField !== field) return null;
-    return juzSortOrder === 'asc' ? (
-      <ArrowUp className="w-3 h-3 inline ml-1" />
-    ) : (
-      <ArrowDown className="w-3 h-3 inline ml-1" />
-    );
-  };
 
   // Sorted submissions for display
   const sortedSubmissions = useMemo(() => {
@@ -1194,216 +1034,128 @@ export function DaftarUlangV2Tab({ batchId: initialBatchId }: DaftarUlangTabProp
 
   return (
     <div className="space-y-6 relative">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+          <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold tracking-wider mb-2 uppercase">
+            <Shield className="w-4 h-4" />
+            Authority Console
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => window.history.back()} className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Daftar Ulang</h1>
+            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-md border border-emerald-100 uppercase">V2</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-bold rounded-xl border border-gray-200 transition-all">
+            <Database className="w-4 h-4" />
+            <span>Data Daftar Ulang</span>
+          </button>
+        </div>
+      </div>
+
       <DaftarUlangV2Stats 
         stats={stats as DaftarUlangStatsData}
         isLoading={statsLoading}
       />
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-100 overflow-x-auto no-scrollbar">
-        <button
-          onClick={() => setActiveSubTab('submissions')}
-          className={`flex-1 sm:flex-none whitespace-nowrap px-6 py-4 text-sm font-bold border-b-2 transition-colors ${
-            activeSubTab === 'submissions'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-          }`}
-        >
-          Semua Data
-        </button>
-        <button
-          onClick={() => setActiveSubTab('per_juz')}
-          className={`flex-1 sm:flex-none whitespace-nowrap px-6 py-4 text-sm font-bold border-b-2 transition-colors ${
-            activeSubTab === 'per_juz'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-          }`}
-        >
-          Per Juz
-        </button>
-        <button
-          onClick={() => setActiveSubTab('halaqah')}
-          className={`flex-1 sm:flex-none whitespace-nowrap px-6 py-4 text-sm font-bold border-b-2 transition-colors ${
-            activeSubTab === 'halaqah'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-          }`}
-        >
-          Per Halaqah
-        </button>
-      </div>
+      <DaftarUlangV2Filters 
+        searchQuery={searchQuery}
+        batchId={localBatchId}
+        status={filterStatus}
+        batches={batches}
+        onRefresh={loadSubmissions}
+        isLoading={loading}
+        onChange={(filters) => {
+          setSearchQuery(filters.search);
+          setLocalBatchId(filters.batchId);
+          setFilterStatus(filters.status);
+          setCurrentPage(1);
+        }}
+        onDownloadExcel={downloadExcel}
+        onDownloadPDF={downloadPDF}
+        isDownloadingExcel={downloadingExcel}
+        isDownloadingPDF={downloadingPDF}
+      />
 
-      {activeSubTab === 'submissions' && (
-        <>
-          <DaftarUlangV2Filters 
-            searchQuery={searchQuery}
-            batchId={localBatchId}
-            status={filterStatus}
-            batches={batches}
-            onRefresh={loadSubmissions}
-            isLoading={loading}
-            onChange={(filters) => {
-              setSearchQuery(filters.search);
-              setLocalBatchId(filters.batchId);
-              setFilterStatus(filters.status);
-              setCurrentPage(1);
-            }}
-            onDownloadExcel={downloadExcel}
-            onDownloadPDF={downloadPDF}
-            isDownloadingExcel={downloadingExcel}
-            isDownloadingPDF={downloadingPDF}
-          />
+      <DaftarUlangV2Table 
+        submissions={finalSubmissions}
+        isLoading={loading}
+        selectedIds={selectedIds}
+        onSelectAll={handleSelectAll}
+        onSelectOne={handleSelectOne}
+        onViewDetail={(sub) => setSelectedSubmission(sub)}
+        onResetHalaqah={handleResetHalaqah}
+        resettingId={resettingId}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={(field) => {
+          if (sortField === field) {
+            setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+          } else {
+            setSortField(field as SortField);
+            setSortOrder('asc');
+          }
+        }}
+      />
 
-          <DaftarUlangV2Table 
-            submissions={finalSubmissions}
-            isLoading={loading}
-            selectedIds={selectedIds}
-            onSelectAll={handleSelectAll}
-            onSelectOne={handleSelectOne}
-            onViewDetail={(sub) => setSelectedSubmission(sub)}
-            onResetHalaqah={handleResetHalaqah}
-            resettingId={resettingId}
-            sortField={sortField}
-            sortOrder={sortOrder}
-            onSort={(field) => {
-              if (sortField === field) {
-                setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-              } else {
-                setSortField(field as SortField);
-                setSortOrder('asc');
-              }
-            }}
-          />
-
-          {/* Pagination Component mapped here */}
-          {!searchQuery && pagination && pagination.totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-100 bg-white rounded-2xl shadow-sm">
-              <div className="text-sm text-gray-500 font-medium">
-                Halaman {currentPage} dari {pagination.totalPages} <span className="mx-2 text-gray-300">|</span> Total {pagination.total} data
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                >
-                  Sebelumnya
-                </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
-                  disabled={currentPage === pagination.totalPages}
-                  className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                >
-                  Selanjutnya
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Bulk Action Bar */}
-          {selectedIds.size > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-40 animate-in slide-in-from-bottom-8">
-              <div className="flex items-center gap-2 border-r border-gray-700 pr-6">
-                <span className="flex items-center justify-center w-6 h-6 bg-blue-500 text-white rounded-full text-xs font-bold">
-                  {selectedIds.size}
-                </span>
-                <span className="text-sm font-medium">Data Terpilih</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setBulkAction('approve');
-                    setShowBulkConfirm(true);
-                  }}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold rounded-xl transition-colors"
-                >
-                  Approve Terpilih
-                </button>
-                <button
-                  onClick={() => {
-                    setBulkAction('reject');
-                    setShowBulkConfirm(true);
-                  }}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white text-sm font-bold rounded-xl transition-colors"
-                >
-                  Reject Terpilih
-                </button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {activeSubTab === 'per_juz' && (
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-           <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold text-gray-900">Kelompok Per Juz</h2>
-              <div className="text-sm text-gray-500">
-                Filter by Batch is applied
-              </div>
-            </div>
-
-            {juzGroupsLoading ? (
-              <div className="flex justify-center p-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : Object.keys(juzGroups).length === 0 ? (
-              <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl">
-                Tidak ada data
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {Object.entries(juzGroups)
-                  .sort(([a], [b]) => {
-                    const getNum = (j: string) => parseInt(j.replace(/\D/g, '')) || 0;
-                    return getNum(a) - getNum(b);
-                  })
-                  .map(([juz, juzSubmissions]) => {
-                    return (
-                      <div key={juz} className="border border-gray-100 rounded-xl overflow-hidden">
-                        <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-b border-gray-100">
-                          <h3 className="font-bold text-gray-900 text-lg">Juz {juz}</h3>
-                          <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-blue-600 border border-blue-100">
-                            {juzSubmissions.length} Thalibah
-                          </span>
-                        </div>
-                        <div className="p-4 bg-white">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {juzSubmissions.map(sub => (
-                              <div key={sub.id} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                                <p className="font-bold text-sm text-gray-900">
-                                  {sub.confirmed_full_name || sub.user?.full_name || '-'}
-                                </p>
-                                <div className="mt-2 space-y-1 text-xs">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Jadwal:</span>
-                                    <span className="font-medium text-gray-700">{sub.confirmed_main_time_slot || '-'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">Status:</span>
-                                    <span className={`font-bold ${
-                                      sub.status === 'approved' ? 'text-emerald-600' :
-                                      sub.status === 'submitted' ? 'text-blue-600' :
-                                      'text-gray-600'
-                                    }`}>
-                                      {sub.status.toUpperCase()}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
+      {/* Pagination Component mapped here */}
+      {!searchQuery && pagination && pagination.totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-100 bg-white rounded-2xl shadow-sm">
+          <div className="text-sm text-gray-500 font-medium">
+            Halaman {currentPage} dari {pagination.totalPages} <span className="mx-2 text-gray-300">|</span> Total {pagination.total} data
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            >
+              Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(pagination.totalPages, p + 1))}
+              disabled={currentPage === pagination.totalPages}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
         </div>
       )}
 
-      {activeSubTab === 'halaqah' && (
-        <DaftarUlangHalaqahTab batchId={localBatchId === 'all' ? undefined : localBatchId} />
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-40 animate-in slide-in-from-bottom-8">
+          <div className="flex items-center gap-2 border-r border-gray-700 pr-6">
+            <span className="flex items-center justify-center w-6 h-6 bg-blue-500 text-white rounded-full text-xs font-bold">
+              {selectedIds.size}
+            </span>
+            <span className="text-sm font-medium">Data Terpilih</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setBulkAction('approve');
+                setShowBulkConfirm(true);
+              }}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold rounded-xl transition-colors"
+            >
+              Approve Terpilih
+            </button>
+            <button
+              onClick={() => {
+                setBulkAction('reject');
+                setShowBulkConfirm(true);
+              }}
+              className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white text-sm font-bold rounded-xl transition-colors"
+            >
+              Reject Terpilih
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Modals */}

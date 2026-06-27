@@ -35,11 +35,11 @@ export function sanitizeName(input: string | null | undefined): string {
 
   const sanitized = sanitizeText(input);
 
-  // Allow only letters, spaces, hyphens, and apostrophes
-  const nameRegex = /^[a-zA-Z\u00C0-\u024F\s\-\'\.]+$/;
+  // Allow only letters, spaces, hyphens, apostrophes, dots, commas, and parentheses
+  const nameRegex = /^[a-zA-Z\u00C0-\u024F\s\-\'\.\,\(\)]+$/;
 
   if (!nameRegex.test(sanitized)) {
-    throw new Error('Invalid name format');
+    throw new Error('Format nama tidak valid. Hanya perbolehkan huruf, spasi, tanda hubung (-), kutip (\'), titik (.), koma (,), dan kurung ().');
   }
 
   // Limit length

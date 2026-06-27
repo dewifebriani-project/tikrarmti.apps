@@ -592,12 +592,13 @@ function AdminContent() {
         }}
       />
       {/* Admin Header - Premium Gradient */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-900 to-green-800 p-8 text-white shadow-2xl mb-8 -mx-2 sm:mx-0">
-        <div className="relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-medium mb-3">
-                <Shield className="w-3 h-3 text-yellow-400" />
+      {activeTab !== 'daftar-ulang' && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-green-900 to-green-800 p-8 text-white shadow-2xl mb-8 -mx-2 sm:mx-0">
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-[10px] sm:text-xs font-medium mb-3">
+                  <Shield className="w-3 h-3 text-yellow-400" />
                 <span>Tikrar MTI Authority Console</span>
               </div>
               <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
@@ -624,14 +625,16 @@ function AdminContent() {
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-yellow-400/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-green-400/10 rounded-full blur-3xl" />
       </div>
+      )}
 
 
       {/* Tabs - Modern Pill Style */}
-      <div className="mb-8 overflow-x-auto pb-2 scrollbar-hide">
-        <nav className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-max" aria-label="Tabs">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isSelected = activeTab === tab.id;
+      {activeTab !== 'daftar-ulang' && (
+        <div className="mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          <nav className="flex gap-2 p-1.5 bg-gray-100/50 rounded-2xl w-max" aria-label="Tabs">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
@@ -653,10 +656,11 @@ function AdminContent() {
           })}
         </nav>
       </div>
+      )}
 
 
       {/* Content */}
-      <div className="mt-6">
+      <div className={activeTab === 'daftar-ulang' ? '' : 'mt-6'}>
         {dataLoading && (
           <div className="flex justify-center py-8">
             <div className="flex flex-col items-center gap-2">

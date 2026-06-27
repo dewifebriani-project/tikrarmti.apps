@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
               id: data.user.id,
               email: data.user.email || '',
               full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
-              role: data.user.user_metadata?.role || 'thalibah',
+              role: data.user.user_metadata?.role || 'calon_thalibah',
+              roles: ['thalibah'], // CRITICAL: roles array is the source of truth for auth. Must conform to check constraint.
               created_at: new Date().toISOString(),
             } as any);
         }

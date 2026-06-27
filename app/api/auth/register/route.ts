@@ -335,6 +335,7 @@ export async function POST(request: NextRequest) {
           pekerjaan: body.pekerjaan,
           alasan_daftar: body.alasan_daftar,
           role: existingUser.role || role,
+          roles: ['thalibah'], // CRITICAL: roles array is the source of truth for auth. Must conform to check constraint.
           is_active: true,
         })
         .eq('email', body.email)
@@ -391,6 +392,7 @@ export async function POST(request: NextRequest) {
             pekerjaan: body.pekerjaan,
             alasan_daftar: body.alasan_daftar,
             role: body.role,
+            roles: ['thalibah'], // CRITICAL: roles array is the source of truth for auth. Must conform to check constraint.
             is_active: true,
           }
         ])
