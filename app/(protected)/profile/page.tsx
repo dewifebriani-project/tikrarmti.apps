@@ -118,7 +118,9 @@ export default function ProfilePage() {
       try {
         const response = await fetch(`/api/user/profile?userId=${user.id}`)
         if (response.ok) {
-          const data = await response.json()
+          const responseData = await response.json()
+          // Extract data from standard API wrapper envelope
+          const data = responseData?.data || responseData;
 
           // Set simplified user role
           const userRoles = data.roles || []
