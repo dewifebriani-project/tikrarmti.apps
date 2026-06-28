@@ -210,7 +210,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingPhone) {
-      return ApiResponses.conflict('Nomor WhatsApp ini sudah terdaftar. Silakan gunakan nomor lain atau hubungi admin.');
+      return ApiResponses.customValidationError([{
+        field: 'whatsapp',
+        message: 'Nomor WhatsApp ini sudah terdaftar. Silakan gunakan nomor lain atau hubungi admin.',
+        code: 'CONFLICT'
+      }]);
     }
 
     // Check blacklist - prevent blacklisted phone or email from registering
