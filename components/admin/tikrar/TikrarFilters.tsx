@@ -14,13 +14,21 @@ interface TikrarFiltersProps {
   onRefresh: () => void;
   isLoading: boolean;
   batches: any[];
+  defaultBatchId?: string;
 }
 
-export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches }: TikrarFiltersProps) {
+export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches, defaultBatchId = 'all' }: TikrarFiltersProps) {
   const [search, setSearch] = useState('');
-  const [batchId, setBatchId] = useState('all');
+  const [batchId, setBatchId] = useState(defaultBatchId);
   const [status, setStatus] = useState('all');
   const [selectionStatus, setSelectionStatus] = useState('all');
+
+  // Sync batchId if defaultBatchId changes (e.g. once parent fetches batches and finds active batch)
+  useEffect(() => {
+    if (defaultBatchId !== 'all') {
+      setBatchId(defaultBatchId);
+    }
+  }, [defaultBatchId]);
 
   // Debounced search effect
   useEffect(() => {

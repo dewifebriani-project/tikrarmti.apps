@@ -45,7 +45,23 @@ export function TikrarTab({ user }: { user: any }) {
   // Fetch Batches
   const fetchBatches = async () => {
     const { data } = await supabase.from('batches').select('*').order('name', { ascending: false });
-    setBatches(data || []);
+    const loadedBatches = data || [];
+    setBatches(loadedBatches);
+
+    // Find the currently active batch and set it as default in filters
+    const active = loadedBatches.find(b => 
+      b.registration_start_date && 
+      b.registration_end_date &&
+      new Date(b.registration_start_date) <= new Date() && 
+      new Date(b.registration_end_date) >= new Date()
+    ) || loadedBatches[0]; // fallback to latest batch if no active one
+
+    if (active) {
+      setFilters(prev => ({
+        ...prev,
+        batchId: active.id
+      }));
+    }
   };
 
   // Fetch Tikrar Data
@@ -226,6 +242,7 @@ export function TikrarTab({ user }: { user: any }) {
         isLoading={isLoading}
         onFilterChange={setFilters}
         onRefresh={fetchTikrarData}
+        defaultBatchId={filters.batchId}
       />
 
       {/* Bulk Actions Bar */}
