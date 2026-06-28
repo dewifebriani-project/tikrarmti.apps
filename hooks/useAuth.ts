@@ -29,51 +29,6 @@ export function useAuth() {
   // Get server-fetched user data (single source of truth)
   const serverUserData = useServerUserData()
 
-  // Listen to auth state changes for UI updates and invalid session detection (Hi-AQLI logic)
-  useEffect(() => {
-    // 1. Check current session validity immediately on mount
-    const checkInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (error) {
-          const errorMsg = error.message.toLowerCase()
-          if (
-            errorMsg.includes('refresh token not found') ||
-            errorMsg.includes('invalid_grant') ||
-            errorMsg.includes('refresh_token_not_found')
-          ) {
-            console.warn('[useAuth] Session invalid/expired, triggering auto signout clean-up...')
-            await logout()
-          }
-        }
-      } catch (err) {
-        console.error('[useAuth] Error checking initial session:', err)
-      }
-    }
-    
-    checkInitialSession()
-
-    // 2. Listen to state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
-      console.log('Auth state changed:', event, 'Session exists:', !!session)
-
-      // Detect token refresh failures or invalid session events
-      if (event === 'SIGNED_OUT' && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        console.log('[useAuth] User signed out event, redirecting to login...')
-        window.location.href = '/login?t=' + Date.now()
-      }
-
-      // On token refresh or sign in, server will handle on next navigation
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        console.log('Auth event:', event, '- server will handle on next navigation')
-      }
-    })
-
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
-  }, [supabase, logout])
-
   // Logout function
   const logout = useCallback(async () => {
     try {
@@ -119,6 +74,51 @@ export function useAuth() {
       }
     }
   }, [])
+
+  // Listen to auth state changes for UI updates and invalid session detection (Hi-AQLI logic)
+  useEffect(() => {
+    // 1. Check current session validity immediately on mount
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          const errorMsg = error.message.toLowerCase()
+          if (
+            errorMsg.includes('refresh token not found') ||
+            errorMsg.includes('invalid_grant') ||
+            errorMsg.includes('refresh_token_not_found')
+          ) {
+            console.warn('[useAuth] Session invalid/expired, triggering auto signout clean-up...')
+            await logout()
+          }
+        }
+      } catch (err) {
+        console.error('[useAuth] Error checking initial session:', err)
+      }
+    }
+    
+    checkInitialSession()
+
+    // 2. Listen to state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      console.log('Auth state changed:', event, 'Session exists:', !!session)
+
+      // Detect token refresh failures or invalid session events
+      if (event === 'SIGNED_OUT' && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        console.log('[useAuth] User signed out event, redirecting to login...')
+        window.location.href = '/login?t=' + Date.now()
+      }
+
+      // On token refresh or sign in, server will handle on next navigation
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        console.log('Auth event:', event, '- server will handle on next navigation')
+      }
+    })
+
+    return () => {
+      authListener.subscription.unsubscribe()
+    }
+  }, [supabase, logout])
 
   // Check if user is authenticated (has server data)
   const isAuthenticated = Boolean(serverUserData)
