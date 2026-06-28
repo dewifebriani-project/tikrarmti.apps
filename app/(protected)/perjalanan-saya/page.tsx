@@ -341,6 +341,9 @@ export default function PerjalananSaya() {
     // Graduation is done only when both oral and written exams have been graded
     const isGraduationDone = !!(oralExam?.status === 'graded' && writtenExam?.status === 'graded');
 
+    // Check if user has registered for the current batch
+    const hasFormPendaftaran = !!registrationStatus?.registration?.id;
+
     // Sub-phase detailed logic & data formatting
     const hasOral = !!(registrationStatus?.hasOralSubmission);
     const hasWritten = !!(registrationStatus?.writtenQuizSubmittedAt || registrationStatus?.examScore);
@@ -356,9 +359,27 @@ export default function PerjalananSaya() {
         icon: <User className="w-4 h-4" />,
         subPhases: [
           { name: 'Lengkapi Profil', done: isProfileComplete, data: isProfileComplete ? `${user.full_name} (${user.whatsapp})` : 'Belum lengkap', reviewType: isProfileComplete ? 'profile' : null },
-          { name: 'Form Pendaftaran', done: true, data: isRegistrationDone ? 'Selesai' : 'Bisa Edit', reviewType: null, isEditAction: !isRegistrationDone },
-          { name: 'Ujian Tertulis', done: isAlumnus || hasWritten, data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasWritten ? 'Selesai ✓' : 'Belum dikerjakan'), reviewType: hasWritten ? 'written' : null },
-          { name: 'Ujian Lisan', done: hasOral, data: hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : 'Belum rekaman', reviewType: hasOral ? 'oral' : null },
+          { 
+            name: 'Form Pendaftaran', 
+            done: hasFormPendaftaran, 
+            data: hasFormPendaftaran ? (isRegistrationDone ? 'Selesai' : 'Bisa Edit') : 'Belum daftar', 
+            reviewType: hasFormPendaftaran ? 'registration' : null, 
+            isEditAction: !isRegistrationDone // will redirect to registration page which handles edit vs new registration
+          },
+          { 
+            name: 'Ujian Tertulis', 
+            done: isAlumnus || (hasFormPendaftaran && hasWritten), 
+            data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Belum dikerjakan' : 'Isi form dahulu')), 
+            reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
+            isLocked: !hasFormPendaftaran
+          },
+          { 
+            name: 'Ujian Lisan', 
+            done: hasFormPendaftaran && hasOral, 
+            data: hasFormPendaftaran && hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu'), 
+            reviewType: hasFormPendaftaran && hasOral ? 'oral' : null,
+            isLocked: !hasFormPendaftaran
+          },
         ]
       },
       { 
@@ -698,13 +719,14 @@ export default function PerjalananSaya() {
                               <Eye className="w-2.5 h-2.5" />
                             </button>
                           )}
-                          {(sub as any).isEditAction && (
+                           {(sub as any).isEditAction && (
                             <button 
                               onClick={() => router.push(`/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
-                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors"
-                              title={`Edit Pendaftaran`}
+                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors flex items-center gap-0.5"
+                              title={hasFormPendaftaran ? `Edit Pendaftaran` : `Daftar Sekarang`}
                             >
                               <Edit className="w-2.5 h-2.5" />
+                              <span className="text-[9px] font-bold underline">{hasFormPendaftaran ? 'Edit' : 'Daftar'}</span>
                             </button>
                           )}
                           {(sub as any).isPortalAction && (
@@ -716,7 +738,7 @@ export default function PerjalananSaya() {
                             </button>
                           )}
                           {(sub as any).isLocked && (
-                            <span className="inline-flex items-center ml-1 text-gray-400" title="Dikerjakan via Google Form">
+                            <span className="inline-flex items-center ml-1 text-gray-400" title={hasFormPendaftaran ? "Dikerjakan via Google Form" : "Silakan isi form pendaftaran terlebih dahulu"}>
                               <Lock className="w-3 h-3" />
                             </span>
                           )}

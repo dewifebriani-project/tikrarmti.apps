@@ -740,6 +740,11 @@ export default function DashboardContent() {
                     <div className="text-center">
                       <p className="text-[10px] uppercase font-black tracking-[0.3em] text-green-300 mb-1">Recruitment</p>
                       <h3 className="text-xl font-black">Muallimah MTI</h3>
+                      {activeBatch?.name && (
+                        <span className="inline-block mt-2 px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] font-bold text-green-200 tracking-wide border border-white/10">
+                          {activeBatch.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1 p-8 md:p-10 flex flex-col justify-center space-y-6">
