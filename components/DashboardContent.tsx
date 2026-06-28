@@ -691,6 +691,11 @@ export default function DashboardContent() {
                         <Sparkles className="w-3 h-3" />
                       </p>
                       <h3 className="text-xl font-black text-white drop-shadow-lg">Tikrar Tahfidz</h3>
+                      {activeBatch?.name && (
+                        <span className="inline-block mt-2 px-2.5 py-0.5 rounded-full bg-white/20 text-[9px] font-bold text-white tracking-wide">
+                          {activeBatch.name}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="flex-1 p-8 md:p-10 flex flex-col justify-center space-y-6 relative">
