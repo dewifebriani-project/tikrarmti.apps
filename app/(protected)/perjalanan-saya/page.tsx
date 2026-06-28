@@ -371,14 +371,18 @@ export default function PerjalananSaya() {
             done: isAlumnus || (hasFormPendaftaran && hasWritten), 
             data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Belum dikerjakan' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
-            isLocked: !hasFormPendaftaran
+            isLocked: !hasFormPendaftaran,
+            isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
+            testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           { 
             name: 'Ujian Lisan', 
             done: hasFormPendaftaran && hasOral, 
             data: hasFormPendaftaran && hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu'), 
             reviewType: hasFormPendaftaran && hasOral ? 'oral' : null,
-            isLocked: !hasFormPendaftaran
+            isLocked: !hasFormPendaftaran,
+            isTestAction: hasFormPendaftaran && !hasOral,
+            testUrl: `/seleksi/rekam-suara?batchId=${batchId}`
           },
         ]
       },
@@ -727,6 +731,15 @@ export default function PerjalananSaya() {
                             >
                               <Edit className="w-2.5 h-2.5" />
                               <span className="text-[9px] font-bold underline">{hasFormPendaftaran ? 'Edit' : 'Daftar'}</span>
+                            </button>
+                          )}
+                          {(sub as any).isTestAction && (
+                            <button 
+                              onClick={() => router.push((sub as any).testUrl)}
+                              className="ml-2 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 shadow-md shadow-emerald-100"
+                            >
+                              <Play className="w-2.5 h-2.5 fill-current" />
+                              Mulai
                             </button>
                           )}
                           {(sub as any).isPortalAction && (
