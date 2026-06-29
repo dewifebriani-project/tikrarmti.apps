@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 );
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get client IP for logging
