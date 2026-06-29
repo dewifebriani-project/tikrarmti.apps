@@ -274,13 +274,13 @@ function renderItemDescription(
                 <div>
                   <h4 className="text-sm font-semibold text-green-800 mb-1">Tahap Seleksi</h4>
                   <p className="text-xs text-green-700">
-                    Silakan kerjakan ujian lisan dan tertulis tepat waktu.
+                    Silakan kerjakan ujian lisan tepat waktu.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 max-w-sm">
               <Link href={`/seleksi/rekam-suara?batch_id=${batchId}`}>
                 <Card className={cn(
                   "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
@@ -297,25 +297,6 @@ function renderItemDescription(
                   </CardContent>
                 </Card>
               </Link>
-
-              {!isJuz30 && !registrationStatus?.isAlumnus && (
-                <Link href={`/seleksi/pilihan-ganda?batch_id=${batchId}`}>
-                  <Card className={cn(
-                    "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
-                    registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50" : "border-purple-300 bg-white"
-                  )}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-3">
-                        <CheckCircle className={cn("w-5 h-5", registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
-                        <div>
-                          <h4 className="text-sm font-bold">Ujian Tertulis</h4>
-                          <p className="text-xs text-gray-500">{registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum Kerjakan"}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )}
             </div>
           </div>
         )}
@@ -362,46 +343,74 @@ function renderItemDescription(
     const daftarUlang = registrationStatus.registration?.daftar_ulang;
     const isCompleted = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
 
-    if (isCompleted) {
-      return (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-green-700 font-bold">
-            <CheckCircle className="w-5 h-5" />
-            <span className="text-sm">Daftar Ulang Selesai ✓</span>
-          </div>
-          
-          {/* Detailed Info for completeness */}
-          <div className="space-y-2 pt-2">
-            {daftarUlang.akad_files && daftarUlang.akad_files.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-bold text-gray-400">Berkas Akad:</p>
-                {daftarUlang.akad_files.map((file: any, i: number) => (
-                  <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                    <FileText className="w-3 h-3" /> {file.name}
-                  </a>
-                ))}
-              </div>
-            )}
+    return (
+      <div className="space-y-4">
+        {/* Test Tertulis untuk Penempatan */}
+        {!isJuz30 && !registrationStatus?.isAlumnus && (
+          <Link href={`/seleksi/pilihan-ganda?batch_id=${batchId}`} className="block">
+            <Card className={cn(
+              "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
+              registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50" : "border-purple-300 bg-white"
+            )}>
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className={cn("w-5 h-5 flex-shrink-0", registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
+                  <div>
+                    <h4 className="text-sm font-bold">Test Tertulis (Penempatan Juz)</h4>
+                    <p className="text-xs text-gray-500">
+                      {registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum dikerjakan - Wajib untuk penempatan"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
+        {isCompleted ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-green-700 font-bold">
+              <CheckCircle className="w-5 h-5" />
+              <span className="text-sm">Daftar Ulang Selesai ✓</span>
+            </div>
             
-            {/* Halaqah Assignments */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {daftarUlang.ujian_halaqah && (
-                <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100">
-                  <p className="text-[9px] font-bold text-blue-600 uppercase">Halaqah Ujian</p>
-                  <p className="text-[11px] font-bold text-blue-900">{daftarUlang.ujian_halaqah.name}</p>
+            {/* Detailed Info for completeness */}
+            <div className="space-y-2 pt-2">
+              {daftarUlang.akad_files && daftarUlang.akad_files.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-bold text-gray-400">Berkas Akad:</p>
+                  {daftarUlang.akad_files.map((file: any, i: number) => (
+                    <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                      <FileText className="w-3 h-3" /> {file.name}
+                    </a>
+                  ))}
                 </div>
               )}
-              {daftarUlang.tashih_halaqah && (
-                <div className="p-2 bg-purple-50/50 rounded-lg border border-purple-100">
-                  <p className="text-[9px] font-bold text-purple-600 uppercase">Halaqah Tashih</p>
-                  <p className="text-[11px] font-bold text-purple-900">{daftarUlang.tashih_halaqah.name}</p>
-                </div>
-              )}
+              
+              {/* Halaqah Assignments */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {daftarUlang.ujian_halaqah && (
+                  <div className="p-2 bg-blue-50/50 rounded-lg border border-blue-100">
+                    <p className="text-[9px] font-bold text-blue-600 uppercase">Halaqah Ujian</p>
+                    <p className="text-[11px] font-bold text-blue-900">{daftarUlang.ujian_halaqah.name}</p>
+                  </div>
+                )}
+                {daftarUlang.tashih_halaqah && (
+                  <div className="p-2 bg-purple-50/50 rounded-lg border border-purple-100">
+                    <p className="text-[9px] font-bold text-purple-600 uppercase">Halaqah Tashih</p>
+                    <p className="text-[11px] font-bold text-purple-900">{daftarUlang.tashih_halaqah.name}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      );
-    }
+        ) : (
+          <p className={cn("text-sm leading-relaxed", styles.textColor)}>
+            {item.description}
+          </p>
+        )}
+      </div>
+    );
   }
 
   // Default description for items without special handlers

@@ -297,6 +297,8 @@ export default function PerjalananSaya() {
       examScore: registration?.exam_score || (registration as any)?.written_quiz_score,
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
       selectionStatus: displaySelectionStatus,
+      showSelectionResult,
+      oralAssessmentAudioUrl: (registration as any)?.oral_assessment_audio_url,
     };
   }, [user, registrations, batch, isAlumnus, batchId]);
 
@@ -362,18 +364,9 @@ export default function PerjalananSaya() {
           { 
             name: 'Form Pendaftaran', 
             done: hasFormPendaftaran, 
-            data: hasFormPendaftaran ? (isRegistrationDone ? 'Selesai' : 'Bisa Edit') : 'Belum daftar', 
+            data: hasFormPendaftaran ? 'Pendaftaran Berhasil' : 'Belum daftar', 
             reviewType: hasFormPendaftaran ? 'registration' : null, 
             isEditAction: !isRegistrationDone // will redirect to registration page which handles edit vs new registration
-          },
-          { 
-            name: 'Ujian Tertulis', 
-            done: isAlumnus || (hasFormPendaftaran && hasWritten), 
-            data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Belum dikerjakan' : 'Isi form dahulu')), 
-            reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
-            isLocked: !hasFormPendaftaran,
-            isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
-            testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           { 
             name: 'Ujian Lisan', 
@@ -400,6 +393,15 @@ export default function PerjalananSaya() {
         desc: batch?.re_enrollment_date ? `Mulai ${formatDateIndo(batch.re_enrollment_date)}` : 'Akad & Pasangan', 
         icon: <CheckCircle className="w-4 h-4" />,
         subPhases: [
+          { 
+            name: 'Test Tertulis', 
+            done: isAlumnus || (hasFormPendaftaran && hasWritten), 
+            data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
+            reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
+            isLocked: !hasFormPendaftaran,
+            isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
+            testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
+          },
           { name: 'Review Akad', done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
           { name: 'Pilih Pasangan', done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
           { name: 'Verifikasi', done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
@@ -699,13 +701,13 @@ export default function PerjalananSaya() {
       <div className="max-w-6xl mx-auto w-full px-4">
         <div className="relative bg-white/40 backdrop-blur-md border border-white shadow-xl rounded-[2rem] p-6 sm:p-10">
           <h2 className="text-center text-emerald-900 font-black text-lg mb-10 uppercase tracking-widest">Fase Perjalanan Ukhti</h2>
-          <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="relative flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             {phases.map((phase, idx) => (
-              <div key={phase.id} className="relative flex md:flex-col items-center gap-4 md:gap-3 w-full md:w-[18%]">
+              <div key={phase.id} className="relative flex lg:flex-col items-center gap-4 lg:gap-3 w-full lg:w-[18%]">
                 <div className={cn("w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg", phase.status === 'completed' ? "bg-emerald-500 text-white" : phase.status === 'current' ? "bg-yellow-400 text-yellow-900" : "bg-white text-gray-300")}>
                   {phase.status === 'completed' ? <CheckCircle className="w-6 h-6" /> : phase.icon}
                 </div>
-                <div className="flex flex-col md:items-center text-left">
+                <div className="flex flex-col lg:items-center text-left">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Fase {phase.id}</p>
                   <h4 className="text-sm font-bold text-gray-900">{phase.name}</h4>
                   <div className="mt-2 space-y-1">
@@ -769,6 +771,23 @@ export default function PerjalananSaya() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Timeline Section */}
+      <div className="max-w-6xl mx-auto w-full px-4 pt-10">
+        <h2 className="text-center text-emerald-900 font-black text-2xl mb-8 uppercase tracking-widest">Jadwal Batch</h2>
+        <TimelineMilestone 
+          timelineData={timelineData}
+          registrationStatus={registrationStatus}
+          user={user}
+          percentage={percentage}
+          batchId={batchId}
+          examEligibility={examEligibility}
+          isJuz30={isJuz30}
+          getStatusStyles={getStatusStyles}
+          getDayNameFromNumber={getDayNameFromNumber}
+          getJuzLabel={getJuzLabel}
+        />
       </div>
 
       {/* Action Modals */}

@@ -173,7 +173,7 @@ export function ReviewSubmissionModal({
         </div>
 
         <div className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-200">
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 text-center">Audio Player</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 text-center">Audio Setoran Ukhti</p>
           {registrationStatus.oralSubmissionUrl ? (
             <audio controls className="w-full">
               <source src={registrationStatus.oralSubmissionUrl} type="audio/mpeg" />
@@ -185,6 +185,16 @@ export function ReviewSubmissionModal({
             </div>
           )}
         </div>
+
+        {registrationStatus.showSelectionResult && registrationStatus.oralAssessmentAudioUrl && (
+          <div className="p-6 bg-blue-50 rounded-[2.5rem] border border-blue-100">
+            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4 text-center">VN Koreksi dari Admin</p>
+            <audio controls className="w-full">
+              <source src={registrationStatus.oralAssessmentAudioUrl} type="audio/mpeg" />
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">

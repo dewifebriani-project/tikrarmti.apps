@@ -409,6 +409,16 @@ export default function ProfilePage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Informasi Pribadi</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InfoItem
+                  icon={<User className="h-4 w-4" />}
+                  label="Nama Lengkap"
+                  value={formData.namaLengkap || '-'}
+                />
+                <InfoItem
+                  icon={<User className="h-4 w-4" />}
+                  label="Nama Kunyah"
+                  value={formData.namaKunyah || '-'}
+                />
+                <InfoItem
                   icon={<Calendar className="h-4 w-4" />}
                   label="Tanggal Lahir"
                   value={formData.tanggalLahir ? new Date(formData.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}

@@ -62,20 +62,26 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (userError && userError.code === 'PGRST116') {
-          console.log('[auth/callback] Creating new user profile for:', data.user.email);
-          await supabase
-            .from('users')
-            .insert({
-              id: data.user.id,
-              email: data.user.email || '',
-              full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || '',
-              role: data.user.user_metadata?.role || 'calon_thalibah',
-              roles: ['thalibah'], // CRITICAL: roles array is the source of truth for auth. Must conform to check constraint.
-              created_at: new Date().toISOString(),
-            } as any);
+          console.warn('[auth/callback] User not registered in public.users. Rejecting Google login for:', data.user.email);
+          
+          try {
+            // Import admin client to delete the auto-created auth user
+            const { createSupabaseAdmin } = await import('@/lib/supabase');
+            const supabaseAdmin = createSupabaseAdmin();
+            await (supabaseAdmin as any).auth.admin.deleteUser(data.user.id);
+            console.log('[auth/callback] Deleted unwanted auth user:', data.user.id);
+          } catch (delError) {
+            console.error('[auth/callback] Failed to delete auth user:', delError);
+          }
+          
+          // Sign out the session that was just created
+          await supabase.auth.signOut();
+          
+          // Redirect to login with error message
+          return NextResponse.redirect(`${origin}/login?message=not_registered&email=${encodeURIComponent(data.user.email || '')}`);
         }
       } catch (profileErr) {
-        console.warn('[auth/callback] Non-blocking profile check/creation failed:', profileErr);
+        console.warn('[auth/callback] Error checking profile:', profileErr);
       }
 
       console.error('[auth/callback] SUCCESS -> Redirecting to:', targetUrl);
