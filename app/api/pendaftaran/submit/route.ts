@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     let userTimezone = 'WIB';
     const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, negara, kota, alamat, whatsapp, zona_waktu, tanggal_lahir, tempat_lahir, pekerjaan, alasan_daftar, jenis_kelamin')
+      .select('id, full_name, nama_kunyah, negara, provinsi, kota, alamat, whatsapp, zona_waktu, tanggal_lahir, tempat_lahir, pekerjaan, alasan_daftar, jenis_kelamin')
       .eq('id', context.userId)
       .maybeSingle();
 
@@ -89,15 +89,24 @@ export async function POST(request: Request) {
     userTimezone = userProfile.zona_waktu || 'WIB';
 
     // 6. Validate profile completeness (architecture requirement)
-    const requiredFields = {
+    const requiredFields: Record<string, any> = {
+      nama_kunyah: userProfile.nama_kunyah,
       full_name: userProfile.full_name,
+      whatsapp: userProfile.whatsapp,
+      negara: userProfile.negara,
+      kota: userProfile.kota,
+      alamat: userProfile.alamat,
+      zona_waktu: userProfile.zona_waktu,
       tanggal_lahir: userProfile.tanggal_lahir,
       tempat_lahir: userProfile.tempat_lahir,
       pekerjaan: userProfile.pekerjaan,
       alasan_daftar: userProfile.alasan_daftar,
-      jenis_kelamin: userProfile.jenis_kelamin,
-      negara: userProfile.negara
+      jenis_kelamin: userProfile.jenis_kelamin
     };
+
+    if (userProfile.negara === 'Indonesia') {
+      requiredFields.provinsi = userProfile.provinsi;
+    }
 
     const missingFields = Object.entries(requiredFields)
       .filter(([_, value]) => !value)

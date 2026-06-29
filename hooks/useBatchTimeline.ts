@@ -42,7 +42,8 @@ const batchFetcher = async (url: string): Promise<Batch> => {
     throw new Error(`Failed to fetch batch: ${response.statusText}`);
   }
 
-  return response.json();
+  const json = await response.json();
+  return json.success ? json.data : json;
 };
 
 export function useBatchTimeline(batchId: string | null, options?: UseBatchTimelineOptions) {
