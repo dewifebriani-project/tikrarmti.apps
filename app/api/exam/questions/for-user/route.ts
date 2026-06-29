@@ -139,13 +139,13 @@ export async function GET(request: NextRequest) {
           };
           return NextResponse.json({
             error: 'Exam period closed',
-            details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}`
+            details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}. (Hari ini: ${formatDate(today)}, Batch: ${batch.name})`
           }, { status: 400 });
         }
       } else {
         return NextResponse.json({
           error: 'Selection dates not set',
-          details: 'Tanggal seleksi belum ditentukan untuk batch ini. Silakan hubungi admin.'
+          details: `Tanggal seleksi belum ditentukan untuk batch ini (Start: ${batch.selection_start_date}, End: ${batch.selection_end_date}). Silakan hubungi admin.`
         }, { status: 400 });
       }
     } else {
