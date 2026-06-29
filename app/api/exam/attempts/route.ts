@@ -526,7 +526,6 @@ export async function PUT(request: NextRequest) {
         .update({
           answers: draftAnswers,
           total_questions: questions.length,
-          current_question_index: currentQuestionIndex,
           updated_at: new Date().toISOString()
         })
         .eq('id', attemptId);
@@ -535,7 +534,8 @@ export async function PUT(request: NextRequest) {
         logger.error('Error updating draft', { error: updateError, attemptId });
         return NextResponse.json({
           error: 'Failed to save draft',
-          details: updateError.message
+          details: updateError.message,
+          stack: updateError.hint
         }, { status: 500 });
       }
     } else {
@@ -550,8 +550,7 @@ export async function PUT(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: 0,
           score: 0,
-          status: 'draft',
-          current_question_index: currentQuestionIndex
+          status: 'draft'
         })
         .select()
         .single();
