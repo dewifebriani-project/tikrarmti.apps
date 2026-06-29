@@ -302,7 +302,8 @@ export async function POST(request: NextRequest) {
     logger.error('Error in POST /api/exam/attempts', { error: error as Error });
     return NextResponse.json({
       error: 'Internal server error',
-      details: (error as Error).message
+      details: (error as Error).message,
+      stack: (error as Error).stack
     }, { status: 500 });
   }
 }
@@ -588,7 +589,8 @@ export async function PUT(request: NextRequest) {
     logger.error('Error in PUT /api/exam/attempts', { error: error as Error });
     return NextResponse.json({
       error: 'Internal server error',
-      details: (error as Error).message
+      details: (error as Error).message,
+      stack: (error as Error).stack
     }, { status: 500 });
   }
 }
