@@ -124,19 +124,22 @@ export async function GET(request: NextRequest) {
       const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
 
       if (batch.registration_start_date && batch.registration_end_date) {
-        const startDateStr = batch.registration_start_date.substring(0, 10);
-        const endDateStr = batch.registration_end_date.substring(0, 10);
-        const startDateNum = parseInt(startDateStr.replace(/-/g, ''), 10);
-        const endDateNum = parseInt(endDateStr.replace(/-/g, ''), 10);
+        const today = new Date();
+        const startDate = new Date(batch.registration_start_date);
+        const endDate = new Date(batch.registration_end_date);
+        
+        // Zero-out the time parts for pure date-range comparison
+        today.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
 
-        if (todayDateOnly < startDateNum || todayDateOnly > endDateNum) {
-          const formatDate = (dateStr: string) => {
-            const date = new Date(dateStr);
+        if (today < startDate || today > endDate) {
+          const formatDate = (date: Date) => {
             return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
           };
           return NextResponse.json({
             error: 'Exam period closed',
-            details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDateStr)} sampai ${formatDate(endDateStr)}`
+            details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}`
           }, { status: 400 });
         }
       } else {
