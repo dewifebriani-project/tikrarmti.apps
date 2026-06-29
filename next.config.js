@@ -214,7 +214,11 @@ const nextConfig = {
               "connect-src 'self' http://localhost:* https://*.supabase.co https://markaztikrar.id https://www.markaztikrar.id https://*.sentry.io https://*.google-analytics.com https://api.aladhan.com https://api.bigdatacloud.net https://ipapi.co",
             ].join('; ')
           },
-          // Permissions-Policy removed from wildcard - use specific routes instead
+          // Allow microphone for audio features globally
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(self), geolocation=(self)'
+          },
           // Performance and caching headers for cross-platform optimization
           {
             key: 'Cache-Control',
