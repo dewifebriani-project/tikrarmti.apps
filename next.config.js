@@ -109,10 +109,6 @@ const nextConfig = {
             key: 'X-XSS-Protection',
             value: '1; mode=block'
           },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=(self)'
-          },
           // No cache for dynamic content
           {
             key: 'Cache-Control',
@@ -150,10 +146,6 @@ const nextConfig = {
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block'
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(self), geolocation=(self)'
           },
           // No cache for dynamic content
           {
