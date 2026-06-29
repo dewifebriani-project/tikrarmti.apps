@@ -250,8 +250,7 @@ export async function POST(request: NextRequest) {
           correct_answers: correctAnswers,
           score: score,
           status: 'completed',
-          completed_at: new Date().toISOString(),
-          exam_type: 'written'
+          completed_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -551,8 +550,7 @@ export async function PUT(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: 0,
           score: 0,
-          status: 'in_progress',
-          exam_type: 'written'
+          status: 'in_progress'
         })
         .select()
         .single();
