@@ -651,7 +651,12 @@ export default function PerjalananSaya() {
     return slotLabels[slotValue] || `${slotValue} WIB`;
   };
 
+  const hasFormPendaftaran = useMemo(() => {
+    return !!registrationStatus?.registration?.id;
+  }, [registrationStatus]);
+
   if (hasSessionError) return <div className="p-12 text-center">Sesi berakhir, mengalihkan...</div>;
+
   if (!isClient) return <div className="flex h-screen items-center justify-center">Loading...</div>;
 
   return (
