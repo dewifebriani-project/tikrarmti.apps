@@ -53,7 +53,7 @@ export async function updateSession(request: NextRequest) {
     
     // Apply strict CSP only in production as Dev Mode requires unsafe-eval/inline
     if (process.env.NODE_ENV === 'production') {
-      res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)')
+      res.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(self)')
       res.headers.set('X-DNS-Prefetch-Control', 'off')
       res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
       
