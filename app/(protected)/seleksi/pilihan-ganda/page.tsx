@@ -96,7 +96,7 @@ export default function PilihanGandaPage() {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.attempt && data.attempt.status === 'draft') {
+        if (data.attempt && (data.attempt.status === 'draft' || data.attempt.status === 'in_progress')) {
           // Auto-start quiz if user has existing draft
           setQuizStarted(true);
         }
@@ -176,7 +176,7 @@ export default function PilihanGandaPage() {
 
       const data = await response.json();
 
-      if (data.attempt && data.attempt.status === 'draft') {
+      if (data.attempt && (data.attempt.status === 'draft' || data.attempt.status === 'in_progress')) {
         // Load draft answers
         const draftAnswers: Record<string, string> = {};
         data.attempt.answers?.forEach((a: any) => {

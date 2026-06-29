@@ -224,8 +224,8 @@ export async function POST(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: correctAnswers,
           score: score,
-          status: 'submitted',
-          submitted_at: new Date().toISOString(),
+          status: 'completed',
+          completed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', attemptId);
@@ -249,8 +249,9 @@ export async function POST(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: correctAnswers,
           score: score,
-          status: 'submitted',
-          submitted_at: new Date().toISOString()
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          exam_type: 'written'
         })
         .select()
         .single();
@@ -510,7 +511,7 @@ export async function PUT(request: NextRequest) {
           .update({ exam_attempt_id: null })
           .eq('id', registration.id);
         attemptId = null;
-      } else if (existingAttempt.status === 'submitted') {
+      } else if (existingAttempt.status === 'completed' || existingAttempt.status === 'graded') {
         // Don't overwrite submitted attempts
         return NextResponse.json({
           error: 'Exam already submitted',
@@ -550,7 +551,8 @@ export async function PUT(request: NextRequest) {
           total_questions: questions.length,
           correct_answers: 0,
           score: 0,
-          status: 'draft'
+          status: 'in_progress',
+          exam_type: 'written'
         })
         .select()
         .single();
