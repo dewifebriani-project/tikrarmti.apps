@@ -49,7 +49,7 @@ export function TikrarTab({ user }: { user: any }) {
     setBatches(loadedBatches);
 
     // Find the currently active batch and set it as default in filters
-    const active = loadedBatches.find(b => 
+    const active = loadedBatches.find((b: any) => 
       b.registration_start_date && 
       b.registration_end_date &&
       new Date(b.registration_start_date) <= new Date() && 
