@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Get batch to check selection dates and status
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('batches')
-      .select('id, name, status, selection_start_date, selection_end_date, min_final_exam_score')
+      .select('id, name, status, registration_start_date, registration_end_date, min_final_exam_score')
       .eq('id', registration.batch_id)
       .single();
 
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     const source = request.nextUrl.searchParams.get('source') || 'selection';
     const isFinalExam = source === 'final-exam';
 
-    // For selection mode: check batch open + selection dates
+    // For selection mode: check batch open + selection dates (which are aligned with registration dates)
     if (!isFinalExam) {
       // Check if batch is open
       if (batch.status !== 'open') {
@@ -119,14 +119,10 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Check if today is within selection period
-      const today = new Date();
-      const todayDateOnly = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-
-      if (batch.selection_start_date && batch.selection_end_date) {
+      if (batch.registration_start_date && batch.registration_end_date) {
         const today = new Date();
-        const startDate = new Date(batch.selection_start_date);
-        const endDate = new Date(batch.selection_end_date);
+        const startDate = new Date(batch.registration_start_date);
+        const endDate = new Date(batch.registration_end_date);
         
         // Zero-out the time parts for pure date-range comparison
         today.setHours(0, 0, 0, 0);
@@ -139,13 +135,13 @@ export async function GET(request: NextRequest) {
           };
           return NextResponse.json({
             error: 'Exam period closed',
-            details: `Ujian pilihan ganda hanya tersedia dari ${formatDate(startDate)} sampai ${formatDate(endDate)}. (Hari ini: ${formatDate(today)}, Batch: ${batch.name})`
+            details: `Ujian pilihan ganda hanya tersedia selama masa pendaftaran dari ${formatDate(startDate)} sampai ${formatDate(endDate)}. (Hari ini: ${formatDate(today)}, Batch: ${batch.name})`
           }, { status: 400 });
         }
       } else {
         return NextResponse.json({
-          error: 'Selection dates not set',
-          details: `Tanggal seleksi belum ditentukan untuk batch ini (Start: ${batch.selection_start_date}, End: ${batch.selection_end_date}). Silakan hubungi admin.`
+          error: 'Registration dates not set',
+          details: `Tanggal pendaftaran belum ditentukan untuk batch ini (Start: ${batch.registration_start_date}, End: ${batch.registration_end_date}). Silakan hubungi admin.`
         }, { status: 400 });
       }
     } else {
