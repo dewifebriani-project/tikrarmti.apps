@@ -39,6 +39,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useActiveBatch } from '@/hooks/useBatches'
 import { useDashboardStats, useTashihStatus, useJurnalStatus } from '@/hooks/useDashboard'
 import { useMyRegistrations } from '@/hooks/useRegistrations'
+import { createClient } from '@/lib/supabase/client'
 import { usePrayerTimes } from '@/hooks/usePrayerTimes'
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers'
 import { cn } from '@/lib/utils'
@@ -89,6 +90,33 @@ export default function DashboardContent() {
   const [activitiesPage, setActivitiesPage] = useState(1)
   const [examModalOpen, setExamModalOpen] = useState(false)
   const activitiesPerPage = 5
+
+  const [hasMuallimahReg, setHasMuallimahReg] = useState(false)
+
+  useEffect(() => {
+    async function checkMuallimah() {
+      if (!user?.id || !activeBatch?.id) return;
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('muallimah_registrations')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('batch_id', activeBatch.id)
+          .maybeSingle()
+        if (data) {
+          setHasMuallimahReg(true)
+        }
+      } catch (err) {
+        console.error('Error checking muallimah registration:', err)
+      }
+    }
+    checkMuallimah()
+  }, [user?.id, activeBatch?.id])
+
+  const hasRegisteredTikrar = useMemo(() => {
+    return activeBatch && registrations.some(reg => reg.batch_id === activeBatch.id);
+  }, [activeBatch, registrations])
 
   // Combined loading state
   // Note: Stats loading only matters if we are trying to fetch them
@@ -644,13 +672,6 @@ export default function DashboardContent() {
 
         {/* Tikrar Tahfidz Registration CTA - Muncul di masa pendaftaran/seleksi */}
         {(() => {
-          // Cek apakah user sudah mendaftar di BATCH YANG SEDANG AKTIF (bukan batch lain)
-          const hasRegisteredInActiveBatch = activeBatch && registrations.some(reg =>
-            reg.batch_id === activeBatch.id &&
-            reg.program?.name?.toLowerCase().includes('tikrar') &&
-            reg.program?.name?.toLowerCase().includes('tahfidz')
-          );
-
           // Cek apakah masa pendaftaran masih terbuka
           // Masa pendaftaran: dari registration_start_date sampai registration_end_date
           const isRegistrationPeriod = activeBatch &&
@@ -662,10 +683,10 @@ export default function DashboardContent() {
           // Card muncul kalau:
           // 1) Ada active batch, DAN
           // 2) Masa pendaftaran masih terbuka, DAN
-          // 3) User BELUM mendaftar di batch aktif ini (boleh sudah daftar di batch lain)
+          // 3) User BELUM mendaftar di batch aktif ini
           const shouldShowCard = activeBatch &&
             isRegistrationPeriod &&
-            !hasRegisteredInActiveBatch;
+            !hasRegisteredTikrar;
 
           return shouldShowCard;
         })() && (
@@ -722,13 +743,7 @@ export default function DashboardContent() {
         )}
 
         {/* Muallimah Registration CTA - Muncul jika user belum mendaftar Muallimah di batch aktif */}
-        {(() => {
-          const hasRegisteredMuallimahInActiveBatch = activeBatch && registrations.some(reg =>
-            reg.batch_id === activeBatch.id &&
-            reg.program?.name?.toLowerCase().includes('muallimah')
-          );
-          return !hasRegisteredMuallimahInActiveBatch;
-        })() && (
+        {!hasMuallimahReg && activeBatch && (
           <div className="mb-8">
             <Card className="rounded-[2.5rem] border-none shadow-2xl shadow-green-900/10 overflow-hidden bg-gradient-to-br from-white to-green-50 ring-1 ring-green-100/50">
               <CardContent className="p-0">
@@ -782,62 +797,84 @@ export default function DashboardContent() {
         </div>
 
         <div className="grid grid-cols-4 gap-1.5 sm:gap-6 w-full">
-          {[
-            { label: 'Perjalanan Saya', icon: Clock, color: 'blue', href: '/perjalanan-saya' },
-            { label: 'Catatan Tashih', icon: ClipboardList, color: 'emerald', href: '/tashih' },
-            { label: 'Jurnal Harian', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
-            { label: 'Ujian Pekanan', icon: Calendar, color: 'amber', href: '/ujian' },
-            { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '#' },
-            { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
-            { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/infaq-donasi' },
-            { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
-          ].map((item, i) => (
-            <Link key={i} href={item.href} className="group min-w-0">
-            <div 
-              onClick={(e) => {
-                if ((item as any).locked) {
-                  e.preventDefault();
-                  alert(`Maaf Ukhti, menu ini terkunci.`);
-                } else if (item.label === 'Ujian Akhir') {
-                  e.preventDefault();
-                  setExamModalOpen(true);
-                }
-              }}
-              className={cn(
-                "h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white transition-all duration-300 flex flex-col items-center text-center justify-start sm:justify-center min-h-[90px] sm:min-h-0 relative overflow-hidden",
-                (item as any).locked 
-                  ? "opacity-50 grayscale cursor-not-allowed" 
-                  : "hover:border-green-100 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
-                item.label === 'Infaq & Donasi' && "bg-amber-50/90 border-amber-300/80 shadow-md shadow-amber-100/50 hover:border-amber-400"
-              )}
-            >
-                <div className={cn(
-                  "w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1 sm:mb-3 transition-transform duration-300 shadow-sm flex-shrink-0 relative",
-                  !(item as any).locked && "group-hover:scale-110",
-                  item.label === 'Infaq & Donasi' ? "bg-amber-500 text-white shadow-md shadow-amber-350/50 border border-amber-400/30" :
-                  item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
-                  item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
-                  item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
-                  item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
-                  item.color === 'purple' ? "bg-purple-50 text-purple-600 border border-purple-100/50" :
-                  "bg-gray-50 text-gray-400 border border-gray-100/50"
-                )}>
-                  <item.icon className="w-5 h-5 sm:w-7 sm:h-7" />
-                  {(item as any).locked && (
-                    <div className="absolute -top-1 -right-1 bg-gray-600 text-white p-1 rounded-full shadow-lg">
-                      <Lock className="w-2 h-2 sm:w-3 sm:h-3" />
-                    </div>
+          {(() => {
+            const menuItems = [
+              { label: 'Perjalanan Saya', icon: Clock, color: 'blue', href: '/perjalanan-saya' },
+              { label: 'Catatan Tashih', icon: ClipboardList, color: 'emerald', href: '/tashih' },
+              { label: 'Jurnal Harian', icon: BookOpen, color: 'indigo', href: '/jurnal-harian' },
+              { label: 'Ujian Pekanan', icon: Calendar, color: 'amber', href: '/ujian' },
+              { label: 'Ujian Akhir', icon: Award, color: 'blue', href: '#' },
+              { label: 'Sertifikat', icon: CheckCircle, color: 'emerald', href: '/kelulusan-sertifikat' },
+              { label: 'Infaq & Donasi', icon: Wallet, color: 'amber', href: '/infaq-donasi' },
+              { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
+            ];
+
+            if (hasRegisteredTikrar) {
+              menuItems.push({
+                label: 'Edit Form Tikrar',
+                icon: Settings,
+                color: 'amber',
+                href: `/pendaftaran/tikrar-tahfidz?batchId=${activeBatch?.id}`
+              });
+            }
+
+            if (hasMuallimahReg) {
+              menuItems.push({
+                label: 'Edit Form Mu’allimah',
+                icon: Settings,
+                color: 'purple',
+                href: `/pendaftaran/muallimah?batchId=${activeBatch?.id}`
+              });
+            }
+
+            return menuItems.map((item, i) => (
+              <Link key={i} href={item.href} className="group min-w-0">
+                <div 
+                  onClick={(e) => {
+                    if ((item as any).locked) {
+                      e.preventDefault();
+                      alert(`Maaf Ukhti, menu ini terkunci.`);
+                    } else if (item.label === 'Ujian Akhir') {
+                      e.preventDefault();
+                      setExamModalOpen(true);
+                    }
+                  }}
+                  className={cn(
+                    "h-full glass-premium rounded-xl sm:rounded-3xl p-1.5 sm:p-4 border border-white transition-all duration-300 flex flex-col items-center text-center justify-start sm:justify-center min-h-[90px] sm:min-h-0 relative overflow-hidden",
+                    (item as any).locked 
+                      ? "opacity-50 grayscale cursor-not-allowed" 
+                      : "hover:border-green-100 hover:shadow-xl hover:-translate-y-1 cursor-pointer",
+                    item.label === 'Infaq & Donasi' && "bg-amber-50/90 border-amber-300/80 shadow-md shadow-amber-100/50 hover:border-amber-400"
                   )}
+                >
+                  <div className={cn(
+                    "w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center mb-1 sm:mb-3 transition-transform duration-300 shadow-sm flex-shrink-0 relative",
+                    !(item as any).locked && "group-hover:scale-110",
+                    item.label === 'Infaq & Donasi' ? "bg-amber-500 text-white shadow-md shadow-amber-350/50 border border-amber-400/30" :
+                    item.color === 'blue' ? "bg-blue-50 text-blue-600 border border-blue-100/50" :
+                    item.color === 'emerald' ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50" :
+                    item.color === 'indigo' ? "bg-indigo-50 text-indigo-600 border border-indigo-100/50" :
+                    item.color === 'amber' ? "bg-amber-50 text-amber-600 border border-amber-100/50" :
+                    item.color === 'purple' ? "bg-purple-50 text-purple-600 border border-purple-100/50" :
+                    "bg-gray-50 text-gray-400 border border-gray-100/50"
+                  )}>
+                    <item.icon className="w-5 h-5 sm:w-7 sm:h-7" />
+                    {(item as any).locked && (
+                      <div className="absolute -top-1 -right-1 bg-gray-600 text-white p-1 rounded-full shadow-lg">
+                        <Lock className="w-2 h-2 sm:w-3 sm:h-3" />
+                      </div>
+                    )}
+                  </div>
+                  <h3 className={cn(
+                    "text-[8px] sm:text-xs lg:text-sm font-bold leading-[1.1] w-full px-0.5 break-words",
+                    item.label === 'Infaq & Donasi' ? "text-amber-950" : "text-gray-900"
+                  )}>
+                    {item.label}
+                  </h3>
                 </div>
-                <h3 className={cn(
-                  "text-[8px] sm:text-xs lg:text-sm font-bold leading-[1.1] w-full px-0.5 break-words",
-                  item.label === 'Infaq & Donasi' ? "text-amber-950" : "text-gray-900"
-                )}>
-                  {item.label}
-                </h3>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ));
+          })()}
         </div>
       </div>
 

@@ -704,32 +704,29 @@ export default function PerjalananSaya() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="space-y-6">
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight">Perjalanan Hafalan <span className="text-emerald-300 italic">Ukhti</span></h1>
-            <p className="text-green-100/70 text-lg max-w-xl font-medium">"Sebaik-baik kalian adalah orang yang belajar Al-Qur'an dan mengajarkannya."</p>
-            {batch && (
-              <div className="inline-flex items-center bg-emerald-800/80 px-4 py-2 rounded-full text-emerald-100 font-bold border border-emerald-700">
-                {batch.name || `Batch ${(batch as any).batch_number}`}
-                {batch.id === activeBatch?.id && <span className="ml-2 bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Active</span>}
+            
+            {availableBatches.length > 0 && (
+              <div className="relative inline-block">
+                <select 
+                  id="batch-selector"
+                  className="bg-emerald-800/80 border border-emerald-700 text-emerald-100 text-sm font-bold rounded-full px-5 py-2.5 outline-none appearance-none cursor-pointer pr-10 hover:bg-emerald-700/80 transition-colors"
+                  value={batchId || ''}
+                  onChange={(e) => setSelectedBatchId(e.target.value)}
+                >
+                  {availableBatches.map(b => (
+                    <option key={b.id} value={b.id} className="bg-emerald-900 text-white font-medium">
+                      {b.name} {b.id === activeBatch?.id ? ' (Aktif)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-emerald-300">
+                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                  </svg>
+                </div>
               </div>
             )}
           </div>
-
-          {availableBatches.length > 1 && (
-            <div className="bg-emerald-800/40 backdrop-blur border border-emerald-700/50 rounded-xl p-3 w-full md:max-w-xs shrink-0 self-start">
-              <label htmlFor="batch-selector" className="block text-emerald-200 text-xs font-semibold mb-2 ml-1">Pilih Angkatan/Batch:</label>
-              <select 
-                id="batch-selector"
-                className="w-full bg-emerald-950/60 border border-emerald-600/50 text-emerald-100 text-sm rounded-lg px-3 py-2.5 focus:ring-emerald-500 focus:border-emerald-500 outline-none appearance-none"
-                value={batchId || ''}
-                onChange={(e) => setSelectedBatchId(e.target.value)}
-              >
-                {availableBatches.map(b => (
-                  <option key={b.id} value={b.id} className="bg-emerald-900 text-white">
-                    {b.name} {b.id === activeBatch?.id ? '(Batch Saat Ini)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
       </div>
 
