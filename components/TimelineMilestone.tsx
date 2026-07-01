@@ -12,6 +12,7 @@ import {
   FileText 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatDateIndo } from '@/lib/utils/date-helpers';
 
 export interface TimelineItem {
   id: number;
@@ -39,7 +40,19 @@ interface TimelineMilestoneProps {
   getStatusStyles: (status: 'completed' | 'current' | 'future') => any;
   getDayNameFromNumber: (dayNum: number | string | undefined) => string;
   getJuzLabel: (juzValue: string) => string;
+  batch?: any;
 }
+
+const getIsDateStarted = (dateStr: string | null | undefined) => {
+  if (!dateStr) return false;
+  const dateMatch = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!dateMatch) return false;
+  
+  const yyyymmdd = dateMatch[1];
+  const startWIB = new Date(`${yyyymmdd}T00:00:00+07:00`);
+  const now = new Date();
+  return now >= startWIB;
+};
 
 export const TimelineMilestone: React.FC<TimelineMilestoneProps> = ({
   timelineData,
@@ -52,6 +65,7 @@ export const TimelineMilestone: React.FC<TimelineMilestoneProps> = ({
   getStatusStyles,
   getDayNameFromNumber,
   getJuzLabel,
+  batch,
 }) => {
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -69,9 +83,11 @@ export const TimelineMilestone: React.FC<TimelineMilestoneProps> = ({
           {timelineData.map((item, index) => {
             const styles = getStatusStyles(item.status);
             
+            const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
             const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                    (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
-                                   !registrationStatus.registration?.re_enrollment_completed;
+                                   !registrationStatus.registration?.re_enrollment_completed &&
+                                   isReEnrollmentStarted;
 
             const cardContent = (
               <div key={item.id} className="relative group">
@@ -117,7 +133,7 @@ export const TimelineMilestone: React.FC<TimelineMilestoneProps> = ({
                       <h3 className={cn("text-xl font-black tracking-tight leading-tight", styles.textColor)}>
                         {item.title}
                       </h3>
-                      {renderItemDescription(item, registrationStatus, user, styles, isJuz30, examEligibility, getDayNameFromNumber, getJuzLabel, batchId)}
+                      {renderItemDescription(item, registrationStatus, user, styles, isJuz30, examEligibility, getDayNameFromNumber, getJuzLabel, batchId, batch)}
                     </div>
                   </CardContent>
                 </Card>
@@ -150,9 +166,11 @@ export const TimelineMilestone: React.FC<TimelineMilestoneProps> = ({
             const styles = getStatusStyles(item.status);
             const isLeftSide = index % 2 === 0;
 
+            const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
             const isDaftarUlangCard = item.title === 'Mendaftar Ulang' &&
                                    (registrationStatus?.selectionStatus === 'selected' || registrationStatus?.registration?.status === 'approved') &&
-                                   !registrationStatus.registration?.re_enrollment_completed;
+                                   !registrationStatus.registration?.re_enrollment_completed &&
+                                   isReEnrollmentStarted;
 
             const cardContent = (
               <div key={item.id} className={cn("relative flex items-center", isLeftSide ? "justify-start" : "justify-end")}>
@@ -193,7 +211,7 @@ export const TimelineMilestone: React.FC<TimelineMilestoneProps> = ({
                           </h3>
                         </div>
                       </div>
-                      {renderItemDescription(item, registrationStatus, user, styles, isJuz30, examEligibility, getDayNameFromNumber, getJuzLabel, batchId)}
+                      {renderItemDescription(item, registrationStatus, user, styles, isJuz30, examEligibility, getDayNameFromNumber, getJuzLabel, batchId, batch)}
                     </CardContent>
                   </Card>
                 </div>
@@ -236,13 +254,38 @@ function renderItemDescription(
   examEligibility: any,
   getDayNameFromNumber: (dayNum: number | string | undefined) => string,
   getJuzLabel: (juzValue: string) => string,
-  batchId: string | null
+  batchId: string | null,
+  batch?: any
 ) {
   // Description for Registration Phase
   if (item.id === 1 && registrationStatus?.hasRegistered) {
     const regDate = registrationStatus.registration?.registration_date || registrationStatus.registration?.submitted_at || registrationStatus.registration?.created_at;
     const formattedRegDate = regDate ? new Date(regDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Tanggal tidak tersedia';
     
+    const isRegistrationStarted = getIsDateStarted(batch?.registration_start_date);
+    const oralCard = (
+      <Card className={cn(
+        "border-2 h-full transition-all duration-200",
+        !isRegistrationStarted
+          ? "border-gray-200 bg-gray-50/50 cursor-not-allowed opacity-60"
+          : registrationStatus?.hasOralSubmission ? "border-green-300 bg-green-50 hover:shadow-md cursor-pointer" : "border-red-300 bg-white hover:shadow-md cursor-pointer"
+      )}>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-3">
+            <CheckCircle className={cn("w-5 h-5", !isRegistrationStarted ? "text-gray-300" : registrationStatus?.hasOralSubmission ? "text-green-600" : "text-gray-400")} />
+            <div>
+              <h4 className={cn("text-sm font-bold", !isRegistrationStarted && "text-gray-400")}>Ujian Lisan</h4>
+              <p className="text-xs text-gray-500">
+                {!isRegistrationStarted 
+                  ? `Belum dimulai (Mulai ${batch?.registration_start_date ? formatDateIndo(batch.registration_start_date) : '-'})` 
+                  : registrationStatus?.hasOralSubmission ? "Selesai ✓" : "Belum Rekam"}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+
     return (
       <div className="space-y-1.5">
         <div className="flex items-start space-x-2">
@@ -281,22 +324,13 @@ function renderItemDescription(
             </div>
 
             <div className="grid grid-cols-1 gap-3 max-w-sm">
-              <Link href={`/seleksi/rekam-suara?batch_id=${batchId}`}>
-                <Card className={cn(
-                  "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
-                  registrationStatus?.hasOralSubmission ? "border-green-300 bg-green-50" : "border-red-300 bg-white"
-                )}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <CheckCircle className={cn("w-5 h-5", registrationStatus?.hasOralSubmission ? "text-green-600" : "text-gray-400")} />
-                      <div>
-                        <h4 className="text-sm font-bold">Ujian Lisan</h4>
-                        <p className="text-xs text-gray-500">{registrationStatus?.hasOralSubmission ? "Selesai ✓" : "Belum Rekam"}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              {isRegistrationStarted ? (
+                <Link href={`/seleksi/rekam-suara?batch_id=${batchId}`}>
+                  {oralCard}
+                </Link>
+              ) : (
+                oralCard
+              )}
             </div>
           </div>
         )}
@@ -321,7 +355,7 @@ function renderItemDescription(
             </p>
           </div>
           <div className="p-2 bg-emerald-50 rounded-lg">
-            <p className="text-[10px] text-emerald-600 font-bold uppercase uppercase">Placement Final:</p>
+            <p className="text-[10px] text-emerald-600 font-bold uppercase">Placement Final:</p>
             <p className="text-sm font-bold text-emerald-900">{getJuzLabel(registrationStatus?.registration?.final_juz || registrationStatus?.chosenJuz)}</p>
           </div>
         </div>
@@ -342,29 +376,42 @@ function renderItemDescription(
   if (item.id === 4) {
     const daftarUlang = registrationStatus.registration?.daftar_ulang;
     const isCompleted = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
+    const isSelectionStarted = getIsDateStarted(batch?.selection_start_date);
+
+    const writtenCard = (
+      <Card className={cn(
+        "border-2 h-full transition-all duration-200",
+        !isSelectionStarted
+          ? "border-gray-200 bg-gray-50/50 cursor-not-allowed opacity-60"
+          : registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50 hover:shadow-md cursor-pointer" : "border-purple-300 bg-white hover:shadow-md cursor-pointer"
+      )}>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-3">
+            <CheckCircle className={cn("w-5 h-5 flex-shrink-0", !isSelectionStarted ? "text-gray-300" : registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
+            <div>
+              <h4 className={cn("text-sm font-bold", !isSelectionStarted && "text-gray-400")}>Test Tertulis (Penempatan Juz)</h4>
+              <p className="text-xs text-gray-500">
+                {!isSelectionStarted 
+                  ? `Belum dimulai (Mulai ${batch?.selection_start_date ? formatDateIndo(batch.selection_start_date) : '-'})` 
+                  : registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum dikerjakan - Wajib untuk penempatan"}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
 
     return (
       <div className="space-y-4">
         {/* Test Tertulis untuk Penempatan */}
         {!isJuz30 && !registrationStatus?.isAlumnus && (
-          <Link href={`/seleksi/pilihan-ganda?batch_id=${batchId}`} className="block">
-            <Card className={cn(
-              "border-2 h-full cursor-pointer transition-all duration-200 hover:shadow-md",
-              registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50" : "border-purple-300 bg-white"
-            )}>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className={cn("w-5 h-5 flex-shrink-0", registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
-                  <div>
-                    <h4 className="text-sm font-bold">Test Tertulis (Penempatan Juz)</h4>
-                    <p className="text-xs text-gray-500">
-                      {registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum dikerjakan - Wajib untuk penempatan"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          isSelectionStarted ? (
+            <Link href={`/seleksi/pilihan-ganda?batch_id=${batchId}`} className="block">
+              {writtenCard}
+            </Link>
+          ) : (
+            writtenCard
+          )
         )}
 
         {isCompleted ? (

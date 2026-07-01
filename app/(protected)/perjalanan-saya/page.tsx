@@ -328,14 +328,44 @@ export default function PerjalananSaya() {
       return now > deadlineWIB;
     };
 
+    const getIsDateStarted = (dateStr: string | null | undefined) => {
+      if (!dateStr) return false;
+      const dateMatch = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) return false;
+      
+      const yyyymmdd = dateMatch[1];
+      const startWIB = new Date(`${yyyymmdd}T00:00:00+07:00`);
+      const now = new Date();
+      return now >= startWIB;
+    };
+
+    const formatDateShort = (dateStr: string | null | undefined) => {
+      if (!dateStr) return '';
+      const dateMatch = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (!dateMatch) return '';
+      const d = new Date(dateMatch[1]);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${d.getDate()} ${months[d.getMonth()]}`;
+    };
+
+    const formatDateRangeShort = (startStr: string | null | undefined, endStr: string | null | undefined) => {
+      if (!startStr) return '';
+      if (!endStr) return formatDateShort(startStr);
+      return `${formatDateShort(startStr)} - ${formatDateShort(endStr)}`;
+    };
+
     const reviewWeekEnd = batch?.review_week_end_date ? new Date(batch.review_week_end_date) : null;
     const isLearningDone = isEnrollmentDone && getIsDatePassed(batch?.review_week_end_date);
 
     const isRegistrationDone = getIsDatePassed(batch?.registration_end_date);
+    const isRegistrationStarted = getIsDateStarted(batch?.registration_start_date);
+    const isSelectionStarted = getIsDateStarted(batch?.selection_start_date);
     const isSelectionDoneByDate = getIsDatePassed(batch?.selection_end_date);
+    const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
     const isReEnrollmentDoneByDate = getIsDatePassed(batch?.re_enrollment_date);
     const isLearningDoneByDate = getIsDatePassed(batch?.review_week_end_date);
     const isGraduationDoneByDate = getIsDatePassed(batch?.graduation_end_date);
+    const isFinalExamStarted = getIsDateStarted(batch?.final_exam_start_date);
 
     const oralExam = finalExams.find(r => r.schedule?.exam_type === 'oral');
     const writtenExam = finalExams.find(r => r.schedule?.exam_type === 'written');
@@ -363,18 +393,22 @@ export default function PerjalananSaya() {
           { name: 'Lengkapi Profil', done: isProfileComplete, data: isProfileComplete ? `${user.full_name} (${user.whatsapp})` : 'Belum lengkap', reviewType: isProfileComplete ? 'profile' : null },
           { 
             name: 'Form Pendaftaran', 
+            date: formatDateRangeShort(batch?.registration_start_date, batch?.registration_end_date),
             done: hasFormPendaftaran, 
             data: hasFormPendaftaran ? 'Pendaftaran Berhasil' : 'Belum daftar', 
             reviewType: hasFormPendaftaran ? 'registration' : null, 
-            isEditAction: !isRegistrationDone // will redirect to registration page which handles edit vs new registration
+            isEditAction: !isRegistrationDone, // will redirect to registration page which handles edit vs new registration
+            isEditDisabled: !isRegistrationStarted
           },
           { 
             name: 'Ujian Lisan', 
+            date: formatDateRangeShort(batch?.registration_start_date, batch?.registration_end_date),
             done: hasFormPendaftaran && hasOral, 
             data: hasFormPendaftaran && hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu'), 
             reviewType: hasFormPendaftaran && hasOral ? 'oral' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !hasOral,
+            isTestDisabled: !isRegistrationStarted,
             testUrl: `/seleksi/rekam-suara?batchId=${batchId}`
           },
         ]
@@ -384,8 +418,8 @@ export default function PerjalananSaya() {
         desc: batch?.selection_start_date ? `${formatDateIndo(batch.selection_start_date)} - ${formatDateIndo(batch.selection_end_date || '')}` : 'Penilaian & Hasil', 
         icon: <FileText className="w-4 h-4" />,
         subPhases: [
-          { name: 'Penilaian Seleksi', done: isSelectionDone, data: isSelectionDone ? 'Selesai ✓' : 'Proses Penilaian oleh Admin' },
-          { name: 'Pengumuman', done: isSelectionDone, data: isSelectionDone ? `Placement: Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}` : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') }
+          { name: 'Penilaian Seleksi', date: formatDateRangeShort(batch?.selection_start_date, batch?.selection_end_date), done: isSelectionDone, data: isSelectionDone ? 'Selesai ✓' : 'Proses Penilaian oleh Admin' },
+          { name: 'Pengumuman', date: batch?.selection_result_date ? formatDateShort(batch.selection_result_date) : '', done: isSelectionDone, data: isSelectionDone ? `Placement: Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}` : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') }
         ]
       },
       { 
@@ -395,16 +429,18 @@ export default function PerjalananSaya() {
         subPhases: [
           { 
             name: 'Test Tertulis', 
+            date: formatDateRangeShort(batch?.selection_start_date, batch?.selection_end_date),
             done: isAlumnus || (hasFormPendaftaran && hasWritten), 
             data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
+            isTestDisabled: !isSelectionStarted,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
-          { name: 'Review Akad', done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
-          { name: 'Pilih Pasangan', done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
-          { name: 'Verifikasi', done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
+          { name: 'Review Akad', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
+          { name: 'Pilih Pasangan', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
+          { name: 'Verifikasi', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
         ]
       },
       { 
@@ -412,9 +448,9 @@ export default function PerjalananSaya() {
         desc: batch?.opening_class_date ? `Aktif s/d ${formatDateIndo(batch.review_week_end_date || '')}` : 'Pekan 1 - 12', 
         icon: <BookOpen className="w-4 h-4" />,
         subPhases: [
-          { name: 'Opening Class', done: isEnrollmentDone && today > new Date(batch?.opening_class_date || ''), data: batch?.opening_class_date ? formatDateIndo(batch.opening_class_date) : '-' },
-          { name: 'Jurnal Tikrar', done: percentage >= 80, data: isEnrollmentDone ? `Progres: ${percentage}%` : 'Belum mulai' },
-          { name: 'Muraja’ah', done: isLearningDone, data: isLearningDone ? 'Selesai' : (today > (reviewWeekEnd || new Date()) ? 'Berlangsung' : 'Akan datang') }
+          { name: 'Opening Class', date: batch?.opening_class_date ? formatDateShort(batch.opening_class_date) : '', done: isEnrollmentDone && today > new Date(batch?.opening_class_date || ''), data: batch?.opening_class_date ? formatDateIndo(batch.opening_class_date) : '-' },
+          { name: 'Jurnal Tikrar', date: formatDateRangeShort(batch?.opening_class_date, batch?.review_week_end_date), done: percentage >= 80, data: isEnrollmentDone ? `Progres: ${percentage}%` : 'Belum mulai' },
+          { name: 'Muraja’ah', date: formatDateRangeShort(batch?.review_week_start_date, batch?.review_week_end_date), done: isLearningDone, data: isLearningDone ? 'Selesai' : (today > (reviewWeekEnd || new Date()) ? 'Berlangsung' : 'Akan datang') }
         ]
       },
       { 
@@ -422,14 +458,14 @@ export default function PerjalananSaya() {
         desc: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : 'Wisuda & Sertifikat', 
         icon: <Award className="w-4 h-4" />,
         subPhases: [
-          { name: 'Ujian Tulis', done: !!writtenExam, data: writtenExam ? (writtenExam.status === 'graded' ? `Nilai: ${writtenExam.score_tulisan}` : 'Sudah terdaftar') : 'Belum ujian', isPortalAction: false, isLocked: !writtenExam },
-          { name: 'Ujian Lisan', done: !!oralExam, data: oralExam ? (oralExam.status === 'graded' ? `Nilai: ${oralExam.score_lisan}` : `${formatDateIndo(oralExam.schedule?.exam_date || '')}`) : 'Belum memilih jadwal', isPortalAction: isLearningDone || isAdmin },
-          { name: 'Wisuda', done: isGraduationDone, data: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : '-' },
-          { name: 'Sertifikat', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
+          { name: 'Ujian Tulis', date: formatDateRangeShort(batch?.final_exam_start_date, batch?.final_exam_end_date), done: !!writtenExam, data: writtenExam ? (writtenExam.status === 'graded' ? `Nilai: ${writtenExam.score_tulisan}` : 'Sudah terdaftar') : 'Belum ujian', isPortalAction: false, isLocked: !writtenExam },
+          { name: 'Ujian Lisan', date: formatDateRangeShort(batch?.final_exam_start_date, batch?.final_exam_end_date), done: !!oralExam, data: oralExam ? (oralExam.status === 'graded' ? `Nilai: ${oralExam.score_lisan}` : `${formatDateIndo(oralExam.schedule?.exam_date || '')}`) : 'Belum memilih jadwal', isPortalAction: isLearningDone || isAdmin, isPortalDisabled: !isFinalExamStarted && !isAdmin },
+          { name: 'Wisuda', date: batch?.graduation_start_date ? formatDateShort(batch.graduation_start_date) : '', done: isGraduationDone, data: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : '-' },
+          { name: 'Sertifikat', date: batch?.graduation_start_date ? formatDateShort(batch.graduation_start_date) : '', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
         ]
       },
     ];
-  }, [user, isLoading, registrationStatus, batch, percentage, pairingData]);
+  }, [user, isLoading, registrationStatus, batch, percentage, pairingData, finalExams, isAdmin]);
 
   useEffect(() => {
     setIsClient(true);
@@ -714,8 +750,13 @@ export default function PerjalananSaya() {
                     {phase.subPhases.map((sub, sIdx) => (
                       <div key={sIdx} className="flex items-center gap-2">
                         <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", sub.done ? "bg-emerald-500" : "bg-gray-200")} />
-                        <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 group">
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 group">
                           <span className="text-[9px] font-bold text-gray-900">{sub.name}</span>
+                          {(sub as any).date && (
+                            <span className="text-[8px] font-semibold text-emerald-800 bg-emerald-50/60 px-1 py-0.5 rounded border border-emerald-100/50 shrink-0">
+                              {(sub as any).date}
+                            </span>
+                          )}
                           <span className="text-[9px] font-medium text-gray-400">—</span>
                           <span className="text-[9px] font-medium text-gray-500">{sub.data}</span>
                           {(sub as any).reviewType && (
@@ -730,11 +771,17 @@ export default function PerjalananSaya() {
                               <Eye className="w-2.5 h-2.5" />
                             </button>
                           )}
-                           {(sub as any).isEditAction && (
+                          {(sub as any).isEditAction && (
                             <button 
+                              disabled={(sub as any).isEditDisabled}
                               onClick={() => router.push(`/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
-                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors flex items-center gap-0.5"
-                              title={hasFormPendaftaran ? `Edit Pendaftaran` : `Daftar Sekarang`}
+                              className={cn(
+                                "ml-1 flex items-center gap-0.5 transition-colors",
+                                (sub as any).isEditDisabled 
+                                  ? "text-gray-400 cursor-not-allowed opacity-50" 
+                                  : "text-emerald-600 hover:text-emerald-800"
+                              )}
+                              title={(sub as any).isEditDisabled ? `Pendaftaran belum dibuka (Mulai ${batch?.registration_start_date ? formatDateIndo(batch.registration_start_date) : ''})` : (hasFormPendaftaran ? `Edit Pendaftaran` : `Daftar Sekarang`)}
                             >
                               <Edit className="w-2.5 h-2.5" />
                               <span className="text-[9px] font-bold underline">{hasFormPendaftaran ? 'Edit' : 'Daftar'}</span>
@@ -742,8 +789,15 @@ export default function PerjalananSaya() {
                           )}
                           {(sub as any).isTestAction && (
                             <button 
+                              disabled={(sub as any).isTestDisabled}
                               onClick={() => router.push((sub as any).testUrl)}
-                              className="ml-2 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 shadow-md shadow-emerald-100"
+                              className={cn(
+                                "ml-2 px-2.5 py-1 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 shadow-md",
+                                (sub as any).isTestDisabled 
+                                  ? "bg-gray-300 shadow-none cursor-not-allowed text-gray-500" 
+                                  : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
+                              )}
+                              title={(sub as any).isTestDisabled ? "Tahapan belum dimulai" : "Mulai"}
                             >
                               <Play className="w-2.5 h-2.5 fill-current" />
                               Mulai
@@ -751,8 +805,15 @@ export default function PerjalananSaya() {
                           )}
                           {(sub as any).isPortalAction && (
                             <button 
+                              disabled={(sub as any).isPortalDisabled}
                               onClick={() => setIsExamPortalOpen(true)} 
-                              className="ml-1 px-2 py-0.5 bg-emerald-600 text-white rounded-full text-[9px] font-bold hover:bg-emerald-700 transition-colors"
+                              className={cn(
+                                "ml-1 px-2 py-0.5 text-white rounded-full text-[9px] font-bold transition-colors",
+                                (sub as any).isPortalDisabled 
+                                  ? "bg-gray-300 cursor-not-allowed text-gray-500" 
+                                  : "bg-emerald-600 hover:bg-emerald-700"
+                              )}
+                              title={(sub as any).isPortalDisabled ? "Portal ujian belum dibuka" : "Buka"}
                             >
                               BUKA
                             </button>
@@ -787,6 +848,7 @@ export default function PerjalananSaya() {
           getStatusStyles={getStatusStyles}
           getDayNameFromNumber={getDayNameFromNumber}
           getJuzLabel={getJuzLabel}
+          batch={batch}
         />
       </div>
 

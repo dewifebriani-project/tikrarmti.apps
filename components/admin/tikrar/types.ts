@@ -64,6 +64,7 @@ export interface TikrarTahfidz {
   user?: User;
   batch?: { name: string; min_exam_score?: number | null };
   program?: { name: string };
+  isAlumni?: boolean;
 }
 
 export interface TikrarStatsData {

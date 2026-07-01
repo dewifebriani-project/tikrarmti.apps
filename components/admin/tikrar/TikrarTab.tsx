@@ -93,6 +93,32 @@ export function TikrarTab({ user }: { user: any }) {
 
       let filteredData = data as TikrarTahfidz[];
 
+      // Fetch previous registrations to determine alumni status
+      const userIds = filteredData.map(t => t.user_id);
+      const alumniUserIds = new Set<string>();
+
+      if (userIds.length > 0) {
+        const { data: prevRegs } = await supabase
+          .from('pendaftaran_tikrar_tahfidz')
+          .select('user_id')
+          .in('user_id', userIds)
+          .eq('status', 'approved')
+          .eq('selection_status', 'selected')
+          .neq('batch_id', filters.batchId);
+
+        if (prevRegs) {
+          prevRegs.forEach((reg: any) => {
+            alumniUserIds.add(reg.user_id);
+          });
+        }
+      }
+
+      // Enrich data with isAlumni flag
+      filteredData = filteredData.map(t => ({
+        ...t,
+        isAlumni: alumniUserIds.has(t.user_id)
+      }));
+
       // Client-side search
       if (filters.search) {
         const s = filters.search.toLowerCase();
@@ -104,6 +130,13 @@ export function TikrarTab({ user }: { user: any }) {
           t.wa_phone?.includes(s)
         );
       }
+
+      // Client-side sort alphabetically by name (A-Z)
+      filteredData.sort((a, b) => {
+        const nameA = (a.full_name || a.user?.full_name || 'Hamba Allah').toLowerCase();
+        const nameB = (b.full_name || b.user?.full_name || 'Hamba Allah').toLowerCase();
+        return nameA.localeCompare(nameB, 'id');
+      });
 
       setTikrar(filteredData || []);
       

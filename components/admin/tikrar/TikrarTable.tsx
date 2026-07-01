@@ -1,6 +1,6 @@
 'use client';
 
-import { Award, Clock, CheckCircle, XCircle, Info, Edit, Trash2, Undo2, MessageSquare, AlertCircle, FileText } from 'lucide-react';
+import { Award, Clock, CheckCircle, XCircle, Info, Edit, Trash2, Undo2, MessageSquare, AlertCircle, FileText, Mic } from 'lucide-react';
 import { TikrarTahfidz } from './types';
 import { cn } from '@/lib/utils';
 
@@ -122,12 +122,23 @@ export function TikrarTable({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col min-w-0">
-                        <button
-                          onClick={() => onAction('review', t)}
-                          className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline text-left truncate"
-                        >
-                          {t.full_name || t.user?.full_name || 'Hamba Allah'}
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => onAction('review', t)}
+                            className="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline text-left truncate"
+                          >
+                            {t.full_name || t.user?.full_name || 'Hamba Allah'}
+                          </button>
+                          {t.isAlumni ? (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-100 select-none">
+                              Alumni
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-gray-50 text-gray-400 border border-gray-100 select-none">
+                              Baru
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-gray-550 truncate">{t.user?.email || '-'}</span>
                         <span className="text-[10px] text-gray-400 mt-0.5">{t.batch_name || t.batch?.name}</span>
                       </div>
@@ -178,6 +189,11 @@ export function TikrarTable({
                             )}>
                               {t.oral_total_score.toFixed(0)}
                             </span>
+                          ) : t.oral_submission_url || t.oral_submitted_at ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengirim rekaman (VN) - Menunggu penilaian">
+                              <Mic className="h-2.5 w-2.5 text-emerald-600" />
+                              ✓ VN
+                            </span>
                           ) : (
                             <span className="text-xs text-gray-300 font-bold italic">N/A</span>
                           )}
@@ -209,6 +225,11 @@ export function TikrarTable({
                                 </span>
                               );
                             })()
+                          ) : t.written_quiz_submitted_at || t.written_exam_submitted_at ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan ujian tulis">
+                              <FileText className="h-2.5 w-2.5 text-emerald-600" />
+                              ✓ TULIS
+                            </span>
                           ) : (
                             <span className="text-xs text-gray-300 font-bold italic">N/A</span>
                           )}
@@ -216,16 +237,8 @@ export function TikrarTable({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className={cn(
-                          "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider w-fit",
-                          t.status === 'approved' ? "bg-emerald-100 text-emerald-700" :
-                          t.status === 'rejected' ? "bg-red-100 text-red-700" :
-                          t.status === 'withdrawn' ? "bg-gray-100 text-gray-600" :
-                          "bg-amber-100 text-amber-700"
-                        )}>
-                          {t.status}
-                        </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-wider select-none">Seleksi VN</span>
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider w-fit border",
                           t.selection_status === 'selected' ? "bg-blue-50 text-blue-700 border-blue-100" :

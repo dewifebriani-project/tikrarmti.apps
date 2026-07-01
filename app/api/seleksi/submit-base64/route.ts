@@ -56,24 +56,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert base64 back to blob
-    console.log('🔄 Base64 API: Converting base64 to blob...');
+    // Convert base64 back to buffer
+    console.log('🔄 Base64 API: Converting base64 to buffer...');
     const byteCharacters = atob(audioBase64);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType || 'audio/webm' });
+    const audioBuffer = Buffer.from(byteArray);
 
-    console.log('📊 Base64 API: Blob created:', {
-      size: blob.size,
-      type: blob.type
+    console.log('📊 Base64 API: Buffer created:', {
+      size: audioBuffer.length
     });
 
-    // Validate blob
-    if (blob.size === 0) {
-      console.error('❌ Base64 API: Converted blob is empty');
+    // Validate buffer
+    if (audioBuffer.length === 0) {
+      console.error('❌ Base64 API: Converted buffer is empty');
       return NextResponse.json(
         { error: 'Audio data is empty' },
         { status: 400 }
@@ -86,10 +85,11 @@ export async function POST(request: NextRequest) {
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('selection-audios')
-      .upload(supabaseFileName, blob, {
+      .upload(supabaseFileName, audioBuffer, {
         contentType: mimeType || 'audio/webm',
+        duplex: 'half',
         cacheControl: '3600'
-      });
+      } as any);
 
     if (uploadError) {
       console.error('❌ Base64 API: Upload error:', uploadError);

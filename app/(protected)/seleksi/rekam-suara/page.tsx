@@ -259,7 +259,6 @@ export default function RekamSuaraPage() {
       const { error: uploadError } = await supabase.storage
         .from('selection-audios')
         .upload(fileName, audioBlob, {
-          contentType: audioBlob.type,
           upsert: false
         });
 

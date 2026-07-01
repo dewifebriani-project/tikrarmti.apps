@@ -116,12 +116,14 @@ export async function POST(request: NextRequest) {
         // Still try to upload - be more permissive for mobile devices
       }
 
+      const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('selection-audios')
-        .upload(fileName, audioFile, {
+        .upload(fileName, audioBuffer, {
           contentType: audioFile.type || 'audio/webm',
+          duplex: 'half',
           cacheControl: '3600'
-        });
+        } as any);
 
       if (uploadError) {
         console.error('❌ API: Upload error:', uploadError);

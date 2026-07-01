@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Volume2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminVoiceRecorder } from '@/components/AdminVoiceRecorder';
@@ -60,6 +60,128 @@ export function OralAssessment({
   const [saving, setSaving] = useState(false);
   const [manualScore, setManualScore] = useState<number | null>(currentAssessment?.oral_total_score || null);
   const [useManualScore, setUseManualScore] = useState<boolean>(false);
+
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!oralSubmissionUrl) {
+      setAudioUrl(null);
+      return;
+    }
+
+    // If it's already a local blob/object URL or not a Supabase storage URL, use it directly
+    if (oralSubmissionUrl.startsWith('blob:') || oralSubmissionUrl.startsWith('data:') || !oralSubmissionUrl.includes('supabase.co')) {
+      setAudioUrl(oralSubmissionUrl);
+      return;
+    }
+
+    let localBlobUrl: string | null = null;
+    const loadAudioFile = async () => {
+      setLoadingAudio(true);
+      setAudioError(null);
+      try {
+        // Find index of bucket name in the URL path to extract relative path
+        const bucketSegment = 'selection-audios/';
+        const bucketIndex = oralSubmissionUrl.indexOf(bucketSegment);
+        
+        let path = '';
+        if (bucketIndex !== -1) {
+          path = oralSubmissionUrl.substring(bucketIndex + bucketSegment.length).split('?')[0];
+        } else {
+          // Fallback to pop if bucket name not in URL
+          const urlParts = oralSubmissionUrl.split('/');
+          path = urlParts[urlParts.length - 1].split('?')[0];
+        }
+        
+        if (!path) {
+          throw new Error('Invalid path in URL');
+        }
+
+        const supabase = createClient();
+        const { data, error } = await supabase.storage
+          .from('selection-audios')
+          .download(path);
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          // Check for corruption (multipart form-data wrapper)
+          const arrayBuffer = await data.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          const textDecoder = new TextDecoder('utf-8');
+          const headerPreview = textDecoder.decode(uint8.subarray(0, 1024));
+          
+          let finalBlob = data;
+          if (headerPreview.startsWith('------')) {
+            console.log('OralAssessment: Detected corrupted audio file, repairing...');
+            try {
+              const boundaryLine = headerPreview.split('\r\n')[0];
+              const contentTypeIndex = headerPreview.indexOf('Content-Type:');
+              const doubleNewlineIndex = headerPreview.indexOf('\r\n\r\n', contentTypeIndex);
+              
+              if (contentTypeIndex !== -1 && doubleNewlineIndex !== -1) {
+                const dataStartIndex = doubleNewlineIndex + 4;
+                const closingBoundary = '\r\n' + boundaryLine;
+                const closingBoundaryBytes = new TextEncoder().encode(closingBoundary);
+                
+                let dataEndIndex = uint8.length;
+                for (let i = dataStartIndex; i < uint8.length - closingBoundaryBytes.length; i++) {
+                  let match = true;
+                  for (let j = 0; j < closingBoundaryBytes.length; j++) {
+                    if (uint8[i + j] !== closingBoundaryBytes[j]) {
+                      match = false;
+                      break;
+                    }
+                  }
+                  if (match) {
+                    dataEndIndex = i;
+                    break;
+                  }
+                }
+                
+                const audioBytes = uint8.subarray(dataStartIndex, dataEndIndex);
+                let detectedType = 'audio/webm';
+                const matchType = headerPreview.match(/Content-Type:\s*([^\r\n]+)/i);
+                if (matchType && matchType[1]) {
+                  detectedType = matchType[1].trim();
+                }
+                
+                finalBlob = new Blob([audioBytes], { type: detectedType });
+                console.log(`OralAssessment: Successfully repaired corrupted audio file (recovered ${audioBytes.length} bytes, type ${detectedType})`);
+              }
+            } catch (repairErr) {
+              console.error('OralAssessment: Failed to repair corrupted audio:', repairErr);
+            }
+          }
+          
+          localBlobUrl = URL.createObjectURL(finalBlob);
+          setAudioUrl(localBlobUrl);
+        } else {
+          throw new Error('No data received');
+        }
+      } catch (err: any) {
+        console.error('Failed to load audio via Supabase client, falling back to public URL:', err);
+        setAudioError(err.message || 'Gagal memuat file via client');
+        // Fallback to direct URL if download fails
+        setAudioUrl(oralSubmissionUrl);
+      } finally {
+        setLoadingAudio(false);
+      }
+    };
+
+    loadAudioFile();
+
+    // Cleanup blob URL when component unmounts or URL changes
+    return () => {
+      if (localBlobUrl) {
+        URL.revokeObjectURL(localBlobUrl);
+      }
+    };
+  }, [oralSubmissionUrl]);
 
   const calculateScore = (): number | null => {
     const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat', 'itmamul_harakat'] as const;
@@ -164,12 +286,25 @@ export function OralAssessment({
     <div className="space-y-6">
       {oralSubmissionUrl ? (
         <div className="bg-green-50 p-4 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
-            <Volume2 className="w-5 h-5 text-green-700" />
-            <h4 className="font-semibold text-green-900">Rekaman QS. Al-Fath 29</h4>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Volume2 className="w-5 h-5 text-green-700" />
+              <h4 className="font-semibold text-green-900">Rekaman QS. Al-Fath 29</h4>
+            </div>
+            {loadingAudio && (
+              <span className="text-xs text-green-600 animate-pulse font-medium">
+                Memuat rekaman...
+              </span>
+            )}
+            {audioError && !loadingAudio && (
+              <span className="text-xs text-red-500 font-medium" title={audioError}>
+                Gagal memuat langsung, menggunakan fallback
+              </span>
+            )}
           </div>
           <audio
-            src={oralSubmissionUrl}
+            key={audioUrl}
+            src={audioUrl || undefined}
             controls
             className="w-full"
             preload="auto"
