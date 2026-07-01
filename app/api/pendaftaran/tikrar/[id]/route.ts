@@ -67,7 +67,8 @@ export async function PUT(
                                     body.oral_mad_errors !== undefined || body.oral_ghunnah_errors !== undefined ||
                                     body.oral_harakat_errors !== undefined || body.oral_itmamul_harakat_errors !== undefined ||
                                     body.oral_total_score !== undefined || body.oral_assessment_status !== undefined ||
-                                    body.oral_assessment_notes !== undefined || body.oral_assessment_audio_url !== undefined;
+                                    body.oral_assessment_notes !== undefined || body.oral_assessment_audio_url !== undefined ||
+                                    body.selection_status !== undefined;
 
     // For non-admin users doing regular updates (not oral submission), verify they own the registration
     // Note: user_id in body is optional, so we only check if it's provided

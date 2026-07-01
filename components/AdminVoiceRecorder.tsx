@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Mic, Square, Play, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -14,6 +14,10 @@ export function AdminVoiceRecorder({ onAudioReady, existingAudioUrl }: AdminVoic
   const [audioUrl, setAudioUrl] = useState<string | null>(existingAudioUrl || null);
   const [recordingDuration, setRecordingDuration] = useState(0);
   
+  useEffect(() => {
+    setAudioUrl(existingAudioUrl || null);
+  }, [existingAudioUrl]);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -21,7 +25,8 @@ export function AdminVoiceRecorder({ onAudioReady, existingAudioUrl }: AdminVoic
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -32,7 +37,7 @@ export function AdminVoiceRecorder({ onAudioReady, existingAudioUrl }: AdminVoic
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
         onAudioReady(audioBlob);
