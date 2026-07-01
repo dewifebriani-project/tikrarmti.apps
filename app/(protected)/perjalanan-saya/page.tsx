@@ -15,7 +15,7 @@ import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal';
 import { Pendaftaran } from '@/types/database';
 import { ExamEligibility } from '@/types/exam';
-import { TimelineMilestone, TimelineItem, TimelineItemWithStatus } from '@/components/TimelineMilestone';
+import { TimelineItem, TimelineItemWithStatus } from '@/components/TimelineMilestone';
 import { useBatchTimeline } from '@/hooks/useBatchTimeline';
 import { formatFullDateIndo, formatDateIndo, getDayNameIndo, toHijri } from '@/lib/utils/date-helpers';
 import { getRoleRank, ROLE_RANKS, isStaff } from '@/lib/roles';
@@ -831,23 +831,6 @@ export default function PerjalananSaya() {
         </div>
       </div>
 
-      {/* Timeline Section */}
-      <div className="max-w-6xl mx-auto w-full px-4 pt-10">
-        <h2 className="text-center text-emerald-900 font-black text-2xl mb-8 uppercase tracking-widest">Jadwal Batch</h2>
-        <TimelineMilestone 
-          timelineData={timelineData}
-          registrationStatus={registrationStatus}
-          user={user}
-          percentage={percentage}
-          batchId={batchId}
-          examEligibility={examEligibility}
-          isJuz30={isJuz30}
-          getStatusStyles={getStatusStyles}
-          getDayNameFromNumber={getDayNameFromNumber}
-          getJuzLabel={getJuzLabel}
-          batch={batch}
-        />
-      </div>
 
       {/* Action Modals */}
 
