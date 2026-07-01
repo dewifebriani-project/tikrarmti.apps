@@ -429,13 +429,13 @@ export default function PerjalananSaya() {
         subPhases: [
           { 
             name: 'Test Tertulis', 
-            date: formatDateRangeShort(batch?.selection_start_date, batch?.selection_end_date),
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
             done: isAlumnus || (hasFormPendaftaran && hasWritten), 
             data: isAlumnus ? 'Tidak wajib (Alumni) ✓' : (hasFormPendaftaran && hasWritten ? 'Selesai ✓' : (hasFormPendaftaran ? 'Penempatan juz (bukan kelulusan)' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
-            isTestDisabled: !isSelectionStarted,
+            isTestDisabled: !isReEnrollmentStarted,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           { name: 'Review Akad', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
@@ -459,7 +459,7 @@ export default function PerjalananSaya() {
         icon: <Award className="w-4 h-4" />,
         subPhases: [
           { name: 'Ujian Tulis', date: formatDateRangeShort(batch?.final_exam_start_date, batch?.final_exam_end_date), done: !!writtenExam, data: writtenExam ? (writtenExam.status === 'graded' ? `Nilai: ${writtenExam.score_tulisan}` : 'Sudah terdaftar') : 'Belum ujian', isPortalAction: false, isLocked: !writtenExam },
-          { name: 'Ujian Lisan', date: formatDateRangeShort(batch?.final_exam_start_date, batch?.final_exam_end_date), done: !!oralExam, data: oralExam ? (oralExam.status === 'graded' ? `Nilai: ${oralExam.score_lisan}` : `${formatDateIndo(oralExam.schedule?.exam_date || '')}`) : 'Belum memilih jadwal', isPortalAction: isLearningDone || isAdmin, isPortalDisabled: !isFinalExamStarted && !isAdmin },
+          { name: 'Ujian Lisan', date: formatDateRangeShort(batch?.final_exam_start_date, batch?.final_exam_end_date), done: !!oralExam, data: oralExam ? (oralExam.status === 'graded' ? `Nilai: ${oralExam.score_lisan}` : `${formatDateIndo(oralExam.schedule?.exam_date || '')}`) : 'Belum memilih jadwal', isPortalAction: isLearningDone || isAdmin, isPortalDisabled: !isFinalExamStarted },
           { name: 'Wisuda', date: batch?.graduation_start_date ? formatDateShort(batch.graduation_start_date) : '', done: isGraduationDone, data: batch?.graduation_start_date ? formatDateIndo(batch.graduation_start_date) : '-' },
           { name: 'Sertifikat', date: batch?.graduation_start_date ? formatDateShort(batch.graduation_start_date) : '', done: isGraduationDone, data: isGraduationDone ? 'Sudah terbit' : 'Menunggu wisuda' }
         ]
