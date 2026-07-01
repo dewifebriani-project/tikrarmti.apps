@@ -21,6 +21,7 @@ interface OralAssessmentProps {
     oral_assessment_audio_url?: string;
   };
   onSave?: (data: any) => void;
+  onResetComplete?: () => void;
   readOnly?: boolean;
   allowNoSubmission?: boolean; // Allow assessment without VN
 }
@@ -42,6 +43,7 @@ export function OralAssessment({
   oralSubmissionUrl,
   currentAssessment,
   onSave,
+  onResetComplete,
   readOnly = false,
   allowNoSubmission = false
 }: OralAssessmentProps) {
@@ -271,6 +273,75 @@ export function OralAssessment({
     }
   };
 
+  const handleResetSubmission = async () => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus rekaman ini dan meminta thalibah merekam ulang? Rekaman saat ini di cloud storage akan dihapus permanen.")) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const supabase = createClient();
+
+      if (oralSubmissionUrl) {
+        try {
+          const bucketSegment = 'selection-audios/';
+          const bucketIndex = oralSubmissionUrl.indexOf(bucketSegment);
+          let path = '';
+          if (bucketIndex !== -1) {
+            path = oralSubmissionUrl.substring(bucketIndex + bucketSegment.length).split('?')[0];
+          } else {
+            const urlParts = oralSubmissionUrl.split('/');
+            path = urlParts[urlParts.length - 1].split('?')[0];
+          }
+
+          if (path) {
+            await supabase.storage.from('selection-audios').remove([path]);
+            console.log('OralAssessment: File deleted from storage:', path);
+          }
+        } catch (storageErr) {
+          console.error('OralAssessment: Failed to delete file from storage:', storageErr);
+        }
+      }
+
+      const response = await fetch(`/api/pendaftaran/tikrar/${registrationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          oral_submission_url: null,
+          oral_submission_file_name: null,
+          oral_submitted_at: null,
+          oral_assessment_status: 'not_submitted',
+          oral_makhraj_errors: null,
+          oral_sifat_errors: null,
+          oral_mad_errors: null,
+          oral_ghunnah_errors: null,
+          oral_harakat_errors: null,
+          oral_itmamul_harakat_errors: null,
+          oral_total_score: null,
+          selection_status: 'pending'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update database');
+      }
+
+      if (onResetComplete) {
+        onResetComplete();
+      } else {
+        alert('Rekaman berhasil dihapus. Status didefinisikan kembali ke belum kirim.');
+        window.location.reload();
+      }
+    } catch (err: any) {
+      console.error('Error resetting submission:', err);
+      alert('Gagal meriset rekaman: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!oralSubmissionUrl && !allowNoSubmission) {
     return (
       <div className="bg-gray-50 p-6 rounded-lg">
@@ -309,6 +380,18 @@ export function OralAssessment({
             className="w-full"
             preload="auto"
           />
+          {!readOnly && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={handleResetSubmission}
+                disabled={saving}
+                className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 disabled:bg-gray-100 disabled:text-gray-400 border border-red-200 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                {saving ? 'Memproses...' : '⚠️ Hapus & Minta Rekam Ulang'}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-yellow-50 p-4 rounded-lg">

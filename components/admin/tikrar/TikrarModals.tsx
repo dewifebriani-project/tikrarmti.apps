@@ -174,6 +174,11 @@ export function TikrarReviewModal({ isOpen, onClose, reviewData, onRefresh, user
                     oralSubmissionUrl={reviewData.oral_submission_url}
                     currentAssessment={reviewData}
                     allowNoSubmission={true}
+                    onResetComplete={() => {
+                      toast.success('Status VN thalibah berhasil direset! Thalibah dapat merekam ulang sekarang.');
+                      onRefresh();
+                      onClose();
+                    }}
                     onSave={async (assessmentData) => {
                       try {
                         const response = await fetch(`/api/pendaftaran/tikrar/${reviewData.id}`, {

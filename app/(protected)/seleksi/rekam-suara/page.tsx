@@ -201,7 +201,7 @@ export default function RekamSuaraPage() {
         }
       };
 
-      mediaRecorder.start(1000);
+      mediaRecorder.start();
       setIsRecording(true);
 
     } catch (err: any) {
