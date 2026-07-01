@@ -35,7 +35,7 @@ interface ErrorCounts {
   itmamul_harakat: number | null;
 }
 
-const PASSING_SCORE = 70;
+const PASSING_SCORE = 80;
 const MAX_ERRORS_PER_CATEGORY = 10;
 
 export function OralAssessment({
@@ -47,13 +47,16 @@ export function OralAssessment({
   readOnly = false,
   allowNoSubmission = false
 }: OralAssessmentProps) {
+  // If the status is not 'pass' or 'fail', we start with null errors (not yet graded)
+  const isAlreadyGraded = currentAssessment?.oral_assessment_status === 'pass' || currentAssessment?.oral_assessment_status === 'fail';
+
   const [errors, setErrors] = useState<ErrorCounts>({
-    makhraj: currentAssessment?.oral_makhraj_errors ?? null,
-    sifat: currentAssessment?.oral_sifat_errors ?? null,
-    mad: currentAssessment?.oral_mad_errors ?? null,
-    ghunnah: currentAssessment?.oral_ghunnah_errors ?? null,
-    harakat: currentAssessment?.oral_harakat_errors ?? null,
-    itmamul_harakat: currentAssessment?.oral_itmamul_harakat_errors ?? null,
+    makhraj: isAlreadyGraded ? (currentAssessment?.oral_makhraj_errors ?? null) : null,
+    sifat: isAlreadyGraded ? (currentAssessment?.oral_sifat_errors ?? null) : null,
+    mad: isAlreadyGraded ? (currentAssessment?.oral_mad_errors ?? null) : null,
+    ghunnah: isAlreadyGraded ? (currentAssessment?.oral_ghunnah_errors ?? null) : null,
+    harakat: isAlreadyGraded ? (currentAssessment?.oral_harakat_errors ?? null) : null,
+    itmamul_harakat: isAlreadyGraded ? (currentAssessment?.oral_itmamul_harakat_errors ?? null) : null,
   });
 
   const [notes, setNotes] = useState(currentAssessment?.oral_assessment_notes || '');
