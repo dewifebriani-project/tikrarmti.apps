@@ -734,38 +734,42 @@ export default function PerjalananSaya() {
       <div className="max-w-6xl mx-auto w-full px-4">
         <div className="relative bg-white/40 backdrop-blur-md border border-white shadow-xl rounded-[2rem] p-6 sm:p-10">
           <h2 className="text-center text-emerald-900 font-black text-lg mb-10 uppercase tracking-widest">Fase Perjalanan Ukhti</h2>
-          <div className="relative flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <div className="relative flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8 sm:gap-10 xl:gap-6">
+            {/* Timeline Connecting Lines */}
+            <div className="absolute top-6 left-6 right-6 h-1 bg-emerald-100/50 xl:block hidden z-0 rounded-full" />
+            <div className="absolute left-6 top-6 bottom-6 w-1 bg-emerald-100/50 xl:hidden block z-0 rounded-full" />
+
             {phases.map((phase, idx) => (
-              <div key={phase.id} className="relative flex xl:flex-col items-center gap-4 xl:gap-3 w-full xl:w-[18%]">
-                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg", phase.status === 'completed' ? "bg-emerald-500 text-white" : phase.status === 'current' ? "bg-yellow-400 text-yellow-900" : "bg-white text-gray-300")}>
+              <div key={phase.id} className="relative flex xl:flex-col items-start xl:items-center gap-4 xl:gap-3 w-full xl:w-[18%] z-10">
+                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-lg shrink-0 mt-0.5 relative z-10", phase.status === 'completed' ? "bg-emerald-500 text-white" : phase.status === 'current' ? "bg-yellow-400 text-yellow-900" : "bg-white text-gray-300")}>
                   {phase.status === 'completed' ? <CheckCircle className="w-6 h-6" /> : phase.icon}
                 </div>
-                <div className="flex flex-col xl:items-center text-left">
+                <div className="flex flex-col xl:items-center text-left min-w-0 flex-1">
                   <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Fase {phase.id}</p>
                   <h4 className="text-sm font-bold text-gray-900">{phase.name}</h4>
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2 space-y-1.5 w-full">
                     {phase.subPhases.map((sub, sIdx) => (
-                      <div key={sIdx} className="flex items-center gap-2">
-                        <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", sub.done ? "bg-emerald-500" : "bg-gray-200")} />
-                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 group">
-                          <span className="text-[9px] font-bold text-gray-900">{sub.name}</span>
+                      <div key={sIdx} className="flex items-start gap-2 pt-0.5">
+                        <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5", sub.done ? "bg-emerald-500" : "bg-gray-200")} />
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 group min-w-0 flex-1">
+                          <span className="text-xs font-bold text-gray-800">{sub.name}</span>
                           {(sub as any).date && (
-                            <span className="text-[8px] font-semibold text-emerald-800 bg-emerald-50/60 px-1 py-0.5 rounded border border-emerald-100/50 shrink-0">
+                            <span className="text-[9px] font-semibold text-emerald-800 bg-emerald-50/60 px-1 py-0.5 rounded border border-emerald-100/50 shrink-0">
                               {(sub as any).date}
                             </span>
                           )}
-                          <span className="text-[9px] font-medium text-gray-400">—</span>
-                          <span className="text-[9px] font-medium text-gray-500">{sub.data}</span>
+                          <span className="text-xs font-medium text-gray-300">—</span>
+                          <span className="text-xs font-medium text-gray-500 break-words">{sub.data}</span>
                           {(sub as any).reviewType && (
                             <button 
                               onClick={() => { 
                                 setReviewType((sub as any).reviewType); 
                                 setIsReviewModalOpen(true); 
                               }} 
-                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors"
+                              className="ml-1 text-emerald-600 hover:text-emerald-800 transition-colors p-1"
                               title={`Review ${sub.name}`}
                             >
-                              <Eye className="w-2.5 h-2.5" />
+                              <Eye className="w-3.5 h-3.5" />
                             </button>
                           )}
                           {(sub as any).isEditAction && (
@@ -773,15 +777,15 @@ export default function PerjalananSaya() {
                               disabled={(sub as any).isEditDisabled}
                               onClick={() => router.push(`/pendaftaran/tikrar-tahfidz?batchId=${batchId}`)}
                               className={cn(
-                                "ml-1 flex items-center gap-0.5 transition-colors",
+                                "ml-1 flex items-center gap-1 transition-colors p-1",
                                 (sub as any).isEditDisabled 
                                   ? "text-gray-400 cursor-not-allowed opacity-50" 
                                   : "text-emerald-600 hover:text-emerald-800"
                               )}
                               title={(sub as any).isEditDisabled ? `Pendaftaran belum dibuka (Mulai ${batch?.registration_start_date ? formatDateIndo(batch.registration_start_date) : ''})` : (hasFormPendaftaran ? `Edit Pendaftaran` : `Daftar Sekarang`)}
                             >
-                              <Edit className="w-2.5 h-2.5" />
-                              <span className="text-[9px] font-bold underline">{hasFormPendaftaran ? 'Edit' : 'Daftar'}</span>
+                              <Edit className="w-3.5 h-3.5" />
+                              <span className="text-[10px] font-bold underline">{hasFormPendaftaran ? 'Edit' : 'Daftar'}</span>
                             </button>
                           )}
                           {(sub as any).isTestAction && (
@@ -789,14 +793,14 @@ export default function PerjalananSaya() {
                               disabled={(sub as any).isTestDisabled}
                               onClick={() => router.push((sub as any).testUrl)}
                               className={cn(
-                                "ml-2 px-2.5 py-1 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 shadow-md",
+                                "ml-2 px-3 py-1.5 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 active:scale-95 shadow-md",
                                 (sub as any).isTestDisabled 
                                   ? "bg-gray-300 shadow-none cursor-not-allowed text-gray-500" 
                                   : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
                               )}
                               title={(sub as any).isTestDisabled ? "Tahapan belum dimulai" : "Mulai"}
                             >
-                              <Play className="w-2.5 h-2.5 fill-current" />
+                              <Play className="w-3 h-3 fill-current" />
                               Mulai
                             </button>
                           )}
@@ -805,7 +809,7 @@ export default function PerjalananSaya() {
                               disabled={(sub as any).isPortalDisabled}
                               onClick={() => setIsExamPortalOpen(true)} 
                               className={cn(
-                                "ml-1 px-2 py-0.5 text-white rounded-full text-[9px] font-bold transition-colors",
+                                "ml-1 px-3 py-1 text-white rounded-full text-[10px] font-bold transition-colors",
                                 (sub as any).isPortalDisabled 
                                   ? "bg-gray-300 cursor-not-allowed text-gray-500" 
                                   : "bg-emerald-600 hover:bg-emerald-700"
