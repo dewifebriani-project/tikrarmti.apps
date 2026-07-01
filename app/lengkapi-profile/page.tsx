@@ -20,10 +20,12 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { validatePhoneNumberFormat } from '@/lib/utils/sanitize'
 import { negaraList, provinsiList, zonaWaktuList } from '@/lib/data/registration-data'
 import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LengkapiProfilePage() {
   const router = useRouter()
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth()
+  const [isClientAuthenticated, setIsClientAuthenticated] = useState<boolean | null>(null)
+  const [clientAuthUser, setClientAuthUser] = useState<any | null>(null)
 
   const [formData, setFormData] = useState({
     namaKunyah: '',
@@ -52,10 +54,19 @@ export default function LengkapiProfilePage() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login?redirect=/lengkapi-profile')
+    const checkAuth = async () => {
+      const supabase = createClient()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        setIsClientAuthenticated(false)
+        router.push('/login?redirect=/lengkapi-profile')
+      } else {
+        setClientAuthUser(authUser)
+        setIsClientAuthenticated(true)
+      }
     }
-  }, [authLoading, isAuthenticated, router])
+    checkAuth()
+  }, [router])
 
   // Check if user came from a registration page and store return URL
   useEffect(() => {
@@ -70,7 +81,7 @@ export default function LengkapiProfilePage() {
   // Load existing user profile if available
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (!user?.id || !isAuthenticated) return
+      if (!clientAuthUser) return
 
       try {
         const response = await fetch('/api/auth/me')
@@ -82,7 +93,7 @@ export default function LengkapiProfilePage() {
           if (userData) {
             setFormData(prev => ({
               ...prev,
-              namaLengkap: userData.full_name || prev.namaLengkap,
+              namaLengkap: userData.full_name || clientAuthUser.user_metadata?.full_name || prev.namaLengkap,
               negara: userData.negara || prev.negara,
               provinsi: userData.provinsi || prev.provinsi,
               kota: userData.kota || prev.kota,
@@ -94,7 +105,7 @@ export default function LengkapiProfilePage() {
               tempatLahir: userData.tempat_lahir || prev.tempatLahir,
               jenisKelamin: userData.jenis_kelamin || prev.jenisKelamin,
               pekerjaan: userData.pekerjaan || prev.pekerjaan,
-              alasan_daftar: userData.alasan_daftar || prev.alasanDaftar
+              alasanDaftar: userData.alasan_daftar || prev.alasanDaftar
             }))
           }
         }
@@ -105,8 +116,10 @@ export default function LengkapiProfilePage() {
       }
     }
 
-    loadUserProfile()
-  }, [user?.id, isAuthenticated])
+    if (isClientAuthenticated) {
+      loadUserProfile()
+    }
+  }, [clientAuthUser, isClientAuthenticated])
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -240,7 +253,7 @@ export default function LengkapiProfilePage() {
     }
   }
 
-  if (authLoading || isLoadingProfile) {
+  if (isClientAuthenticated === null || isLoadingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -251,7 +264,7 @@ export default function LengkapiProfilePage() {
     )
   }
 
-  if (!isAuthenticated) {
+  if (isClientAuthenticated === false) {
     return null // Will redirect
   }
 
