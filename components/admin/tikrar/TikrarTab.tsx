@@ -19,6 +19,7 @@ export function TikrarTab({ user }: { user: any }) {
   // State
   const [tikrar, setTikrar] = useState<TikrarTahfidz[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
+  const [batchesLoaded, setBatchesLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<TikrarStatsType | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -44,23 +45,27 @@ export function TikrarTab({ user }: { user: any }) {
 
   // Fetch Batches
   const fetchBatches = async () => {
-    const { data } = await supabase.from('batches').select('*').order('name', { ascending: false });
-    const loadedBatches = data || [];
-    setBatches(loadedBatches);
+    try {
+      const { data } = await supabase.from('batches').select('*').order('name', { ascending: false });
+      const loadedBatches = data || [];
+      setBatches(loadedBatches);
 
-    // Find the currently active batch and set it as default in filters
-    const active = loadedBatches.find((b: any) => 
-      b.registration_start_date && 
-      b.registration_end_date &&
-      new Date(b.registration_start_date) <= new Date() && 
-      new Date(b.registration_end_date) >= new Date()
-    ) || loadedBatches[0]; // fallback to latest batch if no active one
+      // Find the currently active batch and set it as default in filters
+      const active = loadedBatches.find((b: any) => 
+        b.registration_start_date && 
+        b.registration_end_date &&
+        new Date(b.registration_start_date) <= new Date() && 
+        new Date(b.registration_end_date) >= new Date()
+      ) || loadedBatches[0]; // fallback to latest batch if no active one
 
-    if (active) {
-      setFilters(prev => ({
-        ...prev,
-        batchId: active.id
-      }));
+      if (active) {
+        setFilters(prev => ({
+          ...prev,
+          batchId: active.id
+        }));
+      }
+    } finally {
+      setBatchesLoaded(true);
     }
   };
 
@@ -98,13 +103,18 @@ export function TikrarTab({ user }: { user: any }) {
       const alumniUserIds = new Set<string>();
 
       if (userIds.length > 0) {
-        const { data: prevRegs } = await supabase
+        let prevQuery = supabase
           .from('pendaftaran_tikrar_tahfidz')
           .select('user_id')
           .in('user_id', userIds)
           .eq('status', 'approved')
-          .eq('selection_status', 'selected')
-          .neq('batch_id', filters.batchId);
+          .eq('selection_status', 'selected');
+
+        if (filters.batchId !== 'all') {
+          prevQuery = prevQuery.neq('batch_id', filters.batchId);
+        }
+
+        const { data: prevRegs } = await prevQuery;
 
         if (prevRegs) {
           prevRegs.forEach((reg: any) => {
@@ -169,8 +179,10 @@ export function TikrarTab({ user }: { user: any }) {
   }, []);
 
   useEffect(() => {
-    fetchTikrarData();
-  }, [fetchTikrarData]);
+    if (batchesLoaded) {
+      fetchTikrarData();
+    }
+  }, [fetchTikrarData, batchesLoaded]);
 
   // Handlers
   const handleAction = (action: 'review' | 'edit' | 'delete' | 'unapprove', data: TikrarTahfidz) => {

@@ -299,6 +299,7 @@ export default function PerjalananSaya() {
       selectionStatus: displaySelectionStatus,
       showSelectionResult,
       oralAssessmentAudioUrl: (registration as any)?.oral_assessment_audio_url,
+      oralAssessmentNotes: (registration as any)?.oral_assessment_notes,
     };
   }, [user, registrations, batch, isAlumnus, batchId]);
 

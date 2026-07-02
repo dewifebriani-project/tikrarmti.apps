@@ -54,6 +54,7 @@ export function ReviewSubmissionModal({
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [isRetracting, setIsRetracting] = useState(false);
 
   useEffect(() => {
     if (isOpen && type === 'written') {
@@ -102,7 +103,7 @@ export function ReviewSubmissionModal({
     }, {});
 
     return (
-      <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-100">
+      <div className="space-y-6">
         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center justify-between mb-6">
           <div>
             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Ujian Seleksi</p>
@@ -159,26 +160,82 @@ export function ReviewSubmissionModal({
     );
   };
 
+  const handleRetract = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menarik rekaman ini dan merekam ulang? Rekaman saat ini akan dihapus.')) {
+      return;
+    }
+
+    setIsRetracting(true);
+    try {
+      const response = await fetch(`/api/pendaftaran/tikrar/${registrationStatus.registrationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          oral_submission_url: null,
+          oral_submission_file_name: null,
+          oral_submitted_at: null,
+          oral_assessment_status: 'not_submitted',
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Gagal menarik rekaman');
+      }
+
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || 'Gagal menarik rekaman');
+    } finally {
+      setIsRetracting(false);
+    }
+  };
+
   const renderOralReview = () => {
     return (
-      <div className="space-y-8 py-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-100">
+      <div className="space-y-8 py-2">
         <div className="text-center space-y-4">
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-inner border border-emerald-200">
             <Play className="w-10 h-10 text-emerald-600 ml-1" />
           </div>
           <div>
             <h3 className="text-xl font-black text-gray-900">Rekaman Ujian Lisan</h3>
-            <p className="text-sm text-gray-500 mt-1">Status: <span className="text-emerald-600 font-bold uppercase tracking-wider">{registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai'}</span></p>
+            <p className="text-sm text-gray-500 mt-1">
+              Status: <span className="text-emerald-600 font-bold uppercase tracking-wider">
+                {registrationStatus.oralAssessmentStatus === 'pending' 
+                  ? 'Belum Dinilai' 
+                  : (registrationStatus.showSelectionResult 
+                      ? (registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Tidak Lulus') 
+                      : 'Selesai'
+                    )
+                }
+              </span>
+            </p>
           </div>
         </div>
 
         <div className="p-6 bg-gray-50 rounded-[2.5rem] border border-gray-200">
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 text-center">Audio Setoran Ukhti</p>
           {registrationStatus.oralSubmissionUrl ? (
-            <audio controls className="w-full">
-              <source src={registrationStatus.oralSubmissionUrl} type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
+            <div className="flex flex-col gap-4">
+              <audio src={registrationStatus.oralSubmissionUrl} controls className="w-full" />
+              {registrationStatus.oralAssessmentStatus === 'pending' && (
+                <Button
+                  onClick={handleRetract}
+                  disabled={isRetracting}
+                  variant="outline"
+                  className="w-full rounded-2xl border-red-200 hover:border-red-300 hover:bg-red-50 text-red-600 hover:text-red-700 font-bold transition-all h-12 flex items-center justify-center gap-2 mt-2"
+                >
+                  {isRetracting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="w-4 h-4" />
+                  )}
+                  Tarik Rekaman & Rekam Ulang
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="text-center py-4 text-gray-400 italic text-sm">
               Link audio tidak tersedia atau telah dihapus.
@@ -186,13 +243,19 @@ export function ReviewSubmissionModal({
           )}
         </div>
 
-        {registrationStatus.showSelectionResult && registrationStatus.oralAssessmentAudioUrl && (
+        {registrationStatus.oralAssessmentAudioUrl && (
           <div className="p-6 bg-blue-50 rounded-[2.5rem] border border-blue-100">
-            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4 text-center">VN Koreksi dari Admin</p>
-            <audio controls className="w-full">
-              <source src={registrationStatus.oralAssessmentAudioUrl} type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
+            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4 text-center">VN Koreksi dari Penguji</p>
+            <audio src={registrationStatus.oralAssessmentAudioUrl} controls className="w-full" />
+          </div>
+        )}
+
+        {registrationStatus.oralAssessmentNotes && (
+          <div className="p-6 bg-emerald-50/50 rounded-[2.5rem] border border-emerald-100/50 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2 text-center">Catatan Koreksi Penguji</p>
+            <div className="text-xs text-gray-700 leading-relaxed bg-white p-4 rounded-2xl border border-gray-100 whitespace-pre-wrap font-medium">
+              {registrationStatus.oralAssessmentNotes}
+            </div>
           </div>
         )}
 
@@ -200,7 +263,7 @@ export function ReviewSubmissionModal({
           <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Status Penilaian</p>
             <p className="text-sm font-black text-emerald-600">
-              Selesai ✓
+              {registrationStatus.oralAssessmentStatus === 'pending' ? 'Belum Dinilai' : 'Selesai ✓'}
             </p>
           </div>
           <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm text-center">
@@ -218,7 +281,7 @@ export function ReviewSubmissionModal({
     const akadFiles = daftarUlang?.akad_files || [];
     
     return (
-      <div className="space-y-8 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-100">
+      <div className="space-y-8">
         {/* Verification Info Header */}
         <div className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[2rem] border border-emerald-100 relative overflow-hidden">
           <ShieldCheck className="absolute -bottom-4 -right-4 w-24 h-24 text-emerald-500/10" />
@@ -393,7 +456,7 @@ export function ReviewSubmissionModal({
     ];
 
     return (
-      <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-100">
+      <div className="space-y-6">
         <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2.5rem] border border-blue-100 flex items-center gap-6">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm border border-blue-100 flex-shrink-0">
             <User className="w-8 h-8 text-blue-600" />
@@ -460,7 +523,7 @@ export function ReviewSubmissionModal({
     const isTimezoneMatch = (currentUser?.zona_waktu || 'WIB').toUpperCase() === (partner?.zona_waktu || 'WIB').toUpperCase();
 
     return (
-      <div className="space-y-8 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-emerald-100">
+      <div className="space-y-8">
         <div className="p-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[3rem] border border-emerald-100 flex flex-col items-center text-center gap-4 relative overflow-hidden">
           <HeartHandshake className="absolute -bottom-6 -right-6 w-32 h-32 text-emerald-500/10" />
           <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg border-4 border-emerald-50 relative z-10">
@@ -603,8 +666,8 @@ export function ReviewSubmissionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl border-none shadow-2xl rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden p-0 gap-0">
-        <DialogHeader className="pt-16 sm:pt-10 p-8 pb-4">
+      <DialogContent className="w-[95vw] sm:max-w-2xl border-none shadow-2xl rounded-[2.5rem] overflow-hidden p-0 gap-0 max-h-[85vh] flex flex-col">
+        <DialogHeader className="pt-16 sm:pt-10 p-8 pb-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 text-left">
               <div className="p-3 bg-emerald-50 rounded-2xl flex-shrink-0">{getIcon()}</div>
@@ -619,7 +682,7 @@ export function ReviewSubmissionModal({
           </div>
         </DialogHeader>
 
-        <div className="p-8 pt-4">
+        <div className="p-8 pt-4 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-100">
           {type === 'written' && renderWrittenReview()}
           {type === 'oral' && renderOralReview()}
           {type === 'akad' && renderAkadReview()}
@@ -627,7 +690,7 @@ export function ReviewSubmissionModal({
           {type === 'pairing' && renderPairingReview()}
         </div>
 
-        <div className="p-6 bg-gray-50 flex items-center justify-between">
+        <div className="p-6 bg-gray-50 flex items-center justify-between flex-shrink-0">
           <Button 
             variant="ghost"
             onClick={onClose}
