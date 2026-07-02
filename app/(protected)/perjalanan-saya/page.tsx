@@ -235,7 +235,7 @@ export default function PerjalananSaya() {
 
   // Fetch batch timeline data - safely handle undefined registrations
   const { batch, timeline: batchTimeline, isLoading: batchLoading } = useBatchTimeline(batchId, {
-    registrationStatus: registrations && registrations[0]?.status === 'completed' ? 'approved' : registrations?.[0]?.status as any,
+    registrationStatus: registrations && (registrations[0]?.selection_status === 'selected' || registrations[0]?.status === 'completed') ? 'approved' : registrations?.[0]?.status as any,
     selectionStatus: registrations?.[0]?.selection_status
   });
 
@@ -258,7 +258,7 @@ export default function PerjalananSaya() {
     // This allows rejected users to still see their journey timeline
     const hasAnyRegistration = batchRegistrations.some(reg => reg.status !== 'withdrawn');
     const hasActiveRegistration = batchRegistrations.some(reg => ['approved', 'pending'].includes(reg.status));
-    const approvedRegistration = batchRegistrations.find(reg => reg.status === 'approved');
+    const approvedRegistration = batchRegistrations.find(reg => reg.selection_status === 'selected');
     const registration = (approvedRegistration || batchRegistrations[0]) as TikrarRegistration;
 
     const showSelectionResult = (() => {
@@ -277,9 +277,9 @@ export default function PerjalananSaya() {
       hasRegistered: hasAnyRegistration, // Show timeline for all registered users (including rejected)
       registration: registration ? { ...registration, status: displayStatus, selection_status: displaySelectionStatus } : undefined,
       hasActiveRegistration,
-      pendingApproval: registrations.some(reg => reg.status === 'pending') || !showSelectionResult,
+      pendingApproval: registrations.some(reg => reg.selection_status === 'pending') || !showSelectionResult,
       approved: showSelectionResult && !!approvedRegistration,
-      rejected: showSelectionResult && registrations.some(reg => reg.status === 'rejected'),
+      rejected: showSelectionResult && registrations.some(reg => reg.selection_status === 'not_selected'),
       isAlumnus,
       // Consider having oral assessment as having submitted (even without url if admin input score manually)
       hasOralSubmission: !!(

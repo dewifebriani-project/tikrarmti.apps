@@ -86,35 +86,46 @@ export async function GET(request: Request) {
       };
     });
 
-    // 5. Automated Selection Processing (Lazy Updates)
-    const updates: string[] = [];
+    // 5. Automated Selection Processing (Lazy Updates based strictly on VN score)
+    const updatesSelected: string[] = [];
+    const updatesNotSelected: string[] = [];
     for (const tikrar of enrichedData) {
       const oralScore = tikrar.oral_total_score;
-      const writtenScore = tikrar.written_quiz_score;
-      const threshold = getPassingScore((tikrar as any).batch);
-
-      const isJuz30 = tikrar.chosen_juz?.toLowerCase().includes('30');
-
-      const hasPassingScore = isJuz30
-        ? (oralScore !== null && oralScore !== undefined && oralScore >= 80)
-        : (oralScore !== null && oralScore !== undefined && oralScore >= 80 &&
-           writtenScore !== null && writtenScore !== undefined && writtenScore >= threshold);
-
-      if (hasPassingScore && tikrar.selection_status === 'pending') {
-        updates.push(tikrar.id);
+      if (oralScore !== null && oralScore !== undefined) {
+        if (oralScore >= 80 && tikrar.selection_status === 'pending') {
+          updatesSelected.push(tikrar.id);
+        } else if (oralScore < 80 && tikrar.selection_status === 'pending') {
+          updatesNotSelected.push(tikrar.id);
+        }
       }
     }
 
-    if (updates.length > 0) {
+    if (updatesSelected.length > 0) {
       const { error: updateError } = await supabaseAdmin
         .from('pendaftaran_tikrar_tahfidz')
         .update({ selection_status: 'selected' })
-        .in('id', updates);
+        .in('id', updatesSelected);
 
       if (!updateError) {
         enrichedData = enrichedData.map((item: any) => {
-          if (updates.includes(item.id)) {
+          if (updatesSelected.includes(item.id)) {
             return { ...item, selection_status: 'selected' };
+          }
+          return item;
+        });
+      }
+    }
+
+    if (updatesNotSelected.length > 0) {
+      const { error: updateError } = await supabaseAdmin
+        .from('pendaftaran_tikrar_tahfidz')
+        .update({ selection_status: 'not_selected' })
+        .in('id', updatesNotSelected);
+
+      if (!updateError) {
+        enrichedData = enrichedData.map((item: any) => {
+          if (updatesNotSelected.includes(item.id)) {
+            return { ...item, selection_status: 'not_selected' };
           }
           return item;
         });

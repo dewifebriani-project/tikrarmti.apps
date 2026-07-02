@@ -79,14 +79,6 @@ export function TikrarTable({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50/50 border-b border-gray-100">
-              <th className="px-6 py-4 w-12">
-                <input
-                  type="checkbox"
-                  checked={isAllSelected}
-                  onChange={(e) => onSelectAll(e.target.checked)}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
-                />
-              </th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Thalibah</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Tgl Daftar</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Readiness</th>
@@ -99,7 +91,7 @@ export function TikrarTable({
           <tbody className="divide-y divide-gray-100">
             {tikrar.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-500 font-medium">
+                <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-medium">
                   Tidak ada pendaftaran Tikrar ditemukan.
                 </td>
               </tr>
@@ -110,16 +102,6 @@ export function TikrarTable({
                 
                 return (
                   <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      {t.status === 'pending' && (
-                        <input
-                          type="checkbox"
-                          checked={isSelected(t.id)}
-                          onChange={(e) => onSelectOne(t.id, e.target.checked)}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded cursor-pointer"
-                        />
-                      )}
-                    </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -200,35 +182,15 @@ export function TikrarTable({
                         </div>
                         <div className="w-px h-6 bg-gray-100" />
                         <div className="flex flex-col">
-                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Written</span>
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Test Tertulis</span>
                           {t.written_quiz_score !== null && t.written_quiz_score !== undefined ? (
-                            (() => {
-                              const getPassingScore = (b?: { name?: string; min_exam_score?: number | null } | null): number => {
-                                if (!b) return 70;
-                                if (b.min_exam_score !== undefined && b.min_exam_score !== null) return b.min_exam_score;
-                                if (b.name) {
-                                  const match = b.name.match(/Batch\s*(\d+)/i);
-                                  if (match) {
-                                    const num = parseInt(match[1], 10);
-                                    if (num >= 3) return 80;
-                                  }
-                                }
-                                return 70;
-                              };
-                              const threshold = getPassingScore(t.batch);
-                              return (
-                                <span className={cn(
-                                  "text-sm font-black",
-                                  t.written_quiz_score >= threshold ? "text-emerald-600" : "text-red-600"
-                                )}>
-                                  {t.written_quiz_score}
-                                </span>
-                              );
-                            })()
+                            <span className="text-sm font-black text-gray-700">
+                              {t.written_quiz_score}
+                            </span>
                           ) : t.written_quiz_submitted_at || t.written_exam_submitted_at ? (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan ujian tulis">
+                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan test tertulis">
                               <FileText className="h-2.5 w-2.5 text-emerald-600" />
-                              ✓ TULIS
+                              ✓ TEST TERTULIS
                             </span>
                           ) : (
                             <span className="text-xs text-gray-300 font-bold italic">N/A</span>
@@ -279,16 +241,6 @@ export function TikrarTable({
                           <Edit className="h-4 w-4" />
                           Edit
                         </button>
-                        {t.status === 'approved' && (
-                          <button
-                            onClick={() => onAction('unapprove', t)}
-                            className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-orange-100"
-                            title="Batalkan Persetujuan"
-                          >
-                            <Undo2 className="h-4 w-4" />
-                            Batal
-                          </button>
-                        )}
                         <button
                           onClick={() => onAction('delete', t)}
                           className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 font-medium text-xs flex items-center gap-1.5 transition-colors border border-red-100"

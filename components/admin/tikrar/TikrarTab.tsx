@@ -150,13 +150,13 @@ export function TikrarTab({ user }: { user: any }) {
 
       setTikrar(filteredData || []);
       
-      // Calculate Stats
+      // Calculate Stats based on selection outcomes
       const total = filteredData.length;
-      const pending = filteredData.filter(t => t.status === 'pending').length;
-      const approved = filteredData.filter(t => t.status === 'approved').length;
-      const rejected = filteredData.filter(t => t.status === 'rejected').length;
-      const selectionPending = filteredData.filter(t => t.selection_status === 'pending').length;
-      const selected = filteredData.filter(t => t.selection_status === 'selected').length;
+      const pending = filteredData.filter(t => t.selection_status === 'pending').length;
+      const approved = filteredData.filter(t => t.selection_status === 'selected').length;
+      const rejected = filteredData.filter(t => t.selection_status === 'not_selected').length;
+      const selectionPending = pending;
+      const selected = approved;
 
       setStats({
         total,
@@ -290,37 +290,6 @@ export function TikrarTab({ user }: { user: any }) {
         defaultBatchId={filters.batchId}
       />
 
-      {/* Bulk Actions Bar */}
-      {selectedIds.length > 0 && (
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <CheckCircle className="h-5 w-5 text-emerald-600" />
-            </div>
-            <span className="text-sm font-bold text-gray-900">{selectedIds.length} pendaftaran dipilih</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setBulkAction('approve'); setShowBulkModal(true); }}
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 active:scale-95"
-            >
-              Setujui Semua
-            </button>
-            <button
-              onClick={() => { setBulkAction('reject'); setShowBulkModal(true); }}
-              className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200 active:scale-95"
-            >
-              Tolak Semua
-            </button>
-            <button
-              onClick={() => setSelectedIds([])}
-              className="text-xs font-bold text-gray-500 hover:text-gray-700 px-2"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-      )}
 
       <TikrarTable 
         tikrar={tikrar}

@@ -84,22 +84,6 @@ export function TikrarFilters({ onFilterChange, onRefresh, isLoading, batches, d
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-500" />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
-            >
-              <option value="all">Semua Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="withdrawn">Withdrawn</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-
           <select
             value={selectionStatus}
             onChange={(e) => setSelectionStatus(e.target.value)}
