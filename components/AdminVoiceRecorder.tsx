@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Mic, Square, Play, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SafeAudioPlayer } from '@/components/SafeAudioPlayer';
 
 interface AdminVoiceRecorderProps {
   onAudioReady: (audioBlob: Blob | null) => void;
@@ -107,7 +108,7 @@ export function AdminVoiceRecorder({ onAudioReady, existingAudioUrl }: AdminVoic
           </div>
         ) : audioUrl ? (
           <div className="flex items-center space-x-2">
-            <audio controls src={audioUrl} className="h-8 w-48 sm:w-64" />
+            <SafeAudioPlayer src={audioUrl} className="h-8 w-48 sm:w-64" />
             <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={deleteRecording}>
               <Trash2 className="h-4 w-4" />
             </Button>

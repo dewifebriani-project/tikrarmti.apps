@@ -18,6 +18,12 @@ export function SafeAudioPlayer({ src, className }: SafeAudioPlayerProps) {
   useEffect(() => {
     if (!src) return;
 
+    if (src.startsWith('blob:') || src.startsWith('data:')) {
+      setLocalUrl(src);
+      setIsLoading(false);
+      return;
+    }
+
     let active = true;
     let createdUrl: string | null = null;
     setIsLoading(true);
@@ -80,7 +86,7 @@ export function SafeAudioPlayer({ src, className }: SafeAudioPlayerProps) {
         ref={audioRef}
         src={localUrl} 
         controls 
-        className="w-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg" 
+        className="w-full h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg" 
       />
     </div>
   );
