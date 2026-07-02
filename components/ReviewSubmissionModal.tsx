@@ -33,6 +33,7 @@ import {
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SafeAudioPlayer } from '@/components/SafeAudioPlayer';
 
 interface ReviewSubmissionModalProps {
   isOpen: boolean;
@@ -219,7 +220,7 @@ export function ReviewSubmissionModal({
           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 text-center">Audio Setoran Ukhti</p>
           {registrationStatus.oralSubmissionUrl ? (
             <div className="flex flex-col gap-4">
-              <audio src={registrationStatus.oralSubmissionUrl} controls className="w-full" />
+              <SafeAudioPlayer src={registrationStatus.oralSubmissionUrl} />
               {registrationStatus.oralAssessmentStatus === 'pending' && (
                 <Button
                   onClick={handleRetract}
@@ -246,7 +247,7 @@ export function ReviewSubmissionModal({
         {registrationStatus.oralAssessmentAudioUrl && (
           <div className="p-6 bg-blue-50 rounded-[2.5rem] border border-blue-100">
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4 text-center">VN Koreksi dari Penguji</p>
-            <audio src={registrationStatus.oralAssessmentAudioUrl} controls className="w-full" />
+            <SafeAudioPlayer src={registrationStatus.oralAssessmentAudioUrl} />
           </div>
         )}
 

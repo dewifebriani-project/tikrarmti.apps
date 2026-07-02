@@ -96,6 +96,7 @@ export default function ProfilePage() {
 
   const [muallimahData, setMuallimahData] = useState<MuallimahProfile>({})
   const [musyrifahData, setMusyrifahData] = useState<MusyrifahProfile>({})
+  const [hasMuallimahReg, setHasMuallimahReg] = useState(false)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
@@ -158,6 +159,31 @@ export default function ProfilePage() {
     }
 
     loadUserProfile()
+  }, [user?.id, isAuthenticated])
+
+  // Load Mu'allimah registration if exists
+  useEffect(() => {
+    const loadMuallimahData = async () => {
+      if (!user?.id || !isAuthenticated) return
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('muallimah_registrations')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (data) {
+          setHasMuallimahReg(true)
+          setMuallimahData(data)
+        }
+      } catch (err) {
+        console.error('Error loading muallimah profile data:', err)
+      }
+    }
+    loadMuallimahData()
   }, [user?.id, isAuthenticated])
 
   const handleInputChange = (field: string, value: any) => {
@@ -235,7 +261,31 @@ export default function ProfilePage() {
         alasan_daftar: formData.alasanDaftar,
       }
 
-      // Role-specific data logic removed (Simplified to Admin/Thalibah)
+      if (hasMuallimahReg) {
+        requestData.education = muallimahData.education || undefined
+        requestData.occupation = muallimahData.occupation || undefined
+        requestData.memorization_level = muallimahData.memorization_level || undefined
+        requestData.memorized_juz = Array.isArray(muallimahData.memorized_juz) ? muallimahData.memorized_juz.join(', ') : (muallimahData.memorized_juz || undefined)
+        requestData.preferred_juz = Array.isArray(muallimahData.preferred_juz) ? muallimahData.preferred_juz.join(', ') : (muallimahData.preferred_juz || undefined)
+        requestData.teaching_experience = muallimahData.teaching_experience || undefined
+        requestData.teaching_years = muallimahData.teaching_years || undefined
+        requestData.teaching_institutions = muallimahData.teaching_institutions || undefined
+        requestData.preferred_schedule = muallimahData.preferred_schedule || undefined
+        requestData.backup_schedule = muallimahData.backup_schedule || undefined
+        requestData.motivation = muallimahData.motivation || undefined
+        requestData.special_skills = muallimahData.special_skills || undefined
+        requestData.health_condition = muallimahData.health_condition || undefined
+        requestData.tajweed_institution = muallimahData.tajweed_institution || undefined
+        requestData.quran_institution = muallimahData.quran_institution || undefined
+        requestData.teaching_communities = muallimahData.teaching_communities || undefined
+        requestData.memorized_tajweed_matan = muallimahData.memorized_tajweed_matan || undefined
+        requestData.studied_matan_exegesis = muallimahData.studied_matan_exegesis || undefined
+        requestData.examined_juz = Array.isArray(muallimahData.examined_juz) ? muallimahData.examined_juz.join(', ') : (muallimahData.examined_juz || undefined)
+        requestData.certified_juz = Array.isArray(muallimahData.certified_juz) ? muallimahData.certified_juz.join(', ') : (muallimahData.certified_juz || undefined)
+        requestData.paid_class_interest = muallimahData.paid_class_interest || undefined
+        requestData.class_type = muallimahData.class_type || undefined
+        requestData.preferred_max_thalibah = muallimahData.preferred_max_thalibah !== undefined ? Number(muallimahData.preferred_max_thalibah) : undefined
+      }
 
       const response = await fetch('/api/user/profile/update', {
         method: 'PUT',
@@ -508,7 +558,7 @@ export default function ProfilePage() {
               </div>
             </Card>
 
-            {/* Role-specific profile sections removed */}
+            {hasMuallimahReg && <MuallimahProfileView data={muallimahData} />}
             {/* Account Security Section */}
             {mode === 'view' && <AccountSecurity />}
           </div>
@@ -781,7 +831,15 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Role-specific sections removed */}
+              {/* Role-specific sections */}
+              {hasMuallimahReg && (
+                <MuallimahProfileFields
+                  data={muallimahData}
+                  onChange={setMuallimahData}
+                  errors={errors}
+                  onInputChange={handleInputChange}
+                />
+              )}
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">

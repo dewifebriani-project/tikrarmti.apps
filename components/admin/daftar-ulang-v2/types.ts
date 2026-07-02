@@ -65,6 +65,7 @@ export interface DaftarUlangSubmission {
     start_time?: string;
     end_time?: string;
   };
+  registration?: any;
 }
 
 export interface DaftarUlangStatsData {

@@ -149,6 +149,7 @@ export function DaftarUlangV2Table({
                 <div className="flex items-center gap-2">Thalibah {getSortIcon('name')}</div>
               </th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Partner</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Test Tertulis</th>
               <th 
                 className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors group"
                 onClick={() => onSort('halaqah')}
@@ -211,6 +212,22 @@ export function DaftarUlangV2Table({
                     <div className="text-[11px] text-gray-500 uppercase tracking-wide font-medium mt-0.5">
                       {submission.partner_type ? submission.partner_type.replace('_', ' ') : '-'}
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {submission.registration?.written_quiz_score !== null && submission.registration?.written_quiz_score !== undefined ? (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-gray-900">
+                          {submission.registration.written_quiz_score}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-medium">Skor</span>
+                      </div>
+                    ) : submission.registration?.written_quiz_submitted_at || submission.registration?.written_exam_submitted_at ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan test tertulis">
+                        ✓ SELESAI
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-300 font-bold italic">N/A</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-xs font-medium text-gray-700 space-y-1">

@@ -809,24 +809,6 @@ export default function DashboardContent() {
               { label: 'Alumni', icon: GraduationCap, color: 'purple', href: '/alumni' },
             ];
 
-            if (hasRegisteredTikrar) {
-              menuItems.push({
-                label: 'Edit Form Tikrar',
-                icon: Settings,
-                color: 'amber',
-                href: `/pendaftaran/tikrar-tahfidz?batchId=${activeBatch?.id}`
-              });
-            }
-
-            if (hasMuallimahReg) {
-              menuItems.push({
-                label: 'Edit Form Mu’allimah',
-                icon: Settings,
-                color: 'purple',
-                href: `/pendaftaran/muallimah?batchId=${activeBatch?.id}`
-              });
-            }
-
             return menuItems.map((item, i) => (
               <Link key={i} href={item.href} className="group min-w-0">
                 <div 

@@ -33,7 +33,40 @@ export default function RekamSuaraPage() {
     assessmentStatus?: string;
     registrationId?: string;
   } | null>(null);
+  const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(null);
   const [hasRegistration, setHasRegistration] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!existingSubmission?.url) {
+      setExistingAudioUrl(null);
+      return;
+    }
+    
+    let active = true;
+    let createdUrl: string | null = null;
+    
+    fetch(existingSubmission.url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (active) {
+          createdUrl = URL.createObjectURL(blob);
+          setExistingAudioUrl(createdUrl);
+        }
+      })
+      .catch((err) => {
+        console.error('Error pre-loading existing audio:', err);
+      });
+      
+    return () => {
+      active = false;
+      if (createdUrl) {
+        URL.revokeObjectURL(createdUrl);
+      }
+    };
+  }, [existingSubmission?.url]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -467,7 +500,7 @@ export default function RekamSuaraPage() {
                         {isPlaying ? <Pause className="w-8 h-8 text-green-900" /> : <Play className="w-8 h-8 text-green-900" />}
                       </Button>
                     </div>
-                    <audio id="existing-audio" src={existingSubmission.url} className="w-full" onEnded={() => setIsPlaying(false)} />
+                    <audio id="existing-audio" src={existingAudioUrl || undefined} className="w-full" onEnded={() => setIsPlaying(false)} />
                   </div>
 
                   {existingSubmission.assessmentStatus === 'pending' ? (

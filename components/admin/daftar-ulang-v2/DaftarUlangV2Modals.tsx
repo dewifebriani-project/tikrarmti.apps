@@ -74,6 +74,14 @@ export function DetailModal({
                   {submission.confirmed_backup_time_slot ? ` (Cadangan: ${submission.confirmed_backup_time_slot})` : ''}
                 </p>
               </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 mb-1">Skor Test Tertulis</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {submission.registration?.written_quiz_score !== null && submission.registration?.written_quiz_score !== undefined
+                    ? `${submission.registration.written_quiz_score} / 100`
+                    : (submission.registration?.written_quiz_submitted_at || submission.registration?.written_exam_submitted_at ? 'Selesai' : '-')}
+                </p>
+              </div>
             </div>
           </section>
 

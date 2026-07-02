@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Volume2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { AdminVoiceRecorder } from '@/components/AdminVoiceRecorder';
+import { SafeAudioPlayer } from '@/components/SafeAudioPlayer';
 
 interface OralAssessmentProps {
   registrationId: string;
@@ -557,13 +558,11 @@ export function OralAssessment({
               </span>
             )}
           </div>
-          <audio
-            key={audioUrl}
-            src={audioUrl || undefined}
-            controls
-            className="w-full"
-            preload="auto"
-          />
+          {audioUrl ? (
+            <SafeAudioPlayer src={audioUrl} />
+          ) : (
+            <audio controls className="w-full" />
+          )}
           <div className="mt-3 flex justify-between items-center gap-2">
             {audioUrl ? (
               <a

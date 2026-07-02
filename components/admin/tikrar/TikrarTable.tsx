@@ -83,7 +83,7 @@ export function TikrarTable({
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Tgl Daftar</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Readiness</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Juz & Slot</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Scores</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Nilai VN</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none">Status</th>
               <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/75 border-b border-gray-100 select-none text-right">Actions</th>
             </tr>
@@ -126,27 +126,24 @@ export function TikrarTable({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col text-xs text-gray-600 font-medium">
-                        <span className="font-bold text-gray-700">{t.submission_date ? new Date(t.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
-                        <span className="text-[10px] text-gray-400 mt-0.5">{t.submission_date ? new Date(t.submission_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                      </div>
+                      <div className="text-sm text-gray-900 font-bold">{t.submission_date ? new Date(t.submission_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</div>
+                      <div className="text-[10px] text-gray-400 font-medium">{t.submission_date ? new Date(t.submission_date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}</div>
                     </td>
                     <td className="px-6 py-4">
                       {readiness.isReady ? (
-                        <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs" title="Semua field lengkap">
-                          <CheckCircle className="h-4 w-4" />
-                          <span>READY</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-0.5 select-none">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          READY
+                        </span>
                       ) : (
-                        <div 
-                          className="flex items-center gap-1.5 text-red-500 font-bold text-xs cursor-help group/ready relative"
-                          title={`Belum lengkap: ${readiness.missingFields.join(', ')}`}
-                        >
-                          <AlertCircle className="h-4 w-4" />
-                          <span>INCOMPLETE</span>
-                          
-                          <div className="invisible group-hover/ready:visible absolute z-50 left-0 top-6 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-lg">
-                            <ul className="list-disc list-inside space-y-0.5">
+                        <div className="relative group/tooltip inline-block cursor-help">
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-red-500 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5 select-none">
+                            <Info className="h-3.5 w-3.5" />
+                            {readiness.missingFields.length} LEWAT
+                          </span>
+                          <div className="absolute left-0 bottom-full mb-2 hidden group-hover/tooltip:block w-48 p-3 bg-gray-900/95 backdrop-blur-sm text-white text-[10px] font-medium rounded-xl shadow-xl z-50 leading-relaxed border border-gray-800 animate-in fade-in slide-in-from-bottom-1">
+                            <p className="font-bold text-red-400 mb-1">Belum Terisi:</p>
+                            <ul className="list-disc pl-3.5 space-y-0.5">
                               {readiness.missingFields.slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
                               {readiness.missingFields.length > 5 && <li>...dan {readiness.missingFields.length - 5} lainnya</li>}
                             </ul>
@@ -161,41 +158,23 @@ export function TikrarTable({
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Oral</span>
-                          {t.oral_total_score !== null && t.oral_total_score !== undefined ? (
-                            <span className={cn(
-                              "text-sm font-black",
-                              t.oral_total_score >= 80 ? "text-emerald-600" : "text-red-600"
-                            )}>
-                              {t.oral_total_score.toFixed(0)}
-                            </span>
-                          ) : t.oral_submission_url || t.oral_submitted_at ? (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengirim rekaman (VN) - Menunggu penilaian">
-                              <Mic className="h-2.5 w-2.5 text-emerald-600" />
-                              ✓ VN
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-300 font-bold italic">N/A</span>
-                          )}
-                        </div>
-                        <div className="w-px h-6 bg-gray-100" />
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Test Tertulis</span>
-                          {t.written_quiz_score !== null && t.written_quiz_score !== undefined ? (
-                            <span className="text-sm font-black text-gray-700">
-                              {t.written_quiz_score}
-                            </span>
-                          ) : t.written_quiz_submitted_at || t.written_exam_submitted_at ? (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengerjakan test tertulis">
-                              <FileText className="h-2.5 w-2.5 text-emerald-600" />
-                              ✓ TEST TERTULIS
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-300 font-bold italic">N/A</span>
-                          )}
-                        </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Oral VN</span>
+                        {t.oral_total_score !== null && t.oral_total_score !== undefined ? (
+                          <span className={cn(
+                            "text-sm font-black",
+                            t.oral_total_score >= 80 ? "text-emerald-600" : "text-red-600"
+                          )}>
+                            {t.oral_total_score.toFixed(0)}
+                          </span>
+                        ) : t.oral_submission_url || t.oral_submitted_at ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-md px-1.5 py-0.5 mt-0.5 w-fit" title="Sudah mengirim rekaman (VN) - Menunggu penilaian">
+                            <Mic className="h-2.5 w-2.5 text-emerald-600" />
+                            ✓ VN
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300 font-bold italic">N/A</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">

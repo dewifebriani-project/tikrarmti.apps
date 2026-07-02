@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { 
   X, BookOpen, GraduationCap, Users, LogOut, ChevronLeft, ChevronRight, Eye,
   LayoutGrid, ClipboardList, FileText, UserCheck, BarChart3, Calendar, Shield, Settings,
-  MessageSquare, HeartHandshake, HelpCircle
+  MessageSquare, HeartHandshake, HelpCircle, Award
 } from 'lucide-react';
 import { ROLE_RANKS, hasRequiredRank, isStaff } from '@/lib/roles';
 import { useAuth } from '@/hooks/useAuth';
@@ -79,12 +79,6 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
 
       // SECTION: ALUR PENDAFTARAN
       baseItems.push({ type: 'header', label: 'Alur Pendaftaran' });
-      baseItems.push({
-        href: '/admin/tikrar',
-        label: 'Pendaftaran & Seleksi',
-        icon: <ClipboardList className="h-5 w-5" />,
-      });
-      
       if (isAdmin) {
         baseItems.push({
           href: '/admin/muallimah',
@@ -92,14 +86,18 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
           icon: <GraduationCap className="h-5 w-5 text-green-600" />,
         });
       }
-
+      baseItems.push({
+        href: '/admin/tikrar',
+        label: 'Pendaftaran & Seleksi',
+        icon: <ClipboardList className="h-5 w-5" />,
+      });
       baseItems.push({
         href: '/admin?tab=daftar-ulang',
         label: 'Daftar Ulang',
         icon: <UserCheck className="h-5 w-5" />,
       });
 
-      // SECTION: ALUR BELAJAR
+      // SECTION: ALUR PEMBELAJARAN
       baseItems.push({ type: 'header', label: 'Alur Pembelajaran' });
       baseItems.push({
         href: '/admin?tab=halaqah',
@@ -107,50 +105,58 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
         icon: <Users className="h-5 w-5" />,
       });
       baseItems.push({
-        href: '/admin/exams',
-        label: 'Manajemen Ujian',
-        icon: <GraduationCap className="h-5 w-5" />,
-      });
-      if (isAdmin) {
-        baseItems.push({
-          href: '/admin?tab=exam-questions',
-          label: 'Bank Soal Seleksi',
-          icon: <FileText className="h-5 w-5" />,
-        });
-      }
-      baseItems.push({
         href: '/presensi-jurnal',
         label: 'Presensi & Jurnal',
         icon: <BookOpen className="h-5 w-5" />,
       });
+      baseItems.push({
+        href: '/admin/exams',
+        label: 'Manajemen Ujian',
+        icon: <GraduationCap className="h-5 w-5" />,
+      });
 
-      // SECTION: DATA MASTER (Admin Only)
+      // SECTION: ALUR KELULUSAN
+      baseItems.push({ type: 'header', label: 'Alur Kelulusan' });
+      baseItems.push({
+        href: '/kelulusan-sertifikat',
+        label: 'Penerbitan Syahadah',
+        icon: <Award className="h-5 w-5 text-amber-600" />,
+      });
       if (isAdmin) {
-        baseItems.push({ type: 'header', label: 'Pengaturan & Data' });
-        baseItems.push({
-          href: '/admin/users',
-          label: 'Manajemen Users',
-          icon: <Shield className="h-5 w-5" />,
-        });
-        baseItems.push({
-          href: '/admin/batch-program',
-          label: 'Batch & Program',
-          icon: <Calendar className="h-5 w-5" />,
-        });
         baseItems.push({
           href: '/admin/testimonials',
           label: 'Testimoni Alumni',
           icon: <MessageSquare className="h-5 w-5" />,
         });
         baseItems.push({
-          href: '/admin/pengaturan/faq',
-          label: 'Pengaturan FAQ',
-          icon: <HelpCircle className="h-5 w-5" />,
-        });
-        baseItems.push({
           href: '/admin?tab=donations',
           label: 'Donasi Operasional',
           icon: <HeartHandshake className="h-5 w-5" />,
+        });
+      }
+
+      // SECTION: PENGATURAN & DATA (Admin Only)
+      if (isAdmin) {
+        baseItems.push({ type: 'header', label: 'Pengaturan & Data' });
+        baseItems.push({
+          href: '/admin/batch-program',
+          label: 'Batch & Program',
+          icon: <Calendar className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin/users',
+          label: 'Manajemen Users',
+          icon: <Shield className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin?tab=exam-questions',
+          label: 'Bank Soal Seleksi',
+          icon: <FileText className="h-5 w-5" />,
+        });
+        baseItems.push({
+          href: '/admin/pengaturan/faq',
+          label: 'Pengaturan FAQ',
+          icon: <HelpCircle className="h-5 w-5" />,
         });
       }
     } 
