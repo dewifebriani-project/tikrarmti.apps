@@ -185,7 +185,7 @@ export function TikrarTable({
                           {t.oral_total_score !== null && t.oral_total_score !== undefined ? (
                             <span className={cn(
                               "text-sm font-black",
-                              t.oral_total_score >= 70 ? "text-emerald-600" : "text-red-600"
+                              t.oral_total_score >= 80 ? "text-emerald-600" : "text-red-600"
                             )}>
                               {t.oral_total_score.toFixed(0)}
                             </span>

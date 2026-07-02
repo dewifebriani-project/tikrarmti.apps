@@ -64,7 +64,28 @@ export function OralAssessment({
   const [existingAudioUrl, setExistingAudioUrl] = useState<string | null>(currentAssessment?.oral_assessment_audio_url || null);
   const [saving, setSaving] = useState(false);
   const [manualScore, setManualScore] = useState<number | null>(currentAssessment?.oral_total_score || null);
-  const [useManualScore, setUseManualScore] = useState<boolean>(false);
+  const [useManualScore, setUseManualScore] = useState<boolean>(() => {
+    if (currentAssessment?.oral_total_score == null) return false;
+    const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat', 'itmamul_harakat'] as const;
+    const pointsPerCategory = 100 / 6;
+    
+    let totalScore = 0;
+    let gradedCategoriesCount = 0;
+
+    for (const cat of categories) {
+      const dbKey = `oral_${cat}_errors` as keyof typeof currentAssessment;
+      const errorCount = isAlreadyGraded ? (currentAssessment?.[dbKey] as number | null) : null;
+      if (errorCount !== null && errorCount !== undefined) {
+        gradedCategoriesCount++;
+        const points = Math.max(0, pointsPerCategory - (errorCount * 3.33));
+        totalScore += points;
+      }
+    }
+
+    if (gradedCategoriesCount !== 6) return false;
+    const calculated = Math.min(100, Math.max(0, totalScore));
+    return Math.abs(Number(currentAssessment.oral_total_score) - calculated) > 0.05;
+  });
 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [loadingAudio, setLoadingAudio] = useState(false);

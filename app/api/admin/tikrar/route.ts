@@ -96,8 +96,8 @@ export async function GET(request: Request) {
       const isJuz30 = tikrar.chosen_juz?.toLowerCase().includes('30');
 
       const hasPassingScore = isJuz30
-        ? (oralScore !== null && oralScore !== undefined && oralScore >= 70)
-        : (oralScore !== null && oralScore !== undefined && oralScore >= 70 &&
+        ? (oralScore !== null && oralScore !== undefined && oralScore >= 80)
+        : (oralScore !== null && oralScore !== undefined && oralScore >= 80 &&
            writtenScore !== null && writtenScore !== undefined && writtenScore >= threshold);
 
       if (hasPassingScore && tikrar.selection_status === 'pending') {

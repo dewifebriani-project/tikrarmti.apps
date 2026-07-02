@@ -284,7 +284,7 @@ export default function PerjalananSaya() {
       // Consider having oral assessment as having submitted (even without url if admin input score manually)
       hasOralSubmission: !!(
         registration?.oral_submission_url ||
-        (registration?.oral_assessment_status && registration?.oral_assessment_status !== 'pending') ||
+        (registration?.oral_assessment_status && registration?.oral_assessment_status !== 'pending' && registration?.oral_assessment_status !== 'not_submitted') ||
         (registration?.oral_total_score != null && registration?.oral_total_score > 0) ||
         (registration?.oral_score != null && registration?.oral_score > 0)
       ),
@@ -401,10 +401,18 @@ export default function PerjalananSaya() {
             isEditDisabled: !isRegistrationStarted
           },
           { 
-            name: 'Ujian Lisan', 
+            name: 'Test Lisan', 
             date: formatDateRangeShort(batch?.registration_start_date, batch?.registration_end_date),
             done: hasFormPendaftaran && hasOral, 
-            data: hasFormPendaftaran && hasOral ? (isSelectionDone && registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Selesai ✓') : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu'), 
+            data: hasFormPendaftaran && hasOral 
+              ? (registrationStatus.oralAssessmentStatus === 'pending'
+                  ? 'Sudah Rekaman (Belum Dinilai)'
+                  : (isSelectionDone 
+                      ? (registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Tidak Lulus')
+                      : 'Sudah Dinilai (Menunggu Pengumuman)'
+                    )
+                )
+              : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu'), 
             reviewType: hasFormPendaftaran && hasOral ? 'oral' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !hasOral,
