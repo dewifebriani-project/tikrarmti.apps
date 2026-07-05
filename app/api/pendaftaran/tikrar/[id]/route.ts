@@ -160,21 +160,30 @@ export async function PUT(
 
     // Prepare update data
     const updateData: any = {};
+    let isHandled = false;
 
-    // If oral submission update, only update oral fields
+    // Handle oral submission fields
     if (isOralSubmissionUpdate) {
       if (body.oral_submission_url !== undefined) updateData.oral_submission_url = body.oral_submission_url;
       if (body.oral_submission_file_name !== undefined) updateData.oral_submission_file_name = body.oral_submission_file_name;
       if (body.oral_submitted_at !== undefined) updateData.oral_submitted_at = body.oral_submitted_at;
       if (body.oral_assessment_status !== undefined) updateData.oral_assessment_status = body.oral_assessment_status;
-      updateData.updated_at = new Date().toISOString();
-    } else if (isOralAssessmentUpdate) {
-      // Admin updating oral assessment
+      isHandled = true;
+    }
+
+    // Handle oral assessment fields (admin only)
+    if (isOralAssessmentUpdate) {
+      if (!isAdmin) {
+        return NextResponse.json({
+          error: 'Forbidden - Admin access required to update assessment'
+        }, { status: 403 });
+      }
       if (body.oral_makhraj_errors !== undefined) updateData.oral_makhraj_errors = body.oral_makhraj_errors;
       if (body.oral_sifat_errors !== undefined) updateData.oral_sifat_errors = body.oral_sifat_errors;
       if (body.oral_mad_errors !== undefined) updateData.oral_mad_errors = body.oral_mad_errors;
       if (body.oral_ghunnah_errors !== undefined) updateData.oral_ghunnah_errors = body.oral_ghunnah_errors;
       if (body.oral_harakat_errors !== undefined) updateData.oral_harakat_errors = body.oral_harakat_errors;
+      if (body.oral_itmamul_harakat_errors !== undefined) updateData.oral_itmamul_harakat_errors = body.oral_itmamul_harakat_errors;
       if (body.oral_total_score !== undefined) updateData.oral_total_score = body.oral_total_score;
       if (body.oral_assessment_status !== undefined) updateData.oral_assessment_status = body.oral_assessment_status;
       if (body.oral_assessed_by !== undefined) updateData.oral_assessed_by = body.oral_assessed_by;
@@ -182,15 +191,19 @@ export async function PUT(
       if (body.oral_assessment_notes !== undefined) updateData.oral_assessment_notes = body.oral_assessment_notes;
       if (body.oral_assessment_audio_url !== undefined) updateData.oral_assessment_audio_url = body.oral_assessment_audio_url;
       if (body.selection_status !== undefined) updateData.selection_status = body.selection_status;
-      updateData.updated_at = new Date().toISOString();
-    } else if (isScheduleUpdate) {
-      // Schedule/juz update (allowed even for approved registrations)
+      isHandled = true;
+    }
+
+    // Handle schedule fields
+    if (isScheduleUpdate) {
       if (body.chosen_juz !== undefined) updateData.chosen_juz = body.chosen_juz;
       if (body.main_time_slot !== undefined) updateData.main_time_slot = body.main_time_slot;
       if (body.backup_time_slot !== undefined) updateData.backup_time_slot = body.backup_time_slot;
-      updateData.updated_at = new Date().toISOString();
-    } else {
-      // Regular registration update (only for non-approved registrations)
+      isHandled = true;
+    }
+
+    // Handle regular registration fields
+    if (!isHandled) {
       updateData.understands_commitment = body.understands_commitment ?? false;
       updateData.tried_simulation = body.tried_simulation ?? false;
       updateData.no_negotiation = body.no_negotiation ?? false;
@@ -222,8 +235,9 @@ export async function PUT(
       if (body.time_commitment !== undefined) updateData.time_commitment = body.time_commitment;
       if (body.understands_program !== undefined) updateData.understands_program = body.understands_program;
       if (body.questions !== undefined) updateData.questions = body.questions;
-      updateData.updated_at = new Date().toISOString();
     }
+
+    updateData.updated_at = new Date().toISOString();
 
     // Perform the update
     let updateQuery = supabaseAdmin

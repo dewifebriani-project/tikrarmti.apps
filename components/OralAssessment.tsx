@@ -88,285 +88,6 @@ export function OralAssessment({
     return Math.abs(Number(currentAssessment.oral_total_score) - calculated) > 0.05;
   });
 
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [loadingAudio, setLoadingAudio] = useState(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
-
-  const [feedbackUrl, setFeedbackUrl] = useState<string | null>(null);
-  const [loadingFeedback, setLoadingFeedback] = useState(false);
-
-  useEffect(() => {
-    if (!oralSubmissionUrl) {
-      setAudioUrl(null);
-      return;
-    }
-
-    // If it's already a local blob/object URL, use it directly.
-    // Also, if the URL does not contain the bucket name, we cannot download it via Supabase SDK.
-    const bucketSegment = 'selection-audios/';
-    const hasBucketSegment = oralSubmissionUrl.includes(bucketSegment);
-
-    if (oralSubmissionUrl.startsWith('blob:') || oralSubmissionUrl.startsWith('data:') || !hasBucketSegment) {
-      setAudioUrl(oralSubmissionUrl);
-      return;
-    }
-
-    let localBlobUrl: string | null = null;
-    const loadAudioFile = async () => {
-      setLoadingAudio(true);
-      setAudioError(null);
-      try {
-        // Find index of bucket name in the URL path to extract relative path
-        const bucketSegment = 'selection-audios/';
-        const bucketIndex = oralSubmissionUrl.indexOf(bucketSegment);
-        
-        let path = '';
-        if (bucketIndex !== -1) {
-          path = oralSubmissionUrl.substring(bucketIndex + bucketSegment.length).split('?')[0];
-        } else {
-          // Fallback to pop if bucket name not in URL
-          const urlParts = oralSubmissionUrl.split('/');
-          path = urlParts[urlParts.length - 1].split('?')[0];
-        }
-        
-        if (!path) {
-          throw new Error('Invalid path in URL');
-        }
-
-        const supabase = createClient();
-        const { data, error } = await supabase.storage
-          .from('selection-audios')
-          .download(path);
-
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          // Check for corruption (multipart form-data wrapper)
-          const arrayBuffer = await data.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          const textDecoder = new TextDecoder('utf-8');
-          const headerPreview = textDecoder.decode(uint8.subarray(0, 1024));
-          
-          let finalBlob = data;
-          if (headerPreview.startsWith('------')) {
-            console.log('OralAssessment: Detected corrupted audio file, repairing...');
-            try {
-              const boundaryLine = headerPreview.split('\r\n')[0];
-              const contentTypeIndex = headerPreview.indexOf('Content-Type:');
-              const doubleNewlineIndex = headerPreview.indexOf('\r\n\r\n', contentTypeIndex);
-              
-              if (contentTypeIndex !== -1 && doubleNewlineIndex !== -1) {
-                const dataStartIndex = doubleNewlineIndex + 4;
-                const closingBoundary = '\r\n' + boundaryLine;
-                const closingBoundaryBytes = new TextEncoder().encode(closingBoundary);
-                
-                let dataEndIndex = uint8.length;
-                for (let i = dataStartIndex; i < uint8.length - closingBoundaryBytes.length; i++) {
-                  let match = true;
-                  for (let j = 0; j < closingBoundaryBytes.length; j++) {
-                    if (uint8[i + j] !== closingBoundaryBytes[j]) {
-                      match = false;
-                      break;
-                    }
-                  }
-                  if (match) {
-                    dataEndIndex = i;
-                    break;
-                  }
-                }
-                
-                const audioBytes = uint8.subarray(dataStartIndex, dataEndIndex);
-                // Detect mime type by magic bytes
-                let detectedType = '';
-                if (audioBytes.length >= 4 && audioBytes[0] === 0x1A && audioBytes[1] === 0x45 && audioBytes[2] === 0xDF && audioBytes[3] === 0xA3) {
-                  detectedType = 'audio/webm';
-                } else if (audioBytes.length >= 8 && audioBytes[4] === 0x66 && audioBytes[5] === 0x74 && audioBytes[6] === 0x79 && audioBytes[7] === 0x70) {
-                  detectedType = 'audio/mp4';
-                }
-                
-                // Fallback to Content-Type header if magic bytes not matched
-                if (!detectedType) {
-                  const matchType = headerPreview.match(/Content-Type:\s*([^\r\n]+)/i);
-                  if (matchType && matchType[1]) {
-                    detectedType = matchType[1].trim();
-                  } else {
-                    detectedType = 'audio/webm'; // ultimate fallback
-                  }
-                }
-                
-                finalBlob = new Blob([audioBytes], { type: detectedType });
-                console.log(`OralAssessment: Successfully repaired corrupted audio file (recovered ${audioBytes.length} bytes, type ${detectedType})`);
-              }
-            } catch (repairErr) {
-              console.error('OralAssessment: Failed to repair corrupted audio:', repairErr);
-            }
-          } else {
-            // Even if NOT wrapped in multipart, check if the blob has correct type via magic bytes
-            let detectedType = '';
-            if (uint8.length >= 4 && uint8[0] === 0x1A && uint8[1] === 0x45 && uint8[2] === 0xDF && uint8[3] === 0xA3) {
-              detectedType = 'audio/webm';
-            } else if (uint8.length >= 8 && uint8[4] === 0x66 && uint8[5] === 0x74 && uint8[6] === 0x79 && uint8[7] === 0x70) {
-              detectedType = 'audio/mp4';
-            }
-            if (detectedType && data.type !== detectedType) {
-              finalBlob = new Blob([arrayBuffer], { type: detectedType });
-              console.log(`OralAssessment: Corrected non-corrupt audio file type from ${data.type} to ${detectedType}`);
-            }
-          }
-          
-          localBlobUrl = URL.createObjectURL(finalBlob);
-          setAudioUrl(localBlobUrl);
-        } else {
-          throw new Error('No data received');
-        }
-      } catch (err: any) {
-        console.error('Failed to load audio via Supabase client, falling back to public URL:', err);
-        setAudioError(err.message || 'Gagal memuat file via client');
-        // Fallback to direct URL if download fails
-        setAudioUrl(oralSubmissionUrl);
-      } finally {
-        setLoadingAudio(false);
-      }
-    };
-
-    loadAudioFile();
-
-    // Cleanup blob URL when component unmounts or URL changes
-    return () => {
-      if (localBlobUrl) {
-        URL.revokeObjectURL(localBlobUrl);
-      }
-    };
-  }, [oralSubmissionUrl]);
-
-  useEffect(() => {
-    if (!existingAudioUrl) {
-      setFeedbackUrl(null);
-      return;
-    }
-
-    if (existingAudioUrl.startsWith('blob:') || existingAudioUrl.startsWith('data:') || !existingAudioUrl.includes('selection-audios/')) {
-      setFeedbackUrl(existingAudioUrl);
-      return;
-    }
-
-    let localBlobUrl: string | null = null;
-    const loadFeedbackFile = async () => {
-      setLoadingFeedback(true);
-      try {
-        const bucketSegment = 'selection-audios/';
-        const bucketIndex = existingAudioUrl.indexOf(bucketSegment);
-        let path = '';
-        if (bucketIndex !== -1) {
-          path = existingAudioUrl.substring(bucketIndex + bucketSegment.length).split('?')[0];
-        } else {
-          const urlParts = existingAudioUrl.split('/');
-          path = urlParts[urlParts.length - 1].split('?')[0];
-        }
-
-        if (!path) throw new Error('Invalid path');
-
-        const supabase = createClient();
-        const { data, error } = await supabase.storage
-          .from('selection-audios')
-          .download(path);
-
-        if (error) throw error;
-
-        if (data) {
-          const arrayBuffer = await data.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          const textDecoder = new TextDecoder('utf-8');
-          const headerPreview = textDecoder.decode(uint8.subarray(0, 1024));
-
-          let finalBlob = data;
-          if (headerPreview.startsWith('------')) {
-            console.log('OralAssessment: Detected corrupted feedback audio file, repairing...');
-            try {
-              const boundaryLine = headerPreview.split('\r\n')[0];
-              const contentTypeIndex = headerPreview.indexOf('Content-Type:');
-              const doubleNewlineIndex = headerPreview.indexOf('\r\n\r\n', contentTypeIndex);
-
-              if (contentTypeIndex !== -1 && doubleNewlineIndex !== -1) {
-                const dataStartIndex = doubleNewlineIndex + 4;
-                const closingBoundary = '\r\n' + boundaryLine;
-                const closingBoundaryBytes = new TextEncoder().encode(closingBoundary);
-
-                let dataEndIndex = uint8.length;
-                for (let i = dataStartIndex; i < uint8.length - closingBoundaryBytes.length; i++) {
-                  let match = true;
-                  for (let j = 0; j < closingBoundaryBytes.length; j++) {
-                    if (uint8[i + j] !== closingBoundaryBytes[j]) {
-                      match = false;
-                      break;
-                    }
-                  }
-                  if (match) {
-                    dataEndIndex = i;
-                    break;
-                  }
-                }
-
-                const audioBytes = uint8.subarray(dataStartIndex, dataEndIndex);
-                
-                // Detect mime type by magic bytes
-                let detectedType = '';
-                if (audioBytes.length >= 4 && audioBytes[0] === 0x1A && audioBytes[1] === 0x45 && audioBytes[2] === 0xDF && audioBytes[3] === 0xA3) {
-                  detectedType = 'audio/webm';
-                } else if (audioBytes.length >= 8 && audioBytes[4] === 0x66 && audioBytes[5] === 0x74 && audioBytes[6] === 0x79 && audioBytes[7] === 0x70) {
-                  detectedType = 'audio/mp4';
-                }
-
-                if (!detectedType) {
-                  const matchType = headerPreview.match(/Content-Type:\s*([^\r\n]+)/i);
-                  if (matchType && matchType[1]) {
-                    detectedType = matchType[1].trim();
-                  } else {
-                    detectedType = 'audio/webm';
-                  }
-                }
-
-                finalBlob = new Blob([audioBytes], { type: detectedType });
-                console.log(`OralAssessment: Successfully repaired corrupted feedback audio (recovered ${audioBytes.length} bytes, type ${detectedType})`);
-              }
-            } catch (repairErr) {
-              console.error('OralAssessment: Failed to repair corrupted feedback audio:', repairErr);
-            }
-          } else {
-            let detectedType = '';
-            if (uint8.length >= 4 && uint8[0] === 0x1A && uint8[1] === 0x45 && uint8[2] === 0xDF && uint8[3] === 0xA3) {
-              detectedType = 'audio/webm';
-            } else if (uint8.length >= 8 && uint8[4] === 0x66 && uint8[5] === 0x74 && uint8[6] === 0x79 && uint8[7] === 0x70) {
-              detectedType = 'audio/mp4';
-            }
-            if (detectedType && data.type !== detectedType) {
-              finalBlob = new Blob([arrayBuffer], { type: detectedType });
-            }
-          }
-
-          localBlobUrl = URL.createObjectURL(finalBlob);
-          setFeedbackUrl(localBlobUrl);
-        }
-      } catch (err) {
-        console.error('Failed to load feedback audio via Supabase Client, falling back:', err);
-        setFeedbackUrl(existingAudioUrl);
-      } finally {
-        setLoadingFeedback(false);
-      }
-    };
-
-    loadFeedbackFile();
-
-    // Cleanup blob URL when component unmounts or URL changes
-    return () => {
-      if (localBlobUrl) {
-        URL.revokeObjectURL(localBlobUrl);
-      }
-    };
-  }, [existingAudioUrl]);
-
   const calculateScore = (): number | null => {
     const categories = ['makhraj', 'sifat', 'mad', 'ghunnah', 'harakat', 'itmamul_harakat'] as const;
     const pointsPerCategory = 100 / 6; // ~16.67 per category
@@ -467,6 +188,7 @@ export function OralAssessment({
     try {
       const supabase = createClient();
 
+      // Delete oral submission file from storage
       if (oralSubmissionUrl) {
         try {
           const bucketSegment = 'selection-audios/';
@@ -488,6 +210,29 @@ export function OralAssessment({
         }
       }
 
+      // Delete feedback audio from storage if exists
+      const feedbackAudioUrl = currentAssessment?.oral_assessment_audio_url;
+      if (feedbackAudioUrl) {
+        try {
+          const bucketSegment = 'selection-audios/';
+          const bucketIndex = feedbackAudioUrl.indexOf(bucketSegment);
+          let path = '';
+          if (bucketIndex !== -1) {
+            path = feedbackAudioUrl.substring(bucketIndex + bucketSegment.length).split('?')[0];
+          } else {
+            const urlParts = feedbackAudioUrl.split('/');
+            path = urlParts[urlParts.length - 1].split('?')[0];
+          }
+
+          if (path) {
+            await supabase.storage.from('selection-audios').remove([path]);
+            console.log('OralAssessment: Feedback file deleted from storage:', path);
+          }
+        } catch (storageErr) {
+          console.error('OralAssessment: Failed to delete feedback file from storage:', storageErr);
+        }
+      }
+
       const response = await fetch(`/api/pendaftaran/tikrar/${registrationId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -504,6 +249,8 @@ export function OralAssessment({
           oral_harakat_errors: null,
           oral_itmamul_harakat_errors: null,
           oral_total_score: null,
+          oral_assessment_notes: null,
+          oral_assessment_audio_url: null,
           selection_status: 'pending'
         }),
       });
@@ -547,34 +294,16 @@ export function OralAssessment({
               <Volume2 className="w-5 h-5 text-green-700" />
               <h4 className="font-semibold text-green-900">Rekaman QS. Al-Fath 29</h4>
             </div>
-            {loadingAudio && (
-              <span className="text-xs text-green-600 animate-pulse font-medium">
-                Memuat rekaman...
-              </span>
-            )}
-            {audioError && !loadingAudio && (
-              <span className="text-xs text-red-500 font-medium" title={audioError}>
-                Gagal memuat langsung, menggunakan fallback
-              </span>
-            )}
           </div>
-          {audioUrl ? (
-            <SafeAudioPlayer src={audioUrl} />
-          ) : (
-            <audio controls className="w-full" />
-          )}
+          <SafeAudioPlayer src={oralSubmissionUrl} />
           <div className="mt-3 flex justify-between items-center gap-2">
-            {audioUrl ? (
-              <a
-                href={audioUrl}
-                download={oralSubmissionUrl ? oralSubmissionUrl.split('/').pop()?.split('?')[0] : 'rekaman.webm'}
-                className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer no-underline"
-              >
-                📥 Unduh Rekaman
-              </a>
-            ) : (
-              <span className="text-xs text-gray-400">Audio belum siap diunduh</span>
-            )}
+            <a
+              href={oralSubmissionUrl}
+              download={oralSubmissionUrl.split('/').pop()?.split('?')[0] ?? 'rekaman.webm'}
+              className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer no-underline"
+            >
+              📥 Unduh Rekaman
+            </a>
             {!readOnly && (
               <button
                 type="button"
@@ -771,7 +500,7 @@ export function OralAssessment({
           />
           {!readOnly && (
             <AdminVoiceRecorder 
-              existingAudioUrl={feedbackUrl}
+              existingAudioUrl={existingAudioUrl}
               onAudioReady={(blob) => {
                 setAudioBlob(blob);
                 if (!blob) setExistingAudioUrl(null); // Deleted
