@@ -358,13 +358,13 @@ export default function PerjalananSaya() {
     const reviewWeekEnd = batch?.review_week_end_date ? new Date(batch.review_week_end_date) : null;
     const isLearningDone = isEnrollmentDone && getIsDatePassed(batch?.review_week_end_date);
 
-    const isRegistrationDone = getIsDatePassed(batch?.registration_end_date);
     const isRegistrationStarted = getIsDateStarted(batch?.registration_start_date);
+    const isRegistrationDone = getIsDateStarted(batch?.selection_start_date) || getIsDatePassed(batch?.registration_end_date);
     const isSelectionStarted = getIsDateStarted(batch?.selection_start_date);
-    const isSelectionDoneByDate = getIsDatePassed(batch?.selection_end_date);
+    const isSelectionDoneByDate = getIsDateStarted(batch?.re_enrollment_date) || getIsDatePassed(batch?.selection_result_date);
     const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
-    const isReEnrollmentDoneByDate = getIsDatePassed(batch?.re_enrollment_date);
-    const isLearningDoneByDate = getIsDatePassed(batch?.review_week_end_date);
+    const isReEnrollmentDoneByDate = getIsDateStarted(batch?.opening_class_date);
+    const isLearningDoneByDate = getIsDateStarted(batch?.final_exam_start_date) || getIsDatePassed(batch?.review_week_end_date);
     const isGraduationDoneByDate = getIsDatePassed(batch?.graduation_end_date);
     const isFinalExamStarted = getIsDateStarted(batch?.final_exam_start_date);
 
@@ -447,9 +447,9 @@ export default function PerjalananSaya() {
             isTestDisabled: !isReEnrollmentStarted,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
-          { name: 'Review Akad', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
-          { name: 'Pilih Pasangan', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
-          { name: 'Verifikasi', date: batch?.re_enrollment_date ? formatDateShort(batch.re_enrollment_date) : '', done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
+          { name: 'Review Akad', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
+          { name: 'Pilih Pasangan', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
+          { name: 'Verifikasi', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
         ]
       },
       { 
@@ -527,7 +527,9 @@ export default function PerjalananSaya() {
           title: 'Mendaftar Program',
           description: 'Pendaftaran awal program tahfidz',
           icon: getIconForType('registration'),
-          hasSelectionTasks: true
+          hasSelectionTasks: true,
+          startDateIso: batch.registration_start_date,
+          endDateIso: batch.registration_end_date
         });
       }
 
@@ -540,7 +542,9 @@ export default function PerjalananSaya() {
           title: 'Seleksi',
           description: 'Proses penilaian dan peninjauan hasil ujian seleksi oleh admin.',
           icon: getIconForType('selection'),
-          hasSelectionTasks: false
+          hasSelectionTasks: false,
+          startDateIso: batch.selection_start_date,
+          endDateIso: batch.selection_end_date
         });
       }
 
@@ -553,7 +557,9 @@ export default function PerjalananSaya() {
           title: 'Pengumuman Hasil Seleksi',
           description: 'Pengumuman hasil seleksi.',
           icon: getIconForType('result'),
-          hasSelectionTasks: false
+          hasSelectionTasks: false,
+          startDateIso: batch.selection_result_date,
+          endDateIso: batch.selection_result_date
         });
       }
 
@@ -565,7 +571,9 @@ export default function PerjalananSaya() {
           hijriDate: toHijri(batch.re_enrollment_date),
           title: 'Mendaftar Ulang',
           description: 'Konfirmasi keikutsertaan dan pengumpulan akad daftar ulang.',
-          icon: getIconForType('enrollment')
+          icon: getIconForType('enrollment'),
+          startDateIso: batch.re_enrollment_date,
+          endDateIso: batch.opening_class_date || batch.re_enrollment_date
         });
       }
 
@@ -577,7 +585,9 @@ export default function PerjalananSaya() {
           hijriDate: toHijri(batch.opening_class_date),
           title: 'Kelas Perdana Gabungan',
           description: 'Awal resmi program tahfidz dengan orientasi dan penentuan target.',
-          icon: getIconForType('opening')
+          icon: getIconForType('opening'),
+          startDateIso: batch.opening_class_date,
+          endDateIso: batch.opening_class_date
         });
       }
 
@@ -605,15 +615,47 @@ export default function PerjalananSaya() {
       if (item.id === 2 && (isSelected || isNotSelected || isWaitlist)) return { ...item, status: 'completed' as const };
       if (item.id === 3 && (isSelected || isNotSelected || isWaitlist)) return { ...item, status: 'completed' as const };
 
-      const itemDate = parseIndonesianDate(item.date);
-      itemDate.setHours(0, 0, 0, 0);
+      let startDate = today;
+      let endDate = today;
 
-      const diffTime = itemDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (item.startDateIso) {
+        startDate = new Date(item.startDateIso);
+        startDate.setHours(0, 0, 0, 0);
+      } else {
+        startDate = parseIndonesianDate(item.date);
+        startDate.setHours(0, 0, 0, 0);
+      }
+
+      if (item.endDateIso) {
+        endDate = new Date(item.endDateIso);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        endDate = new Date(startDate.getTime());
+        endDate.setHours(23, 59, 59, 999);
+      }
+
+      let status: 'completed' | 'current' | 'future' = 'future';
+      const todayTime = today.getTime();
+      
+      if (todayTime > endDate.getTime()) {
+        status = 'completed';
+      } else if (todayTime >= startDate.getTime() && todayTime <= endDate.getTime()) {
+        status = 'current';
+      } else if (todayTime < startDate.getTime()) {
+        status = 'future';
+      }
+
+      // Keep previous completed logic for active phases if user is selected/rejected
+      if (status === 'current' && item.id === 2 && (isSelected || isNotSelected || isWaitlist)) {
+        status = 'completed';
+      }
+      if (status === 'current' && item.id === 3 && (isSelected || isNotSelected || isWaitlist)) {
+        status = 'completed';
+      }
 
       return {
         ...item,
-        status: diffDays < 0 ? 'completed' : (diffDays === 0 ? 'current' : 'future')
+        status
       };
     });
   }, [isClient, registrationStatus, baseTimelineData]);

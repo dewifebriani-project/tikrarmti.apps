@@ -23,6 +23,8 @@ export interface TimelineItem {
   description: string;
   icon: React.ReactElement;
   hasSelectionTasks?: boolean;
+  startDateIso?: string;
+  endDateIso?: string;
 }
 
 export interface TimelineItemWithStatus extends TimelineItem {
