@@ -29,25 +29,67 @@ export function SafeAudioPlayer({ src, className }: SafeAudioPlayerProps) {
     setIsLoading(true);
     setError(null);
 
-    // Fetch the audio file as a Blob to prevent premature cutoff/seek issues in Chromium
-    fetch(src)
+    // Use same-origin proxy to fetch the audio blob and bypass CORS restrictions
+    const fetchUrl = src.startsWith('http')
+      ? `/api/audio-proxy?url=${encodeURIComponent(src)}`
+      : src;
+
+    fetch(fetchUrl)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
         return res.blob();
       })
-      .then((blob) => {
+      .then(async (blob) => {
         if (active) {
-          createdUrl = URL.createObjectURL(blob);
+          let finalBlob = blob;
+          try {
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8 = new Uint8Array(arrayBuffer);
+            const headerString = new TextDecoder('utf-8').decode(uint8.subarray(0, 128));
+            if (headerString.startsWith('------')) {
+              console.log('SafeAudioPlayer: Detected corrupted audio file, attempting on-the-fly repair...');
+              const webmHeader = [0x1A, 0x45, 0xDF, 0xA3];
+              let webmStart = -1;
+              for (let i = 0; i < uint8.length - 4; i++) {
+                if (uint8[i] === webmHeader[0] && uint8[i+1] === webmHeader[1] && 
+                    uint8[i+2] === webmHeader[2] && uint8[i+3] === webmHeader[3]) {
+                  webmStart = i;
+                  break;
+                }
+              }
+              
+              if (webmStart !== -1) {
+                let binaryEnd = uint8.length;
+                for (let i = webmStart; i < uint8.length - 3; i++) {
+                  if (uint8[i] === 0x0D && uint8[i+1] === 0x0A && uint8[i+2] === 0x2D && uint8[i+3] === 0x2D) {
+                    binaryEnd = i;
+                    break;
+                  }
+                  if (uint8[i] === 0x0A && uint8[i+1] === 0x2D && uint8[i+2] === 0x2D) {
+                    binaryEnd = i;
+                    break;
+                  }
+                }
+                const cleanBytes = uint8.subarray(webmStart, binaryEnd);
+                finalBlob = new Blob([cleanBytes], { type: 'audio/webm' });
+                console.log('SafeAudioPlayer: On-the-fly repair successful.');
+              }
+            }
+          } catch (repairErr) {
+            console.error('SafeAudioPlayer: Error checking/repairing blob:', repairErr);
+          }
+
+          createdUrl = URL.createObjectURL(finalBlob);
           setLocalUrl(createdUrl);
           setIsLoading(false);
         }
       })
       .catch((err) => {
-        console.error('Error pre-loading audio:', err);
+        console.warn('Error pre-loading audio, falling back to direct URL:', err);
         if (active) {
-          setError('Gagal memuat audio');
+          setLocalUrl(src);
           setIsLoading(false);
         }
       });
@@ -86,7 +128,7 @@ export function SafeAudioPlayer({ src, className }: SafeAudioPlayerProps) {
         ref={audioRef}
         src={localUrl} 
         controls 
-        className="w-full h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg" 
+        className="w-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg min-h-[54px]" 
       />
     </div>
   );
