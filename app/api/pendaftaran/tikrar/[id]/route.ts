@@ -68,7 +68,7 @@ export async function PUT(
                                     body.oral_harakat_errors !== undefined || body.oral_itmamul_harakat_errors !== undefined ||
                                     body.oral_total_score !== undefined || body.oral_assessment_status !== undefined ||
                                     body.oral_assessment_notes !== undefined || body.oral_assessment_audio_url !== undefined ||
-                                    body.selection_status !== undefined;
+                                    body.selection_status !== undefined || body.needs_revision !== undefined;
 
     // For non-admin users doing regular updates (not oral submission), verify they own the registration
     // Note: user_id in body is optional, so we only check if it's provided
@@ -191,6 +191,7 @@ export async function PUT(
       if (body.oral_assessment_notes !== undefined) updateData.oral_assessment_notes = body.oral_assessment_notes;
       if (body.oral_assessment_audio_url !== undefined) updateData.oral_assessment_audio_url = body.oral_assessment_audio_url;
       if (body.selection_status !== undefined) updateData.selection_status = body.selection_status;
+      if (body.needs_revision !== undefined) updateData.needs_revision = body.needs_revision;
       isHandled = true;
     }
 

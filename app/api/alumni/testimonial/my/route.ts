@@ -14,7 +14,7 @@ async function checkIsAlumnus(supabase: any, userId: string): Promise<boolean> {
   }
 
   const now = new Date();
-  return regs.some((reg: any) => {
+  const hasPassedBatch = regs.some((reg: any) => {
     const isApproved = reg.status === 'approved';
     const isSelected = reg.selection_status === 'selected';
     if (!isApproved || !isSelected) return false;
@@ -25,6 +25,18 @@ async function checkIsAlumnus(supabase: any, userId: string): Promise<boolean> {
     const endDate = batch.end_date ? new Date(batch.end_date) : null;
     return (endDate && endDate < now) || batch.status === 'archived';
   });
+
+  if (!hasPassedBatch) return false;
+
+  // Check if they have a final exam oral score >= 80
+  const { data: finalExams, error: examError } = await supabase
+    .from('final_exam_registrations')
+    .select('score_lisan')
+    .eq('user_id', userId)
+    .gte('score_lisan', 80)
+    .limit(1);
+
+  return finalExams && finalExams.length > 0;
 }
 
 /**

@@ -144,7 +144,8 @@ export async function POST(request: NextRequest) {
       oral_submission_url: publicUrl,
       oral_submission_file_name: supabaseFileName,
       oral_submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      needs_revision: false
     };
 
     console.log('💾 Base64 API: Updating registration...');

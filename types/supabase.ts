@@ -110,7 +110,8 @@ export interface Database {
           submission_date: string
           created_at: string
           updated_at: string
-        }
+        
+          needs_revision: boolean | null}
         Insert: any
         Update: any
       }

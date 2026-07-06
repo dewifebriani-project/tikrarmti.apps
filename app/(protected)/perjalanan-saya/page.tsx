@@ -39,6 +39,7 @@ interface TikrarRegistration extends Pendaftaran {
   selection_status?: 'pending' | 'selected' | 'not_selected' | 'waitlist';
   final_juz?: string;
   oral_total_score?: number;
+  needs_revision?: boolean;
   // daftar_ulang is now inherited from Pendaftaran interface
 }
 
@@ -283,10 +284,11 @@ export default function PerjalananSaya() {
       isAlumnus,
       // Consider having oral assessment as having submitted (even without url if admin input score manually)
       hasOralSubmission: !!(
-        registration?.oral_submission_url ||
+        (registration?.oral_submission_url ||
         (registration?.oral_assessment_status && registration?.oral_assessment_status !== 'pending' && registration?.oral_assessment_status !== 'not_submitted') ||
         (registration?.oral_total_score != null && registration?.oral_total_score > 0) ||
-        (registration?.oral_score != null && registration?.oral_score > 0)
+        (registration?.oral_score != null && registration?.oral_score > 0)) &&
+        !registration?.needs_revision
       ),
       oralSubmissionUrl: registration?.oral_submission_url,
       oralSubmittedAt: registration?.oral_submitted_at,
@@ -295,6 +297,7 @@ export default function PerjalananSaya() {
       registrationId: registration?.id,
       chosenJuz: registration?.chosen_juz,
       examScore: registration?.exam_score || (registration as any)?.written_quiz_score,
+      needsRevision: registration?.needs_revision,
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
       selectionStatus: displaySelectionStatus,
       showSelectionResult,
@@ -413,11 +416,11 @@ export default function PerjalananSaya() {
                       : 'Sudah Dinilai (Menunggu Pengumuman)'
                     )
                 )
-              : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu'), 
+              : (registrationStatus.needsRevision ? 'Perlu Rekam Ulang' : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasOral ? 'oral' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !hasOral,
-            isTestDisabled: !isRegistrationStarted,
+            isTestDisabled: !isRegistrationStarted || (isRegistrationDone && !registrationStatus.needsRevision),
             testUrl: `/seleksi/rekam-suara?batchId=${batchId}`
           },
         ]
@@ -444,7 +447,7 @@ export default function PerjalananSaya() {
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
-            isTestDisabled: !isReEnrollmentStarted,
+            isTestDisabled: !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           { name: 'Review Akad', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },

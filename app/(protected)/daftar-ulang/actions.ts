@@ -24,6 +24,10 @@ export interface DaftarUlangFormData {
   ujian_halaqah_id?: string
   tashih_halaqah_id?: string
 
+  // Pengabdian & Donasi
+  pengabdian_choice?: string
+  donasi_amount?: string | number
+
   // Akad - Array of files
   akad_files?: Array<{ url: string; name: string }>
 }
@@ -80,6 +84,11 @@ export async function saveDaftarUlangDraft(
       partner_relationship: data.partner_relationship || null,
       partner_wa_phone: data.partner_wa_phone || null,
       partner_notes: data.partner_notes || null,
+      
+      // Pengabdian & Donasi
+      pengabdian_choice: data.pengabdian_choice || null,
+      donasi_amount: data.donasi_amount ? Number(data.donasi_amount) : null,
+
       // DO NOT save halaqah data for draft - halaqah_id will be null
       ujian_halaqah_id: null,
       tashih_halaqah_id: null,
@@ -200,7 +209,11 @@ export async function submitDaftarUlang(
   }
 
   if (!data.ujian_halaqah_id) {
-    return { success: false, error: 'Pilih kelas ujian.' }
+    return { success: false, error: 'Pilih paket kelas halaqah.' }
+  }
+
+  if (!data.pengabdian_choice) {
+    return { success: false, error: 'Pilih kesediaan pengabdian.' }
   }
 
   // If partner type is self_match, must have selected partner
@@ -399,6 +412,10 @@ export async function submitDaftarUlang(
       partner_relationship: data.partner_relationship || null,
       partner_wa_phone: data.partner_wa_phone || null,
       partner_notes: data.partner_notes || null,
+
+      // Pengabdian & Donasi
+      pengabdian_choice: data.pengabdian_choice || null,
+      donasi_amount: data.donasi_amount ? Number(data.donasi_amount) : null,
 
       // Halaqah selection - Convert empty strings to null for UUID fields
       ujian_halaqah_id: data.ujian_halaqah_id || null,
