@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { requireAdmin } from '@/lib/rbac';
+import { revalidateTag } from 'next/cache';
+
 
 const supabaseAdmin = createSupabaseAdmin();
 
@@ -89,6 +91,10 @@ export async function PUT(
       );
     }
 
+    // Invalidate cache
+    revalidateTag(`batch:${id}`);
+    revalidateTag('batches:active');
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in batch PUT:', error);
@@ -137,6 +143,10 @@ export async function PATCH(
       );
     }
 
+    // Invalidate cache
+    revalidateTag(`batch:${id}`);
+    revalidateTag('batches:active');
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error in batch PATCH:', error);
@@ -176,6 +186,10 @@ export async function DELETE(
         { status: 500 }
       );
     }
+
+    // Invalidate cache
+    revalidateTag(`batch:${id}`);
+    revalidateTag('batches:active');
 
     return NextResponse.json({ message: 'Batch deleted successfully' });
   } catch (error) {

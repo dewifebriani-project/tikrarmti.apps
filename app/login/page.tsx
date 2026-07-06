@@ -39,8 +39,14 @@ function LoginPageContent() {
 
     const message = searchParams.get('message');
     const email = searchParams.get('email');
+    const errorParam = searchParams.get('error');
+    const reasonParam = searchParams.get('reason');
 
-    if (message === 'registration_success') {
+    if (errorParam) {
+      setErrors({
+        general: `${decodeURIComponent(errorParam)}${reasonParam ? `: ${decodeURIComponent(reasonParam)}` : ''}`
+      });
+    } else if (message === 'registration_success') {
       setSuccessMessage(
         <div className="space-y-2">
           <p className="flex items-center">
