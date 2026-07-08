@@ -288,7 +288,7 @@ export default function PerjalananSaya() {
         (registration?.oral_assessment_status && registration?.oral_assessment_status !== 'pending' && registration?.oral_assessment_status !== 'not_submitted') ||
         (registration?.oral_total_score != null && registration?.oral_total_score > 0) ||
         (registration?.oral_score != null && registration?.oral_score > 0)) &&
-        !registration?.needs_revision
+        !((registration as any)?.needs_revision || (registration as any)?.oral_assessment_notes === 'NEEDS_REVISION')
       ),
       oralSubmissionUrl: registration?.oral_submission_url,
       oralSubmittedAt: registration?.oral_submitted_at,
@@ -297,7 +297,7 @@ export default function PerjalananSaya() {
       registrationId: registration?.id,
       chosenJuz: registration?.chosen_juz,
       examScore: registration?.exam_score || (registration as any)?.written_quiz_score,
-      needsRevision: registration?.needs_revision,
+      needsRevision: (registration as any)?.needs_revision || (registration as any)?.oral_assessment_notes === 'NEEDS_REVISION',
       writtenQuizSubmittedAt: registration?.written_quiz_submitted_at || (registration as any)?.written_submitted_at,
       selectionStatus: displaySelectionStatus,
       showSelectionResult,

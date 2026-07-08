@@ -168,6 +168,11 @@ export async function PUT(
       if (body.oral_submission_file_name !== undefined) updateData.oral_submission_file_name = body.oral_submission_file_name;
       if (body.oral_submitted_at !== undefined) updateData.oral_submitted_at = body.oral_submitted_at;
       if (body.oral_assessment_status !== undefined) updateData.oral_assessment_status = body.oral_assessment_status;
+      
+      // Automatically clear NEEDS_REVISION if user is submitting a new recording
+      if (!isAdmin && body.oral_submission_url !== null && body.oral_submission_url !== undefined) {
+        updateData.oral_assessment_notes = null;
+      }
       isHandled = true;
     }
 
@@ -191,7 +196,6 @@ export async function PUT(
       if (body.oral_assessment_notes !== undefined) updateData.oral_assessment_notes = body.oral_assessment_notes;
       if (body.oral_assessment_audio_url !== undefined) updateData.oral_assessment_audio_url = body.oral_assessment_audio_url;
       if (body.selection_status !== undefined) updateData.selection_status = body.selection_status;
-      if (body.needs_revision !== undefined) updateData.needs_revision = body.needs_revision;
       isHandled = true;
     }
 

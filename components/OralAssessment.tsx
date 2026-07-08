@@ -249,10 +249,9 @@ export function OralAssessment({
           oral_harakat_errors: null,
           oral_itmamul_harakat_errors: null,
           oral_total_score: null,
-          oral_assessment_notes: null,
+          oral_assessment_notes: 'NEEDS_REVISION',
           oral_assessment_audio_url: null,
-          selection_status: 'pending',
-          needs_revision: true
+          selection_status: 'pending'
         }),
       });
 
