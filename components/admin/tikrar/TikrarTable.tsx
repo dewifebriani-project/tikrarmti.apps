@@ -154,13 +154,17 @@ export function TikrarTable({
                     </td>
                     <td className="px-6 py-4 align-top">
                       <div className="flex flex-col gap-1">
-                        {t.ready_for_team === 'Ya' ? (
+                        {t.ready_for_team === 'ready' ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full w-fit">
                             <Users className="w-3 h-3" /> Siap Kader
                           </span>
-                        ) : t.ready_for_team === 'Belum' ? (
+                        ) : t.ready_for_team === 'not_ready' ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full w-fit">
                             <Users className="w-3 h-3" /> Belum Siap
+                          </span>
+                        ) : t.ready_for_team === 'infaq' ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full w-fit">
+                            <Users className="w-3 h-3" /> Infaq Rutin
                           </span>
                         ) : null}
                         
