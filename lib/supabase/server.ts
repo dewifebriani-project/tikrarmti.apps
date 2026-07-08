@@ -40,31 +40,31 @@ export function createClient(options?: {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
-              const finalOptions = {
-                ...cookieOptions,
-                maxAge,
-                path: '/',
-                // Always use shared domain if available to prevent www mismatch
-                ...(domain ? { domain } : {}),
-              }
+          cookiesToSet.forEach(({ name, value, options: cookieOptions }) => {
+            const finalOptions = {
+              ...cookieOptions,
+              maxAge,
+              path: '/',
+              // Always use shared domain if available to prevent www mismatch
+              ...(domain ? { domain } : {}),
+            }
 
-              // 1. Set in the global cookie store (for current request context)
+            // 1. If a response object was provided (for Route Handlers/Middleware), set it there FIRST
+            if (options?.response) {
+              options.response.cookies.set({
+                name,
+                value,
+                ...finalOptions,
+              })
+            }
+
+            // 2. Try to set in the global cookie store (for current request context)
+            try {
               cookieStore.set(name, value, finalOptions)
-
-              // 2. If a response object was provided (for Route Handlers), set it there too
-              if (options?.response) {
-                options.response.cookies.set({
-                  name,
-                  value,
-                  ...finalOptions,
-                })
-              }
-            })
-          } catch (error: any) {
-            // Expected in Server Components
-          }
+            } catch (error: any) {
+              // Expected in Server Components and Route Handlers where cookies() is read-only
+            }
+          })
         },
       },
       cookieOptions: {
