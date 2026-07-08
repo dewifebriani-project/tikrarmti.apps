@@ -1,6 +1,6 @@
 'use client';
 
-import { Award, Clock, CheckCircle, XCircle, Info, Edit, Trash2, Undo2, MessageSquare, AlertCircle, FileText, Mic } from 'lucide-react';
+import { Award, Clock, CheckCircle, XCircle, Info, Edit, Trash2, Undo2, MessageSquare, AlertCircle, FileText, Mic, Users } from 'lucide-react';
 import { TikrarTahfidz } from './types';
 import { cn } from '@/lib/utils';
 
