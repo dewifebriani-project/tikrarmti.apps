@@ -17,12 +17,21 @@ import {
 } from "lucide-react";
 
 import { createSupabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 // Force dynamic rendering so testimonials are always fresh
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function Home() {
+  const supabaseAuth = createClient();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+
+  if (user) {
+    redirect('/dashboard');
+  }
+
   const supabase = createSupabaseAdmin();
   const { data: testimonials } = await supabase
     .from('testimonials')
