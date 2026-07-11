@@ -98,20 +98,6 @@ interface BatchAnalysis {
   recommendation: string;
 }
 
-interface MatchingAnalysis {
-  user_id: string;
-  user_name: string;
-  user_juz: string;
-  user_juz_number: number;
-  user_zona_waktu: string;
-  user_main_time: string;
-  user_backup_time: string;
-  total_matches: number;
-  zona_waktu_matches: number;
-  same_juz_matches: number;
-  cross_juz_matches: number;
-}
-
 interface HalaqahAvailability {
   juz_number: number;
   juz_name: string;
@@ -126,7 +112,7 @@ interface HalaqahAvailability {
   halaqah_details: any[];
 }
 
-type AnalysisTabType = 'overview' | 'matching';
+type AnalysisTabType = 'overview';
 
 export function MuallimahAnalysisTab() {
   const [loading, setLoading] = useState(true);
@@ -134,7 +120,6 @@ export function MuallimahAnalysisTab() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
   const [analysis, setAnalysis] = useState<BatchAnalysis | null>(null);
-  const [matchingData, setMatchingData] = useState<MatchingAnalysis[]>([]);
   const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
@@ -147,8 +132,6 @@ export function MuallimahAnalysisTab() {
       if (activeTab === 'overview') {
         loadAnalysis(selectedBatchId);
         loadHalaqahAvailability(selectedBatchId);
-      } else if (activeTab === 'matching') {
-        loadMatchingAnalysis(selectedBatchId);
       }
     }
   }, [selectedBatchId, activeTab]);
@@ -433,27 +416,6 @@ export function MuallimahAnalysisTab() {
     }
   };
 
-  const loadMatchingAnalysis = async (batchId: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/admin/analysis/matching?batch_id=${batchId}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast.error(errorData.error || 'Failed to load matching analysis');
-        setLoading(false);
-        return;
-      }
-
-      const result = await response.json();
-      setMatchingData(result.data?.matches || []);
-    } catch (error) {
-      console.error('Error loading matching analysis:', error);
-      toast.error('Failed to load matching analysis');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadHalaqahAvailability = async (batchId: string) => {
     console.log('[AnalysisTab] Loading halaqah availability for batch:', batchId);
     try {
@@ -497,17 +459,6 @@ export function MuallimahAnalysisTab() {
     );
   }
 
-  if (loading && matchingData.length === 0 && activeTab === 'matching') {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          <p className="text-sm text-gray-600">Loading matching analysis...</p>
-        </div>
-      </div>
-    );
-  }
-
 
   return (
     <div className="space-y-6">
@@ -516,7 +467,7 @@ export function MuallimahAnalysisTab() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Batch Analysis</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Analisis kecukupan muallimah, matching pasangan belajar, dan ketersediaan halaqah
+            Analisis kecukupan muallimah dan ketersediaan halaqah
           </p>
         </div>
       </div>
@@ -546,30 +497,6 @@ export function MuallimahAnalysisTab() {
       {/* Tab Navigation */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
         <div className="border-b border-gray-100">
-          <nav className="flex -mb-px">
-            <button
-              onClick={() => { setActiveTab('overview'); setLoading(true); }}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'overview'
-                  ? 'border-green-600 text-green-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Overview
-            </button>
-            <button
-              onClick={() => { setActiveTab('matching'); setLoading(true); }}
-              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === 'matching'
-                  ? 'border-green-600 text-green-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-              }`}
-            >
-              <HeartHandshake className="w-4 h-4" />
-              Matching Pasangan
-            </button>
-          </nav>
         </div>
       </div>
 
@@ -967,64 +894,6 @@ export function MuallimahAnalysisTab() {
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {activeTab === 'matching' && (
-        <>
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <HeartHandshake className="w-5 h-5 text-green-700" />
-              <h3 className="text-lg font-semibold text-gray-900">Analisis Matching Pasangan Belajar</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-6">
-              Analisis potensi matching pasangan belajar untuk setiap thalibah. Prioritas: zona waktu sama &gt; juz option sama &gt; juz number sama &gt; lintas juz.
-            </p>
-
-            {matchingData.length === 0 ? (
-              <div className="text-center py-12">
-                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">Belum ada data matching. Pilih batch untuk melihat analisis.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Nama</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Juz</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Zona Waktu</th>
-                      <th className="px-4 py-3 text-left text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Waktu Utama</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Total Matches</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Zona Waktu</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Juz Sama</th>
-                      <th className="px-4 py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-wider py-4">Lintas Juz</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {matchingData.map((match) => (
-                      <tr key={match.user_id} className="hover:bg-gray-50/50">
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{match.user_name}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_juz}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_zona_waktu || '-'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{match.user_main_time}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            match.total_matches > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {match.total_matches}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-purple-600">{match.zona_waktu_matches}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-blue-600">{match.same_juz_matches}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-center text-orange-600">{match.cross_juz_matches}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             )}
           </div>

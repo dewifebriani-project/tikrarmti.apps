@@ -195,7 +195,7 @@ export function MuallimahV2Table({
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-700">
-                        {t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : (t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-')}
+                        {t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
