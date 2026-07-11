@@ -452,7 +452,7 @@ export default function PerjalananSaya() {
             reviewType: hasFormPendaftaran && hasWritten ? 'written' : null,
             isLocked: !hasFormPendaftaran,
             isTestAction: hasFormPendaftaran && !isAlumnus && !hasWritten,
-            isTestDisabled: !isReEnrollmentStarted || isReEnrollmentDoneByDate,
+            isTestDisabled: (!isReEnrollmentStarted || isReEnrollmentDoneByDate) && !isAdmin,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
           {
@@ -462,7 +462,7 @@ export default function PerjalananSaya() {
             data: hasPassedAkadQuiz ? 'Selesai ✓' : 'Wajib lulus 100',
             isLocked: !isAlumnus && !(hasFormPendaftaran && hasWritten),
             isTestAction: !hasPassedAkadQuiz,
-            isTestDisabled: !isReEnrollmentStarted || isReEnrollmentDoneByDate || (!isAlumnus && !(hasFormPendaftaran && hasWritten)),
+            isTestDisabled: ((!isReEnrollmentStarted || isReEnrollmentDoneByDate) && !isAdmin) || (!isAlumnus && !(hasFormPendaftaran && hasWritten)),
             testUrl: `/seleksi/kuis-akad?batchId=${batchId}`
           },
           { name: 'Review Akad', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null, isLocked: !hasPassedAkadQuiz },

@@ -184,8 +184,12 @@ export default function DaftarUlangPage() {
           return
         }
 
+        // Calculate isAdmin
+        const userRole = (user as any)?.roles?.[0] || (user as any)?.role || (user as any)?.primaryRole || null;
+        const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+
         // Verify if selection result date has been reached
-        if (selectedRegistration.batch?.selection_result_date) {
+        if (selectedRegistration.batch?.selection_result_date && !isAdmin) {
           const now = new Date()
           const announcementDate = new Date(selectedRegistration.batch.selection_result_date)
           
