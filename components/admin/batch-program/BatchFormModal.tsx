@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { X, Calendar, Clock, ChevronRight, Save, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -113,6 +113,30 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
     });
     setHolidayInput('');
   };
+
+  const dateWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    const dates = [
+      { name: 'Mulai Pendaftaran', value: formData.registration_start_date },
+      { name: 'Selesai Pendaftaran', value: formData.registration_end_date },
+      { name: 'Mulai Penilaian Seleksi', value: formData.selection_start_date },
+      { name: 'Selesai Penilaian Seleksi', value: formData.selection_end_date },
+      { name: 'Pengumuman Seleksi', value: formData.selection_result_date },
+      { name: 'Mulai Daftar Ulang', value: formData.re_enrollment_date },
+      { name: 'Opening Class', value: formData.opening_class_date },
+    ];
+
+    for (let i = 0; i < dates.length - 1; i++) {
+      const current = dates[i];
+      const next = dates[i + 1];
+      if (current.value && next.value) {
+        if (new Date(current.value) > new Date(next.value)) {
+          warnings.push(`Tanggal ${current.name} tidak boleh lebih lambat dari ${next.name}.`);
+        }
+      }
+    }
+    return warnings;
+  }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -488,7 +512,19 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
           </div>
 
           {/* Footer */}
-          <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/30 flex items-center justify-end gap-3">
+          <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/30 flex items-center justify-between gap-3">
+            <div className="flex-1">
+              {dateWarnings.length > 0 && (
+                <div className="bg-yellow-50 text-yellow-800 text-xs px-3 py-2 rounded-lg border border-yellow-200 mr-4">
+                  <p className="font-bold mb-1">Perhatian (Urutan Tanggal Kurang Pas):</p>
+                  <ul className="list-disc list-inside">
+                    {dateWarnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+
             <button
               type="button"
               onClick={onClose}
@@ -504,6 +540,7 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
               <Save className="h-4 w-4" />
               {saving ? 'Menyimpan...' : 'Simpan Batch'}
             </button>
+            </div>
           </div>
         </form>
       </div>
