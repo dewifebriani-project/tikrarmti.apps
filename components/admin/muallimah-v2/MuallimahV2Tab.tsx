@@ -42,6 +42,14 @@ export function MuallimahV2Tab({ user }: { user: any }) {
   const fetchBatches = async () => {
     const { data } = await supabase.from('batches').select('*').order('name', { ascending: false });
     setBatches(data || []);
+    
+    // Default to open batch if no batch is selected yet
+    if (data && filters.batchId === 'all') {
+      const activeBatch = data.find((b: any) => b.status === 'open');
+      if (activeBatch) {
+        setFilters(prev => ({ ...prev, batchId: activeBatch.id }));
+      }
+    }
   };
 
   const fetchMuallimahData = useCallback(async () => {
@@ -276,12 +284,18 @@ export function MuallimahV2Tab({ user }: { user: any }) {
         message={`Apakah Anda yakin ingin menghapus pendaftaran/akad "${selectedRegistration?.full_name}"? Tindakan ini tidak dapat dibatalkan.`}
       />
 
-      <MuallimahEditModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        editData={selectedRegistration}
-        onRefresh={fetchMuallimahData}
-      />
+      {showEditModal && (
+        <MuallimahEditModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          editData={selectedRegistration}
+          batches={batches}
+          onRefresh={() => {
+            fetchMuallimahData();
+            fetchBatches();
+          }}
+        />
+      )}
     </div>
   );
 }

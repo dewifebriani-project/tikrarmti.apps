@@ -84,6 +84,7 @@ export function MuallimahV2Table({
                 />
               </th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Muallimah</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal Daftar</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kesiapan Data</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kelas & Juz</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Jadwal Utama</th>
@@ -190,6 +191,11 @@ export function MuallimahV2Table({
                         </button>
                         <span className="text-xs text-gray-500 truncate">{t.email || t.user?.email || '-'}</span>
                         <span className="text-[10px] text-gray-400 mt-0.5">{t.batch?.name || 'No Batch'}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-700">
+                        {t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : (t.created_at ? new Date(t.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-')}
                       </div>
                     </td>
                     <td className="px-6 py-4">
