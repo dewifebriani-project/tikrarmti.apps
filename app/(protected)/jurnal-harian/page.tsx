@@ -91,6 +91,12 @@ export default function JurnalHarianPage() {
 
   const batchStartDate = activeRegistration?.batch?.start_date || (isAdmin ? new Date().toISOString() : null)
 
+  const isBatchStarted = React.useMemo(() => {
+    if (isAdmin) return true;
+    if (!batchStartDate) return false;
+    return new Date().getTime() >= new Date(batchStartDate).getTime();
+  }, [batchStartDate, isAdmin]);
+
   useEffect(() => {
     if (juzToUse) {
       loadJuzInfo(juzToUse)
@@ -219,7 +225,7 @@ export default function JurnalHarianPage() {
       {viewMode === 'status' ? (
         <>
           {/* Grid Section */}
-          {(jurnalStatus || isAdmin || hasNoActiveRegistration) && (
+          {(jurnalStatus || isAdmin || hasNoActiveRegistration) && (isBatchStarted || hasNoActiveRegistration) && (
             <JurnalStatusGrid 
               blocks={jurnalStatus?.blocks || []} 
               currentWeekNumber={currentWeekNumber}
@@ -232,6 +238,13 @@ export default function JurnalHarianPage() {
             <div className="text-center py-12 glass-premium rounded-3xl">
               <h2 className="text-xl font-bold text-gray-800">Halaqah Belum Aktif</h2>
               <p className="text-gray-500 mt-2">Pendaftaran Ukhti sedang diproses.</p>
+            </div>
+          )}
+
+          {!isBatchStarted && !hasNoActiveRegistration && (
+            <div className="text-center py-12 glass-premium rounded-3xl mt-4">
+              <h2 className="text-xl font-bold text-gray-800">Program Belum Dimulai</h2>
+              <p className="text-gray-500 mt-2">Halaman ini akan terbuka secara otomatis saat tanggal dimulainya batch tiba.</p>
             </div>
           )}
         </>

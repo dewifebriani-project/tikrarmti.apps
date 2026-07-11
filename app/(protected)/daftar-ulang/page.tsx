@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { generateAkadPDF } from '@/lib/pdfAkadGenerator'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, ChevronRight, ChevronLeft, Info, FileText, X } from 'lucide-react'
+import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, ChevronRight, ChevronLeft, Info, FileText, X, ImageIcon, Trash2 } from 'lucide-react'
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
@@ -745,6 +746,8 @@ export default function DaftarUlangPage() {
             {currentStep === 'akad' && (
               <AkadUploadStep
                 formData={formData}
+                halaqahData={halaqahData}
+                registrationData={registrationData}
                 onUpload={handleAkadUpload}
                 onRemove={handleRemoveAkadFile}
                 isLoading={isLoading}
@@ -1631,34 +1634,114 @@ function PartnerSelectionStep({
                     </p>
                   </div>
                 ) : (
-                  <div className="border border-gray-200 rounded-lg max-h-80 overflow-y-auto">
-                    {filteredPartners.map((partner) => (
-                      <div
-                        key={partner.user_id}
-                        onClick={(e) => handlePartnerSelect(partner, e)}
-                        className={`
-                          p-3 border-b border-gray-200 last:border-b-0 cursor-pointer transition-colors
-                          ${formData.partner_user_id === partner.user_id
-                            ? 'bg-green-50 hover:bg-green-100'
-                            : 'bg-white hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{partner.users?.full_name}</p>
-                            <p className="text-xs text-gray-600 mt-1">
-                              Juz: {partner.registrations?.[0]?.chosen_juz || '-'} • {partner.users?.zona_waktu || '-'}
-                            </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto p-2">
+                    {filteredPartners.map((partner) => {
+                      const reg = partner.registrations?.[0]
+                      
+                      // Calculate age
+                      let ageText = '-'
+                      if (reg?.birth_date) {
+                        const today = new Date()
+                        const birthDate = new Date(reg.birth_date)
+                        let age = today.getFullYear() - birthDate.getFullYear()
+                        const m = today.getMonth() - birthDate.getMonth()
+                        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                          age--
+                        }
+                        ageText = `${age} thn`
+                      }
+
+                      // Format wa phone
+                      const cleanPhone = reg?.wa_phone?.replace(/\D/g, '') || ''
+                      const waLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone}` : '#'
+
+                      return (
+                        <div
+                          key={partner.user_id}
+                          onClick={(e) => handlePartnerSelect(partner, e)}
+                          className={`
+                            relative p-4 border rounded-xl cursor-pointer transition-all hover:shadow-md flex flex-col justify-between
+                            ${formData.partner_user_id === partner.user_id
+                              ? 'bg-green-50 border-green-500 ring-1 ring-green-500'
+                              : 'bg-white border-gray-200 hover:border-green-300'
+                            }
+                          `}
+                        >
+                          {/* Top row: Badges */}
+                          <div className="absolute top-3 right-3 flex flex-col items-end space-y-1">
+                            {formData.partner_user_id === partner.user_id && (
+                              <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm flex items-center space-x-1">
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Dipilih</span>
+                              </div>
+                            )}
+                            {partner.has_user_selected_them && (
+                              <div className="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+                                Memilih Anda
+                              </div>
+                            )}
                           </div>
-                          {formData.partner_user_id === partner.user_id && (
-                            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          )}
+
+                          <div>
+                            {/* Profile Header */}
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-teal-100 rounded-full flex items-center justify-center text-green-700 font-bold text-lg">
+                                {partner.users?.full_name?.charAt(0) || '?'}
+                              </div>
+                              <div className="pr-16"> {/* Padding right to avoid overlapping badges */}
+                                <h4 className="font-semibold text-gray-900 leading-tight">
+                                  {partner.users?.full_name}
+                                </h4>
+                                <p className="text-xs text-gray-500">{ageText} • {reg?.domicile || 'Lokasi tidak diketahui'}</p>
+                              </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                              <div className="bg-gray-50 rounded p-2">
+                                <span className="block text-gray-500 mb-1">Juz Pilihan</span>
+                                <span className="font-medium text-gray-900">{reg?.chosen_juz || '-'}</span>
+                              </div>
+                              <div className="bg-gray-50 rounded p-2">
+                                <span className="block text-gray-500 mb-1">Zona Waktu</span>
+                                <span className="font-medium text-gray-900">{reg?.timezone || 'WIB'}</span>
+                              </div>
+                              <div className="bg-gray-50 rounded p-2 col-span-2">
+                                <span className="block text-gray-500 mb-1">Ketersediaan Waktu</span>
+                                <span className="font-medium text-gray-900">
+                                  {reg?.main_time_slot ? formatTimeSlot(reg.main_time_slot) : '-'}
+                                </span>
+                                {reg?.backup_time_slot && (
+                                  <span className="block text-gray-500 mt-1">
+                                    Alt: {formatTimeSlot(reg.backup_time_slot)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div className="mt-2 pt-2 border-t border-gray-100 flex justify-end">
+                            {cleanPhone ? (
+                              <a 
+                                href={waLink} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs flex items-center text-emerald-600 hover:text-emerald-700 font-medium"
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.393.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824zm-3.423-14.416c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm.029 18.88c-1.161 0-2.305-.292-3.318-.844l-3.677.964.984-3.595c-.607-1.052-.927-2.246-.926-3.468.001-5.824 4.74-10.563 10.567-10.563 2.82 0 5.474 1.098 7.466 3.09 1.989 1.991 3.086 4.646 3.085 7.469-.002 5.822-4.742 10.561-10.566 10.561z"/>
+                                </svg>
+                                Hubungi via WA
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">No WA tidak tersedia</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
 
@@ -2015,6 +2098,8 @@ function ReviewStep({
 
 function AkadUploadStep({
   formData,
+  halaqahData,
+  registrationData,
   onUpload,
   onRemove,
   isLoading,
@@ -2022,6 +2107,8 @@ function AkadUploadStep({
   reregQuestions
 }: {
   formData: any
+  halaqahData: any[]
+  registrationData: any
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onRemove: (index: number) => void
   isLoading: boolean
@@ -2031,6 +2118,7 @@ function AkadUploadStep({
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
   const [isLoadingAkad, setIsLoadingAkad] = useState(true)
   const [akadError, setAkadError] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     async function fetchAkadIntisari() {
@@ -2057,6 +2145,59 @@ function AkadUploadStep({
     fetchAkadIntisari()
   }, [])
 
+  const getHalaqahName = (halaqahId: string) => {
+    const halaqah = halaqahData.find(h => h.id === halaqahId)
+    return halaqah?.name || '-'
+  }
+
+  const handleDownloadPDF = async () => {
+    if (!akadData) return
+    setIsGenerating(true)
+    
+    try {
+      const PARTNER_TYPE_LABELS: Record<string, string> = {
+        self_match: 'Pilih Sendiri',
+        system_match: 'Dipasangkan oleh Sistem',
+        family: 'Keluarga (Mahram)',
+        tarteel: 'Aplikasi Tarteel'
+      }
+
+      let partnerName = '-'
+      if (formData.partner_type === 'family' || formData.partner_type === 'tarteel') {
+        partnerName = formData.partner_name || '-'
+      } else if (formData.partner_type === 'self_match' && formData.partner_user_id) {
+        // We could theoretically fetch the partner's name, but for now we'll put 'Dipilih dari Marketplace' or leave it if not available
+        partnerName = 'Dipilih dari Marketplace'
+      }
+
+      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      
+      let pengabdian = formData.pengabdian_type || formData.infaq_type || '-'
+      if (formData.pengabdian_type === 'donasi') {
+         pengabdian = `Donasi (Rp ${formData.donasi_amount || 0})`
+      }
+
+      await generateAkadPDF({
+        fullName: formData.confirmed_full_name || registrationData?.full_name || '',
+        waPhone: registrationData?.wa_phone || '',
+        domicile: registrationData?.domicile || '',
+        chosenJuz: formData.final_juz || formData.confirmed_chosen_juz || '',
+        halaqahUjian: getHalaqahName(formData.ujian_halaqah_id),
+        halaqahTashih: getHalaqahName(formData.tashih_halaqah_id),
+        partnerType: PARTNER_TYPE_LABELS[formData.partner_type] || '-',
+        partnerName: partnerName,
+        pengabdian: pengabdian,
+        akadText: akadData.fullText,
+        dateStr
+      })
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      alert('Gagal membuat PDF. Silakan coba lagi.')
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   const akadQuestion = reregQuestions.find(q => q.field_key === 'akad_upload')
   const commitmentInfo = reregQuestions.find(q => q.field_key === 'commitment_info')
 
@@ -2075,14 +2216,39 @@ function AkadUploadStep({
 
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          {akadQuestion?.label || "Upload Akad"}
+          {akadQuestion?.label || "Download & Upload Akad"}
         </h2>
         <p className="text-gray-600 mb-6">
-          {akadQuestion?.description || "Silakan tulis tangan intisari akad di bawah ini, tandatangani, lalu upload hasil scan/fotonya."}
+          {akadQuestion?.description || "Silakan download PDF akad, pelajari kembali datanya, lalu tandatangani dan upload kembali."}
         </p>
       </div>
 
-      {/* Akad Intisari Display */}
+      {/* Review Data Again - Minimal */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+         <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+            <h3 className="font-semibold text-gray-800">Ringkasan Data & Pilihan</h3>
+         </div>
+         <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="block text-gray-500 mb-1">Kelas Ujian</span>
+              <span className="font-medium">{getHalaqahName(formData.ujian_halaqah_id)}</span>
+            </div>
+            <div>
+              <span className="block text-gray-500 mb-1">Kelas Tashih</span>
+              <span className="font-medium">{getHalaqahName(formData.tashih_halaqah_id)}</span>
+            </div>
+            <div>
+              <span className="block text-gray-500 mb-1">Pasangan Belajar</span>
+              <span className="font-medium">{formData.partner_type ? formData.partner_type.replace('_', ' ') : '-'}</span>
+            </div>
+            <div>
+              <span className="block text-gray-500 mb-1">Pengabdian / Donasi</span>
+              <span className="font-medium">{formData.pengabdian_type === 'donasi' ? `Donasi (Rp ${formData.donasi_amount || 0})` : (formData.pengabdian_type || '-')}</span>
+            </div>
+         </div>
+      </div>
+
+      {/* Download Akad Action */}
       {!isLoadingAkad && akadData && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
           <div className="flex items-start space-x-3 mb-4">
@@ -2090,16 +2256,25 @@ function AkadUploadStep({
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-amber-900 mb-2">{akadData.title}</h3>
               <p className="text-sm text-amber-800 mb-4">
-                Tulis teks di bawah ini dengan tangan pada kertas, lalu tandatangani dan upload.
+                Akad kesepakatan telah disiapkan beserta data diri dan halaqah Ukhti. Silakan download PDF di bawah ini.
               </p>
             </div>
           </div>
 
-          {/* Akad Text Box */}
-          <div className="bg-white border border-gray-300 rounded-lg p-6 mb-4">
-            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 leading-relaxed">
-              {akadData.fullText}
-            </pre>
+          <div className="flex justify-center my-6">
+            <button
+              type="button"
+              onClick={handleDownloadPDF}
+              disabled={isGenerating}
+              className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-xl font-semibold shadow-md transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+              <span>{isGenerating ? 'Membuat PDF...' : 'Download PDF Akad'}</span>
+            </button>
           </div>
 
           {/* Instructions */}
@@ -2108,16 +2283,11 @@ function AkadUploadStep({
               <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800">
                 <p className="font-semibold mb-2">Instruksi:</p>
-                {akadQuestion?.warning_text ? (
-                  <p className="whitespace-pre-wrap leading-relaxed">{akadQuestion.warning_text}</p>
-                ) : (
-                  <ol className="list-decimal list-inside space-y-1">
-                    <li>Tulis seluruh teks akad di atas dengan tangan pada kertas</li>
-                    <li>Tandatangani di bagian bawah (tulis nama lengkap dan tanggal)</li>
-                    <li>Scan atau foto hasil tulisan tangan Anda</li>
-                    <li>Upload file hasil scan/foto di bawah ini</li>
-                  </ol>
-                )}
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>Download file PDF Akad di atas.</li>
+                  <li>Tandatangani dokumen tersebut (bisa diprint & ditandatangani basah, lalu difoto/scan ATAU ditandatangani secara digital).</li>
+                  <li>Upload kembali file yang sudah ditandatangani di bawah ini.</li>
+                </ol>
               </div>
             </div>
           </div>
@@ -2165,90 +2335,55 @@ function AkadUploadStep({
         </div>
       )}
 
-      {/* File Upload Section */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-        {formData.akad_files && formData.akad_files.length > 0 ? (
-          <div className="space-y-4">
-            <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
-            <div>
-              <p className="font-medium text-gray-900">
-                {formData.akad_files.length} File Akad berhasil diupload
-              </p>
+      <div className="space-y-4">
+        {formData.akad_files?.map((file: any, index: number) => (
+          <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div className="flex items-center space-x-3 truncate">
+              {file.type?.includes('image') ? (
+                <ImageIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              ) : (
+                <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+              )}
+              <span className="text-sm text-gray-700 truncate">{file.name || 'File Akad'}</span>
             </div>
-
-            {/* List of uploaded files */}
-            <div className="space-y-2">
-              {formData.akad_files.map((file: { url: string; name: string }, index: number) => (
-                <div key={index} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    <p className="text-sm text-gray-900 truncate">{file.name}</p>
-                  </div>
-                  <button
-                    onClick={() => onRemove(index)}
-                    className="text-red-600 hover:text-red-700 p-1"
-                    title="Hapus file"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <label className="inline-block">
-              <input
-                type="file"
-                accept=".pdf,image/jpeg,image/png"
-                onChange={onUpload}
-                disabled={isLoading}
-                multiple
-                className="hidden"
-              />
-              <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer inline-block">
-                {isLoading ? 'Mengupload...' : 'Tambah File'}
-              </span>
-            </label>
+            <button
+              onClick={() => onRemove(index)}
+              className="p-1 text-red-600 hover:bg-red-50 rounded"
+              disabled={isLoading}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <Upload className="w-12 h-12 text-gray-400 mx-auto" />
-            <div>
-              <p className="font-medium text-gray-900">Upload Akad</p>
-              <p className="text-sm text-gray-600 mt-2">Upload satu atau beberapa file akad (PDF, JPG, PNG)</p>
-            </div>
-            <label className="inline-block">
-              <input
-                type="file"
-                accept=".pdf,image/jpeg,image/png"
-                onChange={onUpload}
-                disabled={isLoading}
-                multiple
-                className="hidden"
-              />
-              <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 cursor-pointer inline-block">
-                {isLoading ? 'Mengupload...' : 'Pilih File'}
-              </span>
-            </label>
-            <p className="text-xs text-gray-500">PDF, JPG, PNG - Maksimal 5MB per file</p>
-          </div>
-        )}
+        ))}
       </div>
 
-      {formData.akad_files && formData.akad_files.length > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-            <div>
-              <p className="text-sm text-green-800">
-                Akad sudah siap ({formData.akad_files.length} file). Klik "Kirim Daftar Ulang" untuk menyelesaikan proses.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors">
+        <Upload className="w-8 h-8 text-gray-400 mb-2" />
+        <p className="text-sm text-gray-600 mb-1">Klik untuk upload file yang sudah ditandatangani</p>
+        <p className="text-xs text-gray-500 mb-4">Format: JPG, PNG, atau PDF (Max 5MB)</p>
+        
+        <input
+          type="file"
+          accept="image/*,.pdf"
+          onChange={onUpload}
+          disabled={isLoading}
+          className="hidden"
+          id="akad-upload"
+          multiple
+        />
+        <label
+          htmlFor="akad-upload"
+          className={`px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer ${
+            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {isLoading ? 'Mengupload...' : 'Pilih File'}
+        </label>
+      </div>
     </div>
   )
 }
+
 
 function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
   const router = useRouter()

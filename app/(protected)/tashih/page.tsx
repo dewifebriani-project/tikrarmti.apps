@@ -114,6 +114,12 @@ export default function TashihPage() {
     (reg.status === 'approved' || reg.selection_status === 'selected')
   ) || registrations[0]
 
+  const isBatchStarted = React.useMemo(() => {
+    if (isAdmin) return true;
+    if (!batchStartDate) return false;
+    return new Date().getTime() >= new Date(batchStartDate).getTime();
+  }, [batchStartDate, isAdmin]);
+
   const juzToUse = activeRegistration?.daftar_ulang?.confirmed_chosen_juz ||
                       (activeRegistration as any)?.chosen_juz ||
                       (isAdmin ? '30A' : null)
@@ -321,6 +327,15 @@ export default function TashihPage() {
       <div className="text-center py-12 glass-premium rounded-3xl m-4">
         <h2 className="text-xl font-bold text-gray-800">Halaqah Belum Aktif</h2>
         <p className="text-gray-500 mt-2">Pendaftaran Ukhti sedang diproses.</p>
+      </div>
+    )
+  }
+
+  if (!isBatchStarted) {
+    return (
+      <div className="text-center py-12 glass-premium rounded-3xl m-4">
+        <h2 className="text-xl font-bold text-gray-800">Program Belum Dimulai</h2>
+        <p className="text-gray-500 mt-2">Halaman ini akan terbuka secara otomatis saat tanggal dimulainya batch tiba.</p>
       </div>
     )
   }

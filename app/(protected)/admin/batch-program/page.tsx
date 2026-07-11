@@ -15,8 +15,9 @@ import { AdminJuzTab } from '@/components/admin/batch-program/AdminJuzTab';
 import { AdminFormBuilderTab } from '@/components/admin/batch-program/AdminFormBuilderTab';
 import { AdminReregFormBuilderTab } from '@/components/admin/batch-program/AdminReregFormBuilderTab';
 import { AdminMuallimahFormBuilderTab } from '@/components/admin/batch-program/AdminMuallimahFormBuilderTab';
+import { AdminAkadQuizTab } from '@/components/admin/batch-program/AdminAkadQuizTab';
 
-type TabType = 'batches' | 'programs' | 'juz' | 'form-builder' | 'rereg-form-builder' | 'muallimah-form-builder';
+type TabType = 'batches' | 'programs' | 'juz' | 'form-builder' | 'rereg-form-builder' | 'muallimah-form-builder' | 'akad-quiz';
 
 export default function AdminBatchProgramPage() {
   const [mounted, setMounted] = useState(false);
@@ -246,6 +247,17 @@ export default function AdminBatchProgramPage() {
             Formulir Mu'allimah
             {activeTab === 'muallimah-form-builder' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-700 rounded-full" />}
           </button>
+          <button
+            onClick={() => setActiveTab('akad-quiz')}
+            className={cn(
+              'pb-4 px-2 text-sm font-bold transition-all relative flex items-center gap-2',
+              activeTab === 'akad-quiz' ? 'text-blue-900' : 'text-gray-400 hover:text-gray-600'
+            )}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Kuis Pemahaman Akad
+            {activeTab === 'akad-quiz' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-900 rounded-full" />}
+          </button>
         </div>
 
         {activeTab === 'batches' && (
@@ -421,6 +433,10 @@ export default function AdminBatchProgramPage() {
 
         {activeTab === 'muallimah-form-builder' && (
           <AdminMuallimahFormBuilderTab />
+        )}
+
+        {activeTab === 'akad-quiz' && (
+          <AdminAkadQuizTab />
         )}
       </div>
 

@@ -244,14 +244,14 @@ export function ReviewSubmissionModal({
           )}
         </div>
 
-        {registrationStatus.oralAssessmentAudioUrl && (
+        {registrationStatus.oralAssessmentAudioUrl && (registrationStatus.showSelectionResult || registrationStatus.needsRevision) && (
           <div className="p-6 bg-blue-50 rounded-[2.5rem] border border-blue-100">
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4 text-center">VN Koreksi dari Penguji</p>
             <SafeAudioPlayer src={registrationStatus.oralAssessmentAudioUrl} />
           </div>
         )}
 
-        {registrationStatus.oralAssessmentNotes && (
+        {registrationStatus.oralAssessmentNotes && (registrationStatus.showSelectionResult || registrationStatus.needsRevision) && (
           <div className="p-6 bg-emerald-50/50 rounded-[2.5rem] border border-emerald-100/50 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2 text-center">Catatan Koreksi Penguji</p>
             <div className="text-xs text-gray-700 leading-relaxed bg-white p-4 rounded-2xl border border-gray-100 whitespace-pre-wrap font-medium">

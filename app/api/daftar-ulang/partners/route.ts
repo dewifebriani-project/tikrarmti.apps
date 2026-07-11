@@ -37,56 +37,72 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch ALL thalibah who passed selection in the same batch (for partner search)
+    // INCLUDING extra fields for the marketplace UI
     const { data: allSelectedThalibah } = await supabase
       .from('pendaftaran_tikrar_tahfidz')
-      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot')
+      .select('user_id, full_name, chosen_juz, main_time_slot, backup_time_slot, domicile, timezone, birth_date, wa_phone')
       .eq('batch_id', registration.batch_id)
       .eq('selection_status', 'selected')
       .neq('user_id', user.id) // Exclude current user
 
-    // Get users who have selected current user as partner (for showing who selected you)
-    const { data: selectedByOthers } = await supabase
-      .from('partner_preferences')
-      .select(`
-        user_id,
-        status,
-        created_at
-      `)
-      .eq('preferred_partner_id', user.id)
-      .eq('registration_id', registration.id)
-      .in('status', ['pending', 'accepted'])
+    // Fetch all submissions in this batch to determine who selected who
+    const { data: allSubmissions } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('user_id, partner_user_id')
+      .eq('batch_id', registration.batch_id)
+      .eq('partner_type', 'self_match')
+      .in('status', ['submitted', 'approved']) // Only locked submissions count
 
-    // Get users that current user has selected
-    const { data: selectedByUser } = await supabase
-      .from('partner_preferences')
-      .select(`
-        preferred_partner_id,
-        status,
-        created_at
-      `)
-      .eq('user_id', user.id)
-      .eq('registration_id', registration.id)
-
-    // Create Sets for quick lookup
-    const selectedByOthersSet = new Set((selectedByOthers || []).map((p: any) => p.user_id))
-    const selectedByUserSet = new Set((selectedByUser || []).map((p: any) => p.preferred_partner_id))
-
-    // Check for mutual matches
-    const mutualMatchesSet = new Set()
-    ;(selectedByUser || []).forEach((pref: any) => {
-      const isMutual = (selectedByOthers || []).some((other: any) =>
-        other.user_id === pref.preferred_partner_id &&
-        other.preferred_partner_id === user.id &&
-        pref.status === 'accepted' &&
-        other.status === 'accepted'
-      )
-      if (isMutual) {
-        mutualMatchesSet.add(pref.preferred_partner_id)
+    const submissions = allSubmissions || []
+    
+    // Map of user_id -> partner_user_id they selected
+    const userChoices = new Map<string, string>()
+    submissions.forEach(sub => {
+      if (sub.partner_user_id) {
+        userChoices.set(sub.user_id, sub.partner_user_id)
       }
     })
 
-    // Build partner list - ALL selected thalibah can be chosen as partners
-    const partners = (allSelectedThalibah || []).map((reg: any) => {
+    // Find mutual matches
+    // A mutual match is when user A chose user B, and user B chose user A.
+    const mutualMatchesSet = new Set<string>()
+    userChoices.forEach((chosenPartnerId, userId) => {
+      if (userChoices.get(chosenPartnerId) === userId) {
+        mutualMatchesSet.add(userId)
+        mutualMatchesSet.add(chosenPartnerId)
+      }
+    })
+
+    // Check who selected the CURRENT user
+    const selectedByOthersSet = new Set<string>()
+    userChoices.forEach((chosenPartnerId, userId) => {
+      if (chosenPartnerId === user.id) {
+        selectedByOthersSet.add(userId)
+      }
+    })
+
+    // Current user's own choice
+    const currentUserChoice = userChoices.get(user.id)
+
+    // Filter available partners based on logic
+    const partners = (allSelectedThalibah || []).filter(reg => {
+      const partnerId = reg.user_id
+      
+      // 1. If they are part of a mutual match (with ANYONE), exclude them entirely
+      if (mutualMatchesSet.has(partnerId)) {
+        return false
+      }
+      
+      // 2. If they have submitted a choice that is NOT the current user, exclude them
+      // (They are locked to someone else)
+      const theirChoice = userChoices.get(partnerId)
+      if (theirChoice && theirChoice !== user.id) {
+        return false
+      }
+      
+      // 3. Otherwise, they are available
+      return true
+    }).map(reg => {
       // Calculate schedule compatibility
       const schedule_compatible = checkScheduleCompatibility(
         registration,
@@ -95,8 +111,8 @@ export async function GET(request: NextRequest) {
 
       return {
         user_id: reg.user_id,
-        registration_id: registration.id, // Use current user's registration_id for creating preferences
-        status: 'available', // All thalibah are available to be selected
+        registration_id: registration.id,
+        status: 'available',
         created_at: null,
         users: {
           id: reg.user_id,
@@ -105,27 +121,27 @@ export async function GET(request: NextRequest) {
           whatsapp: null
         },
         registrations: [reg],
-        is_mutual_match: mutualMatchesSet.has(reg.user_id),
+        is_mutual_match: false, // Since we filtered them out, this is technically false for all returned
         has_user_selected_them: selectedByOthersSet.has(reg.user_id),
-        has_selected_them: selectedByUserSet.has(reg.user_id),
+        has_selected_them: currentUserChoice === reg.user_id,
         schedule_compatible: schedule_compatible,
         juz_compatible: registration.chosen_juz === reg.chosen_juz
       }
     })
 
-    // Separate lists for display purposes
-    const partners_selected_by_others = partners.filter(p => p.has_user_selected_them)
-    const partners_selected_by_user = (selectedByUser || []).map((pref: any) => {
-      const partnerReg = (allSelectedThalibah || []).find(r => r.user_id === pref.preferred_partner_id)
-      return {
-        ...pref,
-        users: partnerReg ? {
-          id: partnerReg.user_id,
-          full_name: partnerReg.full_name
-        } : null,
-        registrations: partnerReg ? [partnerReg] : []
-      }
+    // Sort: Those who selected current user first, then those with matching juz/schedule
+    partners.sort((a, b) => {
+      if (a.has_user_selected_them && !b.has_user_selected_them) return -1
+      if (!a.has_user_selected_them && b.has_user_selected_them) return 1
+      if (a.juz_compatible && !b.juz_compatible) return -1
+      if (!a.juz_compatible && b.juz_compatible) return 1
+      if (a.schedule_compatible && !b.schedule_compatible) return -1
+      if (!a.schedule_compatible && b.schedule_compatible) return 1
+      return 0
     })
+
+    const partners_selected_by_others = partners.filter(p => p.has_user_selected_them)
+    const partners_selected_by_user = partners.filter(p => p.has_selected_them)
 
     return NextResponse.json({
       success: true,
@@ -137,9 +153,9 @@ export async function GET(request: NextRequest) {
           main_time_slot: registration.main_time_slot,
           backup_time_slot: registration.backup_time_slot
         },
-        all_available_partners: partners, // ALL selected thalibah
-        partners_selected_by_others: partners_selected_by_others,
-        partners_selected_by_user: partners_selected_by_user,
+        all_available_partners: partners, // Now filtered based on marketplace logic
+        partners_selected_by_others,
+        partners_selected_by_user,
         mutual_matches: Array.from(mutualMatchesSet)
       }
     })
@@ -169,114 +185,7 @@ function checkScheduleCompatibility(
   return userSlots.some(slot => slot && partnerSlots.includes(slot))
 }
 
-/**
- * POST /api/daftar-ulang/partners
- * Create or update partner preference
- */
+// Keep POST for backward compatibility or future use
 export async function POST(request: NextRequest) {
-  try {
-    const supabase = createClient()
-    const body = await request.json()
-
-    const { preferred_partner_id, registration_id, action } = body
-
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    if (!preferred_partner_id || !registration_id) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    // Check if registration belongs to user
-    const { data: registration } = await supabase
-      .from('pendaftaran_tikrar_tahfidz')
-      .select('id, user_id')
-      .eq('id', registration_id)
-      .eq('user_id', user.id)
-      .single()
-
-    if (!registration) {
-      return NextResponse.json(
-        { error: 'Invalid registration' },
-        { status: 400 }
-      )
-    }
-
-    if (action === 'accept') {
-      // Update existing preference to accepted
-      const { data, error } = await supabase
-        .from('partner_preferences')
-        .update({ status: 'accepted', updated_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('preferred_partner_id', preferred_partner_id)
-        .eq('registration_id', registration_id)
-        .select()
-        .single()
-
-      if (error) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ success: true, data })
-    } else if (action === 'reject') {
-      // Update existing preference to rejected
-      const { data, error } = await supabase
-        .from('partner_preferences')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('preferred_partner_id', preferred_partner_id)
-        .eq('registration_id', registration_id)
-        .select()
-        .single()
-
-      if (error) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ success: true, data })
-    } else {
-      // Create new preference (pending)
-      const { data, error } = await supabase
-        .from('partner_preferences')
-        .insert({
-          user_id: user.id,
-          preferred_partner_id,
-          registration_id,
-          status: 'pending'
-        })
-        .select()
-        .single()
-
-      if (error) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({ success: true, data })
-    }
-
-  } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  return NextResponse.json({ error: 'Deprecated' }, { status: 400 })
 }

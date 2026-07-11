@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,7 +10,7 @@ import { useActiveBatch } from '@/hooks/useBatches';
 import { useDashboardStats, useLearningJourney, useUserProgress, useJurnalStatus } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock } from 'lucide-react';
+import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
 import { FinalExamPortalModal } from '@/components/dashboard/FinalExamPortalModal';
@@ -149,6 +150,10 @@ export default function PerjalananSaya() {
   const [reviewType, setReviewType] = useState<'written' | 'oral' | 'akad' | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isExamPortalOpen, setIsExamPortalOpen] = useState(false);
+
+  // Fetch Akad Quiz status
+  const { data: akadQuizData } = useSWR('/api/akad-quiz/attempts', (url) => fetch(url).then(r => r.json()));
+  const hasPassedAkadQuiz = akadQuizData?.data?.[0]?.passed === true;
 
   // Identify if user is Admin/Staff for preview mode
   const isAdmin = useMemo(() => {
@@ -450,9 +455,19 @@ export default function PerjalananSaya() {
             isTestDisabled: !isReEnrollmentStarted || isReEnrollmentDoneByDate,
             testUrl: `/seleksi/pilihan-ganda?batchId=${batchId}`
           },
-          { name: 'Review Akad', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null },
-          { name: 'Pilih Pasangan', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null },
-          { name: 'Verifikasi', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi' }
+          {
+            name: 'Kuis Pemahaman Akad',
+            date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date),
+            done: hasPassedAkadQuiz,
+            data: hasPassedAkadQuiz ? 'Selesai ✓' : 'Wajib lulus 100',
+            isLocked: !isAlumnus && !(hasFormPendaftaran && hasWritten),
+            isTestAction: !hasPassedAkadQuiz,
+            isTestDisabled: !isReEnrollmentStarted || isReEnrollmentDoneByDate || (!isAlumnus && !(hasFormPendaftaran && hasWritten)),
+            testUrl: `/seleksi/kuis-akad?batchId=${batchId}`
+          },
+          { name: 'Review Akad', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasAkad, data: hasAkad ? 'Sudah disetujui' : 'Belum ada data', reviewType: hasAkad ? 'akad' : null, isLocked: !hasPassedAkadQuiz },
+          { name: 'Pilih Pasangan', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: hasPartner, data: partner ? `${partner.full_name}` : 'Belum ada pasangan', reviewType: hasPartner ? 'pairing' : null, isLocked: !hasPassedAkadQuiz },
+          { name: 'Verifikasi', date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), done: isEnrollmentDone, data: isEnrollmentDone ? 'Selesai ✓' : 'Belum terverifikasi', isLocked: !hasPassedAkadQuiz }
         ]
       },
       { 
@@ -804,7 +819,13 @@ export default function PerjalananSaya() {
                   <div className="mt-2 space-y-1.5 w-full">
                     {phase.subPhases.map((sub, sIdx) => (
                       <div key={sIdx} className="flex items-start gap-2 pt-0.5">
-                        <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5", sub.done ? "bg-emerald-500" : "bg-gray-200")} />
+                        <div className="flex-shrink-0 mt-0.5">
+                          {sub.done ? (
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-gray-300" />
+                          )}
+                        </div>
                         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 group min-w-0 flex-1">
                           <span className="text-xs font-bold text-gray-800">{sub.name}</span>
                           {(sub as any).date && (
