@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, ArrowLeft, GraduationCap } from 'lucide-react';
+import { Shield, ArrowLeft, GraduationCap, BarChart3, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from 'sonner';
 import { MuallimahV2Tab } from '@/components/admin/muallimah-v2/MuallimahV2Tab';
+import { MuallimahAnalysisTab } from '@/components/admin/muallimah-v2/MuallimahAnalysisTab';
+import { cn } from '@/lib/utils';
 
 export default function AdminMuallimahPage() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'data' | 'analysis'>('data');
 
   useEffect(() => {
     setMounted(true);
@@ -24,7 +27,7 @@ export default function AdminMuallimahPage() {
       <Toaster position="top-right" richColors />
 
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-100 mb-8 sticky top-0 z-20 shadow-sm">
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -48,21 +51,46 @@ export default function AdminMuallimahPage() {
                 </h1>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="h-10 px-4 rounded-xl bg-gray-100/50 border border-gray-100 flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-bold text-gray-600">
-                  Data Muallimah
-                </span>
-              </div>
-            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-6 border-b border-transparent">
+            <button
+              onClick={() => setActiveTab('data')}
+              className={cn(
+                "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
+                activeTab === 'data'
+                  ? "border-green-600 text-green-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              <Users className="h-4 w-4" />
+              Data Muallimah
+            </button>
+            <button
+              onClick={() => setActiveTab('analysis')}
+              className={cn(
+                "pb-4 text-sm font-bold transition-all border-b-2 flex items-center gap-2",
+                activeTab === 'analysis'
+                  ? "border-green-600 text-green-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              )}
+            >
+              <BarChart3 className="h-4 w-4" />
+              Analisis Data
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        <MuallimahV2Tab user={user} />
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {activeTab === 'data' ? (
+          <MuallimahV2Tab user={user} />
+        ) : (
+          <MuallimahAnalysisTab />
+        )}
       </div>
     </div>
   );
