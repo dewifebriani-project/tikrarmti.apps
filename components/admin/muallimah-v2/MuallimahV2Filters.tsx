@@ -9,6 +9,7 @@ interface MuallimahV2FiltersProps {
     search: string; 
     batchId: string; 
     status: string;
+    sortBy: string;
   }) => void;
   onRefresh: () => void;
   isLoading: boolean;
@@ -19,19 +20,31 @@ export function MuallimahV2Filters({ onFilterChange, onRefresh, isLoading, batch
   const [search, setSearch] = useState('');
   const [batchId, setBatchId] = useState('all');
   const [status, setStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+
+  // Auto-select open batch on load
+  useEffect(() => {
+    if (batches.length > 0 && batchId === 'all') {
+      const activeBatch = batches.find(b => b.status === 'open');
+      if (activeBatch) {
+        setBatchId(activeBatch.id);
+      }
+    }
+  }, [batches]);
 
   // Debounced search effect
   useEffect(() => {
     const timer = setTimeout(() => {
-      onFilterChange({ search, batchId, status });
+      onFilterChange({ search, batchId, status, sortBy });
     }, 500);
     return () => clearTimeout(timer);
-  }, [search, batchId, status, onFilterChange]);
+  }, [search, batchId, status, sortBy, onFilterChange]);
 
   const handleClear = () => {
     setSearch('');
     setBatchId('all');
     setStatus('all');
+    setSortBy('newest');
   };
 
   return (
@@ -84,6 +97,20 @@ export function MuallimahV2Filters({ onFilterChange, onRefresh, isLoading, batch
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-500" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white cursor-pointer"
+            >
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+              <option value="name_asc">Nama (A-Z)</option>
+              <option value="name_desc">Nama (Z-A)</option>
             </select>
           </div>
 

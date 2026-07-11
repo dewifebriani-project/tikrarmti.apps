@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { CheckCircle } from 'lucide-react';
@@ -36,20 +36,13 @@ export function MuallimahV2Tab({ user }: { user: any }) {
   const [filters, setFilters] = useState({
     search: '',
     batchId: 'all',
-    status: 'all'
+    status: 'all',
+    sortBy: 'newest'
   });
 
   const fetchBatches = async () => {
     const { data } = await supabase.from('batches').select('*').order('name', { ascending: false });
     setBatches(data || []);
-    
-    // Default to open batch if no batch is selected yet
-    if (data && filters.batchId === 'all') {
-      const activeBatch = data.find((b: any) => b.status === 'open');
-      if (activeBatch) {
-        setFilters(prev => ({ ...prev, batchId: activeBatch.id }));
-      }
-    }
   };
 
   const fetchMuallimahData = useCallback(async () => {
@@ -181,6 +174,27 @@ export function MuallimahV2Tab({ user }: { user: any }) {
     }
   };
 
+  
+  const sortedMuallimah = useMemo(() => {
+    let result = [...muallimah];
+    switch (filters.sortBy) {
+      case 'oldest':
+        result.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+        break;
+      case 'name_asc':
+        result.sort((a, b) => (a.full_name || a.user?.full_name || '').localeCompare(b.full_name || b.user?.full_name || ''));
+        break;
+      case 'name_desc':
+        result.sort((a, b) => (b.full_name || b.user?.full_name || '').localeCompare(a.full_name || a.user?.full_name || ''));
+        break;
+      case 'newest':
+      default:
+        result.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        break;
+    }
+    return result;
+  }, [muallimah, filters.sortBy]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       const pendingIds = muallimah.filter(t => t.status === 'pending').map(t => t.id);
@@ -242,7 +256,7 @@ export function MuallimahV2Tab({ user }: { user: any }) {
       )}
 
       <MuallimahV2Table 
-        muallimah={muallimah}
+        muallimah={sortedMuallimah}
         isLoading={isLoading}
         onAction={handleAction}
         selectedIds={selectedIds}

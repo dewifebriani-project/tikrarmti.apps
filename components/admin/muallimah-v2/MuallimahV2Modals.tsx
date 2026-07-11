@@ -639,14 +639,21 @@ export function MuallimahEditModal({
         preferred_schedule: JSON.stringify(preferredScheduleObj),
         backup_schedule: Object.keys(backupScheduleObj).length > 0 ? JSON.stringify(backupScheduleObj) : null,
       };
-      if (batchId) akadPayload.batch_id = batchId;
+      if (batchId && batchId !== editData.batch_id) {
+        akadPayload.batch_id = batchId;
+      }
 
       const { error: akadError } = await supabase
         .from('muallimah_akads')
         .update(akadPayload)
         .eq('id', editData.id);
 
-      if (akadError) throw akadError;
+      if (akadError) {
+        if (akadError.message?.includes('violates unique constraint') || akadError.code === '23505') {
+          throw new Error('Ustadzah ini sudah terdaftar di Batch yang dipilih (Duplikat). Silakan pilih Batch lain atau ubah status pendaftaran yang lama.');
+        }
+        throw akadError;
+      }
 
       // Update Registrations (Profile)
       if (editData.profile_id) {
