@@ -367,7 +367,7 @@ export default function PerjalananSaya() {
     const isLearningDone = isEnrollmentDone && getIsDatePassed(batch?.review_week_end_date);
 
     const isRegistrationStarted = getIsDateStarted(batch?.registration_start_date);
-    const isRegistrationDone = getIsDateStarted(batch?.selection_start_date) || getIsDatePassed(batch?.registration_end_date);
+    const isRegistrationDone = getIsDatePassed(batch?.registration_end_date);
     const isSelectionStarted = getIsDateStarted(batch?.selection_start_date);
     const isSelectionDoneByDate = getIsDateStarted(batch?.re_enrollment_date) || getIsDatePassed(batch?.selection_result_date);
     const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
