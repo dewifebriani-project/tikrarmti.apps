@@ -42,7 +42,23 @@ export function MuallimahV2Tab({ user }: { user: any }) {
 
   const fetchBatches = async () => {
     const { data } = await supabase.from('batches').select('*').order('name', { ascending: false });
-    setBatches(data || []);
+    const loadedBatches = data || [];
+    setBatches(loadedBatches);
+    
+    // Find the currently active batch and set it as default in filters
+    const active = loadedBatches.find((b: any) => 
+      b.registration_start_date && 
+      b.registration_end_date &&
+      new Date(b.registration_start_date) <= new Date() && 
+      new Date(b.registration_end_date) >= new Date()
+    ) || loadedBatches.find((b: any) => b.status === 'open') || loadedBatches[0];
+
+    if (active) {
+      setFilters(prev => ({
+        ...prev,
+        batchId: active.id
+      }));
+    }
   };
 
   const fetchMuallimahData = useCallback(async () => {
@@ -58,6 +74,14 @@ export function MuallimahV2Tab({ user }: { user: any }) {
       if (!response.ok) throw new Error(result.error || 'Failed to fetch');
       
       let filteredData = (result.data?.data || []) as MuallimahV2Type[];
+
+      // Calculate stats before applying status filter
+      setStats({
+        total: filteredData.length,
+        pending: filteredData.filter(t => t.status === 'pending').length,
+        approved: filteredData.filter(t => t.status === 'approved').length,
+        rejected: filteredData.filter(t => t.status === 'rejected').length,
+      });
 
       if (filters.status !== 'all') {
         filteredData = filteredData.filter(t => t.status === filters.status);
@@ -75,13 +99,6 @@ export function MuallimahV2Tab({ user }: { user: any }) {
       }
 
       setMuallimah(filteredData);
-      
-      setStats({
-        total: filteredData.length,
-        pending: filteredData.filter(t => t.status === 'pending').length,
-        approved: filteredData.filter(t => t.status === 'approved').length,
-        rejected: filteredData.filter(t => t.status === 'rejected').length,
-      });
     } catch (error: any) {
       toast.error('Gagal mengambil data Muallimah: ' + error.message);
     } finally {
@@ -214,13 +231,20 @@ export function MuallimahV2Tab({ user }: { user: any }) {
 
   return (
     <div className="space-y-6">
-      <MuallimahV2Stats stats={stats} isLoading={isLoading} />
+      <MuallimahV2Stats 
+        stats={stats} 
+        isLoading={isLoading} 
+        activeFilter={filters.status as any}
+        onCardClick={(filter) => setFilters(prev => ({ ...prev, status: filter }))}
+      />
       
       <MuallimahV2Filters 
         batches={batches}
         isLoading={isLoading}
         onFilterChange={setFilters}
         onRefresh={fetchMuallimahData}
+        defaultBatchId={filters.batchId}
+        defaultStatus={filters.status}
       />
 
       {/* Bulk Actions Bar */}

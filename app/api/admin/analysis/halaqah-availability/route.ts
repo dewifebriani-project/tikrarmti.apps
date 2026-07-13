@@ -51,12 +51,23 @@ export async function GET(request: NextRequest) {
 
     console.log('[Halaqah Availability API] Loading halaqah availability for batch:', batchId);
 
-    // Fetch muallimah registrations for this batch (approved only)
-    const { data: muallimahRegs } = await supabaseAdmin
-      .from('muallimah_registrations')
-      .select('user_id, class_type, preferred_juz, preferred_schedule, full_name')
+    // Fetch muallimah akads for this batch (approved only)
+    const { data: muallimahRegsRaw } = await supabaseAdmin
+      .from('muallimah_akads')
+      .select(`
+        user_id, 
+        class_type, 
+        preferred_juz, 
+        preferred_schedule, 
+        user:users(full_name)
+      `)
       .eq('batch_id', batchId)
       .eq('status', 'approved');
+
+    const muallimahRegs = (muallimahRegsRaw || []).map(reg => ({
+      ...reg,
+      full_name: (reg.user as any)?.full_name || 'Unknown'
+    }));
 
     // Create muallimah map for quick lookup
     const muallimahMap = new Map(
@@ -80,9 +91,11 @@ export async function GET(request: NextRequest) {
         status,
         zoom_link,
         preferred_juz,
-        muallimah_id
+        muallimah_id,
+        programs!inner(batch_id)
       `)
       .eq('status', 'active')
+      .eq('programs.batch_id', batchId)
       .order('day_of_week', { ascending: true });
 
     if (halaqahError) {

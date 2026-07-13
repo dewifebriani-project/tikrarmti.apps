@@ -13,7 +13,8 @@ import {
   HeartHandshake,
   BookOpen,
   ChevronRight,
-  FileText
+  FileText,
+  Award
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -138,18 +139,24 @@ export function MuallimahAnalysisTab() {
 
   const loadBatches = async () => {
     try {
-      // Fetch all batches without pagination limit
       const response = await fetch('/api/admin/batches?limit=1000');
       if (response.ok) {
         const result = await response.json();
         const activeBatches = (result.data || []).filter(
-          (b: Batch) => b.status === 'open' || b.status === 'closed'
+          (b: Batch) => b.status === 'open' || b.status === 'closed' || b.status === 'ongoing'
         );
         setBatches(activeBatches);
 
-        // Auto-select first batch
-        if (activeBatches.length > 0 && !selectedBatchId) {
-          setSelectedBatchId(activeBatches[0].id);
+        // Find the currently active batch
+        const active = activeBatches.find((b: any) => 
+          b.registration_start_date && 
+          b.registration_end_date &&
+          new Date(b.registration_start_date) <= new Date() && 
+          new Date(b.registration_end_date) >= new Date()
+        ) || activeBatches.find((b: any) => b.status === 'open') || activeBatches[0];
+
+        if (active && !selectedBatchId) {
+          setSelectedBatchId(active.id);
         }
       }
     } catch (error) {
@@ -462,36 +469,37 @@ export function MuallimahAnalysisTab() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Batch Analysis</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Analisis kecukupan muallimah dan ketersediaan halaqah
-          </p>
+      {/* Header & Batch Selector */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Batch Analysis</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Analisis kecukupan muallimah dan ketersediaan halaqah
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Award className="h-4 w-4 text-gray-500" />
+              <select
+                value={selectedBatchId}
+                onChange={(e) => {
+                  setSelectedBatchId(e.target.value);
+                  setLoading(true);
+                }}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600 bg-white cursor-pointer"
+              >
+                <option value="">-- Pilih Batch --</option>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.name} ({batch.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-      </div>
-
-      {/* Batch Selector */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Pilih Batch untuk Analisis
-        </label>
-        <select
-          value={selectedBatchId}
-          onChange={(e) => {
-            setSelectedBatchId(e.target.value);
-            setLoading(true);
-          }}
-          className="w-full max-w-md px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
-        >
-          <option value="">-- Pilih Batch --</option>
-          {batches.map((batch) => (
-            <option key={batch.id} value={batch.id}>
-              {batch.name} ({batch.status})
-            </option>
-          ))}
-        </select>
       </div>
 
       {/* Tab Navigation */}
@@ -533,112 +541,136 @@ export function MuallimahAnalysisTab() {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Muallimah Stats */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-gray-200 transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Muallimah</h3>
-                <UserCheck className="w-5 h-5 text-purple-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Total Muallimah</p>
+                  <p className="text-3xl font-black text-gray-900">{analysis.total_muallimah}</p>
+                </div>
+                <div className="p-4 rounded-xl text-white shadow-lg bg-purple-500 shadow-purple-200">
+                  <UserCheck className="w-6 h-6" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{analysis.total_muallimah}</p>
-              <div className="mt-4 space-y-1">
+              <div className="pt-4 border-t border-gray-50 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Approved:</span>
-                  <span className="font-semibold text-green-600">{analysis.approved_muallimah}</span>
+                  <span className="text-gray-500 font-medium">Approved</span>
+                  <span className="font-bold text-green-600">{analysis.approved_muallimah}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Pending:</span>
-                  <span className="font-semibold text-yellow-600">{analysis.pending_muallimah}</span>
+                  <span className="text-gray-500 font-medium">Pending</span>
+                  <span className="font-bold text-amber-600">{analysis.pending_muallimah}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Rejected:</span>
-                  <span className="font-semibold text-red-600">{analysis.rejected_muallimah}</span>
+                  <span className="text-gray-500 font-medium">Rejected</span>
+                  <span className="font-bold text-red-600">{analysis.rejected_muallimah}</span>
                 </div>
               </div>
             </div>
 
             {/* Thalibah Stats */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-gray-200 transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Thalibah</h3>
-                <GraduationCap className="w-5 h-5 text-blue-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Total Thalibah</p>
+                  <p className="text-3xl font-black text-gray-900">{analysis.total_thalibah}</p>
+                </div>
+                <div className="p-4 rounded-xl text-white shadow-lg bg-blue-500 shadow-blue-200">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{analysis.total_thalibah}</p>
-              <div className="mt-4 space-y-1">
+              <div className="pt-4 border-t border-gray-50 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Approved:</span>
-                  <span className="font-semibold text-green-600">{analysis.approved_thalibah}</span>
+                  <span className="text-gray-500 font-medium">Approved</span>
+                  <span className="font-bold text-green-600">{analysis.approved_thalibah}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Pending:</span>
-                  <span className="font-semibold text-yellow-600">{analysis.pending_thalibah}</span>
+                  <span className="text-gray-500 font-medium">Pending</span>
+                  <span className="font-bold text-amber-600">{analysis.pending_thalibah}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Selected:</span>
-                  <span className="font-semibold text-purple-600">{analysis.selected_thalibah}</span>
+                  <span className="text-gray-500 font-medium">Selected</span>
+                  <span className="font-bold text-purple-600">{analysis.selected_thalibah}</span>
                 </div>
               </div>
             </div>
 
             {/* Daftar Ulang Stats */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-gray-200 transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Daftar Ulang</h3>
-                <FileText className="w-5 h-5 text-indigo-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Daftar Ulang</p>
+                  <p className="text-3xl font-black text-gray-900">{analysis.total_daftar_ulang}</p>
+                </div>
+                <div className="p-4 rounded-xl text-white shadow-lg bg-indigo-500 shadow-indigo-200">
+                  <FileText className="w-6 h-6" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{analysis.total_daftar_ulang}</p>
-              <div className="mt-4 space-y-1">
+              <div className="pt-4 border-t border-gray-50 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Submitted:</span>
-                  <span className="font-semibold text-blue-600">{analysis.submitted_daftar_ulang}</span>
+                  <span className="text-gray-500 font-medium">Submitted</span>
+                  <span className="font-bold text-blue-600">{analysis.submitted_daftar_ulang}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Approved:</span>
-                  <span className="font-semibold text-green-600">{analysis.approved_daftar_ulang}</span>
+                  <span className="text-gray-500 font-medium">Approved</span>
+                  <span className="font-bold text-green-600">{analysis.approved_daftar_ulang}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Progress:</span>
-                  <span className="font-semibold text-gray-600">
+                  <span className="text-gray-500 font-medium">Progress</span>
+                  <span className="font-bold text-gray-600">
                     {analysis.selected_thalibah > 0
-                      ? `${Math.round((analysis.total_daftar_ulang / analysis.selected_thalibah) * 100)}%`
-                      : '-'}
+                      ? Math.round((analysis.approved_daftar_ulang / analysis.selected_thalibah) * 100)
+                      : 0}%
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Halaqah Stats */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-gray-200 transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Total Halaqah</h3>
-                <Users className="w-5 h-5 text-green-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Total Halaqah</p>
+                  <p className="text-3xl font-black text-gray-900">{analysis.total_halaqah}</p>
+                </div>
+                <div className="p-4 rounded-xl text-white shadow-lg bg-emerald-500 shadow-emerald-200">
+                  <BookOpen className="w-6 h-6" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{analysis.total_halaqah}</p>
-              <div className="mt-4 space-y-1">
+              <div className="pt-4 border-t border-gray-50 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">With Program:</span>
-                  <span className="font-semibold text-green-600">{analysis.halaqah_with_program}</span>
+                  <span className="text-gray-500 font-medium">With Program</span>
+                  <span className="font-bold text-green-600">{analysis.halaqah_with_program}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Without Program:</span>
-                  <span className="font-semibold text-yellow-600">{analysis.halaqah_without_program}</span>
+                  <span className="text-gray-500 font-medium">Without Program</span>
+                  <span className="font-bold text-amber-600">{analysis.halaqah_without_program}</span>
                 </div>
               </div>
             </div>
 
             {/* Ratio Stats */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:border-gray-200 transition-all">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-medium text-gray-600">Muallimah : Thalibah</h3>
-                <TrendingUp className="w-5 h-5 text-orange-600" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-gray-500">Rasio M : T</p>
+                  <p className="text-3xl font-black text-gray-900">1:{analysis.approved_muallimah > 0 ? Math.round(analysis.approved_thalibah / analysis.approved_muallimah) : 0}</p>
+                </div>
+                <div className="p-4 rounded-xl text-white shadow-lg bg-orange-500 shadow-orange-200">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
               </div>
-              <p className="text-3xl font-bold text-gray-900">{analysis.muallimah_thalibah_ratio}</p>
-              <div className="mt-4 space-y-1">
+              <div className="pt-4 border-t border-gray-50 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Avg per Muallimah:</span>
-                  <span className="font-semibold text-orange-600">{analysis.avg_thalibah_per_muallimah}</span>
+                  <span className="text-gray-500 font-medium">Avg/Muallimah</span>
+                  <span className="font-bold text-orange-600">
+                    {analysis.approved_muallimah > 0
+                      ? Math.round(analysis.approved_thalibah / analysis.approved_muallimah)
+                      : 0}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Recommended:</span>
-                  <span className="font-semibold text-gray-600">≤ 10</span>
+                  <span className="text-gray-500 font-medium">Target Max</span>
+                  <span className="font-bold text-gray-900">10</span>
                 </div>
               </div>
             </div>
@@ -726,7 +758,6 @@ export function MuallimahAnalysisTab() {
                         <div className="flex items-center justify-between mb-3">
                           <div>
                             <h4 className="text-xl font-bold text-gray-900">{juz.juz_name}</h4>
-                            <p className="text-sm text-gray-600">Juz {juz.juz_number}</p>
                           </div>
                           {needsMoreHalaqah ? (
                             <div className="flex items-center gap-2 bg-red-100 text-red-800 px-4 py-2 rounded-lg">

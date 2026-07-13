@@ -100,7 +100,7 @@ export default function DashboardSidebar({ isOpen = false, onClose }: UniversalS
       // SECTION: ALUR PEMBELAJARAN
       baseItems.push({ type: 'header', label: 'Alur Pembelajaran' });
       baseItems.push({
-        href: '/admin?tab=halaqah',
+        href: '/admin/halaqah',
         label: 'Manajemen Halaqah',
         icon: <Users className="h-5 w-5" />,
       });

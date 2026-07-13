@@ -49,7 +49,6 @@ import { AdminExamImport } from '@/components/AdminExamImport';
 import { AdminAddQuestion } from '@/components/AdminAddQuestion';
 import { AdminExamSettings } from '@/components/AdminExamSettings';
 import AdminOrphanedUsers from '@/components/AdminOrphanedUsers';
-import { HalaqahManagementTab } from '@/components/HalaqahManagementTab';
 import { AnalysisTab } from '@/components/AnalysisTab';
 import { SystemLogsTab } from '@/components/SystemLogsTab';
 import AdminPairingTab from '@/components/AdminPairingTab';
@@ -768,7 +767,6 @@ function AdminContent() {
             )}
           </div>
         )}
-        {activeTab === 'halaqah' && <HalaqahManagementTab />}
         {activeTab === 'daftar-ulang' && <DaftarUlangV2Tab batchId={selectedBatchFilter} />}
         {activeTab === 'analysis' && <AnalysisTab />}
         {activeTab === 'pairing' && <AdminPairingTab />}

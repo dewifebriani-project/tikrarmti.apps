@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     // Get muallimah stats for this batch
     console.log('[Analysis API] Querying muallimah for batch_id:', batchId);
     const { data: muallimahs, error: muallimaError } = await supabaseAdmin
-      .from('muallimah_registrations')
+      .from('muallimah_akads')
       .select('id, status, preferred_max_thalibah, user_id')
       .eq('batch_id', batchId);
 
@@ -122,12 +122,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get all active halaqahs (not batch-specific, we'll filter later by muallimah)
-    console.log('[Analysis API] Querying halaqah (all active)');
+    // Get all active halaqahs for this batch (filtering by programs.batch_id)
+    console.log('[Analysis API] Querying halaqah for batch');
     const { data: halaqahs, error: halaqahError } = await supabaseAdmin
       .from('halaqah')
-      .select('id, program_id, max_students, muallimah_id')
-      .eq('status', 'active');
+      .select('id, program_id, max_students, muallimah_id, programs!inner(batch_id)')
+      .eq('status', 'active')
+      .eq('programs.batch_id', batchId);
 
     if (halaqahError) {
       console.error('[Analysis API] Error loading halaqah:', halaqahError);

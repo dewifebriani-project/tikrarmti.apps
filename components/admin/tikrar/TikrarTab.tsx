@@ -150,7 +150,10 @@ export function TikrarTab({ user }: { user: any }) {
 
       setTikrar(filteredData || []);
       
-      // Calculate Stats based on selection outcomes
+      // Note: Since filtering by selection_status is done on the server, 
+      // the stats calculation will only reflect the current filtered dataset.
+      // To show global stats, we would need a separate API call or return it from the API.
+      
       const total = filteredData.length;
       const pending = filteredData.filter(t => t.selection_status === 'pending').length;
       const approved = filteredData.filter(t => t.selection_status === 'selected').length;

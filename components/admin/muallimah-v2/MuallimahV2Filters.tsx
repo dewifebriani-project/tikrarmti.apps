@@ -14,23 +14,32 @@ interface MuallimahV2FiltersProps {
   onRefresh: () => void;
   isLoading: boolean;
   batches: any[];
+  defaultBatchId?: string;
+  defaultStatus?: string;
 }
 
-export function MuallimahV2Filters({ onFilterChange, onRefresh, isLoading, batches }: MuallimahV2FiltersProps) {
+export function MuallimahV2Filters({ 
+  onFilterChange, 
+  onRefresh, 
+  isLoading, 
+  batches, 
+  defaultBatchId = 'all',
+  defaultStatus = 'all' 
+}: MuallimahV2FiltersProps) {
   const [search, setSearch] = useState('');
-  const [batchId, setBatchId] = useState('all');
-  const [status, setStatus] = useState('all');
+  const [batchId, setBatchId] = useState(defaultBatchId);
+  const [status, setStatus] = useState(defaultStatus);
   const [sortBy, setSortBy] = useState('newest');
 
-  // Auto-select open batch on load
+  // Sync batchId when defaultBatchId changes from parent
   useEffect(() => {
-    if (batches.length > 0 && batchId === 'all') {
-      const activeBatch = batches.find(b => b.status === 'open');
-      if (activeBatch) {
-        setBatchId(activeBatch.id);
-      }
-    }
-  }, [batches]);
+    setBatchId(defaultBatchId);
+  }, [defaultBatchId]);
+
+  // Sync status when defaultStatus changes from parent (e.g. from clicking stats cards)
+  useEffect(() => {
+    setStatus(defaultStatus);
+  }, [defaultStatus]);
 
   // Debounced search effect
   useEffect(() => {
