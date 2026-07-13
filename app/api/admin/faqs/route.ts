@@ -70,19 +70,25 @@ export async function PUT(req: NextRequest) {
     
     // Support bulk update for reordering or single update
     if (Array.isArray(body)) {
-      const { data, error } = await supabaseAdmin.from('faqs').upsert(
-        body.map((item: any) => ({
-          id: item.id,
+      const itemsToUpsert = body.map((item: any) => {
+        const payload: any = {
           category: item.category,
           icon: item.icon,
           color: item.color,
           questions: item.questions,
           sort_order: item.sort_order,
           updated_at: new Date().toISOString()
-        }))
-      );
+        };
+        // Omit id if it's a temporary ID starting with 'temp-'
+        if (item.id && !item.id.startsWith('temp-')) {
+          payload.id = item.id;
+        }
+        return payload;
+      });
+
+      const { data, error } = await supabaseAdmin.from('faqs').upsert(itemsToUpsert).select();
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data });
     }
 
     const { id, category, icon, color, questions, sort_order } = body;

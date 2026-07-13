@@ -38,9 +38,24 @@ export default function AdminFaqPage() {
   const [saving, setSaving] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
 
+  // States for adding Q&A from top-level Modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalCatId, setAddModalCatId] = useState('');
+  const [addModalQuestion, setAddModalQuestion] = useState('');
+  const [addModalAnswer, setAddModalAnswer] = useState('');
+
   useEffect(() => {
     fetchFaqs();
   }, []);
+
+  // Ensure selected category in modal exists/defaults to first category
+  useEffect(() => {
+    if (isAddModalOpen && faqs.length > 0) {
+      if (!addModalCatId || !faqs.some(f => f.id === addModalCatId)) {
+        setAddModalCatId(faqs[0].id);
+      }
+    }
+  }, [isAddModalOpen, faqs, addModalCatId]);
 
   const fetchFaqs = async () => {
     try {
@@ -77,6 +92,18 @@ export default function AdminFaqPage() {
       if (json.error) throw new Error(json.error);
       
       toast.success('Pengaturan FAQ berhasil disimpan!');
+      if (json.data && Array.isArray(json.data)) {
+        const sortedData = [...json.data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        setFaqs(sortedData);
+        if (expandedCat && expandedCat.startsWith('temp-')) {
+          const tempIdx = faqs.findIndex(f => f.id === expandedCat);
+          if (tempIdx !== -1 && sortedData[tempIdx]) {
+            setExpandedCat(sortedData[tempIdx].id);
+          }
+        }
+      } else {
+        fetchFaqs();
+      }
     } catch (err: any) {
       toast.error(err.message || 'Gagal menyimpan FAQ');
     } finally {
@@ -98,6 +125,37 @@ export default function AdminFaqPage() {
     };
     setFaqs([...faqs, newCat]);
     setExpandedCat(newId);
+  };
+
+  const handleAddQnaFromModal = () => {
+    if (!addModalCatId) {
+      toast.error('Silakan pilih kategori terlebih dahulu');
+      return;
+    }
+    if (!addModalQuestion.trim()) {
+      toast.error('Pertanyaan tidak boleh kosong');
+      return;
+    }
+    if (!addModalAnswer.trim()) {
+      toast.error('Jawaban tidak boleh kosong');
+      return;
+    }
+
+    setFaqs(prevFaqs => prevFaqs.map(f => {
+      if (f.id === addModalCatId) {
+        return {
+          ...f,
+          questions: [...f.questions, { q: addModalQuestion.trim(), a: addModalAnswer.trim() }]
+        };
+      }
+      return f;
+    }));
+
+    setExpandedCat(addModalCatId);
+    setIsAddModalOpen(false);
+    setAddModalQuestion('');
+    setAddModalAnswer('');
+    toast.success('Pertanyaan & Jawaban berhasil ditambahkan ke daftar! Silakan klik "Simpan Semua" untuk menyimpan perubahan.');
   };
 
   const deleteCategory = async (id: string) => {
@@ -209,6 +267,13 @@ export default function AdminFaqPage() {
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors font-semibold text-sm shadow-sm"
+          >
+            <Plus className="w-4 h-4 text-emerald-600" />
+            <span>Tambah Tanya Jawab</span>
+          </button>
           <button
             onClick={addCategory}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
@@ -432,6 +497,101 @@ export default function AdminFaqPage() {
           </div>
         ))}
       </div>
+
+      {/* Modal Tambah Tanya Jawab */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full border border-gray-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
+              <div className="flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-lg font-bold text-gray-900">Tambah Tanya Jawab (FAQ)</h3>
+              </div>
+              <button 
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Pilih Kategori</label>
+                {faqs.length === 0 ? (
+                  <div className="text-sm text-red-500 bg-red-50 border border-red-100 p-3 rounded-lg flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Belum ada kategori. Silakan tambahkan kategori baru terlebih dahulu.</span>
+                  </div>
+                ) : (
+                  <select
+                    value={addModalCatId}
+                    onChange={(e) => setAddModalCatId(e.target.value)}
+                    className="w-full text-base bg-white border border-gray-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
+                  >
+                    {faqs.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.category || 'Kategori Tanpa Nama'} ({cat.questions.length} Q&A)
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Pertanyaan (Q)</label>
+                <input
+                  type="text"
+                  value={addModalQuestion}
+                  onChange={(e) => setAddModalQuestion(e.target.value)}
+                  className="w-full text-base bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="Masukkan pertanyaan..."
+                  disabled={faqs.length === 0}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Jawaban (A)</label>
+                {faqs.length === 0 ? (
+                  <div className="h-32 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 text-sm">
+                    Nonaktif karena belum ada kategori
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <ReactQuill 
+                      theme="snow" 
+                      value={addModalAnswer} 
+                      onChange={(content) => setAddModalAnswer(content)}
+                      modules={quillModules}
+                      className="bg-white min-h-[150px]"
+                    />
+                  </div>
+                )}
+                <p className="text-[11px] text-gray-400 mt-1.5">Anda dapat menggunakan tools editor untuk format teks (tebal, miring, warna, dll).</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleAddQnaFromModal}
+                disabled={faqs.length === 0}
+                className="px-5 py-2 text-sm font-medium text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                Tambah Ke Daftar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
