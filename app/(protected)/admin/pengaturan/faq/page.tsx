@@ -37,6 +37,10 @@ export default function AdminFaqPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  
+  // Autosave states
+  const [lastSavedFaqsString, setLastSavedFaqsString] = useState<string>('');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'dirty' | 'error'>('idle');
 
   // States for adding Q&A from top-level Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -57,6 +61,20 @@ export default function AdminFaqPage() {
     }
   }, [isAddModalOpen, faqs, addModalCatId]);
 
+  // Debounced Autosave Hook
+  useEffect(() => {
+    if (loading || faqs.length === 0) return;
+    
+    const currentString = JSON.stringify(faqs);
+    if (lastSavedFaqsString && currentString !== lastSavedFaqsString) {
+      setSaveStatus('dirty');
+      const timer = setTimeout(() => {
+        autoSave(faqs);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [faqs, lastSavedFaqsString, loading]);
+
   const fetchFaqs = async () => {
     try {
       setLoading(true);
@@ -64,6 +82,8 @@ export default function AdminFaqPage() {
       const json = await res.json();
       if (json.data && Array.isArray(json.data)) {
         setFaqs(json.data);
+        setLastSavedFaqsString(JSON.stringify(json.data));
+        setSaveStatus('saved');
         if (json.data.length > 0) {
           setExpandedCat(json.data[0].id);
         }
@@ -76,9 +96,44 @@ export default function AdminFaqPage() {
     }
   };
 
+  const autoSave = async (currentFaqs: FAQCategory[]) => {
+    try {
+      setSaveStatus('saving');
+      const faqsToSave = currentFaqs.map((f, i) => ({ ...f, sort_order: i }));
+      
+      const res = await fetch('/api/admin/faqs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(faqsToSave),
+      });
+      
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      
+      setSaveStatus('saved');
+      setLastSavedFaqsString(JSON.stringify(faqsToSave));
+      
+      if (json.data && Array.isArray(json.data)) {
+        const sortedData = [...json.data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        setFaqs(sortedData);
+        if (expandedCat && expandedCat.startsWith('temp-')) {
+          const tempIdx = currentFaqs.findIndex(f => f.id === expandedCat);
+          if (tempIdx !== -1 && sortedData[tempIdx]) {
+            setExpandedCat(sortedData[tempIdx].id);
+          }
+        }
+      }
+    } catch (err: any) {
+      setSaveStatus('error');
+      console.error(err);
+      toast.error('Autosave gagal: ' + (err.message || 'Gagal menyimpan FAQ'));
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
+      setSaveStatus('saving');
       // Ensure all faqs have valid sort_order before saving
       const faqsToSave = faqs.map((f, i) => ({ ...f, sort_order: i }));
       
@@ -92,6 +147,9 @@ export default function AdminFaqPage() {
       if (json.error) throw new Error(json.error);
       
       toast.success('Pengaturan FAQ berhasil disimpan!');
+      setSaveStatus('saved');
+      setLastSavedFaqsString(JSON.stringify(faqsToSave));
+
       if (json.data && Array.isArray(json.data)) {
         const sortedData = [...json.data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
         setFaqs(sortedData);
@@ -105,6 +163,7 @@ export default function AdminFaqPage() {
         fetchFaqs();
       }
     } catch (err: any) {
+      setSaveStatus('error');
       toast.error(err.message || 'Gagal menyimpan FAQ');
     } finally {
       setSaving(false);
@@ -155,7 +214,7 @@ export default function AdminFaqPage() {
     setIsAddModalOpen(false);
     setAddModalQuestion('');
     setAddModalAnswer('');
-    toast.success('Pertanyaan & Jawaban berhasil ditambahkan ke daftar! Silakan klik "Simpan Semua" untuk menyimpan perubahan.');
+    toast.success('Pertanyaan & Jawaban berhasil ditambahkan ke daftar! Perubahan akan disimpan secara otomatis.');
   };
 
   const deleteCategory = async (id: string) => {
@@ -163,7 +222,8 @@ export default function AdminFaqPage() {
     
     // If it's a temp ID, just remove from state
     if (id.startsWith('temp-')) {
-      setFaqs(faqs.filter(f => f.id !== id));
+      const newFaqs = faqs.filter(f => f.id !== id);
+      setFaqs(newFaqs);
       return;
     }
 
@@ -172,7 +232,10 @@ export default function AdminFaqPage() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       
-      setFaqs(faqs.filter(f => f.id !== id));
+      const newFaqs = faqs.filter(f => f.id !== id);
+      setFaqs(newFaqs);
+      setLastSavedFaqsString(JSON.stringify(newFaqs));
+      setSaveStatus('saved');
       toast.success('Kategori berhasil dihapus');
     } catch (err: any) {
       toast.error(err.message || 'Gagal menghapus kategori');
@@ -266,7 +329,28 @@ export default function AdminFaqPage() {
           <p className="text-gray-500 mt-1">Kelola pertanyaan yang sering diajukan di halaman utama</p>
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center flex-wrap gap-3 w-full sm:w-auto justify-end">
+          {saveStatus === 'saving' && (
+            <span className="text-xs text-amber-600 flex items-center gap-1.5 font-semibold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+              Menyimpan otomatis...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="text-xs text-emerald-600 flex items-center gap-1 font-semibold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
+              ✓ Tersimpan otomatis
+            </span>
+          )}
+          {saveStatus === 'dirty' && (
+            <span className="text-xs text-gray-500 flex items-center gap-1 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl font-medium">
+              ● Ada perubahan...
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="text-xs text-red-600 flex items-center gap-1 font-bold bg-red-50 border border-red-200 px-3 py-1.5 rounded-xl">
+              ✗ Gagal menyimpan
+            </span>
+          )}
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors font-semibold text-sm shadow-sm"

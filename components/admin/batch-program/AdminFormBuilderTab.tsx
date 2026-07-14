@@ -35,6 +35,9 @@ export function AdminFormBuilderTab() {
   const [saving, setSaving] = useState(false);
   const [isPreviewingAll, setIsPreviewingAll] = useState(false);
 
+  // Autosave status
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'dirty' | 'error'>('idle');
+
   // Modal editing form state
   const [editFormData, setEditFormData] = useState({
     label: '',
@@ -46,6 +49,71 @@ export function AdminFormBuilderTab() {
     options: [] as any[],
     input_type: 'text',
   });
+
+  const isFormDirty = () => {
+    if (!editingQuestion) return false;
+    const labelChanged = editFormData.label !== editingQuestion.label;
+    const descChanged = (editFormData.description || null) !== (editingQuestion.description || null);
+    const warnChanged = (editFormData.warning_text || null) !== (editingQuestion.warning_text || null);
+    const activeChanged = editFormData.is_active !== editingQuestion.is_active;
+    const reqChanged = editFormData.is_required !== editingQuestion.is_required;
+    const orderChanged = editFormData.sort_order !== editingQuestion.sort_order;
+    const typeChanged = (editFormData.input_type || 'text') !== (editingQuestion.input_type || 'text');
+    const optionsChanged = JSON.stringify(editFormData.options || []) !== JSON.stringify(Array.isArray(editingQuestion.options) ? editingQuestion.options : []);
+    
+    return labelChanged || descChanged || warnChanged || activeChanged || reqChanged || orderChanged || typeChanged || optionsChanged;
+  };
+
+  const autoSaveQuestion = async () => {
+    if (!editingQuestion) return;
+    
+    setSaveStatus('saving');
+    try {
+      const updatedData = {
+        label: editFormData.label,
+        description: editFormData.description || null,
+        warning_text: editFormData.warning_text || null,
+        is_active: editFormData.is_active,
+        is_required: editFormData.is_required,
+        sort_order: editFormData.sort_order,
+        options: editFormData.options,
+        input_type: editFormData.input_type,
+      };
+
+      const result = await updateRegistrationQuestion(editingQuestion.id, updatedData);
+
+      if (result.success && result.data) {
+        setSaveStatus('saved');
+        const savedQ = result.data as Question;
+        setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? savedQ : q));
+        setEditingQuestion(savedQ);
+      } else {
+        setSaveStatus('error');
+        console.error(result.error);
+      }
+    } catch (error) {
+      setSaveStatus('error');
+      console.error('Autosave error:', error);
+    }
+  };
+
+  // Debounced Autosave Hook
+  useEffect(() => {
+    if (!editingQuestion) {
+      setSaveStatus('idle');
+      return;
+    }
+
+    if (isFormDirty()) {
+      setSaveStatus('dirty');
+      const timer = setTimeout(() => {
+        autoSaveQuestion();
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      setSaveStatus('saved');
+    }
+  }, [editFormData, editingQuestion]);
 
   const fetchQuestions = async () => {
     setIsLoading(true);
@@ -588,22 +656,47 @@ export function AdminFormBuilderTab() {
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingQuestion(null)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-gray-700 transition-all"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:bg-gray-300 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                </button>
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-4">
+                <div className="flex-1 text-left">
+                  {saveStatus === 'saving' && (
+                    <span className="text-[11px] text-amber-600 flex items-center gap-1.5 font-bold animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                      Menyimpan otomatis...
+                    </span>
+                  )}
+                  {saveStatus === 'saved' && (
+                    <span className="text-[11px] text-emerald-600 flex items-center gap-1 font-bold">
+                      ✓ Tersimpan otomatis
+                    </span>
+                  )}
+                  {saveStatus === 'dirty' && (
+                    <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                      ● Ada perubahan belum disimpan...
+                    </span>
+                  )}
+                  {saveStatus === 'error' && (
+                    <span className="text-[11px] text-red-600 flex items-center gap-1 font-bold">
+                      ✗ Gagal menyimpan otomatis
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingQuestion(null)}
+                    className="px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-gray-700 transition-all"
+                  >
+                    {saveStatus === 'saved' ? 'Tutup' : 'Batal'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || saveStatus === 'saved'}
+                    className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 disabled:bg-gray-200 disabled:text-gray-400 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
