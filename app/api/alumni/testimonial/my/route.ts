@@ -14,6 +14,7 @@ async function checkIsAlumnus(supabase: any, userId: string): Promise<boolean> {
   }
 
   const now = new Date();
+  // A user is an alumnus if they have been approved+selected in ANY past/archived batch
   const hasPassedBatch = regs.some((reg: any) => {
     const isApproved = reg.status === 'approved';
     const isSelected = reg.selection_status === 'selected';
@@ -26,17 +27,7 @@ async function checkIsAlumnus(supabase: any, userId: string): Promise<boolean> {
     return (endDate && endDate < now) || batch.status === 'archived';
   });
 
-  if (!hasPassedBatch) return false;
-
-  // Check if they have a final exam oral score >= 80
-  const { data: finalExams, error: examError } = await supabase
-    .from('final_exam_registrations')
-    .select('score_lisan')
-    .eq('user_id', userId)
-    .gte('score_lisan', 80)
-    .limit(1);
-
-  return finalExams && finalExams.length > 0;
+  return hasPassedBatch;
 }
 
 /**

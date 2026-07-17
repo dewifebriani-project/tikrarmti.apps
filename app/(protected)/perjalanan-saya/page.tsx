@@ -417,14 +417,17 @@ export default function PerjalananSaya() {
               ? (registrationStatus.oralAssessmentStatus === 'pending'
                   ? 'Sudah Rekaman (Belum Dinilai)'
                   : (isSelectionDone 
-                      ? (registrationStatus.oralAssessmentStatus === 'pass' ? 'Lulus ✓' : 'Tidak Lulus')
-                      : 'Sudah Dinilai (Menunggu Pengumuman)'
+                      ? (registrationStatus.oralAssessmentStatus === 'pass' 
+                          ? `Lulus ✓${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}` 
+                          : `Tidak Lulus${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}`)
+                      : `Sudah Dinilai (Menunggu Pengumuman)${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}`
                     )
                 )
               : (registrationStatus.needsRevision ? 'Perlu Rekam Ulang' : (hasFormPendaftaran ? 'Belum rekaman' : 'Isi form dahulu')), 
             reviewType: hasFormPendaftaran && hasOral ? 'oral' : null,
             isLocked: !hasFormPendaftaran,
-            isTestAction: hasFormPendaftaran && !hasOral,
+            // Show recording button if: has form AND (hasn't recorded yet, OR registration is still open allowing re-record, OR needs revision)
+            isTestAction: hasFormPendaftaran && (!hasOral || (isRegistrationStarted && !isRegistrationDone) || registrationStatus.needsRevision),
             isTestDisabled: !isRegistrationStarted || (isRegistrationDone && !registrationStatus.needsRevision),
             testUrl: `/seleksi/rekam-suara?batchId=${batchId}`
           },
@@ -436,7 +439,16 @@ export default function PerjalananSaya() {
         icon: <FileText className="w-4 h-4" />,
         subPhases: [
           { name: 'Penilaian Seleksi', date: formatDateRangeShort(batch?.selection_start_date, batch?.selection_end_date), done: isSelectionDone, data: isSelectionDone ? 'Selesai ✓' : 'Proses Penilaian oleh Admin' },
-          { name: 'Pengumuman', date: batch?.selection_result_date ? formatDateShort(batch.selection_result_date) : '', done: isSelectionDone, data: isSelectionDone ? `Placement: Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}` : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') }
+          { 
+            name: 'Pengumuman', 
+            date: batch?.selection_result_date ? formatDateShort(batch.selection_result_date) : '', 
+            done: isSelectionDone, 
+            data: isSelectionDone 
+              ? (registrationStatus.oralAssessmentStatus === 'pass' 
+                  ? `Lulus ✓ | Juz ${registrationStatus.registration?.final_juz || registrationStatus.chosenJuz}${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}` 
+                  : `Tidak Lulus${registrationStatus.oralScore != null ? ` | Nilai: ${registrationStatus.oralScore}` : ''}`)
+              : (batch?.selection_result_date ? `Mulai ${formatDateIndo(batch.selection_result_date)}` : 'Menunggu hasil') 
+          }
         ]
       },
       { 

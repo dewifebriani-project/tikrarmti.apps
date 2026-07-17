@@ -100,6 +100,7 @@ export default function AdminFaqPage() {
     try {
       setSaveStatus('saving');
       const faqsToSave = currentFaqs.map((f, i) => ({ ...f, sort_order: i }));
+      const hasTempIds = faqsToSave.some(f => f.id?.startsWith('temp-'));
       
       const res = await fetch('/api/admin/faqs', {
         method: 'PUT',
@@ -110,19 +111,24 @@ export default function AdminFaqPage() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       
-      setSaveStatus('saved');
-      setLastSavedFaqsString(JSON.stringify(faqsToSave));
-      
       if (json.data && Array.isArray(json.data)) {
         const sortedData = [...json.data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-        setFaqs(sortedData);
-        if (expandedCat && expandedCat.startsWith('temp-')) {
-          const tempIdx = currentFaqs.findIndex(f => f.id === expandedCat);
-          if (tempIdx !== -1 && sortedData[tempIdx]) {
-            setExpandedCat(sortedData[tempIdx].id);
+        // Only update faqs state when there are temp IDs to replace (to avoid autosave loop)
+        if (hasTempIds) {
+          setFaqs(sortedData);
+          if (expandedCat && expandedCat.startsWith('temp-')) {
+            const tempIdx = currentFaqs.findIndex(f => f.id === expandedCat);
+            if (tempIdx !== -1 && sortedData[tempIdx]) {
+              setExpandedCat(sortedData[tempIdx].id);
+            }
           }
         }
+        // Use server-returned data as the saved baseline to avoid mismatch
+        setLastSavedFaqsString(JSON.stringify(sortedData));
+      } else {
+        setLastSavedFaqsString(JSON.stringify(faqsToSave));
       }
+      setSaveStatus('saved');
     } catch (err: any) {
       setSaveStatus('error');
       console.error(err);
@@ -148,11 +154,12 @@ export default function AdminFaqPage() {
       
       toast.success('Pengaturan FAQ berhasil disimpan!');
       setSaveStatus('saved');
-      setLastSavedFaqsString(JSON.stringify(faqsToSave));
 
       if (json.data && Array.isArray(json.data)) {
         const sortedData = [...json.data].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
         setFaqs(sortedData);
+        // Use server-returned data as saved baseline to avoid autosave loop mismatch
+        setLastSavedFaqsString(JSON.stringify(sortedData));
         if (expandedCat && expandedCat.startsWith('temp-')) {
           const tempIdx = faqs.findIndex(f => f.id === expandedCat);
           if (tempIdx !== -1 && sortedData[tempIdx]) {
@@ -160,6 +167,7 @@ export default function AdminFaqPage() {
           }
         }
       } else {
+        setLastSavedFaqsString(JSON.stringify(faqsToSave));
         fetchFaqs();
       }
     } catch (err: any) {
