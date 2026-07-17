@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Get batch to check selection dates and status
     const { data: batch, error: batchError } = await supabaseAdmin
       .from('batches')
-      .select('id, name, status, registration_start_date, registration_end_date, min_final_exam_score')
+      .select('id, name, status, registration_start_date, registration_end_date, re_enrollment_date, opening_class_date, min_final_exam_score')
       .eq('id', registration.batch_id)
       .single();
 
@@ -119,10 +119,14 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
       }
 
-      if (batch.registration_start_date && batch.registration_end_date) {
+      // Use re_enrollment_date to opening_class_date for written exam (Daftar Ulang phase)
+      const examStartDate = batch.re_enrollment_date || batch.registration_start_date;
+      const examEndDate = batch.opening_class_date || batch.registration_end_date;
+
+      if (examStartDate && examEndDate) {
         const today = new Date();
-        const startDate = new Date(batch.registration_start_date);
-        const endDate = new Date(batch.registration_end_date);
+        const startDate = new Date(examStartDate);
+        const endDate = new Date(examEndDate);
         
         // Zero-out the time parts for pure date-range comparison
         today.setHours(0, 0, 0, 0);
@@ -135,13 +139,13 @@ export async function GET(request: NextRequest) {
           };
           return NextResponse.json({
             error: 'Exam period closed',
-            details: `Ujian pilihan ganda hanya tersedia selama masa pendaftaran dari ${formatDate(startDate)} sampai ${formatDate(endDate)}. (Hari ini: ${formatDate(today)}, Batch: ${batch.name})`
+            details: `Ujian pilihan ganda hanya tersedia selama masa daftar ulang dari ${formatDate(startDate)} sampai ${formatDate(endDate)}. (Hari ini: ${formatDate(today)}, Batch: ${batch.name})`
           }, { status: 400 });
         }
       } else {
         return NextResponse.json({
-          error: 'Registration dates not set',
-          details: `Tanggal pendaftaran belum ditentukan untuk batch ini (Start: ${batch.registration_start_date}, End: ${batch.registration_end_date}). Silakan hubungi admin.`
+          error: 'Re-enrollment dates not set',
+          details: `Tanggal daftar ulang belum ditentukan untuk batch ini. Silakan hubungi admin.`
         }, { status: 400 });
       }
     } else {

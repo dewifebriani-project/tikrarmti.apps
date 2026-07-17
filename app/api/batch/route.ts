@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { ApiResponses } from '@/lib/api-responses';
+import { ApiResponseBuilder } from '@/lib/api-wrapper';
 import { batchSchemas } from '@/lib/schemas';
 import { requireAdmin, requireAuth } from '@/lib/rbac';
 
@@ -71,7 +72,15 @@ export async function GET(request: NextRequest) {
       duration_weeks: calculateDuration(batch.start_date, batch.end_date)
     }));
 
-    return ApiResponses.success(transformedBatches || [], 'Batches fetched successfully');
+    return NextResponse.json(
+      ApiResponseBuilder.success(transformedBatches || [], 'Batches fetched successfully'),
+      { 
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        }
+      }
+    );
   } catch (error) {
     console.error('Error in batches GET:', error);
     return ApiResponses.serverError('Internal server error');

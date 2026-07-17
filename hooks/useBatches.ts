@@ -93,7 +93,8 @@ export function useActiveBatch() {
     getFetcher,
     {
       revalidateOnFocus: true,
-      dedupingInterval: 60000,
+      revalidateOnMount: true,
+      dedupingInterval: 5000,
       refreshInterval: 30000,
     }
   )
