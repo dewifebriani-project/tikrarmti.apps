@@ -11,6 +11,7 @@ interface MuallimahV2TableProps {
   selectedIds: string[];
   onSelectAll: (checked: boolean) => void;
   onSelectOne: (id: string, checked: boolean) => void;
+  onToggleExcludeCapacity?: (id: string, exclude: boolean) => void;
 }
 
 export function MuallimahV2Table({ 
@@ -19,7 +20,8 @@ export function MuallimahV2Table({
   onAction, 
   selectedIds, 
   onSelectAll, 
-  onSelectOne 
+  onSelectOne,
+  onToggleExcludeCapacity
 }: MuallimahV2TableProps) {
   
   const isSelected = (id: string) => selectedIds.includes(id);
@@ -88,6 +90,7 @@ export function MuallimahV2Table({
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kesiapan Data</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kelas & Juz</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Jadwal Utama</th>
+              <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Kecualikan Kapasitas</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Aksi</th>
             </tr>
@@ -95,7 +98,7 @@ export function MuallimahV2Table({
           <tbody className="divide-y divide-gray-100">
             {muallimah.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500 font-medium">
+                <td colSpan={9} className="px-6 py-12 text-center text-gray-500 font-medium">
                   Tidak ada data Muallimah ditemukan.
                 </td>
               </tr>
@@ -242,6 +245,17 @@ export function MuallimahV2Table({
                             : 'Jam belum diisi'}
                         </span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={t.exclude_from_capacity || false}
+                          onChange={(e) => onToggleExcludeCapacity && onToggleExcludeCapacity(t.id, e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                      </label>
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn(

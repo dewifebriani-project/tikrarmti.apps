@@ -82,7 +82,8 @@ export async function GET(request: Request) {
           chosen_juz,
           main_time_slot,
           backup_time_slot,
-          timezone
+          timezone,
+          exam_score
         ),
         batch:batches!daftar_ulang_submissions_batch_id_fkey (
           id,
@@ -265,6 +266,7 @@ export async function GET(request: Request) {
         chosen_juz: registrations?.[0]?.chosen_juz,
         main_time_slot: registrations?.[0]?.main_time_slot,
         backup_time_slot: registrations?.[0]?.backup_time_slot,
+        exam_score: registrations?.[0]?.exam_score,
         partner_type: submission.partner_type,
         partner_user_id: submission.partner_user_id,
         partner_name: submission.partner_name,

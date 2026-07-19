@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, CheckSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, RefreshCw, Send, ShieldAlert, CheckSquare, Info } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -168,7 +168,7 @@ export default function KuisAkadPage() {
         {!showResults ? (
           <>
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-8 flex items-start gap-3">
-              <InfoIcon className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
                 <h3 className="font-bold text-blue-900 mb-1">Syarat Pengisian Form Daftar Ulang</h3>
                 <p className="text-blue-800 text-sm">

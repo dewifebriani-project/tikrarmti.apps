@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     console.log('[Analysis API] Querying muallimah for batch_id:', batchId);
     const { data: muallimahs, error: muallimaError } = await supabaseAdmin
       .from('muallimah_akads')
-      .select('id, status, preferred_max_thalibah, user_id')
+      .select('id, status, preferred_max_thalibah, user_id, exclude_from_capacity')
       .eq('batch_id', batchId);
 
     if (muallimaError) {
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
     // Get halaqah students for capacity calculation (if there are halaqahs)
     let students: any[] = [];
     const approvedMuallimaIds = (muallimahs || [])
-      .filter((m: any) => m.status === 'approved')
+      .filter((m: any) => m.status === 'approved' && !m.exclude_from_capacity)
       .map((m: any) => m.user_id);
 
     const batchHalaqahs = (halaqahs || []).filter((h: any) =>

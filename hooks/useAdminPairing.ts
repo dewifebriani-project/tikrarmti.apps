@@ -367,14 +367,16 @@ export function useAdminPairing() {
   const handleApproveTarteel = async (request: TarteelRequest) => {
     const toastId = toast.loading('Approving tarteel pairing...')
     try {
-      const response = await fetch('/api/admin/pairing/approve', {
+      const response = await fetch('/api/admin/pairing/approve-tarteel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           submission_id: request.id,
           user_id: request.user_id,
-          pairing_type: 'tarteel',
-          batch_id: selectedBatchId,
+          partner_name: request.partner_name,
+          partner_relationship: request.partner_relationship,
+          partner_notes: request.partner_notes,
+          partner_wa_phone: request.partner_wa_phone,
         }),
       })
       const result = await response.json()

@@ -110,6 +110,7 @@ interface HalaqahAvailability {
   total_available: number;
   needed_halaqah: number;
   utilization_percentage: number;
+  total_schedules?: number;
   halaqah_details: any[];
 }
 
@@ -123,6 +124,8 @@ export function MuallimahAnalysisTab() {
   const [analysis, setAnalysis] = useState<BatchAnalysis | null>(null);
   const [halaqahData, setHalaqahData] = useState<HalaqahAvailability[]>([]);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisMode, setAnalysisMode] = useState<'pendaftar' | 'daftar_ulang'>('daftar_ulang');
+  const [rawAnalysisData, setRawAnalysisData] = useState<any>(null);
 
   useEffect(() => {
     loadBatches();
@@ -132,10 +135,17 @@ export function MuallimahAnalysisTab() {
     if (selectedBatchId) {
       if (activeTab === 'overview') {
         loadAnalysis(selectedBatchId);
-        loadHalaqahAvailability(selectedBatchId);
+        loadHalaqahAvailability(selectedBatchId, analysisMode);
       }
     }
   }, [selectedBatchId, activeTab]);
+
+  useEffect(() => {
+    if (rawAnalysisData) {
+      processAnalysisData(rawAnalysisData, analysisMode);
+      loadHalaqahAvailability(selectedBatchId, analysisMode);
+    }
+  }, [rawAnalysisData, analysisMode]);
 
   const loadBatches = async () => {
     try {
@@ -167,83 +177,17 @@ export function MuallimahAnalysisTab() {
     }
   };
 
-  const loadAnalysis = async (batchId: string) => {
-    setLoading(true);
-    setAnalysisError(null);
+  
+  const processAnalysisData = (data: any, mode: 'pendaftar' | 'daftar_ulang') => {
     try {
-      console.log('[AnalysisTab] Loading analysis for batch:', batchId);
-
-      // Use API endpoint to get analysis data (bypasses RLS)
-      const analysisResponse = await fetch(`/api/admin/analysis?batch_id=${batchId}`);
-
-      console.log('[AnalysisTab] Analysis response status:', analysisResponse.status);
-      console.log('[AnalysisTab] Analysis response ok:', analysisResponse.ok);
-
-      if (!analysisResponse.ok) {
-        let errorData;
-        try {
-          errorData = await analysisResponse.json();
-          console.error('[AnalysisTab] Error response data:', errorData);
-        } catch (e) {
-          console.error('[AnalysisTab] Failed to parse error response:', e);
-          const responseText = await analysisResponse.text();
-          console.error('[AnalysisTab] Response text:', responseText.substring(0, 500));
-          errorData = { error: `HTTP ${analysisResponse.status}`, details: responseText.substring(0, 200) };
-        }
-        console.error('[AnalysisTab] Failed to load analysis:', analysisResponse.status, errorData);
-        const errorMsg = errorData.error || `Failed to load analysis data (${analysisResponse.status})`;
-        toast.error(errorMsg);
-        setAnalysisError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      let analysisResult;
-      try {
-        analysisResult = await analysisResponse.json();
-        console.log('[AnalysisTab] Analysis API result:', analysisResult);
-      } catch (e) {
-        console.error('[AnalysisTab] Failed to parse JSON response:', e);
-        const responseText = await analysisResponse.text();
-        console.error('[AnalysisTab] Response text:', responseText.substring(0, 500));
-        const errorMsg = 'Invalid JSON response from server';
-        toast.error(errorMsg);
-        setAnalysisError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      if (!analysisResult.success || !analysisResult.data) {
-        console.error('[AnalysisTab] Invalid analysis response');
-        const errorMsg = 'Invalid analysis data received';
-        toast.error(errorMsg);
-        setAnalysisError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      const { batch, muallimahs, thalibahs, halaqahs, students, daftarUlangSubmissions } = analysisResult.data;
-
-      console.log('[AnalysisTab] Batch data:', batch);
-      console.log('[AnalysisTab] Muallimah count:', muallimahs.length);
-      console.log('[AnalysisTab] Thalibah count:', thalibahs.length);
-      console.log('[AnalysisTab] Halaqah count:', halaqahs.length);
-      console.log('[AnalysisTab] Students count:', students.length);
-      console.log('[AnalysisTab] Daftar Ulang submissions count:', daftarUlangSubmissions?.length || 0);
+      const { batch, muallimahs, thalibahs, halaqahs, students, daftarUlangSubmissions } = data;
 
       // Process muallimah stats
       const muallimaList = (muallimahs || []) as MuallimaRegistration[];
       const totalMuallimah = muallimaList.length;
-      const approvedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').length;
-      const pendingMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'pending' || m.status === 'review').length;
-      const rejectedMuallimah = muallimaList.filter((m: MuallimaRegistration) => m.status === 'rejected').length;
-
-      console.log('[AnalysisTab] Muallimah stats:', {
-        total: totalMuallimah,
-        approved: approvedMuallimah,
-        pending: pendingMuallimah,
-        rejected: rejectedMuallimah
-      });
+      const approvedMuallimah = muallimaList.filter((m: any) => m.status === 'approved' && !m.exclude_from_capacity).length;
+      const pendingMuallimah = muallimaList.filter((m: any) => m.status === 'pending' || m.status === 'review').length;
+      const rejectedMuallimah = muallimaList.filter((m: any) => m.status === 'rejected').length;
 
       // Process thalibah stats
       const thalibahList = (thalibahs || []) as ThalibahRegistration[];
@@ -252,68 +196,35 @@ export function MuallimahAnalysisTab() {
       const pendingThalibah = thalibahList.filter((t: ThalibahRegistration) => t.status === 'pending').length;
       const selectedThalibah = thalibahList.filter((t: ThalibahRegistration) => t.selection_status === 'selected').length;
 
-      console.log('[AnalysisTab] Thalibah stats:', {
-        total: totalThalibah,
-        approved: approvedThalibah,
-        pending: pendingThalibah,
-        selected: selectedThalibah
-      });
-
       // Process daftar ulang stats
       const daftarUlangList = (daftarUlangSubmissions || []) as DaftarUlangSubmission[];
       const totalDaftarUlang = daftarUlangList.length;
       const submittedDaftarUlang = daftarUlangList.filter((d: DaftarUlangSubmission) => d.status === 'submitted').length;
       const approvedDaftarUlang = daftarUlangList.filter((d: DaftarUlangSubmission) => d.status === 'approved').length;
 
-      console.log('[AnalysisTab] Daftar Ulang stats:', {
-        total: totalDaftarUlang,
-        submitted: submittedDaftarUlang,
-        approved: approvedDaftarUlang
-      });
-
       // Filter halaqahs by muallimah from this batch
-      const approvedMuallimaIds = muallimaList.filter((m: MuallimaRegistration) => m.status === 'approved').map((m: MuallimaRegistration) => m.user_id);
+      const approvedMuallimaIds = muallimaList.filter((m: any) => m.status === 'approved' && !m.exclude_from_capacity).map((m: any) => m.user_id);
       const halaqahList = (halaqahs || []) as Halaqah[];
       const batchHalaqahs = halaqahList.filter((h: Halaqah) => h.muallimah_id && approvedMuallimaIds.includes(h.muallimah_id));
 
-      console.log('[AnalysisTab] Halaqah filtering:', {
-        totalHalaqahs: halaqahList.length,
-        approvedMuallimaCount: approvedMuallimaIds.length,
-        batchHalaqahsCount: batchHalaqahs.length
-      });
-
-      const totalHalaqah = batchHalaqahs.length;
+      let totalHalaqah = batchHalaqahs.length;
       const halaqahWithProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id !== null).length;
       const halaqahWithoutProgram = batchHalaqahs.filter((h: Halaqah) => h.program_id === null).length;
 
-      // Calculate capacity - include BOTH halaqah_students AND daftar ulang submissions
-      // Use the SAME logic as /api/shared/halaqah-quota for consistency
-      const totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
-
-      // Get batch halaqah IDs for filtering submissions
+      let totalCapacity = batchHalaqahs.reduce((sum: number, h: Halaqah) => sum + (h.max_students || 0), 0);
       const batchHalaqahIds = batchHalaqahs.map(h => h.id);
-
-      // Count students per halaqah using Set to track unique users per halaqah
-      // This matches the logic in /api/shared/halaqah-quota
       const halaqahStudentMap = new Map<string, Set<string>>();
 
-      // Count from daftar_ulang_submissions (submitted + approved)
       daftarUlangList.forEach((submission: DaftarUlangSubmission) => {
-        // For tashih_ujian classes, ujian_halaqah_id and tashih_halaqah_id may be the same
-        // We need to count each user only once per halaqah, even if they selected both ujian and tashih
         const uniqueHalaqahIds: string[] = [];
-
         if (submission.ujian_halaqah_id && batchHalaqahIds.includes(submission.ujian_halaqah_id)) {
           uniqueHalaqahIds.push(submission.ujian_halaqah_id);
         }
         if (submission.tashih_halaqah_id && !submission.is_tashih_umum && batchHalaqahIds.includes(submission.tashih_halaqah_id)) {
-          // Only add if not already in the list (for tashih_ujian case)
           if (!uniqueHalaqahIds.includes(submission.tashih_halaqah_id)) {
             uniqueHalaqahIds.push(submission.tashih_halaqah_id);
           }
         }
-
-        // Add user to each unique halaqah
         for (let i = 0; i < uniqueHalaqahIds.length; i++) {
           const halaqahId = uniqueHalaqahIds[i];
           if (!halaqahStudentMap.has(halaqahId)) {
@@ -323,48 +234,43 @@ export function MuallimahAnalysisTab() {
         }
       });
 
-      // Count from halaqah_students table (active students only)
-      // Since we only have student IDs without halaqah_id info in the current data,
-      // we'll count from the students array (these are already filtered by batch halaqahs)
       const filledSlotsFromStudents = students?.length || 0;
-
-      // Count total unique students from daftar ulang submissions
       let filledSlotsFromDaftarUlang = 0;
       const halaqahEntries = Array.from(halaqahStudentMap.entries());
       for (const [halaqahId, userSet] of halaqahEntries) {
         filledSlotsFromDaftarUlang += userSet.size;
       }
-
-      const filledSlots = filledSlotsFromStudents + filledSlotsFromDaftarUlang;
-
-      console.log('[AnalysisTab] Capacity calculation:', {
-        totalCapacity,
-        filledSlotsFromStudents,
-        filledSlotsFromDaftarUlang: filledSlotsFromDaftarUlang,
-        totalFilledSlots: filledSlots
-      });
+      
+      let filledSlots = filledSlotsFromStudents + filledSlotsFromDaftarUlang;
+      
+      if (mode === 'pendaftar') {
+         totalHalaqah = approvedMuallimah;
+         totalCapacity = muallimaList
+           .filter((m: any) => m.status === 'approved' && !m.exclude_from_capacity)
+           .reduce((sum: number, m: any) => sum + (m.preferred_max_thalibah || 10), 0);
+         filledSlots = totalThalibah;
+      }
 
       const availableSlots = Math.max(0, totalCapacity - filledSlots);
-      const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : 0;
+      const capacityPercentage = totalCapacity > 0 ? Math.round((filledSlots / totalCapacity) * 100) : (filledSlots > 0 ? 100 : 0);
 
-      // Calculate ratios - using SELECTED thalibah (sudah lulus ujian seleksi)
-      const ratio = approvedMuallimah > 0 ? `1:${Math.round(selectedThalibah / approvedMuallimah)}` : '0:0';
-      const avgThalibahPerMuallimah = approvedMuallimah > 0 ? Math.round(selectedThalibah / approvedMuallimah) : 0;
+      // Use mode to determine base thalibah count
+      const activeThalibahCount = mode === 'pendaftar' ? totalThalibah : (approvedDaftarUlang > 0 ? approvedDaftarUlang : selectedThalibah);
 
-      // Determine adequacy - UPDATED: 1:10 maksimal
-      const recommendedRatio = 10; // 1 muallimah : 10 thalibah (MAKSIMAL)
+      const ratio = approvedMuallimah > 0 ? `1:${Math.round(activeThalibahCount / approvedMuallimah)}` : '0:0';
+      const avgThalibahPerMuallimah = approvedMuallimah > 0 ? Math.round(activeThalibahCount / approvedMuallimah) : 0;
+      const recommendedRatio = 10;
       const isAdequate = avgThalibahPerMuallimah <= recommendedRatio;
 
-      // Generate recommendation
       let recommendation = '';
       if (approvedMuallimah === 0) {
         recommendation = 'Belum ada muallimah yang diapprove. Segera review dan approve muallimah.';
-      } else if (selectedThalibah === 0) {
-        recommendation = 'Belum ada thalibah yang selected (lulus ujian seleksi). Tunggu proses ujian VN dan pilihan ganda selesai.';
+      } else if (activeThalibahCount === 0) {
+        recommendation = mode === 'pendaftar' ? 'Belum ada pendaftar thalibah.' : 'Belum ada thalibah yang mendaftar ulang.';
       } else if (avgThalibahPerMuallimah > recommendedRatio) {
-        const neededMuallimah = Math.ceil(selectedThalibah / recommendedRatio) - approvedMuallimah;
+        const neededMuallimah = Math.ceil(activeThalibahCount / recommendedRatio) - approvedMuallimah;
         recommendation = `Jumlah muallimah kurang memadai. Dibutuhkan tambahan ${neededMuallimah} muallimah untuk rasio ideal (1:10 maksimal).`;
-      } else if (avgThalibahPerMuallimah < 5 && selectedThalibah > 0) {
+      } else if (avgThalibahPerMuallimah < 5 && activeThalibahCount > 0) {
         recommendation = 'Jumlah muallimah berlebih. Pertimbangkan untuk meningkatkan kuota thalibah per halaqah.';
       } else {
         recommendation = 'Rasio muallimah dan thalibah sudah ideal. Siap untuk dijadwalkan ke halaqah.';
@@ -374,33 +280,26 @@ export function MuallimahAnalysisTab() {
         batch_id: batch.id,
         batch_name: batch.name,
         batch_status: batch.status,
-
         total_muallimah: totalMuallimah,
         approved_muallimah: approvedMuallimah,
         pending_muallimah: pendingMuallimah,
         rejected_muallimah: rejectedMuallimah,
-
         total_thalibah: totalThalibah,
         approved_thalibah: approvedThalibah,
         pending_thalibah: pendingThalibah,
         selected_thalibah: selectedThalibah,
-
         total_daftar_ulang: totalDaftarUlang,
         submitted_daftar_ulang: submittedDaftarUlang,
         approved_daftar_ulang: approvedDaftarUlang,
-
         total_halaqah: totalHalaqah,
         halaqah_with_program: halaqahWithProgram,
         halaqah_without_program: halaqahWithoutProgram,
-
         total_halaqah_capacity: totalCapacity,
         total_filled_slots: filledSlots,
         total_available_slots: availableSlots,
         capacity_percentage: capacityPercentage,
-
         muallimah_thalibah_ratio: ratio,
         avg_thalibah_per_muallimah: avgThalibahPerMuallimah,
-
         is_adequate: isAdequate,
         recommendation: recommendation
       };
@@ -408,25 +307,39 @@ export function MuallimahAnalysisTab() {
       setAnalysis(analysisData);
       setAnalysisError(null);
     } catch (error) {
-      console.error('Error loading analysis:', error);
-      const errorMsg = 'Failed to load analysis';
-      const errorDetails = error instanceof Error ? {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      } : { error: String(error) };
-      console.error('[AnalysisTab] Processing error details:', errorDetails);
-      toast.error(errorMsg);
-      setAnalysisError(errorMsg);
+      console.error('Error processing analysis data:', error);
+      toast.error('Failed to process analysis data');
+    }
+  };
+
+  const loadAnalysis = async (batchId: string) => {
+    setLoading(true);
+    setAnalysisError(null);
+    try {
+      const analysisResponse = await fetch(`/api/admin/analysis?batch_id=${batchId}`);
+      if (!analysisResponse.ok) {
+        toast.error('Failed to load analysis data');
+        setLoading(false);
+        return;
+      }
+      const analysisResult = await analysisResponse.json();
+      if (!analysisResult.success || !analysisResult.data) {
+        toast.error('Invalid analysis data received');
+        setLoading(false);
+        return;
+      }
+      setRawAnalysisData(analysisResult.data);
+    } catch (error) {
+      toast.error('Failed to load analysis');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadHalaqahAvailability = async (batchId: string) => {
+  const loadHalaqahAvailability = async (batchId: string, mode: 'pendaftar' | 'daftar_ulang' = 'daftar_ulang') => {
     console.log('[AnalysisTab] Loading halaqah availability for batch:', batchId);
     try {
-      const response = await fetch(`/api/admin/analysis/halaqah-availability?batch_id=${batchId}`);
+      const response = await fetch(`/api/admin/analysis/halaqah-availability?batch_id=${batchId}&mode=${mode}`);
       console.log('[AnalysisTab] Halaqah availability response status:', response.status);
 
       if (!response.ok) {
@@ -502,11 +415,25 @@ export function MuallimahAnalysisTab() {
         </div>
       </div>
 
+      
       {/* Tab Navigation */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100">
-        <div className="border-b border-gray-100">
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 mb-6">
+        <div className="border-b border-gray-100 flex p-2 gap-2">
+          <button
+            onClick={() => setAnalysisMode('pendaftar')}
+            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${analysisMode === 'pendaftar' ? 'bg-green-50 text-green-700 border-green-200 border' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            Berdasarkan Pendaftar (Estimasi)
+          </button>
+          <button
+            onClick={() => setAnalysisMode('daftar_ulang')}
+            className={`px-4 py-2 text-sm font-semibold rounded-xl transition-colors ${analysisMode === 'daftar_ulang' ? 'bg-green-50 text-green-700 border-green-200 border' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            Berdasarkan Daftar Ulang (Aktual)
+          </button>
         </div>
       </div>
+
 
       {/* Tab Content */}
       {activeTab === 'overview' && analysis && (
@@ -653,7 +580,7 @@ export function MuallimahAnalysisTab() {
               <div className="flex items-center justify-between mb-4">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-500">Rasio M : T</p>
-                  <p className="text-3xl font-black text-gray-900">1:{analysis.approved_muallimah > 0 ? Math.round(analysis.approved_thalibah / analysis.approved_muallimah) : 0}</p>
+                  <p className="text-3xl font-black text-gray-900">{analysis.muallimah_thalibah_ratio}</p>
                 </div>
                 <div className="p-4 rounded-xl text-white shadow-lg bg-orange-500 shadow-orange-200">
                   <TrendingUp className="w-6 h-6" />
@@ -663,9 +590,7 @@ export function MuallimahAnalysisTab() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 font-medium">Avg/Muallimah</span>
                   <span className="font-bold text-orange-600">
-                    {analysis.approved_muallimah > 0
-                      ? Math.round(analysis.approved_thalibah / analysis.approved_muallimah)
-                      : 0}
+                    {analysis.avg_thalibah_per_muallimah}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -762,7 +687,7 @@ export function MuallimahAnalysisTab() {
                           {needsMoreHalaqah ? (
                             <div className="flex items-center gap-2 bg-red-100 text-red-800 px-4 py-2 rounded-lg">
                               <AlertTriangle className="w-5 h-5" />
-                              <span className="font-semibold">Butuh {juz.needed_halaqah} Halaqah</span>
+                              <span className="font-semibold">Butuh {juz.needed_halaqah} {analysisMode === 'pendaftar' ? 'Muallimah' : 'Halaqah'}</span>
                             </div>
                           ) : juz.total_available >= 5 ? (
                             <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
@@ -794,14 +719,18 @@ export function MuallimahAnalysisTab() {
                       </div>
 
                       {/* Stats Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                           <div className="bg-white rounded-lg p-3 border">
                             <p className="text-xs text-gray-600 mb-1">Total Thalibah</p>
                             <p className="text-2xl font-bold text-blue-600">{juz.total_thalibah}</p>
                           </div>
                           <div className="bg-white rounded-lg p-3 border">
-                            <p className="text-xs text-gray-600 mb-1">Total Halaqah</p>
+                            <p className="text-xs text-gray-600 mb-1">{analysisMode === 'pendaftar' ? 'Total Muallimah' : 'Total Halaqah'}</p>
                             <p className="text-2xl font-bold text-purple-600">{juz.total_halaqah}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-3 border">
+                            <p className="text-xs text-gray-600 mb-1">Total Jadwal</p>
+                            <p className="text-2xl font-bold text-amber-600">{juz.total_schedules || 0}</p>
                           </div>
                           <div className="bg-white rounded-lg p-3 border">
                             <p className="text-xs text-gray-600 mb-1">Total Kapasitas</p>
@@ -833,7 +762,7 @@ export function MuallimahAnalysisTab() {
                         </div>
                         <p className="text-xs text-gray-600 mt-2">
                           {juz.needed_halaqah > 0
-                            ? `Kapasitas tidak cukup. Dibutuhkan ${juz.needed_halaqah} halaqah tambahan untuk menampung ${juz.total_thalibah} thalibah (min. 5 per halaqah).`
+                            ? `Kapasitas tidak cukup. Dibutuhkan setidaknya ${juz.needed_halaqah} ${analysisMode === 'pendaftar' ? 'muallimah' : 'halaqah'} tambahan untuk menampung ${juz.total_thalibah} thalibah (min. 5 per halaqah).`
                             : juz.utilization_percentage >= 90
                             ? 'Kapasitas hampir penuh. Pertimbangkan membuka halaqah cadangan.'
                             : 'Kapasitas memadai untuk menampung semua thalibah.'}
@@ -845,37 +774,78 @@ export function MuallimahAnalysisTab() {
                         <div>
                           <div className="flex items-center gap-2 mb-3">
                             <Users className="w-4 h-4 text-gray-600" />
-                            <p className="text-sm font-semibold text-gray-900">Daftar Halaqah ({juz.halaqah_details.length})</p>
+                            <p className="text-sm font-semibold text-gray-900">{analysisMode === 'pendaftar' ? 'Ketersediaan Muallimah' : 'Daftar Halaqah'} ({juz.halaqah_details.length})</p>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {juz.halaqah_details.map((halaqah: any, idx: number) => {
                               const halaqahUtilColor = halaqah.utilization_percent >= 90 ? 'red' :
                                                      halaqah.utilization_percent >= 70 ? 'yellow' : 'green';
-                              return (
-                                <div key={idx} className="bg-white rounded-lg border p-4">
-                                  <div className="flex items-start justify-between mb-2">
-                                    <p className="font-semibold text-gray-900 text-sm">{halaqah.name}</p>
-                                    <span className={`text-xs px-2 py-0.5 rounded ${
-                                      halaqah.class_type === 'tahfidz' ? 'bg-purple-100 text-purple-700' :
-                                      halaqah.class_type === 'tashih' ? 'bg-blue-100 text-blue-700' :
-                                      'bg-green-100 text-green-700'
-                                    }`}>
-                                      {halaqah.class_type || 'tashih_ujian'}
-                                    </span>
-                                  </div>
-
-                                  <div className="space-y-1 text-xs">
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Hari:</span>
-                                      <span className="font-medium">{halaqah.day_name || '-'}</span>
+                                return (
+                                  <div key={idx} className={`rounded-lg border p-4 transition-all duration-200 ${halaqah.is_allocated ? 'bg-emerald-50/10 border-emerald-300 shadow-sm ring-1 ring-emerald-300' : 'bg-white border-gray-200'}`}>
+                                    <div className="flex items-start justify-between mb-2">
+                                      <div className="flex flex-col gap-1">
+                                        <p className="font-semibold text-gray-900 text-sm flex items-center gap-1.5 flex-wrap">
+                                          {halaqah.name}
+                                          {halaqah.is_allocated && (
+                                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-sm border border-emerald-200">
+                                              ✓ Mengajar Di Sini
+                                            </span>
+                                          )}
+                                        </p>
+                                      </div>
+                                       <span className={`text-xs px-2 py-0.5 rounded-lg font-medium ${(() => {
+                                         const normalized = (halaqah.class_type || '').toLowerCase();
+                                         if (normalized.includes('tikrar_tahfidz') && normalized.includes('pra_tahfidz')) {
+                                           return 'bg-amber-50 text-amber-700 border border-amber-200';
+                                         }
+                                         if (normalized.includes('tikrar_tahfidz')) {
+                                           return 'bg-purple-50 text-purple-700 border border-purple-200';
+                                         }
+                                         if (normalized.includes('pra_tahfidz')) {
+                                           return 'bg-blue-50 text-blue-700 border border-blue-200';
+                                         }
+                                         return 'bg-green-50 text-green-700 border border-green-200';
+                                       })()}`}>
+                                         {(() => {
+                                           if (!halaqah.class_type) return 'Tashih Ujian';
+                                           return halaqah.class_type
+                                             .split(',')
+                                             .map((type: string) => {
+                                               const trimmed = type.trim().toLowerCase();
+                                               if (trimmed === 'tikrar_tahfidz') return 'Tikrar';
+                                               if (trimmed === 'pra_tahfidz') return 'Pra-Tikrar';
+                                               if (trimmed === 'tahfidz') return 'Tahfidz';
+                                               if (trimmed === 'tashih') return 'Tashih';
+                                               return trimmed.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                             })
+                                             .join(', ');
+                                         })()}
+                                       </span>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">Waktu:</span>
-                                      <span className="font-medium">
-                                        {halaqah.start_time && halaqah.end_time
-                                          ? `${halaqah.start_time} - ${halaqah.end_time}`
-                                          : '-'}
-                                      </span>
+ 
+                                    <div className="space-y-1 text-xs">
+                                      <div className="flex justify-between items-center py-0.5">
+                                        <span className="text-gray-600">Juz Pilihan:</span>
+                                        <span className="font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-[10px] leading-none uppercase">
+                                          {halaqah.preferred_juz || '-'}
+                                        </span>
+                                      </div>
+ 
+                                      {/* Available Schedules */}
+                                      <div className="py-1.5 border-t border-b border-gray-100 my-1.5 space-y-1">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jadwal yang Tersedia ({halaqah.schedules?.length || 0})</p>
+                                        {(halaqah.schedules || []).map((s: any, sIdx: number) => (
+                                          <div key={sIdx} className={`flex justify-between text-[11px] leading-tight py-1 px-1.5 rounded transition-all ${s.is_allocated_here ? 'bg-emerald-50 text-emerald-900 font-semibold border border-emerald-100 shadow-sm' : 'text-gray-600'}`}>
+                                            <span className="flex items-center gap-1">
+                                              {s.is_allocated_here && <span className="text-emerald-700 font-extrabold">✓</span>}
+                                              {s.type}{s.is_backup ? ' (Cadangan)' : ''}:
+                                            </span>
+                                            <span className={s.is_allocated_here ? 'font-bold' : ''}>
+                                              {s.day_name} {s.start_time !== '-' ? `(${s.start_time} - ${s.end_time})` : ''}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
                                     <div className="flex justify-between">
                                       <span className="text-gray-600">Kapasitas:</span>
@@ -889,9 +859,8 @@ export function MuallimahAnalysisTab() {
                                       <span className="text-gray-600">Tersedia:</span>
                                       <span className="font-medium text-green-600">{halaqah.available_slots}</span>
                                     </div>
-                                  </div>
 
-                                  {/* Mini utilization bar */}
+                                    {/* Mini utilization bar */}
                                   <div className="mt-3">
                                     <div className="flex justify-between text-xs mb-1">
                                       <span className="text-gray-600">Utilisasi:</span>
@@ -914,10 +883,10 @@ export function MuallimahAnalysisTab() {
                       ) : (
                         <div className="text-center py-8 bg-gray-50/50 rounded-lg">
                           <Users className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Tidak ada halaqah tersedia untuk juz ini.</p>
+                          <p className="text-sm text-gray-600">{analysisMode === 'pendaftar' ? 'Tidak ada muallimah tersedia untuk juz ini.' : 'Tidak ada halaqah tersedia untuk juz ini.'}</p>
                           {juz.total_thalibah > 0 && (
                             <p className="text-xs text-red-600 mt-1">
-                              Dibutuhkan setidaknya {Math.ceil(juz.total_thalibah / 5)} halaqah untuk {juz.total_thalibah} thalibah.
+                              Dibutuhkan setidaknya {Math.ceil(juz.total_thalibah / 5)} {analysisMode === 'pendaftar' ? 'muallimah' : 'halaqah'} untuk {juz.total_thalibah} thalibah.
                             </p>
                           )}
                         </div>

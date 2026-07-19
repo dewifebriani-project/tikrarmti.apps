@@ -1568,6 +1568,8 @@ function PartnerSelectionStep({
   const isSelfActive = selfMatchQuestion ? selfMatchQuestion.is_active : true
   const isSystemActive = systemMatchQuestion ? systemMatchQuestion.is_active : true
   const isFamilyActive = familyQuestion ? familyQuestion.is_active : true
+  const examScore = formData.exam_score || 0
+  const isTarteelEligible = examScore >= 90
   const isTarteelActive = tarteelQuestion ? tarteelQuestion.is_active : true
 
   return (
@@ -1872,32 +1874,51 @@ function PartnerSelectionStep({
         {/* Tarteel */}
         {isTarteelActive && (
           <div
-            className={`border rounded-lg p-4 cursor-pointer transition-all ${
-              formData.partner_type === 'tarteel'
-                ? 'border-green-500 bg-green-50 ring-2 ring-green-500'
-                : 'border-gray-200 hover:border-gray-300'
+            className={`border rounded-lg p-4 transition-all ${
+              !isTarteelEligible 
+                ? 'border-gray-100 bg-gray-50/50 cursor-not-allowed opacity-60' 
+                : formData.partner_type === 'tarteel'
+                ? 'border-green-500 bg-green-50 ring-2 ring-green-500 cursor-pointer'
+                : 'border-gray-200 hover:border-gray-300 cursor-pointer'
             }`}
-            onClick={() => onChange({ ...formData, partner_type: 'tarteel' })}
+            onClick={() => {
+              if (isTarteelEligible) {
+                onChange({ ...formData, partner_type: 'tarteel' })
+              } else {
+                toast.error('Pilihan Tarteel hanya tersedia untuk thalibah dengan nilai seleksi lisan minimal 90.')
+              }
+            }}
           >
             <div className="flex items-start space-x-3">
               <Upload className="w-6 h-6 text-orange-600 mt-1" />
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900">
+                <h3 className="font-medium text-gray-900 flex items-center gap-2">
                   {tarteelQuestion?.label || 'Aplikasi Tarteel'}
+                  {!isTarteelEligible && (
+                    <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-black uppercase tracking-wider">
+                      Nilai &lt; 90
+                    </span>
+                  )}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   {tarteelQuestion?.description || 'Setoran mandiri menggunakan aplikasi Tarteel dengan lampiran screenshot penggunaan.'}
                 </p>
+                {!isTarteelEligible && (
+                  <p className="text-xs text-red-600 mt-2 font-semibold">
+                    *Hanya untuk thalibah dengan nilai seleksi lisan minimal 90 (Nilai seleksi Anda: {examScore})
+                  </p>
+                )}
               </div>
               <input
                 type="radio"
                 checked={formData.partner_type === 'tarteel'}
+                disabled={!isTarteelEligible}
                 readOnly
                 className="w-5 h-5 text-green-600"
               />
             </div>
 
-            {formData.partner_type === 'tarteel' && (
+            {isTarteelEligible && formData.partner_type === 'tarteel' && (
               <div className="mt-4 space-y-3">
                 <input
                   type="text"

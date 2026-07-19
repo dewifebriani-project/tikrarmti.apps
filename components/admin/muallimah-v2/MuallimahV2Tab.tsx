@@ -229,6 +229,21 @@ export function MuallimahV2Tab({ user }: { user: any }) {
     }
   };
 
+  const handleToggleExcludeCapacity = async (id: string, exclude: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('muallimah_akads')
+        .update({ exclude_from_capacity: exclude })
+        .eq('id', id);
+      
+      if (error) throw error;
+      toast.success(exclude ? 'Muallimah dikecualikan dari kapasitas' : 'Muallimah diikutkan dalam kapasitas');
+      fetchMuallimahData();
+    } catch (error: any) {
+      toast.error('Gagal memperbarui status kapasitas: ' + error.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <MuallimahV2Stats 
@@ -286,6 +301,7 @@ export function MuallimahV2Tab({ user }: { user: any }) {
         selectedIds={selectedIds}
         onSelectAll={handleSelectAll}
         onSelectOne={handleSelectOne}
+        onToggleExcludeCapacity={handleToggleExcludeCapacity}
       />
 
       {/* Modals */}

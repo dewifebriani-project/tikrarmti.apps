@@ -19,6 +19,7 @@ export interface MuallimahV2Type {
   created_at: string;
   updated_at: string;
   paid_class_scheme: string;
+  exclude_from_capacity?: boolean;
 
   // From muallimah_registrations (mapped)
   profile_id?: string;

@@ -78,6 +78,7 @@ export interface TarteelRequest {
   paired_partner_name?: string
   paired_partner_names?: string[]
   batch_id?: string
+  exam_score?: number | null
 }
 
 export interface FamilyRequest {

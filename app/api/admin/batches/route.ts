@@ -48,22 +48,48 @@ export async function GET(request: Request) {
       return ApiResponses.databaseError(error);
     }
 
-    // Enrich with program counts
+    // Enrich with program and registration counts
     const batchIds = batches?.map(b => b.id) || [];
-    const programCounts = batchIds.length > 0 ? await Promise.all(
+    const enrichedCounts = batchIds.length > 0 ? await Promise.all(
       batchIds.map(async (batchId) => {
-        const { count } = await supabaseAdmin
+        // Get program count
+        const { count: programCount } = await supabaseAdmin
           .from('programs')
           .select('*', { count: 'estimated', head: true })
           .eq('batch_id', batchId);
-        return { batchId, count: count || 0 };
+
+        // Get registration counts
+        const { count: tikrarCount } = await supabaseAdmin
+          .from('pendaftaran_tikrar_tahfidz')
+          .select('*', { count: 'estimated', head: true })
+          .eq('batch_id', batchId);
+
+        const { count: muallimahCount } = await supabaseAdmin
+          .from('muallimah_registrations')
+          .select('*', { count: 'estimated', head: true })
+          .eq('batch_id', batchId);
+
+        const { count: musyrifahCount } = await supabaseAdmin
+          .from('musyrifah_registrations')
+          .select('*', { count: 'estimated', head: true })
+          .eq('batch_id', batchId);
+
+        return { 
+          batchId, 
+          programCount: programCount || 0,
+          registeredCount: (tikrarCount || 0) + (muallimahCount || 0) + (musyrifahCount || 0)
+        };
       })
     ) : [];
 
-    const enrichedData = batches?.map((batch: any) => ({
-      ...batch,
-      program_count: programCounts.find(pc => pc.batchId === batch.id)?.count || 0,
-    })) || [];
+    const enrichedData = batches?.map((batch: any) => {
+      const counts = enrichedCounts.find(c => c.batchId === batch.id);
+      return {
+        ...batch,
+        program_count: counts?.programCount || 0,
+        registered_count: counts?.registeredCount || batch.registered_count || 0,
+      };
+    }) || [];
 
     // 5. Audit log
     await logAudit({

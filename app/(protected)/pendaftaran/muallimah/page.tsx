@@ -313,6 +313,16 @@ function MuallimahRegistrationContent() {
     loadQuestions();
   }, []);
 
+  // Synchronize preferred_juz with memorized_juz (Mu'allimah cannot teach juz she hasn't memorized)
+  useEffect(() => {
+    if (formData.preferred_juz.length > 0) {
+      const adjustedPreferred = formData.preferred_juz.filter(v => formData.memorized_juz.includes(v));
+      if (adjustedPreferred.length !== formData.preferred_juz.length) {
+        setFormData(prev => ({ ...prev, preferred_juz: adjustedPreferred }));
+      }
+    }
+  }, [formData.memorized_juz, formData.preferred_juz]);
+
   const getQuestionMeta = (key: string) => {
     const dbQ = questions.find(q => q.field_key === key);
     if (dbQ) {
@@ -1408,32 +1418,40 @@ function MuallimahRegistrationContent() {
                   {getQuestionMeta('preferred_juz').label}
                   {getQuestionMeta('preferred_juz').is_required && <span className="text-red-500">*</span>}
                 </Label>
-                <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-white">
-                  {allJuzOptions.map(juz => {
-                    const isChecked = formData.preferred_juz.includes(juz.value);
-                    return (
-                      <label 
-                        key={`pref-${juz.value}`} 
-                        className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
-                      >
-                        <input 
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            const newJuz = checked 
-                              ? [...formData.preferred_juz, juz.value]
-                              : formData.preferred_juz.filter(v => v !== juz.value);
-                            handleInputChange('preferred_juz', newJuz);
-                          }}
-                          disabled={isFormSubmitted}
-                          className="hidden"
-                        />
-                        {juz.value}
-                      </label>
-                    );
-                  })}
-                </div>
+                {formData.memorized_juz.length === 0 ? (
+                  <p className="text-sm font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl p-4">
+                    ⚠️ Silakan pilih Juz yang sudah dihafal terlebih dahulu di bagian "Informasi Hafalan" di atas untuk dapat memilih Juz yang ingin diampu.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2 p-3 border rounded-xl bg-white">
+                    {allJuzOptions
+                      .filter(juz => formData.memorized_juz.includes(juz.value))
+                      .map(juz => {
+                        const isChecked = formData.preferred_juz.includes(juz.value);
+                        return (
+                          <label 
+                            key={`pref-${juz.value}`} 
+                            className={`flex items-center justify-center p-2 rounded-lg cursor-pointer transition-all border text-sm font-bold ${isChecked ? 'bg-green-700 border-green-700 text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-green-500 hover:text-green-700'}`}
+                          >
+                            <input 
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                const newJuz = checked 
+                                  ? [...formData.preferred_juz, juz.value]
+                                  : formData.preferred_juz.filter(v => v !== juz.value);
+                                handleInputChange('preferred_juz', newJuz);
+                              }}
+                              disabled={isFormSubmitted}
+                              className="hidden"
+                            />
+                            {juz.value}
+                          </label>
+                        );
+                      })}
+                  </div>
+                )}
                 {errors.preferred_juz && <p className="text-xs text-red-500 font-medium">{errors.preferred_juz}</p>}
                 {getQuestionMeta('preferred_juz').warning_text && (
                   <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mt-1">{getQuestionMeta('preferred_juz').warning_text}</p>

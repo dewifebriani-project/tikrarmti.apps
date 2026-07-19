@@ -6,10 +6,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GraduationCap, Calendar, Users, FileText, ArrowLeft, Shield } from 'lucide-react';
 import { FinalExamSchedules } from '@/components/admin/FinalExamSchedules';
 import { FinalExamParticipants } from '@/components/admin/FinalExamParticipants';
+import { AdminExamQuestions } from '@/components/AdminExamQuestions';
+import { AdminExamImport } from '@/components/AdminExamImport';
+import { AdminAddQuestion } from '@/components/AdminAddQuestion';
 import Link from 'next/link';
 
 export default function AdminExamsPage() {
   const [activeTab, setActiveTab] = useState('schedules');
+  const [showImport, setShowImport] = useState(false);
+  const [showAddManual, setShowAddManual] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-20">
@@ -77,15 +87,49 @@ export default function AdminExamsPage() {
           </TabsContent>
 
           <TabsContent value="questions">
-            <Card className="rounded-3xl border border-gray-100 bg-white shadow-xl">
-              <CardContent className="p-10 text-center text-gray-400">
-                <FileText className="w-16 h-16 mx-auto mb-4 opacity-10" />
-                <p className="font-bold">Bank soal Pilihan Ganda akan diimplementasikan pada tahap selanjutnya.</p>
-              </CardContent>
+            <Card className="rounded-3xl border border-gray-100 bg-white shadow-xl p-6 sm:p-8">
+              <AdminExamQuestions 
+                key={refreshTrigger}
+                onImportClick={() => setShowImport(true)}
+                onAddManualClick={() => setShowAddManual(true)}
+                onSuccess={handleRefresh}
+              />
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      {showImport && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
+            <div className="overflow-y-auto flex-1 p-6 sm:p-8">
+              <AdminExamImport 
+                onClose={() => setShowImport(false)} 
+                onImportSuccess={() => {
+                  setShowImport(false);
+                  handleRefresh();
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddManual && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden relative shadow-2xl flex flex-col">
+            <div className="overflow-y-auto flex-1 p-6 sm:p-8">
+              <AdminAddQuestion 
+                onClose={() => setShowAddManual(false)} 
+                onSuccess={() => {
+                  setShowAddManual(false);
+                  handleRefresh();
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

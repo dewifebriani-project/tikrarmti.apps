@@ -34,6 +34,9 @@ export function TarteelTab({ requests, onApprove, onRevert, onChangePartnerType,
                   Nama
                 </th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Nilai Lisan
+                </th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Pasangan Tarteel
                 </th>
                 <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -67,6 +70,19 @@ export function TarteelTab({ requests, onApprove, onRevert, onChangePartnerType,
                 <tr key={request.id} className={`hover:bg-gray-50 ${request.is_paired ? 'bg-green-50' : ''}`}>
                   <td className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
                     {request.user_name}
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-600">
+                    {request.exam_score !== undefined && request.exam_score !== null ? (
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        Number(request.exam_score) >= 90 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {request.exam_score}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
                   </td>
                   <td className="px-2 py-2 text-sm">
                     {request.is_paired ? (
