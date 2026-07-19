@@ -197,13 +197,21 @@ export default function KuisAkadPage() {
                       return (
                         <label
                           key={oIdx}
+                          onClick={() => handleSelectOption(q.id, opt.text)}
                           className={cn(
                             "flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                            isSelected 
-                              ? "border-green-600 bg-green-50/30" 
+                            isSelected
+                              ? "border-green-600 bg-green-50/30"
                               : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
                           )}
                         >
+                          <input
+                            type="radio"
+                            name={`question-${q.id}`}
+                            checked={isSelected}
+                            onChange={() => handleSelectOption(q.id, opt.text)}
+                            className="sr-only"
+                          />
                           <div className={cn(
                             "w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center flex-shrink-0 transition-colors",
                             isSelected ? "border-green-600" : "border-gray-300"
