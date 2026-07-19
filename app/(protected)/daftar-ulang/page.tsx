@@ -184,6 +184,25 @@ export default function DaftarUlangPage() {
           return
         }
 
+        // Check if user has passed the Kuis Pemahaman Akad (required before Daftar Ulang)
+        let hasPassedAkadQuiz = false;
+        try {
+          const akadQuizRes = await fetch('/api/akad-quiz/attempts');
+          if (akadQuizRes.ok) {
+            const akadQuizData = await akadQuizRes.json();
+            const latestAttempt = akadQuizData?.data?.[0];
+            hasPassedAkadQuiz = !!latestAttempt?.passed;
+          }
+        } catch (e) {
+          console.error('Error fetching akad quiz status:', e);
+        }
+
+        if (!hasPassedAkadQuiz) {
+          toast.error('Anda harus lulus Kuis Pemahaman Akad (nilai 100) terlebih dahulu sebelum mengisi formulir Daftar Ulang.');
+          router.push('/seleksi/kuis-akad');
+          return
+        }
+
         // Calculate isAdmin
         const userRole = (user as any)?.roles?.[0] || (user as any)?.role || (user as any)?.primaryRole || null;
         const isAdmin = userRole === 'admin' || userRole === 'super_admin';
@@ -1024,11 +1043,15 @@ function HalaqahSelectionStep({
     }
   }
 
-  const sortedHalaqahData = [...halaqahData].sort((a, b) => {
-    const priorityA = getSortPriority(a.class_type)
-    const priorityB = getSortPriority(b.class_type)
-    return priorityA - priorityB
-  })
+  // Only "Tashih + Ujian" combo halaqah are offered now — standalone Tashih-only
+  // and Ujian-only packages have been discontinued and should not be shown.
+  const sortedHalaqahData = halaqahData
+    .filter(h => h.class_type === 'tashih_ujian')
+    .sort((a, b) => {
+      const priorityA = getSortPriority(a.class_type)
+      const priorityB = getSortPriority(b.class_type)
+      return priorityA - priorityB
+    })
 
   const scheduleQuestion = reregQuestions.find(q => q.field_key === 'schedule_instructions')
 
@@ -1045,7 +1068,7 @@ function HalaqahSelectionStep({
 
       {/* Halaqah List with Colorful Cards */}
       <div className="space-y-4">
-        {halaqahData.length === 0 ? (
+        {sortedHalaqahData.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
             <Info className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
             <h3 className="text-lg font-medium text-yellow-900 mb-2">Belum Ada Jadwal Halaqah</h3>
@@ -1345,22 +1368,12 @@ function HalaqahSelectionStep({
           </svg>
           Pilihan Anda:
         </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <div className={`p-3 rounded-lg ${formData.ujian_halaqah_id ? 'bg-green-100 border border-green-300' : 'bg-gray-100'}`}>
-            <span className="text-xs text-gray-600 uppercase tracking-wide">Kelas Ujian</span>
+            <span className="text-xs text-gray-600 uppercase tracking-wide">Kelas Halaqah (Tashih + Ujian)</span>
             <div className={`font-medium mt-1 ${formData.ujian_halaqah_id ? 'text-green-800' : 'text-gray-400'}`}>
               {formData.ujian_halaqah_id ? (
                 halaqahData.find(h => h.id === formData.ujian_halaqah_id)?.name || '-'
-              ) : (
-                'Belum dipilih'
-              )}
-            </div>
-          </div>
-          <div className={`p-3 rounded-lg ${formData.tashih_halaqah_id ? 'bg-blue-100 border border-blue-300' : 'bg-gray-100'}`}>
-            <span className="text-xs text-gray-600 uppercase tracking-wide">Kelas Tashih</span>
-            <div className={`font-medium mt-1 ${formData.tashih_halaqah_id ? 'text-blue-800' : 'text-gray-400'}`}>
-              {formData.tashih_halaqah_id ? (
-                halaqahData.find(h => h.id === formData.tashih_halaqah_id)?.name || '-'
               ) : (
                 'Belum dipilih'
               )}
@@ -2053,26 +2066,10 @@ function ReviewStep({
           <h3 className="font-medium text-gray-900 mb-3">Jadwal Halaqah</h3>
           <div className="space-y-4 text-sm">
             <div>
-              <span className="text-gray-600">Kelas Ujian</span>
+              <span className="text-gray-600">Kelas Halaqah (Tashih + Ujian)</span>
               <p className="font-medium">{getHalaqahName(formData.ujian_halaqah_id)}</p>
               {(() => {
                 const details = getHalaqahDetails(formData.ujian_halaqah_id)
-                if (!details) return null
-                return (
-                  <div className="mt-1 text-gray-600 space-y-1">
-                    <p>{details.schedule}</p>
-                    <p>Juz: {details.juz}</p>
-                    <p>Lokasi: {details.location}</p>
-                    <p>Muallimah: {details.muallimah}</p>
-                  </div>
-                )
-              })()}
-            </div>
-            <div>
-              <span className="text-gray-600">Kelas Tashih</span>
-              <p className="font-medium">{getHalaqahName(formData.tashih_halaqah_id)}</p>
-              {(() => {
-                const details = getHalaqahDetails(formData.tashih_halaqah_id)
                 if (!details) return null
                 return (
                   <div className="mt-1 text-gray-600 space-y-1">
@@ -2255,12 +2252,8 @@ function AkadUploadStep({
          </div>
          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="block text-gray-500 mb-1">Kelas Ujian</span>
+              <span className="block text-gray-500 mb-1">Kelas Halaqah (Tashih + Ujian)</span>
               <span className="font-medium">{getHalaqahName(formData.ujian_halaqah_id)}</span>
-            </div>
-            <div>
-              <span className="block text-gray-500 mb-1">Kelas Tashih</span>
-              <span className="font-medium">{getHalaqahName(formData.tashih_halaqah_id)}</span>
             </div>
             <div>
               <span className="block text-gray-500 mb-1">Pasangan Belajar</span>
@@ -2472,7 +2465,7 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
               <div className={`bg-white rounded-lg p-4 border ${isApproved ? 'border-emerald-100' : 'border-green-100'}`}>
                 <div className="flex items-center space-x-2 mb-2">
                   <Calendar className={`w-5 h-5 ${isApproved ? 'text-emerald-600' : 'text-green-600'}`} />
-                  <h4 className="font-medium text-gray-900">Kelas Ujian</h4>
+                  <h4 className="font-medium text-gray-900">Kelas Halaqah (Tashih + Ujian)</h4>
                 </div>
                 {existingSubmission?.ujian_halaqah_obj ? (
                   <div className="ml-7 text-sm text-gray-700 space-y-1">
@@ -2487,11 +2480,13 @@ function SuccessStep({ existingSubmission }: { existingSubmission?: any }) {
                     )}
                   </div>
                 ) : (
-                  <p className="ml-7 text-sm text-gray-500">Kelas ujian belum ditentukan</p>
+                  <p className="ml-7 text-sm text-gray-500">Kelas halaqah belum ditentukan</p>
                 )}
               </div>
 
-              {existingSubmission?.tashih_halaqah_obj && (
+              {/* Legacy submissions (pre tashih+ujian merge) may still have a distinct tashih halaqah */}
+              {existingSubmission?.tashih_halaqah_obj &&
+                existingSubmission.tashih_halaqah_obj.id !== existingSubmission?.ujian_halaqah_obj?.id && (
                 <div className={`bg-white rounded-lg p-4 border ${isApproved ? 'border-blue-100' : 'border-indigo-100'}`}>
                   <div className="flex items-center space-x-2 mb-2">
                     <Calendar className="w-5 h-5 text-blue-600" />
