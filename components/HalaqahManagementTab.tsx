@@ -93,6 +93,51 @@ interface Program {
   batch_id: string;
 }
 
+function QuotaDetailsCell({ halaqah }: { halaqah: Halaqah }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  return (
+    <div className="text-xs space-y-1 mt-1">
+      <button 
+        onClick={() => setExpanded(!expanded)} 
+        className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium w-full justify-between py-1 px-2 -mx-2 rounded-md hover:bg-blue-50 transition-colors"
+      >
+        <span>Details Quota</span>
+        {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      
+      {expanded && (
+        <div className="pt-2 pb-1 space-y-1.5 border-t border-gray-100 mt-1">
+          <div className="flex justify-between gap-3">
+            <span className="text-gray-500">Terpakai:</span>
+            <span className="font-medium text-gray-900">{halaqah.quota_details?.total_used || 0}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-green-600">✓ Approved:</span>
+            <span className="font-medium text-green-700">{halaqah.quota_details?.approved || 0}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-blue-600">✓ Submitted:</span>
+            <span className="font-medium text-blue-700">{halaqah.quota_details?.submitted || 0}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-gray-400">○ Draft:</span>
+            <span className="font-medium text-gray-500">{halaqah.quota_details?.draft || 0}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-green-600">✓ Active:</span>
+            <span className="font-medium text-green-700">{halaqah.quota_details?.active || 0}</span>
+          </div>
+          <div className="flex justify-between gap-3">
+            <span className="text-yellow-600">⏱ Waitlist:</span>
+            <span className="font-medium text-yellow-700">{halaqah.quota_details?.waitlist || 0}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function HalaqahManagementTab() {
   const [loading, setLoading] = useState(true);
   const [halaqahs, setHalaqahs] = useState<Halaqah[]>([]);
@@ -1021,32 +1066,7 @@ export function HalaqahManagementTab() {
                               ></div>
                             </div>
                             {/* Quota details */}
-                            <div className="text-xs space-y-1 mt-1">
-                              <div className="flex justify-between gap-3">
-                                <span className="text-gray-500">Terpakai:</span>
-                                <span className="font-medium text-gray-900">{halaqah.quota_details?.total_used || 0}</span>
-                              </div>
-                              <div className="flex justify-between gap-3">
-                                <span className="text-green-600">✓ Approved:</span>
-                                <span className="font-medium text-green-700">{halaqah.quota_details?.approved || 0}</span>
-                              </div>
-                              <div className="flex justify-between gap-3">
-                                <span className="text-blue-600">✓ Submitted:</span>
-                                <span className="font-medium text-blue-700">{halaqah.quota_details?.submitted || 0}</span>
-                              </div>
-                              <div className="flex justify-between gap-3">
-                                <span className="text-gray-400">○ Draft:</span>
-                                <span className="font-medium text-gray-500">{halaqah.quota_details?.draft || 0}</span>
-                              </div>
-                              <div className="flex justify-between gap-3">
-                                <span className="text-green-600">✓ Active:</span>
-                                <span className="font-medium text-green-700">{halaqah.quota_details?.active || 0}</span>
-                              </div>
-                              <div className="flex justify-between gap-3">
-                                <span className="text-yellow-600">⏱ Waitlist:</span>
-                                <span className="font-medium text-yellow-700">{halaqah.quota_details?.waitlist || 0}</span>
-                              </div>
-                            </div>
+                            <QuotaDetailsCell halaqah={halaqah} />
                           </div>
                         </td>
                         <td className="px-6 py-4">
