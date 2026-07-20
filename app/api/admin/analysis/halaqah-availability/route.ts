@@ -63,14 +63,24 @@ export async function GET(request: NextRequest) {
         backup_schedule,
         preferred_max_thalibah,
         exclude_from_capacity,
-        user:users!muallimah_akads_user_id_fkey(full_name)
+        user:users!muallimah_akads_user_id_fkey(full_name, wa_phone)
       `)
       .eq('batch_id', batchId)
       .eq('status', 'approved');
 
+    // Fetch memorized_juz from muallimah_registrations
+    const { data: muallimahProfiles } = await supabaseAdmin
+      .from('muallimah_registrations')
+      .select('user_id, memorized_juz')
+      .eq('batch_id', batchId);
+      
+    const profileMap = new Map((muallimahProfiles || []).map(p => [p.user_id, p]));
+
     const muallimahRegs = (muallimahRegsRaw || []).map(reg => ({
       ...reg,
       full_name: (reg.user as any)?.full_name || 'Unknown',
+      wa_phone: (reg.user as any)?.wa_phone || '',
+      memorized_juz: profileMap.get(reg.user_id)?.memorized_juz || '',
       exclude_from_capacity: reg.exclude_from_capacity,
       preferred_max_thalibah: reg.preferred_max_thalibah
     }));
@@ -198,6 +208,8 @@ export async function GET(request: NextRequest) {
         return {
           user_id: m.user_id,
           full_name: m.full_name,
+          wa_phone: m.wa_phone,
+          memorized_juz: m.memorized_juz,
           class_type: m.class_type,
           preferred_max_thalibah: m.preferred_max_thalibah || 10,
           preferred_juz: preferredJuzs,
@@ -321,6 +333,8 @@ export async function GET(request: NextRequest) {
             muallimah_name: m.full_name,
             class_type: m.class_type,
             preferred_juz: m.raw_preferred_juz,
+            wa_phone: m.wa_phone,
+            memorized_juz: m.memorized_juz,
             schedules: schedulesWithAllocation,
             is_allocated: hasAnyAllocationHere
           };

@@ -14,7 +14,8 @@ import {
   BookOpen,
   ChevronRight,
   FileText,
-  Award
+  Award,
+  MessageCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -786,6 +787,17 @@ export function MuallimahAnalysisTab() {
                                       <div className="flex flex-col gap-1">
                                         <p className="font-semibold text-gray-900 text-sm flex items-center gap-1.5 flex-wrap">
                                           {halaqah.name}
+                                          {halaqah.wa_phone && (
+                                            <a 
+                                              href={`https://wa.me/${halaqah.wa_phone.replace(/[^0-9]/g, '').replace(/^0/, '62')}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-green-600 hover:text-green-700 ml-1"
+                                              title="Chat WhatsApp"
+                                            >
+                                              <MessageCircle className="w-3.5 h-3.5" />
+                                            </a>
+                                          )}
                                           {halaqah.is_allocated && (
                                             <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider flex items-center gap-0.5 shadow-sm border border-emerald-200">
                                               ✓ Mengajar Di Sini
@@ -830,6 +842,15 @@ export function MuallimahAnalysisTab() {
                                           {halaqah.preferred_juz || '-'}
                                         </span>
                                       </div>
+ 
+                                      {halaqah.memorized_juz && (
+                                        <div className="flex justify-between items-start py-0.5 mt-1">
+                                          <span className="text-gray-600">Hafalan:</span>
+                                          <span className="text-[10px] font-medium text-gray-800 text-right ml-2 leading-snug">
+                                            Juz {halaqah.memorized_juz}
+                                          </span>
+                                        </div>
+                                      )}
  
                                       {/* Available Schedules */}
                                       <div className="py-1.5 border-t border-b border-gray-100 my-1.5 space-y-1">

@@ -378,23 +378,23 @@ function renderItemDescription(
   if (item.id === 4) {
     const daftarUlang = registrationStatus.registration?.daftar_ulang;
     const isCompleted = daftarUlang?.status === 'submitted' || daftarUlang?.status === 'approved';
-    const isSelectionStarted = getIsDateStarted(batch?.selection_start_date);
+    const isReEnrollmentStarted = getIsDateStarted(batch?.re_enrollment_date);
 
     const writtenCard = (
       <Card className={cn(
         "border-2 h-full transition-all duration-200",
-        !isSelectionStarted
+        !isReEnrollmentStarted
           ? "border-gray-200 bg-gray-50/50 cursor-not-allowed opacity-60"
           : registrationStatus?.writtenQuizSubmittedAt ? "border-green-300 bg-green-50 hover:shadow-md cursor-pointer" : "border-purple-300 bg-white hover:shadow-md cursor-pointer"
       )}>
         <CardContent className="p-4">
           <div className="flex items-center space-x-3">
-            <CheckCircle className={cn("w-5 h-5 flex-shrink-0", !isSelectionStarted ? "text-gray-300" : registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
+            <CheckCircle className={cn("w-5 h-5 flex-shrink-0", !isReEnrollmentStarted ? "text-gray-300" : registrationStatus?.writtenQuizSubmittedAt ? "text-green-600" : "text-gray-400")} />
             <div>
-              <h4 className={cn("text-sm font-bold", !isSelectionStarted && "text-gray-400")}>Test Tertulis (Penempatan Juz)</h4>
+              <h4 className={cn("text-sm font-bold", !isReEnrollmentStarted && "text-gray-400")}>Test Tertulis (Penempatan Juz)</h4>
               <p className="text-xs text-gray-500">
-                {!isSelectionStarted 
-                  ? `Belum dimulai (Mulai ${batch?.selection_start_date ? formatDateIndo(batch.selection_start_date) : '-'})` 
+                {!isReEnrollmentStarted 
+                  ? `Belum dimulai (Mulai ${batch?.re_enrollment_date ? formatDateIndo(batch.re_enrollment_date) : '-'})` 
                   : registrationStatus?.writtenQuizSubmittedAt ? "Selesai ✓" : "Belum dikerjakan - Wajib untuk penempatan"}
               </p>
             </div>
@@ -407,7 +407,7 @@ function renderItemDescription(
       <div className="space-y-4">
         {/* Test Tertulis untuk Penempatan */}
         {!isJuz30 && !registrationStatus?.isAlumnus && (
-          isSelectionStarted ? (
+          isReEnrollmentStarted ? (
             <Link href={`/seleksi/pilihan-ganda?batch_id=${batchId}`} className="block">
               {writtenCard}
             </Link>
