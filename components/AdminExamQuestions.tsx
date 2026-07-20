@@ -29,7 +29,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
   const {
     questions, loading, selectedJuz, setSelectedJuz, selectedSection, setSelectedSection,
     currentPage, setCurrentPage, showEditModal, setShowEditModal, editingQuestion, setEditingQuestion,
-    showDeleteModal, setShowDeleteModal, deletingQuestionId, isSaving, juzOptions, searchQuery,
+    showDeleteModal, setShowDeleteModal, deletingQuestionId, setDeletingQuestionId, isSaving, juzOptions, searchQuery,
     setSearchQuery, sortField, sortOrder, handleSort, filterType, setFilterType,
     filterActive, setFilterActive, showPreviewModal, setShowPreviewModal, previewQuestion,
     setPreviewQuestion, showAnalytics, setShowAnalytics, analytics, analyticsLoading,
@@ -119,7 +119,7 @@ export function AdminExamQuestions({ onImportClick, onAddManualClick, onSuccess 
         handleSort={handleSort}
         onPreview={(q) => { setPreviewQuestion(q); setShowPreviewModal(true); }}
         onEdit={(q) => { setEditingQuestion(q); setShowEditModal(true); }}
-        onDelete={(id) => { setShowDeleteModal(true); }}
+        onDelete={(id) => { setDeletingQuestionId(id); setShowDeleteModal(true); }}
       />
 
       {/* Modals */}

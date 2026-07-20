@@ -1,7 +1,7 @@
 // Exam System Types for MTI Tikrar Tahfidz
 // Ujian Pilihan Ganda Juz 28, 29, 30
 
-export type JuzNumber = 28 | 29 | 30;
+export type JuzNumber = number;
 
 export type QuestionType = 'multiple_choice' | 'introduction';
 

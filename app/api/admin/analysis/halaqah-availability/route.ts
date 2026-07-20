@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         backup_schedule,
         preferred_max_thalibah,
         exclude_from_capacity,
-        user:users!muallimah_akads_user_id_fkey(full_name, wa_phone)
+        user:users!muallimah_akads_user_id_fkey(full_name, whatsapp)
       `)
       .eq('batch_id', batchId)
       .eq('status', 'approved');
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const muallimahRegs = (muallimahRegsRaw || []).map(reg => ({
       ...reg,
       full_name: (reg.user as any)?.full_name || 'Unknown',
-      wa_phone: (reg.user as any)?.wa_phone || '',
+      wa_phone: (reg.user as any)?.whatsapp || '',
       memorized_juz: profileMap.get(reg.user_id)?.memorized_juz || '',
       exclude_from_capacity: reg.exclude_from_capacity,
       preferred_max_thalibah: reg.preferred_max_thalibah

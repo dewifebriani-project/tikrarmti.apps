@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { generateAkadPDF } from '@/lib/pdfAkadGenerator'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +10,7 @@ import { CheckCircle, AlertCircle, Clock, Users, Calendar, Upload, Download, Che
 import { submitDaftarUlang, saveDaftarUlangDraft, uploadAkad, approveDaftarUlangSubmission, getReregistrationQuestions } from './actions'
 import { UserProfileCard } from '@/components/UserProfileCard'
 
-type Step = 'confirm' | 'pengabdian' | 'review' | 'akad' | 'success'
+type Step = 'confirm' | 'pengabdian' | 'review' | 'akad' | 'halaqah' | 'partner' | 'success'
 
 // Helper function to format time slot value
 const formatTimeSlot = (timeSlot: string): string => {
@@ -258,14 +257,27 @@ export default function DaftarUlangPage() {
         console.log('[Daftar Ulang] Existing submission:', halaqahDataResult.data?.existing_submission)
 
         // Check if user already submitted daftar ulang OR approved
-        // Both statuses should show the success/info page and prevent form editing
         const submissionStatus = halaqahDataResult.data?.existing_submission?.status
+        const existingSub = halaqahDataResult.data?.existing_submission
+
         if (submissionStatus === 'submitted' || submissionStatus === 'approved') {
-          setCurrentStep('success')
           if (submissionStatus === 'approved') {
-            toast.success('Alhamdulillah! Daftar ulang Anda telah disetujui.')
+            if (!existingSub.ujian_halaqah_id) {
+              // Approved but hasn't selected halaqah
+              setCurrentStep('halaqah')
+            } else if (!existingSub.partner_type) {
+              // Approved, has halaqah, hasn't selected partner
+              setCurrentStep('partner')
+            } else {
+              // Fully completed, redirect to perjalanan-saya
+              toast.success('Alhamdulillah! Daftar ulang selesai.')
+              router.push('/perjalanan-saya')
+              return
+            }
           } else {
-            toast.success('Anda sudah melakukan daftar ulang!')
+            // Submitted but not approved
+            setCurrentStep('success')
+            toast.success('Anda sudah melakukan daftar ulang! Menunggu persetujuan admin.')
           }
         }
       } catch (error) {
@@ -398,11 +410,23 @@ export default function DaftarUlangPage() {
       setCurrentStep('akad')
     } else if (currentStep === 'akad') {
       handleSubmit()
+    } else if (currentStep === 'halaqah') {
+      if (!formData.ujian_halaqah_id) {
+        toast.error('Pilih halaqah terlebih dahulu')
+        return
+      }
+      setCurrentStep('partner')
+    } else if (currentStep === 'partner') {
+      if (!formData.partner_type) {
+        toast.error('Pilih tipe pasangan')
+        return
+      }
+      handleSubmit()
     }
   }
 
   const handleBack = () => {
-    const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad', 'success']
+    const steps: Step[] = ['confirm', 'pengabdian', 'review', 'akad', 'halaqah', 'partner', 'success']
     const currentIndex = steps.indexOf(currentStep)
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1])
@@ -434,8 +458,15 @@ export default function DaftarUlangPage() {
       const result = await submitDaftarUlang(registrationData.id, submitData)
 
       if (result.success) {
-        toast.success(result.message || 'Daftar ulang berhasil dikirim!')
-        setCurrentStep('success')
+        toast.success(result.message || 'Berhasil disimpan!')
+        
+        if (currentStep === 'akad') {
+          setCurrentStep('halaqah')
+        } else if (currentStep === 'partner') {
+          router.push('/perjalanan-saya')
+        } else {
+          setCurrentStep('success')
+        }
       } else {
         toast.error(result.error || 'Gagal mengirim daftar ulang')
       }
@@ -671,6 +702,24 @@ export default function DaftarUlangPage() {
                 onRemove={handleRemoveAkadFile}
                 isLoading={isLoading}
                 existingSubmission={existingSubmission}
+                reregQuestions={reregQuestions}
+              />
+            )}
+
+            {currentStep === 'halaqah' && (
+              <HalaqahSelectionStep
+                halaqahData={halaqahData}
+                formData={formData}
+                onChange={setFormData}
+                reregQuestions={reregQuestions}
+              />
+            )}
+
+            {currentStep === 'partner' && (
+              <PartnerSelectionStep
+                formData={formData}
+                onChange={setFormData}
+                registrationId={registrationData?.id}
                 reregQuestions={reregQuestions}
               />
             )}
@@ -1945,7 +1994,6 @@ function AkadUploadStep({
   const [akadData, setAkadData] = useState<{ title: string; content: string[]; fullText: string } | null>(null)
   const [isLoadingAkad, setIsLoadingAkad] = useState(true)
   const [akadError, setAkadError] = useState<string | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
 
   useEffect(() => {
     async function fetchAkadIntisari() {
@@ -1972,35 +2020,6 @@ function AkadUploadStep({
     fetchAkadIntisari()
   }, [])
 
-  const handleDownloadPDF = async () => {
-    if (!akadData) return
-    setIsGenerating(true)
-    
-    try {
-      const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-
-      let pengabdian = formData.pengabdian_type || formData.infaq_type || '-'
-      if (formData.pengabdian_type === 'donasi') {
-         pengabdian = `Donasi (Rp ${formData.donasi_amount || 0})`
-      }
-
-      await generateAkadPDF({
-        fullName: formData.confirmed_full_name || registrationData?.full_name || '',
-        waPhone: registrationData?.wa_phone || '',
-        domicile: registrationData?.domicile || '',
-        chosenJuz: formData.final_juz || formData.confirmed_chosen_juz || '',
-        pengabdian: pengabdian,
-        akadText: akadData.fullText,
-        dateStr
-      })
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      alert('Gagal membuat PDF. Silakan coba lagi.')
-    } finally {
-      setIsGenerating(false)
-    }
-  }
-
   const akadQuestion = reregQuestions.find(q => q.field_key === 'akad_upload')
   const commitmentInfo = reregQuestions.find(q => q.field_key === 'commitment_info')
 
@@ -2019,10 +2038,10 @@ function AkadUploadStep({
 
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          {akadQuestion?.label || "Download & Upload Akad"}
+          Salin & Upload Akad
         </h2>
         <p className="text-gray-600 mb-6">
-          {akadQuestion?.description || "Silakan download PDF akad, pelajari kembali datanya, lalu tandatangani dan upload kembali."}
+          Silakan salin teks akad di bawah ini dengan tulisan tangan Anda, tandatangani, lalu foto dan upload.
         </p>
       </div>
 
@@ -2039,7 +2058,7 @@ function AkadUploadStep({
          </div>
       </div>
 
-      {/* Download Akad Action */}
+      {/* Teks Akad untuk Disalin */}
       {!isLoadingAkad && akadData && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
           <div className="flex items-start space-x-3 mb-4">
@@ -2047,25 +2066,13 @@ function AkadUploadStep({
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-amber-900 mb-2">{akadData.title}</h3>
               <p className="text-sm text-amber-800 mb-4">
-                Akad kesepakatan telah disiapkan beserta data diri Ukhti. Silakan download PDF di bawah ini.
+                Berikut adalah teks akad yang harus Anda tulis tangan (salin). Beberapa bagian sudah disesuaikan dengan data Anda.
               </p>
             </div>
           </div>
 
-          <div className="flex justify-center my-6">
-            <button
-              type="button"
-              onClick={handleDownloadPDF}
-              disabled={isGenerating}
-              className="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-xl font-semibold shadow-md transition-all active:scale-95 disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <Download className="w-5 h-5" />
-              )}
-              <span>{isGenerating ? 'Membuat PDF...' : 'Download PDF Akad'}</span>
-            </button>
+          <div className="bg-white border border-amber-200 rounded-lg p-4 mb-6 max-h-96 overflow-y-auto font-mono text-sm whitespace-pre-wrap text-gray-800">
+            {akadData.fullText}
           </div>
 
           {/* Instructions */}
@@ -2075,9 +2082,11 @@ function AkadUploadStep({
               <div className="text-sm text-blue-800">
                 <p className="font-semibold mb-2">Instruksi:</p>
                 <ol className="list-decimal list-inside space-y-1">
-                  <li>Download file PDF Akad di atas.</li>
-                  <li>Tandatangani dokumen tersebut (bisa diprint & ditandatangani basah, lalu difoto/scan ATAU ditandatangani secara digital).</li>
-                  <li>Upload kembali file yang sudah ditandatangani di bawah ini.</li>
+                  <li>Siapkan kertas kosong dan pulpen.</li>
+                  <li>Salin (tulis ulang dengan tulisan tangan Anda sendiri) seluruh teks akad di atas pada kertas tersebut.</li>
+                  <li>Tandatangani kertas akad yang sudah Anda tulis tangan.</li>
+                  <li>Foto kertas akad tersebut dengan jelas.</li>
+                  <li>Upload foto akad di bawah ini.</li>
                 </ol>
               </div>
             </div>

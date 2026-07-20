@@ -10,6 +10,8 @@ import { useActiveBatch } from '@/hooks/useBatches';
 import { useDashboardStats, useLearningJourney, useUserProgress, useJurnalStatus } from '@/hooks/useDashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { GroupLinks } from "@/components/dashboard/GroupLinks";
+
 import { CheckCircle, AlertCircle, BookOpen, Award, Target, Calendar, TrendingUp, Edit, Clock, Phone, MapPin, Ban, Info, RotateCcw, FileText, HeartHandshake, Star, Sparkles, User, BadgeCheck, Zap, Eye, Play, FileCheck, Lock, Circle } from 'lucide-react';
 import { SWRLoadingFallback, SWRErrorFallback } from '@/lib/swr/providers';
 import { ReviewSubmissionModal } from '@/components/ReviewSubmissionModal';
@@ -315,6 +317,14 @@ export default function PerjalananSaya() {
 
   const isLoading = authLoading || registrationsLoading;
 
+  const hasAkad = !!(registrationStatus?.registration?.daftar_ulang);
+  const daftarUlangData = registrationStatus?.registration?.daftar_ulang as any;
+  const hasPhase3 = hasAkad && (!!daftarUlangData?.ujian_halaqah_id || !!daftarUlangData?.tashih_halaqah_id);
+  const hasPartner = !!(pairingData) || hasPhase3;
+  
+  const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
+  const partnerName = partner ? partner.full_name : pairingData?.partner_details?.partner_name;
+
   // PHASE TRACKER LOGIC
   const phases = useMemo(() => {
     if (!user || isLoading) return [];
@@ -392,12 +402,6 @@ export default function PerjalananSaya() {
     // Sub-phase detailed logic & data formatting
     const hasOral = !!(registrationStatus?.hasOralSubmission);
     const hasWritten = !!(registrationStatus?.writtenQuizSubmittedAt || registrationStatus?.examScore);
-    const hasAkad = !!(registrationStatus?.registration?.daftar_ulang);
-    const daftarUlangData = registrationStatus?.registration?.daftar_ulang;
-    const hasPhase3 = hasAkad && (!!daftarUlangData?.ujian_halaqah_id || !!daftarUlangData?.tashih_halaqah_id);
-    const hasPartner = !!(pairingData) || hasPhase3;
-    
-    const partner = [pairingData?.user_1, pairingData?.user_2, pairingData?.user_3].find(p => p && p.id !== user?.id);
 
     return [
       { 
@@ -499,7 +503,7 @@ export default function PerjalananSaya() {
             name: 'Pilih Halaqah & Pasangan', 
             date: formatDateRangeShort(batch?.re_enrollment_date, batch?.opening_class_date), 
             done: hasPartner, 
-            data: hasPhase3 ? (partner ? partner.full_name : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad'), 
+            data: hasPhase3 ? (partnerName ? partnerName : 'Menunggu Dipasangkan') : (hasAkad ? 'Belum pilih' : 'Belum submit akad'), 
             reviewType: hasPartner ? 'pairing' : null, 
             isLocked: !hasAkad,
             isTestAction: hasAkad && !hasPhase3,
@@ -955,6 +959,14 @@ export default function PerjalananSaya() {
         </div>
       </div>
 
+      {/* Group Links Section */}
+      {hasPhase3 && (
+        <GroupLinks 
+          daftarUlangData={daftarUlangData}
+          batchData={batch}
+          partnerName={partnerName}
+        />
+      )}
 
       {/* Action Modals */}
 

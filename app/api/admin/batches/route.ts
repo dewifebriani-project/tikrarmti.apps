@@ -174,6 +174,9 @@ export async function POST(request: Request) {
       graduation_start_date: toDateOrNull(body.graduation_start_date),
       graduation_end_date: toDateOrNull(body.graduation_end_date),
       holiday_dates: body.holiday_dates || [],
+      whatsapp_group_link: body.whatsapp_group_link || null,
+      group_reminder_link: body.group_reminder_link || null,
+      group_diskusi_link: body.group_diskusi_link || null,
     };
 
     if (body.id) {

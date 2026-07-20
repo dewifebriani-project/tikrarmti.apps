@@ -54,11 +54,79 @@ export async function GET(request: Request) {
 
     if (pairingError) throw pairingError
 
+    // 11. Get submission data for family/tarteel/self_match partner details
+    const { data: submissionData } = await supabase
+      .from('daftar_ulang_submissions')
+      .select('id, partner_name, partner_relationship, partner_notes, partner_wa_phone, partner_type, partner_user_id, status')
+      .eq('user_id', user.id)
+      .eq('batch_id', batchId)
+      .in('status', ['submitted', 'approved'])
+      .maybeSingle()
+
     if (!pairing) {
+      if (!submissionData) {
+        return NextResponse.json({
+          success: true,
+          data: null,
+          message: 'No pairing found'
+        })
+      }
+      
+      // If we have a submission but no formal pairing yet, return the pending data
+      // Get current user's registration for their details
+      const { data: currentUserReg } = await supabase
+        .from('pendaftaran_tikrar_tahfidz')
+        .select('chosen_juz, main_time_slot, backup_time_slot, timezone')
+        .eq('user_id', user.id)
+        .eq('batch_id', batchId)
+        .maybeSingle()
+        
+      const { data: currentUserDetails } = await supabase
+        .from('users')
+        .select('id, full_name, email, zona_waktu, whatsapp, tanggal_lahir')
+        .eq('id', user.id)
+        .single()
+        
+      let partnerName = submissionData.partner_name;
+      if (submissionData.partner_type === 'self_match' && submissionData.partner_user_id) {
+        const { data: partnerDetails } = await supabase
+          .from('users')
+          .select('full_name')
+          .eq('id', submissionData.partner_user_id)
+          .single()
+        if (partnerDetails) {
+          partnerName = partnerDetails.full_name;
+        }
+      }
+        
       return NextResponse.json({
         success: true,
-        data: null,
-        message: 'No pairing found'
+        data: {
+          submission_id: submissionData.id,
+          current_user: {
+            id: currentUserDetails?.id,
+            full_name: currentUserDetails?.full_name,
+            email: currentUserDetails?.email,
+            zona_waktu: currentUserReg?.timezone || currentUserDetails?.zona_waktu || 'WIB',
+            whatsapp: currentUserDetails?.whatsapp,
+            tanggal_lahir: currentUserDetails?.tanggal_lahir,
+            chosen_juz: currentUserReg?.chosen_juz || 'N/A',
+            main_time_slot: currentUserReg?.main_time_slot || 'N/A',
+            backup_time_slot: currentUserReg?.backup_time_slot || 'N/A',
+          },
+          pairing: null,
+          user_1: null,
+          user_2: null,
+          user_3: null,
+          partner_details: {
+            partner_name: partnerName,
+            partner_relationship: submissionData.partner_relationship,
+            partner_notes: submissionData.partner_notes,
+            partner_wa_phone: submissionData.partner_wa_phone,
+            partner_type: submissionData.partner_type,
+            partner_user_id: submissionData.partner_user_id,
+          },
+        }
       })
     }
 
@@ -107,14 +175,7 @@ export async function GET(request: Request) {
     // 10. Get current user's data for comparison
     const currentUserData = buildUserData(user.id)
 
-    // 11. Get submission data for family/tarteel partner details
-    const { data: submissionData } = await supabase
-      .from('daftar_ulang_submissions')
-      .select('id, partner_name, partner_relationship, partner_notes, partner_wa_phone')
-      .eq('user_id', user.id)
-      .eq('batch_id', batchId)
-      .in('status', ['submitted', 'approved'])
-      .maybeSingle()
+    // We already fetched submissionData on line 58, reuse it!
 
     return NextResponse.json({
       success: true,
@@ -136,6 +197,8 @@ export async function GET(request: Request) {
           partner_relationship: submissionData.partner_relationship,
           partner_notes: submissionData.partner_notes,
           partner_wa_phone: submissionData.partner_wa_phone,
+          partner_type: submissionData.partner_type,
+          partner_user_id: submissionData.partner_user_id,
         } : null,
       }
     })

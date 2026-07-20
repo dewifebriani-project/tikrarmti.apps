@@ -14,12 +14,12 @@ envContent.split('\n').forEach(line => {
 const supabase = createClient(env['NEXT_PUBLIC_SUPABASE_URL'], env['SUPABASE_SERVICE_ROLE_KEY']);
 
 async function main() {
-  const { data: batches } = await supabase.from('batches').select('id, name');
-  console.log('Batches:');
-  console.dir(batches, { depth: null });
-  
-  const { data: programs } = await supabase.from('programs').select('id, name, batch_id');
-  console.log('Programs:');
-  console.dir(programs, { depth: null });
+  const { data: halaqahs } = await supabase
+    .from('halaqah')
+    .select('id, name, program_id, day_of_week, start_time, end_time, created_at')
+    .order('created_at', { ascending: false })
+    .limit(10);
+    
+  console.log(halaqahs);
 }
 main().catch(console.error);

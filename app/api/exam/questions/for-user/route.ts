@@ -238,14 +238,33 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch ALL active questions for the required juz (we'll limit after shuffle if needed)
-    const { data: questions, error: questionsError } = await supabaseAdmin
+    // Fetch active questions for the required juz
+    let query = supabaseAdmin
       .from('exam_questions')
       .select('*')
       .eq('juz_number', requiredJuzNumber)
-      .eq('is_active', true)
+      .eq('is_active', true);
+
+    if (isFinalExam && chosenJuz) {
+      query = query.eq('juz_code', chosenJuz);
+    }
+
+    let { data: questions, error: questionsError } = await query
       .order('section_number', { ascending: true })
       .order('question_number', { ascending: true });
+
+    // Fallback if no questions found with specific juz_code
+    if (!questionsError && (!questions || questions.length === 0) && isFinalExam && chosenJuz) {
+      const fallbackResult = await supabaseAdmin
+        .from('exam_questions')
+        .select('*')
+        .eq('juz_number', requiredJuzNumber)
+        .eq('is_active', true)
+        .order('section_number', { ascending: true })
+        .order('question_number', { ascending: true });
+      questions = fallbackResult.data;
+      questionsError = fallbackResult.error;
+    }
 
     if (questionsError) {
       console.error('Error fetching exam questions:', questionsError);

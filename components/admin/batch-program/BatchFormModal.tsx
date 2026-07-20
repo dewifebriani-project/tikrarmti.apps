@@ -47,7 +47,9 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
     price: batch?.price || 0,
     min_exam_score: batch?.min_exam_score ?? (batch?.name ? (batch.name.match(/Batch\s*(\d+)/i) && parseInt(batch.name.match(/Batch\s*(\d+)/i)![1], 10) >= 3 ? 80 : 70) : 70),
     min_final_exam_score: batch?.min_final_exam_score ?? (batch?.name ? (batch.name.match(/Batch\s*(\d+)/i) && parseInt(batch.name.match(/Batch\s*(\d+)/i)![1], 10) >= 3 ? 80 : 70) : 70),
-
+    whatsapp_group_link: batch?.whatsapp_group_link || '',
+    group_reminder_link: batch?.group_reminder_link || '',
+    group_diskusi_link: batch?.group_diskusi_link || '',
     selection_start_date: extractDate(batch?.selection_start_date),
     selection_end_date: extractDate(batch?.selection_end_date),
     selection_result_date: extractDate(batch?.selection_result_date),
@@ -314,6 +316,42 @@ export function BatchFormModal({ batch, isOpen, onClose, onSuccess }: BatchFormM
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">Nilai minimum kelulusan program (final exam)</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Link Komunikasi Grup</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">WhatsApp Group (Zoom)</label>
+                    <input
+                      type="url"
+                      value={formData.whatsapp_group_link}
+                      onChange={(e) => setFormData({ ...formData, whatsapp_group_link: e.target.value })}
+                      placeholder="https://chat.whatsapp.com/..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Group Reminder</label>
+                    <input
+                      type="url"
+                      value={formData.group_reminder_link}
+                      onChange={(e) => setFormData({ ...formData, group_reminder_link: e.target.value })}
+                      placeholder="https://chat.whatsapp.com/..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Group Diskusi</label>
+                    <input
+                      type="url"
+                      value={formData.group_diskusi_link}
+                      onChange={(e) => setFormData({ ...formData, group_diskusi_link: e.target.value })}
+                      placeholder="https://chat.whatsapp.com/..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-600/20 focus:border-green-600"
+                    />
+                  </div>
                 </div>
               </div>
 

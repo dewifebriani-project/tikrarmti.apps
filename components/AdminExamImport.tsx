@@ -88,8 +88,8 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
         const data = JSON.parse(text) as ImportData;
 
         // Validate structure
-        if (!data.juz_number || ![28, 29, 30].includes(data.juz_number)) {
-          toast.error('Invalid juz_number. Must be 28, 29, or 30');
+        if (!data.juz_number || data.juz_number < 1 || data.juz_number > 30) {
+          toast.error('Invalid juz_number. Must be between 1 and 30');
           return;
         }
 
@@ -434,9 +434,9 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                   onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={28}>Juz 28</option>
-                  <option value={29}>Juz 29</option>
-                  <option value={30}>Juz 30</option>
+                  {Array.from({ length: 30 }, (_, i) => i + 1).map(juz => (
+                    <option key={juz} value={juz}>Juz {juz}</option>
+                  ))}
                 </select>
               </div>
 
@@ -519,9 +519,9 @@ export function AdminExamImport({ onClose, onImportSuccess }: AdminExamImportPro
                   onChange={(e) => setSelectedJuz(parseInt(e.target.value) as JuzNumber)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={28}>Juz 28</option>
-                  <option value={29}>Juz 29</option>
-                  <option value={30}>Juz 30</option>
+                  {Array.from({ length: 30 }, (_, i) => i + 1).map(juz => (
+                    <option key={juz} value={juz}>Juz {juz}</option>
+                  ))}
                 </select>
               </div>
 

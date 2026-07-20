@@ -88,6 +88,9 @@ export interface Batch {
   final_exam_end_date?: string;
   graduation_start_date?: string;
   graduation_end_date?: string;
+  whatsapp_group_link?: string;
+  group_reminder_link?: string;
+  group_diskusi_link?: string;
 }
 
 export interface Program {

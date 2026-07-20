@@ -28,14 +28,7 @@ function isCsrfViolation(request: NextRequest): boolean {
  * This is called by the main middleware for every request.
  */
 export async function updateSession(request: NextRequest) {
-  // FAST-PATH FOR DEVELOPMENT: Skip complex middleware logic to ensure stability
-  if (process.env.NODE_ENV === 'development') {
-    return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    })
-  }
+  // We must run session update logic in all environments to ensure cookies are refreshed.
 
   // CSRF check — block state-changing requests from unknown origins
   if (isCsrfViolation(request)) {

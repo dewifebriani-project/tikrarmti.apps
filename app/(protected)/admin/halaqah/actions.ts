@@ -709,6 +709,33 @@ export async function autoCreateSimpleHalaqah(params: AutoCreateSimpleParams) {
       else if (pName.includes('pra-tikrar') || pName.includes('pra tikrar') || pName.includes('pra_tahfidz')) programsMap['pra_tahfidz'] = p
     })
 
+    // Auto-create missing programs for this batch if they don't exist
+    if (!programsMap['tikrar_tahfidz']) {
+      console.log('[autoCreateSimpleHalaqah] Auto-creating missing Tikrar Tahfidz program for batch')
+      const { data: newProg } = await supabaseAdmin.from('programs').insert({
+        batch_id,
+        name: 'Tahfidz Tikrar MTI',
+        description: "Program tahfidz khusus dengan tasmi' one-on-one dengan pasangan belajar",
+        status: 'open',
+        max_thalibah: 150,
+        duration_weeks: 13
+      }).select().single()
+      if (newProg) programsMap['tikrar_tahfidz'] = newProg
+    }
+    
+    if (!programsMap['pra_tahfidz']) {
+      console.log('[autoCreateSimpleHalaqah] Auto-creating missing Pra-Tikrar program for batch')
+      const { data: newProg } = await supabaseAdmin.from('programs').insert({
+        batch_id,
+        name: 'Pra-Tikrar MTI',
+        description: 'Program perbaikan bacaan sebelum tikrar',
+        status: 'open',
+        max_thalibah: 100,
+        duration_weeks: 13
+      }).select().single()
+      if (newProg) programsMap['pra_tahfidz'] = newProg
+    }
+
     const mapDayToNumber = (dayStr: string): number | null => {
       if (!dayStr) return null;
       const d = dayStr.toLowerCase().trim();

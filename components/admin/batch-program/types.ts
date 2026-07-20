@@ -33,6 +33,9 @@ export interface Batch {
   holiday_dates?: string[] | null;
   min_exam_score?: number | null;
   min_final_exam_score?: number | null;
+  whatsapp_group_link?: string | null;
+  group_reminder_link?: string | null;
+  group_diskusi_link?: string | null;
 }
 
 export interface Program {

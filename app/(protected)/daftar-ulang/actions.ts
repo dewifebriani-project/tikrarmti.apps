@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createSupabaseAdmin } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 
 export interface DaftarUlangFormData {
@@ -275,16 +276,17 @@ export async function submitDaftarUlang(
       akad_files: data.akad_files || null,
       akad_submitted_at: new Date().toISOString(),
 
-      // Status - submitted status reduces quota
-      status: 'submitted' as const,
+      // Status - auto approved per user request
+      status: 'approved' as const,
       submitted_at: new Date().toISOString(),
+      reviewed_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
 
     let result
 
-    if (existing && existing.status === 'draft') {
-      // Update existing draft to submitted
+    if (existing && (existing.status === 'draft' || existing.status === 'approved')) {
+      // Update existing draft or approved to save new halaqah/partner selections
       result = await supabase
         .from('daftar_ulang_submissions')
         .update(submissionData)
@@ -299,7 +301,7 @@ export async function submitDaftarUlang(
         .select()
         .single()
     } else {
-      return { success: false, error: 'Anda sudah submit daftar ulang.' }
+      return { success: false, error: 'Anda sudah submit daftar ulang dan tidak bisa diubah.' }
     }
 
     if (result.error) {
@@ -342,6 +344,72 @@ export async function submitDaftarUlang(
     if (updateError) {
       console.error('Failed to update re_enrollment_completed:', updateError)
       // Continue anyway as the submission was successful
+    }
+
+    // Assign thalibah role automatically using Admin Client
+    const supabaseAdmin = createSupabaseAdmin()
+    const { data: userData, error: userDataError } = await supabaseAdmin
+      .from('users')
+      .select('roles')
+      .eq('id', authUser.id)
+      .single()
+
+    if (!userDataError && userData) {
+      const currentRoles = Array.isArray(userData.roles) ? userData.roles : []
+      let newRoles = [...currentRoles]
+      
+      if (!newRoles.includes('thalibah')) {
+        newRoles.push('thalibah')
+      }
+      
+      // Add muallimah role if pengabdian choice is muallimah
+      if (data.pengabdian_choice === 'muallimah' && !newRoles.includes('muallimah')) {
+        newRoles.push('muallimah')
+      }
+      
+      // Remove legacy roles
+      newRoles = newRoles.filter(role => role !== 'waiting_reregistration' && role !== 'user')
+
+      await supabaseAdmin
+        .from('users')
+        .update({ roles: newRoles, role: 'thalibah' })
+        .eq('id', authUser.id)
+    }
+
+    // 6. Automatically add to halaqah_students if halaqah IDs are provided
+    const halaqahEntries: any[] = []
+
+    if (data.ujian_halaqah_id) {
+      halaqahEntries.push({
+        halaqah_id: data.ujian_halaqah_id,
+        thalibah_id: authUser.id,
+        assigned_by: authUser.id, // Auto assigned by user
+        status: 'active'
+      })
+    }
+
+    if (data.tashih_halaqah_id && data.tashih_halaqah_id !== data.ujian_halaqah_id) {
+      halaqahEntries.push({
+        halaqah_id: data.tashih_halaqah_id,
+        thalibah_id: authUser.id,
+        assigned_by: authUser.id,
+        status: 'active'
+      })
+    }
+
+    if (halaqahEntries.length > 0) {
+      // Clean up previous assignments for this user in this batch first (to avoid duplicates if they changed it)
+      // Actually, since they can only submit once after picking, we can just insert, but we should handle conflict gracefully.
+      const supabaseAdmin = createSupabaseAdmin()
+      for (const entry of halaqahEntries) {
+        const { error: halaqahError } = await supabaseAdmin
+          .from('halaqah_students')
+          .upsert(entry, { onConflict: 'halaqah_id,thalibah_id' })
+        
+        if (halaqahError) {
+          console.error('Error upserting into halaqah_students:', halaqahError)
+        }
+      }
     }
 
     // Revalidate paths
